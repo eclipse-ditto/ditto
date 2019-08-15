@@ -24,8 +24,9 @@ import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 
-import akka.actor.ActorContext;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
+import akka.actor.ActorSystem;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.LWWMap;
@@ -47,12 +48,28 @@ public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, By
     private final Gauge topicBloomFiltersMetric = DittoMetrics.gauge("pubsub-ddata-entries");
 
     private TopicBloomFilters(final DistributedDataConfigReader configReader,
-            final ActorContext actorContext,
+            final ActorRefFactory actorRefFactory,
+            final ActorSystem actorSystem,
             final Executor ddataExecutor,
             final String topicType) {
-        super(configReader, actorContext, ddataExecutor);
+        super(configReader, actorRefFactory, ddataExecutor);
         this.topicType = topicType;
-        this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorContext.system()).selfUniqueAddress());
+        this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorSystem).selfUniqueAddress());
+    }
+
+    /**
+     * Start distributed-data replicator for topic Bloom filters under an actor system's user guardian using the default
+     * dispatcher.
+     *
+     * @param system the actor system.
+     * @param ddataConfig the distributed data config.
+     * @param topicType the type of messages, typically the canonical name of the message class.
+     * @return access to the distributed data.
+     */
+    public static TopicBloomFilters of(final ActorSystem system, final DistributedDataConfigReader ddataConfig,
+            final String topicType) {
+
+        return new TopicBloomFilters(ddataConfig, system, system, system.dispatcher(), topicType);
     }
 
     @Override

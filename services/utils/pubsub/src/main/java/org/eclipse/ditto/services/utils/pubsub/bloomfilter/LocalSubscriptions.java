@@ -47,7 +47,7 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
     /**
      * Seeds of hash functions. They should be identical cluster-wide.
      */
-    private final List<Integer> seeds;
+    private final Collection<Integer> seeds;
 
     /**
      * Map from local subscribers to topics they subscribe to.
@@ -59,7 +59,7 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
      */
     final Map<String, TopicData> topicToData;
 
-    private LocalSubscriptions(final List<Integer> seeds,
+    private LocalSubscriptions(final Collection<Integer> seeds,
             final Map<ActorRef, Set<String>> subscriberToTopic,
             final Map<String, TopicData> topicToData) {
         this.seeds = seeds;
@@ -69,16 +69,18 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
 
     /**
      * Construct a local-subscriptions object with a family of hash functions of the given size initiated with the given
-     * seed. For the exported bloom filters to be meaningful on a remote node, all cluster members should have the same
-     * seed.
+     * seeds. For the exported bloom filters to be meaningful on a remote node, all cluster members should have the same
+     * seeds.
      *
-     * @param seed seed to initialize hash functions.
-     * @param hashFamilySize the number {@code k} of hash functions to initialize. {@code k = -log_2(p)} where {@code p}
-     * is the false-positive rate.
+     * @param seeds seeds to initialize hash functions.
      * @return the local-subscriptions object.
      */
-    public static LocalSubscriptions of(final String seed, final int hashFamilySize) {
-        final List<Integer> seeds = Hashes.digestStringsToIntegers(seed, hashFamilySize);
+    public static LocalSubscriptions of(final Collection<Integer> seeds) {
+        return new LocalSubscriptions(seeds, new HashMap<>(), new HashMap<>());
+    }
+
+    static LocalSubscriptions of(final String seed, final int hashFamilySize) {
+        final Collection<Integer> seeds = Hashes.digestStringsToIntegers(seed, hashFamilySize);
         return new LocalSubscriptions(seeds, new HashMap<>(), new HashMap<>());
     }
 
@@ -200,6 +202,13 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
     LocalSubscriptions thenRemoveSubscriber(final ActorRef subscriber) {
         removeSubscriber(subscriber);
         return this;
+    }
+
+    /**
+     * @return whether there are no subscribers.
+     */
+    public boolean isEmpty() {
+        return subscriberToTopic.isEmpty();
     }
 
     /**

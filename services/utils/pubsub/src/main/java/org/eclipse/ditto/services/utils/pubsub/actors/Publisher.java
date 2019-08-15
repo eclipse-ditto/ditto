@@ -17,19 +17,27 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFiltersReader;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.DeadLetter;
+import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Publishes messages according to topic Bloom filters.
  */
-public final class PubSubPublisher extends AbstractActor implements Hashes {
+public final class Publisher extends AbstractActor implements Hashes {
+
+    /**
+     * Prefix of this actor's name.
+     */
+    public static final String ACTOR_NAME_PREFIX = "publisher";
 
     private DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -37,7 +45,11 @@ public final class PubSubPublisher extends AbstractActor implements Hashes {
     private final TopicBloomFiltersReader topicBloomFiltersReader;
     private final ActorRef pubSubUpdater;
 
-    private PubSubPublisher(final Collection<Integer> seeds, final TopicBloomFiltersReader topicBloomFiltersReader,
+    private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
+    private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
+    private final Counter deadLetterCounter = DittoMetrics.counter("pubsub-published-deadletters");
+
+    private Publisher(final Collection<Integer> seeds, final TopicBloomFiltersReader topicBloomFiltersReader,
             final ActorRef pubSubUpdater) {
         this.seeds = seeds;
         this.topicBloomFiltersReader = topicBloomFiltersReader;
@@ -46,7 +58,19 @@ public final class PubSubPublisher extends AbstractActor implements Hashes {
         getContext().getSystem().eventStream().subscribe(getSelf(), DeadLetter.class);
     }
 
-    // TODO: props from config
+    /**
+     * Create Props for this actor.
+     *
+     * @param seeds seeds of the family of hash functions for Bloom filters.
+     * @param topicBloomFiltersReader reader of remote subscriptions.
+     * @param pubSubUpdater updater of remote subscriptions.
+     * @return a Props object.
+     */
+    public static Props props(final Collection<Integer> seeds, final TopicBloomFiltersReader topicBloomFiltersReader,
+            final ActorRef pubSubUpdater) {
+
+        return Props.create(Publisher.class, seeds, topicBloomFiltersReader, pubSubUpdater);
+    }
 
     @Override
     public Collection<Integer> getSeeds() {
@@ -63,6 +87,8 @@ public final class PubSubPublisher extends AbstractActor implements Hashes {
     }
 
     private void publish(final Publish publish) {
+        messageCounter.increment();
+        topicCounter.increment(publish.getTopics().size());
         final List<List<Integer>> hashes =
                 publish.getTopics().stream().map(this::getHashes).collect(Collectors.toList());
         final Object message = publish.getMessage();
@@ -76,6 +102,7 @@ public final class PubSubPublisher extends AbstractActor implements Hashes {
     }
 
     private void forwardDeadLetter(final DeadLetter deadLetter) {
+        deadLetterCounter.increment();
         topicBloomFiltersReader.contains(deadLetter.recipient())
                 .thenAccept(isRecipientRemoteSubscriber -> {
                     if (isRecipientRemoteSubscriber) {

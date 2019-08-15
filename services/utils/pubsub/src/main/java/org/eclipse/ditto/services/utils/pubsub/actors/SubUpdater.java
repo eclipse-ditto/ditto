@@ -14,7 +14,9 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -23,11 +25,11 @@ import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptions;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFiltersWriter;
-import org.eclipse.ditto.services.utils.pubsub.config.PubSubUpdaterConfig;
+import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
-import akka.actor.DeadLetter;
+import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.Terminated;
 import akka.cluster.ddata.Replicator;
@@ -73,14 +75,22 @@ import akka.util.ByteString;
  * }
  * </pre>
  */
-public final class PubSubUpdater extends AbstractActorWithTimers {
+public final class SubUpdater extends AbstractActorWithTimers {
+
+    /**
+     * Prefix of this actor's name.
+     */
+    public static final String ACTOR_NAME_PREFIX = "subUpdater";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final PubSubUpdaterConfig config;
-    private final ActorRef pubSubSubscriber;
+    // pseudo-random number generator for force updates. quality matters little.
+    private final Random random = new Random();
+
+    private final PubSubConfig config;
     private final LocalSubscriptions localSubscriptions;
     private final TopicBloomFiltersWriter topicBloomFiltersWriter;
+    private final ActorRef pubSubSubscriber;
 
     private final Gauge topicMetric = DittoMetrics.gauge("pubsub-topics");
     private final Gauge bloomFilterBytesMetric = DittoMetrics.gauge("pubsub-bloom-filter-bytes");
@@ -112,7 +122,7 @@ public final class PubSubUpdater extends AbstractActorWithTimers {
      */
     private State state = State.WAITING;
 
-    private PubSubUpdater(final PubSubUpdaterConfig config,
+    private SubUpdater(final PubSubConfig config,
             final ActorRef pubSubSubscriber, final LocalSubscriptions localSubscriptions,
             final TopicBloomFiltersWriter topicBloomFiltersWriter) {
         this.config = config;
@@ -123,14 +133,27 @@ public final class PubSubUpdater extends AbstractActorWithTimers {
         getTimers().startPeriodicTimer(Clock.TICK, Clock.TICK, config.getUpdateInterval());
     }
 
+    /**
+     * Create Props object for this actor.
+     *
+     * @param config the pub-sub config.
+     * @param subscriber the subscriber.
+     * @param localSubscriptions starting local subscriptions.
+     * @param topicBloomFiltersWriter writer of the distributed topic Bloom filters.
+     * @return the Props object.
+     */
+    public static Props props(final PubSubConfig config, final ActorRef subscriber,
+            final LocalSubscriptions localSubscriptions, final TopicBloomFiltersWriter topicBloomFiltersWriter) {
+
+        return Props.create(SubUpdater.class, config, subscriber, localSubscriptions, topicBloomFiltersWriter);
+    }
+
     @Override
     public Receive createReceive() {
-        // TODO: test dead letters handling in real cluster.
         return ReceiveBuilder.create()
                 .match(Subscribe.class, this::subscribe)
                 .match(Unsubscribe.class, this::unsubscribe)
                 .match(Terminated.class, this::terminated)
-                .match(DeadLetter.class, this::deadLetter)
                 .matchEquals(Clock.TICK, this::tick)
                 .match(LocalSubscriptionsReader.class, this::updateSuccess)
                 .match(Status.Failure.class, this::updateFailure)
@@ -138,29 +161,33 @@ public final class PubSubUpdater extends AbstractActorWithTimers {
                 .build();
     }
 
-    private void deadLetter(final DeadLetter deadLetter) {
-        // publisher detected unreachable remote. remove it from local ORSet.
-        log.info("Removing remote <{}> due to <{}>", deadLetter.recipient(), deadLetter);
-        topicBloomFiltersWriter.removeSubscriber(deadLetter.recipient(), Replicator.writeLocal());
-    }
-
     private void tick(final Clock tick) {
-        if (state == State.UPDATING || !localSubscriptionsChanged) {
+        if (state == State.UPDATING || (!localSubscriptionsChanged && !forceUpdate())) {
             log.debug("ignoring tick in state <{}> with changed=<{}>", state, localSubscriptionsChanged);
         } else {
             log.debug("updating");
             final LocalSubscriptionsReader snapshot = localSubscriptions.snapshot();
-            final ByteString bloomFilter = localSubscriptions.toOptimalBloomFilter(config.getBufferFactor());
-            topicBloomFiltersWriter.updateOwnTopics(pubSubSubscriber, bloomFilter, nextWriteConsistency)
-                    .handle(handleDDataWriteResult(snapshot));
-
-            bloomFilterBytesMetric.set((long) bloomFilter.size());
-            topicMetric.set((long) localSubscriptions.getTopicCount());
+            final CompletionStage<Void> ddataOp;
+            if (localSubscriptions.isEmpty()) {
+                ddataOp = topicBloomFiltersWriter.removeSubscriber(pubSubSubscriber, nextWriteConsistency);
+                bloomFilterBytesMetric.set(0L);
+                topicMetric.set(0L);
+            } else {
+                final ByteString bloomFilter = localSubscriptions.toOptimalBloomFilter(config.getBufferFactor());
+                ddataOp = topicBloomFiltersWriter.updateOwnTopics(pubSubSubscriber, bloomFilter, nextWriteConsistency);
+                bloomFilterBytesMetric.set((long) bloomFilter.size());
+                topicMetric.set((long) localSubscriptions.getTopicCount());
+            }
+            ddataOp.handle(handleDDataWriteResult(snapshot));
             moveAwaitUpdateToAwaitAcknowledge();
             localSubscriptionsChanged = false;
             nextWriteConsistency = Replicator.writeLocal();
             state = State.UPDATING;
         }
+    }
+
+    private boolean forceUpdate() {
+        return random.nextDouble() < config.getForceUpdateProbability();
     }
 
     private void updateSuccess(final LocalSubscriptionsReader snapshot) {
@@ -262,7 +289,10 @@ public final class PubSubUpdater extends AbstractActorWithTimers {
         }
     }
 
-    private static abstract class Request {
+    /**
+     * Super class of subscription requests.
+     */
+    public static abstract class Request {
 
         private final Set<String> topics;
         private final ActorRef subscriber;
@@ -328,6 +358,20 @@ public final class PubSubUpdater extends AbstractActorWithTimers {
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
             super(topics, subscriber, writeConsistency, acknowledge);
         }
+
+        /**
+         * Create a "subscribe" request.
+         *
+         * @param topics the set of topics to subscribe.
+         * @param subscriber who is subscribing.
+         * @param writeConsistency with which write consistency should this subscription be updated.
+         * @param acknowledge whether acknowledgement is desired.
+         * @return the request.
+         */
+        public static Subscribe of(final Set<String> topics, final ActorRef subscriber,
+                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
+            return new Subscribe(topics, subscriber, writeConsistency, acknowledge);
+        }
     }
 
     /**
@@ -338,6 +382,20 @@ public final class PubSubUpdater extends AbstractActorWithTimers {
         private Unsubscribe(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
             super(topics, subscriber, writeConsistency, acknowledge);
+        }
+
+        /**
+         * Create an "unsubscribe" request.
+         *
+         * @param topics the set of topics to subscribe.
+         * @param subscriber who is subscribing.
+         * @param writeConsistency with which write consistency should this subscription be updated.
+         * @param acknowledge whether acknowledgement is desired.
+         * @return the request.
+         */
+        public static Unsubscribe of(final Set<String> topics, final ActorRef subscriber,
+                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
+            return new Unsubscribe(topics, subscriber, writeConsistency, acknowledge);
         }
     }
 

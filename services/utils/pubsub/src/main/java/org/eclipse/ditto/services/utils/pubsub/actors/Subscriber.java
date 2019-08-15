@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptionsRea
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -29,7 +30,12 @@ import akka.japi.pf.ReceiveBuilder;
  *
  * @param <T> type of messages.
  */
-public final class PubSubSubscriber<T> extends AbstractActor {
+public final class Subscriber<T> extends AbstractActor {
+
+    /**
+     * Prefix of this actor's name.
+     */
+    public static final String ACTOR_NAME_PREFIX = "subscriber";
 
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
@@ -38,12 +44,22 @@ public final class PubSubSubscriber<T> extends AbstractActor {
     private Counter truePositiveCounter = DittoMetrics.counter("pubsub-true-positive");
     private Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
 
-    private PubSubSubscriber(final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor) {
+    private Subscriber(final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor) {
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
     }
 
-    // TODO: props
+    /**
+     * Create Props object for this actor.
+     *
+     * @param messageClass class of message distributed by the pub-sub.
+     * @param topicExtractor extractor of topics from messages.
+     * @param <T> type of messages.
+     * @return the Props object.
+     */
+    public static <T> Props props(final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor) {
+        return Props.create(Subscriber.class, messageClass, topicExtractor);
+    }
 
     @Override
     public Receive createReceive() {
@@ -68,13 +84,6 @@ public final class PubSubSubscriber<T> extends AbstractActor {
 
     private void updateLocalSubscriptions(final LocalSubscriptionsReader localSubscriptions) {
         this.localSubscriptions = localSubscriptions;
-        getSender().tell(LocalSubscriptionsUpdated.INSTANCE, getSelf());
     }
 
-    /**
-     * Acknowledgement that this actor updated its local subscriptions.
-     */
-    public enum LocalSubscriptionsUpdated {
-        INSTANCE
-    }
 }
