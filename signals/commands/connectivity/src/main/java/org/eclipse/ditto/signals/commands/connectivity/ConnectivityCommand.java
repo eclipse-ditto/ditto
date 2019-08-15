@@ -52,7 +52,7 @@ public interface ConnectivityCommand<T extends ConnectivityCommand> extends Comm
 
     @Override
     default JsonPointer getResourcePath() {
-        return JsonFactory.emptyPointer();
+        return JsonPointer.empty();
     }
 
     @Override

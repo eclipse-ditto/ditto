@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
-import static akka.cluster.pubsub.DistributedPubSubMediator.Subscribe;
 import static akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck;
 
 import java.time.Duration;
@@ -25,6 +24,7 @@ import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
@@ -79,8 +79,8 @@ final class PolicyEventForwarder extends AbstractActor {
         interval = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
                 .getStreamConfig().getWriteInterval();
 
-        final Subscribe subscribe = new Subscribe(PolicyEvent.TYPE_PREFIX, ACTOR_NAME, getSelf());
-        pubSubMediator.tell(subscribe, getSelf());
+        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(PolicyEvent.TYPE_PREFIX, ACTOR_NAME, getSelf()),
+                getSelf());
 
         restartPolicyReferenceTagStream();
     }

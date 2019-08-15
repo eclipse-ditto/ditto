@@ -55,6 +55,7 @@ import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
@@ -79,7 +80,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
@@ -165,18 +165,6 @@ final class GatewayRootActor extends AbstractActor {
         final ClusterConfig clusterConfig = gatewayConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
 
-        // start the cluster sharding proxies for retrieving Statistics via StatisticActor about them:
-        ClusterSharding.get(actorSystem)
-                .startProxy(PoliciesMessagingConstants.SHARD_REGION,
-                        Optional.of(PoliciesMessagingConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, actorSystem));
-        ClusterSharding.get(actorSystem)
-                .startProxy(ThingsMessagingConstants.SHARD_REGION, Optional.of(ThingsMessagingConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, actorSystem));
-        ClusterSharding.get(actorSystem)
-                .startProxy(ThingsSearchConstants.SHARD_REGION, Optional.of(ThingsSearchConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, actorSystem));
-
         log.info("Starting /user/{}", DevOpsCommandsActor.ACTOR_NAME);
         final ActorRef devOpsCommandsActor = actorSystem.actorOf(
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
@@ -193,7 +181,7 @@ final class GatewayRootActor extends AbstractActor {
         final ActorRef proxyActor = startChildActor(ProxyActor.ACTOR_NAME,
                 ProxyActor.props(pubSubMediator, devOpsCommandsActor, conciergeForwarder));
 
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
                 StreamingActor.props(pubSubMediator, proxyActor));

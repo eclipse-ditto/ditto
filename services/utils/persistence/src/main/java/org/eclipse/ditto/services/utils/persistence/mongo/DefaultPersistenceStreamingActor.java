@@ -31,21 +31,23 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     private final Class<T> elementClass;
 
     @SuppressWarnings("unused")
-    DefaultPersistenceStreamingActor(final Class<T> elementClass,
+    private DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper) {
+            final Function<PidWithSeqNr, T> entityMapper,
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
 
-        super(streamingCacheSize, entityMapper);
+        super(streamingCacheSize, entityMapper, entityUnmapper);
         this.elementClass = elementClass;
     }
 
     @SuppressWarnings("unused")
-    DefaultPersistenceStreamingActor(final Class<T> elementClass,
+    private DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper,
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper,
             final MongoReadJournal readJournal) {
 
-        super(streamingCacheSize, entityMapper, readJournal);
+        super(streamingCacheSize, entityMapper, entityUnmapper, readJournal);
         this.elementClass = elementClass;
     }
 
@@ -58,22 +60,26 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
      * @param entityMapper the mapper used to map
      * {@link org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}.
      * The resulting entity will be streamed to the recipient actor.
+     * @param entityUnmapper the inverse of {@code entityMapper}.
      * @return the Akka configuration Props object.
      */
     public static <T extends EntityIdWithRevision> Props props(final Class<T> elementClass,
             final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper) {
+            final Function<PidWithSeqNr, T> entityMapper,
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
 
-        return Props.create(DefaultPersistenceStreamingActor.class, elementClass, streamingCacheSize, entityMapper);
+            return Props.create(DefaultPersistenceStreamingActor.class, elementClass, streamingCacheSize, entityMapper,
+                    entityUnmapper);
     }
 
     static <T extends EntityIdWithRevision> Props propsForTests(final Class<T> elementClass,
             final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper,
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper,
             final MongoReadJournal readJournal) {
 
         return Props.create(DefaultPersistenceStreamingActor.class, elementClass, streamingCacheSize, entityMapper,
-                readJournal);
+                entityUnmapper, readJournal);
     }
 
     @Override

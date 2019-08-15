@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -118,6 +119,11 @@ public final class OpenConnection extends AbstractCommand<OpenConnection>
     @Override
     public Category getCategory() {
         return Category.MODIFY;
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/command");
     }
 
     @Override

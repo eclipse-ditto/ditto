@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 /**
  * A mutable builder for a {@link JsonObject}. Implementations of this interface are normally not thread safe and not
  * reusable.
+ * The order in which the key-value-pairs are set is preserved in the resulting JSON object.
  */
 public interface JsonObjectBuilder extends JsonValueContainer<JsonField> {
 

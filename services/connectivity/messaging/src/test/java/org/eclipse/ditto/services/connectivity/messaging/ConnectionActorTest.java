@@ -142,21 +142,21 @@ public final class ConnectionActorTest extends WithMockServers {
         retrieveConnectionStatus = RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty());
         resetConnectionMetrics = ResetConnectionMetrics.of(connectionId, DittoHeaders.empty());
         retrieveModifiedConnectionResponse =
-                RetrieveConnectionResponse.of(modifiedConnection, DittoHeaders.empty());
+                RetrieveConnectionResponse.of(modifiedConnection.toJson(), DittoHeaders.empty());
         retrieveConnectionStatusOpenResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, ConnectivityStatus.OPEN, ConnectivityStatus.OPEN,
-                        INSTANT,
-                        asList(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN,
-                                "connection is open", INSTANT)),
-                        asList(
-                                ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source1",
-                                        "consumer started"),
-                                ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source2",
-                                        "consumer started")
-                        ),
-                        asList(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN, "target1",
-                                "publisher started")),
-                        DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.getBuilder(connectionId, DittoHeaders.empty())
+                .connectionStatus(ConnectivityStatus.OPEN)
+                .liveStatus(ConnectivityStatus.OPEN)
+                .connectedSince(INSTANT)
+                .clientStatus(asList(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN,
+                                "connection is open", INSTANT)))
+                .sourceStatus(asList(
+                        ConnectivityModelFactory.newSourceStatus("client1",  ConnectivityStatus.OPEN, "source1", "consumer started"),
+                        ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source2", "consumer started")
+                ))
+                .targetStatus(asList(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN, "target1",
+                                "publisher started")))
+                .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }
 
@@ -199,6 +199,55 @@ public final class ConnectionActorTest extends WithMockServers {
             expectMsg(deleteConnectionResponse);
             probe.expectNoMessage();
             expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void createConnectionAfterDeleted() {
+        new TestKit(actorSystem) {{
+            final TestProbe clientActorMock = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(clientActorMock.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            clientActorMock.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // delete connection
+            underTest.tell(deleteConnection, getRef());
+            expectMsg(deleteConnectionResponse);
+
+            // create connection again (while ConnectionActor is in deleted state)
+            underTest.tell(createConnection, getRef());
+            expectMsg(createConnectionResponse);
+            clientActorMock.expectMsg(openConnection);
+        }};
+    }
+
+    @Test
+    public void openConnectionAfterDeletedFails() {
+        new TestKit(actorSystem) {{
+            final TestProbe clientActorMock = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(clientActorMock.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            clientActorMock.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // delete connection
+            underTest.tell(deleteConnection, getRef());
+            expectMsg(deleteConnectionResponse);
+
+            // open connection should fail
+            underTest.tell(openConnection, getRef());
+            expectMsg(connectionNotAccessibleException);
         }};
     }
 
@@ -266,11 +315,11 @@ public final class ConnectionActorTest extends WithMockServers {
             probe.expectNoMessage();
 
             final RetrieveConnectionMetricsResponse metricsResponse =
-                    RetrieveConnectionMetricsResponse.of(connectionId,
-                            ConnectivityModelFactory.emptyConnectionMetrics(),
-                            ConnectivityModelFactory.emptySourceMetrics(),
-                            ConnectivityModelFactory.emptyTargetMetrics(),
-                            DittoHeaders.empty());
+                    RetrieveConnectionMetricsResponse.getBuilder(connectionId, DittoHeaders.empty())
+                    .connectionMetrics(ConnectivityModelFactory.emptyConnectionMetrics())
+                    .sourceMetrics(ConnectivityModelFactory.emptySourceMetrics())
+                    .targetMetrics(ConnectivityModelFactory.emptyTargetMetrics())
+                    .build();
             expectMsg(metricsResponse);
         }};
     }

@@ -73,7 +73,7 @@ public interface CreditDecisionConfig {
         /**
          * Amount of credit to give out per decision.
          */
-        CREDIT_PER_BATCH("credit-per-batch", 100);
+        CREDIT_PER_BATCH("credit-per-batch", 5);
 
         private final String path;
         private final Object defaultValue;

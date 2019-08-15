@@ -13,10 +13,14 @@
 package org.eclipse.ditto.signals.commands.connectivity.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.signals.commands.connectivity.TestConstants.ID;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -63,4 +67,14 @@ public final class RetrieveConnectionMetricsTest {
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
 
+    @Test
+    public void getResourcePathReturnsExpected() {
+        final JsonPointer expectedResourcePath =
+                JsonFactory.newPointer("/metrics");
+
+        final RetrieveConnectionMetrics underTest =
+                RetrieveConnectionMetrics.of(ID, DittoHeaders.empty());
+
+        DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
+    }
 }

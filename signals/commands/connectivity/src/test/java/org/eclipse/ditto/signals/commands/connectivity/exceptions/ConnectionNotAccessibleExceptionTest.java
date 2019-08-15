@@ -40,7 +40,6 @@ public final class ConnectionNotAccessibleExceptionTest {
                 ConnectionNotAccessibleException.fromJson(JsonFactory.readFrom(jsonString).asObject(), DittoHeaders.empty());
 
         assertThat(decoded.toJsonString()).isEqualTo(exception.toJsonString());
-        assertThat(decoded.getConnectionId()).isEqualTo(exception.getConnectionId());
     }
 
     @Test

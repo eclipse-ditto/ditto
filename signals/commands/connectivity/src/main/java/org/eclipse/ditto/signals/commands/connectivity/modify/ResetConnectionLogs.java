@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -121,6 +122,11 @@ public final class ResetConnectionLogs extends AbstractCommand<ResetConnectionLo
     @Override
     public ResetConnectionLogs setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/command");
     }
 
     @Override
