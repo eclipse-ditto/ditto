@@ -146,7 +146,7 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
         final ThingId baseThingId = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId");
         for (int i = 0; i < totalThingsCount; i++) {
             final ThingId thingId =
-                    ThingId.of(baseThingId.getNameSpace(), baseThingId.getName() + String.format("%03d", i));
+                    ThingId.of(baseThingId.getNamespace(), baseThingId.getName() + String.format("%03d", i));
             persistThing(createThing(thingId));
             allThings.add(thingId);
         }

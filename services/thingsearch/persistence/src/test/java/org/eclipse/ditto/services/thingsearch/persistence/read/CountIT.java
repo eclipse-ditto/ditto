@@ -48,7 +48,7 @@ public final class CountIT extends AbstractReadPersistenceITBase {
         final long expectedCount = random.nextInt(100) + 10;
 
         for (int i = 0; i < expectedCount; i++) {
-            final ThingId individualThingId = ThingId.of(THING_BASE_ID.getNameSpace(), THING_BASE_ID.getName() + i);
+            final ThingId individualThingId = ThingId.of(THING_BASE_ID.getNamespace(), THING_BASE_ID.getName() + i);
             insertThingWithAttribute(individualThingId, KNOWN_STRING_VALUE);
         }
 
@@ -73,7 +73,7 @@ public final class CountIT extends AbstractReadPersistenceITBase {
         final String attributeValue = UUID.randomUUID().toString();
 
         for (int i = 0; i < expectedCount; i++) {
-            final ThingId individualThingId = ThingId.of(THING_BASE_ID.getNameSpace(), THING_BASE_ID.getName() + i);
+            final ThingId individualThingId = ThingId.of(THING_BASE_ID.getNamespace(), THING_BASE_ID.getName() + i);
             insertThingWithAttribute(individualThingId, attributeValue);
         }
 
@@ -108,7 +108,7 @@ public final class CountIT extends AbstractReadPersistenceITBase {
 
     @Override
     protected Enforcer getPolicyEnforcer(final ThingId thingId) {
-        if (thingId.getNameSpace().equals(SUDO_NAMESPACE)) {
+        if (thingId.getNamespace().equals(SUDO_NAMESPACE)) {
             return otherPolicyEnforcer;
         } else {
             return super.getPolicyEnforcer(thingId);

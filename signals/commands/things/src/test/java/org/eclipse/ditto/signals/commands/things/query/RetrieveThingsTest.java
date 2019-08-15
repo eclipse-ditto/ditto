@@ -47,7 +47,7 @@ public final class RetrieveThingsTest {
 
     private static final JsonArray THING_IDS = JsonFactory.newArrayBuilder()
             .add(TestConstants.Thing.THING_ID.toString())
-            .add(TestConstants.Thing.THING_ID.getNameSpace() + ":AnotherThingId")
+            .add(TestConstants.Thing.THING_ID.getNamespace() + ":AnotherThingId")
             .build();
 
     private static final JsonArray THING_IDS_WITH_DISTINCT_NAMESPACE = JsonFactory.newArrayBuilder()

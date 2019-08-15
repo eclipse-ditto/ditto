@@ -86,7 +86,7 @@ public final class Metadata {
      * @return namespace field as to be written in the persistence.
      */
     public String getNamespaceInPersistence() {
-        return thingId.getNameSpace();
+        return thingId.getNamespace();
     }
 
     /**

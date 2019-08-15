@@ -193,7 +193,7 @@ final class ImmutableThing implements Thing {
 
     @Override
     public Optional<String> getNamespace() {
-        return Optional.ofNullable(thingId).map(ThingId::getNameSpace);
+        return Optional.ofNullable(thingId).map(ThingId::getNamespace);
     }
 
     @Override
@@ -421,7 +421,7 @@ final class ImmutableThing implements Thing {
         }
 
         if (null != thingId) {
-            jsonObjectBuilder.set(JsonFields.NAMESPACE, thingId.getNameSpace(), predicate);
+            jsonObjectBuilder.set(JsonFields.NAMESPACE, thingId.getNamespace(), predicate);
             jsonObjectBuilder.set(JsonFields.ID, thingId.toString(), predicate);
         }
 

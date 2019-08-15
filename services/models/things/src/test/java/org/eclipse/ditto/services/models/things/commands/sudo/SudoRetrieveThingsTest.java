@@ -43,7 +43,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SudoRetrieveThingsTest {
 
     private static final JsonArray THING_IDS = JsonFactory.newArrayBuilder()
-            .add(Thing.THING_ID.toString(), ThingId.of(Thing.THING_ID.getNameSpace(), "otherThingId").toString())
+            .add(Thing.THING_ID.toString(), ThingId.of(Thing.THING_ID.getNamespace(), "otherThingId").toString())
             .build();
 
     private static final String SELECTED_FIELDS = "field1,field2,field3";

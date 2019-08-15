@@ -131,7 +131,7 @@ public final class SendThingMessageTest {
 
     @Test
     public void tryToCreateInstanceWithNonMatchingThingId() {
-        final ThingId expectedThingId = ThingId.of(THING_ID.getNameSpace(), THING_ID.getName() + "-nomatch");
+        final ThingId expectedThingId = ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + "-nomatch");
 
         try {
             SendThingMessage.of(expectedThingId, MESSAGE, DITTO_HEADERS);

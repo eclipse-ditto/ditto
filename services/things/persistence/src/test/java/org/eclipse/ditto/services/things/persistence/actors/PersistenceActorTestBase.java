@@ -117,7 +117,7 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected static Thing createThingV2WithRandomId() {
-        return createThingV2WithId(ThingId.of(THING_ID.getNameSpace(), THING_ID.getName() + UUID.randomUUID()));
+        return createThingV2WithId(ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + UUID.randomUUID()));
     }
 
     protected static Thing createThingV2WithId(final ThingId thingId) {
@@ -132,7 +132,7 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected static Thing createThingV1WithRandomId() {
-        return createThingV1WithId(ThingId.of(THING_ID.getNameSpace(), THING_ID.getName() + new Random().nextInt()));
+        return createThingV1WithId(ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + new Random().nextInt()));
     }
 
     protected static Thing createThingV1WithId(final ThingId thingId) {

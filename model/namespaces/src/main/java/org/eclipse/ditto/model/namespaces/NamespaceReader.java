@@ -62,6 +62,6 @@ public final class NamespaceReader {
      * @return the optional namespace or an empty optional if a namespace can't be read.
      */
     public static Optional<String> fromEntityId(final NamespacedEntityId id) {
-        return Optional.of(id.getNameSpace());
+        return Optional.of(id.getNamespace());
     }
 }

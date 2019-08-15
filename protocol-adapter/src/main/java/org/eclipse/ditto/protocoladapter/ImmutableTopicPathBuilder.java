@@ -62,7 +62,7 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
      */
     public static TopicPathBuilder of(final ThingId thingId) {
         requireNonNull(thingId, "thing id");
-        return new ImmutableTopicPathBuilder(thingId.getNameSpace(), thingId.getName());
+        return new ImmutableTopicPathBuilder(thingId.getNamespace(), thingId.getName());
     }
 
     /**

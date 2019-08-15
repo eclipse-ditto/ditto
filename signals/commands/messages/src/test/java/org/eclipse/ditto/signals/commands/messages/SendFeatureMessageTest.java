@@ -121,7 +121,7 @@ public final class SendFeatureMessageTest {
 
     @Test
     public void tryToCreateInstanceWithNonMatchingThingId() {
-        final ThingId notMatchingThingId = ThingId.of(THING_ID.getNameSpace(), THING_ID.getName() + "-nomatch");
+        final ThingId notMatchingThingId = ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + "-nomatch");
         assertThatExceptionOfType(ThingIdInvalidException.class)
                 .isThrownBy(() -> SendFeatureMessage.of(notMatchingThingId, FEATURE_ID, MESSAGE, DITTO_HEADERS))
                 .withMessageContaining("-nomatch")

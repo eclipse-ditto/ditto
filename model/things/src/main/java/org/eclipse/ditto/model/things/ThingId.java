@@ -63,8 +63,8 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
      }
 
      @Override
-     public String getNameSpace() {
-         return entityId.getNameSpace();
+     public String getNamespace() {
+         return entityId.getNamespace();
      }
 
 

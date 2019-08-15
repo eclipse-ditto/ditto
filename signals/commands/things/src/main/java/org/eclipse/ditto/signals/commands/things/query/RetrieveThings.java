@@ -113,7 +113,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
 
         if (providedNamespace != null) {
             final List<String> distinctNamespaces = thingIds.stream()
-                    .map(ThingId::getNameSpace)
+                    .map(ThingId::getNamespace)
                     .distinct()
                     .collect(Collectors.toList());
 

@@ -13,16 +13,9 @@
 package org.eclipse.ditto.services.base.actors;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.namespaces.NamespaceReader;
-import org.eclipse.ditto.signals.commands.common.Shutdown;
-import org.eclipse.ditto.signals.commands.common.ShutdownReason;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.eclipse.ditto.model.namespaces.NamespaceReader;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReason;
@@ -61,12 +54,12 @@ public final class ShutdownBehaviour {
      * @param self reference of the actor itself.
      * @return the actor behavior.
      */
-    public static ShutdownBehaviour fromId(final EntityId entityId, final ActorRef pubSubMediator,
+    public static ShutdownBehaviour fromId(final NamespacedEntityId entityId, final ActorRef pubSubMediator,
             final ActorRef self) {
 
         checkNotNull(entityId, "Entity ID");
         checkNotNull(self, "Self");
-        final String namespace = NamespaceReader.fromEntityId(entityId).orElse("");
+        final String namespace = entityId.getNamespace();
         final ShutdownBehaviour purgeEntitiesBehaviour = new ShutdownBehaviour(namespace, entityId, self);
 
         purgeEntitiesBehaviour.subscribePubSub(checkNotNull(pubSubMediator, "Pub-Sub-Mediator"));

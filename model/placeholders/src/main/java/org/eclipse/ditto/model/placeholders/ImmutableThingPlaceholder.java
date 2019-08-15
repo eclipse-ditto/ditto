@@ -71,7 +71,7 @@ final class ImmutableThingPlaceholder implements ThingPlaceholder {
     private Optional<String> doResolve(final ThingId thingId, final String placeholder) {
         switch (placeholder) {
             case NAMESPACE_PLACEHOLDER:
-                return Optional.of(thingId.getNameSpace());
+                return Optional.of(thingId.getNamespace());
             case NAME_PLACEHOLDER:
                 return Optional.of(thingId.getName());
             case ID_PLACEHOLDER:

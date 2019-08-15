@@ -16,6 +16,6 @@
 
      String getName();
 
-     String getNameSpace();
+     String getNamespace();
 
  }

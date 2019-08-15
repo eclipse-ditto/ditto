@@ -170,7 +170,7 @@ public final class SearchUpdaterStream {
         return Flow.<Map<ThingId, T>>create()
                 .flatMapConcat(map ->
                         Source.fromIterator(map.entrySet()::iterator)
-                                .via(blockNamespaceFlow(entry -> entry.getKey().getNameSpace())))
+                                .via(blockNamespaceFlow(entry -> entry.getKey().getNamespace())))
                                 .fold(new HashMap<>(), (accumulator, entry) -> {
                                     accumulator.put(entry.getKey(), entry.getValue());
                                     return accumulator;
@@ -190,7 +190,7 @@ public final class SearchUpdaterStream {
     }
 
     private static String namespaceOfWriteModel(final AbstractWriteModel writeModel) {
-        return writeModel.getMetadata().getThingId().getNameSpace();
+        return writeModel.getMetadata().getThingId().getNamespace();
     }
 
     private static String logResult(final BulkWriteResult bulkWriteResult) {

@@ -48,11 +48,19 @@
      }
 
      public static PolicyId of(final String namespace, final String policyName) {
-         return new PolicyId(DefaultNamespacedEntityId.of(namespace, policyName));
+         try {
+             return new PolicyId(DefaultNamespacedEntityId.of(namespace, policyName));
+         } catch (final EntityNameInvalidException e) {
+             throw PolicyIdInvalidException.forInvalidName(namespace + ":" + policyName).cause(e).build();
+         } catch (final EntityNamespaceInvalidException e) {
+             throw PolicyIdInvalidException.forInvalidNamespace(namespace + ":" + policyName).cause(e).build();
+         } catch (final EntityIdInvalidException e) {
+             throw PolicyIdInvalidException.newBuilder(namespace + ":" + policyName).cause(e).build();
+         }
      }
 
      public static PolicyId of(final NamespacedEntityId namespacedEntityId) {
-         return of(namespacedEntityId.getNameSpace(), namespacedEntityId.getName());
+         return of(namespacedEntityId.getNamespace(), namespacedEntityId.getName());
      }
 
      public static PolicyId inNamespaceWithRandomName(final String namespace) {
@@ -69,8 +77,8 @@
      }
 
      @Override
-     public String getNameSpace() {
-         return entityId.getNameSpace();
+     public String getNamespace() {
+         return entityId.getNamespace();
      }
 
      @Override
