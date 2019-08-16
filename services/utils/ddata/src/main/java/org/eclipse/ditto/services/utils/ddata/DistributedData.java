@@ -26,7 +26,7 @@ import akka.actor.ActorRefFactory;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ReplicatedData;
 import akka.cluster.ddata.Replicator;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -102,7 +102,7 @@ public abstract class DistributedData<R extends ReplicatedData> {
      */
     public CompletionStage<Optional<R>> get(final Replicator.ReadConsistency readConsistency) {
         final Replicator.Get<R> replicatorGet = new Replicator.Get<>(getKey(), readConsistency);
-        return PatternsCS.ask(replicator, replicatorGet, getAskTimeout(readConsistency.timeout(), readTimeout))
+        return Patterns.ask(replicator, replicatorGet, getAskTimeout(readConsistency.timeout(), readTimeout))
                 .thenApplyAsync(this::handleGetResponse, ddataExecutor);
     }
 
@@ -118,7 +118,7 @@ public abstract class DistributedData<R extends ReplicatedData> {
 
         final Replicator.Update<R> replicatorUpdate =
                 new Replicator.Update<>(getKey(), getInitialValue(), writeConsistency, updateFunction);
-        return PatternsCS.ask(replicator, replicatorUpdate, getAskTimeout(writeConsistency.timeout(), writeTimeout))
+        return Patterns.ask(replicator, replicatorUpdate, getAskTimeout(writeConsistency.timeout(), writeTimeout))
                 .thenApplyAsync(this::handleUpdateResponse, ddataExecutor);
     }
 
