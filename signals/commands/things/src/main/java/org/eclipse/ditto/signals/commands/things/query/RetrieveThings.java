@@ -258,7 +258,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
 
     @Override
     public ThingId getThingEntityId() {
-        return ThingId.inDefaultNamespace("_");
+        return ThingId.placeholder();
     }
 
     @Override

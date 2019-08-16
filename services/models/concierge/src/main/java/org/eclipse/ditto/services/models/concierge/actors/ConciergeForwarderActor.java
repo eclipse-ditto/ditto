@@ -16,7 +16,6 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -108,7 +107,7 @@ public class ConciergeForwarderActor extends AbstractActor {
         LogUtil.enhanceLogWithCorrelationId(log, signal);
         final EntityId signalId = transformedSignal.getEntityId();
         final String signalType = transformedSignal.getType();
-        if (DefaultEntityId.NONE_ID.equals(signalId)) {
+        if (signalId.isPlaceHolder()) {
             log.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor", signalType);
             log.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
                     signalType, transformedSignal);

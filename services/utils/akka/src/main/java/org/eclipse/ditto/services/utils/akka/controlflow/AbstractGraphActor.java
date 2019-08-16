@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -237,7 +236,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                         return 0; // 0 is a special "lane" which is required in some special cases
                     } else if (msg instanceof WithId) {
                         final EntityId id = ((WithId) msg).getEntityId();
-                        if (DefaultEntityId.NONE_ID.equals(id)) {
+                        if (id.isPlaceHolder()) {
                             // e.g. the case for RetrieveThings command - in that case it is important that not all
                             // RetrieveThings message are processed in the same "lane", so use msg hash instead:
                             return (msg.hashCode() % parallelism) + 1;

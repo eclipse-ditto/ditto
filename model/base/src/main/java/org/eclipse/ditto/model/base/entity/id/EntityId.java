@@ -33,4 +33,6 @@
      default int compareTo(final EntityId o) {
          return toString().compareTo(o.toString());
      }
+
+     boolean isPlaceHolder();
  }

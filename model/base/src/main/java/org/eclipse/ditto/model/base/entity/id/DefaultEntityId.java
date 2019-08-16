@@ -19,8 +19,7 @@
 
  public final class DefaultEntityId implements EntityId {
 
-     public static final String NONE = "none";
-     public static final EntityId NONE_ID = DefaultEntityId.of(NONE);
+     private static final EntityId PLACE_HOLDER_ID = DefaultEntityId.of("none");
 
      private final String id;
 
@@ -34,6 +33,10 @@
 
      public static EntityId generateRandom() {
          return new DefaultEntityId(UUID.randomUUID().toString());
+     }
+
+     public static EntityId placeholder() {
+         return PLACE_HOLDER_ID;
      }
 
      @Override
@@ -59,5 +62,10 @@
      @Override
      public String toString() {
          return id;
+     }
+
+     @Override
+     public boolean isPlaceHolder() {
+         return PLACE_HOLDER_ID.equals(this);
      }
  }

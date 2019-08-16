@@ -45,6 +45,9 @@
      private static final String NAMESPACE_DELIMITER = ":";
      private static final String DEFAULT_NAMESPACE = "";
 
+     private static final String PLACE_HOLDER = "unknown:unknown";
+     private static final NamespacedEntityId PLACE_HOLDER_ID = DefaultNamespacedEntityId.of(PLACE_HOLDER);
+
      private final String namespace;
      private final String name;
      private final String stringRepresentation;
@@ -91,6 +94,10 @@
 
      public static NamespacedEntityId of(final String namespace, final String name) {
          return new DefaultNamespacedEntityId(namespace, name, true);
+     }
+
+     public static NamespacedEntityId placeholder() {
+         return PLACE_HOLDER_ID;
      }
 
      @Override
@@ -143,5 +150,10 @@
      @Override
      public String toString() {
          return stringRepresentation;
+     }
+
+     @Override
+     public boolean isPlaceHolder() {
+         return PLACE_HOLDER_ID.equals(this);
      }
  }

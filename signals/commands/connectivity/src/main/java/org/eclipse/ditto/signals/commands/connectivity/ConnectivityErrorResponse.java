@@ -134,7 +134,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      */
     @Override
     public EntityId getConnectionEntityId() {
-        return DefaultEntityId.NONE_ID;
+        return DefaultEntityId.placeholder();
     }
 
     @Override

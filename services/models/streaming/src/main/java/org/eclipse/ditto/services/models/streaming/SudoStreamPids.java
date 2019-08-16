@@ -137,7 +137,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      * @return whether the command has a non-empty lower bound.
      */
     public boolean hasNonEmptyLowerBound() {
-        return !DefaultEntityId.NONE_ID.equals(lowerBound.getEntityId());
+        return !lowerBound.getEntityId().isPlaceHolder();
     }
 
     @Override
@@ -222,7 +222,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     static final class LowerBound extends AbstractEntityIdWithRevision {
 
         private LowerBound() {
-            super(DefaultEntityId.NONE_ID, 0L);
+            super(DefaultEntityId.placeholder(), 0L);
         }
 
         LowerBound(final JsonObject jsonObject) {

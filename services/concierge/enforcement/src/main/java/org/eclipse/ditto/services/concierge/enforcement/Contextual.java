@@ -112,7 +112,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         } else if (message != null) {
             return DefaultEntityId.of(String.valueOf(message.hashCode()));
         } else {
-            return DefaultEntityId.NONE_ID;
+            return DefaultEntityId.placeholder();
         }
     }
 

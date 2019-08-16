@@ -26,7 +26,7 @@
  @Immutable
  public final class PolicyId implements NamespacedEntityId {
 
-     public static final PolicyId UNKNOWN = PolicyId.of("unknown", "unknown");
+     private static final PolicyId PLACE_HOLDER_ID = PolicyId.of(DefaultNamespacedEntityId.placeholder());
 
      private final NamespacedEntityId entityId;
 
@@ -85,6 +85,10 @@
          return of(namespace, UUID.randomUUID().toString());
      }
 
+     public static PolicyId placeholder() {
+         return PLACE_HOLDER_ID;
+     }
+
      @Override
      public String getName() {
          return entityId.getName();
@@ -112,5 +116,10 @@
      @Override
      public String toString() {
          return entityId.toString();
+     }
+
+     @Override
+     public boolean isPlaceHolder() {
+         return PLACE_HOLDER_ID.equals(this);
      }
  }

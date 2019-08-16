@@ -23,6 +23,7 @@
 
  public final class ThingId implements NamespacedEntityId {
 
+     private static final ThingId PLACE_HOLDER_ID = ThingId.of(DefaultNamespacedEntityId.placeholder());
      private final NamespacedEntityId entityId;
 
      private ThingId(final NamespacedEntityId entityId) {
@@ -62,6 +63,10 @@
          return new ThingId(DefaultNamespacedEntityId.fromName(UUID.randomUUID().toString()));
      }
 
+     public static ThingId placeholder() {
+         return PLACE_HOLDER_ID;
+     }
+
      @Override
      public String getName() {
          return entityId.getName();
@@ -90,5 +95,10 @@
      @Override
      public String toString() {
          return entityId.toString();
+     }
+
+     @Override
+     public boolean isPlaceHolder() {
+         return PLACE_HOLDER_ID.equals(this);
      }
  }
