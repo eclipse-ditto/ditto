@@ -139,7 +139,7 @@ final class ThingsUpdater extends AbstractActor {
     private void processThingEvent(final ThingEvent<?> thingEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
         log.debug("Forwarding incoming ThingEvent for thingId '{}'", String.valueOf(thingEvent.getThingEntityId()));
-        forwardEventToShardRegion(thingEvent, ThingEvent::getEntityId);
+        forwardEventToShardRegion(thingEvent, ThingEvent::getThingEntityId);
     }
 
     private <J extends Jsonifiable<?>> void forwardJsonifiableToShardRegion(final J message,

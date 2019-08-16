@@ -170,11 +170,12 @@ public final class SearchUpdaterStream {
         return Flow.<Map<ThingId, T>>create()
                 .flatMapConcat(map ->
                         Source.fromIterator(map.entrySet()::iterator)
-                                .via(blockNamespaceFlow(entry -> entry.getKey().getNamespace())))
+                                .via(blockNamespaceFlow(entry -> entry.getKey().getNamespace()))
                                 .fold(new HashMap<>(), (accumulator, entry) -> {
                                     accumulator.put(entry.getKey(), entry.getValue());
                                     return accumulator;
-                                });
+                                })
+                );
     }
 
     private <T> Flow<T, T, NotUsed> blockNamespaceFlow(final Function<T, String> namespaceExtractor) {
