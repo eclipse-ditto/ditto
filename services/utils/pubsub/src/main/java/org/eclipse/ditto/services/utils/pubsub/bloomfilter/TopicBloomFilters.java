@@ -27,6 +27,7 @@ import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
+import akka.actor.Address;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.LWWMap;
@@ -95,12 +96,17 @@ public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, By
     }
 
     @Override
-    public CompletionStage<Boolean> contains(final ActorRef subscriber) {
-        return get(Replicator.readLocal())
-                .thenApply(optional ->
-                        optional.map(orMap -> orMap.contains(subscriber))
-                                .orElse(false)
-                );
+    public CompletionStage<Void> removeAddress(final Address address,
+            final Replicator.WriteConsistency writeConsistency) {
+        return update(writeConsistency, lwwMap -> {
+            LWWMap<ActorRef, ByteString> map = lwwMap;
+            for (final ActorRef subscriber : lwwMap.getEntries().keySet()) {
+                if (subscriber.path().address().equals(address)) {
+                    map = map.remove(selfUniqueAddress, subscriber);
+                }
+            }
+            return map;
+        });
     }
 
     @Override

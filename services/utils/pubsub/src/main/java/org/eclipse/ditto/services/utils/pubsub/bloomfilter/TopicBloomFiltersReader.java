@@ -29,13 +29,4 @@ public interface TopicBloomFiltersReader {
      * @return future collection of subscribers whose Bloom filter contains all hashes of 1 or more topics.
      */
     CompletionStage<Collection<ActorRef>> getSubscribers(Collection<? extends Collection<Integer>> topicHashes);
-
-    /**
-     * Test if an actor is associated with some Bloom filter.
-     *
-     * @param subscriber the actor.
-     * @return whether the actor is associated with some Bloom filter.
-     */
-    CompletionStage<Boolean> contains(ActorRef subscriber);
-
 }

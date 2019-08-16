@@ -34,11 +34,11 @@ import akka.japi.pf.ReceiveBuilder;
  *             |                        |
  *             |                        |
  *             v                        v
- *    PubSubPublisher ----------> PubUpdater
- *         +          dead letters   +
- *         |          in case remote |
- *         |          member dies    |
+ *    PubSubPublisher              PubUpdater
+ *         +                         +
  *         |                         |
+ *         |                         |
+ *         |                         |Member removed:
  *         |                         |write local
  *         |                         |to be distributed later
  *         |read local               |

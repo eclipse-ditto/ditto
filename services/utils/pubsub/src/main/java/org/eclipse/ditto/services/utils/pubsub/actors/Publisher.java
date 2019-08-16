@@ -24,7 +24,6 @@ import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFiltersRead
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.DeadLetter;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -47,15 +46,12 @@ public final class Publisher extends AbstractActor implements Hashes {
 
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
-    private final Counter deadLetterCounter = DittoMetrics.counter("pubsub-published-deadletters");
 
     private Publisher(final Collection<Integer> seeds, final TopicBloomFiltersReader topicBloomFiltersReader,
             final ActorRef pubSubUpdater) {
         this.seeds = seeds;
         this.topicBloomFiltersReader = topicBloomFiltersReader;
         this.pubSubUpdater = pubSubUpdater;
-
-        getContext().getSystem().eventStream().subscribe(getSelf(), DeadLetter.class);
     }
 
     /**
@@ -81,7 +77,6 @@ public final class Publisher extends AbstractActor implements Hashes {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Publish.class, this::publish)
-                .match(DeadLetter.class, this::forwardDeadLetter)
                 .matchAny(this::logUnhandled)
                 .build();
     }
@@ -98,16 +93,6 @@ public final class Publisher extends AbstractActor implements Hashes {
                 .exceptionally(e -> {
                     log.error(e, "Failed: <{}>", publish);
                     return null;
-                });
-    }
-
-    private void forwardDeadLetter(final DeadLetter deadLetter) {
-        deadLetterCounter.increment();
-        topicBloomFiltersReader.contains(deadLetter.recipient())
-                .thenAccept(isRecipientRemoteSubscriber -> {
-                    if (isRecipientRemoteSubscriber) {
-                        pubSubUpdater.tell(deadLetter, getSelf());
-                    }
                 });
     }
 

@@ -77,6 +77,11 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
     protected abstract void startChildren();
 
     @Override
+    public void preStart() {
+        startChildren();
+    }
+
+    @Override
     public Collection<Integer> getSeeds() {
         return seeds;
     }

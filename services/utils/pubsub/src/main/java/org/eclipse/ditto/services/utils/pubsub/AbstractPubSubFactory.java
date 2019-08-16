@@ -29,13 +29,13 @@ import akka.actor.Props;
  */
 public abstract class AbstractPubSubFactory<T> {
 
-    private final ActorSystem actorSystem;
-    private final Class<T> messageClass;
-    private final PubSubTopicExtractor<T> topicExtractor;
+    protected final ActorSystem actorSystem;
+    protected final Class<T> messageClass;
+    protected final PubSubTopicExtractor<T> topicExtractor;
 
-    private final DistributedDataConfigReader ddataConfig;
-    private final TopicBloomFilters topicBloomFilters;
-    private final PubSubConfig config;
+    protected final DistributedDataConfigReader ddataConfig;
+    protected final TopicBloomFilters topicBloomFilters;
+    protected final PubSubConfig config;
 
     /**
      * Create a pub-sub factory.
@@ -64,7 +64,7 @@ public abstract class AbstractPubSubFactory<T> {
      *
      * @return access to distributed publication.
      */
-    public DistributedPub<T> startPubAccess() {
+    public DistributedPub<T> startDistributedPub() {
         final String pubSupervisorName = messageClass.getSimpleName() + "PubSupervisor";
         final Props pubSupervisorProps = PubSupervisor.props(config, topicBloomFilters);
         final ActorRef pubSupervisor = actorSystem.actorOf(pubSupervisorProps, pubSupervisorName);
@@ -76,7 +76,7 @@ public abstract class AbstractPubSubFactory<T> {
      *
      * @return access to distributed subscription.
      */
-    public DistributedSub startSubAccess() {
+    public DistributedSub startDistributedSub() {
         final String subSupervisorName = messageClass.getSimpleName() + "SubSupervisor";
         final Props subSupervisorProps = SubSupervisor.props(config, messageClass, topicExtractor, topicBloomFilters);
         final ActorRef subSupervisor = actorSystem.actorOf(subSupervisorProps, subSupervisorName);

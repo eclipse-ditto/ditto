@@ -16,8 +16,10 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFiltersWriter;
 
 import akka.actor.AbstractActorWithTimers;
-import akka.actor.DeadLetter;
+import akka.actor.Address;
 import akka.actor.Props;
+import akka.cluster.Cluster;
+import akka.cluster.ClusterEvent;
 import akka.cluster.ddata.Replicator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -38,6 +40,7 @@ public final class PubUpdater extends AbstractActorWithTimers {
 
     private PubUpdater(final TopicBloomFiltersWriter topicBloomFiltersWriter) {
         this.topicBloomFiltersWriter = topicBloomFiltersWriter;
+        Cluster.get(getContext().getSystem()).subscribe(getSelf(), ClusterEvent.MemberRemoved.class);
     }
 
     /**
@@ -51,17 +54,17 @@ public final class PubUpdater extends AbstractActorWithTimers {
 
     @Override
     public Receive createReceive() {
-        // TODO: test
         return ReceiveBuilder.create()
-                .match(DeadLetter.class, this::deadLetter)
+                .match(ClusterEvent.MemberRemoved.class, this::removeMember)
                 .matchAny(this::logUnhandled)
                 .build();
     }
 
-    private void deadLetter(final DeadLetter deadLetter) {
+    private void removeMember(final ClusterEvent.MemberRemoved memberRemoved) {
         // publisher detected unreachable remote. remove it from local ORMap.
-        log.info("Removing remote <{}> due to <{}>", deadLetter.recipient(), deadLetter);
-        topicBloomFiltersWriter.removeSubscriber(deadLetter.recipient(), Replicator.writeLocal());
+        final Address address = memberRemoved.member().address();
+        log.info("Removing subscribers on removed member <{}>", address);
+        topicBloomFiltersWriter.removeAddress(address, Replicator.writeLocal());
     }
 
     private void logUnhandled(final Object message) {
