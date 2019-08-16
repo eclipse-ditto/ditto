@@ -50,8 +50,8 @@ import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.ThingPolicyIdInvalidException;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -328,7 +328,7 @@ public final class ThingCommandEnforcementTest {
     @Test
     public void acceptByPolicyWithRevokeOnAttribute() {
         final PolicyId policyId = PolicyId.of("policy:id");
-        final JsonObject thingWithPolicy = newThingWithAttributeWithPolicyId(policyId.toString());
+        final JsonObject thingWithPolicy = newThingWithAttributeWithPolicyId(policyId);
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
@@ -557,25 +557,13 @@ public final class ThingCommandEnforcementTest {
         }};
     }
 
-    @Test
-    public void rejectCreateThingByInvalidPolicyId() {
-        final Thing thingInPayload = newThing().setId(THING_ID).setPolicyId("badId").build();
-
-        new TestKit(system) {{
-            final ActorRef underTest = TestSetup.newEnforcerActor(system, getRef(), getRef());
-            final CreateThing createThing = CreateThing.of(thingInPayload, null, headers(V_2));
-            underTest.tell(createThing, getRef());
-            fishForMsgClass(this, ThingPolicyIdInvalidException.class);
-        }};
-    }
-
     private ActorRef newEnforcerActor(final ActorRef testActorRef) {
         return TestSetup.newEnforcerActor(system, testActorRef, mockEntitiesActor);
     }
 
     private static JsonObject newThingWithPolicyId(final CharSequence policyId) {
         return newThing()
-                .setPolicyId(policyId.toString())
+                .setPolicyId(ThingPolicyId.of(policyId))
                 .build()
                 .toJson(V_2, FieldType.all());
     }
@@ -593,12 +581,12 @@ public final class ThingCommandEnforcementTest {
                 .setRevision(1L);
     }
 
-    private static JsonObject newThingWithAttributeWithPolicyId(final String policyId) {
+    private static JsonObject newThingWithAttributeWithPolicyId(final CharSequence policyId) {
         return ThingsModelFactory.newThingBuilder()
                 .setId(THING_ID)
                 .setAttribute(JsonPointer.of("/testAttr"), JsonValue.of("testString"))
                 .setRevision(1L)
-                .setPolicyId(policyId)
+                .setPolicyId(ThingPolicyId.of(policyId))
                 .build()
                 .toJson(V_2, FieldType.all());
     }

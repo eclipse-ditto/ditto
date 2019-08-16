@@ -30,7 +30,7 @@
       * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
       */
      private static final String ENTITY_NAME_REGEX = "(?<" + ENTITY_NAME_GROUP_NAME +
-             ">(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;<>]|%\\p{XDigit}{2})*+)";
+             ">(?:[-\\w:@&=+,.!~*'_;<>]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;<>]|%\\p{XDigit}{2})*+)";
 
      /**
       * The regex pattern for an Entity ID.

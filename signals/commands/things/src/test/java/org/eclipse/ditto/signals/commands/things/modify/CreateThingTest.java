@@ -25,9 +25,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
@@ -147,8 +148,20 @@ public final class CreateThingTest {
     }
 
     @Test
+    public void initializeWithCopiedPolicyAndWithInitialPolicyNullAndPolicyIdNullString() {
+        final Thing thing = TestConstants.Thing.THING.setPolicyId((String) null);
+        final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
+        final CreateThing createThing =
+                CreateThing.of(thing, null, thingReference, TestConstants.EMPTY_DITTO_HEADERS);
+
+        softly.assertThat(createThing.getInitialPolicy()).isNotPresent();
+        softly.assertThat(createThing.getPolicyIdOrPlaceholder()).isPresent();
+        softly.assertThat(createThing.getPolicyIdOrPlaceholder()).contains(thingReference);
+    }
+
+    @Test
     public void initializeWithCopiedPolicyAndWithInitialPolicyNullAndPolicyIdNull() {
-        final Thing thing = TestConstants.Thing.THING.setPolicyId(null);
+        final Thing thing = TestConstants.Thing.THING.setPolicyId((ThingPolicyId) null);
         final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
         final CreateThing createThing =
                 CreateThing.of(thing, null, thingReference, TestConstants.EMPTY_DITTO_HEADERS);

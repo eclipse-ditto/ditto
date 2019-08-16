@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.things.Permissions;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 
@@ -129,10 +130,23 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         return this;
     }
 
+    public ThingAssert hasPolicyId(final ThingPolicyId expectedPolicyId) {
+        isNotNull();
+
+        final Optional<ThingPolicyId> optionalPolicyId = actual.getPolicyEntityId();
+
+        assertThat(optionalPolicyId.isPresent() && Objects.equals(optionalPolicyId.get(), expectedPolicyId))
+                .overridingErrorMessage("Expected Policy ID to be \n<%s> but was \n<%s>", expectedPolicyId,
+                        optionalPolicyId.orElse(null))
+                .isTrue();
+
+        return this;
+    }
+
     public ThingAssert hasNoPolicyId() {
         isNotNull();
 
-        final Optional<String> policyIdOptional = actual.getPolicyId();
+        final Optional<ThingPolicyId> policyIdOptional = actual.getPolicyEntityId();
 
         assertThat(policyIdOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not have a PolicyId but it had <%s>",
@@ -526,7 +540,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
             assertThat(actual.getAccessControlList()).isEqualTo(expected.getAccessControlList());
         }
         if (JsonSchemaVersion.V_2.equals(expected.getImplementedSchemaVersion())) {
-            assertThat(actual.getPolicyId()).isEqualTo(expected.getPolicyId());
+            assertThat(actual.getPolicyEntityId()).isEqualTo(expected.getPolicyEntityId());
         }
 
         return this;

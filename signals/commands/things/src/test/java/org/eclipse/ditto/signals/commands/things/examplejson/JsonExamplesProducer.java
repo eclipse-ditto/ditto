@@ -44,11 +44,12 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingLifecycle;
-import org.eclipse.ditto.model.things.ThingRevision;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingLifecycle;
+import org.eclipse.ditto.model.things.ThingPolicyId;
+import org.eclipse.ditto.model.things.ThingRevision;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
@@ -152,7 +153,7 @@ public class JsonExamplesProducer {
      * Thing
      */
     private static final ThingId THING_ID = ThingId.of(NAMESPACE, "xdk_53");
-    private static final String POLICY_ID = NAMESPACE + ":policy0815";
+    private static final ThingPolicyId POLICY_ID = ThingPolicyId.of(NAMESPACE, "policy0815");
     private static final ThingLifecycle LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final AuthorizationSubject AUTH_SUBJECT_1 =
             newAuthSubject("the_auth_subject");

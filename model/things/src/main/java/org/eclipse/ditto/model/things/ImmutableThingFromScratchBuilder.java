@@ -40,7 +40,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Nullable ThingLifecycle lifecycle;
     @Nullable ThingRevision revision;
     @Nullable Instant modified;
-    @Nullable private String policyId;
+    @Nullable private ThingPolicyId policyId;
     @Nullable private AccessControlListBuilder aclBuilder;
     @Nullable private AttributesBuilder attributesBuilder;
     @Nullable private Attributes attributes;
@@ -370,7 +370,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setPolicyId(@Nullable final String policyId) {
+    public FromScratch setPolicyId(@Nullable final ThingPolicyId policyId) {
         this.policyId = policyId;
         return this;
     }

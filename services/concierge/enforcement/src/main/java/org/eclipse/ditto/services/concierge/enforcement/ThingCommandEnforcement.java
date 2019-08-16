@@ -66,6 +66,7 @@ import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -172,15 +173,6 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
         final ThingCommand signal = signal();
         LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
-
-        try {
-            // Validate Thing in CreateThing. Other commands validate their payload in constructor.
-            if (signal instanceof CreateThing) {
-                ((CreateThing) signal).getThing().validate(signal.getDittoHeaders());
-            }
-        } catch (final DittoRuntimeException e) {
-            return CompletableFuture.completedFuture(handleExceptionally(e));
-        }
 
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
@@ -977,9 +969,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 return createThingWithInitialPolicy(createThing, enforcer)
                         .thenApply(this::forwardToThingsShardRegion);
             }
-        } else if (createThing.getThing().getPolicyId().isPresent()) {
+        } else if (createThing.getThing().getPolicyEntityId().isPresent()) {
             final PolicyId policyId = createThing.getThing()
-                    .getPolicyId()
+                    .getPolicyEntityId()
                     .map(PolicyId::of)
                     .orElseThrow(IllegalStateException::new);
             final Optional<DittoRuntimeException> errorOpt = checkForErrorsInCreateThingWithPolicy(createThing);
@@ -1020,7 +1012,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 final ThingId thingId = createThing.getThingEntityId();
                 final String message = String.format("The Thing with ID '%s' could not be created with implicit " +
                         "Policy because no authorization subject is present.", thingId);
-                throw ThingNotCreatableException.newBuilderForPolicyMissing(thingId, thingId.toString())
+                throw ThingNotCreatableException.newBuilderForPolicyMissing(thingId, ThingPolicyId.of(thingId))
                                 .message(message)
                                 .description(() -> null)
                                 .dittoHeaders(createThing.getDittoHeaders())
@@ -1035,7 +1027,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final CreateThing createThingWithoutPolicyId) {
 
         final CreateThing createThing = CreateThing.of(
-                createThingWithoutPolicyId.getThing().setPolicyId(createPolicy.getEntityId().toString()),
+                createThingWithoutPolicyId.getThing().setPolicyId(ThingPolicyId.of(createPolicy.getEntityId())),
                 null,
                 createThingWithoutPolicyId.getDittoHeaders());
 
@@ -1059,7 +1051,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         if (!(policyResponse instanceof CreatePolicyResponse)) {
             if (shouldReportInitialPolicyCreationFailure(policyResponse)) {
 
-                throw reportInitialPolicyCreationFailure(createPolicy.getEntityId().toString(), createThing);
+                throw reportInitialPolicyCreationFailure(ThingPolicyId.of(createPolicy.getEntityId()), createThing);
             } else if (isAskTimeoutException(policyResponse, null)) {
 
                 throw PolicyUnavailableException.newBuilder(PolicyId.of(createThing.getThingEntityId()))
@@ -1081,7 +1073,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 policyResponse instanceof NamespaceBlockedException;
     }
 
-    private ThingNotCreatableException reportInitialPolicyCreationFailure(final String policyId, final CreateThing command) {
+    private ThingNotCreatableException reportInitialPolicyCreationFailure(final ThingPolicyId policyId,
+            final CreateThing command) {
 
         log(command).info("Failed to create Policy with ID '{}' is already existing, the CreateThing " +
                 "command which would have created a Policy for the Thing with ID '{}' " +
@@ -1097,8 +1090,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final JsonObject policyJson = initialPolicy.get();
             final JsonObjectBuilder policyJsonBuilder = policyJson.toBuilder();
             final Thing thing = createThing.getThing();
-            if (thing.getPolicyId().isPresent() || !policyJson.contains(Policy.JsonFields.ID.getPointer())) {
-                final String policyId = thing.getPolicyId().orElse(createThing.getThingEntityId().toString());
+            if (thing.getPolicyEntityId().isPresent() || !policyJson.contains(Policy.JsonFields.ID.getPointer())) {
+                final String policyId = thing.getPolicyEntityId()
+                        .map(String::valueOf)
+                        .orElse(createThing.getThingEntityId().toString());
                 policyJsonBuilder.set(Policy.JsonFields.ID, policyId);
             }
             return Optional.of(PoliciesModelFactory.newPolicy(policyJsonBuilder.build()));
@@ -1127,7 +1122,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     private static Optional<DittoRuntimeException> checkPolicyIdValidityForCreateThing(final CreateThing createThing) {
         final Thing thing = createThing.getThing();
-        final Optional<String> policyIdOpt = thing.getPolicyId();
+        final Optional<String> policyIdOpt = thing.getPolicyEntityId().map(String::valueOf);
         final Optional<String> policyIdInPolicyOpt = createThing.getInitialPolicy()
                 .flatMap(jsonObject -> jsonObject.getValue(Thing.JsonFields.POLICY_ID));
 
@@ -1152,7 +1147,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final JsonSchemaVersion commandVersion =
                 createThing.getDittoHeaders().getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         return createThing.getInitialPolicy().isPresent() ||
-                (JsonSchemaVersion.V_1 != commandVersion && !createThing.getThing().getPolicyId().isPresent());
+                (JsonSchemaVersion.V_1 != commandVersion && !createThing.getThing().getPolicyEntityId().isPresent());
     }
 
     private static Optional<Policy> getDefaultPolicy(final AuthorizationContext authorizationContext,

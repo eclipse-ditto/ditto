@@ -751,7 +751,7 @@ public final class ImmutableThingFromCopyBuilderTest {
         underTestV2.removePolicyId();
         final Thing thing = underTestV2.build();
 
-        assertThat(thing.getPolicyId()).isEmpty();
+        assertThat(thing.getPolicyEntityId()).isEmpty();
     }
 
     @Test

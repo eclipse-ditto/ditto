@@ -43,8 +43,12 @@ public final class ThingPolicyIdInvalidException extends DittoRuntimeException i
     private static final String MESSAGE_TEMPLATE = "Policy ID ''{0}'' is not valid!";
 
     private static final String DEFAULT_DESCRIPTION =
-            "It must contain a namespace prefix (java package notation + a colon ':') + ID and must be a valid URI " +
-                    "path segment according to RFC-3986";
+            "It must contain a namespace prefix (java package notation + a colon ':') + a name and must be a valid " +
+                    "URI path segment according to RFC-3986";
+    private static final String INVALID_NAMESPACE_DESCRIPTION = "The namespace prefix must conform the syntax of " +
+            "the java package notation and must end with a colon (':').";
+    private static final String INVALID_NAME_DESCRIPTION = "The name of the policy was not valid. It must be a valid " +
+            "URI path segment according to RFC-3986";
 
     private static final long serialVersionUID = 8494286958733203132L;
 
@@ -66,13 +70,21 @@ public final class ThingPolicyIdInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder for a {@code ThingPolicyIdInvalidException}.
+     * A mutable builder for a {@code ThingIdInvalidException}.
      *
-     * @param policyId the ID of the policy.
+     * @param policyId the ID of the thing.
      * @return the builder.
      */
-    public static Builder newBuilder(@Nullable final CharSequence policyId) {
-        return new Builder(policyId);
+    public static ThingPolicyIdInvalidException.Builder newBuilder(final CharSequence policyId) {
+        return new ThingPolicyIdInvalidException.Builder(policyId);
+    }
+
+    static ThingPolicyIdInvalidException.Builder forInvalidName(final CharSequence policyId) {
+        return new ThingPolicyIdInvalidException.Builder(policyId).description(INVALID_NAME_DESCRIPTION);
+    }
+
+    static ThingPolicyIdInvalidException.Builder forInvalidNamespace(final CharSequence policyId) {
+        return new ThingPolicyIdInvalidException.Builder(policyId).description(INVALID_NAMESPACE_DESCRIPTION);
     }
 
     /**
@@ -128,6 +140,11 @@ public final class ThingPolicyIdInvalidException extends DittoRuntimeException i
         private Builder(@Nullable final CharSequence policyId) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, policyId));
+        }
+
+        @Override
+        public Builder description(@Nullable final String description) {
+            return (Builder) super.description(description);
         }
 
         @Override

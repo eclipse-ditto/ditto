@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 
 /**
  * Thrown if a Thing could not be created because a linked Policy ID was not existing for example.
@@ -76,7 +77,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      * @param policyId the ID of the Policy which was used when creating the Thing.
      * @return the builder.
      */
-    public static Builder newBuilderForPolicyMissing(final ThingId thingId, final String policyId) {
+    public static Builder newBuilderForPolicyMissing(final ThingId thingId, final ThingPolicyId policyId) {
         return new Builder(thingId, policyId, true);
     }
 
@@ -88,7 +89,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      * @param policyId the ID of the Policy which was used when creating the Thing.
      * @return the builder.
      */
-    public static Builder newBuilderForPolicyExisting(final ThingId thingId, final String policyId) {
+    public static Builder newBuilderForPolicyExisting(final ThingId thingId, final ThingPolicyId policyId) {
         return new Builder(thingId, policyId, false);
     }
 
@@ -152,7 +153,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
             }
         }
 
-        private Builder(final ThingId thingId, final String policyId, final boolean policyMissing) {
+        private Builder(final ThingId thingId, final ThingPolicyId policyId, final boolean policyMissing) {
             this(policyMissing);
             if (policyMissing) {
                 message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId), policyId));

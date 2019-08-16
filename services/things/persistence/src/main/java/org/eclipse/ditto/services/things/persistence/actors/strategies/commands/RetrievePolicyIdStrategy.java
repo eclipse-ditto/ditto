@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyId;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
@@ -27,7 +28,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
  */
 @Immutable
 final class RetrievePolicyIdStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrievePolicyId, String> {
+        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrievePolicyId, ThingPolicyId> {
 
     /**
      * Constructs a new {@code RetrievePolicyIdStrategy} object.
@@ -50,12 +51,12 @@ final class RetrievePolicyIdStrategy
                         .build()));
     }
 
-    private Optional<String> extractPolicyId(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getPolicyId();
+    private Optional<ThingPolicyId> extractPolicyId(final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getPolicyEntityId();
     }
 
     @Override
-    public Optional<String> determineETagEntity(final RetrievePolicyId command, @Nullable final Thing thing) {
+    public Optional<ThingPolicyId> determineETagEntity(final RetrievePolicyId command, @Nullable final Thing thing) {
         return extractPolicyId(thing);
     }
 }

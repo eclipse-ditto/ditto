@@ -48,10 +48,9 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyPolicyId command = ModifyPolicyId.of(context.getThingEntityId(), POLICY_ID, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V1, command,
-                PolicyIdCreated.class,
-                modifyPolicyIdResponse(context.getThingEntityId(), command.getPolicyId(), command.getDittoHeaders(),
-                        true));
+        assertModificationResult(underTest, THING_V1, command, PolicyIdCreated.class,
+                modifyPolicyIdResponse(context.getThingEntityId(), command.getPolicyEntityId(),
+                        command.getDittoHeaders(), true));
     }
 
     @Test
@@ -60,9 +59,8 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
         final ModifyPolicyId command = ModifyPolicyId.of(context.getThingEntityId(), POLICY_ID, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
-                PolicyIdModified.class,
-                modifyPolicyIdResponse(context.getThingEntityId(), command.getPolicyId(), command.getDittoHeaders(),
-                        false));
+                PolicyIdModified.class, modifyPolicyIdResponse(context.getThingEntityId(), command.getPolicyEntityId(),
+                        command.getDittoHeaders(), false));
     }
 
 }

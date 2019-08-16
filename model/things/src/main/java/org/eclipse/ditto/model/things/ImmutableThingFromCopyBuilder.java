@@ -54,7 +54,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         final ImmutableThingFromCopyBuilder result = new ImmutableThingFromCopyBuilder();
         thing.getEntityId().ifPresent(result::setId);
         thing.getAccessControlList().ifPresent(result::setPermissions);
-        thing.getPolicyId().ifPresent(result::setPolicyId);
+        thing.getPolicyEntityId().ifPresent(result::setPolicyId);
         thing.getAttributes().ifPresent(result::setAttributes);
         thing.getFeatures().ifPresent(result::setFeatures);
         thing.getLifecycle().ifPresent(result::setLifecycle);
@@ -255,7 +255,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setPolicyId(@Nullable final String policyId) {
+    public FromCopy setPolicyId(@Nullable final ThingPolicyId policyId) {
         fromScratchBuilder.setPolicyId(policyId);
         return this;
     }

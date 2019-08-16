@@ -62,6 +62,7 @@ import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -599,7 +600,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Thing initialThing = createThingV2WithRandomId();
                 final ThingId thingId = getIdOrThrow(initialThing);
-                final String policyId = initialThing.getPolicyId().orElseThrow(IllegalStateException::new);
+                final ThingPolicyId policyId = initialThing.getPolicyEntityId().orElseThrow(IllegalStateException::new);
                 final ActorRef underTest = createPersistenceActorFor(initialThing);
 
                 final CreateThing createThing = CreateThing.of(initialThing, null, dittoHeadersV2);
@@ -1469,7 +1470,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .removeAllPermissions()
                 .build();
         final Thing expected = thingV1WithoutACL.toBuilder()
-                .setPolicyId(thingV2.getPolicyId().get())
+                .setPolicyId(thingV2.getPolicyEntityId().get())
                 .build();
 
         new TestKit(actorSystem) {{
@@ -1492,7 +1493,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final Thing thingV2 = buildThing(thingId, JsonSchemaVersion.V_2);
         final Thing thingV1 = buildThing(thingId, JsonSchemaVersion.V_1);
         final Thing expected = thingV1.toBuilder()
-                .setPolicyId(thingV2.getPolicyId().get())
+                .setPolicyId(thingV2.getPolicyEntityId().get())
                 .removeAllPermissions()
                 .build();
 

@@ -84,7 +84,7 @@ public interface Thing extends Entity<ThingRevision> {
 
     @Override
     default JsonSchemaVersion getImplementedSchemaVersion() {
-        return (getAccessControlList().isPresent() && !getPolicyId().isPresent())
+        return (getAccessControlList().isPresent() && !getPolicyEntityId().isPresent())
                 ? JsonSchemaVersion.V_1 : JsonSchemaVersion.LATEST;
     }
 
@@ -458,8 +458,31 @@ public interface Thing extends Entity<ThingRevision> {
      * Returns the Policy ID of this Thing.
      *
      * @return the Policy ID of this Thing.
+     * @deprecated Policy ID of the thing is now typed. Use {@link #getPolicyEntityId()} instead.
      */
-    Optional<String> getPolicyId();
+    @Deprecated
+    default Optional<String> getPolicyId() {
+        return getPolicyEntityId().map(String::valueOf);
+    }
+
+    /**
+     * Returns the Policy ID of this Thing.
+     *
+     * @return the Policy ID of this Thing.
+     */
+    Optional<ThingPolicyId> getPolicyEntityId();
+
+    /**
+     * Sets the given Policy ID on a copy of this Thing.
+     *
+     * @param policyId the Policy ID to set.
+     * @return a copy of this Thing with {@code policyId} as its Policy ID.
+     * @deprecated Policy ID of the thing is now typed. Use {@link #setPolicyId(ThingPolicyId)} ()} instead.
+     */
+    @Deprecated
+    default Thing setPolicyId(@Nullable String policyId) {
+        return setPolicyId(policyId == null ? null : ThingPolicyId.of(policyId));
+    }
 
     /**
      * Sets the given Policy ID on a copy of this Thing.
@@ -467,7 +490,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param policyId the Policy ID to set.
      * @return a copy of this Thing with {@code policyId} as its Policy ID.
      */
-    Thing setPolicyId(@Nullable String policyId);
+    Thing setPolicyId(@Nullable ThingPolicyId policyId);
 
     /**
      * Returns the Features of this Thing.

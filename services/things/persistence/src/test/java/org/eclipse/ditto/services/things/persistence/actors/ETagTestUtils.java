@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -272,7 +273,7 @@ public abstract class ETagTestUtils {
 
     // PolicyId
 
-    public static ModifyPolicyIdResponse modifyPolicyIdResponse(final ThingId thingId, final String policyId,
+    public static ModifyPolicyIdResponse modifyPolicyIdResponse(final ThingId thingId, final ThingPolicyId policyId,
             final DittoHeaders dittoHeaders, final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(policyId, dittoHeaders);
         if (created) {
@@ -283,7 +284,7 @@ public abstract class ETagTestUtils {
     }
 
     public static RetrievePolicyIdResponse retrievePolicyIdResponse(final ThingId thingId,
-            final String expectedPolicyId, final DittoHeaders dittoHeaders) {
+            final ThingPolicyId expectedPolicyId, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedPolicyId, dittoHeaders);
         return RetrievePolicyIdResponse.of(thingId, expectedPolicyId, dittoHeadersWithETag);
     }

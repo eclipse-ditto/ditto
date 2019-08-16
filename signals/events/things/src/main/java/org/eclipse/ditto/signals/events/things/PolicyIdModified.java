@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -56,10 +57,10 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
     static final JsonFieldDefinition<String> JSON_POLICY_ID =
             JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final ThingPolicyId policyId;
 
     private PolicyIdModified(final ThingId thingId,
-            final String policyId,
+            final ThingPolicyId policyId,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
@@ -78,7 +79,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * @return the {@code PolicyIdModified}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(ThingId, ThingPolicyId, long, DittoHeaders)}
      * instead.
      */
     @Deprecated
@@ -87,7 +88,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), policyId, revision, dittoHeaders);
+        return of(ThingId.of(thingId), ThingPolicyId.of(policyId), revision, dittoHeaders);
     }
 
     /**
@@ -101,7 +102,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      */
     public static PolicyIdModified of(final ThingId thingId,
-            final String policyId,
+            final ThingPolicyId policyId,
             final long revision,
             final DittoHeaders dittoHeaders) {
 
@@ -119,7 +120,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * @return the {@code PolicyIdModified}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(ThingId, ThingPolicyId, long, Instant, DittoHeaders)}
      * instead.
      */
     @Deprecated
@@ -129,7 +130,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), policyId, revision, timestamp, dittoHeaders);
+        return of(ThingId.of(thingId), ThingPolicyId.of(policyId), revision, timestamp, dittoHeaders);
     }
 
     /**
@@ -144,7 +145,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      */
     public static PolicyIdModified of(final ThingId thingId,
-            final String policyId,
+            final ThingPolicyId policyId,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
@@ -182,8 +183,9 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
             final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
+            final ThingPolicyId thingPolicyId = ThingPolicyId.of(extractedPolicyId);
 
-            return of(thingId, extractedPolicyId, revision, timestamp, dittoHeaders);
+            return of(thingId, thingPolicyId, revision, timestamp, dittoHeaders);
         });
     }
 
@@ -191,14 +193,25 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * Returns the modified Policy ID.
      *
      * @return the modified Policy ID.
+     * @deprecated Policy Id of Thing is now typed. Use {@link #getPolicyEntityId()} instead.
      */
+    @Deprecated
     public String getPolicyId() {
+        return String.valueOf(getPolicyEntityId());
+    }
+
+    /**
+     * Returns the modified Policy ID.
+     *
+     * @return the modified Policy ID.
+     */
+    public ThingPolicyId getPolicyEntityId() {
         return policyId;
     }
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.of(policyId).map(JsonFactory::newValue);
+        return Optional.of(policyId).map(String::valueOf).map(JsonFactory::newValue);
     }
 
     @Override
@@ -221,7 +234,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
         final Predicate<JsonField> thePredicate = schemaVersion.and(predicate);
-        jsonObjectBuilder.set(JSON_POLICY_ID, policyId, thePredicate);
+        jsonObjectBuilder.set(JSON_POLICY_ID, String.valueOf(policyId), thePredicate);
     }
 
     @SuppressWarnings("squid:S109")

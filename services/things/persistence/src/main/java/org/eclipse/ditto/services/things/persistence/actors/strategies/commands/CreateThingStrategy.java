@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
@@ -99,8 +100,8 @@ public final class CreateThingStrategy
 
         // for v2 upwards, set the policy-id to the thing-id if none is specified:
         final boolean isV2Upwards = !JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion());
-        if (isV2Upwards && !newThing.getPolicyId().isPresent()) {
-            newThing = newThing.setPolicyId(String.valueOf(context.getThingEntityId()));
+        if (isV2Upwards && !newThing.getPolicyEntityId().isPresent()) {
+            newThing = newThing.setPolicyId(ThingPolicyId.of(context.getThingEntityId()));
         }
 
         final Instant modified = Instant.now();
@@ -132,7 +133,7 @@ public final class CreateThingStrategy
             }
 
             // policyId is required for v2
-            if (!thing.getPolicyId().isPresent()) {
+            if (!thing.getPolicyEntityId().isPresent()) {
                 throw PolicyIdMissingException.fromThingIdOnCreate(context.getThingEntityId(), dittoHeaders);
             }
 

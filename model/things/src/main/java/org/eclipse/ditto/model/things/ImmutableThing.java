@@ -41,7 +41,7 @@ final class ImmutableThing implements Thing {
 
     @Nullable private final ThingId thingId;
     @Nullable private final AccessControlList acl;
-    @Nullable private final String policyId;
+    @Nullable private final ThingPolicyId policyId;
     @Nullable private final Attributes attributes;
     @Nullable private final Features features;
     @Nullable private final ThingLifecycle lifecycle;
@@ -50,7 +50,7 @@ final class ImmutableThing implements Thing {
 
     private ImmutableThing(@Nullable final ThingId thingId,
             @Nullable final AccessControlList acl,
-            @Nullable final String policyId,
+            @Nullable final ThingPolicyId policyId,
             @Nullable final Attributes attributes,
             @Nullable final Features features,
             @Nullable final ThingLifecycle lifecycle,
@@ -92,8 +92,7 @@ final class ImmutableThing implements Thing {
             @Nullable final ThingRevision revision,
             @Nullable final Instant modified) {
 
-        return new ImmutableThing(ThingId.of(thingId), accessControlList, null, attributes, features, lifecycle,
-                revision, modified);
+        return of(ThingId.of(thingId), accessControlList, attributes, features, lifecycle, revision, modified);
     }
 
     /**
@@ -132,7 +131,7 @@ final class ImmutableThing implements Thing {
      * @param modified the modified timestamp of the thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, String, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant)}
+     * {@link #of(ThingId, ThingPolicyId, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant)}
      * instead.
      */
     @Deprecated
@@ -143,9 +142,8 @@ final class ImmutableThing implements Thing {
             @Nullable final ThingLifecycle lifecycle,
             @Nullable final ThingRevision revision,
             @Nullable final Instant modified) {
-
-        return new ImmutableThing(ThingId.of(thingId), null, policyId, attributes, features, lifecycle, revision,
-                modified);
+        final ThingPolicyId typedPolicyId = policyId == null ? null : ThingPolicyId.of(policyId);
+        return of(ThingId.of(thingId), typedPolicyId, attributes, features, lifecycle, revision, modified);
     }
 
     /**
@@ -161,7 +159,7 @@ final class ImmutableThing implements Thing {
      * @return the {@code Thing} which was created from the given JSON object.
      */
     static Thing of(@Nullable final ThingId thingId,
-            @Nullable final String policyId,
+            @Nullable final ThingPolicyId policyId,
             @Nullable final Attributes attributes,
             @Nullable final Features features,
             @Nullable final ThingLifecycle lifecycle,
@@ -373,12 +371,12 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    public Optional<String> getPolicyId() {
+    public Optional<ThingPolicyId> getPolicyEntityId() {
         return Optional.ofNullable(policyId);
     }
 
     @Override
-    public Thing setPolicyId(@Nullable final String policyId) {
+    public Thing setPolicyId(@Nullable final ThingPolicyId policyId) {
         return new ImmutableThing(thingId, acl, policyId, attributes, features, lifecycle, revision, modified);
     }
 
@@ -396,9 +394,6 @@ final class ImmutableThing implements Thing {
 
     @Override
     public void validate(final DittoHeaders headers) {
-        if (policyId != null) {
-            ThingPolicyIdValidator.getInstance().accept(policyId, headers);
-        }
     }
 
     @Override
@@ -429,7 +424,7 @@ final class ImmutableThing implements Thing {
             final AccessControlList theAcl = getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
             jsonObjectBuilder.set(JsonFields.ACL, theAcl.toJson(), predicate);
         } else if (null != policyId) {
-            jsonObjectBuilder.set(JsonFields.POLICY_ID, policyId, predicate);
+            jsonObjectBuilder.set(JsonFields.POLICY_ID, String.valueOf(policyId), predicate);
         }
 
         if (null != attributes) {

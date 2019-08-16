@@ -37,7 +37,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyIdValidator;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -106,7 +106,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         }
 
         if (policyIdOrPlaceholder != null && !Placeholders.containsAnyPlaceholder(policyIdOrPlaceholder)) {
-            ThingPolicyIdValidator.getInstance().accept(policyIdOrPlaceholder, dittoHeaders);
+            ThingPolicyId.of(policyIdOrPlaceholder); //validates
         }
 
         this.thingId = checkNotNull(thingId, "Thing ID");
@@ -333,7 +333,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         if (JsonSchemaVersion.V_1.equals(version)) {
             // v1 commands may not contain policy information
             final boolean containsPolicy =
-                    null != policyIdOrPlaceholder || null != initialPolicy || thing.getPolicyId().isPresent();
+                    null != policyIdOrPlaceholder || null != initialPolicy || thing.getPolicyEntityId().isPresent();
             if (containsPolicy) {
                 throw PolicyIdNotAllowedException
                         .newBuilder(thingId)
@@ -427,7 +427,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
 
     @Override
     public boolean changesAuthorization() {
-        return thing.getPolicyId().isPresent() ||
+        return thing.getPolicyEntityId().isPresent() ||
                 thing.getAccessControlList().isPresent();
     }
 

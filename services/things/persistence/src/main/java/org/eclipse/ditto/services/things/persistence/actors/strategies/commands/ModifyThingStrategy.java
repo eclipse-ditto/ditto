@@ -190,7 +190,7 @@ final class ModifyThingStrategy
                 .setRevision(nextRevision)
                 .setModified(null);
 
-        thingWithModifications.getPolicyId().ifPresent(builder::setPolicyId);
+        thingWithModifications.getPolicyEntityId().ifPresent(builder::setPolicyId);
         thingWithModifications.getAccessControlList().ifPresent(builder::setPermissions);
         thingWithModifications.getAttributes().ifPresent(builder::setAttributes);
         thingWithModifications.getFeatures().ifPresent(builder::setFeatures);
@@ -199,12 +199,12 @@ final class ModifyThingStrategy
     }
 
     private static boolean containsPolicyId(final ModifyThing command) {
-        return command.getThing().getPolicyId().isPresent();
+        return command.getThing().getPolicyEntityId().isPresent();
     }
 
     private static Thing copyPolicyId(final CommandStrategy.Context ctx, final Thing from, final Thing to) {
         return to.toBuilder()
-                .setPolicyId(from.getPolicyId().orElseGet(() -> {
+                .setPolicyId(from.getPolicyEntityId().orElseGet(() -> {
                     ctx.getLog()
                             .error("Thing <{}> is schema version 2 and should therefore contain a policyId",
                                     ctx.getThingEntityId());

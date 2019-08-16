@@ -12,19 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
-import static akka.http.javadsl.server.Directives.delete;
-import static akka.http.javadsl.server.Directives.extractDataBytes;
-import static akka.http.javadsl.server.Directives.extractUnmatchedPath;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.parameter;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.path;
-import static akka.http.javadsl.server.Directives.pathEnd;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.post;
-import static akka.http.javadsl.server.Directives.put;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
@@ -43,8 +30,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingPolicyId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
@@ -288,10 +276,10 @@ public final class ThingsRoute extends AbstractRoute {
                                 extractDataBytes(payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 policyIdJson -> ModifyPolicyId.of(thingId,
-                                                        Optional.of(JsonFactory.readFrom(policyIdJson))
+                                                        ThingPolicyId.of(Optional.of(JsonFactory.readFrom(policyIdJson))
                                                                 .filter(JsonValue::isString)
                                                                 .map(JsonValue::asString)
-                                                                .orElse(policyIdJson), dittoHeaders)
+                                                                .orElse(policyIdJson)), dittoHeaders)
                                         )
                                 )
                         )

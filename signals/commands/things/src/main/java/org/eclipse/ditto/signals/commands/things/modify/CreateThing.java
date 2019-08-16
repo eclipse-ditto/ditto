@@ -34,10 +34,10 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingPolicyIdValidator;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingPolicyId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -111,7 +111,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         this.initialPolicy = null;
         this.policyIdOrPlaceholder = policyIdOrPlaceholder;
         if (!Placeholders.containsAnyPlaceholder(policyIdOrPlaceholder)) {
-            ThingPolicyIdValidator.getInstance().accept(policyIdOrPlaceholder, dittoHeaders);
+            ThingPolicyId.of(policyIdOrPlaceholder); //validates
         }
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->

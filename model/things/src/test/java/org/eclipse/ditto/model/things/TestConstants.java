@@ -127,7 +127,7 @@ public final class TestConstants {
         /**
          * A known Policy ID for testing.
          */
-        public static final String POLICY_ID = "example.com:testPolicy";
+        public static final ThingPolicyId POLICY_ID = ThingPolicyId.of("example.com:testPolicy");
 
         /**
          * A known lifecycle of a Thing.

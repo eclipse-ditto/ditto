@@ -79,7 +79,8 @@ public final class ImmutableThingTest {
                 JsonObject.class,
                 AccessControlList.class,
                 ThingRevision.class,
-                ThingId.class
+                ThingId.class,
+                ThingPolicyId.class
         };
 
         assertInstancesOf(ImmutableThing.class,
@@ -120,7 +121,7 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithoutPolicyId() {
-        final Thing thing = ImmutableThing.of(THING_ID, (String) null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+        final Thing thing = ImmutableThing.of(THING_ID, (ThingPolicyId) null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
                 MODIFIED);
 
         assertThat(thing)
@@ -180,7 +181,7 @@ public final class ImmutableThingTest {
         final String invalidPolicyId = "namespace:";
         assertThatExceptionOfType(ThingPolicyIdInvalidException.class).isThrownBy(() -> {
             ImmutableThing.of(
-                    THING_ID,
+                    THING_ID.toString(),
                     invalidPolicyId,
                     ATTRIBUTES,
                     FEATURES,
@@ -196,7 +197,7 @@ public final class ImmutableThingTest {
         final String invalidPolicyId = "namespace:";
 
         final Thing thing = ImmutableThing.of(
-                THING_ID,
+                THING_ID.toString(),
                 validPolicyId,
                 ATTRIBUTES,
                 FEATURES,
@@ -294,8 +295,24 @@ public final class ImmutableThingTest {
     }
 
     @Test
-    public void setPolicyIdWorksAsExpected() {
+    public void setPolicyIdStringWorksAsExpected() {
         final String newPolicyId = "foo:new";
+
+        final Thing changedThing = KNOWN_THING_V2.setPolicyId(newPolicyId);
+
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V2)
+                .hasId(THING_ID)
+                .hasPolicyId(newPolicyId)
+                .hasAttributes(ATTRIBUTES)
+                .hasFeatures(FEATURES)
+                .hasLifecycle(LIFECYCLE)
+                .hasRevision(REVISION);
+    }
+
+    @Test
+    public void setPolicyIdWorksAsExpected() {
+        final ThingPolicyId newPolicyId = ThingPolicyId.of("foo:new");
 
         final Thing changedThing = KNOWN_THING_V2.setPolicyId(newPolicyId);
 
@@ -920,7 +937,8 @@ public final class ImmutableThingTest {
     public void ensureThingToJsonContainsNonHiddenFieldsV2() {
         final JsonObject jsonObject = TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID.toString());
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID);
+        DittoJsonAssertions.assertThat(jsonObject)
+                .contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID.toString());
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
         DittoJsonAssertions.assertThat(jsonObject)
@@ -940,7 +958,8 @@ public final class ImmutableThingTest {
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.of(JsonSchemaVersion.V_2.toInt()));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID.toString());
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID);
+        DittoJsonAssertions.assertThat(jsonObject)
+                .contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID.toString());
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
         DittoJsonAssertions.assertThat(jsonObject)

@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 
@@ -195,10 +196,11 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return adaptable.getPayload().getValue().orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static String policyIdFrom(final Adaptable adaptable) {
+    protected static ThingPolicyId policyIdFrom(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asString)
+                .map(ThingPolicyId::of)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 

@@ -71,9 +71,9 @@ public final class ThingEventToThingConverter {
                 (te, tb) -> tb.build());
 
         mappers.put(PolicyIdCreated.class,
-                (te, tb) -> tb.setPolicyId(((PolicyIdCreated) te).getPolicyId()).build());
+                (te, tb) -> tb.setPolicyId(((PolicyIdCreated) te).getPolicyEntityId()).build());
         mappers.put(PolicyIdModified.class,
-                (te, tb) -> tb.setPolicyId(((PolicyIdModified) te).getPolicyId()).build());
+                (te, tb) -> tb.setPolicyId(((PolicyIdModified) te).getPolicyEntityId()).build());
 
         mappers.put(AttributesCreated.class,
                 (te, tb) -> tb.setAttributes(((AttributesCreated) te).getCreatedAttributes()).build());

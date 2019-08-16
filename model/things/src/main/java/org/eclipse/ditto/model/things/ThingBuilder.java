@@ -140,8 +140,20 @@ public interface ThingBuilder {
          *
          * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
+         * @deprecated Policy ID of the Thing is now typed. Use {@link #setPolicyId(ThingPolicyId)} instead.
          */
-        FromScratch setPolicyId(@Nullable String policyId);
+        @Deprecated
+        default FromScratch setPolicyId(@Nullable String policyId) {
+            return setPolicyId(policyId == null ? null : ThingPolicyId.of(policyId));
+        }
+
+        /**
+         * Sets the given Policy ID to this builder.
+         *
+         * @param policyId the Policy ID to set.
+         * @return this builder to allow method chaining.
+         */
+        FromScratch setPolicyId(@Nullable ThingPolicyId policyId);
 
         /**
          * Removes the Policy ID from this builder.
@@ -674,8 +686,20 @@ public interface ThingBuilder {
          *
          * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
+         * @deprecated Policy ID of the Thing is now typed. Use {@link #setPolicyId(ThingPolicyId)} instead.
          */
-        FromCopy setPolicyId(@Nullable String policyId);
+        @Deprecated
+        default FromCopy setPolicyId(@Nullable String policyId) {
+            return setPolicyId(policyId == null ? null : ThingPolicyId.of(policyId));
+        }
+
+        /**
+         * Sets the given Policy ID to this builder.
+         *
+         * @param policyId the Policy ID to set.
+         * @return this builder to allow method chaining.
+         */
+        FromCopy setPolicyId(@Nullable ThingPolicyId policyId);
 
         /**
          * Removes the Policy ID from this builder.

@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
+import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
@@ -173,12 +174,12 @@ public class JsonExamplesProducer {
                 DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("aclEntryDeleted.json")), aclEntryDeleted, JsonSchemaVersion.V_1);
 
-        final PolicyIdCreated policyIdCreated = PolicyIdCreated.of(THING_ID, THING_ID.toString(), REVISION_NUMBER,
-                DITTO_HEADERS);
+        final PolicyIdCreated policyIdCreated =
+                PolicyIdCreated.of(THING_ID, ThingPolicyId.of(THING_ID), REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdCreated.json")), policyIdCreated);
 
-        final PolicyIdModified policyIdModified = PolicyIdModified.of(THING_ID, THING_ID.toString(), REVISION_NUMBER,
-                DITTO_HEADERS);
+        final PolicyIdModified policyIdModified =
+                PolicyIdModified.of(THING_ID, ThingPolicyId.of(THING_ID), REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdModified.json")), policyIdModified);
 
         final AttributesCreated attributesCreated = AttributesCreated.of(THING_ID, ATTRIBUTES, REVISION_NUMBER,
