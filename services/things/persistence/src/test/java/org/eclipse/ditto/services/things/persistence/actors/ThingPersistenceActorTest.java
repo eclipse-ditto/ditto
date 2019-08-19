@@ -261,7 +261,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final Thing thing = createThingV2WithRandomId();
         final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
 
-        final Props props = ThingPersistenceActor.props(thingIdOfActor, pubSubMediator);
+        final Props props = ThingPersistenceActor.props(thingIdOfActor, getDistributedPub());
         final TestActorRef<ThingPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final ThingPersistenceActor thingPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = thingPersistenceActor.receiveCommand();
@@ -384,8 +384,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final TestKit pubSub = new TestKit(actorSystem);
-                final ActorRef underTest =
-                        createPersistenceActorWithPubSubFor(thingWithFirstLevelFields, pubSub.getRef());
+                final ActorRef underTest = createPersistenceActorFor(thingWithFirstLevelFields);
 
                 final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeaders);
                 underTest.tell(createThing, getRef());
@@ -393,14 +392,14 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingWithFirstLevelFields);
 
-                assertPublishEvent(pubSub, ThingCreated.of(thingWithFirstLevelFields, 1L, dittoHeaders));
+                assertPublishEvent(ThingCreated.of(thingWithFirstLevelFields, 1L, dittoHeaders));
 
                 underTest.tell(modifyThingCommand, getRef());
 
                 expectMsgEquals(modifyThingResponse(thingWithFirstLevelFields, thingWithDifferentFirstLevelFields,
                         dittoHeaders, false));
 
-                assertPublishEvent(pubSub, ThingModified.of(thingWithDifferentFirstLevelFields, 2L, dittoHeaders));
+                assertPublishEvent(ThingModified.of(thingWithDifferentFirstLevelFields, 2L, dittoHeaders));
 
                 final RetrieveThing retrieveThing =
                         RetrieveThing.getBuilder(thingId, dittoHeaders)
@@ -441,8 +440,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final TestKit pubSub = new TestKit(actorSystem);
-                final ActorRef underTest =
-                        createPersistenceActorWithPubSubFor(thingWithFirstLevelFields, pubSub.getRef());
+                final ActorRef underTest = createPersistenceActorFor(thingWithFirstLevelFields);
 
                 final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeaders);
                 underTest.tell(createThing, getRef());
@@ -450,14 +448,14 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingWithFirstLevelFields);
 
-                assertPublishEvent(pubSub, ThingCreated.of(thingWithFirstLevelFields, 1L, dittoHeaders));
+                assertPublishEvent(ThingCreated.of(thingWithFirstLevelFields, 1L, dittoHeaders));
 
                 underTest.tell(modifyThingCommand, getRef());
 
                 expectMsgEquals(modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders, false));
 
                 // we expect that in the Event the minimalThing was merged with thingWithFirstLevelFields:
-                assertPublishEvent(pubSub, ThingModified.of(thingWithFirstLevelFields, 2L, dittoHeaders));
+                assertPublishEvent(ThingModified.of(thingWithFirstLevelFields, 2L, dittoHeaders));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeaders)
                         .withSelectedFields(ALL_FIELDS_SELECTOR)
@@ -1452,7 +1450,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             JsonSchemaVersion.V_2,
                             this,
                             modifyThing -> modifyThingResponse(thingV1, thingV2, modifyThing.getDittoHeaders(), false));
-            assertPublishEvent(this, ThingModified.of(thingV2, 2L,
+            assertPublishEvent(ThingModified.of(thingV2, 2L,
                     headersUsed.toBuilder().schemaVersion(JsonSchemaVersion.V_1).build()));
         }};
     }
@@ -1479,7 +1477,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             modifyThing -> modifyThingResponse(thingV2, thingV1WithoutACL,
                                     modifyThing.getDittoHeaders(), false));
             final DittoHeaders headersV2 = headersUsed.toBuilder().schemaVersion(JsonSchemaVersion.V_2).build();
-            assertPublishEvent(this, ThingModified.of(expected, 2L, headersV2));
+            assertPublishEvent(ThingModified.of(expected, 2L, headersV2));
         }};
     }
 
@@ -1502,7 +1500,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             this,
                             modifyThing -> modifyThingResponse(thingV2, thingV1, modifyThing.getDittoHeaders(), false));
             final DittoHeaders headersV2 = headersUsed.toBuilder().schemaVersion(JsonSchemaVersion.V_2).build();
-            assertPublishEvent(this, ThingModified.of(expected, 2L, headersV2));
+            assertPublishEvent(ThingModified.of(expected, 2L, headersV2));
         }};
     }
 
@@ -1521,7 +1519,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             this,
                             modifyThing -> modifyThingResponse(thingV2, thingV2_2, modifyThing.getDittoHeaders(),
                                     false));
-            assertPublishEvent(this, ThingModified.of(thingV2_2, 2L, headersUsed));
+            assertPublishEvent(ThingModified.of(thingV2_2, 2L, headersUsed));
         }};
     }
 
@@ -1554,13 +1552,12 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final ModifyThing modifyThing = modifyThing(toModify, modifyVersion);
 
         new TestKit(actorSystem) {{
-            final ActorRef underTest =
-                    createPersistenceActorWithPubSubFor(createThing.getThing(), pubSubMediator.getRef());
+            final ActorRef underTest = createPersistenceActorFor(createThing.getThing());
 
             underTest.tell(createThing, getRef());
             final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
             assertThingInResponse(createThingResponse.getThingCreated().orElse(null), createThing.getThing());
-            assertPublishEvent(pubSubMediator, ThingCreated.of(toCreate, 1L, createThing.getDittoHeaders()));
+            assertPublishEvent(ThingCreated.of(toCreate, 1L, createThing.getDittoHeaders()));
 
             underTest.tell(modifyThing, getRef());
             expectMsgEquals(expectedMessage.apply(modifyThing));
@@ -1568,14 +1565,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         return modifyThing.getDittoHeaders();
     }
 
-    private static void assertPublishEvent(final TestKit pubSubMediator, final ThingEvent event) {
-        // the first pub/sub w/o group:
-        final DistributedPubSubMediator.Publish result =
-                pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
-        // the second pub/sub with group:
-        final DistributedPubSubMediator.Publish result2 =
-                pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
-        final ThingEvent msg = (ThingEvent) result.msg();
+    private void assertPublishEvent(final ThingEvent event) {
+        final ThingEvent msg = pubSubTestProbe.expectMsgClass(ThingEvent.class);
         Assertions.assertThat(msg.toJson())
                 .isEqualTo(event.toJson().set(msg.toJson().getField(Event.JsonFields.TIMESTAMP.getPointer()).get()));
         assertThat(msg.getDittoHeaders().getSchemaVersion()).isEqualTo(event.getDittoHeaders().getSchemaVersion());
@@ -1618,10 +1609,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     private ActorRef createPersistenceActorFor(final Thing thing) {
         return createPersistenceActorFor(getIdOrThrow(thing));
-    }
-
-    private ActorRef createPersistenceActorWithPubSubFor(final Thing thing, final ActorRef pubSubMediator) {
-        return createPersistenceActorWithPubSubFor(getIdOrThrow(thing), pubSubMediator, thingConfig);
     }
 
     private static String getIdOrThrow(final Thing thing) {

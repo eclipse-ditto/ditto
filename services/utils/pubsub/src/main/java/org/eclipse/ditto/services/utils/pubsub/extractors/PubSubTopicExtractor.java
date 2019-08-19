@@ -10,8 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub;
+package org.eclipse.ditto.services.utils.pubsub.extractors;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 /**
@@ -29,4 +30,21 @@ public interface PubSubTopicExtractor<T> {
      * @return the collection of topics the message was published to.
      */
     Collection<String> getTopics(T message);
+
+    /**
+     * Combine two topic extractors.
+     *
+     * @param that another topic extractor.
+     * @return a topic extractor that delivers topics extracted by both this and that.
+     */
+    default PubSubTopicExtractor<T> with(final PubSubTopicExtractor<T> that) {
+        return message -> {
+            final Collection<String> topicsFromThis = this.getTopics(message);
+            final Collection<String> topicsFromThat = that.getTopics(message);
+            final Collection<String> result = new ArrayList<>(topicsFromThis.size() + topicsFromThat.size());
+            result.addAll(topicsFromThis);
+            result.addAll(topicsFromThat);
+            return result;
+        };
+    }
 }

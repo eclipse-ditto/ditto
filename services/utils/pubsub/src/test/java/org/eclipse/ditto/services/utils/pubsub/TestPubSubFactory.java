@@ -20,6 +20,7 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

@@ -16,7 +16,7 @@ import java.util.Collection;
 
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.services.utils.pubsub.PubSubTopicExtractor;
+import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptions;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptionsReader;
 

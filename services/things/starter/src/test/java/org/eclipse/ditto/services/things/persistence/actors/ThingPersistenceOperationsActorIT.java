@@ -92,8 +92,8 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final String id) {
-        final Props props = ThingSupervisorActor.props(pubSubMediator,
-                theId -> ThingPersistenceActor.props(theId, pubSubMediator));
+        final Props props =
+                ThingSupervisorActor.props(pubSubMediator, pubSubMediator::tell, ThingPersistenceActor::props);
 
         return system.actorOf(props, id);
     }

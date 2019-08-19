@@ -17,6 +17,7 @@ import org.eclipse.ditto.services.utils.pubsub.actors.PubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFilters;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -27,7 +28,7 @@ import akka.actor.Props;
  *
  * @param <T> type of messages.
  */
-public abstract class AbstractPubSubFactory<T> {
+public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
 
     protected final ActorSystem actorSystem;
     protected final Class<T> messageClass;
@@ -59,11 +60,7 @@ public abstract class AbstractPubSubFactory<T> {
         topicBloomFilters = TopicBloomFilters.of(actorSystem, ddataConfig, messageClass.getCanonicalName());
     }
 
-    /**
-     * Start a pub-supervisor under the user guardian. Will fail when called a second time in an actor system.
-     *
-     * @return access to distributed publication.
-     */
+    @Override
     public DistributedPub<T> startDistributedPub() {
         final String pubSupervisorName = messageClass.getSimpleName() + "PubSupervisor";
         final Props pubSupervisorProps = PubSupervisor.props(config, topicBloomFilters);
@@ -71,11 +68,7 @@ public abstract class AbstractPubSubFactory<T> {
         return DistributedPub.of(pubSupervisor, topicExtractor);
     }
 
-    /**
-     * Start a sub-supervisor under the user guardian. Will fail when called a second time in an actor system.
-     *
-     * @return access to distributed subscription.
-     */
+    @Override
     public DistributedSub startDistributedSub() {
         final String subSupervisorName = messageClass.getSimpleName() + "SubSupervisor";
         final Props subSupervisorProps = SubSupervisor.props(config, messageClass, topicExtractor, topicBloomFilters);

@@ -27,43 +27,47 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-model-things</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-model-policies</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-commands-common</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-commands-devops</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-commands-namespaces</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-models-streaming</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-utils-cluster</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-utils-pubsub</artifactId>
         </dependency>
     </dependencies>
 
@@ -87,6 +91,28 @@
             </plugin>
 
             <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
@@ -105,7 +131,8 @@
                     <execution>
                         <id>produce-json-examples</id>
                         <configuration>
-                            <mainClass>org.eclipse.ditto.services.models.things.CommandAndEventJsonExamplesProducer</mainClass>
+                            <mainClass>org.eclipse.ditto.services.models.things.CommandAndEventJsonExamplesProducer
+                            </mainClass>
                         </configuration>
                     </execution>
                 </executions>

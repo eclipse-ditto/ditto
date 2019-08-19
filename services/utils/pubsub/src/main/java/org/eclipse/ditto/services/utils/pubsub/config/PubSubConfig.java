@@ -15,9 +15,12 @@ package org.eclipse.ditto.services.utils.pubsub.config;
 import java.time.Duration;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 /**
  * Configuration for distributed data update.
@@ -58,10 +61,28 @@ public interface PubSubConfig {
      */
     double getBufferFactor();
 
+    /**
+     * Create a {@code PubSubConfig} object from a {@code Config} object at the key {@code pubsub}.
+     *
+     * @param config config with path {@code pubsub}.
+     * @return the pub-sub config object.
+     */
     static PubSubConfig of(final Config config) {
         return DefaultPubSubConfig.of(config);
     }
 
+    /**
+     * Create a {@code PubSubConfig} object from the configurations of an actor system at the standard
+     * path {@code ditto.pubsub}.
+     *
+     * @param actorSystem the actor system.
+     * @return the pub-sub config object.
+     */
+    static PubSubConfig forActorSystem(final ActorSystem actorSystem) {
+        final Config dittoScopedConfig =
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
+        return of(dittoScopedConfig);
+    }
 
     /**
      * An enumeration of the known config path expressions and their associated default values.

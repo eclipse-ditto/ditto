@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.pubsub.PubSubTopicExtractor;
+import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptions;
 import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFiltersWriter;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;

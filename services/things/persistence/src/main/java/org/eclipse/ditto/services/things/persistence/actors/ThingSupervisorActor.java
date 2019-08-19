@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -33,7 +32,9 @@ import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveS
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
@@ -75,14 +76,15 @@ public final class ThingSupervisorActor extends AbstractActor {
                 return SupervisorStrategy.stop();
             })
             .matchAny(e -> {
-                log.error(e,"Passing unhandled error to ThingsRootActor: {}", e.getMessage());
+                log.error(e, "Passing unhandled error to ThingsRootActor: {}", e.getMessage());
                 return SupervisorStrategy.escalate();
             })
             .build());
 
 
     private ThingSupervisorActor(final ActorRef pubSubMediator,
-            final Function<String, Props> thingPersistenceActorPropsFactory) {
+            final DistributedPub<ThingEvent> distributedPub,
+            final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory) {
 
         final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -92,8 +94,9 @@ public final class ThingSupervisorActor extends AbstractActor {
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
-        persistenceActorProps = thingPersistenceActorPropsFactory.apply(thingId);
+        persistenceActorProps = thingPersistenceActorPropsFactory.props(thingId, distributedPub);
         exponentialBackOffConfig = thingsConfig.getThingConfig().getSupervisorConfig().getExponentialBackOffConfig();
+
         shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
 
         child = null;
@@ -107,15 +110,17 @@ public final class ThingSupervisorActor extends AbstractActor {
      * for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
-     * @param pubSubMediator Akka pub-sub mediator.
-     * @param thingPersistenceActorPropsFactory factory for creating Props to be used for creating
+     * @param distributedPub distributed-pub access for publishing thing events.
+     * @param propsFactory factory for creating Props to be used for creating
      * {@link ThingPersistenceActor}s.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final ActorRef pubSubMediator,
-            final Function<String, Props> thingPersistenceActorPropsFactory) {
+    public static Props props(
+            final ActorRef pubSubMediator,
+            final DistributedPub<ThingEvent> distributedPub,
+            final ThingPersistenceActorPropsFactory propsFactory) {
 
-        return Props.create(ThingSupervisorActor.class, pubSubMediator, thingPersistenceActorPropsFactory);
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, distributedPub, propsFactory);
     }
 
     private Collection<ReceiveStrategy<?>> initReceiveStrategies() {

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
+import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
+
 import akka.actor.ActorRef;
 
 /**

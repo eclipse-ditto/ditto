@@ -199,7 +199,7 @@ public final class PubSubTest {
             // THEN: the subscriber is removed
             Awaitility.await().untilAsserted(() -> {
                 assertThat(factory1.getSubscribers("hello").toCompletableFuture().join())
-                        .describedAs("subscriber should be removed from ddata after dead letter")
+                        .describedAs("subscriber should be removed from ddata")
                         .isEmpty();
             });
         }};
