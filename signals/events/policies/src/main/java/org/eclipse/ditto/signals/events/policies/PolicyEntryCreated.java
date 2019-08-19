@@ -55,11 +55,11 @@ public final class PolicyEntryCreated extends AbstractPolicyEvent<PolicyEntryCre
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
+    public static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRY =
+            JsonFactory.newJsonObjectFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     static final JsonFieldDefinition<String> JSON_LABEL =
             JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-    static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRY =
-            JsonFactory.newJsonObjectFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final PolicyEntry policyEntry;
 

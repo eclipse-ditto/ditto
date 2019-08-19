@@ -147,7 +147,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
 
     /**
      * The regex pattern a Subject has to conform to. Defined by
-     * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a> .
+     * <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC-3986</a> .
      */
     static final String SUBJECT_REGEX =
             "(([a-zA-Z][0-9a-zA-Z+\\-\\.]*:)?/{0,2}[0-9a-zA-Z;/?:@&=+$\\.\\-_!~*'()%]+)?(#[0-9a-zA-Z;/?:@&=+$\\.\\-_!~*'()%]+)?";

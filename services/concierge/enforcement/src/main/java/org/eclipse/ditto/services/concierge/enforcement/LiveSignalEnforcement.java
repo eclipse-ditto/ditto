@@ -36,6 +36,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -50,7 +51,6 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorRef;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 
 /**
  * Enforces live commands (including message commands) and live events.
@@ -322,7 +322,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         log(command).debug("Publish message to pub-sub: <{}>", pubSubTopic);
 
         return withMessageToReceiver(command, pubSubMediator(), obj ->
-                new DistributedPubSubMediator.Publish(pubSubTopic, obj, true));
+                DistPubSubAccess.publish(pubSubTopic, obj));
     }
 
     private static boolean isAuthorized(final MessageCommand command, final Enforcer enforcer) {

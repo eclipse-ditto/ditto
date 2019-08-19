@@ -43,6 +43,7 @@ import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConst
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
@@ -70,7 +71,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
@@ -169,7 +169,7 @@ public final class ConnectivityRootActor extends AbstractActor {
         final ActorRef persistenceStreamingActor =
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
                         ConnectionPersistenceStreamingActorCreator.props(0));
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
         startClusterSingletonActor(
                 ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),

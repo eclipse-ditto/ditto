@@ -76,6 +76,7 @@ import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.IdentityCache;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -107,7 +108,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 
@@ -601,7 +601,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final EntityId entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, thingId);
         thingIdCache.invalidate(entityId);
         aclEnforcerCache.invalidate(entityId);
-        pubSubMediator().tell(new DistributedPubSubMediator.SendToAll(
+        pubSubMediator().tell(DistPubSubAccess.sendToAll(
                         ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
                         InvalidateCacheEntry.of(entityId),
                         true),
@@ -611,7 +611,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private void invalidatePolicyCache(final String policyId) {
         final EntityId entityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
         policyEnforcerCache.invalidate(entityId);
-        pubSubMediator().tell(new DistributedPubSubMediator.SendToAll(
+        pubSubMediator().tell(DistPubSubAccess.sendToAll(
                         ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
                         InvalidateCacheEntry.of(entityId),
                         true),

@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript.benchmark;
 
-import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
+import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 import com.typesafe.config.ConfigFactory;

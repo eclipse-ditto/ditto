@@ -51,6 +51,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -223,7 +224,7 @@ public final class TestConstants {
                 newTarget("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}",
                         Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         null, Topic.TWIN_EVENTS);
-        static final Target TWIN_TARGET =
+        public static final Target TWIN_TARGET =
                 newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         null, Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =
@@ -372,8 +373,12 @@ public final class TestConstants {
         public static final ConnectionMetrics CONNECTION_METRICS1 = COUNTER_REGISTRY
                 .aggregateConnectionMetrics(SOURCE_METRICS1, TARGET_METRICS1);
 
-        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE1 = RetrieveConnectionMetricsResponse
-                .of(ID, CONNECTION_METRICS1, SOURCE_METRICS1, TARGET_METRICS1, DittoHeaders.empty());
+        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE1 =
+                RetrieveConnectionMetricsResponse.getBuilder(ID, DittoHeaders.empty())
+                        .connectionMetrics(CONNECTION_METRICS1)
+                        .sourceMetrics(SOURCE_METRICS1)
+                        .targetMetrics(TARGET_METRICS1)
+                        .build();
 
         public static final SourceMetrics SOURCE_METRICS2 = ConnectivityModelFactory.newSourceMetrics(
                 asMap(entry("source2", INBOUND_METRIC), entry("source3", INBOUND_METRIC)));
@@ -382,8 +387,12 @@ public final class TestConstants {
         public static final ConnectionMetrics CONNECTION_METRICS2 = COUNTER_REGISTRY
                 .aggregateConnectionMetrics(SOURCE_METRICS2, TARGET_METRICS2);
 
-        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE2 = RetrieveConnectionMetricsResponse
-                .of(ID, CONNECTION_METRICS2, SOURCE_METRICS2, TARGET_METRICS2, DittoHeaders.empty());
+        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE2 =
+                RetrieveConnectionMetricsResponse.getBuilder(ID, DittoHeaders.empty())
+                        .connectionMetrics(CONNECTION_METRICS2)
+                        .sourceMetrics(SOURCE_METRICS2)
+                        .targetMetrics(TARGET_METRICS2)
+                        .build();
 
         public static Measurement mergeMeasurements(final MetricType type,
                 final boolean success,
@@ -495,6 +504,7 @@ public final class TestConstants {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
                 .sources(sources)
                 .targets(Targets.TARGETS)
+                .lifecycle(ConnectionLifecycle.ACTIVE)
                 .build();
     }
 

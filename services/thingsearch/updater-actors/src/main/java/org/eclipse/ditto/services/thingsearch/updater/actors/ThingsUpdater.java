@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
-import static akka.cluster.pubsub.DistributedPubSubMediator.Subscribe;
 import static akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck;
 import static org.eclipse.ditto.services.thingsearch.updater.actors.ShardRegionFactory.UPDATER_SHARD_REGION;
 
@@ -28,6 +27,7 @@ import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
@@ -76,7 +76,7 @@ final class ThingsUpdater extends AbstractActor {
                 RetrieveStatisticsDetailsResponseSupplier.of(shardRegion, UPDATER_SHARD_REGION, log);
 
         if (eventProcessingActive) {
-            pubSubMediator.tell(new Subscribe(ThingEvent.TYPE_PREFIX, ACTOR_NAME, self()), self());
+            pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(ThingEvent.TYPE_PREFIX, ACTOR_NAME, self()), self());
         }
     }
 

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
 import java.util.Map;
@@ -84,6 +85,7 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Test
     public void testInboundMessageFails() {
+        disableLogging(actorSystem);
         testInboundMessage(header("device_id", "_invalid"), false, s -> {}, outboundSignal -> {
             final ConnectionSignalIdEnforcementFailedException exception =
                     ConnectionSignalIdEnforcementFailedException.fromMessage(
@@ -96,6 +98,7 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Test
     public void testInboundMessageFailsIfHeaderIsMissing() {
+        disableLogging(actorSystem);
         testInboundMessage(header("some", "header"), false, s -> {}, outboundSignal -> {
             final UnresolvedPlaceholderException exception =
                     UnresolvedPlaceholderException.fromMessage(
@@ -122,6 +125,7 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Test
     public void testInboundMessageWithHeaderMappingThrowsUnresolvedPlaceholderException() {
+        disableLogging(actorSystem);
         testInboundMessage(header("useless", "header"), false,
                 msg -> {},
                 response -> {

@@ -44,6 +44,34 @@ public interface PersistenceIdsConfig {
     Duration getStreamIdleTimeout();
 
     /**
+     * Returns the minimum backoff in case of stream failure.
+     *
+     * @return the minimum backoff.
+     */
+    Duration getMinBackoff();
+
+    /**
+     * Returns the maximum backoff in case of stream failure.
+     *
+     * @return the maximum backoff.
+     */
+    Duration getMaxBackoff();
+
+    /**
+     * Returns the maximum number of stream resumptions before giving up.
+     *
+     * @return the maximum number of stream resumptions.
+     */
+    int getMaxRestarts();
+
+    /**
+     * Returns the period after which upstream is assumed healthy if no error occurred.
+     *
+     * @return the recovery period.
+     */
+    Duration getRecovery();
+
+    /**
      * Enumeration of known config keys and default values for {@code PersistenceIdsConfig}
      */
     enum ConfigValue implements KnownConfigValue {
@@ -61,7 +89,27 @@ public interface PersistenceIdsConfig {
         /**
          * Idle timeout of the stream.
          */
-        STREAM_IDLE_TIMEOUT("stream-idle-timeout", Duration.ofMinutes(10L));
+        STREAM_IDLE_TIMEOUT("stream-idle-timeout", Duration.ofHours(3L)),
+
+        /**
+         * Minimum backoff in case of stream failure.
+         */
+        MIN_BACKOFF("min-backoff", Duration.ofSeconds(1L)),
+
+        /**
+         * Maximum backoff in case of stream failure.
+         */
+        MAX_BACKOFF("max-backoff", Duration.ofMinutes(2L)),
+
+        /**
+         * Maximum number of stream resumptions before giving up.
+         */
+        MAX_RESTARTS("max-restarts", 180),
+
+        /**
+         * Assume upstream healthy if no error happened for this long.
+         */
+        RECOVERY("recovery", Duration.ofMinutes(4L));
 
         private final String path;
         private final Object defaultValue;

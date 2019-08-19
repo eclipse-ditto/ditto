@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectionTag;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
 
@@ -42,12 +43,18 @@ public final class ConnectionPersistenceStreamingActorCreator {
      */
     public static Props props(final int streamingCacheSize) {
         return DefaultPersistenceStreamingActor.props(ConnectionTag.class, streamingCacheSize,
-                ConnectionPersistenceStreamingActorCreator::createElement);
+                ConnectionPersistenceStreamingActorCreator::createElement,
+                ConnectionPersistenceStreamingActorCreator::createPidWithSeqNr);
     }
 
     private static ConnectionTag createElement(final PidWithSeqNr pidWithSeqNr) {
         final String id = pidWithSeqNr.getPersistenceId()
                 .replaceFirst(ConnectionActor.PERSISTENCE_ID_PREFIX, "");
         return ConnectionTag.of(id, pidWithSeqNr.getSequenceNr());
+    }
+
+    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision connectionTag) {
+        return new PidWithSeqNr(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionTag.getId(),
+                connectionTag.getRevision());
     }
 }

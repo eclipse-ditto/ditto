@@ -17,7 +17,10 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -68,6 +71,17 @@ public final class ConnectionClosedTest {
         final JsonObject actual = ConnectionClosed.of(TestConstants.ID, DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
+    }
+
+
+    @Test
+    public void getResourcePathReturnsExpected() {
+        final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
+
+        final ConnectionClosed underTest =
+                ConnectionClosed.of(TestConstants.ID, DittoHeaders.empty());
+
+        DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }
 
 }

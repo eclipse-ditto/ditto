@@ -50,6 +50,7 @@ import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
 import akka.routing.DefaultResizer;
 import akka.routing.Resizer;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -62,12 +63,14 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor) {
         final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
-        return AmqpConsumerActor.props(CONNECTION_ID, "consumer", messageConsumer, mappingActor,
-                ConnectivityModelFactory.newSourceBuilder()
+        final ConsumerData mockConsumerData =
+                consumerData(CONNECTION_ID, messageConsumer, ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
                         .build());
+        return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,
+                TestProbe.apply(actorSystem).testActor());
     }
 
     @Override
@@ -149,9 +152,8 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
-            final ActorRef underTest = actorSystem.actorOf(
-                    AmqpConsumerActor.props(CONNECTION_ID, "foo", Mockito.mock(MessageConsumer.class), processor,
-                            source));
+            final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION_ID,
+                    consumerData("foo", Mockito.mock(MessageConsumer.class), source), processor, getRef()));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";
@@ -223,8 +225,9 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             final ActorRef underTest = actorSystem.actorOf(
-                    AmqpConsumerActor.props(CONNECTION_ID, "foo123", Mockito.mock(MessageConsumer.class), processor,
-                            source));
+                    AmqpConsumerActor.props(CONNECTION_ID,
+                            consumerData("foo123", Mockito.mock(MessageConsumer.class), source), processor,
+                            getRef()));
 
             final String correlationId = "cor-";
             final String plainPayload =
@@ -248,6 +251,11 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             assertThat(((ModifyFeatureProperty) command).getPropertyPointer()).isEqualTo(JsonPointer.of("/x"));
             assertThat(((ModifyFeatureProperty) command).getPropertyValue()).isEqualTo(JsonValue.of(42));
         }};
+    }
+
+    private static ConsumerData consumerData(final String address, final MessageConsumer messageConsumer,
+            final Source source) {
+        return ConsumerData.of(source, address, address + "_with_index", messageConsumer);
     }
 
     private static MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {

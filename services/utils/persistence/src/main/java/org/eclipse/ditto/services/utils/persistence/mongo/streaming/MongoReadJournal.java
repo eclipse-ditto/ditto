@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -109,6 +111,7 @@ public class MongoReadJournal {
     private static final Document ID_DESC = toDocument(new Object[][]{{ID, SORT_DESCENDING}});
 
     private static final String COLLECTION_NAME_FIELD = "name";
+    private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
     private final Pattern journalCollectionPrefix;
     private final Pattern snapsCollectionPrefix;
@@ -185,28 +188,55 @@ public class MongoReadJournal {
     public Source<String, NotUsed> getJournalPids(final int batchSize, final Duration maxIdleTime,
             final ActorMaterializer mat) {
 
+        final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return listJournals().withAttributes(Attributes.inputBuffer(1, 1))
-                .flatMapConcat(journal -> listPidsInJournal(journal, batchSize, mat, maxIdleTime))
+                .flatMapConcat(journal ->
+                        listPidsInJournal(journal, "", batchSize, mat, MAX_BACK_OFF_DURATION, maxRestarts)
+                )
+                .mapConcat(pids -> pids);
+    }
+
+    /**
+     * Retrieve all unique PIDs in journals above a lower bound. Does not limit database access in any way.
+     *
+     * @param lowerBoundPid the lower-bound PID.
+     * @param batchSize how many events to read in 1 query.
+     * @param maxIdleTime max idle time of the stream.
+     * @param mat the materializer.
+     * @return all unique PIDs in journals above a lower bound.
+     */
+    public Source<String, NotUsed> getJournalPidsAbove(final String lowerBoundPid, final int batchSize,
+            final Duration maxIdleTime, final ActorMaterializer mat) {
+
+        return listJournals().withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(journal ->
+                        listPidsInJournal(journal, lowerBoundPid, batchSize, mat, Duration.ZERO, 0)
+                )
                 .mapConcat(pids -> pids);
     }
 
     private Source<List<String>, NotUsed> listPidsInJournal(final MongoCollection<Document> journal,
-            final int batchSize, final ActorMaterializer mat, final Duration maxIdleTime) {
+            final String lowerBound, final int batchSize, final ActorMaterializer mat, final Duration maxBackOff,
+            final int maxRestarts) {
 
-        return Source.unfoldAsync("", start ->
-                listJournalPidsAbove(journal, start, batchSize, maxIdleTime).runWith(Sink.seq(), mat)
-                        .thenApply(list -> {
-                            if (list.isEmpty()) {
-                                return Optional.empty();
-                            } else {
-                                return Optional.of(Pair.create(list.get(list.size() - 1), list));
-                            }
-                        })
-        ).withAttributes(Attributes.inputBuffer(1, 1));
+        return Source.unfoldAsync("",
+                start -> {
+                    final String actualStart = lowerBound.compareTo(start) >= 0 ? lowerBound : start;
+                    return listJournalPidsAbove(journal, actualStart, batchSize, maxBackOff, maxRestarts)
+                            .runWith(Sink.seq(), mat)
+                            .thenApply(list -> {
+                                if (list.isEmpty()) {
+                                    return Optional.empty();
+                                } else {
+                                    return Optional.of(Pair.create(list.get(list.size() - 1), list));
+                                }
+                            });
+                })
+                .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
     private Source<String, NotUsed> listJournalPidsAbove(final MongoCollection<Document> journal, final String start,
-            final int batchSize, final Duration maxDuration) {
+            final int batchSize, final Duration maxBackOff, final int maxRestarts) {
 
         final List<Bson> pipeline = new ArrayList<>(5);
         // optional match stage
@@ -227,22 +257,22 @@ public class MongoReadJournal {
         pipeline.add(Aggregates.sort(Sorts.ascending(ID)));
 
         final Duration minBackOff = Duration.ofSeconds(1L);
-        final Duration maxBackOff = Duration.ofSeconds(128L);
         final double randomFactor = 0.1;
-
-        final int maxRestarts;
-        if (maxBackOff.minus(maxDuration).isNegative()) {
-            // maxBackOff < maxDuration: backOff at least 7 times (1+2+4+8+16+32+64=127s)
-            maxRestarts = Math.max(7, 6 + (int) (maxDuration.toMillis() / maxBackOff.toMillis()));
-        } else {
-            // maxBackOff >= maxDuration: maxRestarts = log2 of maxDuration in seconds
-            final int log2MaxDuration = 63 - Long.numberOfLeadingZeros(maxDuration.getSeconds());
-            maxRestarts = Math.max(0, log2MaxDuration);
-        }
 
         return RestartSource.onFailuresWithBackoff(minBackOff, maxBackOff, randomFactor, maxRestarts,
                 () -> Source.fromPublisher(journal.aggregate(pipeline)).map(document ->
                         document.getString(ID)));
+    }
+
+    private int computeMaxRestarts(final Duration maxDuration) {
+        if (MAX_BACK_OFF_DURATION.minus(maxDuration).isNegative()) {
+            // maxBackOff < maxDuration: backOff at least 7 times (1+2+4+8+16+32+64=127s)
+            return Math.max(7, 6 + (int) (maxDuration.toMillis() / MAX_BACK_OFF_DURATION.toMillis()));
+        } else {
+            // maxBackOff >= maxDuration: maxRestarts = log2 of maxDuration in seconds
+            final int log2MaxDuration = 63 - Long.numberOfLeadingZeros(maxDuration.getSeconds());
+            return Math.max(0, log2MaxDuration);
+        }
     }
 
     private Source<PidWithSeqNr, NotUsed> listPidWithSeqNr(final JournalAndSnaps journalAndSnaps,
@@ -278,10 +308,7 @@ public class MongoReadJournal {
     private Source<JournalAndSnaps, NotUsed> listJournalsAndSnapshotStores() {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
         return resolveCollectionNames(journalCollectionPrefix, snapsCollectionPrefix, database, log)
-                .map(this::toJournalAndSnaps)
-                .groupBy(Integer.MAX_VALUE, JournalAndSnaps::getSuffix)
-                .fold(new JournalAndSnaps(), JournalAndSnaps::merge)
-                .mergeSubstreams();
+                .map(this::toJournalAndSnaps);
     }
 
     private Source<MongoCollection<Document>, NotUsed> listJournals() {
@@ -409,7 +436,14 @@ public class MongoReadJournal {
                     log.debug("Collection <{}> with patterns <{}> or <{}> found.", collectionName,
                             journalCollectionPrefix, snapsCollectionPrefix);
                     return collectionName;
-                });
+                })
+                // Each "get current PIDs" query collects all collection names in memory in order to list them in
+                // a fixed order.
+                .<SortedSet<String>>fold(new TreeSet<>(), (collectionNames, collectionName) -> {
+                    collectionNames.add(collectionName);
+                    return collectionNames;
+                })
+                .mapConcat(collectionNames -> collectionNames);
     }
 
     private static final class JournalAndSnaps {

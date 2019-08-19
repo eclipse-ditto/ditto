@@ -176,14 +176,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
             final Props props = createClientActor(getRef());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
-            rabbitClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
-
-            rabbitClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(DISCONNECTED_SUCCESS);
-
-            // reconnect many times
-            for (int i = 0; i < 10; ++i) {
+            // reconnect a few times
+            for (int i = 0; i < 3; ++i) {
                 rabbitClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
                 expectMsg(CONNECTED_SUCCESS);
 
@@ -216,7 +210,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             rabbitClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsgClass(ConnectionSignalIllegalException.class);
+            expectMsg(CONNECTED_SUCCESS);
 
             // a publisher and a consumer channel should be created
             verify(mockConnection, Mockito.times(2)).createChannel();

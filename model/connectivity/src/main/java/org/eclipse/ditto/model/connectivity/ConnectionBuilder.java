@@ -131,6 +131,24 @@ public interface ConnectionBuilder {
     ConnectionBuilder targets(List<Target> targets);
 
     /**
+     * Set sources of connection.
+     *
+     * @param sources the new sources.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code sources} is {@code null}.
+     */
+    ConnectionBuilder setSources(List<Source> sources);
+
+    /**
+     * Set targets to the connection.
+     *
+     * @param targets the new targets.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code targets} is {@code null}.
+     */
+    ConnectionBuilder setTargets(List<Target> targets);
+
+    /**
      * Sets how many clients on different cluster nodes should establish the {@code Connection}.
      * <p>
      * If greater than 1, the connection is created in a HA mode, running on at least 2 cluster nodes.
@@ -177,6 +195,8 @@ public interface ConnectionBuilder {
      * @throws NullPointerException if {@code tag} is {@code null}.
      */
     ConnectionBuilder tag(String tag);
+
+    ConnectionBuilder lifecycle(@Nullable ConnectionLifecycle lifecycle);
 
     /**
      * Builds a new {@link Connection}.

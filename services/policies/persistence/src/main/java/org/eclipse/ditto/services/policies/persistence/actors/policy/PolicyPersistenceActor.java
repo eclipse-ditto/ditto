@@ -57,6 +57,7 @@ import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
@@ -129,7 +130,6 @@ import org.eclipse.ditto.signals.events.policies.SubjectsModified;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.function.Procedure;
@@ -588,7 +588,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
     }
 
     private void notifySubscribers(final PolicyEvent event) {
-        pubSubMediator.tell(new DistributedPubSubMediator.Publish(PolicyEvent.TYPE_PREFIX, event, true), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.publish(PolicyEvent.TYPE_PREFIX, event), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSelf());
     }
 
     private void policyEntryNotFound(final Label label, final DittoHeaders dittoHeaders) {
