@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -46,6 +48,8 @@ public final class Publisher extends AbstractActor implements Hashes {
 
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
+
+    private CompletionStage<Void> currentPublication = CompletableFuture.completedFuture(null);
 
     private Publisher(final Collection<Integer> seeds, final TopicBloomFiltersReader topicBloomFiltersReader,
             final ActorRef pubSubUpdater) {
@@ -88,12 +92,14 @@ public final class Publisher extends AbstractActor implements Hashes {
                 publish.getTopics().stream().map(this::getHashes).collect(Collectors.toList());
         final Object message = publish.getMessage();
         final ActorRef sender = getSender();
-        topicBloomFiltersReader.getSubscribers(hashes)
-                .thenAccept(subscribers -> subscribers.forEach(subscriber -> subscriber.tell(message, sender)))
-                .exceptionally(e -> {
-                    log.error(e, "Failed: <{}>", publish);
-                    return null;
-                });
+        currentPublication = currentPublication.thenCompose(_void ->
+                topicBloomFiltersReader.getSubscribers(hashes)
+                        .thenAccept(subscribers -> subscribers.forEach(subscriber -> subscriber.tell(message, sender)))
+                        .exceptionally(e -> {
+                            log.error(e, "Failed: <{}>", publish);
+                            return null;
+                        })
+        );
     }
 
     private void logUnhandled(final Object message) {

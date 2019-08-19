@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
@@ -133,17 +134,17 @@ public final class PubSubTest {
                     sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture()
             ).join();
 
-            // WHEN: a message is published
-            final String hello = "hello";
-            final String helloWorld = "hello world";
-            pub.publish(hello, publisher.ref());
-            pub.publish(helloWorld, publisher.ref());
+            // WHEN: many messages are published
+            final int messages = 100;
+            IntStream.range(0, messages).forEach(i -> pub.publish("hello" + i, publisher.ref()));
 
-            // THEN: only subscribers with relevant topics get the message.
-            subscriber1.expectMsg(hello);
-            subscriber2.expectMsg(hello);
-            subscriber1.expectMsg(helloWorld);
-            subscriber2.expectMsg(helloWorld);
+            // THEN: subscribers with relevant topics get the messages in the order they were published.
+            IntStream.range(0, messages).forEach(i -> {
+                subscriber1.expectMsg("hello" + i);
+                subscriber2.expectMsg("hello" + i);
+            });
+
+            // THEN: subscribers without relevant topics get no message.
             subscriber3.expectNoMsg(Duration.Zero());
             subscriber4.expectNoMsg(Duration.Zero());
         }};
