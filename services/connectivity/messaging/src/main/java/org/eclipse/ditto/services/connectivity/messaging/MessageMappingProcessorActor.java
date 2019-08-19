@@ -87,13 +87,11 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * This Actor processes incoming {@link Signal}s and dispatches them via {@link DistributedPubSubMediator} to a consumer
- * actor.
+ * This Actor processes incoming {@link Signal}s and dispatches them.
  */
 public final class MessageMappingProcessorActor extends AbstractActor {
 

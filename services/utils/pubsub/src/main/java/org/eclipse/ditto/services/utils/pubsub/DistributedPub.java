@@ -24,12 +24,29 @@ import akka.actor.ActorRef;
 public interface DistributedPub<T> {
 
     /**
+     * Get the publisher actor to send requests to.
+     *
+     * @return the publisher actor.
+     */
+    ActorRef getPublisher();
+
+    /**
+     * Wrap the message in an envelope to send to the publisher.
+     *
+     * @param message the message.
+     * @return the wrapped message to send to the publisher.
+     */
+    Object wrapForPublication(final T message);
+
+    /**
      * Publish a message.
      *
      * @param message the message to publish.
      * @param sender reply address for all subscribers who receive this message.
      */
-    void publish(T message, ActorRef sender);
+    default void publish(T message, ActorRef sender) {
+        getPublisher().tell(wrapForPublication(message), sender);
+    }
 
     /**
      * Create publication access from an already-started pub-supervisor and topic extractor.

@@ -50,6 +50,26 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     protected AbstractPubSubFactory(final ActorSystem actorSystem, final String clusterRole,
             final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor, final PubSubConfig config) {
 
+        this(actorSystem, clusterRole, messageClass, messageClass.getCanonicalName(), topicExtractor, config);
+    }
+
+    /**
+     * Create a pub-sub factory with non-default distributed data key.
+     *
+     * @param actorSystem the actor system.
+     * @param clusterRole the role of cluster members participating in the pub-sub.
+     * @param messageClass the class of messages to publish and subscribe for.
+     * @param ddataKey the key of the distributed topic Bloom filters.
+     * @param topicExtractor a function extracting from each message the topics it was published at.
+     * @param config the pub-sub configuration.
+     */
+    protected AbstractPubSubFactory(final ActorSystem actorSystem,
+            final String clusterRole,
+            final Class<T> messageClass,
+            final String ddataKey,
+            final PubSubTopicExtractor<T> topicExtractor,
+            final PubSubConfig config) {
+
         this.actorSystem = actorSystem;
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
@@ -57,7 +77,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
 
         final String replicatorName = messageClass.getSimpleName() + "PubSubReplicator";
         ddataConfig = DistributedDataConfigReader.of(actorSystem, replicatorName, clusterRole);
-        topicBloomFilters = TopicBloomFilters.of(actorSystem, ddataConfig, messageClass.getCanonicalName());
+        topicBloomFilters = TopicBloomFilters.of(actorSystem, ddataConfig, ddataKey);
     }
 
     @Override

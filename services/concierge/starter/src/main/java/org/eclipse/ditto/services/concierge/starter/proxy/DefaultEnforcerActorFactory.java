@@ -41,6 +41,7 @@ import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.services.models.concierge.pubsub.LiveSignalPub;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
 import org.eclipse.ditto.services.utils.cache.EntityId;
@@ -115,12 +116,14 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
                 newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
 
+        final LiveSignalPub liveSignalPub = LiveSignalPub.of(actorSystem);
+
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
                 policiesShardRegionProxy, thingIdCache, policyEnforcerCache, aclEnforcerCache, preEnforcer));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
-                aclEnforcerCache));
+                aclEnforcerCache, liveSignalPub));
 
         final ActorRef conciergeEnforcerRouter =
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,

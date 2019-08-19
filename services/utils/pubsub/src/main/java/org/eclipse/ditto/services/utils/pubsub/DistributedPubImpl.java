@@ -31,7 +31,12 @@ final class DistributedPubImpl<T> implements DistributedPub<T> {
     }
 
     @Override
-    public void publish(final T message, final ActorRef sender) {
-        pubSupervisor.tell(Publisher.Publish.of(topicExtractor.getTopics(message), message), sender);
+    public ActorRef getPublisher() {
+        return pubSupervisor;
+    }
+
+    @Override
+    public Object wrapForPublication(final T message) {
+        return Publisher.Publish.of(topicExtractor.getTopics(message), message);
     }
 }

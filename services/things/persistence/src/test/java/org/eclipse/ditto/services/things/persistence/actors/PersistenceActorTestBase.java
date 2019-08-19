@@ -211,6 +211,21 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected DistributedPub<ThingEvent> getDistributedPub() {
-        return (message, sender) -> pubSubMediator.tell(message, sender);
+        return new TestPub();
+    }
+
+    private final class TestPub implements DistributedPub<ThingEvent> {
+
+        private TestPub() {}
+
+        @Override
+        public ActorRef getPublisher() {
+            return pubSubMediator;
+        }
+
+        @Override
+        public Object wrapForPublication(final ThingEvent message) {
+            return message;
+        }
     }
 }
