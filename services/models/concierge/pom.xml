@@ -35,10 +35,6 @@
             <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-signals-commands-live</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-thingsearch</artifactId>
         </dependency>

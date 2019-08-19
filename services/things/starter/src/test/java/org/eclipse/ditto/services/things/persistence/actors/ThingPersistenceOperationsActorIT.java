@@ -15,12 +15,14 @@ package org.eclipse.ditto.services.things.persistence.actors;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
 
@@ -93,7 +95,19 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final String id) {
         final Props props =
-                ThingSupervisorActor.props(pubSubMediator, pubSubMediator::tell, ThingPersistenceActor::props);
+                ThingSupervisorActor.props(pubSubMediator,
+                        new DistributedPub<ThingEvent>() {
+                            @Override
+                            public ActorRef getPublisher() {
+                                return pubSubMediator;
+                            }
+
+                            @Override
+                            public Object wrapForPublication(final ThingEvent message) {
+                                return message;
+                            }
+                        },
+                        ThingPersistenceActor::props);
 
         return system.actorOf(props, id);
     }
