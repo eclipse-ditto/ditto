@@ -46,7 +46,9 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAr
 
 import com.hivemq.client.mqtt.MqttClient;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedContext;
+import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedContext;
+import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
 
@@ -86,7 +88,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         super(connection, desiredConnectionStatus, conciergeForwarder);
         pendingStatusReportsFromStreams = new HashSet<>();
 
-        client = buildHiveMqClient(connection);
+        client = buildHiveMqClient(connection, connection.getId(), this::onClientConnected, this::onClientDisconnected);
         forwarderToPublisherActor = startForwarder(HiveMqtt3PublisherActor.NAME);
         forwarderToMessageMappingActor = startForwarder(MessageMappingProcessorActor.ACTOR_NAME);
         consumerActors = new ArrayList<>();
@@ -143,15 +145,26 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     // TODO: this code is a duplicate of MqttClientActor and KafkaClientActor
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
-        if (testConnectionFuture != null) {
-            final Exception error = new IllegalStateException("test future exists");
-            return CompletableFuture.completedFuture(new Status.Failure(error));
-        }
-        testConnectionFuture = new CompletableFuture<>();
-        // TODO: if we would not try to subscribe to the broker, we could directly map the returned future here.
-        //  does it make sense to start the subscribers? they will subscribe and consume messages (throwing them away though)
-        connectClient(connection, true);
-        return testConnectionFuture;
+        final String testClientId = connection.getId() + "-test";
+        return buildHiveMqClient(connection, testClientId, null, null)
+                .toAsync()
+                .connect()
+                .thenApply(connAck -> {
+                    final String url = connection.getUri();
+                    final String message = "MQTT connection to " + url + " established successfully.";
+                    return (Status.Status) new Status.Success(message);
+                })
+                .exceptionally(Status.Failure::new);
+//
+//        if (testConnectionFuture != null) {
+//            final Exception error = new IllegalStateException("test future exists");
+//            return CompletableFuture.completedFuture(new Status.Failure(error));
+//        }
+//        testConnectionFuture = new CompletableFuture<>();
+//        // TODO: if we would not try to subscribe to the broker, we could directly map the returned future here.
+//        //  does it make sense to start the subscribers? they will subscribe and consume messages (throwing them away though)
+//        connectClient(connection, true);
+//        return testConnectionFuture;
     }
 
     @Override
@@ -233,10 +246,13 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     }
 
-    private Mqtt3Client buildHiveMqClient(final Connection connection) {
+    private Mqtt3Client buildHiveMqClient(final Connection connection, final String identifier,
+            @Nullable final MqttClientConnectedListener connectedListener,
+            @Nullable final MqttClientDisconnectedListener disconnectedListener) {
         Mqtt3ClientBuilder mqtt3ClientBuilder = MqttClient.builder().useMqttVersion3();
         final Optional<String> possibleUsername = connection.getUsername();
         final Optional<String> possiblePassword = connection.getPassword();
+        // TODO: test if this works
         if (possibleUsername.isPresent() && possiblePassword.isPresent()) {
             mqtt3ClientBuilder = mqtt3ClientBuilder.simpleAuth()
                     .username(possibleUsername.get())
@@ -253,7 +269,13 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
             // TODO: apply TLS config
         }
 
-        return mqtt3ClientBuilder.identifier(connection.getId())
+        if (null != connectedListener) {
+            mqtt3ClientBuilder.addConnectedListener(connectedListener);
+        }
+        if (null != disconnectedListener) {
+            mqtt3ClientBuilder.addDisconnectedListener(disconnectedListener);
+        }
+        return mqtt3ClientBuilder.identifier(identifier)
                 .addConnectedListener(this::onClientConnected)
                 .addDisconnectedListener(this::onClientDisconnected)
                 .build();

@@ -198,6 +198,17 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
                     if (throwable == null) {
                         sender.tell(new Status.Success("Successfully subscribed"), self);
                     } else {
+                        // TODO: may get java.util.concurrent.CompletionException: java.util.concurrent.CompletionException: java.util.NoSuchElementException
+                        //  when starting with consumerCount > 1. We should wrap with our own exception 'cause no one
+                        //  knows what has happened with it.
+                        //  will result in the following error: need to check if we can remove the "null" description
+                        //  DEBUG [][] o.e.d.s.c.m.ConnectionActor
+                        //  - Got response to connectivity.commands:openConnection: org.eclipse.ditto.signals.commands.
+                        //  connectivity.exceptions.ConnectionFailedException [message='The Connection with ID
+                        //  '6fbcd2db-9eb0-4a90-a64e-c6d9290488f1' failed to connect.',
+                        //  errorCode=connectivity:connection.failed, statusCode=GATEWAY_TIMEOUT,
+                        //  description='Cause: null',
+                        //  ....
                         sender.tell(new ImmutableConnectionFailure(null, throwable, "subscriptions"), self);
                     }
                 });
