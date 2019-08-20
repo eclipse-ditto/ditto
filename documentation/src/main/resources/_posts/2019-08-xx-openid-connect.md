@@ -18,6 +18,19 @@ Follow their [installation guide](https://www.ory.sh/docs/next/hydra/configure-d
  docker based setup on your development machine.
 
 #### Configuration
+Download the self-signed certificate form the ORY Hydra server: https://localhost:9000/.well-known/openid-configuration
+
+Use the downloaded certificate for the akka-http ssl configuration.
+```hocon
+ssl-config {
+  trustManager = {
+    stores = [
+      { type = "PEM", path = "/path/to/cert/globalsign.crt" }
+    ]
+  }
+}
+```
+
 The authentication provider must be added to the ditto-gateway configuration.
 ```hocon
 ditto.gateway.authentication {
@@ -70,6 +83,8 @@ docker run --rm -it \
     --client-secret some-secret \
     --scope openid
 ```
+After that perform the OAuth 2.0 Authorize Code Flow by opening the link, as prompted, 
+in your browser, and follow the steps shown there.
 
 Use the generated token to authenticate Ditto API.
 ```bash

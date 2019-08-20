@@ -10,7 +10,7 @@ before_install:
 install: true
 script:
   - if [ ! -n "$TRAVIS_TAG" ]; then
-    travis_wait 60 mvn install javadoc:jar source:jar --batch-mode --errors --quiet -Pbuild-documentation -DcreateJavadoc=true -Dakka.test.single-expect-default=10s;
+    travis_wait 60 mvn install javadoc:jar source:jar --batch-mode --errors --quiet -DcreateJavadoc=true -Dakka.test.single-expect-default=10s;
     fi;
   - if [ -n "$TRAVIS_TAG" ]; then
     export IMAGE_TAG=$TRAVIS_TAG;

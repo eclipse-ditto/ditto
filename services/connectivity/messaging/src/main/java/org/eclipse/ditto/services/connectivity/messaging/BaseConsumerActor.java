@@ -57,8 +57,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
         this.headerMapping = headerMapping;
-        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
+        resetResourceStatus();
 
         final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -66,6 +65,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
         this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connectionId, sourceAddress);
+    }
+
+    protected void resetResourceStatus() {
+        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
+                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
     }
 
     protected ResourceStatus getCurrentSourceStatus() {

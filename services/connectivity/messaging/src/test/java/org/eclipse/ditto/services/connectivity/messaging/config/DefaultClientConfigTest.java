@@ -76,6 +76,12 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getTestingTimeout())
                 .as(ClientConfig.ClientConfigValue.TESTING_TIMEOUT.getConfigPath())
                 .isEqualTo(ClientConfig.ClientConfigValue.TESTING_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getMinBackoff())
+                .as(ClientConfig.ClientConfigValue.MIN_BACKOFF.getConfigPath())
+                .isEqualTo(ClientConfig.ClientConfigValue.MIN_BACKOFF.getDefaultValue());
+        softly.assertThat(underTest.getMaxBackoff())
+                .as(ClientConfig.ClientConfigValue.MAX_BACKOFF.getConfigPath())
+                .isEqualTo(ClientConfig.ClientConfigValue.MAX_BACKOFF.getDefaultValue());
     }
 
     @Test
@@ -97,6 +103,12 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getTestingTimeout())
                 .as(ClientConfig.ClientConfigValue.TESTING_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(5L));
+        softly.assertThat(underTest.getMinBackoff())
+                .as(ClientConfig.ClientConfigValue.MIN_BACKOFF.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(6L));
+        softly.assertThat(underTest.getMaxBackoff())
+                .as(ClientConfig.ClientConfigValue.MAX_BACKOFF.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(7L));
     }
 
 }
