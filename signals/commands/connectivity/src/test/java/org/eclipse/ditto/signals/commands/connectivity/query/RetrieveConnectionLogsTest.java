@@ -19,8 +19,8 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
@@ -65,7 +65,7 @@ public class RetrieveConnectionLogsTest {
     public void testImmutability() {
         assertInstancesOf(RetrieveConnectionLogs.class,
                 areImmutable(),
-                provided(EntityId.class).isAlsoImmutable());
+                provided(ConnectionId.class).isAlsoImmutable());
     }
 
 }

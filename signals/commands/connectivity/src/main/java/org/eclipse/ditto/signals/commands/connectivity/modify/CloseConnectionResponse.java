@@ -26,11 +26,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
@@ -48,9 +47,9 @@ public final class CloseConnectionResponse extends AbstractCommandResponse<Close
      */
     public static final String TYPE = TYPE_PREFIX + CloseConnection.NAME;
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
 
-    private CloseConnectionResponse(final EntityId connectionId, final DittoHeaders dittoHeaders) {
+    private CloseConnectionResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
         this.connectionId = connectionId;
     }
@@ -63,7 +62,7 @@ public final class CloseConnectionResponse extends AbstractCommandResponse<Close
      * @return a new CloseConnectionResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static CloseConnectionResponse of(final EntityId connectionId, final DittoHeaders dittoHeaders) {
+    public static CloseConnectionResponse of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         return new CloseConnectionResponse(connectionId, dittoHeaders);
     }
@@ -98,7 +97,7 @@ public final class CloseConnectionResponse extends AbstractCommandResponse<Close
                 statusCode -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
                     return of(connectionId, dittoHeaders);
                 });
@@ -112,7 +111,7 @@ public final class CloseConnectionResponse extends AbstractCommandResponse<Close
     }
 
     @Override
-    public EntityId getConnectionEntityId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 

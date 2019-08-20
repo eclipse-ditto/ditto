@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -103,7 +104,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     @ClassRule
     public static final MqttServerRule mqttServer = new MqttServerRule(freePort.getPort());
 
-    private EntityId connectionId;
+    private ConnectionId connectionId;
     private String serverHost;
     private Connection connection;
 
@@ -251,7 +252,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                             )
                             .build();
 
-            final EntityId connectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId connectionId = TestConstants.createRandomConnectionId();
             final Props props = mqttClientActor(multipleSources, getRef(),
                     MockMqttConnectionFactory.with(getRef(), mockMessages));
             final ActorRef underTest = actorSystem.actorOf(props);

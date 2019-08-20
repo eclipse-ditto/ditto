@@ -40,11 +40,11 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -146,7 +146,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         checkNotNull(connection, "connection");
 
-        final EntityId connectionId = connection.getId();
+        final ConnectionId connectionId = connection.getId();
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
         this.connectivityConfig = DittoConnectivityConfig.of(
@@ -381,7 +381,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * @return the Connection Id
      */
-    protected final EntityId connectionId() {
+    protected final ConnectionId connectionId() {
         return stateData().getConnectionId();
     }
 
@@ -890,7 +890,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> enableConnectionLogs(
             final EnableConnectionLogs command) {
 
-        final EntityId connectionId = command.getConnectionEntityId();
+        final ConnectionId connectionId = command.getConnectionEntityId();
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, connectionId);
         log.debug("Received EnableConnectionLogs message, enabling logs.");
 
@@ -902,7 +902,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> checkLoggingActive(
             final CheckConnectionLogsActive command) {
 
-        final EntityId connectionId = command.getConnectionEntityId();
+        final ConnectionId connectionId = command.getConnectionEntityId();
         final Instant timestamp = command.getTimestamp();
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         log.debug("Received checkLoggingActive message, check if Logging for connection <{}> is expired.",

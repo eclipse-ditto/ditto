@@ -24,12 +24,11 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -46,7 +45,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 
 public class JsonExamplesProducer {
 
-    private static final EntityId ID = DefaultEntityId.of("myConnectionId");
+    private static final ConnectionId ID = ConnectionId.of("myConnectionId");
     private static final String NAME = "myConnection";
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;

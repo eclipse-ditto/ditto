@@ -18,8 +18,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -51,10 +50,10 @@ public final class ReconnectActorTest {
 
     @Test
     public void conversionBetweenCorrelationIdAndConnectionIdIsOneToOne() {
-        final EntityId id1 = DefaultEntityId.of("random-connection-ID-jbxlkeimx");
-        final EntityId id2 = DefaultEntityId.of("differentConnectionId");
-        final Optional<EntityId> outputId1 = ReconnectActor.toConnectionId(ReconnectActor.toCorrelationId(id1));
-        final Optional<EntityId> outputId2 = ReconnectActor.toConnectionId(ReconnectActor.toCorrelationId(id2));
+        final ConnectionId id1 = ConnectionId.of("random-connection-ID-jbxlkeimx");
+        final ConnectionId id2 = ConnectionId.of("differentConnectionId");
+        final Optional<ConnectionId> outputId1 = ReconnectActor.toConnectionId(ReconnectActor.toCorrelationId(id1));
+        final Optional<ConnectionId> outputId2 = ReconnectActor.toConnectionId(ReconnectActor.toCorrelationId(id2));
         assertThat(outputId1).contains(id1);
         assertThat(outputId2).contains(id2);
         assertThat(outputId1).isNotEqualTo(outputId2);
@@ -64,9 +63,9 @@ public final class ReconnectActorTest {
     public void testRecoverConnections() {
         new TestKit(actorSystem) {{
             final TestProbe probe = new TestProbe(actorSystem);
-            final EntityId connectionId1 = DefaultEntityId.of("connection-1");
-            final EntityId connectionId2 = DefaultEntityId.of("connection-2");
-            final EntityId connectionId3 = DefaultEntityId.of("connection-3");
+            final ConnectionId connectionId1 = ConnectionId.of("connection-1");
+            final ConnectionId connectionId2 = ConnectionId.of("connection-2");
+            final ConnectionId connectionId3 = ConnectionId.of("connection-3");
             final Props props = ReconnectActor.props(probe.ref(),
                     () -> Source.from(Arrays.asList(
                             ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId1,

@@ -49,11 +49,10 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -307,24 +306,24 @@ public final class TestConstants {
 
 
         static {
-            when(MONITOR_REGISTRY_MOCK.forInboundConsumed(any(EntityId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forInboundConsumed(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundDropped(any(EntityId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forInboundDropped(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundEnforced(any(EntityId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forInboundEnforced(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundMapped(any(EntityId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forInboundMapped(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundDispatched(any(EntityId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forOutboundDispatched(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundFiltered(any(EntityId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forOutboundFiltered(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundPublished(any(EntityId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forOutboundPublished(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(any(EntityId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseDropped(any(EntityId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseMapped(any(EntityId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponsePublished(any(EntityId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDropped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseMapped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponsePublished(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
         }
 
     }
@@ -336,7 +335,7 @@ public final class TestConstants {
         private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
                 ConnectivityCounterRegistry.fromConfig(MONITORING_CONFIG.counter());
 
-        public static final EntityId ID = DefaultEntityId.of("myConnectionId");
+        public static final ConnectionId ID = ConnectionId.of("myConnectionId");
 
 
         public static final Duration ONE_MINUTE = Duration.ofMinutes(1);
@@ -430,8 +429,8 @@ public final class TestConstants {
         return Stream.of(entries).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    public static EntityId createRandomConnectionId() {
-        return DefaultEntityId.of("connection-" + UUID.randomUUID());
+    public static ConnectionId createRandomConnectionId() {
+        return ConnectionId.of("connection-" + UUID.randomUUID());
     }
 
     /**
@@ -500,15 +499,15 @@ public final class TestConstants {
         return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
-    public static Connection createConnection(final EntityId connectionId) {
+    public static Connection createConnection(final ConnectionId connectionId) {
         return createConnection(connectionId, Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
-    public static Connection createConnection(final EntityId connectionId, final List<Source> sources) {
+    public static Connection createConnection(final ConnectionId connectionId, final List<Source> sources) {
         return createConnection(connectionId, STATUS, sources);
     }
 
-    public static Connection createConnection(final EntityId connectionId, final ConnectivityStatus status,
+    public static Connection createConnection(final ConnectionId connectionId, final ConnectivityStatus status,
             final List<Source> sources) {
 
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
@@ -518,7 +517,7 @@ public final class TestConstants {
                 .build();
     }
 
-    public static Connection createConnection(final EntityId connectionId,
+    public static Connection createConnection(final ConnectionId connectionId,
             final Target... targets) {
 
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUriOfNewMockServer())
@@ -532,13 +531,13 @@ public final class TestConstants {
         return new HashSet<>(asList(array));
     }
 
-    static ActorRef createConnectionSupervisorActor(final EntityId connectionId, final ActorSystem actorSystem,
+    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId, final ActorSystem actorSystem,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         return createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder,
                 mockClientActorPropsFactory);
     }
 
-    static ActorRef createConnectionSupervisorActor(final EntityId connectionId,
+    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,

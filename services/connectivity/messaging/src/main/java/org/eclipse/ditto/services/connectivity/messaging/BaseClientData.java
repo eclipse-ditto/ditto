@@ -19,9 +19,9 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 
 import akka.actor.ActorRef;
@@ -32,7 +32,7 @@ import akka.actor.ActorRef;
 @Immutable
 public final class BaseClientData {
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
     private final Connection connection;
     private final ConnectivityStatus connectionStatus;
     private final ConnectivityStatus desiredConnectionStatus;
@@ -52,7 +52,7 @@ public final class BaseClientData {
      * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus.
      * @param sessionSender the ActorRef which caused the latest state data change.
      */
-    BaseClientData(final EntityId connectionId, final Connection connection,
+    BaseClientData(final ConnectionId connectionId, final Connection connection,
             final ConnectivityStatus connectionStatus,
             final ConnectivityStatus desiredConnectionStatus,
             @Nullable final String connectionStatusDetails,
@@ -69,7 +69,7 @@ public final class BaseClientData {
         this.sessionHeaders = sessionHeaders;
     }
 
-    public EntityId getConnectionId() {
+    public ConnectionId getConnectionId() {
         return connectionId;
     }
 

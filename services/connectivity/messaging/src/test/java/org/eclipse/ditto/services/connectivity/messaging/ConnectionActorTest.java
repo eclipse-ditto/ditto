@@ -25,10 +25,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -88,7 +88,7 @@ public final class ConnectionActorTest extends WithMockServers {
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
     private static ActorRef conciergeForwarder;
-    private EntityId connectionId;
+    private ConnectionId connectionId;
     private CreateConnection createConnection;
     private CreateConnection createClosedConnection;
     private ModifyConnection modifyConnection;

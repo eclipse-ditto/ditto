@@ -28,8 +28,8 @@ import java.util.Collections;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ImmutableLogEntry;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
@@ -189,7 +189,7 @@ public class RetrieveConnectionLogsResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionLogsResponse.class, areImmutable(),
-                provided(LogEntry.class, EntityId.class).areAlsoImmutable());
+                provided(LogEntry.class, ConnectionId.class).areAlsoImmutable());
     }
 
 }

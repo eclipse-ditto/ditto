@@ -30,12 +30,12 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -176,7 +176,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
     private final ActorRef pubSubMediator;
     private final ActorRef conciergeForwarder;
     private final long snapshotThreshold;
@@ -210,7 +210,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     private final Duration loggingEnabledDuration;
 
     @SuppressWarnings("unused")
-    private ConnectionActor(final EntityId connectionId,
+    private ConnectionActor(final ConnectionId connectionId,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
@@ -267,7 +267,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
      * @param commandValidator validator for commands that should throw an exception if a command is invalid.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final EntityId connectionId,
+    public static Props props(final ConnectionId connectionId,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,

@@ -27,10 +27,10 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -42,7 +42,7 @@ import org.eclipse.ditto.signals.events.base.Event;
 public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEvent> implements ConnectivityEvent<T> {
 
     private final String type;
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
     @Nullable private final Instant timestamp;
     private final DittoHeaders dittoHeaders;
 
@@ -55,7 +55,7 @@ public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEv
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    protected AbstractConnectivityEvent(final String type, final EntityId connectionId,
+    protected AbstractConnectivityEvent(final String type, final ConnectionId connectionId,
             @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         this.type = checkNotNull(type, "Event type");
         this.connectionId = checkNotNull(connectionId, "Connection ID");
@@ -74,7 +74,7 @@ public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEv
      * @return the identifier of this event.
      */
     @Override
-    public EntityId getConnectionEntityId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 

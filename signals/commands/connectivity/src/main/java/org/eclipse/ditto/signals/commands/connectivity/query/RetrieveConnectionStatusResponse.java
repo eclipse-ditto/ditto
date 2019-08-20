@@ -37,13 +37,12 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
@@ -65,10 +64,10 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveConnectionStatus.NAME;
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
     private final JsonObject jsonObject;
 
-    private RetrieveConnectionStatusResponse(final EntityId connectionId,
+    private RetrieveConnectionStatusResponse(final ConnectionId connectionId,
             final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
@@ -84,7 +83,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @return a new RetrieveConnectionStatusResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionStatusResponse of(final EntityId connectionId,
+    public static RetrieveConnectionStatusResponse of(final ConnectionId connectionId,
             final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new RetrieveConnectionStatusResponse(connectionId, jsonObject, dittoHeaders);
@@ -101,7 +100,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @return a new RetrieveConnectionStatusResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionStatusResponse closedResponse(final EntityId connectionId,
+    public static RetrieveConnectionStatusResponse closedResponse(final ConnectionId connectionId,
             final String address,
             final Instant connectionClosedAt,
             final ConnectivityStatus clientStatus,
@@ -153,7 +152,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 statusCode -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
                     return of(connectionId, jsonObject, dittoHeaders);
                 });
@@ -223,7 +222,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     }
 
     @Override
-    public EntityId getConnectionEntityId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 
@@ -232,7 +231,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         final JsonObject jsonEntity = entity.asObject();
         final String readConnectionId =
                 jsonEntity.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-        final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+        final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
         return of(connectionId, jsonEntity, getDittoHeaders());
     }
@@ -252,7 +251,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         return of(connectionId, jsonObject, dittoHeaders);
     }
 
-    public static Builder getBuilder(final EntityId connectionId, final DittoHeaders dittoHeaders) {
+    public static Builder getBuilder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         return new Builder(connectionId, dittoHeaders);
     }
 
@@ -324,7 +323,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     @NotThreadSafe
     public static final class Builder {
 
-        private final EntityId connectionId;
+        private final ConnectionId connectionId;
         private final DittoHeaders dittoHeaders;
         private ConnectivityStatus connectionStatus;
         private ConnectivityStatus liveStatus;
@@ -333,7 +332,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         private List<ResourceStatus> sourceStatus;
         private List<ResourceStatus> targetStatus;
 
-        private Builder(final EntityId connectionId, final DittoHeaders dittoHeaders) {
+        private Builder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
             this.connectionId = connectionId;
             this.dittoHeaders = dittoHeaders;
         }

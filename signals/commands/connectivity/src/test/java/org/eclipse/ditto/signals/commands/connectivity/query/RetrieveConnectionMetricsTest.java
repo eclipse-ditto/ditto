@@ -13,17 +13,17 @@
 package org.eclipse.ditto.signals.commands.connectivity.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.eclipse.ditto.signals.commands.connectivity.TestConstants.ID;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
@@ -50,7 +50,7 @@ public final class RetrieveConnectionMetricsTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveConnectionMetrics.class, areImmutable(), provided(EntityId.class).isAlsoImmutable());
+        assertInstancesOf(RetrieveConnectionMetrics.class, areImmutable(), provided(ConnectionId.class).isAlsoImmutable());
     }
 
     @Test

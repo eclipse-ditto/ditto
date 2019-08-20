@@ -24,9 +24,8 @@ import javax.jms.JMSException;
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -61,7 +60,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final Props persistenceActorProps;
 
@@ -85,7 +84,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
 
         try {
             connectionId =
-                    DefaultEntityId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
+                    ConnectionId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }

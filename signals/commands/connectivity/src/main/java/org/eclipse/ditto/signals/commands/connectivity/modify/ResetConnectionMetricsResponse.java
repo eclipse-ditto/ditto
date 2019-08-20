@@ -26,11 +26,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
@@ -48,9 +47,9 @@ public final class ResetConnectionMetricsResponse extends AbstractCommandRespons
      */
     public static final String TYPE = TYPE_PREFIX + ResetConnectionMetrics.NAME;
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
 
-    private ResetConnectionMetricsResponse(final EntityId connectionId, final DittoHeaders dittoHeaders) {
+    private ResetConnectionMetricsResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
         this.connectionId = connectionId;
     }
@@ -63,7 +62,7 @@ public final class ResetConnectionMetricsResponse extends AbstractCommandRespons
      * @return a new ResetConnectionMetricsResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ResetConnectionMetricsResponse of(final EntityId connectionId, final DittoHeaders dittoHeaders) {
+    public static ResetConnectionMetricsResponse of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         return new ResetConnectionMetricsResponse(connectionId, dittoHeaders);
     }
@@ -98,7 +97,7 @@ public final class ResetConnectionMetricsResponse extends AbstractCommandRespons
                 statusCode -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
                     return of(connectionId, dittoHeaders);
                 });
@@ -113,7 +112,7 @@ public final class ResetConnectionMetricsResponse extends AbstractCommandRespons
     }
 
     @Override
-    public EntityId getConnectionEntityId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 

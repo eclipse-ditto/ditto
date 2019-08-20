@@ -22,10 +22,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.Arrays;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -39,7 +39,7 @@ import org.junit.Test;
  */
 public final class MqttValidatorTest {
 
-    private static final EntityId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
 
     @Test
     public void testImmutability() {

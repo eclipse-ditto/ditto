@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -51,7 +51,7 @@ public final class ProducerSettingsFactoryTest {
     @SuppressWarnings("squid:S2068")
     private static final String PASSWORD = "pw";
     private static final String TARGET_ADDRESS = "events";
-    private static final EntityId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
 
     private static KafkaConfig kafkaConfig;
     private static Connection connection;

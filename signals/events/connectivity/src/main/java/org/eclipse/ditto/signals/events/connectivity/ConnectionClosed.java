@@ -25,12 +25,11 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -51,7 +50,7 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private ConnectionClosed(final EntityId connectionId, @Nullable final Instant timestamp,
+    private ConnectionClosed(final ConnectionId connectionId, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         super(TYPE, connectionId, timestamp, dittoHeaders);
     }
@@ -64,12 +63,12 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
      * @return the event.
      * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Connection ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.base.entity.id.EntityId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(ConnectionId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
      */
     @Deprecated
     public static ConnectionClosed of(final String connectionId, final DittoHeaders dittoHeaders) {
-        return of(DefaultEntityId.of(connectionId), dittoHeaders);
+        return of(ConnectionId.of(connectionId), dittoHeaders);
     }
 
     /**
@@ -80,7 +79,7 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
      * @return the event.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionClosed of(final EntityId connectionId, final DittoHeaders dittoHeaders) {
+    public static ConnectionClosed of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         return of(connectionId, null, dittoHeaders);
     }
 
@@ -93,13 +92,13 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
      * @return the event.
      * @throws NullPointerException if {@code connectionId} or {@code dittoHeaders} are {@code null}.
      * @deprecated Connection ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.base.entity.id.EntityId, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(ConnectionId, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
      */
     @Deprecated
     public static ConnectionClosed of(final String connectionId, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
-        return of(DefaultEntityId.of(connectionId), timestamp, dittoHeaders);
+        return of(ConnectionId.of(connectionId), timestamp, dittoHeaders);
     }
 
     /**
@@ -111,7 +110,7 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
      * @return the event.
      * @throws NullPointerException if {@code connectionId} or {@code dittoHeaders} are {@code null}.
      */
-    public static ConnectionClosed of(final EntityId connectionId, @Nullable final Instant timestamp,
+    public static ConnectionClosed of(final ConnectionId connectionId, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         return new ConnectionClosed(connectionId, timestamp, dittoHeaders);
@@ -145,7 +144,7 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
         return new EventJsonDeserializer<ConnectionClosed>(TYPE, jsonObject)
                 .deserialize((revision, timestamp) -> {
                     final String readConnectionId = jsonObject.getValueOrThrow(JsonFields.CONNECTION_ID);
-                    final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
                     return of(connectionId, timestamp, dittoHeaders);
                 });

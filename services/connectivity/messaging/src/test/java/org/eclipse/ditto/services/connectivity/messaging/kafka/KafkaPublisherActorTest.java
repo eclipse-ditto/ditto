@@ -25,7 +25,7 @@ import java.util.List;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -51,7 +51,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
 
     @Override
-    protected void setupMocks(final TestProbe probe) throws Exception {
+    protected void setupMocks(final TestProbe probe) {
         this.clientActor = probe;
         connectionFactory = mock(KafkaConnectionFactory.class);
         when(connectionFactory.newFlow())
@@ -73,7 +73,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return KafkaPublisherActor.props(DefaultEntityId.of("theConnection"), Collections.emptyList(),
+        return KafkaPublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(),
                 connectionFactory, clientActor.ref(), false);
     }
 

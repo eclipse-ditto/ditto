@@ -15,10 +15,10 @@ package org.eclipse.ditto.signals.commands.connectivity;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -50,10 +50,10 @@ public interface ConnectivityCommandResponse<T extends ConnectivityCommandRespon
      *
      * @return the identifier of the Connection.
      */
-    EntityId getConnectionEntityId();
+    ConnectionId getConnectionEntityId();
 
     @Override
-    default EntityId getEntityId() {
+    default ConnectionId getEntityId() {
         return getConnectionEntityId();
     }
 

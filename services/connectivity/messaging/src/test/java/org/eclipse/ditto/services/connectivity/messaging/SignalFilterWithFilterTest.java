@@ -27,10 +27,9 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -49,7 +48,7 @@ import org.junit.Test;
 public class SignalFilterWithFilterTest {
 
     private static final String URI = "amqp://user:pass@host:1111/path";
-    private static final EntityId CONNECTION_ID = DefaultEntityId.of("id");
+    private static final ConnectionId CONNECTION_ID = ConnectionId.of("id");
     private static final ThingId THING_ID = ThingId.of("foo:bar13");
     private static final AuthorizationSubject AUTHORIZED = newAuthSubject("authorized");
     private static final AuthorizationSubject UNAUTHORIZED = newAuthSubject("unauthorized");

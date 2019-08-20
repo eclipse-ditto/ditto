@@ -19,7 +19,6 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 
 /**
@@ -34,7 +33,7 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code id} is {@code null}.
      */
-    ConnectionBuilder id(EntityId id);
+    ConnectionBuilder id(ConnectionId id);
 
     /**
      * Sets the name to use in the {@code Connection}.

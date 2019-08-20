@@ -41,10 +41,10 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -105,7 +105,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private MessageConsumer messageConsumer;
 
     @SuppressWarnings("unused")
-    private AmqpConsumerActor(final EntityId connectionId, final ConsumerData consumerData,
+    private AmqpConsumerActor(final ConnectionId connectionId, final ConsumerData consumerData,
             final ActorRef messageMappingProcessor, final ActorRef jmsActor) {
         super(connectionId,
                 checkNotNull(consumerData, "consumerData").getAddress(),
@@ -142,7 +142,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      * @param jmsActor reference of the {@code JMSConnectionHandlingActor).
      * @return the Akka configuration Props object.
      */
-    static Props props(final EntityId connectionId, final ConsumerData consumerData,
+    static Props props(final ConnectionId connectionId, final ConsumerData consumerData,
             final ActorRef messageMappingProcessor, final ActorRef jmsActor) {
 
         return Props.create(AmqpConsumerActor.class, connectionId, consumerData, messageMappingProcessor, jmsActor);

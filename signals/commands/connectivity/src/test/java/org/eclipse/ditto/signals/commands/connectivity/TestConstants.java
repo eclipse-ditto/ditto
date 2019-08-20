@@ -33,10 +33,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -62,7 +61,7 @@ import org.eclipse.ditto.model.things.ThingId;
  */
 public final class TestConstants {
 
-    public static final EntityId ID = DefaultEntityId.of("myConnectionId");
+    public static final ConnectionId ID = ConnectionId.of("myConnectionId");
 
     public static String TIMESTAMP = "2019-05-21T11:06:54.210Z";
 

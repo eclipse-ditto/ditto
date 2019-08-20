@@ -30,12 +30,11 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
@@ -59,10 +58,10 @@ public final class RetrieveConnectionMetricsResponse
      */
     public static final String TYPE = ConnectivityCommandResponse.TYPE_PREFIX + RetrieveConnectionMetrics.NAME;
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
     private final JsonObject jsonObject;
 
-    private RetrieveConnectionMetricsResponse(final EntityId connectionId, final JsonObject jsonObject,
+    private RetrieveConnectionMetricsResponse(final ConnectionId connectionId, final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
 
@@ -79,7 +78,7 @@ public final class RetrieveConnectionMetricsResponse
      * @return a new RetrieveConnectionMetricsResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionMetricsResponse of(final EntityId connectionId, final JsonObject jsonObject,
+    public static RetrieveConnectionMetricsResponse of(final ConnectionId connectionId, final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new RetrieveConnectionMetricsResponse(connectionId, jsonObject, dittoHeaders);
     }
@@ -116,7 +115,7 @@ public final class RetrieveConnectionMetricsResponse
                 statusCode -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
                     return of(connectionId, jsonObject, dittoHeaders);
                 });
@@ -167,7 +166,7 @@ public final class RetrieveConnectionMetricsResponse
     }
 
     @Override
-    public EntityId getConnectionEntityId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 
@@ -196,7 +195,7 @@ public final class RetrieveConnectionMetricsResponse
         return (other instanceof RetrieveConnectionMetricsResponse);
     }
 
-    public static Builder getBuilder(final EntityId connectionId, final DittoHeaders dittoHeaders){
+    public static Builder getBuilder(final ConnectionId connectionId, final DittoHeaders dittoHeaders){
         return new Builder(connectionId, dittoHeaders);
     }
 
@@ -258,7 +257,7 @@ public final class RetrieveConnectionMetricsResponse
     @NotThreadSafe
     public static final class Builder {
 
-        private final EntityId connectionId;
+        private final ConnectionId connectionId;
         private final DittoHeaders dittoHeaders;
         private boolean containsFailures; // derived from connectionMetrics
         private ConnectionMetrics connectionMetrics;
@@ -266,7 +265,7 @@ public final class RetrieveConnectionMetricsResponse
         private TargetMetrics targetMetrics;
 
 
-        private Builder(final EntityId connectionId, final DittoHeaders dittoHeaders) {
+        private Builder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
             this.connectionId = checkNotNull(connectionId, "Connection ID");
             this.dittoHeaders = checkNotNull(dittoHeaders, "Ditto Headers");
         }

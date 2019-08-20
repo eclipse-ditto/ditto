@@ -45,8 +45,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 
@@ -56,7 +54,7 @@ import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 @Immutable
 final class ImmutableConnection implements Connection {
 
-    private final EntityId id;
+    private final ConnectionId id;
     @Nullable private final String name;
     private final ConnectionType connectionType;
     private final ConnectivityStatus connectionStatus;
@@ -106,7 +104,7 @@ final class ImmutableConnection implements Connection {
      * @return new instance of {@code ConnectionBuilder}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionBuilder getBuilder(final EntityId id,
+    public static ConnectionBuilder getBuilder(final ConnectionId id,
             final ConnectionType connectionType,
             final ConnectivityStatus connectionStatus,
             final String uri) {
@@ -157,7 +155,7 @@ final class ImmutableConnection implements Connection {
     public static Connection fromJson(final JsonObject jsonObject) {
         final ConnectionType type = getConnectionTypeOrThrow(jsonObject);
         final ConnectionBuilder builder = new Builder(type)
-                .id(DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ID)))
+                .id(ConnectionId.of(jsonObject.getValueOrThrow(JsonFields.ID)))
                 .connectionStatus(getConnectionStatusOrThrow(jsonObject))
                 .uri(jsonObject.getValueOrThrow(JsonFields.URI))
                 .sources(getSources(jsonObject))
@@ -244,7 +242,7 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public EntityId getId() {
+    public ConnectionId getId() {
         return id;
     }
 
@@ -474,7 +472,7 @@ final class ImmutableConnection implements Connection {
         private final ConnectionType connectionType;
 
         // required but changeable:
-        @Nullable private EntityId id;
+        @Nullable private ConnectionId id;
         @Nullable private ConnectivityStatus connectionStatus;
         @Nullable private String uri;
 
@@ -500,7 +498,7 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder id(final EntityId id) {
+        public ConnectionBuilder id(final ConnectionId id) {
             this.id = checkNotNull(id, "ID");
             return this;
         }

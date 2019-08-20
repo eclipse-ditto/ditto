@@ -39,11 +39,11 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.credentials.CredentialsVisitor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
@@ -276,7 +276,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     }
 
     private DittoRuntimeExceptionBuilder<ConnectionUnavailableException> fatalError(final String whatHappened) {
-        return ConnectionUnavailableException.newBuilder(DefaultEntityId.of("unimportant"))
+        return ConnectionUnavailableException.newBuilder(ConnectionId.of("unimportant"))
                 .message(String.format("Fatal error: %s.", whatHappened))
                 .description("Please contact the service team.")
                 .dittoHeaders(dittoHeaders);

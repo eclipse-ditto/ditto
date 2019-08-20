@@ -30,7 +30,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.credentials.Credentials;
@@ -46,7 +45,7 @@ public final class ImmutableConnectionTest {
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
-    private static final EntityId ID = DefaultEntityId.of("myConnectionId");
+    private static final ConnectionId ID = ConnectionId.of("myConnectionId");
     private static final String NAME = "myConnection";
 
     private static final String URI = "amqps://foo:bar@example.com:443";
@@ -144,7 +143,7 @@ public final class ImmutableConnectionTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableConnection.class, areImmutable(),
                 provided(AuthorizationContext.class, Source.class, Target.class,
-                        MappingContext.class, Credentials.class, EntityId.class).isAlsoImmutable());
+                        MappingContext.class, Credentials.class, ConnectionId.class).isAlsoImmutable());
     }
 
     @Test

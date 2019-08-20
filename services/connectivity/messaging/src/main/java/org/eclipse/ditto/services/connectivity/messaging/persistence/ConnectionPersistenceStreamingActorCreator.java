@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectionTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
@@ -51,7 +51,7 @@ public final class ConnectionPersistenceStreamingActorCreator {
     private static ConnectionTag createElement(final PidWithSeqNr pidWithSeqNr) {
         final String id = pidWithSeqNr.getPersistenceId()
                 .replaceFirst(ConnectionActor.PERSISTENCE_ID_PREFIX, "");
-        return ConnectionTag.of(DefaultEntityId.of(id), pidWithSeqNr.getSequenceNr());
+        return ConnectionTag.of(ConnectionId.of(id), pidWithSeqNr.getSequenceNr());
     }
 
     private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision connectionTag) {

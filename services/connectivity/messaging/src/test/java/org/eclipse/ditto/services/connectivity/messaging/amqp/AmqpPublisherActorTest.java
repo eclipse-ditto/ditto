@@ -33,8 +33,8 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -99,7 +99,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final OutboundSignal.WithExternalMessage mappedOutboundSignal =
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
 
-            final Props props = AmqpPublisherActor.props(DefaultEntityId.generateRandom(),
+            final Props props = AmqpPublisherActor.props(ConnectionId.generateRandom(),
                     Collections.singletonList(TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())),
                     session,
                     loadConnectionConfig());
@@ -120,7 +120,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(DefaultEntityId.of("theConnection"), Collections.emptyList(), session, loadConnectionConfig());
+        return AmqpPublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), session, loadConnectionConfig());
     }
 
     @Override

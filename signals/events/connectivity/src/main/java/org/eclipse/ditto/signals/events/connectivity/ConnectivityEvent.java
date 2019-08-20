@@ -18,11 +18,11 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -53,10 +53,10 @@ public interface ConnectivityEvent<T extends ConnectivityEvent> extends Event<T>
         return String.valueOf(getConnectionEntityId());
     }
 
-    EntityId getConnectionEntityId();
+    ConnectionId getConnectionEntityId();
 
     @Override
-    default EntityId getEntityId() {
+    default ConnectionId getEntityId() {
         return getConnectionEntityId();
     }
 

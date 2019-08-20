@@ -23,10 +23,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
 import org.assertj.core.api.ThrowableAssert;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -35,7 +35,6 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.junit.AfterClass;
@@ -66,7 +65,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     private static final IllegalArgumentException CUSTOM_EXCEPTION =
             new IllegalArgumentException("custom error message");
 
-    private static final EntityId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final ConnectivityStatus CONNECTION_STATUS = ConnectivityStatus.OPEN;
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
@@ -155,7 +154,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testConnectionWithoutPublisherHandling() {
         new TestKit(actorSystem) {{
-            final EntityId randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connectionWithoutTargets =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props =

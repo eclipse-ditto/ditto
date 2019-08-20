@@ -27,8 +27,7 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -60,7 +59,7 @@ import akka.testkit.javadsl.TestKit;
  */
 public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage> {
 
-    private static final EntityId CONNECTION_ID = DefaultEntityId.of("connection");
+    private static final ConnectionId CONNECTION_ID = ConnectionId.of("connection");
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor) {

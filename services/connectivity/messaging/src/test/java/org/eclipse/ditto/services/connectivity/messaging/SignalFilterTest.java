@@ -31,9 +31,9 @@ import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -60,7 +60,7 @@ import org.junit.runners.Parameterized;
 public class SignalFilterTest {
 
     private static final String URI = "amqp://user:pass@host:1111/path";
-    private static final EntityId CONNECTION = TestConstants.createRandomConnectionId();
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final AuthorizationSubject AUTHORIZED = newAuthSubject("authorized");
     private static final AuthorizationSubject UNAUTHORIZED = newAuthSubject("unauthorized");
     private static final AuthorizationSubject DUMMY = newAuthSubject("dummy");
@@ -139,7 +139,7 @@ public class SignalFilterTest {
     @Test
     public void test() {
         final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder(CONNECTION,
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
                         ConnectionType.AMQP_10,
                         ConnectivityStatus.OPEN,
                         URI).targets(targets).build();

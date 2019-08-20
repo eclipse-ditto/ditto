@@ -27,7 +27,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 
 /**
  * Factory to create new {@link Connection} instances.
@@ -54,7 +53,7 @@ public final class ConnectivityModelFactory {
      * @return the ConnectionBuilder.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionBuilder newConnectionBuilder(final EntityId id,
+    public static ConnectionBuilder newConnectionBuilder(final ConnectionId id,
             final ConnectionType connectionType,
             final ConnectivityStatus connectionStatus,
             final String uri) {

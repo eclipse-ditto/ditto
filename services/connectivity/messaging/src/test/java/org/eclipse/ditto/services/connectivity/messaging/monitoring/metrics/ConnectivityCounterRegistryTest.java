@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricType;
@@ -50,7 +50,7 @@ public class ConnectivityCounterRegistryTest {
 
     private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
             ConnectivityCounterRegistry.fromConfig(TestConstants.MONITORING_CONFIG.counter());
-    private static final EntityId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final String SOURCE = "source1";
     private static final String TARGET = "target1";
     private static final Instant FIXED_INSTANT = Instant.now();

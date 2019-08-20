@@ -28,13 +28,12 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -61,16 +60,16 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
             JsonFactory.newStringFieldDefinition("timestamp", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
     private final Instant timestamp;
 
-    private CheckConnectionLogsActive(final EntityId connectionId, final Instant timestamp) {
+    private CheckConnectionLogsActive(final ConnectionId connectionId, final Instant timestamp) {
         super(TYPE, DittoHeaders.empty());
         this.connectionId = connectionId;
         this.timestamp = timestamp;
     }
 
-    private CheckConnectionLogsActive(final EntityId connectionId,
+    private CheckConnectionLogsActive(final ConnectionId connectionId,
             final Instant timestamp, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionId = connectionId;
@@ -84,7 +83,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
      * @return a new instance of the command.
      * @throws java.lang.NullPointerException if any argument is {@code null}.
      */
-    public static CheckConnectionLogsActive of(final EntityId connectionId,
+    public static CheckConnectionLogsActive of(final ConnectionId connectionId,
             final Instant timestamp) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(timestamp, "timestamp");
@@ -98,7 +97,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
      * @return a new instance of the command.
      * @throws java.lang.NullPointerException if any argument is {@code null}.
      */
-    public static CheckConnectionLogsActive of(final EntityId connectionId,
+    public static CheckConnectionLogsActive of(final ConnectionId connectionId,
             final Instant timestamp, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(dittoHeaders, "dittoHeaders");
@@ -133,7 +132,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
         return new CommandJsonDeserializer<CheckConnectionLogsActive>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId =
                     jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
-            final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+            final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
             final Instant readTimeStamp =
                     getTimestampAsInstant(
@@ -146,7 +145,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
         return new CommandJsonDeserializer<CheckConnectionLogsActive>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId =
                     jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
-            final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+            final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
             final Instant readTimeStamp =
                     getTimestampAsInstant(
@@ -174,7 +173,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     }
 
     @Override
-    public EntityId getConnectionEntityId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 

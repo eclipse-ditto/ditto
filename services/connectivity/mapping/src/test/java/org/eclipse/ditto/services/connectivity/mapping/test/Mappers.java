@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping.test;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperInstantiation;
@@ -34,7 +34,7 @@ public final class Mappers implements MessageMapperInstantiation {
 
     @Nullable
     @Override
-    public MessageMapper apply(@Nonnull final EntityId connectionId, @Nonnull final MappingContext mappingContext,
+    public MessageMapper apply(@Nonnull final ConnectionId connectionId, @Nonnull final MappingContext mappingContext,
             @Nonnull final ExtendedActorSystem actorSystem) {
 
         return "test".equalsIgnoreCase(mappingContext.getMappingEngine())

@@ -20,10 +20,10 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -62,13 +62,13 @@ public final class MessageMappingProcessor {
     private static final String PROTOCOL_SEGMENT_NAME = "protocol";
     private static final String DIRECTION_TAG_NAME = "direction";
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
     private final MessageMapperRegistry registry;
     private final DiagnosticLoggingAdapter log;
     private final ProtocolAdapter protocolAdapter;
     private final DittoHeadersSizeChecker dittoHeadersSizeChecker;
 
-    private MessageMappingProcessor(final EntityId connectionId,
+    private MessageMappingProcessor(final ConnectionId connectionId,
             final MessageMapperRegistry registry,
             final DiagnosticLoggingAdapter log,
             final ProtocolAdapter protocolAdapter,
@@ -97,7 +97,7 @@ public final class MessageMappingProcessor {
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
      * one of the {@code mappingContext} failed for a mapper specific reason.
      */
-    public static MessageMappingProcessor of(final EntityId connectionId,
+    public static MessageMappingProcessor of(final ConnectionId connectionId,
             @Nullable final MappingContext mappingContext,
             final ActorSystem actorSystem,
             final ConnectivityConfig connectivityConfig,

@@ -25,12 +25,11 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -55,9 +54,9 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
 
-    private RetrieveConnectionStatus(final EntityId connectionId, final DittoHeaders dittoHeaders) {
+    private RetrieveConnectionStatus(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionId = connectionId;
     }
@@ -70,7 +69,7 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
      * @return a new RetrieveConnectionStatus command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionStatus of(final EntityId connectionId, final DittoHeaders dittoHeaders) {
+    public static RetrieveConnectionStatus of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         return new RetrieveConnectionStatus(connectionId, dittoHeaders);
     }
@@ -104,7 +103,7 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
             final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveConnectionStatus>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
-            final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+            final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
             return of(connectionId, dittoHeaders);
         });
@@ -119,7 +118,7 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
     }
 
     @Override
-    public EntityId getConnectionEntityId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 

@@ -35,9 +35,9 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
@@ -83,7 +83,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     @Override
     public void initForConnection(final Connection connection) {
 
-        final EntityId connectionId = connection.getId();
+        final ConnectionId connectionId = connection.getId();
         connection.getSources().stream()
                 .map(Source::getAddresses)
                 .flatMap(Collection::stream)
@@ -104,13 +104,13 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     @Override
     public void resetForConnection(final Connection connection) {
 
-        final EntityId connectionId = connection.getId();
+        final ConnectionId connectionId = connection.getId();
         counters.keySet().stream()
                 .filter(key -> key.connectionId.equals(connectionId))
                 .forEach(counters::remove);
     }
 
-    private static void initCounter(final EntityId connectionId, final MetricDirection metricDirection,
+    private static void initCounter(final ConnectionId connectionId, final MetricDirection metricDirection,
             final String address) {
         Arrays.stream(MetricType.values())
                 .filter(metricType -> metricType.supportsDirection(metricDirection))
@@ -133,7 +133,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the counter
      */
     public ConnectionMetricsCounter getCounter(
-            final EntityId connectionId,
+            final ConnectionId connectionId,
             final MetricType metricType,
             final MetricDirection metricDirection,
             final String address) {
@@ -153,7 +153,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      */
     ConnectionMetricsCounter getCounter(
             final Clock clock,
-            final EntityId connectionId,
+            final ConnectionId connectionId,
             final MetricType metricType,
             final MetricDirection metricDirection,
             final String address) {
@@ -173,7 +173,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the counter
      */
     @Override
-    public ConnectionMetricsCounter forOutboundDispatched(final EntityId connectionId, final String target) {
+    public ConnectionMetricsCounter forOutboundDispatched(final ConnectionId connectionId, final String target) {
         return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, target);
     }
 
@@ -185,7 +185,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the outbound filtered counter
      */
     @Override
-    public ConnectionMetricsCounter forOutboundFiltered(final EntityId connectionId, final String target) {
+    public ConnectionMetricsCounter forOutboundFiltered(final ConnectionId connectionId, final String target) {
         return getCounter(connectionId, MetricType.FILTERED, MetricDirection.OUTBOUND, target);
     }
 
@@ -197,7 +197,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the outbound published counter
      */
     @Override
-    public ConnectionMetricsCounter forOutboundPublished(final EntityId connectionId, final String target) {
+    public ConnectionMetricsCounter forOutboundPublished(final ConnectionId connectionId, final String target) {
         return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, target);
     }
 
@@ -209,7 +209,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the inbound counter
      */
     @Override
-    public ConnectionMetricsCounter forInboundConsumed(final EntityId connectionId, final String source) {
+    public ConnectionMetricsCounter forInboundConsumed(final ConnectionId connectionId, final String source) {
         return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.INBOUND, source);
     }
 
@@ -221,7 +221,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the inbound mapped counter
      */
     @Override
-    public ConnectionMetricsCounter forInboundMapped(final EntityId connectionId, final String source) {
+    public ConnectionMetricsCounter forInboundMapped(final ConnectionId connectionId, final String source) {
         return getCounter(connectionId, MetricType.MAPPED, MetricDirection.INBOUND, source);
     }
 
@@ -233,7 +233,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the inbound enforced counter
      */
     @Override
-    public ConnectionMetricsCounter forInboundEnforced(final EntityId connectionId, final String source) {
+    public ConnectionMetricsCounter forInboundEnforced(final ConnectionId connectionId, final String source) {
         return getCounter(connectionId, MetricType.ENFORCED, MetricDirection.INBOUND, source);
     }
 
@@ -245,7 +245,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the inbound dropped counter
      */
     @Override
-    public ConnectionMetricsCounter forInboundDropped(final EntityId connectionId, final String source) {
+    public ConnectionMetricsCounter forInboundDropped(final ConnectionId connectionId, final String source) {
         return getCounter(connectionId, MetricType.DROPPED, MetricDirection.INBOUND, source);
     }
 
@@ -256,7 +256,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the response consumed counter
      */
     @Override
-    public ConnectionMetricsCounter forResponseDispatched(final EntityId connectionId) {
+    public ConnectionMetricsCounter forResponseDispatched(final ConnectionId connectionId) {
         return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
@@ -267,7 +267,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the response dropped counter
      */
     @Override
-    public ConnectionMetricsCounter forResponseDropped(final EntityId connectionId) {
+    public ConnectionMetricsCounter forResponseDropped(final ConnectionId connectionId) {
         return getCounter(connectionId, MetricType.DROPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
@@ -278,7 +278,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the response mapped counter
      */
     @Override
-    public ConnectionMetricsCounter forResponseMapped(final EntityId connectionId) {
+    public ConnectionMetricsCounter forResponseMapped(final ConnectionId connectionId) {
         return getCounter(connectionId, MetricType.MAPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
@@ -289,11 +289,11 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the response published counter
      */
     @Override
-    public ConnectionMetricsCounter forResponsePublished(final EntityId connectionId) {
+    public ConnectionMetricsCounter forResponsePublished(final ConnectionId connectionId) {
         return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
-    private static Stream<DefaultConnectionMetricsCounter> streamFor(final EntityId connectionId,
+    private static Stream<DefaultConnectionMetricsCounter> streamFor(final ConnectionId connectionId,
             final MetricDirection metricDirection) {
 
         return counters.entrySet()
@@ -303,7 +303,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                 .map(Map.Entry::getValue);
     }
 
-    private static Map<String, AddressMetric> aggregateMetrics(final EntityId connectionId,
+    private static Map<String, AddressMetric> aggregateMetrics(final ConnectionId connectionId,
             final MetricDirection metricDirection) {
         final Map<String, AddressMetric> addressMetrics = new HashMap<>();
         streamFor(connectionId, metricDirection)
@@ -325,7 +325,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @param connectionId connection id
      * @return the {@link SourceMetrics}
      */
-    public SourceMetrics aggregateSourceMetrics(final EntityId connectionId) {
+    public SourceMetrics aggregateSourceMetrics(final ConnectionId connectionId) {
         return ConnectivityModelFactory.newSourceMetrics(aggregateMetrics(connectionId, MetricDirection.INBOUND));
     }
 
@@ -335,7 +335,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @param connectionId connection id
      * @return the {@link TargetMetrics}
      */
-    public TargetMetrics aggregateTargetMetrics(final EntityId connectionId) {
+    public TargetMetrics aggregateTargetMetrics(final ConnectionId connectionId) {
         return ConnectivityModelFactory.newTargetMetrics(aggregateMetrics(connectionId, MetricDirection.OUTBOUND));
     }
 
@@ -476,7 +476,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     @Immutable
     private static class MapKey {
 
-        private final EntityId connectionId;
+        private final ConnectionId connectionId;
         private final String metric;
         private final String direction;
         private final String address;
@@ -489,7 +489,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
          * @param metricDirection the metricDirection
          * @param address the address
          */
-        MapKey(final EntityId connectionId,
+        MapKey(final ConnectionId connectionId,
                 final MetricType metricType,
                 final MetricDirection metricDirection,
                 final String address) {

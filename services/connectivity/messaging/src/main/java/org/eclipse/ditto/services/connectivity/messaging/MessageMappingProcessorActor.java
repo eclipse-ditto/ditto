@@ -42,12 +42,12 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.LogCategory;
@@ -110,7 +110,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final Map<String, StartedTimer> timers;
 
     private final MessageMappingProcessor messageMappingProcessor;
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
     private final ActorRef conciergeForwarder;
     private final LimitsConfig limitsConfig;
 
@@ -130,7 +130,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
             final MessageMappingProcessor messageMappingProcessor,
-            final EntityId connectionId) {
+            final ConnectionId connectionId) {
 
         this.publisherActor = publisherActor;
         this.conciergeForwarder = conciergeForwarder;
@@ -169,7 +169,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     public static Props props(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
             final MessageMappingProcessor processor,
-            final EntityId connectionId) {
+            final ConnectionId connectionId) {
 
         return Props.create(MessageMappingProcessorActor.class, publisherActor, conciergeForwarder, processor,
                 connectionId);
@@ -418,17 +418,17 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private Set<ConnectionMonitor> getMonitorsForDroppedSignal(final OutboundSignal outbound,
-            final EntityId connectionId) {
+            final ConnectionId connectionId) {
         return getMonitorsForOutboundSignal(outbound, connectionId, DROPPED, LogType.DROPPED, responseDroppedMonitor);
     }
 
     private Set<ConnectionMonitor> getMonitorsForMappedSignal(final OutboundSignal outbound,
-            final EntityId connectionId) {
+            final ConnectionId connectionId) {
         return getMonitorsForOutboundSignal(outbound, connectionId, MAPPED, LogType.MAPPED, responseMappedMonitor);
     }
 
     private Set<ConnectionMonitor> getMonitorsForOutboundSignal(final OutboundSignal outbound,
-            final EntityId connectionId, final MetricType metricType, final LogType logType,
+            final ConnectionId connectionId, final MetricType metricType, final LogType logType,
             final ConnectionMonitor responseMonitor) {
         if (outbound.getSource() instanceof CommandResponse) {
             return Collections.singleton(responseMonitor);
@@ -531,9 +531,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     static final class AdjustHeaders implements BiFunction<ExternalMessage, DittoHeaders, DittoHeaders> {
 
-        private final EntityId connectionId;
+        private final ConnectionId connectionId;
 
-        private AdjustHeaders(final EntityId connectionId) {
+        private AdjustHeaders(final ConnectionId connectionId) {
             this.connectionId = connectionId;
         }
 

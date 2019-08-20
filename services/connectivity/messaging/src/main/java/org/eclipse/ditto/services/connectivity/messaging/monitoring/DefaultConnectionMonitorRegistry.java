@@ -19,8 +19,8 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
@@ -71,7 +71,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forOutboundDispatched(final EntityId connectionId, final String target) {
+    public ConnectionMonitor forOutboundDispatched(final ConnectionId connectionId, final String target) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forOutboundDispatched(connectionId, target),
                 connectionLoggerRegistry.forOutboundDispatched(connectionId, target))
@@ -79,7 +79,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forOutboundFiltered(final EntityId connectionId, final String target) {
+    public ConnectionMonitor forOutboundFiltered(final ConnectionId connectionId, final String target) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forOutboundFiltered(connectionId, target),
                 connectionLoggerRegistry.forOutboundFiltered(connectionId, target))
@@ -87,7 +87,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forOutboundPublished(final EntityId connectionId, final String target) {
+    public ConnectionMonitor forOutboundPublished(final ConnectionId connectionId, final String target) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forOutboundPublished(connectionId, target),
                 connectionLoggerRegistry.forOutboundPublished(connectionId, target))
@@ -95,7 +95,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forInboundConsumed(final EntityId connectionId, final String source) {
+    public ConnectionMonitor forInboundConsumed(final ConnectionId connectionId, final String source) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forInboundConsumed(connectionId, source),
                 connectionLoggerRegistry.forInboundConsumed(connectionId, source))
@@ -103,7 +103,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forInboundMapped(final EntityId connectionId, final String source) {
+    public ConnectionMonitor forInboundMapped(final ConnectionId connectionId, final String source) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forInboundMapped(connectionId, source),
                 connectionLoggerRegistry.forInboundMapped(connectionId, source))
@@ -111,7 +111,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forInboundEnforced(final EntityId connectionId, final String source) {
+    public ConnectionMonitor forInboundEnforced(final ConnectionId connectionId, final String source) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forInboundEnforced(connectionId, source),
                 connectionLoggerRegistry.forInboundEnforced(connectionId, source))
@@ -119,7 +119,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forInboundDropped(final EntityId connectionId, final String source) {
+    public ConnectionMonitor forInboundDropped(final ConnectionId connectionId, final String source) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forInboundDropped(connectionId, source),
                 connectionLoggerRegistry.forInboundDropped(connectionId, source))
@@ -127,7 +127,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forResponseDispatched(final EntityId connectionId) {
+    public ConnectionMonitor forResponseDispatched(final ConnectionId connectionId) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forResponseDispatched(connectionId),
                 connectionLoggerRegistry.forResponseDispatched(connectionId))
@@ -135,7 +135,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forResponseDropped(final EntityId connectionId) {
+    public ConnectionMonitor forResponseDropped(final ConnectionId connectionId) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forResponseDropped(connectionId),
                 connectionLoggerRegistry.forResponseDropped(connectionId))
@@ -143,7 +143,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forResponseMapped(final EntityId connectionId) {
+    public ConnectionMonitor forResponseMapped(final ConnectionId connectionId) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forResponseMapped(connectionId),
                 connectionLoggerRegistry.forResponseMapped(connectionId))
@@ -151,7 +151,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forResponsePublished(final EntityId connectionId) {
+    public ConnectionMonitor forResponsePublished(final ConnectionId connectionId) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forResponsePublished(connectionId),
                 connectionLoggerRegistry.forResponsePublished(connectionId))
@@ -168,7 +168,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
      * @param address address.
      * @return the specific monitor.
      */
-    public ConnectionMonitor getMonitor(final EntityId connectionId, final MetricType metricType,
+    public ConnectionMonitor getMonitor(final ConnectionId connectionId, final MetricType metricType,
             final MetricDirection metricDirection, final LogType logType, final LogCategory logCategory,
             final String address) {
         return DefaultConnectionMonitor.builder(

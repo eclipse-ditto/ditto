@@ -33,10 +33,9 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -70,7 +69,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void addsLoggerToRegistryOnRetrieve() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         final ConnectionLogger logger1 = underTest.forConnection(connectionId);
         final ConnectionLogger logger2 = underTest.forConnection(connectionId);
         assertThat(logger1).isNotNull()
@@ -80,7 +79,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void clearsLoggersOnReset() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         final ConnectionLogger before = underTest.forConnection(connectionId);
         underTest.unmuteForConnection(connectionId);
 
@@ -98,7 +97,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void leavesMutedLoggersMutedOnReset() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
 
         underTest.resetForConnection(connection(connectionId));
@@ -108,7 +107,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void leavesActivatedLoggersActivatedOnReset() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
         underTest.unmuteForConnection(connectionId);
 
@@ -119,7 +118,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void clearsLoggersOnMute() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         final ConnectionLogger before = underTest.forConnection(connectionId);
         underTest.unmuteForConnection(connectionId);
 
@@ -135,7 +134,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void isActiveForConnection() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
 
         assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
@@ -151,7 +150,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void isLoggingExpiredIsTrueByDefault() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
 
         assertThat(underTest.isLoggingExpired(connectionId, Instant.now())).isTrue();
@@ -159,7 +158,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void isLoggingExpiredIsFalseForCurrentTimestamp() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
 
         underTest.unmuteForConnection(connectionId);
@@ -169,7 +168,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void isLoggingExpiredIsTrueForFutureTimestamp() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
 
         underTest.unmuteForConnection(connectionId);
@@ -179,7 +178,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void isLoggingExpiredIsTrueAfterMutingConnections() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
 
         underTest.unmuteForConnection(connectionId);
@@ -193,7 +192,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void aggregatesLogs() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         final String source = "a:b";
         underTest.initForConnection(connection(connectionId));
         underTest.unmuteForConnection(connectionId);
@@ -220,7 +219,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void aggregatesNoLogsForMutedLoggers() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         final String source = "a:b";
         // inits the loggers muted
         underTest.initForConnection(connection(connectionId));
@@ -252,7 +251,7 @@ public final class ConnectionLoggerRegistryTest {
                 configWithCapacities(successCapacity, failureCapacity);
         final ConnectionLoggerRegistry specialLoggerRegistry = ConnectionLoggerRegistry.fromConfig(specialConfig);
 
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         final Connection connection = connection(connectionId);
 
         specialLoggerRegistry.initForConnection(connection);
@@ -302,7 +301,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void enableConnectionLogsUnmutesTheLoggersAndStartsTimer() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
 
         final MuteableConnectionLogger anyLoggerOfConnection =
@@ -323,7 +322,7 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void disableConnectionLogsMutesTheLoggersAndStopsTimer() {
-        final EntityId connectionId = connectionId();
+        final ConnectionId connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
 
         final MuteableConnectionLogger anyLoggerOfConnection =
@@ -348,11 +347,11 @@ public final class ConnectionLoggerRegistryTest {
                 .verify();
     }
 
-    private EntityId connectionId() {
-        return DefaultEntityId.of(ID + ":" + UUID.randomUUID().toString());
+    private ConnectionId connectionId() {
+        return ConnectionId.of(ID + ":" + UUID.randomUUID().toString());
     }
 
-    private Connection connection(final EntityId connectionId) {
+    private Connection connection(final ConnectionId connectionId) {
         final Source source = ConnectivityModelFactory.newSource(
                 AuthorizationContext.newInstance(AuthorizationSubject.newInstance("integration:solution:dummy")),
                 "a:b");

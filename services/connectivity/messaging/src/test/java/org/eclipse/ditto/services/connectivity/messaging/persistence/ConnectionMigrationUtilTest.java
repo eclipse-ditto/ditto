@@ -29,9 +29,8 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -46,7 +45,7 @@ import org.junit.Test;
  */
 public class ConnectionMigrationUtilTest {
 
-    private static final EntityId ID = DefaultEntityId.generateRandom();
+    private static final ConnectionId ID = ConnectionId.generateRandom();
     private static final String NAME = "my-connection";
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;

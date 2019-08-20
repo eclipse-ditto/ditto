@@ -13,8 +13,8 @@
 
 package org.eclipse.ditto.services.connectivity.messaging.monitoring;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 
 /**
  * Registry that provides monitors for the different use cases inside a connection.
@@ -42,7 +42,7 @@ public interface ConnectionMonitorRegistry<T> {
      * @param target the target address
      * @return the counter
      */
-    T forOutboundDispatched(final EntityId connectionId, final String target);
+    T forOutboundDispatched(final ConnectionId connectionId, final String target);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
@@ -52,7 +52,7 @@ public interface ConnectionMonitorRegistry<T> {
      * @param target the target
      * @return the outbound filtered counter
      */
-    T forOutboundFiltered(final EntityId connectionId, final String target);
+    T forOutboundFiltered(final ConnectionId connectionId, final String target);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
@@ -62,7 +62,7 @@ public interface ConnectionMonitorRegistry<T> {
      * @param target the target
      * @return the outbound published counter
      */
-    T forOutboundPublished(final EntityId connectionId, final String target);
+    T forOutboundPublished(final ConnectionId connectionId, final String target);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#INBOUND}/{@link
@@ -72,7 +72,7 @@ public interface ConnectionMonitorRegistry<T> {
      * @param source the source
      * @return the inbound counter
      */
-    T forInboundConsumed(final EntityId connectionId, final String source);
+    T forInboundConsumed(final ConnectionId connectionId, final String source);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#INBOUND}/{@link
@@ -82,7 +82,7 @@ public interface ConnectionMonitorRegistry<T> {
      * @param source the source
      * @return the inbound mapped counter
      */
-    T forInboundMapped(final EntityId connectionId, final String source);
+    T forInboundMapped(final ConnectionId connectionId, final String source);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#INBOUND}/{@link
@@ -92,7 +92,7 @@ public interface ConnectionMonitorRegistry<T> {
      * @param source the source
      * @return the inbound enforced counter
      */
-    T forInboundEnforced(final EntityId connectionId, final String source);
+    T forInboundEnforced(final ConnectionId connectionId, final String source);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#INBOUND}/{@link
@@ -102,7 +102,7 @@ public interface ConnectionMonitorRegistry<T> {
      * @param source the source
      * @return the inbound dropped counter
      */
-    T forInboundDropped(final EntityId connectionId, final String source);
+    T forInboundDropped(final ConnectionId connectionId, final String source);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
@@ -111,7 +111,7 @@ public interface ConnectionMonitorRegistry<T> {
      * @param connectionId connection id
      * @return the response consumed counter
      */
-    T forResponseDispatched(final EntityId connectionId);
+    T forResponseDispatched(final ConnectionId connectionId);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
@@ -120,7 +120,7 @@ public interface ConnectionMonitorRegistry<T> {
      * @param connectionId connection id
      * @return the response dropped counter
      */
-    T forResponseDropped(final EntityId connectionId);
+    T forResponseDropped(final ConnectionId connectionId);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
@@ -129,7 +129,7 @@ public interface ConnectionMonitorRegistry<T> {
      * @param connectionId connection id
      * @return the response mapped counter
      */
-    T forResponseMapped(final EntityId connectionId);
+    T forResponseMapped(final ConnectionId connectionId);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
@@ -138,6 +138,6 @@ public interface ConnectionMonitorRegistry<T> {
      * @param connectionId connection id
      * @return the response published counter
      */
-    T forResponsePublished(final EntityId connectionId);
+    T forResponsePublished(final ConnectionId connectionId);
 
 }

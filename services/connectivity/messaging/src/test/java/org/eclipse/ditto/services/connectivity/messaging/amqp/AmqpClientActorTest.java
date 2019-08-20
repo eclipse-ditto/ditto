@@ -73,10 +73,10 @@ import org.assertj.core.api.ThrowableAssert;
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
 import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -137,7 +137,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
     private static final JMSException JMS_EXCEPTION = new JMSException("FAIL");
     private static final URI DUMMY = URI.create("amqp://test:1234");
-    private static final EntityId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final ConnectionFailedException SESSION_EXCEPTION =
             ConnectionFailedException.newBuilder(CONNECTION_ID).build();
 
@@ -805,7 +805,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         .address(sourceWithUnicodeCharacters)
                         .build();
 
-                final EntityId connectionId = createRandomConnectionId();
+                final ConnectionId connectionId = createRandomConnectionId();
                 final Connection connectionWithSpecialCharacters =
                         TestConstants.createConnection(connectionId, singletonList(source));
 
@@ -851,7 +851,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                     .address(sourceWithUnicodeCharacters)
                     .build();
 
-            final EntityId connectionId = createRandomConnectionId();
+            final ConnectionId connectionId = createRandomConnectionId();
             final Connection connectionWithSpecialCharacters =
                     TestConstants.createConnection(connectionId, singletonList(source));
 

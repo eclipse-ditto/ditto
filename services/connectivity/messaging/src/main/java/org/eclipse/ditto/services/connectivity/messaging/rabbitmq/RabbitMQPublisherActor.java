@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -71,7 +71,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @Nullable private ActorRef channelActor;
 
     @SuppressWarnings("unused")
-    private RabbitMQPublisherActor(final List<Target> targets, final EntityId connectionId) {
+    private RabbitMQPublisherActor(final List<Target> targets, final ConnectionId connectionId) {
         super(connectionId, targets);
     }
 
@@ -82,7 +82,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      * @param targets the targets to publish to
      * @return the Akka configuration Props object.
      */
-    static Props props(final EntityId connectionId, final List<Target> targets) {
+    static Props props(final ConnectionId connectionId, final List<Target> targets) {
 
         return Props.create(RabbitMQPublisherActor.class, targets, connectionId);
     }

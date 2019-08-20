@@ -34,8 +34,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -157,7 +157,7 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionStatusResponse.class, areImmutable(),
-                provided(JsonObject.class, EntityId.class).isAlsoImmutable());
+                provided(JsonObject.class, ConnectionId.class).isAlsoImmutable());
     }
 
     @Test

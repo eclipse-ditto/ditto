@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
 /**
@@ -68,7 +69,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
      * @param connectionId the ID of the connection.
      * @return the builder.
      */
-    public static Builder newBuilder(final EntityId connectionId) {
+    public static Builder newBuilder(final ConnectionId connectionId) {
         return new Builder().connectionId(connectionId);
     }
 
@@ -110,7 +111,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
          * @param connectionId the connection ID.
          * @return this builder.
          */
-        public Builder connectionId(final EntityId connectionId) {
+        public Builder connectionId(final ConnectionId connectionId) {
             this.connectionId = connectionId;
             return this;
         }

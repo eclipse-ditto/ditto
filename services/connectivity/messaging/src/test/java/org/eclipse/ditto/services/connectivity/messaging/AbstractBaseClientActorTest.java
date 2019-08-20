@@ -13,9 +13,9 @@
 
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
@@ -97,7 +97,7 @@ public abstract class AbstractBaseClientActorTest {
         }};
     }
 
-    protected EntityId getConnectionId() {
+    protected ConnectionId getConnectionId() {
         return getConnection().getId();
     }
     protected abstract Connection getConnection();

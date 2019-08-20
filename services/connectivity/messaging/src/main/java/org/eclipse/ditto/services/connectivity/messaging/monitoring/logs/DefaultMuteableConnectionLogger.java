@@ -20,8 +20,8 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
@@ -37,7 +37,7 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMuteableConnectionLogger.class);
 
-    private final EntityId connectionId;
+    private final ConnectionId connectionId;
     private final ConnectionLogger delegate;
     private boolean active;
 
@@ -46,7 +46,7 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
      * @param connectionId the connection for which the logger is logging.
      * @param delegate the delegate to call while the logger is unmuted
      */
-    DefaultMuteableConnectionLogger(final EntityId connectionId, final ConnectionLogger delegate) {
+    DefaultMuteableConnectionLogger(final ConnectionId connectionId, final ConnectionLogger delegate) {
         this.connectionId = connectionId;
         this.delegate = delegate;
         this.active = false;

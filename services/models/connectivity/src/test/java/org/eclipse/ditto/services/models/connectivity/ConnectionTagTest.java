@@ -20,8 +20,7 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,7 +30,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ConnectionTagTest {
 
-    private static final EntityId CONNECTION_ID = DefaultEntityId.of("connection-tag-test-connection-id");
+    private static final ConnectionId CONNECTION_ID = ConnectionId.of("connection-tag-test-connection-id");
 
     private static final long REVISION = 5624191235L;
 

@@ -19,8 +19,8 @@ import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogType;
 
@@ -82,7 +82,7 @@ final class ConnectionLoggerFactory {
      * @return a new muteable logger.
      * @throws java.lang.NullPointerException if {@code delegate} is null.
      */
-    static MuteableConnectionLogger newMuteableLogger(final EntityId connectionId, final ConnectionLogger delegate) {
+    static MuteableConnectionLogger newMuteableLogger(final ConnectionId connectionId, final ConnectionLogger delegate) {
         return new DefaultMuteableConnectionLogger(connectionId, checkNotNull(delegate));
     }
 

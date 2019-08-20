@@ -25,10 +25,10 @@ import javax.annotation.Nullable;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -206,7 +206,7 @@ public final class KafkaAuthenticationSpecificConfigTest {
             final Map<String, String> specificConfig) {
 
         final String uri = getUriWithUserAndPassword(username, password);
-        return ConnectivityModelFactory.newConnectionBuilder(DefaultEntityId.of("kafka"), ConnectionType.KAFKA,
+        return ConnectivityModelFactory.newConnectionBuilder(ConnectionId.of("kafka"), ConnectionType.KAFKA,
                 ConnectivityStatus.OPEN, uri)
                 .targets(singletonList(
                         org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget("target",

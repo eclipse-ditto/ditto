@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -207,8 +208,8 @@ public final class ReconnectActor extends AbstractActor {
         // OpenConnection would set desired state to OPEN even for deleted connections.
 
         if (persistenceId.startsWith(ConnectionActor.PERSISTENCE_ID_PREFIX)) {
-            final EntityId connectionId =
-                    DefaultEntityId.of(persistenceId.substring(ConnectionActor.PERSISTENCE_ID_PREFIX.length()));
+            final ConnectionId connectionId =
+                    ConnectionId.of(persistenceId.substring(ConnectionActor.PERSISTENCE_ID_PREFIX.length()));
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .correlationId(toCorrelationId(connectionId))
                     .build();
@@ -219,14 +220,14 @@ public final class ReconnectActor extends AbstractActor {
         }
     }
 
-    static String toCorrelationId(final EntityId connectionId) {
+    static String toCorrelationId(final ConnectionId connectionId) {
         return CORRELATION_ID_PREFIX + connectionId;
     }
 
-    static Optional<EntityId> toConnectionId(final String correlationId) {
+    static Optional<ConnectionId> toConnectionId(final String correlationId) {
         if (correlationId.startsWith(CORRELATION_ID_PREFIX)) {
             return Optional.of(correlationId.replace(CORRELATION_ID_PREFIX, ""))
-                    .map(DefaultEntityId::of);
+                    .map(ConnectionId::of);
         }
         return Optional.empty();
     }

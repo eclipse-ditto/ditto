@@ -41,10 +41,10 @@ import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
@@ -97,7 +97,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final int producerCacheSize;
 
     @SuppressWarnings("unused")
-    private AmqpPublisherActor(final EntityId connectionId, final List<Target> targets, final Session session,
+    private AmqpPublisherActor(final ConnectionId connectionId, final List<Target> targets, final Session session,
             final ConnectionConfig connectionConfig) {
         super(connectionId, targets);
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
@@ -122,7 +122,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * @param connectionConfig configuration for all connections.
      * @return the Akka configuration Props object.
      */
-    static Props props(final EntityId connectionId, final List<Target> targets, final Session session,
+    static Props props(final ConnectionId connectionId, final List<Target> targets, final Session session,
             final ConnectionConfig connectionConfig) {
 
         return Props.create(AmqpPublisherActor.class, connectionId, targets, session, connectionConfig);

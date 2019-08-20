@@ -22,9 +22,9 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;
@@ -146,7 +146,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
         }};
     }
 
-    private RetrieveConnectionLogsResponse createRetrieveConnectionLogsResponse(final EntityId connectionId,
+    private RetrieveConnectionLogsResponse createRetrieveConnectionLogsResponse(final ConnectionId connectionId,
             @Nullable final Instant enabledSince, @Nullable final Instant enabledUntil) {
         return RetrieveConnectionLogsResponse.of(connectionId,
                 TestConstants.Monitoring.LOG_ENTRIES,
