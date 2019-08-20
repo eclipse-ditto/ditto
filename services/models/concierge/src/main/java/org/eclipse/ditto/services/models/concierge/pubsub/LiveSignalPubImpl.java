@@ -43,7 +43,7 @@ final class LiveSignalPubImpl implements LiveSignalPub {
      * @return the live signal pub.
      */
     static LiveSignalPubImpl of(final ActorSystem actorSystem) {
-        final PubSubConfig config = PubSubConfig.forActorSystem(actorSystem);
+        final PubSubConfig config = PubSubConfig.of(actorSystem);
         final DistributedPub<Command> liveCommandPub =
                 SingleLiveSignalPubSubFactory.of(actorSystem, config, Command.class, StreamingType.LIVE_COMMANDS)
                         .startDistributedPub();

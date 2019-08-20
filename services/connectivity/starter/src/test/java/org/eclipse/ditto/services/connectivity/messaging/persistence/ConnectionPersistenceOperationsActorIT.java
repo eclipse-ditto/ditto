@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -25,7 +28,10 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
+import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -114,10 +120,37 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         final ConnectivityCommandInterceptor dummyInterceptor = command -> {};
         final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
         final Props props =
-                ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarderProbe.ref(), entityActorFactory,
-                        dummyInterceptor);
+                ConnectionSupervisorActor.props(pubSubMediator, nopSub(), conciergeForwarderProbe.ref(),
+                        entityActorFactory, dummyInterceptor);
 
         return system.actorOf(props, id);
+    }
+
+    private static DittoProtocolSub nopSub() {
+        return new DittoProtocolSub() {
+            @Override
+            public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
+                    final Collection<String> topics, final ActorRef subscriber) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletionStage<SubUpdater.Acknowledgement> subscribe(final StreamingType type,
+                    final Collection<String> topics, final ActorRef subscriber) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public void removeSubscriber(final Collection<StreamingType> types, final ActorRef subscriber) {
+
+            }
+
+            @Override
+            public CompletionStage<SubUpdater.Acknowledgement> unsubscribe(final StreamingType type,
+                    final Collection<String> topics, final ActorRef subscriber) {
+                return CompletableFuture.completedFuture(null);
+            }
+        };
     }
 
 }

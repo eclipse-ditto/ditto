@@ -18,18 +18,21 @@ import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagi
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -64,6 +67,8 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConn
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -176,7 +181,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final String connectionId;
-    private final ActorRef pubSubMediator;
+    private final ActorRef pubSubMediator; // for publishing of connection events
+    private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef conciergeForwarder;
     private final long snapshotThreshold;
     private final SnapshotAdapter<Connection> snapshotAdapter;
@@ -211,12 +217,14 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     @SuppressWarnings("unused")
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
+            final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator) {
 
         this.connectionId = connectionId;
         this.pubSubMediator = pubSubMediator;
+        this.dittoProtocolSub = dittoProtocolSub;
         this.conciergeForwarder = conciergeForwarder;
         this.propsFactory = propsFactory;
         final DittoConnectivityCommandValidator dittoCommandValidator =
@@ -260,7 +268,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
      * Creates Akka configuration object for this actor.
      *
      * @param connectionId the connection ID.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param dittoProtocolSub Ditto protocol sub access.
      * @param conciergeForwarder proxy of concierge service.
      * @param propsFactory factory of props of client actors for various protocols.
      * @param commandValidator validator for commands that should throw an exception if a command is invalid.
@@ -268,13 +276,14 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
      */
     public static Props props(final String connectionId,
             final ActorRef pubSubMediator,
+            final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> commandValidator
     ) {
 
-        return Props.create(ConnectionActor.class, connectionId, pubSubMediator, conciergeForwarder, propsFactory,
-                commandValidator);
+        return Props.create(ConnectionActor.class, connectionId, pubSubMediator, dittoProtocolSub, conciergeForwarder,
+                propsFactory, commandValidator);
     }
 
     @Override
@@ -1036,10 +1045,10 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 );
         final RetrieveConnectionMetricsResponse metricsResponse =
                 RetrieveConnectionMetricsResponse.getBuilder(connectionId, command.getDittoHeaders())
-                .connectionMetrics(metrics)
-                .sourceMetrics(ConnectivityModelFactory.emptySourceMetrics())
-                .targetMetrics(ConnectivityModelFactory.emptyTargetMetrics())
-                .build();
+                        .connectionMetrics(metrics)
+                        .sourceMetrics(ConnectivityModelFactory.emptySourceMetrics())
+                        .targetMetrics(ConnectivityModelFactory.emptyTargetMetrics())
+                        .build();
         origin.tell(metricsResponse, getSelf());
     }
 
@@ -1056,7 +1065,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         origin.tell(statusResponse, getSelf());
     }
 
-    private void subscribeForEvents() {
+    private CompletionStage<Void> subscribeForEvents() {
         checkConnectionNotNull();
 
         // unsubscribe to previously subscribed topics
@@ -1066,18 +1075,29 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 .flatMap(target -> target.getTopics().stream().map(FilteredTopic::getTopic))
                 .collect(Collectors.toSet());
 
-        forEachPubSubTopicDo(pubSubTopic -> {
-            log.debug("Subscribing to pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
-            pubSubMediator.tell(DistPubSubAccess.subscribe(pubSubTopic, getSelf()), getSelf());
-        });
+        log.debug("Subscribing to pub-sub topics <{}> for connection <{}>.", uniqueTopics, connectionId);
+        return dittoProtocolSub.subscribe(toStreamingTypes(uniqueTopics), getTargetAuthSubjects(), getSelf());
+    }
+
+    private Set<String> getTargetAuthSubjects() {
+        if (connection == null || connection.getTargets().isEmpty()) {
+            return Collections.emptySet();
+        } else {
+            return connection.getTargets()
+                    .stream()
+                    .map(Target::getAuthorizationContext)
+                    .map(AuthorizationContext::getAuthorizationSubjectIds)
+                    .flatMap(List::stream)
+                    .collect(Collectors.toSet());
+        }
     }
 
     private void unsubscribeFromEvents() {
-        forEachPubSubTopicDo(pubSubTopic -> {
-            log.debug("Unsubscribing from pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
-            pubSubMediator.tell(DistPubSubAccess.unsubscribe(pubSubTopic, getSelf()), getSelf());
-        });
-        uniqueTopics = Collections.emptySet();
+        log.debug("Unsubscribing from pub-sub topics <{}> for connection <{}>.", uniqueTopics, connectionId);
+        if (!uniqueTopics.isEmpty()) {
+            dittoProtocolSub.removeSubscriber(toStreamingTypes(uniqueTopics), getSelf());
+            uniqueTopics = Collections.emptySet();
+        }
     }
 
     private void forEachPubSubTopicDo(final Consumer<String> topicConsumer) {
@@ -1189,23 +1209,30 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         confirmedSnapshotSequenceNr = Math.max(confirmedSnapshotSequenceNr, sss.metadata().sequenceNr());
     }
 
-    private void schedulePendingResponse(final ConnectivityCommandResponse response, final ActorRef sender) {
-        getContext().system().scheduler()
-                .scheduleOnce(flushPendingResponsesTimeout,
-                        sender,
-                        response,
-                        getContext().dispatcher(),
-                        getSelf());
+    private static Collection<StreamingType> toStreamingTypes(final Set<Topic> uniqueTopics) {
+        return uniqueTopics.stream()
+                .map(topic -> {
+                    switch (topic) {
+                        case LIVE_EVENTS:
+                            return StreamingType.LIVE_EVENTS;
+                        case LIVE_COMMANDS:
+                            return StreamingType.LIVE_COMMANDS;
+                        case LIVE_MESSAGES:
+                            return StreamingType.MESSAGES;
+                        case TWIN_EVENTS:
+                        default:
+                            return StreamingType.EVENTS;
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
     private static Consumer<ConnectionActor> subscribeForEventsAndScheduleResponse(
-            final ConnectivityCommandResponse response,
-            final ActorRef sender) {
+            final ConnectivityCommandResponse response, final ActorRef sender) {
 
-        return connectionActor -> {
-            connectionActor.subscribeForEvents();
-            connectionActor.schedulePendingResponse(response, sender);
-        };
+        return connectionActor ->
+                connectionActor.subscribeForEvents()
+                        .thenAccept(_void -> sender.tell(response, connectionActor.getSelf()));
     }
 
     /**

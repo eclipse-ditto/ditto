@@ -32,9 +32,10 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
      */
     public static final String CLUSTER_ROLE = "thing-event-aware";
 
-    private ThingEventPubSubFactory(final ActorSystem actorSystem, final ShardRegionExtractor shardRegionExtractor,
+    private ThingEventPubSubFactory(final ActorSystem actorSystem,
+            final PubSubTopicExtractor<ThingEvent> topicExtractor,
             final PubSubConfig config) {
-        super(actorSystem, CLUSTER_ROLE, ThingEvent.class, toTopicExtractor(shardRegionExtractor), config);
+        super(actorSystem, CLUSTER_ROLE, ThingEvent.class, topicExtractor, config);
     }
 
     /**
@@ -42,13 +43,24 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
      *
      * @param actorSystem the actor system.
      * @param shardRegionExtractor the shard region extractor.
-     * @return the thing
+     * @return the thing event pub-sub factory.
      */
     public static ThingEventPubSubFactory of(final ActorSystem actorSystem,
             final ShardRegionExtractor shardRegionExtractor) {
 
-        final PubSubConfig config = PubSubConfig.forActorSystem(actorSystem);
-        return new ThingEventPubSubFactory(actorSystem, shardRegionExtractor, config);
+        final PubSubConfig config = PubSubConfig.of(actorSystem);
+        return new ThingEventPubSubFactory(actorSystem, toTopicExtractor(shardRegionExtractor), config);
+    }
+
+    /**
+     * Create a pubsub factory for thing events ignoring topics that are not read-subjects.
+     *
+     * @param actorSystem the actor system.
+     * @param config the pub-sub config.
+     * @return the thing event pub-sub factory.
+     */
+    public static ThingEventPubSubFactory readSubjectsOnly(final ActorSystem actorSystem, final PubSubConfig config) {
+        return new ThingEventPubSubFactory(actorSystem, ReadSubjectExtractor.of(), config);
     }
 
     private static PubSubTopicExtractor<ThingEvent> toTopicExtractor(final ShardRegionExtractor shardRegionExtractor) {

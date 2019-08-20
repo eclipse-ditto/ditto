@@ -78,7 +78,7 @@ public interface PubSubConfig {
      * @param actorSystem the actor system.
      * @return the pub-sub config object.
      */
-    static PubSubConfig forActorSystem(final ActorSystem actorSystem) {
+    static PubSubConfig of(final ActorSystem actorSystem) {
         final Config dittoScopedConfig =
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
         return of(dittoScopedConfig);

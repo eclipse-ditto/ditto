@@ -60,6 +60,13 @@ public interface DistributedSub {
     void unsubscribeWithoutAck(Collection<String> topics, ActorRef subscriber);
 
     /**
+     * Remove a subscriber without waiting for acknowledgement.
+     *
+     * @param subscriber who is being removed.
+     */
+    void removeSubscriber(final ActorRef subscriber);
+
+    /**
      * Create subscription access from an already-started sub-supervisor and a distributed data config.
      *
      * @param config the distributed-data config.

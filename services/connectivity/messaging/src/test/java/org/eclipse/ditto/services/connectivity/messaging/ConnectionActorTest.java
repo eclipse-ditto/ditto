@@ -145,18 +145,23 @@ public final class ConnectionActorTest extends WithMockServers {
                 RetrieveConnectionResponse.of(modifiedConnection.toJson(), DittoHeaders.empty());
         retrieveConnectionStatusOpenResponse =
                 RetrieveConnectionStatusResponse.getBuilder(connectionId, DittoHeaders.empty())
-                .connectionStatus(ConnectivityStatus.OPEN)
-                .liveStatus(ConnectivityStatus.OPEN)
-                .connectedSince(INSTANT)
-                .clientStatus(asList(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN,
-                                "connection is open", INSTANT)))
-                .sourceStatus(asList(
-                        ConnectivityModelFactory.newSourceStatus("client1",  ConnectivityStatus.OPEN, "source1", "consumer started"),
-                        ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source2", "consumer started")
-                ))
-                .targetStatus(asList(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN, "target1",
-                                "publisher started")))
-                .build();
+                        .connectionStatus(ConnectivityStatus.OPEN)
+                        .liveStatus(ConnectivityStatus.OPEN)
+                        .connectedSince(INSTANT)
+                        .clientStatus(
+                                asList(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN,
+                                        "connection is open", INSTANT)))
+                        .sourceStatus(asList(
+                                ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source1",
+                                        "consumer started"),
+                                ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source2",
+                                        "consumer started")
+                        ))
+                        .targetStatus(
+                                asList(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN,
+                                        "target1",
+                                        "publisher started")))
+                        .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }
 
@@ -208,7 +213,8 @@ public final class ConnectionActorTest extends WithMockServers {
             final TestProbe clientActorMock = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(clientActorMock.ref()));
+                            conciergeForwarder,
+                            (connection, concierge) -> MockClientActor.props(clientActorMock.ref()));
             watch(underTest);
 
             // create connection
@@ -233,7 +239,8 @@ public final class ConnectionActorTest extends WithMockServers {
             final TestProbe clientActorMock = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(clientActorMock.ref()));
+                            conciergeForwarder,
+                            (connection, concierge) -> MockClientActor.props(clientActorMock.ref()));
             watch(underTest);
 
             // create connection
@@ -316,10 +323,10 @@ public final class ConnectionActorTest extends WithMockServers {
 
             final RetrieveConnectionMetricsResponse metricsResponse =
                     RetrieveConnectionMetricsResponse.getBuilder(connectionId, DittoHeaders.empty())
-                    .connectionMetrics(ConnectivityModelFactory.emptyConnectionMetrics())
-                    .sourceMetrics(ConnectivityModelFactory.emptySourceMetrics())
-                    .targetMetrics(ConnectivityModelFactory.emptyTargetMetrics())
-                    .build();
+                            .connectionMetrics(ConnectivityModelFactory.emptyConnectionMetrics())
+                            .sourceMetrics(ConnectivityModelFactory.emptySourceMetrics())
+                            .targetMetrics(ConnectivityModelFactory.emptyTargetMetrics())
+                            .build();
             expectMsg(metricsResponse);
         }};
     }
@@ -497,7 +504,8 @@ public final class ConnectionActorTest extends WithMockServers {
     public void exceptionDuringClientActorPropsCreation() {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
-                    ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator, conciergeForwarder,
+                    ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator,
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
                             (connection, conciergeForwarder) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
@@ -527,7 +535,8 @@ public final class ConnectionActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
                     ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator,
-                            conciergeForwarder, mockClientActorPropsFactory,
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
+                            mockClientActorPropsFactory,
                             command -> {
                                 throw ConnectionUnavailableException.newBuilder(connectionId)
                                         .dittoHeaders(command.getDittoHeaders())
@@ -628,7 +637,8 @@ public final class ConnectionActorTest extends WithMockServers {
             expectMsg(createConnectionResponse);
 
             // send cleanup command
-            underTest.tell(CleanupPersistence.of(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId, DittoHeaders.empty()),
+            underTest.tell(
+                    CleanupPersistence.of(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId, DittoHeaders.empty()),
                     getRef());
             expectMsg(CleanupPersistenceResponse.success(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId,
                     DittoHeaders.empty()));

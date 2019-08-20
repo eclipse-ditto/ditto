@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -154,6 +155,7 @@ public final class SubUpdater extends AbstractActorWithTimers {
                 .match(Subscribe.class, this::subscribe)
                 .match(Unsubscribe.class, this::unsubscribe)
                 .match(Terminated.class, this::terminated)
+                .match(RemoveSubscriber.class, this::removeSubscriber)
                 .matchEquals(Clock.TICK, this::tick)
                 .match(LocalSubscriptionsReader.class, this::updateSuccess)
                 .match(Status.Failure.class, this::updateFailure)
@@ -252,7 +254,15 @@ public final class SubUpdater extends AbstractActorWithTimers {
     }
 
     private void terminated(final Terminated terminated) {
-        localSubscriptionsChanged |= localSubscriptions.removeSubscriber(terminated.actor());
+        doRemoveSubscriber(terminated.actor());
+    }
+
+    private void removeSubscriber(final RemoveSubscriber request) {
+        doRemoveSubscriber(request.getSubscriber());
+    }
+
+    private void doRemoveSubscriber(final ActorRef subscriber) {
+        localSubscriptionsChanged |= localSubscriptions.removeSubscriber(subscriber);
     }
 
     private void enqueueRequest(final Request request, final boolean changed) {
@@ -396,6 +406,30 @@ public final class SubUpdater extends AbstractActorWithTimers {
         public static Unsubscribe of(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
             return new Unsubscribe(topics, subscriber, writeConsistency, acknowledge);
+        }
+    }
+
+    /**
+     * Request to remove a subscriber.
+     */
+    public static final class RemoveSubscriber extends Request {
+
+        private RemoveSubscriber(final ActorRef subscriber, final Replicator.WriteConsistency writeConsistency,
+                final boolean acknowledge) {
+            super(Collections.emptySet(), subscriber, writeConsistency, acknowledge);
+        }
+
+        /**
+         * Create an "unsubscribe" request.
+         *
+         * @param subscriber who is subscribing.
+         * @param writeConsistency with which write consistency should this subscription be updated.
+         * @param acknowledge whether acknowledgement is desired.
+         * @return the request.
+         */
+        public static RemoveSubscriber of(final ActorRef subscriber,
+                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
+            return new RemoveSubscriber(subscriber, writeConsistency, acknowledge);
         }
     }
 

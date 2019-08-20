@@ -69,4 +69,11 @@ final class DistributedSubImpl implements DistributedSub {
                 SubUpdater.Unsubscribe.of(new HashSet<>(topics), subscriber, Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
     }
+
+    @Override
+    public void removeSubscriber(final ActorRef subscriber) {
+        final SubUpdater.Request request =
+                SubUpdater.RemoveSubscriber.of(subscriber, Replicator.writeLocal(), false);
+        subSupervisor.tell(request, subscriber);
+    }
 }
