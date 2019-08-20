@@ -565,6 +565,18 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
+        public ConnectionBuilder setSources(final List<Source> sources) {
+            this.sources.clear();
+            return sources(sources);
+        }
+
+        @Override
+        public ConnectionBuilder setTargets(final List<Target> targets) {
+            this.targets.clear();
+            return targets(targets);
+        }
+
+        @Override
         public ConnectionBuilder clientCount(final int clientCount) {
             checkArgument(clientCount, ps -> ps > 0, () -> "The client count must be > 0!");
             this.clientCount = clientCount;

@@ -44,7 +44,7 @@ import akka.testkit.javadsl.TestKit;
 
 public abstract class AbstractPublisherActorTest {
 
-    private static final Config CONFIG = ConfigFactory.load("test");
+    protected static final Config CONFIG = ConfigFactory.load("test");
     protected static ActorSystem actorSystem;
 
     @Rule
@@ -78,7 +78,6 @@ public abstract class AbstractPublisherActorTest {
             final Target target = createTestTarget();
             when(outboundSignal.getTargets()).thenReturn(Collections.singletonList(decorateTarget(target)));
 
-
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
             final ExternalMessage externalMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders).withText("payload").build();
@@ -95,23 +94,25 @@ public abstract class AbstractPublisherActorTest {
             verifyPublishedMessage();
         }};
 
-        
 
     }
-        
+
     protected Target createTestTarget() {
         return ConnectivityModelFactory.newTargetBuilder()
-            .address(getOutboundAddress())
-            .originalAddress(getOutboundAddress())
-            .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-            .headerMapping(TestConstants.HEADER_MAPPING)
-            .topics(Topic.TWIN_EVENTS)
-            .build();
+                .address(getOutboundAddress())
+                .originalAddress(getOutboundAddress())
+                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(TestConstants.HEADER_MAPPING)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
     }
 
     protected abstract String getOutboundAddress();
+
     protected abstract void setupMocks(final TestProbe probe) throws Exception;
+
     protected abstract Props getPublisherActorProps();
+
     protected abstract void publisherCreated(ActorRef publisherActor);
 
     protected abstract Target decorateTarget(Target target);

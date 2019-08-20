@@ -8,7 +8,7 @@
 |ch.qos.logback|logback-core|1.2.3| [16305](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16305) |
 |com.ajjpj.simple-akka-downing|simple-akka-downing_2.12|0.9.2| [18601](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18601) |
 |com.eclipsesource.minimal-json|minimal-json|0.9.5| [16296](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16296) |
-|com.github.ben-manes.caffeine|caffeine|2.6.2| [16300](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16300) |
+|com.github.ben-manes.caffeine|caffeine|2.8.0| [20651](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20651) |
 |com.github.jnr|jffi|1.2.16| [16301](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16301) |
 |com.github.jnr|jnr-constants|0.9.9| [16302](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16302) |
 |com.github.jnr|jnr-ffi|2.1.7| [16303](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16303) |
@@ -168,4 +168,4 @@ Manual step by sending mail to Eclipse IP team - this is a collection of depende
 
 | Group ID  | Artifact ID  | Version  | CQ |
 |-----------|--------------|----------|----|
-|           |              |          |    |
+|com.github.ben-manes.caffeine|caffeine|2.6.2| [16300](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16300) |
