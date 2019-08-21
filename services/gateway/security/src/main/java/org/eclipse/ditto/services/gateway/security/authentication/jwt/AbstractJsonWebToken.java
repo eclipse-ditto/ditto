@@ -149,6 +149,11 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     }
 
     @Override
+    public String getAuthorizedParty() {
+        return body.getValue(JsonFields.AUTHORIZED_PARTY).orElseGet(String::new);
+    }
+
+    @Override
     public Set<String> getScopes() {
         final String[] strings = body.getValue(JsonFields.SCOPE).map(s -> s.split(" ")).orElseGet(() -> new String[]{});
         return Arrays.stream(strings).collect(Collectors.toSet());

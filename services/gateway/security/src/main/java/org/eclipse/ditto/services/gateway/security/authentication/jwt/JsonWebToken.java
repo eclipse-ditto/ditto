@@ -88,6 +88,13 @@ public interface JsonWebToken {
     Audience getAudience();
 
     /**
+     * Returns the authorized party of the token.
+     *
+     * @return the authorized party.
+     */
+    String getAuthorizedParty();
+
+    /**
      * Returns the scopes of the token.
      *
      * @return the scopes.
@@ -132,6 +139,12 @@ public interface JsonWebToken {
          */
         public static final JsonFieldDefinition<JsonValue> AUDIENCE =
                 JsonFactory.newJsonValueFieldDefinition("aud", FieldType.REGULAR);
+
+        /**
+         * JSON field containing the authorized party.
+         */
+        public static final JsonFieldDefinition<String> AUTHORIZED_PARTY =
+                JsonFactory.newStringFieldDefinition("azp", FieldType.REGULAR);
 
         /**
          * JSON field containing the scope.
