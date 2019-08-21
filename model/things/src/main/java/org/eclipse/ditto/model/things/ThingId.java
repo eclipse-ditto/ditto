@@ -12,8 +12,14 @@
   */
  package org.eclipse.ditto.model.things;
 
+ import static org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId.DEFAULT_NAMESPACE;
+ import static org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId.fromName;
+ import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_DELIMITER;
+
  import java.util.Objects;
  import java.util.UUID;
+
+ import javax.annotation.concurrent.Immutable;
 
  import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
  import org.eclipse.ditto.model.base.entity.id.EntityIdInvalidException;
@@ -21,6 +27,10 @@
  import org.eclipse.ditto.model.base.entity.id.EntityNamespaceInvalidException;
  import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 
+ /**
+  * Java representation of a validated Thing ID.
+  */
+ @Immutable
  public final class ThingId implements NamespacedEntityId {
 
      private static final ThingId PLACE_HOLDER_ID = ThingId.of(DefaultNamespacedEntityId.placeholder());
@@ -30,14 +40,18 @@
          this.entityId = entityId;
      }
 
+     /**
+      * Returns a {@link ThingId} based on the given thingId CharSequence. May return the same instance as
+      * the parameter if the given parameter is already a ThingId. Skips validation if the given
+      * {@code thingId} is an instance of NamespacedEntityId.
+      *
+      * @param thingId The thing ID.
+      * @return the thing ID.
+      */
      public static ThingId of(final CharSequence thingId) {
 
          if (thingId instanceof ThingId) {
              return (ThingId) thingId;
-         }
-
-         if (thingId instanceof DefaultNamespacedEntityId) {
-             return new ThingId((NamespacedEntityId) thingId);
          }
 
          try {
@@ -51,20 +65,67 @@
          }
      }
 
+     /**
+      * Creates a new {@link ThingId} with the given namespace and name.
+      * @param namespace the namespace of the thing.
+      * @param name the name of the thing.
+      * @return the created instance of {@link ThingId}
+      */
      public static ThingId of(final String namespace, final String name) {
-         return new ThingId(DefaultNamespacedEntityId.of(namespace, name));
+         try {
+             return new ThingId(DefaultNamespacedEntityId.of(namespace, name));
+         } catch (final EntityNameInvalidException e) {
+             final String thingId = namespace + NAMESPACE_DELIMITER + name;
+             throw ThingIdInvalidException.forInvalidName(thingId).cause(e).build();
+         } catch (final EntityNamespaceInvalidException e) {
+             final String thingId = namespace + NAMESPACE_DELIMITER + name;
+             throw ThingIdInvalidException.forInvalidNamespace(thingId).cause(e).build();
+         } catch (final EntityIdInvalidException e) {
+             final String thingId = namespace + NAMESPACE_DELIMITER + name;
+             throw ThingIdInvalidException.newBuilder(thingId).cause(e).build();
+         }
      }
 
+     /**
+      * Creates {@link ThingId} with default namespace placeholder.
+      * @param name the name of the thing.
+      * @return the created thing ID.
+      */
      public static ThingId inDefaultNamespace(final String name) {
-         return new ThingId(DefaultNamespacedEntityId.fromName(name));
+         try {
+             return new ThingId(fromName(name));
+         } catch (final EntityNameInvalidException e) {
+             final String thingId = DEFAULT_NAMESPACE + NAMESPACE_DELIMITER + name;
+             throw ThingIdInvalidException.forInvalidName(thingId).cause(e).build();
+         } catch (final EntityNamespaceInvalidException e) {
+             final String thingId = DEFAULT_NAMESPACE + NAMESPACE_DELIMITER + name;
+             throw ThingIdInvalidException.forInvalidNamespace(thingId).cause(e).build();
+         } catch (final EntityIdInvalidException e) {
+             final String thingId = DEFAULT_NAMESPACE + NAMESPACE_DELIMITER + name;
+             throw ThingIdInvalidException.newBuilder(thingId).cause(e).build();
+         }
      }
 
+     /**
+      * Generates a new thing ID with the default namespace placeholder and a unique name.
+      * @return the generated thing ID.
+      */
      public static ThingId generateRandom() {
-         return new ThingId(DefaultNamespacedEntityId.fromName(UUID.randomUUID().toString()));
+         return new ThingId(fromName(UUID.randomUUID().toString()));
      }
 
+     /**
+      * Returns a dummy {@link ThingId}. This ID should not be used. It can be identified by
+      * checking {@link ThingId#isPlaceholder()}.
+      * @return the dummy ID.
+      */
      public static ThingId placeholder() {
          return PLACE_HOLDER_ID;
+     }
+
+     @Override
+     public boolean isPlaceholder() {
+         return PLACE_HOLDER_ID.equals(this);
      }
 
      @Override
@@ -97,8 +158,4 @@
          return entityId.toString();
      }
 
-     @Override
-     public boolean isPlaceHolder() {
-         return PLACE_HOLDER_ID.equals(this);
-     }
  }

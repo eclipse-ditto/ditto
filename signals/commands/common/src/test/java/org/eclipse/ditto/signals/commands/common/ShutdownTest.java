@@ -102,7 +102,7 @@ public final class ShutdownTest {
 
     @Test
     public void getIdReturnsPlacerholderId() {
-        assertThat(underTest.getEntityId().isPlaceHolder()).isTrue();
+        assertThat(underTest.getEntityId().isPlaceholder()).isTrue();
     }
 
     @Test

@@ -447,7 +447,7 @@ public final class PoliciesModelFactory {
      * @throws IllegalArgumentException if {@code label} is empty.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
      * @throws PolicyIdInvalidException if the parsed policy ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static PolicyEntry newPolicyEntry(final CharSequence label, final JsonValue jsonValue) {
         final JsonObject jsonObject = wrapJsonRuntimeException(jsonValue::asObject);

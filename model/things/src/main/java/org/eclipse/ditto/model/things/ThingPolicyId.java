@@ -98,7 +98,7 @@
      }
 
      @Override
-     public boolean isPlaceHolder() {
+     public boolean isPlaceholder() {
          return PLACE_HOLDER_ID.equals(this);
      }
  }

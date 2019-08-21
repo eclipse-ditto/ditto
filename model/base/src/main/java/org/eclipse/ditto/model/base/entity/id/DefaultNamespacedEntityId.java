@@ -12,50 +12,43 @@
   */
  package org.eclipse.ditto.model.base.entity.id;
 
- import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+ import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ENTITY_NAME_GROUP_NAME;
+ import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ENTITY_NAME_PATTERN;
+ import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ID_PATTERN;
+ import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_DELIMITER;
+ import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_GROUP_NAME;
+ import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_PATTERN;
 
  import java.util.Objects;
  import java.util.regex.Matcher;
- import java.util.regex.Pattern;
 
+ import javax.annotation.concurrent.Immutable;
+
+ /**
+  * Default implementation for a validated {@link org.eclipse.ditto.model.base.entity.id.NamespacedEntityId}
+  */
+ @Immutable
  public final class DefaultNamespacedEntityId implements NamespacedEntityId {
 
-     private static final String NAMESPACE_GROUP_NAME = "ns";
-     private static final String NAMESPACE_REGEX =
-             "(?<" + NAMESPACE_GROUP_NAME + ">(?:|(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
-
-     private static final String ENTITY_NAME_GROUP_NAME = "name";
-     /**
-      * The regex pattern for an Entity Name. Has to be conform to
-      * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
-      */
-     private static final String ENTITY_NAME_REGEX = "(?<" + ENTITY_NAME_GROUP_NAME +
-             ">(?:[-\\w:@&=+,.!~*'_;<>]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;<>]|%\\p{XDigit}{2})*+)";
-
-     /**
-      * The regex pattern for an Entity ID.
-      * Combines "namespace" pattern (java package notation + a colon) and "name" pattern.
-      */
-     public static final String ID_REGEX = NAMESPACE_REGEX + "\\:" + ENTITY_NAME_REGEX;
-
-     private static final Pattern NAMESPACE_PATTERN = Pattern.compile(NAMESPACE_REGEX);
-     private static final Pattern ENTITY_NAME_PATTERN = Pattern.compile(ENTITY_NAME_REGEX);
-     private static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
-
-     private static final String NAMESPACE_DELIMITER = ":";
-     private static final String DEFAULT_NAMESPACE = "";
-
-     private static final String PLACE_HOLDER = "unknown:unknown";
-     private static final NamespacedEntityId PLACE_HOLDER_ID = DefaultNamespacedEntityId.of(PLACE_HOLDER);
+     private static final NamespacedEntityId PLACE_HOLDER_ID = DefaultNamespacedEntityId.of("unknown:unknown");
+     public static final String DEFAULT_NAMESPACE = "";
 
      private final String namespace;
      private final String name;
      private final String stringRepresentation;
 
      private DefaultNamespacedEntityId(final String namespace, final String name,
-             final boolean shouldValidateNamespace) {
-         this.namespace = shouldValidateNamespace ? validateNamespace(namespace) : namespace;
-         this.name = validateName(checkNotNull(name, "entity name"));
+             final boolean shouldValidate) {
+         if (name == null) {
+             throw EntityNameInvalidException.forEntityName(name).build();
+         }
+
+         if (namespace == null) {
+             throw EntityNamespaceInvalidException.forEntityNamespace(namespace).build();
+         }
+
+         this.namespace = shouldValidate ? validateNamespace(namespace) : namespace;
+         this.name = shouldValidate ? validateName(name) : name;
          stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
      }
 
@@ -75,29 +68,59 @@
          }
      }
 
+     /**
+      * Returns a {@link NamespacedEntityId} based on the given entityId CharSequence. May return the same instance as
+      * the parameter if the given parameter is already a DefaultNamespacedEntityId. Skips validation if the given
+      * {@code entityId} is an instance of NamespacedEntityId.
+      *
+      * @param entityId The entity ID.
+      * @return the namespaced entity ID.
+      */
      public static NamespacedEntityId of(final CharSequence entityId) {
          if (entityId instanceof DefaultNamespacedEntityId) {
              return (NamespacedEntityId) entityId;
          }
 
          if (entityId instanceof NamespacedEntityId) {
-             return new DefaultNamespacedEntityId(((NamespacedEntityId) entityId).getNamespace(),
-                     ((NamespacedEntityId) entityId).getName(), false);
+             final String namespace = ((NamespacedEntityId) entityId).getNamespace();
+             final String name = ((NamespacedEntityId) entityId).getName();
+             return new DefaultNamespacedEntityId(namespace, name, false);
          }
 
          return new DefaultNamespacedEntityId(entityId);
      }
 
+     /**
+      * Creates {@link NamespacedEntityId} with default namespace placeholder.
+      * @param entityName the name of the entity.
+      * @return the created namespaced entity ID.
+      */
      public static NamespacedEntityId fromName(final String entityName) {
-         return new DefaultNamespacedEntityId(DEFAULT_NAMESPACE, entityName, false);
+         return of(DEFAULT_NAMESPACE, entityName);
      }
 
+     /**
+      * Creates a new {@link NamespacedEntityId} with the given namespace and name.
+      * @param namespace the namespace of the entity.
+      * @param name the name of the entity.
+      * @return the created instance of {@link NamespacedEntityId}
+      */
      public static NamespacedEntityId of(final String namespace, final String name) {
          return new DefaultNamespacedEntityId(namespace, name, true);
      }
 
+     /**
+      * Returns a dummy {@link NamespacedEntityId}. This ID should not be used. It can be identified by
+      * checking {@link NamespacedEntityId#isPlaceholder()}.
+      * @return the dummy ID.
+      */
      public static NamespacedEntityId placeholder() {
          return PLACE_HOLDER_ID;
+     }
+
+     @Override
+     public boolean isPlaceholder() {
+         return PLACE_HOLDER_ID.equals(this);
      }
 
      @Override
@@ -111,7 +134,7 @@
      }
 
      private static String validateNamespace(final String namespace) {
-         if (!NAMESPACE_PATTERN.matcher(checkNotNull(namespace, "namespace")).matches()) {
+         if (!NAMESPACE_PATTERN.matcher(namespace).matches()) {
              throw EntityNamespaceInvalidException.forEntityNamespace(namespace).build();
          }
 
@@ -119,7 +142,7 @@
      }
 
      private static String validateName(final String name) {
-         if (!ENTITY_NAME_PATTERN.matcher(checkNotNull(name, "name")).matches()) {
+         if (!ENTITY_NAME_PATTERN.matcher(name).matches()) {
              throw EntityNameInvalidException.forEntityName(name).build();
          }
 
@@ -152,8 +175,4 @@
          return stringRepresentation;
      }
 
-     @Override
-     public boolean isPlaceHolder() {
-         return PLACE_HOLDER_ID.equals(this);
-     }
  }

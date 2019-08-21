@@ -135,7 +135,7 @@ public final class ModifyFeatureDefinition extends AbstractCommand<ModifyFeature
      * the fields <ul> <li> {@link org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand.JsonFields#JSON_THING_ID},
      * </li> <li>{@link #JSON_FEATURE_ID} or</li> <li>{@link #JSON_DEFINITION}.</li> </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ModifyFeatureDefinition fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -154,7 +154,7 @@ public final class ModifyFeatureDefinition extends AbstractCommand<ModifyFeature
      * <ul> <li> {@link org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand.JsonFields#JSON_THING_ID},
      * </li> <li>{@link #JSON_FEATURE_ID} or</li> <li>{@link #JSON_DEFINITION}.</li> </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ModifyFeatureDefinition fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyFeatureDefinition>(TYPE, jsonObject).deserialize(() -> {

@@ -13,8 +13,12 @@
 package org.eclipse.ditto.model.things;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -22,27 +26,114 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ThingIdTest {
 
     @Test
+    public void testImmutability() {
+        assertInstancesOf(ThingId.class, areImmutable(), provided(NamespacedEntityId.class).isAlsoImmutable());
+    }
+
+    @Test
     public void testEqualsAndHashcode() {
         EqualsVerifier.forClass(ThingId.class).verify();
     }
 
     @Test
-    public void testEqualWithSameStringRepresentation() {
-        assertThat((CharSequence) ThingId.of("test:test")).isNotEqualTo(ThingId.of("test:testx"));
+    public void invalidNamespaceThrowsThingInvalidException() {
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> ThingId.of(".invalidNamespace", "validName"))
+                .matches(thingIdInvalidException -> {
+                    assertThat(thingIdInvalidException.getDescription())
+                            .contains("The namespace prefix must conform the syntax of the java package notation " +
+                                    "and must end with a colon (':').");
+                    return true;
+                });
+
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> ThingId.of(".invalidNamespace:validName"))
+                .matches(thingIdInvalidException -> {
+                    assertThat(thingIdInvalidException.getDescription())
+                            .contains("It must contain a namespace prefix (java package notation + a colon ':') + " +
+                                    "a name and must be a valid URI path segment according to RFC-3986");
+                    return true;
+                });
     }
 
     @Test
-    public void testNotEqualWithDifferentName() {
-        assertThat((CharSequence) ThingId.of("test:test")).isNotEqualTo(ThingId.of("test:testx"));
+    public void invalidNameThrowsThingInvalidException() {
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> ThingId.of("validNamespace", "§inValidName"))
+                .matches(thingIdInvalidException -> {
+                    assertThat(thingIdInvalidException.getDescription())
+                            .contains("The name of the thing was not valid. It must be a valid URI path segment " +
+                                    "according to RFC-3986");
+                    return true;
+                });
+
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> ThingId.inDefaultNamespace("§inValidName"))
+                .matches(thingIdInvalidException -> {
+                    assertThat(thingIdInvalidException.getDescription())
+                            .contains("The name of the thing was not valid. It must be a valid URI path segment " +
+                                    "according to RFC-3986");
+                    return true;
+                });
+
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> ThingId.of("validNamespace:§inValidName"))
+                .matches(thingIdInvalidException -> {
+                    assertThat(thingIdInvalidException.getDescription())
+                            .contains("It must contain a namespace prefix (java package notation + a colon ':') + " +
+                                    "a name and must be a valid URI path segment according to RFC-3986");
+                    return true;
+                });
     }
 
     @Test
-    public void testNotEqualWithDifferentNamespace() {
-        assertThat((CharSequence) ThingId.of("test:test")).isNotEqualTo(ThingId.of("testx:test"));
+    public void placeHolderIsPlaceHolder() {
+        assertThat(ThingId.placeholder().isPlaceholder()).isTrue();
     }
 
     @Test
-    public void testNotEqualToString() {
-        assertThat((CharSequence) ThingId.of("test:test")).isNotEqualTo("test:test");
+    public void manuallyCreatedPlaceHolderIsPlaceHolder() {
+        assertThat(ThingId.of("unknown", "unknown").isPlaceholder()).isTrue();
+        assertThat(ThingId.of("unknown:unknown").isPlaceholder()).isTrue();
     }
+
+    @Test
+    public void validThingIdIsNoPlaceHolder() {
+        assertThat(ThingId.of("namespace", "name").isPlaceholder()).isFalse();
+        assertThat(ThingId.of("namespace:name").isPlaceholder()).isFalse();
+    }
+
+    @Test
+    public void toStringConcatenatesNamespaceAndName() {
+        assertThat(ThingId.of("namespace", "name").toString()).isEqualTo("namespace:name");
+        assertThat(ThingId.of("namespace:name").toString()).isEqualTo("namespace:name");
+    }
+
+    @Test
+    public void returnsCorrectNamespace() {
+        assertThat(ThingId.of("namespace", "name").getNamespace()).isEqualTo("namespace");
+        assertThat(ThingId.of("namespace:name").getNamespace()).isEqualTo("namespace");
+    }
+
+    @Test
+    public void returnsCorrectName() {
+        assertThat(ThingId.of("namespace", "name").getName()).isEqualTo("name");
+        assertThat(ThingId.of("namespace:name").getName()).isEqualTo("name");
+    }
+
+    @Test
+    public void generateRandomHasEmptyNamespace() {
+        final ThingId randomThingId = ThingId.generateRandom();
+
+        assertThat(randomThingId.getNamespace()).isEmpty();
+    }
+
+    @Test
+    public void thingIdOfThingIdReturnsSameInstance() {
+        final ThingId thingIdOne = ThingId.of("namespace", "name");
+        final ThingId thingIdTwo = ThingId.of(thingIdOne);
+
+        assertThat((CharSequence) thingIdOne).isSameAs(thingIdTwo);
+    }
+
 }

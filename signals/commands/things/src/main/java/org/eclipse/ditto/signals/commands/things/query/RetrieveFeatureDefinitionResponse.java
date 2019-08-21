@@ -174,7 +174,7 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      *     <li>{@link #JSON_DEFINITION}.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -197,7 +197,7 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      *     <li>{@link #JSON_DEFINITION}.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveFeatureDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {

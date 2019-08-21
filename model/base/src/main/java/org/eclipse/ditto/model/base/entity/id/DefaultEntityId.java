@@ -17,6 +17,9 @@
  import java.util.Objects;
  import java.util.UUID;
 
+ /**
+  * Default implementation of an entity ID.
+  */
  public final class DefaultEntityId implements EntityId {
 
      private static final EntityId PLACE_HOLDER_ID = DefaultEntityId.of("none");
@@ -27,16 +30,42 @@
          this.id = argumentNotEmpty(id, "ID").toString();
      }
 
+     /**
+      * Returns a {@link EntityId} based on the given entityId. May return the same instance as the parameter if the
+      * given parameter is already a {@link DefaultEntityId}.
+      *
+      * @param entityId the entity ID.
+      * @return the Entity ID instance.
+      */
      public static EntityId of(final CharSequence entityId) {
+         if (entityId instanceof DefaultEntityId) {
+             return (EntityId) entityId;
+         }
          return new DefaultEntityId(entityId);
      }
 
+     /**
+      * Returns a randomly generated unique entity ID.
+      *
+      * @return the generated entity ID.
+      */
      public static EntityId generateRandom() {
          return new DefaultEntityId(UUID.randomUUID().toString());
      }
 
+     /**
+      * Returns a dummy {@link EntityId}. This ID should not be used. It can be identified by
+      * checking {@link EntityId#isPlaceholder()}.
+      *
+      * @return the dummy ID.
+      */
      public static EntityId placeholder() {
          return PLACE_HOLDER_ID;
+     }
+
+     @Override
+     public boolean isPlaceholder() {
+         return PLACE_HOLDER_ID.equals(this);
      }
 
      @Override
@@ -64,8 +93,4 @@
          return id;
      }
 
-     @Override
-     public boolean isPlaceHolder() {
-         return PLACE_HOLDER_ID.equals(this);
-     }
  }

@@ -470,7 +470,7 @@ public interface PolicyBuilder {
      * @param id the Policy ID to set.
      * @return this builder to allow method chaining.
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      * @deprecated policy ID is now typed. Use {@link #setId(PolicyId)} instead.
      */
     @Deprecated

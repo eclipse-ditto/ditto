@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.policies;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId.ID_REGEX;
 import static org.eclipse.ditto.model.policies.PoliciesModelFactory.emptyResources;
 import static org.eclipse.ditto.model.policies.PoliciesModelFactory.newPolicyEntry;
 import static org.eclipse.ditto.model.policies.PoliciesModelFactory.newResources;
@@ -32,8 +31,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,8 +54,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutablePolicy implements Policy {
 
-    private static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
-
     @Nullable private final PolicyId policyId;
     private final Map<Label, PolicyEntry> entries;
     @Nullable private final String namespace;
@@ -74,24 +69,10 @@ final class ImmutablePolicy implements Policy {
 
         this.policyId = policyId;
         entries = Collections.unmodifiableMap(new LinkedHashMap<>(theEntries));
-        namespace = parseNamespace(policyId);
+        namespace = policyId == null ? null : policyId.getNamespace();
         this.lifecycle = lifecycle;
         this.revision = revision;
         this.modified = modified;
-    }
-
-    @Nullable
-    private static String parseNamespace(@Nullable final CharSequence theId) {
-        String result = null;
-
-        if (null != theId) {
-            final Matcher namespaceMatcher = ID_PATTERN.matcher(theId);
-            if (namespaceMatcher.matches()) {
-                result = namespaceMatcher.group("ns");
-            }
-        }
-
-        return result;
     }
 
     /**
@@ -105,7 +86,7 @@ final class ImmutablePolicy implements Policy {
      * @return a new initialised Policy.
      * @throws NullPointerException if {@code entries} is {@code null}.
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      * @deprecated Policy ID is now typed. Use
      * {@link #of(PolicyId, PolicyLifecycle, PolicyRevision, java.time.Instant, Iterable)}
      * instead
@@ -154,7 +135,7 @@ final class ImmutablePolicy implements Policy {
      * @throws PolicyEntryInvalidException if an Policy entry does not contain any known permission which evaluates to
      * {@code true} or {@code false}.
      * @throws PolicyIdInvalidException if the parsed policy ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static Policy fromJson(final JsonObject jsonObject) {
         final PolicyId policyId = jsonObject.getValue(JsonFields.ID).map(PolicyId::of).orElse(null);

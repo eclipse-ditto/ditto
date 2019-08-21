@@ -23,6 +23,9 @@
 
  import jdk.nashorn.internal.ir.annotations.Immutable;
 
+ /**
+  * Java representation of a policy ID.
+  */
  @Immutable
  public final class PolicyId implements NamespacedEntityId {
 
@@ -30,19 +33,23 @@
 
      private final NamespacedEntityId entityId;
 
-
      private PolicyId(final NamespacedEntityId entityId) {
          this.entityId = entityId;
      }
 
+
+     /**
+      * Returns a {@link PolicyId} based on the given policyId CharSequence. May return the same instance as
+      * the parameter if the given parameter is already a PolicyId. Skips validation if the given
+      * {@code policyId} is an instance of NamespacedEntityId.
+      *
+      * @param policyId The policy ID.
+      * @return the policy ID.
+      */
      public static PolicyId of(final CharSequence policyId) {
 
          if (policyId instanceof PolicyId) {
              return (PolicyId) policyId;
-         }
-
-         if (policyId instanceof DefaultNamespacedEntityId) {
-             return new PolicyId((NamespacedEntityId) policyId);
          }
 
          try {
@@ -56,6 +63,12 @@
          }
      }
 
+     /**
+      * Creates a new {@link PolicyId} with the given namespace and name.
+      * @param namespace the namespace of the policy.
+      * @param policyName the name of the policy.
+      * @return the created instance of {@link PolicyId}
+      */
      public static PolicyId of(final String namespace, final String policyName) {
          try {
              return new PolicyId(DefaultNamespacedEntityId.of(namespace, policyName));
@@ -68,23 +81,20 @@
          }
      }
 
-     public static PolicyId of(final NamespacedEntityId namespacedEntityId) {
-
-         if (namespacedEntityId instanceof PolicyId) {
-             return (PolicyId) namespacedEntityId;
-         }
-
-         if (namespacedEntityId instanceof DefaultNamespacedEntityId) {
-             return new PolicyId(namespacedEntityId);
-         }
-
-         return of(namespacedEntityId.getNamespace(), namespacedEntityId.getName());
-     }
-
+     /**
+      * Generates a policy ID with a random unique name inside the given namespace.
+      * @param namespace the namespace of the policy.
+      * @return The generated unique policy ID.
+      */
      public static PolicyId inNamespaceWithRandomName(final String namespace) {
          return of(namespace, UUID.randomUUID().toString());
      }
 
+     /**
+      * Returns a dummy {@link PolicyId}. This ID should not be used. It can be identified by
+      * checking {@link PolicyId#isPlaceholder()}.
+      * @return the dummy ID.
+      */
      public static PolicyId placeholder() {
          return PLACE_HOLDER_ID;
      }
@@ -119,7 +129,7 @@
      }
 
      @Override
-     public boolean isPlaceHolder() {
+     public boolean isPlaceholder() {
          return PLACE_HOLDER_ID.equals(this);
      }
  }

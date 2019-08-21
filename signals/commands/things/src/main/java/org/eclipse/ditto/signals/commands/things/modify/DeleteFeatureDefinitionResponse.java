@@ -114,7 +114,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      *     <li>{@link #JSON_FEATURE_ID}.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -136,7 +136,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      *     <li>{@link #JSON_FEATURE_ID}.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteFeatureDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {

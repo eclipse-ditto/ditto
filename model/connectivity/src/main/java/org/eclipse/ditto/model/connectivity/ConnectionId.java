@@ -17,6 +17,12 @@
  import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
  import org.eclipse.ditto.model.base.entity.id.EntityId;
 
+ import jdk.nashorn.internal.ir.annotations.Immutable;
+
+ /**
+  * Java representation of a connection ID.
+  */
+ @Immutable
  public final class ConnectionId implements EntityId {
 
      private static final ConnectionId PLACE_HOLDER_ID = new ConnectionId(DefaultEntityId.placeholder());
@@ -26,10 +32,21 @@
          this.entityId = entityId;
      }
 
+     /**
+      * Generates a random unique connection ID.
+      *
+      * @return the generated connection ID.
+      */
      public static ConnectionId generateRandom() {
          return new ConnectionId(DefaultEntityId.generateRandom());
      }
 
+     /**
+      * Creates a connection ID based on the given char sequence. May return the same instance as the parameter if
+      * it is already an instance of ConnectionId.
+      * @param connectionId the connection id.
+      * @return the connection ID.
+      */
      public static ConnectionId of(final CharSequence connectionId) {
          if (connectionId instanceof ConnectionId) {
              return (ConnectionId) connectionId;
@@ -38,13 +55,18 @@
          return new ConnectionId(DefaultEntityId.of(connectionId));
      }
 
+     /**
+      * Returns a dummy {@link ConnectionId}. This ID should not be used. It can be identified by
+      * checking {@link ConnectionId#isPlaceholder()}.
+      * @return the dummy ID.
+      */
      public static ConnectionId placeholder() {
          return PLACE_HOLDER_ID;
      }
 
      @Override
-     public boolean isPlaceHolder() {
-         return entityId.isPlaceHolder();
+     public boolean isPlaceholder() {
+         return PLACE_HOLDER_ID.equals(this);
      }
 
      @Override

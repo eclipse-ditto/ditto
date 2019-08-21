@@ -107,7 +107,7 @@ public class ConciergeForwarderActor extends AbstractActor {
         LogUtil.enhanceLogWithCorrelationId(log, signal);
         final EntityId signalId = transformedSignal.getEntityId();
         final String signalType = transformedSignal.getType();
-        if (signalId.isPlaceHolder()) {
+        if (signalId.isPlaceholder()) {
             log.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor", signalType);
             log.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
                     signalType, transformedSignal);

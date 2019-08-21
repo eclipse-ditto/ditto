@@ -12,6 +12,9 @@
   */
  package org.eclipse.ditto.model.base.entity.id;
 
+ /**
+  * Java representation of an Entity ID.
+  */
  public interface EntityId extends CharSequence, Comparable<EntityId> {
 
      @Override
@@ -29,10 +32,22 @@
          return toString().subSequence(start, end);
      }
 
+     /**
+      * Compares the entity IDs based on their String representation.
+      *
+      * @param o the other entity ID.
+      * @return a negative integer, zero, or a positive integer as this object
+      * is less than, equal to, or greater than the specified object.
+      */
      @Override
      default int compareTo(final EntityId o) {
          return toString().compareTo(o.toString());
      }
 
-     boolean isPlaceHolder();
+     /**
+      * Checks whether this ID acts as dummy ID. Dummy IDs should not be used as ID for any entity.
+      *
+      * @return true if this ID is a dummy ID, otherwise false.
+      */
+     boolean isPlaceholder();
  }

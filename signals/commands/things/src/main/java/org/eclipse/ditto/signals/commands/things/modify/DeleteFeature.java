@@ -107,7 +107,7 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteFeature fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -123,7 +123,7 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteFeature fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteFeature>(TYPE, jsonObject).deserialize(() -> {
