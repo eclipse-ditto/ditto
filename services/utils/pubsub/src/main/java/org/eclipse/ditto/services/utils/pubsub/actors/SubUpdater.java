@@ -23,10 +23,10 @@ import java.util.function.BiFunction;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptions;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptionsReader;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFiltersWriter;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
+import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
+import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -75,8 +75,10 @@ import akka.util.ByteString;
  *                Subscribe/Unsubscribe: Append to awaitUpdate
  * }
  * </pre>
+ *
+ * @param <T> type of representations of topics in the distributed data.
  */
-public final class SubUpdater extends AbstractActorWithTimers {
+public final class SubUpdater<T> extends AbstractActorWithTimers {
 
     /**
      * Prefix of this actor's name.
@@ -89,12 +91,11 @@ public final class SubUpdater extends AbstractActorWithTimers {
     private final Random random = new Random();
 
     private final PubSubConfig config;
-    private final LocalSubscriptions localSubscriptions;
-    private final TopicBloomFiltersWriter topicBloomFiltersWriter;
+    private final Subscriptions<T> subscriptions;
+    private final DDataWriter<T> topicBloomFiltersWriter;
     private final ActorRef pubSubSubscriber;
 
     private final Gauge topicMetric = DittoMetrics.gauge("pubsub-topics");
-    private final Gauge bloomFilterBytesMetric = DittoMetrics.gauge("pubsub-bloom-filter-bytes");
     private final Gauge awaitUpdateMetric = DittoMetrics.gauge("pubsub-await-update");
     private final Gauge awaitAcknowledgeMetric = DittoMetrics.gauge("pubsub-await-acknowledge");
 
@@ -124,11 +125,11 @@ public final class SubUpdater extends AbstractActorWithTimers {
     private State state = State.WAITING;
 
     private SubUpdater(final PubSubConfig config,
-            final ActorRef pubSubSubscriber, final LocalSubscriptions localSubscriptions,
-            final TopicBloomFiltersWriter topicBloomFiltersWriter) {
+            final ActorRef pubSubSubscriber, final Subscriptions<T> subscriptions,
+            final DDataWriter<T> topicBloomFiltersWriter) {
         this.config = config;
         this.pubSubSubscriber = pubSubSubscriber;
-        this.localSubscriptions = localSubscriptions;
+        this.subscriptions = subscriptions;
         this.topicBloomFiltersWriter = topicBloomFiltersWriter;
 
         getTimers().startPeriodicTimer(Clock.TICK, Clock.TICK, config.getUpdateInterval());
@@ -139,14 +140,14 @@ public final class SubUpdater extends AbstractActorWithTimers {
      *
      * @param config the pub-sub config.
      * @param subscriber the subscriber.
-     * @param localSubscriptions starting local subscriptions.
+     * @param subscriptions starting local subscriptions.
      * @param topicBloomFiltersWriter writer of the distributed topic Bloom filters.
      * @return the Props object.
      */
-    public static Props props(final PubSubConfig config, final ActorRef subscriber,
-            final LocalSubscriptions localSubscriptions, final TopicBloomFiltersWriter topicBloomFiltersWriter) {
+    public static <T> Props props(final PubSubConfig config, final ActorRef subscriber,
+            final Subscriptions<T> subscriptions, final DDataWriter<T> topicBloomFiltersWriter) {
 
-        return Props.create(SubUpdater.class, config, subscriber, localSubscriptions, topicBloomFiltersWriter);
+        return Props.create(SubUpdater.class, config, subscriber, subscriptions, topicBloomFiltersWriter);
     }
 
     @Override
@@ -157,7 +158,7 @@ public final class SubUpdater extends AbstractActorWithTimers {
                 .match(Terminated.class, this::terminated)
                 .match(RemoveSubscriber.class, this::removeSubscriber)
                 .matchEquals(Clock.TICK, this::tick)
-                .match(LocalSubscriptionsReader.class, this::updateSuccess)
+                .match(SubscriptionsReader.class, this::updateSuccess)
                 .match(Status.Failure.class, this::updateFailure)
                 .matchAny(this::logUnhandled)
                 .build();
@@ -168,17 +169,15 @@ public final class SubUpdater extends AbstractActorWithTimers {
             log.debug("ignoring tick in state <{}> with changed=<{}>", state, localSubscriptionsChanged);
         } else {
             log.debug("updating");
-            final LocalSubscriptionsReader snapshot = localSubscriptions.snapshot();
+            final SubscriptionsReader snapshot = subscriptions.snapshot();
             final CompletionStage<Void> ddataOp;
-            if (localSubscriptions.isEmpty()) {
+            if (subscriptions.isEmpty()) {
                 ddataOp = topicBloomFiltersWriter.removeSubscriber(pubSubSubscriber, nextWriteConsistency);
-                bloomFilterBytesMetric.set(0L);
                 topicMetric.set(0L);
             } else {
-                final ByteString bloomFilter = localSubscriptions.toOptimalBloomFilter(config.getBufferFactor());
-                ddataOp = topicBloomFiltersWriter.updateOwnTopics(pubSubSubscriber, bloomFilter, nextWriteConsistency);
-                bloomFilterBytesMetric.set((long) bloomFilter.size());
-                topicMetric.set((long) localSubscriptions.getTopicCount());
+                final T ddata = subscriptions.export();
+                ddataOp = topicBloomFiltersWriter.put(pubSubSubscriber, ddata, nextWriteConsistency);
+                topicMetric.set((long) subscriptions.countTopics());
             }
             ddataOp.handle(handleDDataWriteResult(snapshot));
             moveAwaitUpdateToAwaitAcknowledge();
@@ -192,7 +191,7 @@ public final class SubUpdater extends AbstractActorWithTimers {
         return random.nextDouble() < config.getForceUpdateProbability();
     }
 
-    private void updateSuccess(final LocalSubscriptionsReader snapshot) {
+    private void updateSuccess(final SubscriptionsReader snapshot) {
         log.debug("updateSuccess");
         for (final Acknowledgement ack : awaitAcknowledge) {
             ack.getSender().tell(ack, getSelf());
@@ -221,7 +220,7 @@ public final class SubUpdater extends AbstractActorWithTimers {
         awaitUpdateMetric.set(0L);
     }
 
-    private BiFunction<Void, Throwable, Void> handleDDataWriteResult(final LocalSubscriptionsReader snapshot) {
+    private BiFunction<Void, Throwable, Void> handleDDataWriteResult(final SubscriptionsReader snapshot) {
         // this function is called asynchronously. it must be thread-safe.
         return (_void, error) -> {
             if (error == null) {
@@ -238,7 +237,7 @@ public final class SubUpdater extends AbstractActorWithTimers {
     }
 
     private void subscribe(final Subscribe subscribe) {
-        final boolean changed = localSubscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics());
+        final boolean changed = subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics());
         enqueueRequest(subscribe, changed);
         if (changed) {
             getContext().watch(subscribe.getSubscriber());
@@ -246,9 +245,9 @@ public final class SubUpdater extends AbstractActorWithTimers {
     }
 
     private void unsubscribe(final Unsubscribe unsubscribe) {
-        final boolean changed = localSubscriptions.unsubscribe(unsubscribe.getSubscriber(), unsubscribe.getTopics());
+        final boolean changed = subscriptions.unsubscribe(unsubscribe.getSubscriber(), unsubscribe.getTopics());
         enqueueRequest(unsubscribe, changed);
-        if (changed && !localSubscriptions.contains(unsubscribe.getSubscriber())) {
+        if (changed && !subscriptions.contains(unsubscribe.getSubscriber())) {
             getContext().unwatch(unsubscribe.getSubscriber());
         }
     }
@@ -262,7 +261,7 @@ public final class SubUpdater extends AbstractActorWithTimers {
     }
 
     private void doRemoveSubscriber(final ActorRef subscriber) {
-        localSubscriptionsChanged |= localSubscriptions.removeSubscriber(subscriber);
+        localSubscriptionsChanged |= subscriptions.removeSubscriber(subscriber);
     }
 
     private void enqueueRequest(final Request request, final boolean changed) {

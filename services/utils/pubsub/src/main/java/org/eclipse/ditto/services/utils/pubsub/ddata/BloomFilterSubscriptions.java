@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub.bloomfilter;
+package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,7 +42,7 @@ import akka.util.ByteString;
  * Caution: this object is not thread-safe. Make a copy before sending it to another actor.
  */
 @NotThreadSafe
-public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReader {
+public final class BloomFilterSubscriptions implements Hashes, SubscriptionsReader, Subscriptions<ByteString> {
 
     /**
      * Seeds of hash functions. They should be identical cluster-wide.
@@ -59,7 +59,7 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
      */
     final Map<String, TopicData> topicToData;
 
-    private LocalSubscriptions(final Collection<Integer> seeds,
+    private BloomFilterSubscriptions(final Collection<Integer> seeds,
             final Map<ActorRef, Set<String>> subscriberToTopic,
             final Map<String, TopicData> topicToData) {
         this.seeds = seeds;
@@ -75,13 +75,13 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
      * @param seeds seeds to initialize hash functions.
      * @return the local-subscriptions object.
      */
-    public static LocalSubscriptions of(final Collection<Integer> seeds) {
-        return new LocalSubscriptions(seeds, new HashMap<>(), new HashMap<>());
+    public static BloomFilterSubscriptions of(final Collection<Integer> seeds) {
+        return new BloomFilterSubscriptions(seeds, new HashMap<>(), new HashMap<>());
     }
 
-    static LocalSubscriptions of(final String seed, final int hashFamilySize) {
+    static BloomFilterSubscriptions of(final String seed, final int hashFamilySize) {
         final Collection<Integer> seeds = Hashes.digestStringsToIntegers(seed, hashFamilySize);
-        return new LocalSubscriptions(seeds, new HashMap<>(), new HashMap<>());
+        return new BloomFilterSubscriptions(seeds, new HashMap<>(), new HashMap<>());
     }
 
     /**
@@ -89,8 +89,8 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
      *
      * @return an empty local-subscriptions object.
      */
-    public static LocalSubscriptionsReader empty() {
-        return new LocalSubscriptions(Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
+    public static SubscriptionsReader empty() {
+        return new BloomFilterSubscriptions(Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
     }
 
     @Override
@@ -102,17 +102,11 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
                 .collect(Collectors.toSet());
     }
 
-    /**
-     * Subscribe to topics.
-     *
-     * @param subscriber the subscriber.
-     * @param topics topics the subscriber subscribes to.
-     * @return whether subscriptions changed.
-     */
+    @Override
     public boolean subscribe(final ActorRef subscriber, final Set<String> topics) {
         if (!topics.isEmpty()) {
             // add topics to subscriber
-            subscriberToTopic.merge(subscriber, topics, LocalSubscriptions::unionSet);
+            subscriberToTopic.merge(subscriber, topics, BloomFilterSubscriptions::unionSet);
 
             // add subscriber for each new topic; detect whether there is any change.
             // box the 'changed' flag in an array so that it can be assigned inside a closure.
@@ -136,18 +130,12 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
     }
 
     // convenience method to chain subscriptions.
-    LocalSubscriptions thenSubscribe(final ActorRef subscriber, final Set<String> topics) {
+    BloomFilterSubscriptions thenSubscribe(final ActorRef subscriber, final Set<String> topics) {
         subscribe(subscriber, topics);
         return this;
     }
 
-    /**
-     * Unsubscribe to topics.
-     *
-     * @param subscriber the subscriber.
-     * @param topics topics it unsubscribes from.
-     * @return whether this object changed.
-     */
+    @Override
     public boolean unsubscribe(final ActorRef subscriber, final Set<String> topics) {
         // box 'changed' flag for assignment inside closure
         final boolean[] changed = new boolean[1];
@@ -168,27 +156,17 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
         return changed[0];
     }
 
-    /**
-     * Check if an actor subscribes to any topic.
-     *
-     * @param subscriber the actor.
-     * @return whether it subscribes to any topic.
-     */
+    @Override
     public boolean contains(final ActorRef subscriber) {
         return subscriberToTopic.containsKey(subscriber);
     }
 
-    LocalSubscriptions thenUnsubscribe(final ActorRef subscriber, final Set<String> topics) {
+    BloomFilterSubscriptions thenUnsubscribe(final ActorRef subscriber, final Set<String> topics) {
         unsubscribe(subscriber, topics);
         return this;
     }
 
-    /**
-     * Remove a subscriber and all its subscriptions.
-     *
-     * @param subscriber the subscriber to remove.
-     * @return whether this object changed.
-     */
+    @Override
     public boolean removeSubscriber(final ActorRef subscriber) {
         // box 'changed' flag in array for assignment inside closure
         final boolean[] changed = new boolean[1];
@@ -199,16 +177,9 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
         return changed[0];
     }
 
-    LocalSubscriptions thenRemoveSubscriber(final ActorRef subscriber) {
+    BloomFilterSubscriptions thenRemoveSubscriber(final ActorRef subscriber) {
         removeSubscriber(subscriber);
         return this;
-    }
-
-    /**
-     * @return whether there are no subscribers.
-     */
-    public boolean isEmpty() {
-        return subscriberToTopic.isEmpty();
     }
 
     /**
@@ -216,41 +187,35 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
      *
      * @return the negated false positive rate exponent.
      */
-    public int getHashFamilySize() {
+    private int getHashFamilySize() {
         return seeds.size();
     }
 
-    /**
-     * Get the total number of topics with active subscriptions.
-     *
-     * @return the number of topics.
-     */
-    public int getTopicCount() {
+    @Override
+    public int countTopics() {
         return topicToData.size();
     }
 
     /**
      * Get the optimal number of bytes to allocate for the Bloom filter to maintain a decent false-positive rate.
      *
-     * @param bufferFactor the ratio between the expected number of topics and the current number of topics.
      * @return optimal size of the Bloom filter in bytes.
      */
-    public int getOptimalByteSize(final double bufferFactor) {
-        final int n = getTopicCount();
+    private int getOptimalByteSize() {
+        final int n = countTopics();
         final int k = getHashFamilySize();
         final double ln2 = 1.44269504089; // rough approximate
-        final int optimalBits = (int) Math.ceil(ln2 * bufferFactor * n * k);
+        final int optimalBits = (int) Math.ceil(ln2 * n * k);
         return Math.max(1, optimalBits / 8);
     }
 
     /**
      * Compute a Bloom filter of "optimal" size.
      *
-     * @param bufferFactor the ratio between the expected number of topics and the current number of topics.
      * @return an optimal Bloom filter.
      */
-    public ByteString toOptimalBloomFilter(final double bufferFactor) {
-        return toBloomFilter(getOptimalByteSize(bufferFactor));
+    private ByteString toOptimalBloomFilter() {
+        return toBloomFilter(getOptimalByteSize());
     }
 
     /**
@@ -259,20 +224,16 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
      * @param numberOfBytes the number of bytes in the bloom filter.
      * @return a Bloom filter with the given number of bytes.
      */
-    public ByteString toBloomFilter(final int numberOfBytes) {
+    ByteString toBloomFilter(final int numberOfBytes) {
         return ByteStringAsBitSet.construct(numberOfBytes,
                 topicToData.values().stream().flatMap(TopicData::streamHashes));
     }
 
-    /**
-     * Create an unmodifiable copy of this object to send to other actors.
-     *
-     * @return a snapshot of this object.
-     */
-    public LocalSubscriptionsReader snapshot() {
+    @Override
+    public SubscriptionsReader snapshot() {
         // while Scala's immutable collections are great for this use-case, I kept getting MethodNotFoundException
         // about $plus and $plus$plus. Copying everything instead.
-        return new LocalSubscriptions(
+        return new BloomFilterSubscriptions(
                 Collections.unmodifiableList(new ArrayList<>(seeds)),
                 Collections.unmodifiableMap(subscriberToTopic.entrySet()
                         .stream()
@@ -281,6 +242,11 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
                 Collections.unmodifiableMap(topicToData.entrySet()
                         .stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().snapshot()))));
+    }
+
+    @Override
+    public ByteString export() {
+        return toOptimalBloomFilter();
     }
 
     private boolean removeSubscribersForTopics(final ActorRef subscriber, final Collection<String> topics) {
@@ -308,8 +274,8 @@ public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReade
 
     @Override
     public boolean equals(final Object other) {
-        if (other instanceof LocalSubscriptions) {
-            final LocalSubscriptions that = (LocalSubscriptions) other;
+        if (other instanceof BloomFilterSubscriptions) {
+            final BloomFilterSubscriptions that = (BloomFilterSubscriptions) other;
             return seeds.equals(that.seeds) &&
                     subscriberToTopic.equals(that.subscriberToTopic) &&
                     topicToData.equals(that.topicToData);

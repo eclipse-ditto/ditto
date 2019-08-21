@@ -15,8 +15,8 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFilters;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.BloomFilterDData;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -51,11 +51,11 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final TopicBloomFilters topicBloomFilters;
+    private final BloomFilterDData topicBloomFilters;
 
     @Nullable private ActorRef publisher;
 
-    private PubSupervisor(final PubSubConfig pubSubConfig, final TopicBloomFilters topicBloomFilters) {
+    private PubSupervisor(final PubSubConfig pubSubConfig, final BloomFilterDData topicBloomFilters) {
         super(pubSubConfig);
         this.topicBloomFilters = topicBloomFilters;
     }
@@ -67,7 +67,7 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
      * @param topicBloomFilters read-write access to the distributed topic Bloom filters.
      * @return the Props object.
      */
-    public static Props props(final PubSubConfig pubSubConfig, final TopicBloomFilters topicBloomFilters) {
+    public static Props props(final PubSubConfig pubSubConfig, final BloomFilterDData topicBloomFilters) {
         return Props.create(PubSupervisor.class, pubSubConfig, topicBloomFilters);
     }
 
@@ -87,7 +87,7 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
     @Override
     protected void startChildren() {
         final ActorRef updater = startChild(PubUpdater.props(topicBloomFilters), PubUpdater.ACTOR_NAME_PREFIX);
-        publisher = startChild(Publisher.props(getSeeds(), topicBloomFilters, updater), Publisher.ACTOR_NAME_PREFIX);
+        publisher = startChild(Publisher.props(topicBloomFilters), Publisher.ACTOR_NAME_PREFIX);
     }
 
     private boolean isPublisherAvailable() {

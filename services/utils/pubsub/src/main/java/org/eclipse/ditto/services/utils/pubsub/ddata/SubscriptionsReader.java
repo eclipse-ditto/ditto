@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub.bloomfilter;
+package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.Collection;
 import java.util.Set;
@@ -20,7 +20,7 @@ import akka.actor.ActorRef;
 /**
  * Reader of local subscriptions.
  */
-public interface LocalSubscriptionsReader {
+public interface SubscriptionsReader {
 
     /**
      * Look up the set of subscribers subscribing to at least one of the given topics.

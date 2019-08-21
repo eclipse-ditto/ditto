@@ -10,30 +10,30 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub.bloomfilter;
+package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.concurrent.CompletionStage;
 
 import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.cluster.ddata.Replicator;
-import akka.util.ByteString;
 
 /**
- * Writer of distributed Bloom filters of subscribed topics.
+ * Writer of a distributed subscriber-topic relation.
+ *
+ * @param <T> type of topic approximations to store in the distributed data.
  */
-public interface TopicBloomFiltersWriter {
+public interface DDataWriter<T> {
 
     /**
      * Update the topics this cluster member subscribes to.
      *
      * @param ownSubscriber actor that manages local subscriptions for this cluster member.
-     * @param ownBloomFilter Bloom filter of local subscriptions.
+     * @param topics representation of topics.
      * @param writeConsistency write consistency for the operation.
      * @return future that completes or fails according to the result of the operation.
      */
-    CompletionStage<Void> updateOwnTopics(ActorRef ownSubscriber, ByteString ownBloomFilter,
-            Replicator.WriteConsistency writeConsistency);
+    CompletionStage<Void> put(ActorRef ownSubscriber, T topics, Replicator.WriteConsistency writeConsistency);
 
     /**
      * Remove a subscriber outright.

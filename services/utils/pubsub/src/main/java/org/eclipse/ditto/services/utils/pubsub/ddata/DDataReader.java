@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub.bloomfilter;
+package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.Collection;
 import java.util.concurrent.CompletionStage;
@@ -19,8 +19,10 @@ import akka.actor.ActorRef;
 
 /**
  * Reader of distributed Bloom filters of subscribed topics.
+ *
+ * @param <T> type of topic approximations.
  */
-public interface TopicBloomFiltersReader {
+public interface DDataReader<T> {
 
     /**
      * Get subscribers from a list of topic hashes.
@@ -28,5 +30,13 @@ public interface TopicBloomFiltersReader {
      * @param topicHashes the hash codes of each topic.
      * @return future collection of subscribers whose Bloom filter contains all hashes of 1 or more topics.
      */
-    CompletionStage<Collection<ActorRef>> getSubscribers(Collection<? extends Collection<Integer>> topicHashes);
+    CompletionStage<Collection<ActorRef>> getSubscribers(Collection<T> topicHashes);
+
+    /**
+     * Map a topic to a key with which to read distributed data.
+     *
+     * @param topic the topic.
+     * @return its approximation in the distributed data.
+     */
+    T approximate(final String topic);
 }

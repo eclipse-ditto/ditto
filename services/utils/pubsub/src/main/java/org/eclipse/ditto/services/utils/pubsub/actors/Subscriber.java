@@ -17,8 +17,8 @@ import java.util.Collection;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptions;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptionsReader;
+import org.eclipse.ditto.services.utils.pubsub.ddata.BloomFilterSubscriptions;
+import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -40,7 +40,7 @@ public final class Subscriber<T> extends AbstractActor {
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
 
-    private LocalSubscriptionsReader localSubscriptions = LocalSubscriptions.empty();
+    private SubscriptionsReader localSubscriptions = BloomFilterSubscriptions.empty();
     private Counter truePositiveCounter = DittoMetrics.counter("pubsub-true-positive");
     private Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
 
@@ -65,7 +65,7 @@ public final class Subscriber<T> extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(messageClass, this::broadcastToLocalSubscribers)
-                .match(LocalSubscriptionsReader.class, this::updateLocalSubscriptions)
+                .match(SubscriptionsReader.class, this::updateLocalSubscriptions)
                 .build();
     }
 
@@ -82,7 +82,7 @@ public final class Subscriber<T> extends AbstractActor {
         }
     }
 
-    private void updateLocalSubscriptions(final LocalSubscriptionsReader localSubscriptions) {
+    private void updateLocalSubscriptions(final SubscriptionsReader localSubscriptions) {
         this.localSubscriptions = localSubscriptions;
     }
 

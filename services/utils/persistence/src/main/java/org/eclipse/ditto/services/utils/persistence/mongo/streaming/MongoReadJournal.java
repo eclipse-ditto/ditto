@@ -123,7 +123,7 @@ public class MongoReadJournal {
         this.journalCollectionPrefix = journalCollectionPrefix;
         this.snapsCollectionPrefix = snapsCollectionPrefix;
         this.mongoClient = mongoClient;
-        log = LoggerFactory.getLogger(MongoTimestampPersistence.class);
+        log = LoggerFactory.getLogger(MongoReadJournal.class);
     }
 
     /**

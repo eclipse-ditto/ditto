@@ -57,6 +57,8 @@ public interface PubSubConfig {
     double getForceUpdateProbability();
 
     /**
+     * Not used. TODO: replace by ddata implementation.
+     *
      * @return Ratio of reserved Bloom filter elements to current number of topics.
      */
     double getBufferFactor();

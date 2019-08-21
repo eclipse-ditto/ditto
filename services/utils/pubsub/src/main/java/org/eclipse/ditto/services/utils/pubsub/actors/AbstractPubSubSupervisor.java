@@ -17,7 +17,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.Hashes;
+import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 
 import akka.actor.AbstractActorWithTimers;

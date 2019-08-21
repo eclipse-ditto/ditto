@@ -15,4 +15,4 @@
  * A distributed collection of Bloom filters of strings indexed by ActorRef.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
-package org.eclipse.ditto.services.utils.pubsub.bloomfilter;
+package org.eclipse.ditto.services.utils.pubsub.ddata;

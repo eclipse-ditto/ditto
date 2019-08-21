@@ -15,8 +15,8 @@ package org.eclipse.ditto.services.utils.pubsub;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.pubsub.actors.PubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubSupervisor;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFilters;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.BloomFilterDData;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
@@ -35,7 +35,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     protected final PubSubTopicExtractor<T> topicExtractor;
 
     protected final DistributedDataConfigReader ddataConfig;
-    protected final TopicBloomFilters topicBloomFilters;
+    protected final BloomFilterDData topicBloomFilters;
     protected final PubSubConfig config;
 
     /**
@@ -77,7 +77,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
 
         final String replicatorName = messageClass.getSimpleName() + "PubSubReplicator";
         ddataConfig = DistributedDataConfigReader.of(actorSystem, replicatorName, clusterRole);
-        topicBloomFilters = TopicBloomFilters.of(actorSystem, ddataConfig, ddataKey);
+        topicBloomFilters = BloomFilterDData.of(actorSystem, ddataConfig, ddataKey, config);
     }
 
     @Override

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFiltersWriter;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.Address;
@@ -23,6 +23,7 @@ import akka.cluster.ClusterEvent;
 import akka.cluster.ddata.Replicator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
+import akka.util.ByteString;
 
 /**
  * Remove remote subscriber on dead letter.
@@ -36,9 +37,9 @@ public final class PubUpdater extends AbstractActorWithTimers {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final TopicBloomFiltersWriter topicBloomFiltersWriter;
+    private final DDataWriter<?> topicBloomFiltersWriter;
 
-    private PubUpdater(final TopicBloomFiltersWriter topicBloomFiltersWriter) {
+    private PubUpdater(final DDataWriter<?> topicBloomFiltersWriter) {
         this.topicBloomFiltersWriter = topicBloomFiltersWriter;
         Cluster.get(getContext().getSystem()).subscribe(getSelf(), ClusterEvent.MemberRemoved.class);
     }
@@ -48,7 +49,7 @@ public final class PubUpdater extends AbstractActorWithTimers {
      *
      * @param topicBloomFiltersWriter writer of the distributed topic Bloom filters.
      */
-    public static Props props(final TopicBloomFiltersWriter topicBloomFiltersWriter) {
+    public static Props props(final DDataWriter topicBloomFiltersWriter) {
         return Props.create(PubUpdater.class, topicBloomFiltersWriter);
     }
 

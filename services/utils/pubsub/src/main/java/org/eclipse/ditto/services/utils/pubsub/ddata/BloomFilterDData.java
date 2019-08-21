@@ -10,10 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub.bloomfilter;
+package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -23,6 +24,7 @@ import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -40,22 +42,25 @@ import akka.util.ByteString;
  * A distributed collection of Bloom filters of strings indexed by ActorRef.
  * The hash functions for all filter should be identical.
  */
-public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, ByteString>>
-        implements TopicBloomFiltersReader, TopicBloomFiltersWriter {
+public final class BloomFilterDData extends DistributedData<LWWMap<ActorRef, ByteString>>
+        implements DDataReader<Collection<Integer>>, DDataWriter<ByteString>, Hashes {
 
     private final String topicType;
     private final SelfUniqueAddress selfUniqueAddress;
+    private final List<Integer> seeds;
 
     private final Gauge topicBloomFiltersMetric = DittoMetrics.gauge("pubsub-ddata-entries");
 
-    private TopicBloomFilters(final DistributedDataConfigReader configReader,
+    private BloomFilterDData(final DistributedDataConfigReader configReader,
             final ActorRefFactory actorRefFactory,
             final ActorSystem actorSystem,
             final Executor ddataExecutor,
-            final String topicType) {
+            final String topicType,
+            final List<Integer> seeds) {
         super(configReader, actorRefFactory, ddataExecutor);
         this.topicType = topicType;
         this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorSystem).selfUniqueAddress());
+        this.seeds = seeds;
     }
 
     /**
@@ -65,17 +70,25 @@ public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, By
      * @param system the actor system.
      * @param ddataConfig the distributed data config.
      * @param topicType the type of messages, typically the canonical name of the message class.
+     * @param pubSubConfig the pub-sub config.
      * @return access to the distributed data.
      */
-    public static TopicBloomFilters of(final ActorSystem system, final DistributedDataConfigReader ddataConfig,
-            final String topicType) {
+    public static BloomFilterDData of(final ActorSystem system, final DistributedDataConfigReader ddataConfig,
+            final String topicType, final PubSubConfig pubSubConfig) {
 
-        return new TopicBloomFilters(ddataConfig, system, system, system.dispatcher(), topicType);
+        final List<Integer> seeds =
+                Hashes.digestStringsToIntegers(pubSubConfig.getSeed(), pubSubConfig.getHashFamilySize());
+
+        return new BloomFilterDData(ddataConfig, system, system, system.dispatcher(), topicType, seeds);
     }
 
     @Override
-    public CompletionStage<Collection<ActorRef>> getSubscribers(
-            final Collection<? extends Collection<Integer>> topicHashes) {
+    public List<Integer> getSeeds() {
+        return seeds;
+    }
+
+    @Override
+    public CompletionStage<Collection<ActorRef>> getSubscribers(final Collection<Collection<Integer>> topicHashes) {
 
         return get(Replicator.readLocal()).thenApply(optional -> {
             if (optional.isPresent()) {
@@ -96,6 +109,11 @@ public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, By
     }
 
     @Override
+    public Collection<Integer> approximate(final String topic) {
+        return getHashes(topic);
+    }
+
+    @Override
     public CompletionStage<Void> removeAddress(final Address address,
             final Replicator.WriteConsistency writeConsistency) {
         return update(writeConsistency, lwwMap -> {
@@ -110,10 +128,10 @@ public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, By
     }
 
     @Override
-    public CompletionStage<Void> updateOwnTopics(final ActorRef ownSubscriber, final ByteString ownBloomFilter,
+    public CompletionStage<Void> put(final ActorRef ownSubscriber, final ByteString topicApproximation,
             final Replicator.WriteConsistency writeConsistency) {
 
-        return update(writeConsistency, lwwMap -> lwwMap.put(selfUniqueAddress, ownSubscriber, ownBloomFilter));
+        return update(writeConsistency, lwwMap -> lwwMap.put(selfUniqueAddress, ownSubscriber, topicApproximation));
     }
 
     @Override

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub.bloomfilter;
+package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,9 +28,9 @@ import akka.actor.ActorRef;
 import akka.util.ByteString;
 
 /**
- * Tests {@link org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptions}.
+ * Tests {@link BloomFilterSubscriptions}.
  */
-public final class LocalSubscriptionsTest {
+public final class BloomFilterSubscriptionsTest {
 
     private static final ActorRef ACTOR1 = new MockActorRef("actor1");
     private static final ActorRef ACTOR2 = new MockActorRef("actor2");
@@ -40,7 +40,7 @@ public final class LocalSubscriptionsTest {
     @Test
     public void createEmptySubscriptions() {
         final int hashFamilySize = 8;
-        final LocalSubscriptions underTest = LocalSubscriptions.of("hello world", hashFamilySize);
+        final BloomFilterSubscriptions underTest = BloomFilterSubscriptions.of("hello world", hashFamilySize);
         assertThat(underTest.getSeeds().size()).isEqualTo(hashFamilySize);
         assertThat(underTest.subscriberToTopic.isEmpty()).isTrue();
         assertThat(underTest.topicToData.isEmpty()).isTrue();
@@ -49,14 +49,14 @@ public final class LocalSubscriptionsTest {
     @Test
     public void hashesHaveExpectedSize() {
         final int hashFamilySize = 8;
-        final LocalSubscriptions underTest = LocalSubscriptions.of("hello world", hashFamilySize);
+        final BloomFilterSubscriptions underTest = BloomFilterSubscriptions.of("hello world", hashFamilySize);
         final List<Integer> hashes = underTest.getHashes("goodbye cruel world");
         assertThat(hashes.size()).isEqualTo(hashFamilySize);
     }
 
     @Test
     public void testVennDiagramMembership() {
-        final LocalSubscriptions underTest = getVennDiagram();
+        final BloomFilterSubscriptions underTest = getVennDiagram();
         assertThat(underTest.getSubscribers(singleton("1"))).containsExactlyInAnyOrder(ACTOR1);
         assertThat(underTest.getSubscribers(singleton("2"))).containsExactlyInAnyOrder(ACTOR1, ACTOR2);
         assertThat(underTest.getSubscribers(singleton("3"))).containsExactlyInAnyOrder(ACTOR2);
@@ -70,7 +70,7 @@ public final class LocalSubscriptionsTest {
 
     @Test
     public void testVennDiagramMembershipAfterRotation() {
-        final LocalSubscriptions underTest = getVennDiagram()
+        final BloomFilterSubscriptions underTest = getVennDiagram()
                 .thenSubscribe(ACTOR1, singleton("3"))
                 .thenSubscribe(ACTOR1, singleton("6"))
                 .thenSubscribe(ACTOR2, singleton("4"))
@@ -94,7 +94,7 @@ public final class LocalSubscriptionsTest {
 
     @Test
     public void testVennDiagramMembershipAfterAnotherRotation() {
-        final LocalSubscriptions underTest = getVennDiagram()
+        final BloomFilterSubscriptions underTest = getVennDiagram()
                 .thenSubscribe(ACTOR1, singleton("3"))
                 .thenUnsubscribe(ACTOR1, singleton("1"))
                 .thenUnsubscribe(ACTOR1, singleton("4"))
@@ -118,7 +118,7 @@ public final class LocalSubscriptionsTest {
 
     @Test
     public void testSubscriberRemoval() {
-        final LocalSubscriptions underTest = getVennDiagram()
+        final BloomFilterSubscriptions underTest = getVennDiagram()
                 .thenRemoveSubscriber(ACTOR1)
                 .thenRemoveSubscriber(ACTOR2);
         assertThat(underTest.getSubscribers(singleton("1"))).isEmpty();
@@ -134,8 +134,8 @@ public final class LocalSubscriptionsTest {
 
     @Test
     public void testBloomFilter() {
-        final LocalSubscriptions underTest = getVennDiagram();
-        final ByteString bloomFilter = underTest.toOptimalBloomFilter(1.0);
+        final BloomFilterSubscriptions underTest = getVennDiagram();
+        final ByteString bloomFilter = underTest.export();
         IntStream.rangeClosed(1, 7)
                 .mapToObj(String::valueOf)
                 .forEach(topic ->
@@ -156,8 +156,8 @@ public final class LocalSubscriptionsTest {
     @Test
     public void testSnapshot() {
         // GIVEN: A snapshot is taken
-        final LocalSubscriptions underTest = getVennDiagram();
-        final LocalSubscriptionsReader snapshot = underTest.snapshot();
+        final BloomFilterSubscriptions underTest = getVennDiagram();
+        final SubscriptionsReader snapshot = underTest.snapshot();
 
         // THEN: snapshot cannot be modified but can be queried
         assertThat(snapshot.getSubscribers(Arrays.asList("1", "2", "3"))).containsExactlyInAnyOrder(ACTOR1, ACTOR2);
@@ -187,7 +187,7 @@ public final class LocalSubscriptionsTest {
 
     @Test
     public void changeDetectionIsAccurate() {
-        final LocalSubscriptions underTest = getVennDiagram();
+        final BloomFilterSubscriptions underTest = getVennDiagram();
 
         assertThat(underTest.subscribe(ACTOR1, asSet("1", "2"))).isFalse();
         assertThat(underTest.subscribe(ACTOR1, asSet("2", "3"))).isTrue();
@@ -197,8 +197,8 @@ public final class LocalSubscriptionsTest {
         assertThat(underTest.removeSubscriber(ACTOR3)).isTrue();
     }
 
-    private static LocalSubscriptions getVennDiagram() {
-        return LocalSubscriptions.of("venn diagram", 8)
+    private static BloomFilterSubscriptions getVennDiagram() {
+        return BloomFilterSubscriptions.of("venn diagram", 8)
                 .thenSubscribe(ACTOR1, asSet("1", "2", "4", "5"))
                 .thenSubscribe(ACTOR2, asSet("2", "3", "5", "6"))
                 .thenSubscribe(ACTOR3, asSet("4", "5", "6", "7"));

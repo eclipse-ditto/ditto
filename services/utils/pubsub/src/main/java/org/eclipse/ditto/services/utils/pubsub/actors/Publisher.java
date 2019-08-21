@@ -21,8 +21,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.Hashes;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFiltersReader;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -32,8 +31,10 @@ import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Publishes messages according to topic Bloom filters.
+ *
+ * @param <T> representation of topics in the distributed data.
  */
-public final class Publisher extends AbstractActor implements Hashes {
+public final class Publisher<T> extends AbstractActor {
 
     /**
      * Prefix of this actor's name.
@@ -42,39 +43,27 @@ public final class Publisher extends AbstractActor implements Hashes {
 
     private DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final Collection<Integer> seeds;
-    private final TopicBloomFiltersReader topicBloomFiltersReader;
-    private final ActorRef pubSubUpdater;
+    private final DDataReader<T> ddataReader;
 
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
 
     private CompletionStage<Void> currentPublication = CompletableFuture.completedFuture(null);
 
-    private Publisher(final Collection<Integer> seeds, final TopicBloomFiltersReader topicBloomFiltersReader,
-            final ActorRef pubSubUpdater) {
-        this.seeds = seeds;
-        this.topicBloomFiltersReader = topicBloomFiltersReader;
-        this.pubSubUpdater = pubSubUpdater;
+    private Publisher(final DDataReader<T> ddataReader) {
+        this.ddataReader = ddataReader;
     }
 
     /**
      * Create Props for this actor.
      *
-     * @param seeds seeds of the family of hash functions for Bloom filters.
      * @param topicBloomFiltersReader reader of remote subscriptions.
-     * @param pubSubUpdater updater of remote subscriptions.
+     * @param <T> representation of topics in the distributed data.
      * @return a Props object.
      */
-    public static Props props(final Collection<Integer> seeds, final TopicBloomFiltersReader topicBloomFiltersReader,
-            final ActorRef pubSubUpdater) {
+    public static <T> Props props(final DDataReader<T> topicBloomFiltersReader) {
 
-        return Props.create(Publisher.class, seeds, topicBloomFiltersReader, pubSubUpdater);
-    }
-
-    @Override
-    public Collection<Integer> getSeeds() {
-        return seeds;
+        return Props.create(Publisher.class, topicBloomFiltersReader);
     }
 
     @Override
@@ -88,12 +77,11 @@ public final class Publisher extends AbstractActor implements Hashes {
     private void publish(final Publish publish) {
         messageCounter.increment();
         topicCounter.increment(publish.getTopics().size());
-        final List<List<Integer>> hashes =
-                publish.getTopics().stream().map(this::getHashes).collect(Collectors.toList());
+        final List<T> hashes = publish.getTopics().stream().map(ddataReader::approximate).collect(Collectors.toList());
         final Object message = publish.getMessage();
         final ActorRef sender = getSender();
         currentPublication = currentPublication.thenCompose(_void ->
-                topicBloomFiltersReader.getSubscribers(hashes)
+                ddataReader.getSubscribers(hashes)
                         .thenAccept(subscribers -> subscribers.forEach(subscriber -> subscriber.tell(message, sender)))
                         .exceptionally(e -> {
                             log.error(e, "Failed: <{}>", publish);

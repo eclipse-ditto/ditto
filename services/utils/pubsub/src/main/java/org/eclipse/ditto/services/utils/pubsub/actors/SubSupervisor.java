@@ -15,13 +15,14 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.LocalSubscriptions;
-import org.eclipse.ditto.services.utils.pubsub.bloomfilter.TopicBloomFiltersWriter;
+import org.eclipse.ditto.services.utils.pubsub.ddata.BloomFilterSubscriptions;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
+import akka.util.ByteString;
 
 /**
  * Supervisor of actors dealing with subscriptions.
@@ -51,13 +52,13 @@ public final class SubSupervisor<T> extends AbstractPubSubSupervisor {
 
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
-    private final TopicBloomFiltersWriter topicBloomFiltersWriter;
+    private final DDataWriter<ByteString> topicBloomFiltersWriter;
 
     @Nullable private ActorRef updater;
 
     private SubSupervisor(final PubSubConfig pubSubConfig, final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final TopicBloomFiltersWriter topicBloomFiltersWriter) {
+            final DDataWriter<ByteString> topicBloomFiltersWriter) {
         super(pubSubConfig);
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
@@ -75,7 +76,7 @@ public final class SubSupervisor<T> extends AbstractPubSubSupervisor {
      * @return the Props object.
      */
     public static <T> Props props(final PubSubConfig pubSubConfig, final Class<T> messageClass,
-            final PubSubTopicExtractor<T> topicExtractor, final TopicBloomFiltersWriter topicBloomFiltersWriter) {
+            final PubSubTopicExtractor<T> topicExtractor, final DDataWriter<ByteString> topicBloomFiltersWriter) {
 
         return Props.create(SubSupervisor.class, pubSubConfig, messageClass, topicExtractor, topicBloomFiltersWriter);
     }
@@ -99,7 +100,7 @@ public final class SubSupervisor<T> extends AbstractPubSubSupervisor {
     protected void startChildren() {
         final ActorRef subscriber =
                 startChild(Subscriber.props(messageClass, topicExtractor), Subscriber.ACTOR_NAME_PREFIX);
-        final LocalSubscriptions localSubscriptions = LocalSubscriptions.of(getSeeds());
+        final BloomFilterSubscriptions localSubscriptions = BloomFilterSubscriptions.of(getSeeds());
         final Props updaterProps =
                 SubUpdater.props(config, subscriber, localSubscriptions, topicBloomFiltersWriter);
         updater = startChild(updaterProps, SubUpdater.ACTOR_NAME_PREFIX);
