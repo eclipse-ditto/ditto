@@ -12,24 +12,19 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractSubscriptions;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
-import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
-import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
+import org.eclipse.ditto.services.utils.pubsub.ddata.TopicData;
 
 import akka.actor.ActorRef;
 import akka.util.ByteString;
@@ -47,38 +42,20 @@ import akka.util.ByteString;
  * Caution: this object is not thread-safe. Make a copy before sending it to another actor.
  */
 @NotThreadSafe
-public final class BloomFilterSubscriptions implements Hashes, SubscriptionsReader, Subscriptions<ByteString> {
-
-    private static final Predicate<Collection<String>> CONSTANT_FALSE = topics -> false;
+public final class BloomFilterSubscriptions extends AbstractSubscriptions<List<Integer>, ByteString> implements Hashes {
 
     /**
      * Seeds of hash functions. They should be identical cluster-wide.
      */
     private final Collection<Integer> seeds;
 
-    /**
-     * Map from local subscribers to topics they subscribe to.
-     */
-    final Map<ActorRef, Set<String>> subscriberToTopic;
-
-    /**
-     * Map from local subscribers to their topic filters.
-     */
-    private final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter;
-
-    /**
-     * Map from topic to subscriber count and pre-computed hashes.
-     */
-    final Map<String, TopicData> topicToData;
 
     private BloomFilterSubscriptions(final Collection<Integer> seeds,
             final Map<ActorRef, Set<String>> subscriberToTopic,
             final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter,
-            final Map<String, TopicData> topicToData) {
+            final Map<String, TopicData<List<Integer>>> topicToData) {
+        super(subscriberToTopic, subscriberToFilter, topicToData);
         this.seeds = seeds;
-        this.subscriberToTopic = subscriberToTopic;
-        this.subscriberToFilter = subscriberToFilter;
-        this.topicToData = topicToData;
     }
 
     /**
@@ -93,122 +70,33 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
         return new BloomFilterSubscriptions(seeds, new HashMap<>(), new HashMap<>(), new HashMap<>());
     }
 
-    static BloomFilterSubscriptions of(final String seed, final int hashFamilySize) {
+    /**
+     * Construct a local-subscriptions object with a family of hash functions of the given size initiated with the given
+     * seeds. For the exported bloom filters to be meaningful on a remote node, all cluster members should have the same
+     * seeds.
+     *
+     * @param seed seed to initialize the hash family.
+     * @param hashFamilySize size of the hash family.
+     * @return the local-subscriptions object.
+     */
+    public static BloomFilterSubscriptions of(final String seed, final int hashFamilySize) {
         final Collection<Integer> seeds = Hashes.digestStringsToIntegers(seed, hashFamilySize);
         return of(seeds);
     }
 
-    /**
-     * Construct an immutable local-subscriptions object that always responds with the empty set when queried.
-     *
-     * @return an empty local-subscriptions object.
-     */
-    public static SubscriptionsReader empty() {
-        return new BloomFilterSubscriptions(Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(),
-                Collections.emptyMap());
+    @Override
+    protected List<Integer> hashTopic(final String topic) {
+        return getHashes(topic);
     }
 
     @Override
-    public Set<ActorRef> getSubscribers(final Collection<String> topics) {
-        return topics.stream()
-                .map(topicToData::get)
-                .filter(Objects::nonNull)
-                .flatMap(TopicData::streamSubscribers)
-                .filter(subscriber -> subscriberToFilter.getOrDefault(subscriber, CONSTANT_FALSE).test(topics))
-                .collect(Collectors.toSet());
+    protected void onNewTopic(final TopicData<List<Integer>> newTopic) {
+        // do nothing
     }
 
     @Override
-    public boolean subscribe(final ActorRef subscriber, final Set<String> topics,
-            final Predicate<Collection<String>> filter) {
-        if (!topics.isEmpty()) {
-            // add topics to subscriber
-            subscriberToFilter.put(subscriber, filter);
-            subscriberToTopic.merge(subscriber, topics, BloomFilterSubscriptions::unionSet);
-
-            // add subscriber for each new topic; detect whether there is any change.
-            // box the 'changed' flag in an array so that it can be assigned inside a closure.
-            final boolean[] changed = new boolean[1];
-            for (final String topic : topics) {
-                topicToData.compute(topic, (k, previousData) -> {
-                    if (previousData == null) {
-                        changed[0] = true;
-                        return TopicData.firstSubscriber(subscriber, getHashes(topic));
-                    } else {
-                        // no short-circuit evaluation for OR: subscriber should always be added.
-                        changed[0] |= previousData.addSubscriber(subscriber);
-                        return previousData;
-                    }
-                });
-            }
-            return changed[0];
-        } else {
-            // update filter if there are any existing topic subscribed
-            if (subscriberToTopic.containsKey(subscriber)) {
-                subscriberToFilter.put(subscriber, filter);
-            }
-            return false;
-        }
-    }
-
-    // convenience method to chain subscriptions.
-    BloomFilterSubscriptions thenSubscribe(final ActorRef subscriber, final Set<String> topics) {
-        subscribe(subscriber, topics);
-        return this;
-    }
-
-    @Override
-    public boolean unsubscribe(final ActorRef subscriber, final Set<String> topics) {
-        // box 'changed' flag for assignment inside closure
-        final boolean[] changed = new boolean[1];
-        subscriberToTopic.computeIfPresent(subscriber, (k, previousTopics) -> {
-            final List<String> removed = new ArrayList<>();
-            final Set<String> remaining = new HashSet<>();
-            for (final String topic : previousTopics) {
-                if (topics.contains(topic)) {
-                    removed.add(topic);
-                } else {
-                    remaining.add(topic);
-                }
-            }
-            changed[0] = !removed.isEmpty();
-            removeSubscriberForTopics(subscriber, removed);
-            if (remaining.isEmpty()) {
-                // subscriber is removed
-                subscriberToFilter.remove(subscriber);
-                return null;
-            } else {
-                return remaining;
-            }
-        });
-        return changed[0];
-    }
-
-    @Override
-    public boolean contains(final ActorRef subscriber) {
-        return subscriberToTopic.containsKey(subscriber);
-    }
-
-    BloomFilterSubscriptions thenUnsubscribe(final ActorRef subscriber, final Set<String> topics) {
-        unsubscribe(subscriber, topics);
-        return this;
-    }
-
-    @Override
-    public boolean removeSubscriber(final ActorRef subscriber) {
-        // box 'changed' flag in array for assignment inside closure
-        final boolean[] changed = new boolean[1];
-        subscriberToTopic.computeIfPresent(subscriber, (k, topics) -> {
-            changed[0] = removeSubscriberForTopics(subscriber, topics);
-            return null;
-        });
-        subscriberToFilter.remove(subscriber);
-        return changed[0];
-    }
-
-    BloomFilterSubscriptions thenRemoveSubscriber(final ActorRef subscriber) {
-        removeSubscriber(subscriber);
-        return this;
+    protected void onRemovedTopic(final TopicData<List<Integer>> removedTopic) {
+        // do nothing
     }
 
     /**
@@ -218,11 +106,6 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
      */
     private int getHashFamilySize() {
         return seeds.size();
-    }
-
-    @Override
-    public int countTopics() {
-        return topicToData.size();
     }
 
     /**
@@ -255,46 +138,13 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
      */
     ByteString toBloomFilter(final int numberOfBytes) {
         return ByteStringAsBitSet.construct(numberOfBytes,
-                topicToData.values().stream().flatMap(TopicData::streamHashes));
+                topicToData.values().stream().map(TopicData::getHashes).flatMap(List::stream));
     }
 
     @Override
-    public SubscriptionsReader snapshot() {
-        // while Scala's immutable collections are great for this use-case, I kept getting MethodNotFoundException
-        // about $plus and $plus$plus. Copying everything instead.
-        return new BloomFilterSubscriptions(
-                Collections.unmodifiableList(new ArrayList<>(seeds)),
-                Collections.unmodifiableMap(subscriberToTopic.entrySet()
-                        .stream()
-                        .collect(Collectors.toMap(Map.Entry::getKey,
-                                entry -> Collections.unmodifiableSet(new HashSet<>(entry.getValue()))))),
-                Collections.unmodifiableMap(new HashMap<>(subscriberToFilter)),
-                Collections.unmodifiableMap(topicToData.entrySet()
-                        .stream()
-                        .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().snapshot()))));
-    }
-
-    @Override
-    public ByteString export() {
+    public ByteString export(final boolean forceUpdate) {
+        // all updates are force updates by nature.
         return toOptimalBloomFilter();
-    }
-
-    private boolean removeSubscriberForTopics(final ActorRef subscriber, final Collection<String> topics) {
-        // box 'changed' flag for assignment inside closure
-        final boolean[] changed = new boolean[1];
-        for (final String topic : topics) {
-            topicToData.computeIfPresent(topic, (k, data) -> {
-                changed[0] |= data.removeSubscriber(subscriber);
-                return data.isEmpty() ? null : data;
-            });
-        }
-        return changed[0];
-    }
-
-    private static Set<String> unionSet(final Set<String> s1, final Set<String> s2) {
-        final Set<String> union = new HashSet<>(s1);
-        union.addAll(s2);
-        return union;
     }
 
     @Override
@@ -306,10 +156,7 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
     public boolean equals(final Object other) {
         if (other instanceof BloomFilterSubscriptions) {
             final BloomFilterSubscriptions that = (BloomFilterSubscriptions) other;
-            return seeds.equals(that.seeds) &&
-                    subscriberToTopic.equals(that.subscriberToTopic) &&
-                    subscriberToFilter.equals(that.subscriberToFilter) &&
-                    topicToData.equals(that.topicToData);
+            return seeds.equals(that.seeds) && super.equals(other);
         } else {
             return false;
         }
@@ -317,65 +164,8 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
 
     @Override
     public int hashCode() {
-        return Objects.hash(seeds, subscriberToTopic, subscriberToFilter, topicToData);
+        return Objects.hash(seeds, super.hashCode());
     }
 
-    @NotThreadSafe
-    private static final class TopicData {
-
-        private final Set<ActorRef> subscribers;
-        private final List<Integer> hashes;
-
-        private TopicData(final Set<ActorRef> subscribers, final List<Integer> hashes) {
-            this.subscribers = subscribers;
-            this.hashes = hashes;
-        }
-
-        private boolean addSubscriber(final ActorRef newSubscriber) {
-            return subscribers.add(newSubscriber);
-        }
-
-        private boolean removeSubscriber(final ActorRef subscriber) {
-            return subscribers.remove(subscriber);
-        }
-
-        private boolean isEmpty() {
-            return subscribers.isEmpty();
-        }
-
-        private Stream<Integer> streamHashes() {
-            return hashes.stream();
-        }
-
-        private Stream<ActorRef> streamSubscribers() {
-            return subscribers.stream();
-        }
-
-        private TopicData snapshot() {
-            return new TopicData(Collections.unmodifiableSet(new HashSet<>(subscribers)),
-                    Collections.unmodifiableList(new ArrayList<>(hashes)));
-        }
-
-        @Override
-        public boolean equals(final Object other) {
-            if (other instanceof TopicData) {
-                final TopicData that = (TopicData) other;
-                return subscribers.equals(that.subscribers) && hashes.equals(that.hashes);
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(subscribers, hashes);
-        }
-
-        private static TopicData firstSubscriber(final ActorRef subscriber, final List<Integer> hashes) {
-            final Set<ActorRef> subscribers = new HashSet<>();
-            subscribers.add(subscriber);
-            return new TopicData(subscribers, hashes);
-        }
-    }
 }
 

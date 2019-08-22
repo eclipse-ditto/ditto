@@ -21,9 +21,6 @@ import akka.actor.ActorSystem;
 
 /**
  * Publishing of all live signals.
- * <p>
- * CAUTION: Only one instance of LiveSignalPub or LiveSignalSub can be started in the same actor system.
- * In particular, it is an error to start both LiveSignalPub and LiveSignalSub.
  */
 public interface LiveSignalPub {
 

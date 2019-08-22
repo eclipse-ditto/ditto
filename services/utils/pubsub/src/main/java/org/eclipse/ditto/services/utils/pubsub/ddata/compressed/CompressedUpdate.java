@@ -16,7 +16,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -32,22 +31,57 @@ import akka.util.ByteString;
 @NotThreadSafe
 public final class CompressedUpdate {
 
-    private final Set<ByteString> inserts;
-    private final Set<ByteString> deletes;
+    private Set<ByteString> inserts;
+    private Set<ByteString> deletes;
+    private boolean replaceAll;
 
-    private CompressedUpdate(final Set<ByteString> inserts, final Set<ByteString> deletes) {
+    private CompressedUpdate(final Set<ByteString> inserts, final Set<ByteString> deletes, final boolean replaceAll) {
         this.inserts = inserts;
         this.deletes = deletes;
+        this.replaceAll = replaceAll;
     }
 
     /**
+     * @return An empty update.
+     */
+    public static CompressedUpdate empty() {
+        return new CompressedUpdate(new HashSet<>(), new HashSet<>(), false);
+    }
+
+    /**
+     * Replace everything associated with a subscriber in the distributed data.
+     *
+     * @param inserts topics to insert.
+     * @return an immutable update object.
+     */
+    public static CompressedUpdate replaceAll(final Set<ByteString> inserts) {
+        final Set<ByteString> copyOfInserts = Collections.unmodifiableSet(new HashSet<>(inserts));
+        return new CompressedUpdate(copyOfInserts, Collections.emptySet(), true);
+    }
+
+
+    /**
+     * Remove all data. Destroy immutability.
+     */
+    public void reset() {
+        inserts = new HashSet<>();
+        deletes = new HashSet<>();
+        replaceAll = false;
+    }
+
+    /**
+     * Export an unmodifiable copy of this object, then remove all data.
+     * The result is thread-safe if no user stores references to this object's fields.
+     *
      * @return An unmodifiable copy of this object for asynchronous reads.
      */
-    public CompressedUpdate snapshot() {
-        return new CompressedUpdate(
+    public CompressedUpdate exportAndReset() {
+        final CompressedUpdate snapshot = new CompressedUpdate(
                 Collections.unmodifiableSet(new HashSet<>(inserts)),
-                Collections.unmodifiableSet(new HashSet<>(deletes))
-        );
+                Collections.unmodifiableSet(new HashSet<>(deletes)),
+                replaceAll);
+        reset();
+        return snapshot;
     }
 
     /**
@@ -65,30 +99,37 @@ public final class CompressedUpdate {
     }
 
     /**
-     * Add compressed topics to be inserted.
-     *
-     * @param newInserts compressed topics to insert.
+     * @return Whether the distributed data should clear all associations and replace them by inserts.
      */
-    public void insertAll(final Collection<ByteString> newInserts) {
-        inserts.addAll(newInserts);
-        deletes.removeAll(newInserts);
+    public boolean shouldReplaceAll() {
+        return replaceAll;
     }
 
     /**
-     * Remove compressed topics.
+     * Add compressed topic to be inserted.
+     *
+     * @param newInserts compressed topic to insert.
+     */
+    public void insert(final ByteString newInserts) {
+        inserts.add(newInserts);
+        deletes.remove(newInserts);
+    }
+
+    /**
+     * Remove compressed topic.
      *
      * @param newDeletes compressed topics to delete.
      */
-    public void deleteAll(final Collection<ByteString> newDeletes) {
-        inserts.removeAll(newDeletes);
-        deletes.addAll(newDeletes);
+    public void delete(final ByteString newDeletes) {
+        inserts.remove(newDeletes);
+        deletes.add(newDeletes);
     }
 
     @Override
     public boolean equals(final Object other) {
         if (other instanceof CompressedUpdate) {
             final CompressedUpdate that = (CompressedUpdate) other;
-            return inserts.equals(that.inserts) && deletes.equals(that.deletes);
+            return replaceAll == that.replaceAll && inserts.equals(that.inserts) && deletes.equals(that.deletes);
         } else {
             return false;
         }
@@ -96,7 +137,7 @@ public final class CompressedUpdate {
 
     @Override
     public int hashCode() {
-        return Objects.hash(inserts, deletes);
+        return Objects.hash(inserts, deletes, replaceAll);
     }
 
     @Override
@@ -104,6 +145,7 @@ public final class CompressedUpdate {
         return getClass().getSimpleName() +
                 "[inserts=" + inserts +
                 ",deletes=" + deletes +
+                ",replaceAll=" + replaceAll +
                 "]";
     }
 }

@@ -86,9 +86,13 @@ public interface Subscriptions<T> {
     SubscriptionsReader snapshot();
 
     /**
+     * Export approximation of subscription data to be broadcast into the cluster.
+     * Clear the cache of accumulated changes if incremental update is supported.
+     *
+     * @param forceUpdate whether this is a force update. Relevant for distributed data with incremental update only.
      * @return Approximation of all topics with subscribers for distributed data.
      */
-    T export();
+    T export(boolean forceUpdate);
 
     /**
      * @return whether there are no subscribers.

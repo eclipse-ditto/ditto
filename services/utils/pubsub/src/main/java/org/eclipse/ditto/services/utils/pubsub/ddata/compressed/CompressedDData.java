@@ -119,10 +119,14 @@ public final class CompressedDData extends DistributedData<ORMultiMap<ActorRef, 
      */
     @Override
     public ByteString approximate(final String topic) {
-        @SuppressWarnings("unchecked")
+        return hashCodesToByteString(getHashes(topic));
+    }
+
+    @SuppressWarnings("unchecked")
+    static ByteString hashCodesToByteString(final List<Integer> hashes) {
         // force-casting to List<Object> to interface with covariant Scala collection
-        final List<Object> hashes = (List<Object>) (Object) getHashes(topic);
-        return ByteString.fromInts(JavaConverters.asScalaBuffer(hashes).toSeq());
+        final List<Object> hashesForScala = (List<Object>) (Object) hashes;
+        return ByteString.fromInts(JavaConverters.asScalaBuffer(hashesForScala).toSeq());
     }
 
     @Override
@@ -143,16 +147,22 @@ public final class CompressedDData extends DistributedData<ORMultiMap<ActorRef, 
     public CompletionStage<Void> put(final ActorRef ownSubscriber, final CompressedUpdate topics,
             final Replicator.WriteConsistency writeConsistency) {
 
-        return update(writeConsistency, mmap -> {
-            ORMultiMap<ActorRef, ByteString> result = mmap;
-            for (final ByteString inserted : topics.getInserts()) {
-                result = result.addBinding(selfUniqueAddress, ownSubscriber, inserted);
-            }
-            for (final ByteString deleted : topics.getDeletes()) {
-                result = result.removeBinding(selfUniqueAddress, ownSubscriber, deleted);
-            }
-            return result;
-        });
+        if (topics.shouldReplaceAll()) {
+            // complete replacement
+            return update(writeConsistency, mmap -> mmap.put(selfUniqueAddress, ownSubscriber, topics.getInserts()));
+        } else {
+            // incremental update
+            return update(writeConsistency, mmap -> {
+                ORMultiMap<ActorRef, ByteString> result = mmap;
+                for (final ByteString inserted : topics.getInserts()) {
+                    result = result.addBinding(selfUniqueAddress, ownSubscriber, inserted);
+                }
+                for (final ByteString deleted : topics.getDeletes()) {
+                    result = result.removeBinding(selfUniqueAddress, ownSubscriber, deleted);
+                }
+                return result;
+            });
+        }
     }
 
     @Override

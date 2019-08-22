@@ -17,7 +17,6 @@ import java.util.Collection;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
-import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterSubscriptions;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.AbstractActor;
@@ -40,7 +39,7 @@ public final class Subscriber<T> extends AbstractActor {
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
 
-    private SubscriptionsReader localSubscriptions = BloomFilterSubscriptions.empty();
+    private SubscriptionsReader localSubscriptions = SubscriptionsReader.empty();
     private Counter truePositiveCounter = DittoMetrics.counter("pubsub-true-positive");
     private Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
 

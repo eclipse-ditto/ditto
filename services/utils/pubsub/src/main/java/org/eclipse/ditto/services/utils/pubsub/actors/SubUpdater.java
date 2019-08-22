@@ -166,9 +166,10 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
     }
 
     private void tick(final Clock tick) {
+        final boolean forceUpdate = forceUpdate();
         if (state == State.UPDATING) {
             log.debug("ignoring tick in state <{}> with changed=<{}>", state, localSubscriptionsChanged);
-        } else if (!localSubscriptionsChanged && !forceUpdate()) {
+        } else if (!localSubscriptionsChanged && !forceUpdate) {
             log.debug("tick in state <{}> with changed=<{}>: flushing acks", state, localSubscriptionsChanged);
             moveAwaitUpdateToAwaitAcknowledge();
             flushAcknowledgements();
@@ -182,7 +183,8 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
                 topicMetric.set(0L);
             } else {
                 // export before taking snapshot so that implementations may output incremental update.
-                final T ddata = subscriptions.export();
+                final T ddata = subscriptions.export(forceUpdate);
+                // take snapshot to give to the subscriber; clear accumulated incremental changes.
                 snapshot = subscriptions.snapshot();
                 ddataOp = topicBloomFiltersWriter.put(pubSubSubscriber, ddata, nextWriteConsistency);
                 topicMetric.set((long) subscriptions.countTopics());
