@@ -16,14 +16,13 @@ import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
-import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterSubscriptions;
-import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.ByteStringAsBitSet;
 import org.junit.Test;
 
 import akka.actor.ActorPath;
@@ -69,6 +68,20 @@ public final class BloomFilterSubscriptionsTest {
         assertThat(underTest.getSubscribers(singleton("7"))).containsExactlyInAnyOrder(ACTOR3);
         assertThat(underTest.subscriberToTopic.size()).isEqualTo(3);
         assertThat(underTest.topicToData.size()).isEqualTo(7);
+    }
+
+    @Test
+    public void testVennDiagramWithFilter() {
+        final BloomFilterSubscriptions underTest = getVennDiagram();
+        underTest.subscribe(ACTOR1, Collections.emptySet(), topics -> topics.contains("1"));
+        underTest.subscribe(ACTOR2, Collections.emptySet(), topics -> !topics.contains("6"));
+        assertThat(underTest.getSubscribers(singleton("1"))).containsExactlyInAnyOrder(ACTOR1);
+        assertThat(underTest.getSubscribers(singleton("2"))).containsExactlyInAnyOrder(ACTOR2);
+        assertThat(underTest.getSubscribers(singleton("3"))).containsExactlyInAnyOrder(ACTOR2);
+        assertThat(underTest.getSubscribers(singleton("4"))).containsExactlyInAnyOrder(ACTOR3);
+        assertThat(underTest.getSubscribers(singleton("5"))).containsExactlyInAnyOrder(ACTOR2, ACTOR3);
+        assertThat(underTest.getSubscribers(singleton("6"))).containsExactlyInAnyOrder(ACTOR3);
+        assertThat(underTest.getSubscribers(singleton("7"))).containsExactlyInAnyOrder(ACTOR3);
     }
 
     @Test

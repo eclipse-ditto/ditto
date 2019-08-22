@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -48,6 +49,8 @@ import akka.util.ByteString;
 @NotThreadSafe
 public final class BloomFilterSubscriptions implements Hashes, SubscriptionsReader, Subscriptions<ByteString> {
 
+    private static final Predicate<Collection<String>> CONSTANT_FALSE = topics -> false;
+
     /**
      * Seeds of hash functions. They should be identical cluster-wide.
      */
@@ -59,15 +62,22 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
     final Map<ActorRef, Set<String>> subscriberToTopic;
 
     /**
+     * Map from local subscribers to their topic filters.
+     */
+    private final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter;
+
+    /**
      * Map from topic to subscriber count and pre-computed hashes.
      */
     final Map<String, TopicData> topicToData;
 
     private BloomFilterSubscriptions(final Collection<Integer> seeds,
             final Map<ActorRef, Set<String>> subscriberToTopic,
+            final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter,
             final Map<String, TopicData> topicToData) {
         this.seeds = seeds;
         this.subscriberToTopic = subscriberToTopic;
+        this.subscriberToFilter = subscriberToFilter;
         this.topicToData = topicToData;
     }
 
@@ -80,12 +90,12 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
      * @return the local-subscriptions object.
      */
     public static BloomFilterSubscriptions of(final Collection<Integer> seeds) {
-        return new BloomFilterSubscriptions(seeds, new HashMap<>(), new HashMap<>());
+        return new BloomFilterSubscriptions(seeds, new HashMap<>(), new HashMap<>(), new HashMap<>());
     }
 
     static BloomFilterSubscriptions of(final String seed, final int hashFamilySize) {
         final Collection<Integer> seeds = Hashes.digestStringsToIntegers(seed, hashFamilySize);
-        return new BloomFilterSubscriptions(seeds, new HashMap<>(), new HashMap<>());
+        return of(seeds);
     }
 
     /**
@@ -94,7 +104,8 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
      * @return an empty local-subscriptions object.
      */
     public static SubscriptionsReader empty() {
-        return new BloomFilterSubscriptions(Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
+        return new BloomFilterSubscriptions(Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(),
+                Collections.emptyMap());
     }
 
     @Override
@@ -103,13 +114,16 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
                 .map(topicToData::get)
                 .filter(Objects::nonNull)
                 .flatMap(TopicData::streamSubscribers)
+                .filter(subscriber -> subscriberToFilter.getOrDefault(subscriber, CONSTANT_FALSE).test(topics))
                 .collect(Collectors.toSet());
     }
 
     @Override
-    public boolean subscribe(final ActorRef subscriber, final Set<String> topics) {
+    public boolean subscribe(final ActorRef subscriber, final Set<String> topics,
+            final Predicate<Collection<String>> filter) {
         if (!topics.isEmpty()) {
             // add topics to subscriber
+            subscriberToFilter.put(subscriber, filter);
             subscriberToTopic.merge(subscriber, topics, BloomFilterSubscriptions::unionSet);
 
             // add subscriber for each new topic; detect whether there is any change.
@@ -129,6 +143,10 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
             }
             return changed[0];
         } else {
+            // update filter if there are any existing topic subscribed
+            if (subscriberToTopic.containsKey(subscriber)) {
+                subscriberToFilter.put(subscriber, filter);
+            }
             return false;
         }
     }
@@ -154,8 +172,14 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
                 }
             }
             changed[0] = !removed.isEmpty();
-            removeSubscribersForTopics(subscriber, removed);
-            return remaining.isEmpty() ? null : remaining;
+            removeSubscriberForTopics(subscriber, removed);
+            if (remaining.isEmpty()) {
+                // subscriber is removed
+                subscriberToFilter.remove(subscriber);
+                return null;
+            } else {
+                return remaining;
+            }
         });
         return changed[0];
     }
@@ -175,9 +199,10 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
         // box 'changed' flag in array for assignment inside closure
         final boolean[] changed = new boolean[1];
         subscriberToTopic.computeIfPresent(subscriber, (k, topics) -> {
-            changed[0] = removeSubscribersForTopics(subscriber, topics);
+            changed[0] = removeSubscriberForTopics(subscriber, topics);
             return null;
         });
+        subscriberToFilter.remove(subscriber);
         return changed[0];
     }
 
@@ -243,6 +268,7 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
                         .stream()
                         .collect(Collectors.toMap(Map.Entry::getKey,
                                 entry -> Collections.unmodifiableSet(new HashSet<>(entry.getValue()))))),
+                Collections.unmodifiableMap(new HashMap<>(subscriberToFilter)),
                 Collections.unmodifiableMap(topicToData.entrySet()
                         .stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().snapshot()))));
@@ -253,7 +279,7 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
         return toOptimalBloomFilter();
     }
 
-    private boolean removeSubscribersForTopics(final ActorRef subscriber, final Collection<String> topics) {
+    private boolean removeSubscriberForTopics(final ActorRef subscriber, final Collection<String> topics) {
         // box 'changed' flag for assignment inside closure
         final boolean[] changed = new boolean[1];
         for (final String topic : topics) {
@@ -282,10 +308,16 @@ public final class BloomFilterSubscriptions implements Hashes, SubscriptionsRead
             final BloomFilterSubscriptions that = (BloomFilterSubscriptions) other;
             return seeds.equals(that.seeds) &&
                     subscriberToTopic.equals(that.subscriberToTopic) &&
+                    subscriberToFilter.equals(that.subscriberToFilter) &&
                     topicToData.equals(that.topicToData);
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(seeds, subscriberToTopic, subscriberToFilter, topicToData);
     }
 
     @NotThreadSafe

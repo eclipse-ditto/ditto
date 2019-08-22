@@ -75,7 +75,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
         this.topicExtractor = topicExtractor;
         this.config = config;
 
-        final String replicatorName = messageClass.getSimpleName() + "PubSubReplicator";
+        final String replicatorName = ddataKey + "-replicator";
         ddataConfig = DistributedDataConfigReader.of(actorSystem, replicatorName, clusterRole);
         topicBloomFilters = BloomFilterDData.of(actorSystem, ddataConfig, ddataKey, config);
     }

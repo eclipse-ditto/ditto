@@ -13,12 +13,14 @@
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
@@ -164,8 +166,12 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
     }
 
     private void tick(final Clock tick) {
-        if (state == State.UPDATING || (!localSubscriptionsChanged && !forceUpdate())) {
+        if (state == State.UPDATING) {
             log.debug("ignoring tick in state <{}> with changed=<{}>", state, localSubscriptionsChanged);
+        } else if (!localSubscriptionsChanged && !forceUpdate()) {
+            log.debug("tick in state <{}> with changed=<{}>: flushing acks", state, localSubscriptionsChanged);
+            moveAwaitUpdateToAwaitAcknowledge();
+            flushAcknowledgements();
         } else {
             log.debug("updating");
             final SubscriptionsReader snapshot;
@@ -195,16 +201,19 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
 
     private void updateSuccess(final SubscriptionsReader snapshot) {
         log.debug("updateSuccess");
+        flushAcknowledgements();
+        state = State.WAITING;
+        // race condition possible -- some published messages may arrive before the acknowledgement
+        // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
+        pubSubSubscriber.tell(snapshot, getSelf());
+    }
+
+    private void flushAcknowledgements() {
         for (final Acknowledgement ack : awaitAcknowledge) {
             ack.getSender().tell(ack, getSelf());
         }
         awaitAcknowledge.clear();
         awaitAcknowledgeMetric.set(0L);
-        state = State.WAITING;
-
-        // race condition possible -- some published messages may arrive before the acknowledgement
-        // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
-        pubSubSubscriber.tell(snapshot, getSelf());
     }
 
     private void updateFailure(final Status.Failure failure) {
@@ -239,7 +248,8 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
     }
 
     private void subscribe(final Subscribe subscribe) {
-        final boolean changed = subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics());
+        final boolean changed =
+                subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics(), subscribe.getFilter());
         enqueueRequest(subscribe, changed);
         if (changed) {
             getContext().watch(subscribe.getSubscriber());
@@ -365,9 +375,15 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
      */
     public static final class Subscribe extends Request {
 
+        private static final Predicate<Collection<String>> CONSTANT_TRUE = topics -> true;
+
+        private final Predicate<Collection<String>> filter;
+
         private Subscribe(final Set<String> topics, final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
+                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge,
+                final Predicate<Collection<String>> filter) {
             super(topics, subscriber, writeConsistency, acknowledge);
+            this.filter = filter;
         }
 
         /**
@@ -381,7 +397,30 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
          */
         public static Subscribe of(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new Subscribe(topics, subscriber, writeConsistency, acknowledge);
+            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, CONSTANT_TRUE);
+        }
+
+        /**
+         * Create a "subscribe" request.
+         *
+         * @param topics the set of topics to subscribe.
+         * @param subscriber who is subscribing.
+         * @param writeConsistency with which write consistency should this subscription be updated.
+         * @param acknowledge whether acknowledgement is desired.
+         * @param filter local filter for incoming messages.
+         * @return the request.
+         */
+        public static Subscribe of(final Set<String> topics, final ActorRef subscriber,
+                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge,
+                final Predicate<Collection<String>> filter) {
+            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, filter);
+        }
+
+        /**
+         * @return Filter for incoming messages.
+         */
+        public Predicate<Collection<String>> getFilter() {
+            return filter;
         }
     }
 

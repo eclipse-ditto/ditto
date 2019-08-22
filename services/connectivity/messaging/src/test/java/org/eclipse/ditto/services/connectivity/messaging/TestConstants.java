@@ -178,35 +178,27 @@ public final class TestConstants {
     static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
         return new DittoProtocolSub() {
             @Override
-            public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
+            public CompletionStage<SubUpdater.Acknowledgement> subscribe(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
                 return CompletableFuture.allOf(types.stream()
                         .map(type -> {
                             final Object sub = DistPubSubAccess.subscribe(type.getDistributedPubSubTopic(), subscriber);
                             return Patterns.ask(pubSubMediator, sub, Duration.ofSeconds(10L)).toCompletableFuture();
                         })
-                        .toArray(CompletableFuture[]::new));
+                        .toArray(CompletableFuture[]::new))
+                        .thenApply(_void -> null);
             }
 
             @Override
-            public CompletionStage<SubUpdater.Acknowledgement> subscribe(final StreamingType type,
+            public void removeSubscriber(final ActorRef subscriber) {
+                // do nothing
+            }
+
+            @Override
+            public CompletionStage<SubUpdater.Acknowledgement> updateSubscription(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
-                return subscribe(singletonList(type), topics, subscriber).thenApply(x -> null);
-            }
-
-            @Override
-            public void removeSubscriber(final Collection<StreamingType> types, final ActorRef subscriber) {
-                types.forEach(type -> {
-                    final Object unsub = DistPubSubAccess.unsubscribe(type.getDistributedPubSubTopic(), subscriber);
-                    pubSubMediator.tell(unsub, subscriber);
-                });
-            }
-
-            @Override
-            public CompletionStage<SubUpdater.Acknowledgement> unsubscribe(final StreamingType type,
-                    final Collection<String> topics, final ActorRef subscriber) {
-                final Object unsub = DistPubSubAccess.unsubscribe(type.getDistributedPubSubTopic(), subscriber);
-                return Patterns.ask(pubSubMediator, unsub, Duration.ofSeconds(10L)).thenApply(x -> null);
+                // do nothing
+                return CompletableFuture.completedFuture(null);
             }
         };
     }

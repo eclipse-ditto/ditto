@@ -12,8 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.extractors;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 
 /**
  * Functional interface for extractors of topics from messages.
@@ -32,18 +33,28 @@ public interface PubSubTopicExtractor<T> {
     Collection<String> getTopics(T message);
 
     /**
-     * Combine two topic extractors.
+     * Combine 2 topic extractors.
      *
-     * @param that another topic extractor.
+     * @param that the other topic extractor.
      * @return a topic extractor that delivers topics extracted by both this and that.
      */
     default PubSubTopicExtractor<T> with(final PubSubTopicExtractor<T> that) {
+        return with(Collections.singletonList(that));
+    }
+
+    /**
+     * Combine many topic extractors.
+     *
+     * @param those other topic extractors.
+     * @return a topic extractor that delivers topics extracted by both this and that.
+     */
+    default PubSubTopicExtractor<T> with(final Collection<PubSubTopicExtractor<T>> those) {
         return message -> {
             final Collection<String> topicsFromThis = this.getTopics(message);
-            final Collection<String> topicsFromThat = that.getTopics(message);
-            final Collection<String> result = new ArrayList<>(topicsFromThis.size() + topicsFromThat.size());
-            result.addAll(topicsFromThis);
-            result.addAll(topicsFromThat);
+            final Collection<String> result = new HashSet<>(topicsFromThis);
+            for (final PubSubTopicExtractor<T> that : those) {
+                result.addAll(that.getTopics(message));
+            }
             return result;
         };
     }

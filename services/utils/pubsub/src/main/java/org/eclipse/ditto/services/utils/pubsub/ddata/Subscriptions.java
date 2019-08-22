@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
+import java.util.Collection;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import akka.actor.ActorRef;
 
@@ -39,13 +41,25 @@ public interface Subscriptions<T> {
     boolean contains(ActorRef subscriber);
 
     /**
-     * Subscribe to topics.
+     * Subscribe for filtered messages published at any of the given topics.
+     *
+     * @param subscriber the subscriber.
+     * @param topics topics the subscriber subscribes to.
+     * @param filter filter for topics of incoming messages associated with the subscriber.
+     * @return whether subscriptions changed.
+     */
+    boolean subscribe(ActorRef subscriber, Set<String> topics, Predicate<Collection<String>> filter);
+
+    /**
+     * Subscribe for all messages published at any of the given topics.
      *
      * @param subscriber the subscriber.
      * @param topics topics the subscriber subscribes to.
      * @return whether subscriptions changed.
      */
-    boolean subscribe(ActorRef subscriber, Set<String> topics);
+    default boolean subscribe(final ActorRef subscriber, final Set<String> topics) {
+        return subscribe(subscriber, topics, ts -> true);
+    }
 
     /**
      * Unsubscribe to topics.

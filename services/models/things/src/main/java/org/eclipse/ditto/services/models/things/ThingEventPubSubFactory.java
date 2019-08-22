@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.services.models.things;
 
+import java.util.Arrays;
+
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.pubsub.AbstractPubSubFactory;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.extractors.ConstantTopics;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ShardIdExtractor;
@@ -30,12 +33,12 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
     /**
      * Cluster role interested in thing events.
      */
-    public static final String CLUSTER_ROLE = "thing-event-aware";
+    public static final String CLUSTER_ROLE = "live-and-twin-thing-aware";
 
     private ThingEventPubSubFactory(final ActorSystem actorSystem,
             final PubSubTopicExtractor<ThingEvent> topicExtractor,
             final PubSubConfig config) {
-        super(actorSystem, CLUSTER_ROLE, ThingEvent.class, topicExtractor, config);
+        super(actorSystem, CLUSTER_ROLE, ThingEvent.class, CLUSTER_ROLE, topicExtractor, config);
     }
 
     /**
@@ -63,7 +66,12 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
         return new ThingEventPubSubFactory(actorSystem, ReadSubjectExtractor.of(), config);
     }
 
+    private static PubSubTopicExtractor<ThingEvent> readSubjectOnlyExtractor() {
+        return ReadSubjectExtractor.<ThingEvent>of().with(ConstantTopics.of(ThingEvent.TYPE_PREFIX));
+    }
+
     private static PubSubTopicExtractor<ThingEvent> toTopicExtractor(final ShardRegionExtractor shardRegionExtractor) {
-        return ReadSubjectExtractor.<ThingEvent>of().with(ShardIdExtractor.of(shardRegionExtractor));
+        return ReadSubjectExtractor.<ThingEvent>of().with(
+                Arrays.asList(ConstantTopics.of(ThingEvent.TYPE_PREFIX), ShardIdExtractor.of(shardRegionExtractor)));
     }
 }

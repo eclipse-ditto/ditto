@@ -49,6 +49,16 @@ public interface DistributedPub<T> {
     }
 
     /**
+     * Create a new interface of this distributed-pub with a new topic extractor.
+     *
+     * @param topicExtractor the previous topic extractor.
+     * @return a new interface of this object.
+     */
+    default <S> DistributedPub<S> withTopicExtractor(final PubSubTopicExtractor<S> topicExtractor) {
+        return DistributedPubWithTopicExtractor.of(this, topicExtractor);
+    }
+
+    /**
      * Create publication access from an already-started pub-supervisor and topic extractor.
      *
      * @param pubSupervisor the pub-supervisor.

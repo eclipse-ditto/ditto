@@ -129,24 +129,19 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     private static DittoProtocolSub nopSub() {
         return new DittoProtocolSub() {
             @Override
-            public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
+            public CompletionStage<SubUpdater.Acknowledgement> subscribe(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
                 return CompletableFuture.completedFuture(null);
             }
 
             @Override
-            public CompletionStage<SubUpdater.Acknowledgement> subscribe(final StreamingType type,
-                    final Collection<String> topics, final ActorRef subscriber) {
-                return CompletableFuture.completedFuture(null);
-            }
-
-            @Override
-            public void removeSubscriber(final Collection<StreamingType> types, final ActorRef subscriber) {
+            public void removeSubscriber(final ActorRef subscriber) {
 
             }
 
             @Override
-            public CompletionStage<SubUpdater.Acknowledgement> unsubscribe(final StreamingType type,
+            public CompletionStage<SubUpdater.Acknowledgement> updateSubscription(
+                    final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
                 return CompletableFuture.completedFuture(null);
             }

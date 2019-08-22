@@ -12,31 +12,37 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.extractors;
 
+import java.util.Arrays;
 import java.util.Collection;
-
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * Extract read-subjects of messages as topics.
+ * Extract the same topics for all messages of the type.
  *
  * @param <T> type of messages.
  */
-public final class ReadSubjectExtractor<T extends WithDittoHeaders> implements PubSubTopicExtractor<T> {
+public final class ConstantTopics<T> implements PubSubTopicExtractor<T> {
 
-    private ReadSubjectExtractor() {}
+    private final List<String> topics;
+
+    private ConstantTopics(final List<String> topics) {
+        this.topics = topics;
+    }
 
     /**
-     * Create an extractor of read-subjects as topics.
+     * Create an extractor of the same topics for all messages.
      *
      * @param <T> type of messages.
+     * @param topics the constant topics.
      * @return a read-subject extractor.
      */
-    public static <T extends WithDittoHeaders> ReadSubjectExtractor<T> of() {
-        return new ReadSubjectExtractor<>();
+    public static <T> ConstantTopics<T> of(final String... topics) {
+        return new ConstantTopics<>(Collections.unmodifiableList(Arrays.asList(topics)));
     }
 
     @Override
     public Collection<String> getTopics(final T event) {
-        return event.getDittoHeaders().getReadSubjects();
+        return topics;
     }
 }

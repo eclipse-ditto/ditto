@@ -1065,7 +1065,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         origin.tell(statusResponse, getSelf());
     }
 
-    private CompletionStage<Void> subscribeForEvents() {
+    private CompletionStage<?> subscribeForEvents() {
         checkConnectionNotNull();
 
         // unsubscribe to previously subscribed topics
@@ -1095,7 +1095,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     private void unsubscribeFromEvents() {
         log.debug("Unsubscribing from pub-sub topics <{}> for connection <{}>.", uniqueTopics, connectionId);
         if (!uniqueTopics.isEmpty()) {
-            dittoProtocolSub.removeSubscriber(toStreamingTypes(uniqueTopics), getSelf());
+            dittoProtocolSub.removeSubscriber(getSelf());
             uniqueTopics = Collections.emptySet();
         }
     }

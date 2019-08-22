@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.pubsub;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Predicate;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
@@ -36,6 +37,14 @@ final class DistributedSubImpl implements DistributedSub {
         this.config = config;
         this.subSupervisor = subSupervisor;
         this.writeAll = new Replicator.WriteAll(config.getWriteTimeout());
+    }
+
+    @Override
+    public CompletionStage<SubUpdater.Acknowledgement> subscribeWithFilterAndAck(final Collection<String> topics,
+            final ActorRef subscriber, final Predicate<Collection<String>> filter) {
+        final SubUpdater.Subscribe subscribe =
+                SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, filter);
+        return askSubSupervisor(subscribe);
     }
 
     @Override

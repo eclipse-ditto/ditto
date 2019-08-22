@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Collection;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Predicate;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
@@ -24,6 +25,17 @@ import akka.actor.ActorRef;
  * Access point for Ditto pub-sub subscribers.
  */
 public interface DistributedSub {
+
+    /**
+     * Subscribe for a collection of topics with a local topic filter.
+     *
+     * @param topics the topics.
+     * @param subscriber who is subscribing.
+     * @param filter a local topic filter.
+     * @return a future that completes after subscription becomes effective on all nodes.
+     */
+    CompletionStage<SubUpdater.Acknowledgement> subscribeWithFilterAndAck(Collection<String> topics,
+            ActorRef subscriber, Predicate<Collection<String>> filter);
 
     /**
      * Subscribe for a collection of topics.

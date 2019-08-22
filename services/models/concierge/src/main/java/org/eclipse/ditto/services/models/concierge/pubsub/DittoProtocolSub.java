@@ -34,38 +34,27 @@ public interface DittoProtocolSub {
      * @param subscriber who is subscribing.
      * @return future that completes or fails according to the subscriptions.
      */
-    CompletionStage<Void> subscribe(final Collection<StreamingType> types, final Collection<String> topics,
-            final ActorRef subscriber);
-
-    /**
-     * Subscribe for a single streaming type and wait for acknowledgement.
-     *
-     * @param type the streaming type.
-     * @param topics the topics.
-     * @param subscriber who is subscribing.
-     * @return future acknowledgement.
-     */
-    CompletionStage<SubUpdater.Acknowledgement> subscribe(final StreamingType type, final Collection<String> topics,
-            final ActorRef subscriber);
+    CompletionStage<SubUpdater.Acknowledgement> subscribe(Collection<StreamingType> types,
+            Collection<String> topics, ActorRef subscriber);
 
     /**
      * Remove a subscriber.
      *
-     * @param types streaming types of messages to unsubscribe from.
      * @param subscriber who is unsubscribing.
      */
-    void removeSubscriber(final Collection<StreamingType> types, final ActorRef subscriber);
+    void removeSubscriber(ActorRef subscriber);
 
     /**
-     * Remove a subscriber from one streaming type.
+     * Update streaming types of a subscriber.
      *
-     * @param type the streaming type.
+     * @param types the currently active streaming types.
      * @param topics the topics to unsubscribe from.
      * @param subscriber the subscriber.
      * @return future acknowledgement.
      */
-    CompletionStage<SubUpdater.Acknowledgement> unsubscribe(final StreamingType type, final Collection<String> topics,
-            final ActorRef subscriber);
+    CompletionStage<SubUpdater.Acknowledgement> updateSubscription(Collection<StreamingType> types,
+            Collection<String> topics,
+            ActorRef subscriber);
 
     /**
      * Create {@code DittoProtocolSub} for an actor system.

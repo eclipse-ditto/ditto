@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -81,6 +81,7 @@ final class StreamingSessionActor extends AbstractActor {
         this.dittoProtocolSub = dittoProtocolSub;
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         outstandingSubscriptionAcks = new HashSet<>();
+        authorizationSubjects = Collections.emptyList();
         namespacesForStreamingTypes = new EnumMap<>(StreamingType.class);
         eventFilterCriteriaForStreamingTypes = new EnumMap<>(StreamingType.class);
 
@@ -155,7 +156,8 @@ final class StreamingSessionActor extends AbstractActor {
                     // In Cluster: Subscribe
                     final AcknowledgeSubscription subscribeAck =
                             new AcknowledgeSubscription(startStreaming.getStreamingType());
-                    dittoProtocolSub.subscribe(startStreaming.getStreamingType(), authorizationSubjects, getSelf())
+                    final Collection<StreamingType> currentStreamingTypes = namespacesForStreamingTypes.keySet();
+                    dittoProtocolSub.subscribe(currentStreamingTypes, authorizationSubjects, getSelf())
                             .thenAccept(ack -> getSelf().tell(subscribeAck, getSelf()));
                 })
                 .match(StopStreaming.class, stopStreaming -> {
@@ -169,7 +171,8 @@ final class StreamingSessionActor extends AbstractActor {
                     // In Cluster: Unsubscribe
                     final AcknowledgeUnsubscription unsubscribeAck =
                             new AcknowledgeUnsubscription(stopStreaming.getStreamingType());
-                    dittoProtocolSub.unsubscribe(stopStreaming.getStreamingType(), authorizationSubjects, getSelf())
+                    final Collection<StreamingType> currentStreamingTypes = namespacesForStreamingTypes.keySet();
+                    dittoProtocolSub.updateSubscription(currentStreamingTypes, authorizationSubjects, getSelf())
                             .thenAccept(ack -> getSelf().tell(unsubscribeAck, getSelf()));
                 })
                 .match(AcknowledgeSubscription.class, msg ->
@@ -182,7 +185,7 @@ final class StreamingSessionActor extends AbstractActor {
                     // In Cluster: Unsubscribe from ThingEvents:
                     logger.info("<{}> connection was closed, unsubscribing from Streams in Cluster..", type);
 
-                    dittoProtocolSub.removeSubscriber(Arrays.asList(StreamingType.values()), getSelf());
+                    dittoProtocolSub.removeSubscriber(getSelf());
 
                     getContext().getSystem()
                             .scheduler()

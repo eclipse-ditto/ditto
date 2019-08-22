@@ -12,9 +12,13 @@
  */
 package org.eclipse.ditto.services.models.concierge.pubsub;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.extractors.ConstantTopics;
+import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
+import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -44,15 +48,15 @@ final class LiveSignalPubImpl implements LiveSignalPub {
      */
     static LiveSignalPubImpl of(final ActorSystem actorSystem) {
         final PubSubConfig config = PubSubConfig.of(actorSystem);
+        final DistributedPub<?> distributedPub =
+                LiveAndTwinSignalPubSubFactory.of(actorSystem, config, Signal.class,
+                        LiveAndTwinSignalPubSubFactory.topicExtractor()).startDistributedPub();
         final DistributedPub<Command> liveCommandPub =
-                SingleLiveSignalPubSubFactory.of(actorSystem, config, Command.class, StreamingType.LIVE_COMMANDS)
-                        .startDistributedPub();
+                distributedPub.withTopicExtractor(getTopicExtractor(StreamingType.LIVE_COMMANDS));
         final DistributedPub<Event> liveEventPub =
-                SingleLiveSignalPubSubFactory.of(actorSystem, config, Event.class, StreamingType.LIVE_EVENTS)
-                        .startDistributedPub();
+                distributedPub.withTopicExtractor(getTopicExtractor(StreamingType.LIVE_EVENTS));
         final DistributedPub<Signal> messagePub =
-                SingleLiveSignalPubSubFactory.of(actorSystem, config, Signal.class, StreamingType.MESSAGES)
-                        .startDistributedPub();
+                distributedPub.withTopicExtractor(getTopicExtractor(StreamingType.MESSAGES));
         return new LiveSignalPubImpl(liveCommandPub, liveEventPub, messagePub);
     }
 
@@ -69,6 +73,12 @@ final class LiveSignalPubImpl implements LiveSignalPub {
     @Override
     public DistributedPub<Signal> message() {
         return messagePub;
+    }
+
+    private static <T extends WithDittoHeaders> PubSubTopicExtractor<T> getTopicExtractor(
+            final StreamingType streamingType) {
+
+        return ReadSubjectExtractor.<T>of().with(ConstantTopics.of(streamingType.getDistributedPubSubTopic()));
     }
 
 }
