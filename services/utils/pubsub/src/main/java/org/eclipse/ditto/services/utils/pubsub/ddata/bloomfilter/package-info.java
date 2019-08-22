@@ -12,7 +12,7 @@
  */
 
 /**
- * Distributed relation between actor references and topics.
+ * Distributed relation between actor references and topics represented by bloom filters.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
-package org.eclipse.ditto.services.utils.pubsub.ddata;
+package org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter;

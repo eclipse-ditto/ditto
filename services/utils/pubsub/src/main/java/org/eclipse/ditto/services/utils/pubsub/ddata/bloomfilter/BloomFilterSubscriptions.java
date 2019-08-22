@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub.ddata;
+package org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,6 +25,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
+
+import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
+import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
+import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 
 import akka.actor.ActorRef;
 import akka.util.ByteString;

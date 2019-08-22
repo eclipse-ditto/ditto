@@ -16,7 +16,7 @@ import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.pubsub.actors.PubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.services.utils.pubsub.ddata.BloomFilterDData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterDData;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;

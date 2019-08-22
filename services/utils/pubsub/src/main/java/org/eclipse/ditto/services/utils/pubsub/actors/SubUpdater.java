@@ -36,7 +36,6 @@ import akka.actor.Terminated;
 import akka.cluster.ddata.Replicator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.util.ByteString;
 
 /**
  * Manages local subscriptions. Request distributed data update at regular intervals at the highest write consistency
@@ -169,13 +168,16 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
             log.debug("ignoring tick in state <{}> with changed=<{}>", state, localSubscriptionsChanged);
         } else {
             log.debug("updating");
-            final SubscriptionsReader snapshot = subscriptions.snapshot();
+            final SubscriptionsReader snapshot;
             final CompletionStage<Void> ddataOp;
             if (subscriptions.isEmpty()) {
+                snapshot = subscriptions.snapshot();
                 ddataOp = topicBloomFiltersWriter.removeSubscriber(pubSubSubscriber, nextWriteConsistency);
                 topicMetric.set(0L);
             } else {
+                // export before taking snapshot so that implementations may output incremental update.
                 final T ddata = subscriptions.export();
+                snapshot = subscriptions.snapshot();
                 ddataOp = topicBloomFiltersWriter.put(pubSubSubscriber, ddata, nextWriteConsistency);
                 topicMetric.set((long) subscriptions.countTopics());
             }

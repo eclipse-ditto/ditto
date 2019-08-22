@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub.ddata;
+package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -25,6 +25,9 @@ import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
+import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -32,26 +35,27 @@ import akka.actor.ActorSystem;
 import akka.actor.Address;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.Key;
-import akka.cluster.ddata.LWWMap;
-import akka.cluster.ddata.LWWMapKey;
+import akka.cluster.ddata.ORMultiMap;
+import akka.cluster.ddata.ORMultiMapKey;
 import akka.cluster.ddata.Replicator;
 import akka.cluster.ddata.SelfUniqueAddress;
 import akka.util.ByteString;
+import scala.collection.JavaConverters;
 
 /**
  * A distributed collection of Bloom filters of strings indexed by ActorRef.
  * The hash functions for all filter should be identical.
  */
-public final class BloomFilterDData extends DistributedData<LWWMap<ActorRef, ByteString>>
-        implements DDataReader<Collection<Integer>>, DDataWriter<ByteString>, Hashes {
+public final class CompressedDData extends DistributedData<ORMultiMap<ActorRef, ByteString>>
+        implements DDataReader<ByteString>, DDataWriter<CompressedUpdate>, Hashes {
 
     private final String topicType;
     private final SelfUniqueAddress selfUniqueAddress;
     private final List<Integer> seeds;
 
-    private final Gauge topicBloomFiltersMetric = DittoMetrics.gauge("pubsub-ddata-entries");
+    private final Gauge ddataMetrics = DittoMetrics.gauge("pubsub-ddata-entries");
 
-    private BloomFilterDData(final DistributedDataConfigReader configReader,
+    private CompressedDData(final DistributedDataConfigReader configReader,
             final ActorRefFactory actorRefFactory,
             final ActorSystem actorSystem,
             final Executor ddataExecutor,
@@ -64,7 +68,7 @@ public final class BloomFilterDData extends DistributedData<LWWMap<ActorRef, Byt
     }
 
     /**
-     * Start distributed-data replicator for topic Bloom filters under an actor system's user guardian using the default
+     * Start distributed-data replicator for compressed topics under an actor system's user guardian using the default
      * dispatcher.
      *
      * @param system the actor system.
@@ -73,13 +77,13 @@ public final class BloomFilterDData extends DistributedData<LWWMap<ActorRef, Byt
      * @param pubSubConfig the pub-sub config.
      * @return access to the distributed data.
      */
-    public static BloomFilterDData of(final ActorSystem system, final DistributedDataConfigReader ddataConfig,
+    public static CompressedDData of(final ActorSystem system, final DistributedDataConfigReader ddataConfig,
             final String topicType, final PubSubConfig pubSubConfig) {
 
         final List<Integer> seeds =
                 Hashes.digestStringsToIntegers(pubSubConfig.getSeed(), pubSubConfig.getHashFamilySize());
 
-        return new BloomFilterDData(ddataConfig, system, system, system.dispatcher(), topicType, seeds);
+        return new CompressedDData(ddataConfig, system, system, system.dispatcher(), topicType, seeds);
     }
 
     @Override
@@ -88,65 +92,82 @@ public final class BloomFilterDData extends DistributedData<LWWMap<ActorRef, Byt
     }
 
     @Override
-    public CompletionStage<Collection<ActorRef>> getSubscribers(final Collection<Collection<Integer>> topicHashes) {
+    public CompletionStage<Collection<ActorRef>> getSubscribers(final Collection<ByteString> topic) {
 
         return get(Replicator.readLocal()).thenApply(optional -> {
             if (optional.isPresent()) {
-                final LWWMap<ActorRef, ByteString> indexedBloomFilters = optional.get();
-                topicBloomFiltersMetric.set((long) indexedBloomFilters.size());
-                final Map<ActorRef, ByteString> map = indexedBloomFilters.getEntries();
-                return map.entrySet()
+                final ORMultiMap<ActorRef, ByteString> mmap = optional.get();
+                ddataMetrics.set((long) mmap.size());
+                return JavaConverters.mapAsJavaMap(mmap.entries())
+                        .entrySet()
                         .stream()
-                        .filter(entry -> ByteStringAsBitSet.containsAny(entry.getValue(),
-                                topicHashes.stream().map(Collection::stream)))
+                        .filter(entry -> topic.stream().anyMatch(entry.getValue()::contains))
                         .map(Map.Entry::getKey)
                         .collect(Collectors.toList());
             } else {
-                topicBloomFiltersMetric.set(0L);
+                ddataMetrics.set(0L);
                 return Collections.emptyList();
             }
         });
     }
 
+    /**
+     * Lossy-compress a topic into a ByteString consisting of hash codes from the family of hash functions.
+     *
+     * @param topic the topic.
+     * @return the compressed topic.
+     */
     @Override
-    public Collection<Integer> approximate(final String topic) {
-        return getHashes(topic);
+    public ByteString approximate(final String topic) {
+        @SuppressWarnings("unchecked")
+        // force-casting to List<Object> to interface with covariant Scala collection
+        final List<Object> hashes = (List<Object>) (Object) getHashes(topic);
+        return ByteString.fromInts(JavaConverters.asScalaBuffer(hashes).toSeq());
     }
 
     @Override
     public CompletionStage<Void> removeAddress(final Address address,
             final Replicator.WriteConsistency writeConsistency) {
-        return update(writeConsistency, lwwMap -> {
-            LWWMap<ActorRef, ByteString> map = lwwMap;
-            for (final ActorRef subscriber : lwwMap.getEntries().keySet()) {
+        return update(writeConsistency, mmap -> {
+            ORMultiMap<ActorRef, ByteString> result = mmap;
+            for (final ActorRef subscriber : mmap.getEntries().keySet()) {
                 if (subscriber.path().address().equals(address)) {
-                    map = map.remove(selfUniqueAddress, subscriber);
+                    result = result.remove(selfUniqueAddress, subscriber);
                 }
             }
-            return map;
+            return result;
         });
     }
 
     @Override
-    public CompletionStage<Void> put(final ActorRef ownSubscriber, final ByteString topicApproximation,
+    public CompletionStage<Void> put(final ActorRef ownSubscriber, final CompressedUpdate topics,
             final Replicator.WriteConsistency writeConsistency) {
 
-        return update(writeConsistency, lwwMap -> lwwMap.put(selfUniqueAddress, ownSubscriber, topicApproximation));
+        return update(writeConsistency, mmap -> {
+            ORMultiMap<ActorRef, ByteString> result = mmap;
+            for (final ByteString inserted : topics.getInserts()) {
+                result = result.addBinding(selfUniqueAddress, ownSubscriber, inserted);
+            }
+            for (final ByteString deleted : topics.getDeletes()) {
+                result = result.removeBinding(selfUniqueAddress, ownSubscriber, deleted);
+            }
+            return result;
+        });
     }
 
     @Override
     public CompletionStage<Void> removeSubscriber(final ActorRef subscriber,
             final Replicator.WriteConsistency writeConsistency) {
-        return update(writeConsistency, lwwMap -> lwwMap.remove(selfUniqueAddress, subscriber));
+        return update(writeConsistency, mmap -> mmap.remove(selfUniqueAddress, subscriber));
     }
 
     @Override
-    protected Key<LWWMap<ActorRef, ByteString>> getKey() {
-        return LWWMapKey.create(topicType);
+    protected Key<ORMultiMap<ActorRef, ByteString>> getKey() {
+        return ORMultiMapKey.create(topicType);
     }
 
     @Override
-    protected LWWMap<ActorRef, ByteString> getInitialValue() {
-        return LWWMap.empty();
+    protected ORMultiMap<ActorRef, ByteString> getInitialValue() {
+        return ORMultiMap.emptyWithValueDeltas();
     }
 }

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub.ddata;
+package org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter;
 
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
+import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterSubscriptions;
+import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.ByteStringAsBitSet;
 import org.junit.Test;
 
 import akka.actor.ActorPath;
@@ -28,7 +31,7 @@ import akka.actor.ActorRef;
 import akka.util.ByteString;
 
 /**
- * Tests {@link BloomFilterSubscriptions}.
+ * Tests {@link org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterSubscriptions}.
  */
 public final class BloomFilterSubscriptionsTest {
 

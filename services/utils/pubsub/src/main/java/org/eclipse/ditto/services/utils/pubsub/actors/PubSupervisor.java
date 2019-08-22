@@ -16,7 +16,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.services.utils.pubsub.ddata.BloomFilterDData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterDData;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

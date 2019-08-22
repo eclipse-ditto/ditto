@@ -21,19 +21,19 @@ import akka.cluster.ddata.Replicator;
 /**
  * Writer of a distributed subscriber-topic relation.
  *
- * @param <T> type of topic approximations to store in the distributed data.
+ * @param <T> type of topic updates to perform in the distributed data.
  */
 public interface DDataWriter<T> {
 
     /**
-     * Update the topics this cluster member subscribes to.
+     * Associate a subscriber with a topic.
      *
      * @param ownSubscriber actor that manages local subscriptions for this cluster member.
-     * @param topics representation of topics.
+     * @param topicUpdates representation of topic updates.
      * @param writeConsistency write consistency for the operation.
      * @return future that completes or fails according to the result of the operation.
      */
-    CompletionStage<Void> put(ActorRef ownSubscriber, T topics, Replicator.WriteConsistency writeConsistency);
+    CompletionStage<Void> put(ActorRef ownSubscriber, T topicUpdates, Replicator.WriteConsistency writeConsistency);
 
     /**
      * Remove a subscriber outright.

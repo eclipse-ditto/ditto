@@ -14,10 +14,10 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.services.utils.pubsub.ddata.BloomFilterSubscriptions;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
+import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterSubscriptions;
+import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

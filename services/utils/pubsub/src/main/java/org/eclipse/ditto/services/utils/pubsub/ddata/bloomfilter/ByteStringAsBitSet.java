@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub.ddata;
+package org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter;
 
 import java.util.stream.Stream;
 
