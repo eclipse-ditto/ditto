@@ -12,9 +12,12 @@
   */
  package org.eclipse.ditto.model.base.entity.id;
 
+ import javax.annotation.concurrent.Immutable;
+
  /**
   * Java representation of an Entity ID.
   */
+ @Immutable
  public interface EntityId extends CharSequence, Comparable<EntityId> {
 
      @Override
