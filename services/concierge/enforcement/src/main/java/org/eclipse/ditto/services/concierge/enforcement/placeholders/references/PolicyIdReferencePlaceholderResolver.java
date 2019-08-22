@@ -66,7 +66,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
 
     private void initializeSupportedEntityTypeReferences() {
         this.supportedEntityTypesToActionMap.put(ReferencePlaceholder.ReferencedEntityType.THINGS,
-                this::handleThingPolicyIdReference);
+                this::handlePolicyIdReference);
     }
 
     /**
@@ -97,7 +97,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
         return resolveEntityReferenceStrategy.handleEntityPolicyIdReference(referencePlaceholder, dittoHeaders);
     }
 
-    private CompletionStage<String> handleThingPolicyIdReference(final ReferencePlaceholder referencePlaceholder,
+    private CompletionStage<String> handlePolicyIdReference(final ReferencePlaceholder referencePlaceholder,
             final DittoHeaders dittoHeaders) {
 
         final HashMap<String, String> enhancedMap = new HashMap<>(dittoHeaders);

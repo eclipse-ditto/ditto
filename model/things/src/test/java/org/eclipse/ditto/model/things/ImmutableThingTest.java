@@ -37,9 +37,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -80,7 +81,7 @@ public final class ImmutableThingTest {
                 AccessControlList.class,
                 ThingRevision.class,
                 ThingId.class,
-                ThingPolicyId.class
+                PolicyId.class
         };
 
         assertInstancesOf(ImmutableThing.class,
@@ -121,7 +122,7 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithoutPolicyId() {
-        final Thing thing = ImmutableThing.of(THING_ID, (ThingPolicyId) null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+        final Thing thing = ImmutableThing.of(THING_ID, (PolicyId) null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
                 MODIFIED);
 
         assertThat(thing)
@@ -179,7 +180,7 @@ public final class ImmutableThingTest {
     @Test
     public void createThingWithInvalidPolicyId() {
         final String invalidPolicyId = "namespace:";
-        assertThatExceptionOfType(ThingPolicyIdInvalidException.class).isThrownBy(() -> {
+        assertThatExceptionOfType(PolicyIdInvalidException.class).isThrownBy(() -> {
             ImmutableThing.of(
                     THING_ID.toString(),
                     invalidPolicyId,
@@ -187,7 +188,7 @@ public final class ImmutableThingTest {
                     FEATURES,
                     LIFECYCLE,
                     REVISION,
-                    MODIFIED).validate(DittoHeaders.empty());
+                    MODIFIED);
         });
     }
 
@@ -205,8 +206,8 @@ public final class ImmutableThingTest {
                 REVISION,
                 MODIFIED);
 
-        assertThatExceptionOfType(ThingPolicyIdInvalidException.class).isThrownBy(
-                () -> thing.setPolicyId(invalidPolicyId).validate(DittoHeaders.empty()));
+        assertThatExceptionOfType(PolicyIdInvalidException.class).isThrownBy(
+                () -> thing.setPolicyId(invalidPolicyId));
     }
 
     @Test
@@ -312,7 +313,7 @@ public final class ImmutableThingTest {
 
     @Test
     public void setPolicyIdWorksAsExpected() {
-        final ThingPolicyId newPolicyId = ThingPolicyId.of("foo:new");
+        final PolicyId newPolicyId = PolicyId.of("foo:new");
 
         final Thing changedThing = KNOWN_THING_V2.setPolicyId(newPolicyId);
 
@@ -996,7 +997,7 @@ public final class ImmutableThingTest {
                             FEATURES,
                             LIFECYCLE,
                             REVISION,
-                            MODIFIED).validate(DittoHeaders.empty())
+                            MODIFIED)
             )
         );
 

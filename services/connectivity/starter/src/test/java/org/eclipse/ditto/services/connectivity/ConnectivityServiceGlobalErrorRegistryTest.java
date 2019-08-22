@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity;
 
 import java.util.Arrays;
 
-import org.eclipse.ditto.model.base.entity.id.EntityIdInvalidException;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
@@ -57,7 +57,7 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 InvalidNamespacesException.class,
                 NamespaceBlockedException.class,
                 PlaceholderFunctionSignatureInvalidException.class,
-                EntityIdInvalidException.class,
+                NamespacedEntityIdInvalidException.class,
                 ThingIdInvalidException.class,
                 PolicyIdInvalidException.class
         ));

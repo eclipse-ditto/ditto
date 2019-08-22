@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * A mutable builder for an immutable {@link Thing} from scratch.
@@ -40,7 +41,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Nullable ThingLifecycle lifecycle;
     @Nullable ThingRevision revision;
     @Nullable Instant modified;
-    @Nullable private ThingPolicyId policyId;
+    @Nullable private PolicyId policyId;
     @Nullable private AccessControlListBuilder aclBuilder;
     @Nullable private AttributesBuilder attributesBuilder;
     @Nullable private Attributes attributes;
@@ -370,7 +371,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setPolicyId(@Nullable final ThingPolicyId policyId) {
+    public FromScratch setPolicyId(@Nullable final PolicyId policyId) {
         this.policyId = policyId;
         return this;
     }

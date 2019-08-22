@@ -31,9 +31,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -58,9 +58,9 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
     static final JsonFieldDefinition<String> JSON_POLICY_ID =
             JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final ThingPolicyId policyId;
+    private final PolicyId policyId;
 
-    private PolicyIdCreated(final ThingId thingId, final ThingPolicyId policyId, final long revision,
+    private PolicyIdCreated(final ThingId thingId, final PolicyId policyId, final long revision,
             @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.policyId = policyId;
@@ -76,13 +76,13 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
      * @return the {@code PolicyIdCreated}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, ThingPolicyId, long, DittoHeaders)}
+     * {@link #of(ThingId, PolicyId, long, DittoHeaders)}
      * instead.
      */
     @Deprecated
     public static PolicyIdCreated of(final String thingId, final String policyId, final long revision,
             final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), ThingPolicyId.of(policyId), revision, dittoHeaders);
+        return of(ThingId.of(thingId), PolicyId.of(policyId), revision, dittoHeaders);
     }
 
     /**
@@ -95,7 +95,7 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
      * @return the {@code PolicyIdCreated}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      */
-    public static PolicyIdCreated of(final ThingId thingId, final ThingPolicyId policyId, final long revision,
+    public static PolicyIdCreated of(final ThingId thingId, final PolicyId policyId, final long revision,
             final DittoHeaders dittoHeaders) {
         return of(thingId, policyId, revision, null, dittoHeaders);
     }
@@ -111,13 +111,13 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
      * @return the {@code PolicyIdCreated}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, ThingPolicyId, long, Instant, DittoHeaders)}
+     * {@link #of(ThingId, PolicyId, long, Instant, DittoHeaders)}
      * instead.
      */
     @Deprecated
     public static PolicyIdCreated of(final String thingId, final String policyId, final long revision,
             @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), ThingPolicyId.of(policyId), revision, timestamp, dittoHeaders);
+        return of(ThingId.of(thingId), PolicyId.of(policyId), revision, timestamp, dittoHeaders);
     }
 
     /**
@@ -131,7 +131,7 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
      * @return the {@code PolicyIdCreated}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      */
-    public static PolicyIdCreated of(final ThingId thingId, final ThingPolicyId policyId, final long revision,
+    public static PolicyIdCreated of(final ThingId thingId, final PolicyId policyId, final long revision,
             @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         return new PolicyIdCreated(thingId, policyId, revision, timestamp, dittoHeaders);
     }
@@ -166,7 +166,7 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
             final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
-            final ThingPolicyId thingPolicyId = ThingPolicyId.of(extractedPolicyId);
+            final PolicyId thingPolicyId = PolicyId.of(extractedPolicyId);
 
             return of(thingId, thingPolicyId, revision, timestamp, dittoHeaders);
         });
@@ -183,7 +183,7 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
         return getPolicyEntityId().toString();
     }
 
-    public ThingPolicyId getPolicyEntityId() {
+    public PolicyId getPolicyEntityId() {
         return policyId;
     }
 

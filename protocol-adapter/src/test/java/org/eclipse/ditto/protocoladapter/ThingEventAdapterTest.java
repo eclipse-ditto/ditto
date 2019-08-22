@@ -24,8 +24,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
@@ -1195,7 +1195,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void policyIdCreatedFromAdaptable() {
         final PolicyIdCreated expected =
-                PolicyIdCreated.of(TestConstants.THING_ID, ThingPolicyId.of(TestConstants.THING_ID),
+                PolicyIdCreated.of(TestConstants.THING_ID, PolicyId.of(TestConstants.THING_ID),
                         TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
         final JsonPointer path = JsonPointer.of("/policyId");
@@ -1215,7 +1215,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void policyIdModifiedFromAdaptable() {
         final PolicyIdModified expected =
-                PolicyIdModified.of(TestConstants.THING_ID, ThingPolicyId.of(TestConstants.THING_ID),
+                PolicyIdModified.of(TestConstants.THING_ID, PolicyId.of(TestConstants.THING_ID),
                         TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
         final JsonPointer path = JsonPointer.of("/policyId");
@@ -1245,7 +1245,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final PolicyIdModified policyIdModified =
-                PolicyIdModified.of(TestConstants.THING_ID, ThingPolicyId.of(TestConstants.THING_ID),
+                PolicyIdModified.of(TestConstants.THING_ID, PolicyId.of(TestConstants.THING_ID),
                         TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(policyIdModified);
 

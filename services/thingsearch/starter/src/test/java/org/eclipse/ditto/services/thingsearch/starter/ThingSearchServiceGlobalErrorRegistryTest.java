@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.thingsearch.starter;
 
 import java.util.Arrays;
 
-import org.eclipse.ditto.model.base.entity.id.EntityIdInvalidException;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
@@ -46,7 +46,7 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 JsonTypeNotParsableException.class,
                 InvalidNamespacesException.class,
                 NamespaceBlockedException.class,
-                EntityIdInvalidException.class
+                NamespacedEntityIdInvalidException.class
         ));
     }
 }

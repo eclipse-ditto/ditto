@@ -21,8 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -34,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class ModifyPolicyIdResponseTest {
 
-    private static final ThingPolicyId KNOWN_POLICY_ID = ThingPolicyId.of("namepsace:policyId");
+    private static final PolicyId KNOWN_POLICY_ID = PolicyId.of("namespace:policyId");
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyPolicyIdResponse.TYPE)
@@ -53,7 +53,7 @@ public class ModifyPolicyIdResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyPolicyIdResponse.class, areImmutable(),
-                provided(ThingId.class, ThingPolicyId.class).isAlsoImmutable());
+                provided(ThingId.class, PolicyId.class).isAlsoImmutable());
     }
 
 

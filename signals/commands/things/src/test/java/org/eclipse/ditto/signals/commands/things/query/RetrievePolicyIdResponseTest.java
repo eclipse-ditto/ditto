@@ -21,8 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -45,7 +45,7 @@ public class RetrievePolicyIdResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrievePolicyIdResponse.class, areImmutable(),
-                provided(ThingId.class, ThingPolicyId.class).isAlsoImmutable());
+                provided(ThingId.class, PolicyId.class).isAlsoImmutable());
     }
 
 

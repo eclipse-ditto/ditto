@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * A mutable builder with a fluent API for an immutable {@link Thing}. This builder is initialised with the properties
@@ -255,7 +256,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setPolicyId(@Nullable final ThingPolicyId policyId) {
+    public FromCopy setPolicyId(@Nullable final PolicyId policyId) {
         fromScratchBuilder.setPolicyId(policyId);
         return this;
     }

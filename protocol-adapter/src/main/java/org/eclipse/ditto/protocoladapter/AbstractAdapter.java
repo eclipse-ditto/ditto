@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -42,9 +43,8 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingPolicyId;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
@@ -196,11 +196,11 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return adaptable.getPayload().getValue().orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static ThingPolicyId policyIdFrom(final Adaptable adaptable) {
+    protected static PolicyId policyIdFrom(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asString)
-                .map(ThingPolicyId::of)
+                .map(PolicyId::of)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 

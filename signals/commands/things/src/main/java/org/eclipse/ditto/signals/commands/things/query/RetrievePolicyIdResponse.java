@@ -32,8 +32,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -54,10 +54,10 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
             JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
-    private final ThingPolicyId policyId;
+    private final PolicyId policyId;
 
     private RetrievePolicyIdResponse(final ThingId thingId, final HttpStatusCode statusCode,
-            final ThingPolicyId policyId, final DittoHeaders dittoHeaders) {
+            final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.policyId = checkNotNull(policyId, "Policy ID");
@@ -82,13 +82,13 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, ThingPolicyId, DittoHeaders)}
+     * {@link #of(ThingId, PolicyId, DittoHeaders)}
      * instead.
      */
     @Deprecated
     public static RetrievePolicyIdResponse of(final String thingId, final String policyId,
             final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), ThingPolicyId.of(policyId), dittoHeaders);
+        return of(ThingId.of(thingId), PolicyId.of(policyId), dittoHeaders);
     }
 
     /**
@@ -100,7 +100,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrievePolicyIdResponse of(final ThingId thingId, final ThingPolicyId policyId,
+    public static RetrievePolicyIdResponse of(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
         return new RetrievePolicyIdResponse(thingId, HttpStatusCode.OK, policyId, dittoHeaders);
     }
@@ -137,7 +137,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final String readPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
-                    final ThingPolicyId policyId = ThingPolicyId.of(readPolicyId);
+                    final PolicyId policyId = PolicyId.of(readPolicyId);
 
                     return of(thingId, policyId, dittoHeaders);
                 });
@@ -164,7 +164,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      *
      * @return the retrieved Policy ID.
      */
-    public ThingPolicyId getPolicyEntityId() {
+    public PolicyId getPolicyEntityId() {
         return policyId;
     }
 
@@ -176,7 +176,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     @Override
     public RetrievePolicyIdResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
-        return of(thingId, ThingPolicyId.of(entity.asString()), getDittoHeaders());
+        return of(thingId, PolicyId.of(entity.asString()), getDittoHeaders());
     }
 
     @Override

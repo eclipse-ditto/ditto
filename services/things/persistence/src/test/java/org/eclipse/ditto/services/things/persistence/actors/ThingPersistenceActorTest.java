@@ -48,6 +48,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.AccessControlList;
@@ -61,13 +62,12 @@ import org.eclipse.ditto.model.things.Permissions;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
@@ -600,7 +600,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Thing initialThing = createThingV2WithRandomId();
                 final ThingId thingId = getIdOrThrow(initialThing);
-                final ThingPolicyId policyId = initialThing.getPolicyEntityId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = initialThing.getPolicyEntityId().orElseThrow(IllegalStateException::new);
                 final ActorRef underTest = createPersistenceActorFor(initialThing);
 
                 final CreateThing createThing = CreateThing.of(initialThing, null, dittoHeadersV2);

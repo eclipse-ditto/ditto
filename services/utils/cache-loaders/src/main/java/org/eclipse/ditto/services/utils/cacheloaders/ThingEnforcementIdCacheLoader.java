@@ -84,7 +84,6 @@ public final class ThingEnforcementIdCacheLoader
                 return Entry.of(revision, resourceKey);
             } else {
                 final PolicyId policyId = thing.getPolicyEntityId()
-                        .map(PolicyId::of)
                         .orElseThrow(badThingResponse("no PolicyId or ACL"));
                 final EntityIdWithResourceType resourceKey =
                         EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId);

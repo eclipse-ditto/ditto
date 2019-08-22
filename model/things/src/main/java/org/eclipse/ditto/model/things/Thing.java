@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * A generic entity which can be used as a "handle" for multiple {@link Feature}s belonging to this Thing. A Thing can
@@ -470,18 +471,18 @@ public interface Thing extends Entity<ThingRevision> {
      *
      * @return the Policy ID of this Thing.
      */
-    Optional<ThingPolicyId> getPolicyEntityId();
+    Optional<PolicyId> getPolicyEntityId();
 
     /**
      * Sets the given Policy ID on a copy of this Thing.
      *
      * @param policyId the Policy ID to set.
      * @return a copy of this Thing with {@code policyId} as its Policy ID.
-     * @deprecated Policy ID of the thing is now typed. Use {@link #setPolicyId(ThingPolicyId)} ()} instead.
+     * @deprecated Policy ID of the thing is now typed. Use {@link #setPolicyId(PolicyId)} ()} instead.
      */
     @Deprecated
     default Thing setPolicyId(@Nullable String policyId) {
-        return setPolicyId(policyId == null ? null : ThingPolicyId.of(policyId));
+        return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
     }
 
     /**
@@ -490,7 +491,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param policyId the Policy ID to set.
      * @return a copy of this Thing with {@code policyId} as its Policy ID.
      */
-    Thing setPolicyId(@Nullable ThingPolicyId policyId);
+    Thing setPolicyId(@Nullable PolicyId policyId);
 
     /**
      * Returns the Features of this Thing.
@@ -532,15 +533,10 @@ public interface Thing extends Entity<ThingRevision> {
     Thing removeFeature(String featureId);
 
     /**
-     * Validates the thingId and policyId of this Thing.
-     *
-     * @param headers headers of exceptions to be thrown.
-     *
-     * @throws ThingIdInvalidException if {@code thingId} is invalid.
-     * @throws ThingPolicyIdInvalidException if {@code policyId} is invalid.
+     * @deprecated this method does nothing anymore. IDs are now typed and already validated.
      */
-    void validate(DittoHeaders headers);
-
+    @Deprecated
+    default void validate(DittoHeaders headers) { }
     /**
      * An enumeration of the known {@link JsonField}s of a Thing.
      */

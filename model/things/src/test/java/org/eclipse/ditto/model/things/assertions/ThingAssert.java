@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.assertions.JsonifiableWithPredicateAssert;
 import org.eclipse.ditto.model.base.assertions.JsonifiableWithSelectorAndPredicateAssert;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
@@ -42,7 +43,6 @@ import org.eclipse.ditto.model.things.Permissions;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 
@@ -130,10 +130,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         return this;
     }
 
-    public ThingAssert hasPolicyId(final ThingPolicyId expectedPolicyId) {
+    public ThingAssert hasPolicyId(final PolicyId expectedPolicyId) {
         isNotNull();
 
-        final Optional<ThingPolicyId> optionalPolicyId = actual.getPolicyEntityId();
+        final Optional<PolicyId> optionalPolicyId = actual.getPolicyEntityId();
 
         assertThat(optionalPolicyId.isPresent() && Objects.equals(optionalPolicyId.get(), expectedPolicyId))
                 .overridingErrorMessage("Expected Policy ID to be \n<%s> but was \n<%s>", expectedPolicyId,
@@ -146,7 +146,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasNoPolicyId() {
         isNotNull();
 
-        final Optional<ThingPolicyId> policyIdOptional = actual.getPolicyEntityId();
+        final Optional<PolicyId> policyIdOptional = actual.getPolicyEntityId();
 
         assertThat(policyIdOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not have a PolicyId but it had <%s>",

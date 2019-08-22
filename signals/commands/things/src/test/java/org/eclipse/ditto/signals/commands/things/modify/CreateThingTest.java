@@ -24,9 +24,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -161,7 +161,7 @@ public final class CreateThingTest {
 
     @Test
     public void initializeWithCopiedPolicyAndWithInitialPolicyNullAndPolicyIdNull() {
-        final Thing thing = TestConstants.Thing.THING.setPolicyId((ThingPolicyId) null);
+        final Thing thing = TestConstants.Thing.THING.setPolicyId((PolicyId) null);
         final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
         final CreateThing createThing =
                 CreateThing.of(thing, null, thingReference, TestConstants.EMPTY_DITTO_HEADERS);

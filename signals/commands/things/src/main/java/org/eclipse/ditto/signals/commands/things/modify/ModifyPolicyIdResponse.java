@@ -33,9 +33,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -57,10 +57,10 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
 
 
     private final ThingId thingId;
-    @Nullable private final ThingPolicyId policyId;
+    @Nullable private final PolicyId policyId;
 
     private ModifyPolicyIdResponse(final ThingId thingId, final HttpStatusCode statusCode,
-            @Nullable final ThingPolicyId policyId, final DittoHeaders dittoHeaders) {
+            @Nullable final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.policyId = policyId;
@@ -86,13 +86,13 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      * @return a command response for a created Policy ID.
      * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #created(ThingId, ThingPolicyId, DittoHeaders)}
+     * {@link #created(ThingId, PolicyId, DittoHeaders)}
      * instead.
      */
     @Deprecated
     public static ModifyPolicyIdResponse created(final String thingId, final String policyId,
             final DittoHeaders dittoHeaders) {
-        return created(ThingId.of(thingId), ThingPolicyId.of(policyId), dittoHeaders);
+        return created(ThingId.of(thingId), PolicyId.of(policyId), dittoHeaders);
     }
 
     /**
@@ -105,7 +105,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      * @return a command response for a created Policy ID.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyPolicyIdResponse created(final ThingId thingId, final ThingPolicyId policyId,
+    public static ModifyPolicyIdResponse created(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
         return new ModifyPolicyIdResponse(thingId, HttpStatusCode.CREATED, policyId, dittoHeaders);
     }
@@ -172,9 +172,9 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedPolicyId = jsonObject.getValue(JSON_POLICY_ID).orElse(null);
-                    final ThingPolicyId thingPolicyId = extractedPolicyId == null ?
+                    final PolicyId thingPolicyId = extractedPolicyId == null ?
                             null :
-                            ThingPolicyId.of(extractedPolicyId);
+                            PolicyId.of(extractedPolicyId);
 
                     return new ModifyPolicyIdResponse(thingId, statusCode, thingPolicyId, dittoHeaders);
                 });
@@ -201,7 +201,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      *
      * @return the created Policy ID.
      */
-    public Optional<ThingPolicyId> getPolicyEntityId() {
+    public Optional<PolicyId> getPolicyEntityId() {
         return Optional.ofNullable(policyId);
     }
 

@@ -50,7 +50,6 @@ import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
@@ -563,7 +562,7 @@ public final class ThingCommandEnforcementTest {
 
     private static JsonObject newThingWithPolicyId(final CharSequence policyId) {
         return newThing()
-                .setPolicyId(ThingPolicyId.of(policyId))
+                .setPolicyId(PolicyId.of(policyId))
                 .build()
                 .toJson(V_2, FieldType.all());
     }
@@ -586,7 +585,7 @@ public final class ThingCommandEnforcementTest {
                 .setId(THING_ID)
                 .setAttribute(JsonPointer.of("/testAttr"), JsonValue.of("testString"))
                 .setRevision(1L)
-                .setPolicyId(ThingPolicyId.of(policyId))
+                .setPolicyId(PolicyId.of(policyId))
                 .build()
                 .toJson(V_2, FieldType.all());
     }

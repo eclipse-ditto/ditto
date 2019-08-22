@@ -28,10 +28,10 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
@@ -276,7 +276,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 extractDataBytes(payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 policyIdJson -> ModifyPolicyId.of(thingId,
-                                                        ThingPolicyId.of(Optional.of(JsonFactory.readFrom(policyIdJson))
+                                                        PolicyId.of(Optional.of(JsonFactory.readFrom(policyIdJson))
                                                                 .filter(JsonValue::isString)
                                                                 .map(JsonValue::asString)
                                                                 .orElse(policyIdJson)), dittoHeaders)

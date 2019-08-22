@@ -66,7 +66,6 @@ import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -972,7 +971,6 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         } else if (createThing.getThing().getPolicyEntityId().isPresent()) {
             final PolicyId policyId = createThing.getThing()
                     .getPolicyEntityId()
-                    .map(PolicyId::of)
                     .orElseThrow(IllegalStateException::new);
             final Optional<DittoRuntimeException> errorOpt = checkForErrorsInCreateThingWithPolicy(createThing);
             if (errorOpt.isPresent()) {
@@ -1012,7 +1010,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 final ThingId thingId = createThing.getThingEntityId();
                 final String message = String.format("The Thing with ID '%s' could not be created with implicit " +
                         "Policy because no authorization subject is present.", thingId);
-                throw ThingNotCreatableException.newBuilderForPolicyMissing(thingId, ThingPolicyId.of(thingId))
+                throw ThingNotCreatableException.newBuilderForPolicyMissing(thingId, PolicyId.of(thingId))
                                 .message(message)
                                 .description(() -> null)
                                 .dittoHeaders(createThing.getDittoHeaders())
@@ -1027,7 +1025,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final CreateThing createThingWithoutPolicyId) {
 
         final CreateThing createThing = CreateThing.of(
-                createThingWithoutPolicyId.getThing().setPolicyId(ThingPolicyId.of(createPolicy.getEntityId())),
+                createThingWithoutPolicyId.getThing().setPolicyId(createPolicy.getEntityId()),
                 null,
                 createThingWithoutPolicyId.getDittoHeaders());
 
@@ -1051,10 +1049,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         if (!(policyResponse instanceof CreatePolicyResponse)) {
             if (shouldReportInitialPolicyCreationFailure(policyResponse)) {
 
-                throw reportInitialPolicyCreationFailure(ThingPolicyId.of(createPolicy.getEntityId()), createThing);
+                throw reportInitialPolicyCreationFailure(createPolicy.getEntityId(), createThing);
             } else if (isAskTimeoutException(policyResponse, null)) {
 
-                throw PolicyUnavailableException.newBuilder(PolicyId.of(createThing.getThingEntityId()))
+                throw PolicyUnavailableException.newBuilder(createPolicy.getEntityId())
                         .dittoHeaders(createThing.getDittoHeaders())
                         .build();
             } else {
@@ -1073,7 +1071,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 policyResponse instanceof NamespaceBlockedException;
     }
 
-    private ThingNotCreatableException reportInitialPolicyCreationFailure(final ThingPolicyId policyId,
+    private ThingNotCreatableException reportInitialPolicyCreationFailure(final PolicyId policyId,
             final CreateThing command) {
 
         log(command).info("Failed to create Policy with ID '{}' is already existing, the CreateThing " +

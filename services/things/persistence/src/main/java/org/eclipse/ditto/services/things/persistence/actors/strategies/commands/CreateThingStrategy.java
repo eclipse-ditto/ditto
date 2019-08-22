@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclInvalidException;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
@@ -36,7 +37,6 @@ import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
@@ -101,7 +101,7 @@ public final class CreateThingStrategy
         // for v2 upwards, set the policy-id to the thing-id if none is specified:
         final boolean isV2Upwards = !JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion());
         if (isV2Upwards && !newThing.getPolicyEntityId().isPresent()) {
-            newThing = newThing.setPolicyId(ThingPolicyId.of(context.getThingEntityId()));
+            newThing = newThing.setPolicyId(PolicyId.of(context.getThingEntityId()));
         }
 
         final Instant modified = Instant.now();

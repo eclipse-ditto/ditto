@@ -54,7 +54,6 @@ public final class JsonViewScenario13 implements JsonViewScenario {
 
     private static final PolicyId POLICY_ID =
             PolicyId.of("org.eclipse.ditto", JsonViewScenario13.class.getSimpleName());
-    private static final String THING_POLICY_ID = POLICY_ID.toString();
     private static final String LABEL_OWNER = "owner";
     private static final String LABEL_CLIENT = "client";
     private static final SubjectId SUBJECT_ID_OWNER = SubjectId.newInstance(SubjectIssuer.GOOGLE, LABEL_OWNER);
@@ -76,7 +75,7 @@ public final class JsonViewScenario13 implements JsonViewScenario {
     private static final Features TEST_FEATURES = ThingsModelFactory.newFeatures(GYROSCOPE_FEATURE);
     private static final Thing TEST_THING = ThingsModelFactory.newThingBuilder()
             .setId(TEST_THING_ID)
-            .setPolicyId(THING_POLICY_ID)
+            .setPolicyId(POLICY_ID)
             .setAttribute(JsonFactory.newPointer("isOnline"), JsonFactory.newValue(false))
             .setAttribute(JsonFactory.newPointer("lastUpdate"), JsonFactory.newValue("Thu Sep 28 15:01:43 CEST 2017"))
             .setFeatures(TEST_FEATURES)

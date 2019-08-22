@@ -80,7 +80,6 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingLifecycle;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
@@ -299,7 +298,6 @@ class JsonExamplesProducer {
      * Policy
      */
     private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "the_policy_id");
-    private static final ThingPolicyId THING_POLICY_ID = ThingPolicyId.of(POLICY_ID);
     private static final Label LABEL = PoliciesModelFactory.newLabel("the_label");
     private static final SubjectId SUBJECT_ID =
             PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "the_subjectid");
@@ -369,7 +367,7 @@ class JsonExamplesProducer {
             .setAttributes(ATTRIBUTES)
             .setFeatures(FEATURES)
             .setLifecycle(LIFECYCLE)
-            .setPolicyId(THING_POLICY_ID)
+            .setPolicyId(POLICY_ID)
             .build();
 
     private static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID = JsonFactory.newFieldSelector(
@@ -885,7 +883,7 @@ class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("retrieveAclEntryResponse.json")), retrieveAclEntryResponse,
                 JsonSchemaVersion.V_1);
 
-        final RetrievePolicyIdResponse retrievePolicyIdResponse = RetrievePolicyIdResponse.of(THING_ID, THING_POLICY_ID,
+        final RetrievePolicyIdResponse retrievePolicyIdResponse = RetrievePolicyIdResponse.of(THING_ID, POLICY_ID,
                 DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrievePolicyIdResponse.json")), retrievePolicyIdResponse);
 
@@ -936,7 +934,7 @@ class JsonExamplesProducer {
         final DeleteAclEntry deleteAclEntry = DeleteAclEntry.of(THING_ID, AUTH_SUBJECT_1, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("deleteAclEntry.json")), deleteAclEntry, JsonSchemaVersion.V_1);
 
-        final ModifyPolicyId modifyPolicyId = ModifyPolicyId.of(THING_ID, THING_POLICY_ID, DITTO_HEADERS);
+        final ModifyPolicyId modifyPolicyId = ModifyPolicyId.of(THING_ID, POLICY_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyId.json")), modifyPolicyId);
 
         final ModifyAttributes modifyAttributes = ModifyAttributes.of(THING_ID, ATTRIBUTES, DITTO_HEADERS);
@@ -1139,12 +1137,12 @@ class JsonExamplesProducer {
         writeJson(eventsDir.resolve(Paths.get("aclEntryDeleted.json")), aclEntryDeleted, JsonSchemaVersion.V_1);
 
         final PolicyIdCreated policyIdCreated =
-                PolicyIdCreated.of(THING_ID, ThingPolicyId.of(THING_ID), REVISION_NUMBER,
+                PolicyIdCreated.of(THING_ID, PolicyId.of(THING_ID), REVISION_NUMBER,
                 DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdCreated.json")), policyIdCreated);
 
         final PolicyIdModified policyIdModified =
-                PolicyIdModified.of(THING_ID, ThingPolicyId.of(THING_ID), REVISION_NUMBER, DITTO_HEADERS);
+                PolicyIdModified.of(THING_ID, PolicyId.of(THING_ID), REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdModified.json")), policyIdModified);
 
         final AttributesCreated attributesCreated = AttributesCreated.of(THING_ID, ATTRIBUTES, REVISION_NUMBER,
@@ -1354,7 +1352,7 @@ class JsonExamplesProducer {
         writeJson(exceptionsDir.resolve(Paths.get("thingNotAccessibleException.json")), thingNotAccessibleException);
 
         final ThingNotCreatableException thingNotCreatableException =
-                ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, THING_POLICY_ID)
+                ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
                         .dittoHeaders(DITTO_HEADERS)
                         .build();
         writeJson(exceptionsDir.resolve(Paths.get("thingNotCreatableException.json")), thingNotCreatableException);

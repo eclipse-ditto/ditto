@@ -28,9 +28,9 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * Representation of one Thing within Ditto.
@@ -41,7 +41,7 @@ final class ImmutableThing implements Thing {
 
     @Nullable private final ThingId thingId;
     @Nullable private final AccessControlList acl;
-    @Nullable private final ThingPolicyId policyId;
+    @Nullable private final PolicyId policyId;
     @Nullable private final Attributes attributes;
     @Nullable private final Features features;
     @Nullable private final ThingLifecycle lifecycle;
@@ -50,7 +50,7 @@ final class ImmutableThing implements Thing {
 
     private ImmutableThing(@Nullable final ThingId thingId,
             @Nullable final AccessControlList acl,
-            @Nullable final ThingPolicyId policyId,
+            @Nullable final PolicyId policyId,
             @Nullable final Attributes attributes,
             @Nullable final Features features,
             @Nullable final ThingLifecycle lifecycle,
@@ -131,7 +131,7 @@ final class ImmutableThing implements Thing {
      * @param modified the modified timestamp of the thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, ThingPolicyId, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant)}
+     * {@link #of(ThingId, PolicyId, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant)}
      * instead.
      */
     @Deprecated
@@ -142,7 +142,7 @@ final class ImmutableThing implements Thing {
             @Nullable final ThingLifecycle lifecycle,
             @Nullable final ThingRevision revision,
             @Nullable final Instant modified) {
-        final ThingPolicyId typedPolicyId = policyId == null ? null : ThingPolicyId.of(policyId);
+        final PolicyId typedPolicyId = policyId == null ? null : PolicyId.of(policyId);
         return of(ThingId.of(thingId), typedPolicyId, attributes, features, lifecycle, revision, modified);
     }
 
@@ -159,7 +159,7 @@ final class ImmutableThing implements Thing {
      * @return the {@code Thing} which was created from the given JSON object.
      */
     static Thing of(@Nullable final ThingId thingId,
-            @Nullable final ThingPolicyId policyId,
+            @Nullable final PolicyId policyId,
             @Nullable final Attributes attributes,
             @Nullable final Features features,
             @Nullable final ThingLifecycle lifecycle,
@@ -371,12 +371,12 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    public Optional<ThingPolicyId> getPolicyEntityId() {
+    public Optional<PolicyId> getPolicyEntityId() {
         return Optional.ofNullable(policyId);
     }
 
     @Override
-    public Thing setPolicyId(@Nullable final ThingPolicyId policyId) {
+    public Thing setPolicyId(@Nullable final PolicyId policyId) {
         return new ImmutableThing(thingId, acl, policyId, attributes, features, lifecycle, revision, modified);
     }
 
@@ -390,10 +390,6 @@ final class ImmutableThing implements Thing {
         ConditionChecker.checkNotNull(newLifecycle, "lifecycle to be set");
 
         return new ImmutableThing(thingId, acl, policyId, attributes, features, newLifecycle, revision, modified);
-    }
-
-    @Override
-    public void validate(final DittoHeaders headers) {
     }
 
     @Override

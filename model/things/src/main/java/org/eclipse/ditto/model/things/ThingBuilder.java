@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * Builder for instances of {@link Thing} which uses Object Scoping and Method Chaining to provide a convenient usage
@@ -140,11 +141,11 @@ public interface ThingBuilder {
          *
          * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
-         * @deprecated Policy ID of the Thing is now typed. Use {@link #setPolicyId(ThingPolicyId)} instead.
+         * @deprecated Policy ID of the Thing is now typed. Use {@link #setPolicyId(PolicyId)} instead.
          */
         @Deprecated
         default FromScratch setPolicyId(@Nullable String policyId) {
-            return setPolicyId(policyId == null ? null : ThingPolicyId.of(policyId));
+            return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
         }
 
         /**
@@ -153,7 +154,7 @@ public interface ThingBuilder {
          * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
          */
-        FromScratch setPolicyId(@Nullable ThingPolicyId policyId);
+        FromScratch setPolicyId(@Nullable PolicyId policyId);
 
         /**
          * Removes the Policy ID from this builder.
@@ -686,11 +687,11 @@ public interface ThingBuilder {
          *
          * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
-         * @deprecated Policy ID of the Thing is now typed. Use {@link #setPolicyId(ThingPolicyId)} instead.
+         * @deprecated Policy ID of the Thing is now typed. Use {@link #setPolicyId(PolicyId)} instead.
          */
         @Deprecated
         default FromCopy setPolicyId(@Nullable String policyId) {
-            return setPolicyId(policyId == null ? null : ThingPolicyId.of(policyId));
+            return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
         }
 
         /**
@@ -699,7 +700,7 @@ public interface ThingBuilder {
          * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
          */
-        FromCopy setPolicyId(@Nullable ThingPolicyId policyId);
+        FromCopy setPolicyId(@Nullable PolicyId policyId);
 
         /**
          * Removes the Policy ID from this builder.

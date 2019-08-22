@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
@@ -26,9 +27,8 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingPolicyId;
-import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
@@ -273,7 +273,7 @@ public abstract class ETagTestUtils {
 
     // PolicyId
 
-    public static ModifyPolicyIdResponse modifyPolicyIdResponse(final ThingId thingId, final ThingPolicyId policyId,
+    public static ModifyPolicyIdResponse modifyPolicyIdResponse(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders, final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(policyId, dittoHeaders);
         if (created) {
@@ -284,7 +284,7 @@ public abstract class ETagTestUtils {
     }
 
     public static RetrievePolicyIdResponse retrievePolicyIdResponse(final ThingId thingId,
-            final ThingPolicyId expectedPolicyId, final DittoHeaders dittoHeaders) {
+            final PolicyId expectedPolicyId, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedPolicyId, dittoHeaders);
         return RetrievePolicyIdResponse.of(thingId, expectedPolicyId, dittoHeadersWithETag);
     }

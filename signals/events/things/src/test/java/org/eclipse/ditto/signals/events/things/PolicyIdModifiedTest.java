@@ -21,8 +21,8 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -44,7 +44,7 @@ public class PolicyIdModifiedTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(PolicyIdModified.class, areImmutable(), provided(ThingPolicyId.class).isAlsoImmutable());
+        assertInstancesOf(PolicyIdModified.class, areImmutable(), provided(PolicyId.class).isAlsoImmutable());
     }
 
 
@@ -64,7 +64,7 @@ public class PolicyIdModifiedTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        PolicyIdModified.of(null, ThingPolicyId.of(TestConstants.Thing.THING_ID), TestConstants.Thing.REVISION_NUMBER,
+        PolicyIdModified.of(null, PolicyId.of(TestConstants.Thing.THING_ID), TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -72,7 +72,7 @@ public class PolicyIdModifiedTest {
     @Test
     public void toJsonReturnsExpected() {
         final PolicyIdModified underTest =
-                PolicyIdModified.of(TestConstants.Thing.THING_ID, ThingPolicyId.of(TestConstants.Thing.THING_ID),
+                PolicyIdModified.of(TestConstants.Thing.THING_ID, PolicyId.of(TestConstants.Thing.THING_ID),
                         TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());

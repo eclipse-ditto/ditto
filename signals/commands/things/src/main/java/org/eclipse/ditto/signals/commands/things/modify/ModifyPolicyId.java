@@ -33,9 +33,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingPolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -61,9 +61,9 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
             JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
-    private final ThingPolicyId policyId;
+    private final PolicyId policyId;
 
-    private ModifyPolicyId(final ThingId thingId, final ThingPolicyId policyId, final DittoHeaders dittoHeaders) {
+    private ModifyPolicyId(final ThingId thingId, final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.policyId = requireNonNull(policyId, "The policy ID must not be null!");
@@ -88,12 +88,12 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * @return a command for modifying the provided new attribute.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, ThingPolicyId, DittoHeaders)}
+     * {@link #of(ThingId, PolicyId, DittoHeaders)}
      * instead.
      */
     @Deprecated
     public static ModifyPolicyId of(final String thingId, final String policyId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), ThingPolicyId.of(policyId), dittoHeaders);
+        return of(ThingId.of(thingId), PolicyId.of(policyId), dittoHeaders);
     }
 
     /**
@@ -105,7 +105,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * @return a command for modifying the provided new attribute.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ModifyPolicyId of(final ThingId thingId, final ThingPolicyId policyId,
+    public static ModifyPolicyId of(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
         return new ModifyPolicyId(thingId, policyId, dittoHeaders);
     }
@@ -144,7 +144,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
             final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String readPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
-            final ThingPolicyId policyId = ThingPolicyId.of(readPolicyId);
+            final PolicyId policyId = PolicyId.of(readPolicyId);
 
             return of(thingId, policyId, dittoHeaders);
         });
@@ -166,7 +166,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      *
      * @return the new Policy ID.
      */
-    public ThingPolicyId getPolicyEntityId() {
+    public PolicyId getPolicyEntityId() {
         return policyId;
     }
 
