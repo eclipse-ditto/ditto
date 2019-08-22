@@ -14,10 +14,10 @@
 
  import java.util.Objects;
 
- import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
- import org.eclipse.ditto.model.base.entity.id.EntityId;
+import javax.annotation.concurrent.Immutable;
 
- import javax.annotation.concurrent.Immutable;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 
  /**
   * Java representation of a connection ID.
@@ -66,7 +66,7 @@
 
      @Override
      public boolean isPlaceholder() {
-         return PLACE_HOLDER_ID.equals(this);
+         return entityId.isPlaceholder();
      }
 
      @Override

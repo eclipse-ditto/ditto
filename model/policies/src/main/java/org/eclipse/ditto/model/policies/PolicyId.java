@@ -124,6 +124,6 @@ public final class PolicyId implements NamespacedEntityId {
 
     @Override
     public boolean isPlaceholder() {
-        return PLACE_HOLDER_ID.equals(this);
+        return entityId.isPlaceholder();
     }
 }
