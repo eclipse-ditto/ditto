@@ -12,7 +12,7 @@
   */
  package org.eclipse.ditto.model.base.entity.id;
 
- import jdk.nashorn.internal.ir.annotations.Immutable;
+ import javax.annotation.concurrent.Immutable;
 
  /**
   * Interface for all entity IDs that contain a namespace in their string representation.

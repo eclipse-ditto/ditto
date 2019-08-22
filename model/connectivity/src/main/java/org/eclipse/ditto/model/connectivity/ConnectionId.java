@@ -17,7 +17,7 @@
  import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
  import org.eclipse.ditto.model.base.entity.id.EntityId;
 
- import jdk.nashorn.internal.ir.annotations.Immutable;
+ import javax.annotation.concurrent.Immutable;
 
  /**
   * Java representation of a connection ID.
