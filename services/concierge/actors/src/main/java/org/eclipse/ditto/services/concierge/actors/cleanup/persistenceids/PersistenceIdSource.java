@@ -159,7 +159,7 @@ public final class PersistenceIdSource {
     private static final class EmptyEntityIdWithRevision extends AbstractEntityIdWithRevision<EntityId> {
 
         private EmptyEntityIdWithRevision() {
-            super(DefaultEntityId.placeholder(), 0L);
+            super(DefaultEntityId.dummy(), 0L);
         }
     }
 }

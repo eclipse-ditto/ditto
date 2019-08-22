@@ -36,17 +36,17 @@ public class ConnectionIdTest {
 
     @Test
     public void placeholderIsPlaceholder() {
-        assertThat(ConnectionId.placeholder().isPlaceholder()).isTrue();
+        assertThat(ConnectionId.dummy().isDummy()).isTrue();
     }
 
     @Test
     public void manuallyCreatedPlaceholderIsPlaceholder() {
-        assertThat(ConnectionId.of("none").isPlaceholder()).isTrue();
+        assertThat(ConnectionId.of("none").isDummy()).isTrue();
     }
 
     @Test
     public void randomlyGeneratedIsNoPlaceholder() {
-        assertThat(ConnectionId.generateRandom().isPlaceholder()).isFalse();
+        assertThat(ConnectionId.generateRandom().isDummy()).isFalse();
     }
 
     @Test

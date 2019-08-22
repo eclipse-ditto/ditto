@@ -74,7 +74,7 @@ public class DefaultNamespacedEntityIdTest {
         final NamespacedEntityId invalidNamespacedEntityId = new NamespacedEntityId() {
 
             @Override
-            public boolean isPlaceholder() {
+            public boolean isDummy() {
                 return false;
             }
 
@@ -126,13 +126,13 @@ public class DefaultNamespacedEntityIdTest {
 
     @Test
     public void placeholderIsPlaceholder() {
-        assertThat(DefaultNamespacedEntityId.placeholder().isPlaceholder()).isTrue();
+        assertThat(DefaultNamespacedEntityId.dummy().isDummy()).isTrue();
     }
 
     @Test
     public void manuallyCreatedPlaceholderIsPlaceholder() {
-        assertThat(DefaultNamespacedEntityId.of("unknown:unknown").isPlaceholder()).isTrue();
-        assertThat(DefaultNamespacedEntityId.of("unknown", "unknown").isPlaceholder()).isTrue();
+        assertThat(DefaultNamespacedEntityId.of("unknown:unknown").isDummy()).isTrue();
+        assertThat(DefaultNamespacedEntityId.of("unknown", "unknown").isDummy()).isTrue();
     }
 
     @Test
@@ -236,13 +236,13 @@ public class DefaultNamespacedEntityIdTest {
         final NamespacedEntityId idBySeparated = DefaultNamespacedEntityId.of(namespace, name);
         assertThat(idBySeparated.getNamespace()).isEqualTo(namespace);
         assertThat(idBySeparated.getName()).isEqualTo(name);
-        assertThat(idBySeparated.isPlaceholder()).isFalse();
+        assertThat(idBySeparated.isDummy()).isFalse();
 
         final NamespacedEntityId idByCombined =
                 DefaultNamespacedEntityId.of(concatenateNamespaceAndName(namespace, name));
         assertThat(idByCombined.getNamespace()).isEqualTo(namespace);
         assertThat(idByCombined.getName()).isEqualTo(name);
-        assertThat(idByCombined.isPlaceholder()).isFalse();
+        assertThat(idByCombined.isDummy()).isFalse();
     }
 
     private static void assertInValidId(@Nullable final String namespace, @Nullable final String name) {

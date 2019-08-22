@@ -22,7 +22,7 @@
   */
  public final class DefaultEntityId implements EntityId {
 
-     private static final EntityId PLACE_HOLDER_ID = DefaultEntityId.of("none");
+     private static final EntityId DUMMY_ID = DefaultEntityId.of("none");
 
      private final String id;
 
@@ -55,17 +55,17 @@
 
      /**
       * Returns a dummy {@link EntityId}. This ID should not be used. It can be identified by
-      * checking {@link EntityId#isPlaceholder()}.
+      * checking {@link EntityId#isDummy()}.
       *
       * @return the dummy ID.
       */
-     public static EntityId placeholder() {
-         return PLACE_HOLDER_ID;
+     public static EntityId dummy() {
+         return DUMMY_ID;
      }
 
      @Override
-     public boolean isPlaceholder() {
-         return PLACE_HOLDER_ID.equals(this);
+     public boolean isDummy() {
+         return DUMMY_ID.equals(this);
      }
 
      @Override

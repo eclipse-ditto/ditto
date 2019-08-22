@@ -57,20 +57,20 @@ public class PolicyIdTest {
     }
 
     @Test
-    public void placeHolderIsPlaceHolder() {
-        assertThat(PolicyId.placeholder().isPlaceholder()).isTrue();
+    public void dummyIsDummy() {
+        assertThat(PolicyId.dummy().isDummy()).isTrue();
     }
 
     @Test
-    public void manuallyCreatedPlaceHolderIsPlaceHolder() {
-        assertThat(PolicyId.of("unknown", "unknown").isPlaceholder()).isTrue();
-        assertThat(PolicyId.of("unknown:unknown").isPlaceholder()).isTrue();
+    public void manuallyCreatedDummyIsDummy() {
+        assertThat(PolicyId.of("unknown", "unknown").isDummy()).isTrue();
+        assertThat(PolicyId.of("unknown:unknown").isDummy()).isTrue();
     }
 
     @Test
-    public void validPolicyIdIsNoPlaceHolder() {
-        assertThat(PolicyId.of("namespace", "name").isPlaceholder()).isFalse();
-        assertThat(PolicyId.of("namespace:name").isPlaceholder()).isFalse();
+    public void validPolicyIdIsNoDummy() {
+        assertThat(PolicyId.of("namespace", "name").isDummy()).isFalse();
+        assertThat(PolicyId.of("namespace:name").isDummy()).isFalse();
     }
 
     @Test

@@ -30,7 +30,7 @@
  @Immutable
  public final class ThingId implements NamespacedEntityId {
 
-     private static final ThingId PLACE_HOLDER_ID = ThingId.of(DefaultNamespacedEntityId.placeholder());
+     private static final ThingId DUMMY_ID = ThingId.of(DefaultNamespacedEntityId.dummy());
      private final NamespacedEntityId entityId;
 
      private ThingId(final NamespacedEntityId entityId) {
@@ -91,16 +91,16 @@
 
      /**
       * Returns a dummy {@link ThingId}. This ID should not be used. It can be identified by
-      * checking {@link ThingId#isPlaceholder()}.
+      * checking {@link ThingId#isDummy()}.
       * @return the dummy ID.
       */
-     public static ThingId placeholder() {
-         return PLACE_HOLDER_ID;
+     public static ThingId dummy() {
+         return DUMMY_ID;
      }
 
      @Override
-     public boolean isPlaceholder() {
-         return entityId.isPlaceholder();
+     public boolean isDummy() {
+         return entityId.isDummy();
      }
 
      @Override

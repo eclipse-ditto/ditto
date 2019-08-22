@@ -31,7 +31,7 @@ public interface WithIdButActuallyNot extends WithId {
     @Deprecated
     @Override
     default String getId() {
-        return DefaultEntityId.placeholder().toString();
+        return DefaultEntityId.dummy().toString();
     }
 
     /**
@@ -41,6 +41,6 @@ public interface WithIdButActuallyNot extends WithId {
      */
     @Override
     default EntityId getEntityId() {
-        return DefaultEntityId.placeholder();
+        return DefaultEntityId.dummy();
     }
 }

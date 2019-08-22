@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException
 @Immutable
 public final class PolicyId implements NamespacedEntityId {
 
-    private static final PolicyId PLACE_HOLDER_ID = PolicyId.of(DefaultNamespacedEntityId.placeholder());
+    private static final PolicyId DUMMY_ID = PolicyId.of(DefaultNamespacedEntityId.dummy());
 
     private final NamespacedEntityId entityId;
 
@@ -85,12 +85,12 @@ public final class PolicyId implements NamespacedEntityId {
 
     /**
      * Returns a dummy {@link PolicyId}. This ID should not be used. It can be identified by
-     * checking {@link PolicyId#isPlaceholder()}.
+     * checking {@link PolicyId#isDummy()}.
      *
      * @return the dummy ID.
      */
-    public static PolicyId placeholder() {
-        return PLACE_HOLDER_ID;
+    public static PolicyId dummy() {
+        return DUMMY_ID;
     }
 
     @Override
@@ -123,7 +123,7 @@ public final class PolicyId implements NamespacedEntityId {
     }
 
     @Override
-    public boolean isPlaceholder() {
-        return entityId.isPlaceholder();
+    public boolean isDummy() {
+        return entityId.isDummy();
     }
 }

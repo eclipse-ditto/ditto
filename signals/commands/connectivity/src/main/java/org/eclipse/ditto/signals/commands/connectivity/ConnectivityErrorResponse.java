@@ -133,7 +133,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      */
     @Override
     public ConnectionId getConnectionEntityId() {
-        return ConnectionId.placeholder();
+        return ConnectionId.dummy();
     }
 
     @Override

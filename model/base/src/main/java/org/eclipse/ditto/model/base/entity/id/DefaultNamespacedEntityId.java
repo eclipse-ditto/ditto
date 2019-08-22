@@ -31,7 +31,7 @@
  @Immutable
  public final class DefaultNamespacedEntityId implements NamespacedEntityId {
 
-     private static final NamespacedEntityId PLACE_HOLDER_ID = DefaultNamespacedEntityId.of("unknown:unknown");
+     private static final NamespacedEntityId DUMMY_ID = DefaultNamespacedEntityId.of("unknown:unknown");
      private static final String DEFAULT_NAMESPACE = "";
 
      private final String namespace;
@@ -109,16 +109,16 @@
 
      /**
       * Returns a dummy {@link NamespacedEntityId}. This ID should not be used. It can be identified by
-      * checking {@link NamespacedEntityId#isPlaceholder()}.
+      * checking {@link NamespacedEntityId#isDummy()}.
       * @return the dummy ID.
       */
-     public static NamespacedEntityId placeholder() {
-         return PLACE_HOLDER_ID;
+     public static NamespacedEntityId dummy() {
+         return DUMMY_ID;
      }
 
      @Override
-     public boolean isPlaceholder() {
-         return PLACE_HOLDER_ID.equals(this);
+     public boolean isDummy() {
+         return DUMMY_ID.equals(this);
      }
 
      @Override

@@ -57,20 +57,20 @@ public class ThingIdTest {
     }
 
     @Test
-    public void placeHolderIsPlaceHolder() {
-        assertThat(ThingId.placeholder().isPlaceholder()).isTrue();
+    public void dummyIsDummy() {
+        assertThat(ThingId.dummy().isDummy()).isTrue();
     }
 
     @Test
-    public void manuallyCreatedPlaceHolderIsPlaceHolder() {
-        assertThat(ThingId.of("unknown", "unknown").isPlaceholder()).isTrue();
-        assertThat(ThingId.of("unknown:unknown").isPlaceholder()).isTrue();
+    public void manuallyCreatedDummyIsDummy() {
+        assertThat(ThingId.of("unknown", "unknown").isDummy()).isTrue();
+        assertThat(ThingId.of("unknown:unknown").isDummy()).isTrue();
     }
 
     @Test
-    public void validThingIdIsNoPlaceHolder() {
-        assertThat(ThingId.of("namespace", "name").isPlaceholder()).isFalse();
-        assertThat(ThingId.of("namespace:name").isPlaceholder()).isFalse();
+    public void validThingIdIsNoDummy() {
+        assertThat(ThingId.of("namespace", "name").isDummy()).isFalse();
+        assertThat(ThingId.of("namespace:name").isDummy()).isFalse();
     }
 
     @Test

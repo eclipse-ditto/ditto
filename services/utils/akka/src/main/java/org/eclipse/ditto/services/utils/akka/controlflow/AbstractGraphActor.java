@@ -236,7 +236,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                         return 0; // 0 is a special "lane" which is required in some special cases
                     } else if (msg instanceof WithId) {
                         final EntityId id = ((WithId) msg).getEntityId();
-                        if (id.isPlaceholder()) {
+                        if (id.isDummy()) {
                             // e.g. the case for RetrieveThings command - in that case it is important that not all
                             // RetrieveThings message are processed in the same "lane", so use msg hash instead:
                             return (msg.hashCode() % parallelism) + 1;

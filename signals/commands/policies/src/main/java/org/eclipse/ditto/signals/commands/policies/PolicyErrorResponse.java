@@ -71,7 +71,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
     public static PolicyErrorResponse of(final DittoRuntimeException dittoRuntimeException) {
-        return of(PolicyId.placeholder(), dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
+        return of(PolicyId.dummy(), dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
     }
 
     /**
@@ -113,7 +113,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
     public static PolicyErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
 
-        return of(PolicyId.placeholder(), dittoRuntimeException, dittoHeaders);
+        return of(PolicyId.dummy(), dittoRuntimeException, dittoHeaders);
     }
 
     /**

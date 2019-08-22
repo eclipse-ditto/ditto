@@ -49,5 +49,5 @@
       *
       * @return true if this ID is a dummy ID, otherwise false.
       */
-     boolean isPlaceholder();
+     boolean isDummy();
  }

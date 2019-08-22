@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
  @Immutable
  public final class ConnectionId implements EntityId {
 
-     private static final ConnectionId PLACE_HOLDER_ID = new ConnectionId(DefaultEntityId.placeholder());
+     private static final ConnectionId DUMMY_ID = new ConnectionId(DefaultEntityId.dummy());
      private final EntityId entityId;
 
      private ConnectionId(final EntityId entityId) {
@@ -57,16 +57,16 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 
      /**
       * Returns a dummy {@link ConnectionId}. This ID should not be used. It can be identified by
-      * checking {@link ConnectionId#isPlaceholder()}.
+      * checking {@link ConnectionId#isDummy()}.
       * @return the dummy ID.
       */
-     public static ConnectionId placeholder() {
-         return PLACE_HOLDER_ID;
+     public static ConnectionId dummy() {
+         return DUMMY_ID;
      }
 
      @Override
-     public boolean isPlaceholder() {
-         return entityId.isPlaceholder();
+     public boolean isDummy() {
+         return entityId.isDummy();
      }
 
      @Override
