@@ -43,10 +43,6 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
     private static final String DEFAULT_DESCRIPTION =
             "It must contain a namespace prefix (java package notation + a colon ':') + a name and must be a valid " +
                     "URI path segment according to RFC-3986";
-    private static final String INVALID_NAMESPACE_DESCRIPTION = "The namespace prefix must conform the syntax of " +
-            "the java package notation and must end with a colon (':').";
-    private static final String INVALID_NAME_DESCRIPTION = "The name of the thing was not valid. It must be a valid " +
-            "URI path segment according to RFC-3986";
 
     private static final long serialVersionUID = -2026814719409279158L;
 
@@ -73,16 +69,8 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * @param thingId the ID of the thing.
      * @return the builder.
      */
-    public static Builder newBuilder(final CharSequence thingId) {
+    public static Builder newBuilder(@Nullable final CharSequence thingId) {
         return new Builder(thingId);
-    }
-
-    static Builder forInvalidName(final CharSequence thingId) {
-        return new Builder(thingId).description(INVALID_NAME_DESCRIPTION);
-    }
-
-    static Builder forInvalidNamespace(final CharSequence thingId) {
-        return new Builder(thingId).description(INVALID_NAMESPACE_DESCRIPTION);
     }
 
     /**
@@ -127,14 +115,9 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final CharSequence thingId) {
+        private Builder(@Nullable final CharSequence thingId) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
-        }
-
-        @Override
-        public Builder description(@Nullable final String description) {
-            return (Builder) super.description(description);
         }
 
         @Override

@@ -38,52 +38,22 @@ public class PolicyIdTest {
     @Test
     public void invalidNamespaceThrowsPolicyIdInvalidException() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> PolicyId.of(".invalidNamespace", "validName"))
-                .matches(policyIdInvalidException -> {
-                    assertThat(policyIdInvalidException.getDescription())
-                            .contains("The namespace prefix must conform the syntax of the java package notation " +
-                                    "and must end with a colon (':').");
-                    return true;
-                });
+                .isThrownBy(() -> PolicyId.of(".invalidNamespace", "validName"));
 
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> PolicyId.inNamespaceWithRandomName(".invalidNamespace"))
-                .matches(policyIdInvalidException -> {
-                    assertThat(policyIdInvalidException.getDescription())
-                            .contains("The namespace prefix must conform the syntax of the java package notation " +
-                                    "and must end with a colon (':').");
-                    return true;
-                });
+                .isThrownBy(() -> PolicyId.inNamespaceWithRandomName(".invalidNamespace"));
 
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> PolicyId.of(".invalidNamespace:validName"))
-                .matches(policyIdInvalidException -> {
-                    assertThat(policyIdInvalidException.getDescription())
-                            .contains("It must contain a namespace prefix (java package notation + a colon ':') + " +
-                                    "a name and must be a valid URI path segment according to RFC-3986");
-                    return true;
-                });
+                .isThrownBy(() -> PolicyId.of(".invalidNamespace:validName"));
     }
 
     @Test
     public void invalidNameThrowsPolicyIdInvalidException() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> PolicyId.of("validNamespace", "§inValidName"))
-                .matches(policyIdInvalidException -> {
-                    assertThat(policyIdInvalidException.getDescription())
-                            .contains("The name of the policy was not valid. It must be a valid URI path segment " +
-                                    "according to RFC-3986");
-                    return true;
-                });
+                .isThrownBy(() -> PolicyId.of("validNamespace", "§inValidName"));
 
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> PolicyId.of("validNamespace:§inValidName"))
-                .matches(policyIdInvalidException -> {
-                    assertThat(policyIdInvalidException.getDescription())
-                            .contains("It must contain a namespace prefix (java package notation + a colon ':') + " +
-                                    "a name and must be a valid URI path segment according to RFC-3986");
-                    return true;
-                });
+                .isThrownBy(() -> PolicyId.of("validNamespace:§inValidName"));
     }
 
     @Test

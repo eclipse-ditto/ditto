@@ -38,52 +38,22 @@ public class ThingIdTest {
     @Test
     public void invalidNamespaceThrowsThingInvalidException() {
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> ThingId.of(".invalidNamespace", "validName"))
-                .matches(thingIdInvalidException -> {
-                    assertThat(thingIdInvalidException.getDescription())
-                            .contains("The namespace prefix must conform the syntax of the java package notation " +
-                                    "and must end with a colon (':').");
-                    return true;
-                });
+                .isThrownBy(() -> ThingId.of(".invalidNamespace", "validName"));
 
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> ThingId.of(".invalidNamespace:validName"))
-                .matches(thingIdInvalidException -> {
-                    assertThat(thingIdInvalidException.getDescription())
-                            .contains("It must contain a namespace prefix (java package notation + a colon ':') + " +
-                                    "a name and must be a valid URI path segment according to RFC-3986");
-                    return true;
-                });
+                .isThrownBy(() -> ThingId.of(".invalidNamespace:validName"));
     }
 
     @Test
     public void invalidNameThrowsThingInvalidException() {
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> ThingId.of("validNamespace", "§inValidName"))
-                .matches(thingIdInvalidException -> {
-                    assertThat(thingIdInvalidException.getDescription())
-                            .contains("The name of the thing was not valid. It must be a valid URI path segment " +
-                                    "according to RFC-3986");
-                    return true;
-                });
+                .isThrownBy(() -> ThingId.of("validNamespace", "§inValidName"));
 
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> ThingId.inDefaultNamespace("§inValidName"))
-                .matches(thingIdInvalidException -> {
-                    assertThat(thingIdInvalidException.getDescription())
-                            .contains("The name of the thing was not valid. It must be a valid URI path segment " +
-                                    "according to RFC-3986");
-                    return true;
-                });
+                .isThrownBy(() -> ThingId.inDefaultNamespace("§inValidName"));
 
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> ThingId.of("validNamespace:§inValidName"))
-                .matches(thingIdInvalidException -> {
-                    assertThat(thingIdInvalidException.getDescription())
-                            .contains("It must contain a namespace prefix (java package notation + a colon ':') + " +
-                                    "a name and must be a valid URI path segment according to RFC-3986");
-                    return true;
-                });
+                .isThrownBy(() -> ThingId.of("validNamespace:§inValidName"));
     }
 
     @Test

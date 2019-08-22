@@ -14,12 +14,11 @@
 
  import java.util.Objects;
  import java.util.UUID;
+ import java.util.function.Supplier;
 
  import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
- import org.eclipse.ditto.model.base.entity.id.EntityIdInvalidException;
- import org.eclipse.ditto.model.base.entity.id.EntityNameInvalidException;
- import org.eclipse.ditto.model.base.entity.id.EntityNamespaceInvalidException;
  import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
+ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 
  import jdk.nashorn.internal.ir.annotations.Immutable;
 
@@ -52,15 +51,7 @@
              return (PolicyId) policyId;
          }
 
-         try {
-             return new PolicyId(DefaultNamespacedEntityId.of(policyId));
-         } catch (final EntityNameInvalidException e) {
-             throw PolicyIdInvalidException.forInvalidName(policyId).cause(e).build();
-         } catch (final EntityNamespaceInvalidException e) {
-             throw PolicyIdInvalidException.forInvalidNamespace(policyId).cause(e).build();
-         } catch (final EntityIdInvalidException e) {
-             throw PolicyIdInvalidException.newBuilder(policyId).cause(e).build();
-         }
+         return wrapInPolicyIdInvalidException(() -> new PolicyId(DefaultNamespacedEntityId.of(policyId)));
      }
 
      /**
@@ -70,15 +61,7 @@
       * @return the created instance of {@link PolicyId}
       */
      public static PolicyId of(final String namespace, final String policyName) {
-         try {
-             return new PolicyId(DefaultNamespacedEntityId.of(namespace, policyName));
-         } catch (final EntityNameInvalidException e) {
-             throw PolicyIdInvalidException.forInvalidName(namespace + ":" + policyName).cause(e).build();
-         } catch (final EntityNamespaceInvalidException e) {
-             throw PolicyIdInvalidException.forInvalidNamespace(namespace + ":" + policyName).cause(e).build();
-         } catch (final EntityIdInvalidException e) {
-             throw PolicyIdInvalidException.newBuilder(namespace + ":" + policyName).cause(e).build();
-         }
+         return wrapInPolicyIdInvalidException(() -> new PolicyId(DefaultNamespacedEntityId.of(namespace, policyName)));
      }
 
      /**
@@ -88,6 +71,14 @@
       */
      public static PolicyId inNamespaceWithRandomName(final String namespace) {
          return of(namespace, UUID.randomUUID().toString());
+     }
+
+     private static <T> T wrapInPolicyIdInvalidException(final Supplier<T> supplier) {
+         try {
+             return supplier.get();
+         } catch (final NamespacedEntityIdInvalidException e) {
+             throw PolicyIdInvalidException.newBuilder(e.getEntityId().orElse(null)).cause(e).build();
+         }
      }
 
      /**

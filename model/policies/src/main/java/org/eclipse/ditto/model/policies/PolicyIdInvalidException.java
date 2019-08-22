@@ -44,10 +44,6 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
     private static final String DEFAULT_DESCRIPTION =
             "It must contain a namespace prefix (java package notation + a colon ':') + a name and must be a valid " +
                     "URI path segment according to RFC-3986";
-    private static final String INVALID_NAMESPACE_DESCRIPTION = "The namespace prefix must conform the syntax of " +
-            "the java package notation and must end with a colon (':').";
-    private static final String INVALID_NAME_DESCRIPTION = "The name of the policy was not valid. It must be a valid " +
-            "URI path segment according to RFC-3986";
 
     private static final long serialVersionUID = 8154256308793903738L;
 
@@ -76,14 +72,6 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
      */
     public static Builder newBuilder(@Nullable final CharSequence policyId) {
         return new Builder(policyId);
-    }
-
-    static Builder forInvalidName(final CharSequence policyId) {
-        return new Builder(policyId).description(INVALID_NAME_DESCRIPTION);
-    }
-
-    static Builder forInvalidNamespace(final CharSequence policyId) {
-        return new Builder(policyId).description(INVALID_NAMESPACE_DESCRIPTION);
     }
 
     /**
@@ -140,11 +128,6 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
         private Builder(@Nullable final CharSequence policyId) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, policyId));
-        }
-
-        @Override
-        public Builder description(@Nullable final String description) {
-            return (Builder) super.description(description);
         }
 
         @Override

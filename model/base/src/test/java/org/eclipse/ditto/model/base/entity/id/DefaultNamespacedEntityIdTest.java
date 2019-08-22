@@ -96,7 +96,7 @@ public class DefaultNamespacedEntityIdTest {
 
     @Test
     public void nullId() {
-        assertThatExceptionOfType(EntityIdInvalidException.class)
+        assertThatExceptionOfType(NamespacedEntityIdInvalidException.class)
                 .isThrownBy(() -> DefaultNamespacedEntityId.of(null));
     }
 
@@ -107,7 +107,7 @@ public class DefaultNamespacedEntityIdTest {
 
     @Test
     public void nullNamespace() {
-        assertThatExceptionOfType(EntityNamespaceInvalidException.class)
+        assertThatExceptionOfType(NamespacedEntityIdInvalidException.class)
                 .isThrownBy(() -> DefaultNamespacedEntityId.of(null, VALID_NAME));
     }
 
@@ -203,46 +203,19 @@ public class DefaultNamespacedEntityIdTest {
     }
 
     private static void assertInvalidNamespace(@Nullable final String namespace) {
-        assertThatExceptionOfType(EntityNamespaceInvalidException.class)
-                .isThrownBy(() -> DefaultNamespacedEntityId.of(namespace, VALID_NAME));
-
-        assertThatExceptionOfType(EntityIdInvalidException.class)
-                .isThrownBy(() -> DefaultNamespacedEntityId.of(concatenateNamespaceAndName(namespace, VALID_NAME)));
+        assertInValidId(namespace, VALID_NAME);
     }
 
     private static void assertValidNamespace(@Nullable final String namespace) {
-        final NamespacedEntityId idBySeparated = DefaultNamespacedEntityId.of(namespace, VALID_NAME);
-        assertThat(idBySeparated.getNamespace()).isEqualTo(namespace);
-        assertThat(idBySeparated.getName()).isEqualTo(VALID_NAME);
-        assertThat(idBySeparated.isPlaceholder()).isFalse();
-
-        final NamespacedEntityId idByCombined =
-                DefaultNamespacedEntityId.of(concatenateNamespaceAndName(namespace, VALID_NAME));
-        assertThat(idByCombined.getNamespace()).isEqualTo(namespace);
-        assertThat(idByCombined.getName()).isEqualTo(VALID_NAME);
-        assertThat(idByCombined.isPlaceholder()).isFalse();
+        assertValidId(namespace, VALID_NAME);
     }
 
     private static void assertInvalidName(@Nullable final String name) {
-        assertThatExceptionOfType(EntityNameInvalidException.class)
-                .isThrownBy(() -> DefaultNamespacedEntityId.of(VALID_NAMESPACE, name));
-
-        assertThatExceptionOfType(EntityIdInvalidException.class)
-                .isThrownBy(() -> DefaultNamespacedEntityId.of(concatenateNamespaceAndName(VALID_NAMESPACE, name)));
+        assertInValidId(VALID_NAMESPACE, name);
     }
 
     private static void assertValidName(@Nullable final String name) {
-
-        final NamespacedEntityId idBySeparated = DefaultNamespacedEntityId.of(VALID_NAMESPACE, name);
-        assertThat(idBySeparated.getNamespace()).isEqualTo(VALID_NAMESPACE);
-        assertThat(idBySeparated.getName()).isEqualTo(name);
-        assertThat(idBySeparated.isPlaceholder()).isFalse();
-
-        final NamespacedEntityId idByCombined =
-                DefaultNamespacedEntityId.of(concatenateNamespaceAndName(VALID_NAMESPACE, name));
-        assertThat(idByCombined.getNamespace()).isEqualTo(VALID_NAMESPACE);
-        assertThat(idByCombined.getName()).isEqualTo(name);
-        assertThat(idByCombined.isPlaceholder()).isFalse();
+        assertValidId(VALID_NAMESPACE, name);
     }
 
     private static void assertValidId(@Nullable final String namespace, @Nullable final String name) {
@@ -256,6 +229,15 @@ public class DefaultNamespacedEntityIdTest {
         assertThat(idByCombined.getNamespace()).isEqualTo(namespace);
         assertThat(idByCombined.getName()).isEqualTo(name);
         assertThat(idByCombined.isPlaceholder()).isFalse();
+    }
+
+    private static void assertInValidId(@Nullable final String namespace, @Nullable final String name) {
+
+        assertThatExceptionOfType(NamespacedEntityIdInvalidException.class)
+                .isThrownBy(() -> DefaultNamespacedEntityId.of(concatenateNamespaceAndName(namespace, name)));
+
+        assertThatExceptionOfType(NamespacedEntityIdInvalidException.class)
+                .isThrownBy(() -> DefaultNamespacedEntityId.of(namespace, name));
     }
 
     private static String concatenateNamespaceAndName(@Nullable final String namespace, @Nullable final String name) {

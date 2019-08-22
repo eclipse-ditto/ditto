@@ -12,20 +12,17 @@
   */
  package org.eclipse.ditto.model.things;
 
- import static org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId.DEFAULT_NAMESPACE;
  import static org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId.fromName;
- import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_DELIMITER;
 
  import java.util.Objects;
  import java.util.UUID;
+ import java.util.function.Supplier;
 
  import javax.annotation.concurrent.Immutable;
 
  import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
- import org.eclipse.ditto.model.base.entity.id.EntityIdInvalidException;
- import org.eclipse.ditto.model.base.entity.id.EntityNameInvalidException;
- import org.eclipse.ditto.model.base.entity.id.EntityNamespaceInvalidException;
  import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
+ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 
  /**
   * Java representation of a validated Thing ID.
@@ -54,15 +51,7 @@
              return (ThingId) thingId;
          }
 
-         try {
-             return new ThingId(DefaultNamespacedEntityId.of(thingId));
-         } catch (final EntityNameInvalidException e) {
-             throw ThingIdInvalidException.forInvalidName(thingId).cause(e).build();
-         } catch (final EntityNamespaceInvalidException e) {
-             throw ThingIdInvalidException.forInvalidNamespace(thingId).cause(e).build();
-         } catch (final EntityIdInvalidException e) {
-             throw ThingIdInvalidException.newBuilder(thingId).cause(e).build();
-         }
+         return wrapInThingIdInvalidException(() -> new ThingId(DefaultNamespacedEntityId.of(thingId)));
      }
 
      /**
@@ -72,18 +61,7 @@
       * @return the created instance of {@link ThingId}
       */
      public static ThingId of(final String namespace, final String name) {
-         try {
-             return new ThingId(DefaultNamespacedEntityId.of(namespace, name));
-         } catch (final EntityNameInvalidException e) {
-             final String thingId = namespace + NAMESPACE_DELIMITER + name;
-             throw ThingIdInvalidException.forInvalidName(thingId).cause(e).build();
-         } catch (final EntityNamespaceInvalidException e) {
-             final String thingId = namespace + NAMESPACE_DELIMITER + name;
-             throw ThingIdInvalidException.forInvalidNamespace(thingId).cause(e).build();
-         } catch (final EntityIdInvalidException e) {
-             final String thingId = namespace + NAMESPACE_DELIMITER + name;
-             throw ThingIdInvalidException.newBuilder(thingId).cause(e).build();
-         }
+         return wrapInThingIdInvalidException(() -> new ThingId(DefaultNamespacedEntityId.of(namespace, name)));
      }
 
      /**
@@ -92,18 +70,7 @@
       * @return the created thing ID.
       */
      public static ThingId inDefaultNamespace(final String name) {
-         try {
-             return new ThingId(fromName(name));
-         } catch (final EntityNameInvalidException e) {
-             final String thingId = DEFAULT_NAMESPACE + NAMESPACE_DELIMITER + name;
-             throw ThingIdInvalidException.forInvalidName(thingId).cause(e).build();
-         } catch (final EntityNamespaceInvalidException e) {
-             final String thingId = DEFAULT_NAMESPACE + NAMESPACE_DELIMITER + name;
-             throw ThingIdInvalidException.forInvalidNamespace(thingId).cause(e).build();
-         } catch (final EntityIdInvalidException e) {
-             final String thingId = DEFAULT_NAMESPACE + NAMESPACE_DELIMITER + name;
-             throw ThingIdInvalidException.newBuilder(thingId).cause(e).build();
-         }
+         return wrapInThingIdInvalidException(() -> new ThingId(fromName(name)));
      }
 
      /**
@@ -111,7 +78,15 @@
       * @return the generated thing ID.
       */
      public static ThingId generateRandom() {
-         return new ThingId(fromName(UUID.randomUUID().toString()));
+         return wrapInThingIdInvalidException(() -> new ThingId(fromName(UUID.randomUUID().toString())));
+     }
+
+     private static <T> T wrapInThingIdInvalidException(final Supplier<T> supplier) {
+         try {
+             return supplier.get();
+         } catch (final NamespacedEntityIdInvalidException e) {
+             throw ThingIdInvalidException.newBuilder(e.getEntityId().orElse(null)).cause(e).build();
+         }
      }
 
      /**

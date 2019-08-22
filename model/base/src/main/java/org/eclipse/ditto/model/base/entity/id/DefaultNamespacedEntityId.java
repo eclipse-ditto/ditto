@@ -22,6 +22,7 @@
  import java.util.Objects;
  import java.util.regex.Matcher;
 
+ import javax.annotation.Nullable;
  import javax.annotation.concurrent.Immutable;
 
  /**
@@ -37,24 +38,21 @@
      private final String name;
      private final String stringRepresentation;
 
-     private DefaultNamespacedEntityId(final String namespace, final String name,
-             final boolean shouldValidate) {
-         if (name == null) {
-             throw EntityNameInvalidException.forEntityName(name).build();
+     private DefaultNamespacedEntityId(final String namespace, final String name, final boolean shouldValidate) {
+
+         if (shouldValidate) {
+             stringRepresentation = validate(namespace, name);
+         } else {
+             stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
          }
 
-         if (namespace == null) {
-             throw EntityNamespaceInvalidException.forEntityNamespace(namespace).build();
-         }
-
-         this.namespace = shouldValidate ? validateNamespace(namespace) : namespace;
-         this.name = shouldValidate ? validateName(name) : name;
-         stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
+         this.namespace = namespace;
+         this.name = name;
      }
 
      private DefaultNamespacedEntityId(final CharSequence entityId) {
          if (entityId == null) {
-             throw EntityIdInvalidException.forNamespacedEntityId(entityId).build();
+             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
          }
 
          final Matcher nsMatcher = ID_PATTERN.matcher(entityId);
@@ -64,7 +62,7 @@
              this.name = nsMatcher.group(ENTITY_NAME_GROUP_NAME);
              stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
          } else {
-             throw EntityIdInvalidException.forNamespacedEntityId(entityId).build();
+             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
          }
      }
 
@@ -133,20 +131,26 @@
          return namespace;
      }
 
-     private static String validateNamespace(final String namespace) {
+     private static String validate(@Nullable final String namespace, @Nullable final String name) {
+         final String stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
+
+         if (name == null) {
+             throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
+         }
+
+         if (namespace == null) {
+             throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
+         }
+
          if (!NAMESPACE_PATTERN.matcher(namespace).matches()) {
-             throw EntityNamespaceInvalidException.forEntityNamespace(namespace).build();
+             throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
          }
 
-         return namespace;
-     }
-
-     private static String validateName(final String name) {
          if (!ENTITY_NAME_PATTERN.matcher(name).matches()) {
-             throw EntityNameInvalidException.forEntityName(name).build();
+             throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
          }
 
-         return name;
+         return stringRepresentation;
      }
 
      @Override
