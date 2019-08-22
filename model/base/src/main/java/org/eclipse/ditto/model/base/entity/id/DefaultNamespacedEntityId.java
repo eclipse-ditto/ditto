@@ -32,7 +32,7 @@
  public final class DefaultNamespacedEntityId implements NamespacedEntityId {
 
      private static final NamespacedEntityId PLACE_HOLDER_ID = DefaultNamespacedEntityId.of("unknown:unknown");
-     public static final String DEFAULT_NAMESPACE = "";
+     private static final String DEFAULT_NAMESPACE = "";
 
      private final String namespace;
      private final String name;
