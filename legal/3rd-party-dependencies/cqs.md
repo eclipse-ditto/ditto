@@ -16,8 +16,9 @@
 |com.github.luben|zstd-jni|1.3.7-1| [19163](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19163) |
 |com.github.scullxbones|akka-persistence-mongo-common_2.12|2.2.9| [18708](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18708) |
 |com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.2.9| [18709](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18709) |
+|com.hivemq|hivemq-mqtt-client|1.1.2| [20712](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20712) |
 |com.lightbend.akka|akka-stream-alpakka-mqtt_2.12|1.0.0| [19510](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19510) |
-|com.lightbend.akka.discovery|akka-discovery-kubernetes-api_2.12|1.0.0| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
+|com.lightbend.akka.discovery|akka-discovery-kubernetes-api_2.12|1.0.1| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
 |com.lightbend.akka.management|akka-management_2.12|1.0.1| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
 |com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|1.0.1| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
 |com.lightbend.akka.management|akka-management-cluster-http_2.12|1.0.1| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
@@ -60,6 +61,7 @@
 |io.netty|netty-transport-native-epoll|linux-x86_64| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
 |io.netty|netty-transport-native-unix-common|4.1.33.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
+|io.reactivex.rxjava2|rxjava|2.2.5| [20711](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20711) |
 |io.spray|spray-json_2.12|1.3.5| [16555](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16555) |
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| [14491](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14491) |
 |org.agrona|agrona|0.9.31| [16554](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16554) |
@@ -67,7 +69,7 @@
 |org.apache.kafka|kafka-clients|2.1.1| [19161](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19161) |
 |org.apache.qpid|proton-j|0.33.0| [19000](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19000) |
 |org.apache.qpid|qpid-jms-client|0.42.0| [19001](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19001) |
-|org.atteo.classindex|classindex|3.7| [18906](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18906) |
+|org.atteo.classindex|classindex|3.8| [20713](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20713) |
 |org.eclipse.paho|org.eclipse.paho.client.mqttv3|1.2.0| not required as Eclipse project |
 |org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
 |org.lmdbjava|lmdbjava|0.6.1| [16336](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16336) |
@@ -88,12 +90,22 @@
 |org.reactivestreams|reactive-streams|1.0.2| [16332](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16332) |
 |org.scala-lang.modules|scala-java8-compat_2.12|0.8.0| [14402](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14402) |
 |org.scala-lang.modules|scala-parser-combinators_2.12|1.1.0| [16341](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16341) |
-|org.scala-lang|scala-library|2.12.6| [16335](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16335) |
-|org.scala-lang|scala-reflect|2.12.6| [18676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18676) |
+|org.scala-lang|scala-library|2.12.8| [16335](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16335) |
+|org.scala-lang|scala-reflect|2.12.8| [18676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18676) |
 |org.slf4j|slf4j-api|1.7.25| [14404](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14404) |
 |org.webjars.npm|bytebuffer|5.0.1| [16728](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16728) |
 |org.webjars.npm|long|3.2.0| [16729](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16729) |
 |org.xerial.snappy|snappy-java|1.1.7.2| [19164](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19164) |
+
+## Eclipse CQs - Runtime
+
+| Group ID  | Artifact ID  | Version  | CQ  |
+|---|---|---|---|
+|com.github.jnr|jffi|1.2.16-native| [16301](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16301) |
+|com.google.dagger|dagger|2.20| [20716](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20716) |
+|javax.inject|javax.inject|1| [20714](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20714) |
+|org.jctools|jctools-core|2.1.2| [20717](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20717) |
+|org.jetbrains|annotations|16.0.3| [20715](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20715) |
 
 ## Works-With dependencies
 
@@ -136,7 +148,7 @@
 |org.slf4j|slf4j-simple|1.7.25| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.github.siom79.japicmp|japicmp-maven-plugin|0.11.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.mycila|license-maven-plugin|3.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
-|io.fabric8|docker-maven-plugin|0.23.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
+|io.fabric8|docker-maven-plugin|0.26.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |net.alchim31.maven|scala-maven-plugin|3.3.1| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.felix|maven-bundle-plugin|3.5.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.maven.plugins|maven-assembly-plugin|3.1.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
@@ -168,4 +180,4 @@ Manual step by sending mail to Eclipse IP team - this is a collection of depende
 
 | Group ID  | Artifact ID  | Version  | CQ |
 |-----------|--------------|----------|----|
-|           |              |          |    |
+|org.atteo.classindex|classindex|3.6| [18906](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18906) |
