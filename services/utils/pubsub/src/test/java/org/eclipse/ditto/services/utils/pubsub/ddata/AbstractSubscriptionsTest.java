@@ -34,10 +34,10 @@ import akka.actor.ActorRef;
  */
 public abstract class AbstractSubscriptionsTest<H, T, S extends AbstractSubscriptions<H, T>> {
 
-    private static final ActorRef ACTOR1 = new MockActorRef("actor1");
-    private static final ActorRef ACTOR2 = new MockActorRef("actor2");
-    private static final ActorRef ACTOR3 = new MockActorRef("actor3");
-    private static final ActorRef ACTOR4 = new MockActorRef("actor4");
+    protected static final ActorRef ACTOR1 = new MockActorRef("actor1");
+    protected static final ActorRef ACTOR2 = new MockActorRef("actor2");
+    protected static final ActorRef ACTOR3 = new MockActorRef("actor3");
+    protected static final ActorRef ACTOR4 = new MockActorRef("actor4");
 
     /**
      * @return a fresh empty subscriptions object to test.

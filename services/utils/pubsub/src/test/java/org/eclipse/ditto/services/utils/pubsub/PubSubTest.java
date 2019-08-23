@@ -22,9 +22,12 @@ import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
+import org.eclipse.ditto.services.utils.pubsub.config.DDataType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -40,9 +43,16 @@ import scala.concurrent.duration.Duration;
 /**
  * Tests Ditto pub-sub as a whole.
  */
+@RunWith(Parameterized.class)
 public final class PubSubTest {
 
-    private static final Config TEST_CONF = ConfigFactory.load("pubsub-factory-test.conf");
+    @Parameterized.Parameters(name = "{0}")
+    public static DDataType[] getParameters() {
+        return DDataType.values();
+    }
+
+    @Parameterized.Parameter
+    public DDataType ddataType;
 
     private ActorSystem system1;
     private ActorSystem system2;
@@ -51,11 +61,16 @@ public final class PubSubTest {
     private TestPubSubFactory factory1;
     private TestPubSubFactory factory2;
 
+    private Config getTestConf() {
+        return ConfigFactory.parseString("test-pubsub-factory.pubsub.ddata-type=" + ddataType)
+                .withFallback(ConfigFactory.load("pubsub-factory-test.conf"));
+    }
+
     @Before
     public void setUpCluster() throws Exception {
         final CountDownLatch latch = new CountDownLatch(2);
-        system1 = ActorSystem.create("actorSystem", TEST_CONF);
-        system2 = ActorSystem.create("actorSystem", TEST_CONF);
+        system1 = ActorSystem.create("actorSystem", getTestConf());
+        system2 = ActorSystem.create("actorSystem", getTestConf());
         cluster1 = Cluster.get(system1);
         cluster2 = Cluster.get(system2);
         cluster1.registerOnMemberUp(latch::countDown);

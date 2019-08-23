@@ -23,7 +23,6 @@ import akka.cluster.ClusterEvent;
 import akka.cluster.ddata.Replicator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.util.ByteString;
 
 /**
  * Remove remote subscriber on dead letter.
@@ -37,10 +36,10 @@ public final class PubUpdater extends AbstractActorWithTimers {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final DDataWriter<?> topicBloomFiltersWriter;
+    private final DDataWriter<?> ddataWriter;
 
-    private PubUpdater(final DDataWriter<?> topicBloomFiltersWriter) {
-        this.topicBloomFiltersWriter = topicBloomFiltersWriter;
+    private PubUpdater(final DDataWriter<?> ddataWriter) {
+        this.ddataWriter = ddataWriter;
         Cluster.get(getContext().getSystem()).subscribe(getSelf(), ClusterEvent.MemberRemoved.class);
     }
 
@@ -65,7 +64,7 @@ public final class PubUpdater extends AbstractActorWithTimers {
         // publisher detected unreachable remote. remove it from local ORMap.
         final Address address = memberRemoved.member().address();
         log.info("Removing subscribers on removed member <{}>", address);
-        topicBloomFiltersWriter.removeAddress(address, Replicator.writeLocal());
+        ddataWriter.removeAddress(address, Replicator.writeLocal());
     }
 
     private void logUnhandled(final Object message) {

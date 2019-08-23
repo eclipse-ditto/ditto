@@ -34,14 +34,14 @@ final class DefaultPubSubConfig implements PubSubConfig {
     /**
      * Path of the Suite Auth configuration settings.
      */
-    static final String CONFIG_PATH = "pubsub";
+    private static final String CONFIG_PATH = "pubsub";
 
     private final String seed;
     private final int hashFamilySize;
     private final Duration restartDelay;
     private final Duration updateInterval;
     private final double forceUpdateProbability;
-    private final double bufferFactor;
+    private final DDataType ddataType;
 
     private DefaultPubSubConfig(final ConfigWithFallback config) {
         seed = config.getString(ConfigValue.SEED.getConfigPath());
@@ -49,7 +49,7 @@ final class DefaultPubSubConfig implements PubSubConfig {
         restartDelay = config.getDuration(ConfigValue.RESTART_DELAY.getConfigPath());
         updateInterval = config.getDuration(ConfigValue.UPDATE_INTERVAL.getConfigPath());
         forceUpdateProbability = config.getDouble(ConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath());
-        bufferFactor = config.getDouble(ConfigValue.BUFFER_FACTOR.getConfigPath());
+        ddataType = DDataType.valueOf(config.getString(ConfigValue.DDATA_TYPE.getConfigPath()));
     }
 
     static PubSubConfig of(final Config config) {
@@ -82,8 +82,8 @@ final class DefaultPubSubConfig implements PubSubConfig {
     }
 
     @Override
-    public double getBufferFactor() {
-        return bufferFactor;
+    public DDataType getDDataType() {
+        return ddataType;
     }
 
     private String[] getFieldNames() {
@@ -94,7 +94,7 @@ final class DefaultPubSubConfig implements PubSubConfig {
 
     private Object[] getFieldValues() {
         return new Object[]{
-                seed, hashFamilySize, restartDelay, updateInterval, forceUpdateProbability, bufferFactor
+                seed, hashFamilySize, restartDelay, updateInterval, forceUpdateProbability, ddataType
         };
     }
 

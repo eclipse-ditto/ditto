@@ -16,7 +16,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterDData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -51,24 +51,24 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final BloomFilterDData topicBloomFilters;
+    private final DData<?, ?> ddata;
 
     @Nullable private ActorRef publisher;
 
-    private PubSupervisor(final PubSubConfig pubSubConfig, final BloomFilterDData topicBloomFilters) {
+    private PubSupervisor(final PubSubConfig pubSubConfig, final DData<?, ?> ddata) {
         super(pubSubConfig);
-        this.topicBloomFilters = topicBloomFilters;
+        this.ddata = ddata;
     }
 
     /**
      * Create Props object for this actor.
      *
      * @param pubSubConfig the pub-sub config.
-     * @param topicBloomFilters read-write access to the distributed topic Bloom filters.
+     * @param ddata read-write access to the distributed data.
      * @return the Props object.
      */
-    public static Props props(final PubSubConfig pubSubConfig, final BloomFilterDData topicBloomFilters) {
-        return Props.create(PubSupervisor.class, pubSubConfig, topicBloomFilters);
+    public static Props props(final PubSubConfig pubSubConfig, final DData<?, ?> ddata) {
+        return Props.create(PubSupervisor.class, pubSubConfig, ddata);
     }
 
     @Override
@@ -86,8 +86,8 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
 
     @Override
     protected void startChildren() {
-        final ActorRef updater = startChild(PubUpdater.props(topicBloomFilters), PubUpdater.ACTOR_NAME_PREFIX);
-        publisher = startChild(Publisher.props(topicBloomFilters), Publisher.ACTOR_NAME_PREFIX);
+        startChild(PubUpdater.props(ddata.getWriter()), PubUpdater.ACTOR_NAME_PREFIX);
+        publisher = startChild(Publisher.props(ddata.getReader()), Publisher.ACTOR_NAME_PREFIX);
     }
 
     private boolean isPublisherAvailable() {

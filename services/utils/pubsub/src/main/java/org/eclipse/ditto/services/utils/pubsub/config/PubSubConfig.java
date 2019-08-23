@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.pubsub.config;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
@@ -57,11 +56,9 @@ public interface PubSubConfig {
     double getForceUpdateProbability();
 
     /**
-     * Not used. TODO: replace by ddata implementation.
-     *
-     * @return Ratio of reserved Bloom filter elements to current number of topics.
+     * @return The type of ddata to store the relation between nodes and topics.
      */
-    double getBufferFactor();
+    DDataType getDDataType();
 
     /**
      * Create a {@code PubSubConfig} object from a {@code Config} object at the key {@code pubsub}.
@@ -127,7 +124,7 @@ public interface PubSubConfig {
          * How much empty space to reserve in the Bloom filters.
          * 1.0 = optimal size for the present number of subscriptions.
          */
-        BUFFER_FACTOR("buffer-factor", 1.0);
+        DDATA_TYPE("ddata-type", "COMPRESSED");
 
         private final String path;
         private final Object defaultValue;

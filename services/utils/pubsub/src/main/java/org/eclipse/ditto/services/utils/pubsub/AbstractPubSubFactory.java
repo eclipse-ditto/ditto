@@ -16,7 +16,9 @@ import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.pubsub.actors.PubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterDData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
@@ -35,7 +37,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     protected final PubSubTopicExtractor<T> topicExtractor;
 
     protected final DistributedDataConfigReader ddataConfig;
-    protected final BloomFilterDData topicBloomFilters;
+    protected final DData<?, ?> ddata;
     protected final PubSubConfig config;
 
     /**
@@ -77,13 +79,21 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
 
         final String replicatorName = ddataKey + "-replicator";
         ddataConfig = DistributedDataConfigReader.of(actorSystem, replicatorName, clusterRole);
-        topicBloomFilters = BloomFilterDData.of(actorSystem, ddataConfig, ddataKey, config);
+        switch (config.getDDataType()) {
+            case BLOOM_FILTER:
+                ddata = BloomFilterDData.of(actorSystem, ddataConfig, ddataKey, config);
+                break;
+            case COMPRESSED:
+            default:
+                ddata = CompressedDData.of(actorSystem, ddataConfig, ddataKey, config);
+                break;
+        }
     }
 
     @Override
     public DistributedPub<T> startDistributedPub() {
         final String pubSupervisorName = messageClass.getSimpleName() + "PubSupervisor";
-        final Props pubSupervisorProps = PubSupervisor.props(config, topicBloomFilters);
+        final Props pubSupervisorProps = PubSupervisor.props(config, ddata);
         final ActorRef pubSupervisor = actorSystem.actorOf(pubSupervisorProps, pubSupervisorName);
         return DistributedPub.of(pubSupervisor, topicExtractor);
     }
@@ -91,7 +101,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     @Override
     public DistributedSub startDistributedSub() {
         final String subSupervisorName = messageClass.getSimpleName() + "SubSupervisor";
-        final Props subSupervisorProps = SubSupervisor.props(config, messageClass, topicExtractor, topicBloomFilters);
+        final Props subSupervisorProps = SubSupervisor.props(config, messageClass, topicExtractor, ddata);
         final ActorRef subSupervisor = actorSystem.actorOf(subSupervisorProps, subSupervisorName);
         return DistributedSub.of(ddataConfig, subSupervisor);
     }

@@ -18,8 +18,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
@@ -57,7 +57,7 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<String> imple
      * @return subscribers of a topic in the distributed data.
      */
     public CompletionStage<Collection<ActorRef>> getSubscribers(final String topic) {
-        return topicBloomFilters.getSubscribers(Collections.singletonList(getHashes(topic)));
+        return ddata.getSubscribers(Collections.singleton(topic));
     }
 
     @Override

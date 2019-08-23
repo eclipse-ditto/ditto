@@ -12,17 +12,19 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
+import java.util.function.Supplier;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
-import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterSubscriptions;
+import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import akka.util.ByteString;
 
 /**
  * Supervisor of actors dealing with subscriptions.
@@ -48,21 +50,23 @@ import akka.util.ByteString;
  * }
  * </pre>
  */
-public final class SubSupervisor<T> extends AbstractPubSubSupervisor {
+public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
 
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
-    private final DDataWriter<ByteString> topicBloomFiltersWriter;
+    private final DDataWriter<U> ddataWriter;
+    private final Supplier<Subscriptions<U>> subscriptionsCreator;
 
     @Nullable private ActorRef updater;
 
     private SubSupervisor(final PubSubConfig pubSubConfig, final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DDataWriter<ByteString> topicBloomFiltersWriter) {
+            final DData<?, U> ddata) {
         super(pubSubConfig);
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
-        this.topicBloomFiltersWriter = topicBloomFiltersWriter;
+        this.ddataWriter = ddata.getWriter();
+        this.subscriptionsCreator = ddata::createSubscriptions;
     }
 
     /**
@@ -71,14 +75,17 @@ public final class SubSupervisor<T> extends AbstractPubSubSupervisor {
      * @param pubSubConfig the pub-sub config.
      * @param messageClass class of messages.
      * @param topicExtractor extractor of topics from messages.
-     * @param topicBloomFiltersWriter write access to distributed topic Bloom filters.
+     * @param ddata the distributed data access.
      * @param <T> type of messages.
+     * @param <U> type of ddata updates.
      * @return the Props object.
      */
-    public static <T> Props props(final PubSubConfig pubSubConfig, final Class<T> messageClass,
-            final PubSubTopicExtractor<T> topicExtractor, final DDataWriter<ByteString> topicBloomFiltersWriter) {
+    public static <T, U> Props props(final PubSubConfig pubSubConfig,
+            final Class<T> messageClass,
+            final PubSubTopicExtractor<T> topicExtractor,
+            final DData<?, U> ddata) {
 
-        return Props.create(SubSupervisor.class, pubSubConfig, messageClass, topicExtractor, topicBloomFiltersWriter);
+        return Props.create(SubSupervisor.class, pubSubConfig, messageClass, topicExtractor, ddata);
     }
 
     @Override
@@ -100,9 +107,9 @@ public final class SubSupervisor<T> extends AbstractPubSubSupervisor {
     protected void startChildren() {
         final ActorRef subscriber =
                 startChild(Subscriber.props(messageClass, topicExtractor), Subscriber.ACTOR_NAME_PREFIX);
-        final BloomFilterSubscriptions localSubscriptions = BloomFilterSubscriptions.of(getSeeds());
+        final Subscriptions<U> localSubscriptions = subscriptionsCreator.get();
         final Props updaterProps =
-                SubUpdater.props(config, subscriber, localSubscriptions, topicBloomFiltersWriter);
+                SubUpdater.props(config, subscriber, localSubscriptions, ddataWriter);
         updater = startChild(updaterProps, SubUpdater.ACTOR_NAME_PREFIX);
     }
 

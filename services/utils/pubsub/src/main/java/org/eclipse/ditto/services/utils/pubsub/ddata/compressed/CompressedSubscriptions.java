@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -50,9 +51,20 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<ByteStr
         this.updates = updates;
     }
 
+    /**
+     * Create a new compressed subscriptions object.
+     *
+     * @param seeds seeds of the family of hash functions..
+     * @return the compressed subscriptions object.
+     */
+    public static CompressedSubscriptions of(final Collection<Integer> seeds) {
+        return new CompressedSubscriptions(seeds, new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
+                CompressedUpdate.empty());
+    }
+
     @Override
     protected ByteString hashTopic(final String topic) {
-        return CompressedDData.hashCodesToByteString(getHashes(topic));
+        return CompressedDDataHandler.hashCodesToByteString(getHashes(topic));
     }
 
     @Override

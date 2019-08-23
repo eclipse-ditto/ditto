@@ -57,13 +57,13 @@ public final class Publisher<T> extends AbstractActor {
     /**
      * Create Props for this actor.
      *
-     * @param topicBloomFiltersReader reader of remote subscriptions.
+     * @param ddataReader reader of remote subscriptions.
      * @param <T> representation of topics in the distributed data.
      * @return a Props object.
      */
-    public static <T> Props props(final DDataReader<T> topicBloomFiltersReader) {
+    public static <T> Props props(final DDataReader<T> ddataReader) {
 
-        return Props.create(Publisher.class, topicBloomFiltersReader);
+        return Props.create(Publisher.class, ddataReader);
     }
 
     @Override

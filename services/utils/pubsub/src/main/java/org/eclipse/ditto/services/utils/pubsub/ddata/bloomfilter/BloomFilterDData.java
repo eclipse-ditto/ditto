@@ -13,57 +13,26 @@
 package org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
-import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
-import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
-import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
+import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
-import akka.actor.Address;
-import akka.cluster.Cluster;
-import akka.cluster.ddata.Key;
-import akka.cluster.ddata.LWWMap;
-import akka.cluster.ddata.LWWMapKey;
-import akka.cluster.ddata.Replicator;
-import akka.cluster.ddata.SelfUniqueAddress;
 import akka.util.ByteString;
 
 /**
- * A distributed collection of Bloom filters of strings indexed by ActorRef.
- * The hash functions for all filter should be identical.
+ * Access to distributed Bloom filters.
  */
-public final class BloomFilterDData extends DistributedData<LWWMap<ActorRef, ByteString>>
-        implements DDataReader<Collection<Integer>>, DDataWriter<ByteString>, Hashes {
+public final class BloomFilterDData implements DData<Collection<Integer>, ByteString> {
 
-    private final String topicType;
-    private final SelfUniqueAddress selfUniqueAddress;
-    private final List<Integer> seeds;
+    private BloomFilterDDataHandler handler;
 
-    private final Gauge topicBloomFiltersMetric = DittoMetrics.gauge("pubsub-ddata-entries");
-
-    private BloomFilterDData(final DistributedDataConfigReader configReader,
-            final ActorRefFactory actorRefFactory,
-            final ActorSystem actorSystem,
-            final Executor ddataExecutor,
-            final String topicType,
-            final List<Integer> seeds) {
-        super(configReader, actorRefFactory, ddataExecutor);
-        this.topicType = topicType;
-        this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorSystem).selfUniqueAddress());
-        this.seeds = seeds;
+    private BloomFilterDData(final BloomFilterDDataHandler handler) {
+        this.handler = handler;
     }
 
     /**
@@ -79,77 +48,21 @@ public final class BloomFilterDData extends DistributedData<LWWMap<ActorRef, Byt
     public static BloomFilterDData of(final ActorSystem system, final DistributedDataConfigReader ddataConfig,
             final String topicType, final PubSubConfig pubSubConfig) {
 
-        final List<Integer> seeds =
-                Hashes.digestStringsToIntegers(pubSubConfig.getSeed(), pubSubConfig.getHashFamilySize());
-
-        return new BloomFilterDData(ddataConfig, system, system, system.dispatcher(), topicType, seeds);
+        return new BloomFilterDData(BloomFilterDDataHandler.of(system, ddataConfig, topicType, pubSubConfig));
     }
 
     @Override
-    public List<Integer> getSeeds() {
-        return seeds;
+    public DDataReader<Collection<Integer>> getReader() {
+        return handler;
     }
 
     @Override
-    public CompletionStage<Collection<ActorRef>> getSubscribers(final Collection<Collection<Integer>> topicHashes) {
-
-        return get(Replicator.readLocal()).thenApply(optional -> {
-            if (optional.isPresent()) {
-                final LWWMap<ActorRef, ByteString> indexedBloomFilters = optional.get();
-                topicBloomFiltersMetric.set((long) indexedBloomFilters.size());
-                final Map<ActorRef, ByteString> map = indexedBloomFilters.getEntries();
-                return map.entrySet()
-                        .stream()
-                        .filter(entry -> ByteStringAsBitSet.containsAny(entry.getValue(),
-                                topicHashes.stream().map(Collection::stream)))
-                        .map(Map.Entry::getKey)
-                        .collect(Collectors.toList());
-            } else {
-                topicBloomFiltersMetric.set(0L);
-                return Collections.emptyList();
-            }
-        });
+    public DDataWriter<ByteString> getWriter() {
+        return handler;
     }
 
     @Override
-    public Collection<Integer> approximate(final String topic) {
-        return getHashes(topic);
-    }
-
-    @Override
-    public CompletionStage<Void> removeAddress(final Address address,
-            final Replicator.WriteConsistency writeConsistency) {
-        return update(writeConsistency, lwwMap -> {
-            LWWMap<ActorRef, ByteString> map = lwwMap;
-            for (final ActorRef subscriber : lwwMap.getEntries().keySet()) {
-                if (subscriber.path().address().equals(address)) {
-                    map = map.remove(selfUniqueAddress, subscriber);
-                }
-            }
-            return map;
-        });
-    }
-
-    @Override
-    public CompletionStage<Void> put(final ActorRef ownSubscriber, final ByteString topicUpdates,
-            final Replicator.WriteConsistency writeConsistency) {
-
-        return update(writeConsistency, lwwMap -> lwwMap.put(selfUniqueAddress, ownSubscriber, topicUpdates));
-    }
-
-    @Override
-    public CompletionStage<Void> removeSubscriber(final ActorRef subscriber,
-            final Replicator.WriteConsistency writeConsistency) {
-        return update(writeConsistency, lwwMap -> lwwMap.remove(selfUniqueAddress, subscriber));
-    }
-
-    @Override
-    protected Key<LWWMap<ActorRef, ByteString>> getKey() {
-        return LWWMapKey.create(topicType);
-    }
-
-    @Override
-    protected LWWMap<ActorRef, ByteString> getInitialValue() {
-        return LWWMap.empty();
+    public Subscriptions<ByteString> createSubscriptions() {
+        return BloomFilterSubscriptions.of(handler.getSeeds());
     }
 }
