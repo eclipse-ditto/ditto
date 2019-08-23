@@ -16,7 +16,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 
 import akka.actor.ActorSystem;
 import akka.cluster.Cluster;
@@ -51,8 +51,8 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
 
     private final SelfUniqueAddress selfUniqueAddress;
 
-    private BlockedNamespaces(final DistributedDataConfigReader configReader, final ActorSystem system) {
-        super(configReader, system, system.dispatchers().lookup(BLOCKED_NAMESPACES_DISPATCHER));
+    private BlockedNamespaces(final DistributedDataConfig config, final ActorSystem system) {
+        super(config, system, system.dispatchers().lookup(BLOCKED_NAMESPACES_DISPATCHER));
         selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(system).selfUniqueAddress());
     }
 
@@ -64,19 +64,19 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return a new instance of the distributed data.
      */
     public static BlockedNamespaces of(final ActorSystem system) {
-        return new BlockedNamespaces(DistributedDataConfigReader.of(system, ACTOR_NAME, CLUSTER_ROLE), system);
+        return new BlockedNamespaces(DistributedData.createConfig(system, ACTOR_NAME, CLUSTER_ROLE), system);
     }
 
     /**
      * Create an instance of this distributed data with special configuration.
      *
-     * @param configReader the overriding configuration.
+     * @param config the overriding configuration.
      * @param system the actor system where the replicator actor will be created.
      * @return a new instance of the distributed data.
      * @throws NullPointerException if {@code configReader} is {@code null}.
      */
-    public static BlockedNamespaces of(final DistributedDataConfigReader configReader, final ActorSystem system) {
-        return new BlockedNamespaces(configReader, system);
+    public static BlockedNamespaces of(final DistributedDataConfig config, final ActorSystem system) {
+        return new BlockedNamespaces(config, system);
     }
 
     /**

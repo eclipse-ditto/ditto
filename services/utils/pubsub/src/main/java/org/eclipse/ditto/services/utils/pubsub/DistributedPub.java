@@ -36,7 +36,7 @@ public interface DistributedPub<T> {
      * @param message the message.
      * @return the wrapped message to send to the publisher.
      */
-    Object wrapForPublication(final T message);
+    Object wrapForPublication(T message);
 
     /**
      * Publish a message.

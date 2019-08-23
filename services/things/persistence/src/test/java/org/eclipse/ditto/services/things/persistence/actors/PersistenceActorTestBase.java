@@ -40,6 +40,7 @@ import org.eclipse.ditto.services.things.common.config.DefaultThingConfig;
 import org.eclipse.ditto.services.things.common.config.ThingConfig;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.rules.TestWatcher;
@@ -214,6 +215,7 @@ public abstract class PersistenceActorTestBase {
         return new TestPub();
     }
 
+    @AllParametersAndReturnValuesAreNonnullByDefault
     private final class TestPub implements DistributedPub<ThingEvent> {
 
         private TestPub() {}

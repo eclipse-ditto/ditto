@@ -59,6 +59,7 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
 
     @Nullable private ActorRef updater;
 
+    @SuppressWarnings("unused")
     private SubSupervisor(final PubSubConfig pubSubConfig, final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DData<?, U> ddata) {

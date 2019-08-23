@@ -21,7 +21,7 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
@@ -55,13 +55,13 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
 
     private final Gauge ddataMetrics = DittoMetrics.gauge("pubsub-ddata-entries");
 
-    private CompressedDDataHandler(final DistributedDataConfigReader configReader,
+    private CompressedDDataHandler(final DistributedDataConfig config,
             final ActorRefFactory actorRefFactory,
             final ActorSystem actorSystem,
             final Executor ddataExecutor,
             final String topicType,
             final List<Integer> seeds) {
-        super(configReader, actorRefFactory, ddataExecutor);
+        super(config, actorRefFactory, ddataExecutor);
         this.topicType = topicType;
         this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorSystem).selfUniqueAddress());
         this.seeds = seeds;
@@ -77,7 +77,7 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
      * @param pubSubConfig the pub-sub config.
      * @return access to the distributed data.
      */
-    public static CompressedDDataHandler of(final ActorSystem system, final DistributedDataConfigReader ddataConfig,
+    public static CompressedDDataHandler of(final ActorSystem system, final DistributedDataConfig ddataConfig,
             final String topicType, final PubSubConfig pubSubConfig) {
 
         final List<Integer> seeds =

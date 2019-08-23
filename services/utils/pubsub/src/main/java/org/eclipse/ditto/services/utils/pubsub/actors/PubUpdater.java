@@ -38,6 +38,7 @@ public final class PubUpdater extends AbstractActorWithTimers {
 
     private final DDataWriter<?> ddataWriter;
 
+    @SuppressWarnings("unused")
     private PubUpdater(final DDataWriter<?> ddataWriter) {
         this.ddataWriter = ddataWriter;
         Cluster.get(getContext().getSystem()).subscribe(getSelf(), ClusterEvent.MemberRemoved.class);

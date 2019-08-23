@@ -38,5 +38,5 @@ public interface DDataReader<T> {
      * @param topic the topic.
      * @return its approximation in the distributed data.
      */
-    T approximate(final String topic);
+    T approximate(String topic);
 }

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
@@ -43,7 +43,7 @@ public final class CompressedDData implements DData<ByteString, CompressedUpdate
      * @param pubSubConfig the pub-sub config.
      * @return access to the distributed data.
      */
-    public static CompressedDData of(final ActorSystem system, final DistributedDataConfigReader ddataConfig,
+    public static CompressedDData of(final ActorSystem system, final DistributedDataConfig ddataConfig,
             final String topicType, final PubSubConfig pubSubConfig) {
 
         return new CompressedDData(CompressedDDataHandler.of(system, ddataConfig, topicType, pubSubConfig));

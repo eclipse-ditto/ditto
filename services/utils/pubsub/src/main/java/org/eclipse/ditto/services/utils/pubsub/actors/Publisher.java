@@ -50,6 +50,7 @@ public final class Publisher<T> extends AbstractActor {
 
     private CompletionStage<Void> currentPublication = CompletableFuture.completedFuture(null);
 
+    @SuppressWarnings("unused")
     private Publisher(final DDataReader<T> ddataReader) {
         this.ddataReader = ddataReader;
     }

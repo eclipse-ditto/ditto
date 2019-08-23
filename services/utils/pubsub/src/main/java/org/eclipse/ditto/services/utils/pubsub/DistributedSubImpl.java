@@ -17,7 +17,7 @@ import java.util.HashSet;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 
 import akka.actor.ActorRef;
@@ -29,11 +29,11 @@ import akka.pattern.Patterns;
  */
 final class DistributedSubImpl implements DistributedSub {
 
-    private final DistributedDataConfigReader config;
+    private final DistributedDataConfig config;
     private final ActorRef subSupervisor;
     private final Replicator.WriteConsistency writeAll;
 
-    DistributedSubImpl(final DistributedDataConfigReader config, final ActorRef subSupervisor) {
+    DistributedSubImpl(final DistributedDataConfig config, final ActorRef subSupervisor) {
         this.config = config;
         this.subSupervisor = subSupervisor;
         this.writeAll = new Replicator.WriteAll(config.getWriteTimeout());

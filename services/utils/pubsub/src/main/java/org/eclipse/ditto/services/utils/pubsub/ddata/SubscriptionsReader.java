@@ -14,31 +14,37 @@ package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.concurrent.Immutable;
+
 import akka.actor.ActorRef;
 
 /**
  * Reader of local subscriptions.
  */
+@Immutable
 public final class SubscriptionsReader {
 
     /**
      * Constant-true predicate as the default filter.
      */
     private static final Predicate<Collection<String>> CONSTANT_TRUE = topics -> true;
+    
     private final Map<String, Set<ActorRef>> topicToSubscriber;
     private final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter;
 
     private SubscriptionsReader(
             final Map<String, Set<ActorRef>> topicToSubscriber,
             final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter) {
-        this.topicToSubscriber = topicToSubscriber;
-        this.subscriberToFilter = subscriberToFilter;
+
+        this.topicToSubscriber = Collections.unmodifiableMap(new HashMap<>(topicToSubscriber));
+        this.subscriberToFilter = Collections.unmodifiableMap(new HashMap<>(subscriberToFilter));
     }
 
     /**

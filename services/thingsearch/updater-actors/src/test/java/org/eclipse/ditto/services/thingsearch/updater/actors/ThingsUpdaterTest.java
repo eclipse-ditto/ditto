@@ -26,7 +26,7 @@ import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
@@ -71,7 +71,7 @@ public final class ThingsUpdaterTest {
         );
         // create blocked namespaces cache without role and with the default replicator name
         blockedNamespaces =
-                BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem, "replicator", ""), actorSystem);
+                BlockedNamespaces.of(DistributedData.createConfig(actorSystem, "replicator", ""), actorSystem);
     }
 
     @After

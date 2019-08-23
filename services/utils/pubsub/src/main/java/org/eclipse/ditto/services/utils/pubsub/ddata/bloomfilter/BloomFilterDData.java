@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter;
 
 import java.util.Collection;
 
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
@@ -45,7 +45,7 @@ public final class BloomFilterDData implements DData<Collection<Integer>, ByteSt
      * @param pubSubConfig the pub-sub config.
      * @return access to the distributed data.
      */
-    public static BloomFilterDData of(final ActorSystem system, final DistributedDataConfigReader ddataConfig,
+    public static BloomFilterDData of(final ActorSystem system, final DistributedDataConfig ddataConfig,
             final String topicType, final PubSubConfig pubSubConfig) {
 
         return new BloomFilterDData(BloomFilterDDataHandler.of(system, ddataConfig, topicType, pubSubConfig));

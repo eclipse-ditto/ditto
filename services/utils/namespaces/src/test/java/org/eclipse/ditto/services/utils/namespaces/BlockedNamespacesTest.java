@@ -14,7 +14,8 @@ package org.eclipse.ditto.services.utils.namespaces;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedData;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,12 +34,12 @@ import akka.testkit.javadsl.TestKit;
 public final class BlockedNamespacesTest {
 
     private ActorSystem actorSystem;
-    private DistributedDataConfigReader configReader;
+    private DistributedDataConfig config;
 
     @Before
     public void setup() {
         actorSystem = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test.conf"));
-        configReader = DistributedDataConfigReader.of(actorSystem, "replicator", "");
+        config = DistributedData.createConfig(actorSystem, "replicator", "");
     }
 
     @After
@@ -56,12 +57,12 @@ public final class BlockedNamespacesTest {
 
     @Test
     public void startWithoutRole() throws Exception {
-        testCRUD(BlockedNamespaces.of(configReader, actorSystem), actorSystem);
+        testCRUD(BlockedNamespaces.of(config, actorSystem), actorSystem);
     }
 
     @Test
     public void startWithMatchingRole() throws Exception {
-        testCRUD(BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem, "replicator", "ddata-aware"),
+        testCRUD(BlockedNamespaces.of(DistributedData.createConfig(actorSystem, "replicator", "ddata-aware"),
                 actorSystem), actorSystem);
     }
 
@@ -70,7 +71,7 @@ public final class BlockedNamespacesTest {
         // logging disabled to not print expected stacktrace; re-enable logging to debug.
         actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
         new TestKit(actorSystem) {{
-            final BlockedNamespaces underTest = BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem,
+            final BlockedNamespaces underTest = BlockedNamespaces.of(DistributedData.createConfig(actorSystem,
                     "replicator", "wrong-role"), actorSystem);
             watch(underTest.getReplicator());
             expectTerminated(underTest.getReplicator());

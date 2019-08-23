@@ -202,17 +202,16 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
             final Signal liveSignal, final ActorRef sender, final Enforcer enforcer, final String correlationId) {
 
         switch (streamingType) {
-            case MESSAGES: {
+            case MESSAGES:
                 final Contextual<WithDittoHeaders> contextual =
                         enforceMessageCommand((MessageCommand) liveSignal, enforcer);
                 if (liveSignal.getDittoHeaders().isResponseRequired()) {
                     responseReceivers.put(correlationId, sender);
                 }
                 return CompletableFuture.completedFuture(contextual);
-            }
             case LIVE_EVENTS:
                 return enforceLiveEvent(liveSignal, enforcer);
-            case LIVE_COMMANDS: {
+            case LIVE_COMMANDS:
                 final boolean authorized;
                 if (enforcer instanceof AclEnforcer) {
                     authorized = ThingCommandEnforcement.authorizeByAcl(enforcer, (ThingCommand<?>) liveSignal)
@@ -236,7 +235,6 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                     log(liveSignal).info("Live Command was NOT authorized: <{}>", liveSignal);
                     throw ThingCommandEnforcement.errorForThingCommand((ThingCommand) liveSignal);
                 }
-            }
             default:
                 log(liveSignal).warning("Ignoring unsupported command signal: <{}>", liveSignal);
                 throw UnknownCommandException.newBuilder(liveSignal.getName())

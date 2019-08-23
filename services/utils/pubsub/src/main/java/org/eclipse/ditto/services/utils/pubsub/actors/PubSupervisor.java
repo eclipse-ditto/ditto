@@ -55,6 +55,7 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
 
     @Nullable private ActorRef publisher;
 
+    @SuppressWarnings("unused")
     private PubSupervisor(final PubSubConfig pubSubConfig, final DData<?, ?> ddata) {
         super(pubSubConfig);
         this.ddata = ddata;

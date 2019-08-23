@@ -21,7 +21,7 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
@@ -54,19 +54,19 @@ final class BloomFilterDDataHandler extends DistributedData<LWWMap<ActorRef, Byt
 
     private final Gauge topicBloomFiltersMetric = DittoMetrics.gauge("pubsub-ddata-entries");
 
-    private BloomFilterDDataHandler(final DistributedDataConfigReader configReader,
+    private BloomFilterDDataHandler(final DistributedDataConfig config,
             final ActorRefFactory actorRefFactory,
             final ActorSystem actorSystem,
             final Executor ddataExecutor,
             final String topicType,
             final List<Integer> seeds) {
-        super(configReader, actorRefFactory, ddataExecutor);
+        super(config, actorRefFactory, ddataExecutor);
         this.topicType = topicType;
         this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorSystem).selfUniqueAddress());
         this.seeds = seeds;
     }
 
-    static BloomFilterDDataHandler of(final ActorSystem system, final DistributedDataConfigReader ddataConfig,
+    static BloomFilterDDataHandler of(final ActorSystem system, final DistributedDataConfig ddataConfig,
             final String topicType, final PubSubConfig pubSubConfig) {
 
         final List<Integer> seeds =

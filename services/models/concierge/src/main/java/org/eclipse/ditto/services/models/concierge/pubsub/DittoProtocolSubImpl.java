@@ -32,7 +32,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * Default implementation of {@link org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub}.
+ * Default implementation of {@link DittoProtocolSub}.
  */
 final class DittoProtocolSubImpl implements DittoProtocolSub {
 

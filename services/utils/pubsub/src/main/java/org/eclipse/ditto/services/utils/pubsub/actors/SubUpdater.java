@@ -94,7 +94,7 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
     private final PubSubConfig config;
     private final Subscriptions<T> subscriptions;
     private final DDataWriter<T> topicBloomFiltersWriter;
-    private final ActorRef pubSubSubscriber;
+    private final ActorRef subscriber;
 
     private final Gauge topicMetric = DittoMetrics.gauge("pubsub-topics");
     private final Gauge awaitUpdateMetric = DittoMetrics.gauge("pubsub-await-update");
@@ -125,11 +125,12 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
      */
     private State state = State.WAITING;
 
+    @SuppressWarnings("unused")
     private SubUpdater(final PubSubConfig config,
-            final ActorRef pubSubSubscriber, final Subscriptions<T> subscriptions,
+            final ActorRef subscriber, final Subscriptions<T> subscriptions,
             final DDataWriter<T> topicBloomFiltersWriter) {
         this.config = config;
-        this.pubSubSubscriber = pubSubSubscriber;
+        this.subscriber = subscriber;
         this.subscriptions = subscriptions;
         this.topicBloomFiltersWriter = topicBloomFiltersWriter;
 
@@ -179,14 +180,14 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
             final CompletionStage<Void> ddataOp;
             if (subscriptions.isEmpty()) {
                 snapshot = subscriptions.snapshot();
-                ddataOp = topicBloomFiltersWriter.removeSubscriber(pubSubSubscriber, nextWriteConsistency);
+                ddataOp = topicBloomFiltersWriter.removeSubscriber(subscriber, nextWriteConsistency);
                 topicMetric.set(0L);
             } else {
                 // export before taking snapshot so that implementations may output incremental update.
                 final T ddata = subscriptions.export(forceUpdate);
                 // take snapshot to give to the subscriber; clear accumulated incremental changes.
                 snapshot = subscriptions.snapshot();
-                ddataOp = topicBloomFiltersWriter.put(pubSubSubscriber, ddata, nextWriteConsistency);
+                ddataOp = topicBloomFiltersWriter.put(subscriber, ddata, nextWriteConsistency);
                 topicMetric.set((long) subscriptions.countTopics());
             }
             ddataOp.handle(handleDDataWriteResult(snapshot));
@@ -207,7 +208,7 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
         state = State.WAITING;
         // race condition possible -- some published messages may arrive before the acknowledgement
         // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
-        pubSubSubscriber.tell(snapshot, getSelf());
+        subscriber.tell(snapshot, getSelf());
     }
 
     private void flushAcknowledgements() {
@@ -315,7 +316,7 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
     /**
      * Super class of subscription requests.
      */
-    public static abstract class Request {
+    public abstract static class Request {
 
         private final Set<String> topics;
         private final ActorRef subscriber;

@@ -43,6 +43,7 @@ public final class Subscriber<T> extends AbstractActor {
     private Counter truePositiveCounter = DittoMetrics.counter("pubsub-true-positive");
     private Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
 
+    @SuppressWarnings("unused")
     private Subscriber(final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor) {
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;

@@ -16,7 +16,7 @@ import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 
 import akka.actor.ActorRef;
@@ -85,7 +85,7 @@ public interface DistributedSub {
      * @param subSupervisor the sub-supervisor.
      * @return the subscription access.
      */
-    static DistributedSub of(final DistributedDataConfigReader config, final ActorRef subSupervisor) {
+    static DistributedSub of(final DistributedDataConfig config, final ActorRef subSupervisor) {
         return new DistributedSubImpl(config, subSupervisor);
     }
 }

@@ -25,6 +25,9 @@ import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.ActorSystem;
 
+/**
+ * Default implementation of {@link LiveSignalPub}.
+ */
 final class LiveSignalPubImpl implements LiveSignalPub {
 
     private final DistributedPub<Command> liveCommandPub;

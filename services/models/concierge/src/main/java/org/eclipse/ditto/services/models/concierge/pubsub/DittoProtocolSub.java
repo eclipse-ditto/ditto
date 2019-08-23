@@ -61,7 +61,7 @@ public interface DittoProtocolSub {
      * @param topics what were the subscribed topics.
      * @return future that completes or fails according to the acknowledgement.
      */
-    CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber, final Collection<String> topics);
+    CompletionStage<Void> removeTwinSubscriber(ActorRef subscriber, Collection<String> topics);
 
     /**
      * Create {@code DittoProtocolSub} for an actor system.

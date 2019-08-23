@@ -42,8 +42,7 @@ public interface DDataWriter<T> {
      * @param writeConsistency write consistency for the operation.
      * @return future that completes or fails according to the result of the operation.
      */
-    CompletionStage<Void> removeSubscriber(final ActorRef subscriber,
-            final Replicator.WriteConsistency writeConsistency);
+    CompletionStage<Void> removeSubscriber(ActorRef subscriber, Replicator.WriteConsistency writeConsistency);
 
     /**
      * Remove all subscribers at an address from the ddata with write consistency local.
@@ -52,5 +51,5 @@ public interface DDataWriter<T> {
      * @param writeConsistency write consistency for the operation.
      * @return future that completes or fails according to the result of the operation.
      */
-    CompletionStage<Void> removeAddress(Address address, final Replicator.WriteConsistency writeConsistency);
+    CompletionStage<Void> removeAddress(Address address, Replicator.WriteConsistency writeConsistency);
 }
