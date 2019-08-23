@@ -12,6 +12,7 @@
 cd ../../
 mvn dependency:list -DexcludeGroupIds=org.eclipse.ditto,rubygems -Dsort=true -DoutputFile=dependencies.txt
 find . -name dependencies.txt|while read i; do cat $i;done|grep '.*:.*:compile'|sort|uniq > legal/3rd-party-dependencies//compile.txt
+find . -name dependencies.txt|while read i; do cat $i;done|grep '.*:.*:runtime'|sort|uniq > legal/3rd-party-dependencies//runtime.txt
 find . -name dependencies.txt|while read i; do cat $i;done|grep '.*:.*:test'|sort|uniq > legal/3rd-party-dependencies//test.txt
 find . -name dependencies.txt|while read i; do cat $i;done|grep '.*:.*:provided'|sort|uniq > legal/3rd-party-dependencies//provided.txt
 find . -name dependencies.txt|while read i; do rm $i;done
