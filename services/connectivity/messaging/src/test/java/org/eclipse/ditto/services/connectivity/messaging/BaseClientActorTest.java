@@ -294,6 +294,7 @@ public final class BaseClientActorTest {
         protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
             LOGGER.info("allocateResourcesOnConnection");
             delegate.allocateResourcesOnConnection(clientConnected);
+            getSelf().tell(getClientReady(), getSelf());
         }
 
         @Override

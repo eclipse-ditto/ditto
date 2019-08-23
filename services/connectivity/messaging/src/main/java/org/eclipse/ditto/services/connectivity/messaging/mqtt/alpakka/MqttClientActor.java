@@ -39,7 +39,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttConnectionFactory;
 
 import akka.Done;
 import akka.NotUsed;
@@ -158,6 +157,7 @@ public final class MqttClientActor extends BaseClientActor {
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
         // nothing to do here; publisher and consumers started already.
+        getSelf().tell(getClientReady(), getSelf());
     }
 
     @Override

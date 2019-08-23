@@ -202,6 +202,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             startMessageMappingProcessorActor(Optional.ofNullable(rmqPublisherActor));
             final RmqConsumerChannelCreated rmqConsumerChannelCreated = (RmqConsumerChannelCreated) clientConnected;
             startCommandConsumers(rmqConsumerChannelCreated.getChannel());
+            getSelf().tell(getClientReady(), getSelf());
         }
     }
 

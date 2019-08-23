@@ -24,6 +24,8 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class ByteBufferUtils {
 
+    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+
     private ByteBufferUtils() {
         throw new AssertionError();
     }
@@ -36,7 +38,7 @@ public final class ByteBufferUtils {
      */
     public static ByteBuffer clone(final ByteBuffer original) {
         if (original.remaining() == 0) {
-            return ByteBuffer.wrap(new byte[0]);
+            return ByteBuffer.wrap(EMPTY_BYTE_ARRAY);
         }
 
         final ByteBuffer clone = ByteBuffer.allocate(original.remaining());
@@ -68,7 +70,7 @@ public final class ByteBufferUtils {
         if (null == byteBuffer) {
             return null;
         }
-        return StandardCharsets.UTF_8.decode(byteBuffer).toString();
+        return StandardCharsets.UTF_8.decode(byteBuffer.asReadOnlyBuffer()).toString();
     }
 
 }

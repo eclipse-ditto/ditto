@@ -506,25 +506,25 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
         enhanceLogUtil(signal);
         if (clientActorRouter == null) {
-            log.debug("Signal dropped: Client actor not ready.");
+            logDroppedSignal(signal.getType(), "Client actor not ready.");
             return;
         }
         if (connection == null || signalFilter == null) {
-            log.debug("Signal dropped: No Connection or signalFilter configuration available.");
+            logDroppedSignal(signal.getType(), "No Connection or signalFilter configuration available.");
             return;
         }
         if (uniqueTopics.isEmpty()) {
-            log.debug("Signal dropped: No topics present.");
+            logDroppedSignal(signal.getType(), "No topics present.");
             return;
         }
         if (connectionId.equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
-            log.debug("Signal dropped: was sent by myself.");
+            logDroppedSignal(signal.getType(), "Was sent by myself.");
             return;
         }
 
         final List<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
         if (subscribedAndAuthorizedTargets.isEmpty()) {
-            log.debug("Signal dropped: No subscribed and authorized targets present");
+            logDroppedSignal(signal.getType(), "No subscribed and authorized targets present");
             return;
         }
 
@@ -533,6 +533,10 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
         final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
         clientActorRouter.tell(outbound, getSender());
+    }
+
+    private void logDroppedSignal(final String type, final String reason) {
+        log.debug("Signal ({}) dropped: {}", type, reason);
     }
 
     private void testConnection(final TestConnection command) {

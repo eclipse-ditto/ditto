@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.mqtt;
+package org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka;
 
 import java.util.Optional;
 
@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 import org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.AcceptAnyTrustManager;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import akka.stream.alpakka.mqtt.MqttConnectionSettings;

@@ -72,7 +72,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private final ExceptionListener exceptionListener;
     private final JmsConnectionFactory jmsConnectionFactory;
 
-    @Nullable Session currentSession = null;
+    @Nullable private Session currentSession = null;
 
     @SuppressWarnings("unused")
     private JMSConnectionHandlingActor(final Connection connection, final ExceptionListener exceptionListener,

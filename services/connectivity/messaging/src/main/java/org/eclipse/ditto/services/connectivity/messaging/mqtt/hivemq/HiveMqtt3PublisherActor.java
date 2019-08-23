@@ -46,8 +46,9 @@ import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
-// TODO: comment & test
-@AllParametersAndReturnValuesAreNonnullByDefault
+/**
+ * Actor responsible for publishing messages to an MQTT broker using the given {@link Mqtt3Client}.
+ */
 public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublishTarget> {
 
     // for target the default is qos=0 because we have qos=0 all over the akka cluster
@@ -57,18 +58,12 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final Mqtt3AsyncClient client;
     private final boolean dryRun;
-    private boolean connected;
-    @Nullable private Target target;
-    private MqttPublishTarget publishTarget;
-    private ExternalMessage message;
-    private ConnectionMonitor publishedMonitor;
 
     @SuppressWarnings("squid:UnusedPrivateConstructor") // used by akka
     private HiveMqtt3PublisherActor(final String connectionId, final List<Target> targets, final Mqtt3Client client,
             final boolean dryRun) {
         super(connectionId, targets);
         this.client = checkNotNull(client).toAsync();
-        this.connected = false;
         this.dryRun = dryRun;
     }
 
@@ -79,27 +74,9 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
+        // TODO this could already be done in client actor?
         receiveBuilder.match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
-                outbound -> log().info("Message dropped in dry run mode: {}", outbound))
-                .matchEquals(HiveMqtt3ClientActor.HiveMqttClientEvents.CONNECTED, this::onClientConnected)
-                .matchEquals(HiveMqtt3ClientActor.HiveMqttClientEvents.RECONNECTED, this::onClientReconnected)
-                .matchEquals(HiveMqtt3ClientActor.HiveMqttClientEvents.DISCONNECTED, this::onClientDisconnected);
-    }
-
-    @SuppressWarnings("unused") // ignored for speed - method reference is much faster than lambda
-    private void onClientConnected(final HiveMqtt3ClientActor.HiveMqttClientEvents connected) {
-        this.connected = true;
-        getSender().tell(new Status.Success("Successfully initialized publisher"), getSelf());
-    }
-
-    @SuppressWarnings("unused") // ignored for speed - method reference is much faster than lambda
-    private void onClientReconnected(final HiveMqtt3ClientActor.HiveMqttClientEvents reconnected) {
-        this.connected = true;
-    }
-
-    @SuppressWarnings("unused") // ignored for speed - method reference is much faster than lambda
-    private void onClientDisconnected(final HiveMqtt3ClientActor.HiveMqttClientEvents disconnected) {
-        this.connected = false;
+                outbound -> log().info("Message dropped in dry run mode: {}", outbound));
     }
 
     @Override
@@ -124,8 +101,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
 
     @Override
     protected void publishMessage(@Nullable final Target target, final MqttPublishTarget publishTarget,
-            final ExternalMessage message,
-            final ConnectionMonitor publishedMonitor) {
+            final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
 
         final MqttQos targetQoS = determineQos(target);
         publishMessage(publishTarget, targetQoS, message, publishedMonitor);
@@ -143,7 +119,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
 
     private void publishMessage(final MqttPublishTarget publishTarget, final MqttQos qos, final ExternalMessage message,
             final ConnectionMonitor publishedMonitor) {
-        if (connected) {
+        try {
             final Mqtt3Publish mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
             if (log().isDebugEnabled()) {
                 final String humanReadablePayload = mqttMessage.getPayload()
@@ -154,17 +130,15 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
             }
             client.publish(mqttMessage).whenComplete((mqtt3Publish, throwable) -> {
                 if (null == throwable) {
-                    log().info("Successfully published to message of type <{}> to target address <{}>",
-                            mqttMessage.getType(), publishTarget.getTopic());
+                    log().debug("Successfully published to message of type <{}> to target address <{}>", mqttMessage.getType(), publishTarget.getTopic());
                     publishedMonitor.success(message);
                 } else {
-                    log().error(throwable, "Error while publishing message");
-                    final String logMessage =
-                            MessageFormat.format("Error while publishing message: {0}", throwable.getMessage());
+                    final String logMessage = MessageFormat.format("Error while publishing message: {0}", throwable.getMessage());
+                    log().warning(logMessage);
                     publishedMonitor.exception(message, logMessage);
                 }
             });
-        } else {
+        } catch(final Exception e) {
             log().info("Won't publish message, since currently in disconnected state.");
             publishedMonitor.failure(message, "Won't publish message since currently not connected.");
         }
@@ -199,7 +173,6 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
         return CharsetDeterminer.getInstance().apply(contentType);
     }
 
-    @SuppressWarnings("unused") // ignored for speed - method reference is much faster than lambda
     private boolean isDryRun(final Object message) {
         return dryRun;
     }

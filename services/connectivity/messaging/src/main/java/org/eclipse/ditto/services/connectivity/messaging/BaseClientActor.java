@@ -59,6 +59,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivit
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ClientReady;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
@@ -209,6 +210,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     /**
      * Allocate resources once this {@code Client} connected successfully.
+     * This method must emit a {@link ClientReady} message once the allocation is completed without error.
      *
      * @param clientConnected the ClientConnected message which may be subclassed and thus adding more information
      */
@@ -485,6 +487,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectingConnectionFailed)
                 .event(ClientConnected.class, BaseClientData.class, this::clientConnected)
+                .event(ClientReady.class, BaseClientData.class, this::clientReady)
                 .event(CloseConnection.class, BaseClientData.class, this::closeConnection);
     }
 
@@ -701,17 +704,21 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private State<BaseClientState, BaseClientData> clientConnected(final ClientConnected clientConnected,
             final BaseClientData data) {
-
         return ifEventUpToDate(clientConnected, () -> {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
-            connectionLogger.success("Connection successful.");
-
             allocateResourcesOnConnection(clientConnected);
-            data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
-            return goTo(CONNECTED).using(data.resetSession()
-                    .setConnectionStatus(ConnectivityStatus.OPEN)
-                    .setConnectionStatusDetails("Connected at " + Instant.now()));
+            return stay().using(data);
         });
+    }
+
+    private State<BaseClientState, BaseClientData> clientReady(final ClientReady clientReady,
+            final BaseClientData data) {
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
+        connectionLogger.success("Connection successful.");
+        data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
+        return goTo(CONNECTED).using(data.resetSession()
+                .setConnectionStatus(ConnectivityStatus.OPEN)
+                .setConnectionStatusDetails("Connected at " + Instant.now()));
     }
 
     private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
@@ -1129,6 +1136,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
+    protected boolean isDryRun() {
+        return TESTING.equals(stateName());
+    }
+
     private String nextChildActorName(final String prefix) {
         return prefix + ++childActorCount;
     }
@@ -1187,6 +1198,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         } else {
             return describeEventualCause(cause);
         }
+    }
+
+    protected static ClientReady getClientReady() {
+        return Optional::empty;
     }
 
     /**

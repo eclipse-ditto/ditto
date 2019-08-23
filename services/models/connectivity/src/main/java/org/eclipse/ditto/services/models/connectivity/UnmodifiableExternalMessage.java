@@ -216,7 +216,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +
-                (bytePayload == null ? "null" : ("<binary> (size :" + bytePayload.array().length + ")")) + "'" +
+                (bytePayload == null ? "null" : ("<binary> (" + bytePayload.remaining() + "bytes)")) + "'" +
                 ", internalHeaders=" + internalHeaders +
                 "]";
     }

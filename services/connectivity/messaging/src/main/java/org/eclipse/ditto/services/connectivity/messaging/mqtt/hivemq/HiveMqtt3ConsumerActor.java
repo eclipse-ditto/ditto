@@ -12,86 +12,55 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collector;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka.MqttClientActor;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
-import com.hivemq.client.mqtt.datatypes.MqttQos;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
-import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscribe;
-import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3SubscribeBuilder;
-import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3SubscribeBuilderBase;
-import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscription;
-import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAck;
-import com.hivemq.client.mqtt.mqtt3.message.unsubscribe.Mqtt3Unsubscribe;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.routing.ConsistentHashingRouter;
 
 /**
- * TODO: comment and test
- * <p>
- * Actor which receives message from a MQTT broker and forwards them to a {@code MessageMappingProcessorActor}.
+ * Actor which receives message from an MQTT broker and forwards them to a {@code MessageMappingProcessorActor}.
  */
 public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
 
     private static final String MQTT_TOPIC_HEADER = "mqtt.topic";
-    private static final MqttQos DEFAULT_QOS = MqttQos.AT_MOST_ONCE;
     static final String NAME = "HiveMqtt3ConsumerActor";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final boolean dryRun;
-    private final Mqtt3AsyncClient client;
-    private final Collection<String> topics;
-    @Nullable private final Mqtt3Subscribe mqtt3Subscribe;
     @Nullable private final EnforcementFilterFactory<String, String> topicEnforcementFilterFactory;
 
     @SuppressWarnings("unused")
     private HiveMqtt3ConsumerActor(final String connectionId, final ActorRef messageMappingProcessor,
-            final Source source, final boolean dryRun, final Mqtt3AsyncClient client) {
+            final Source source, final boolean dryRun) {
         super(connectionId, String.join(";", source.getAddresses()), messageMappingProcessor,
                 source.getAuthorizationContext(), null);
-        this.client = client;
         this.dryRun = dryRun;
-        this.topics = source.getAddresses();
-
         topicEnforcementFilterFactory = source.getEnforcement()
                 .map(enforcement -> EnforcementFactoryFactory
                         .newEnforcementFilterFactory(enforcement, PlaceholderFactory.newSourceAddressPlaceholder()))
                 .orElse(null);
-
-        this.mqtt3Subscribe = prepareSubscriptions(topics);
     }
 
     /**
@@ -104,18 +73,14 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
      * @return the Akka configuration Props object.
      */
     static Props props(final String connectionId, final ActorRef messageMappingProcessor,
-            final Source source, final boolean dryRun, final Mqtt3Client client) {
-
+            final Source source, final boolean dryRun) {
         return Props.create(HiveMqtt3ConsumerActor.class, connectionId, messageMappingProcessor,
-                source, dryRun, checkNotNull(client).toAsync());
+                source, dryRun);
     }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .matchEquals(HiveMqtt3ClientActor.HiveMqttClientEvents.CONNECTED, this::onClientConnected)
-                // TODO: implement 'onReconnected' to prevent unknown Success / Failure messages to the client actor
-                .matchEquals(HiveMqtt3ClientActor.HiveMqttClientEvents.DISCONNECTED, this::onClientDisconnected)
                 .match(Mqtt3Publish.class, this::isDryRun,
                         message -> log.info("Dropping message in dryRun mode: {}", message))
                 .match(Mqtt3Publish.class, this::handleMqttMessage)
@@ -129,7 +94,6 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
 
     private void handleMqttMessage(final Mqtt3Publish message) {
         log.info("Received message: {}", message);
-
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
         if (externalMessageOptional.isPresent()) {
             final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessageOptional.get(),
@@ -142,7 +106,9 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
         HashMap<String, String> headers = null;
         try {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
-            final ByteBuffer payload = message.getPayload().orElse(ByteBufferUtils.empty());
+            final ByteBuffer payload = message.getPayload()
+                    .map(ByteBuffer::asReadOnlyBuffer)
+                    .orElse(ByteBufferUtils.empty());
             final String topic = message.getTopic().toString();
             if (log.isDebugEnabled()) {
                 log.debug("Received MQTT message on topic <{}>: {}", topic,
@@ -151,9 +117,9 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
             headers = new HashMap<>();
 
             headers.put(MQTT_TOPIC_HEADER, topic);
-            final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                    // TODO: double check this. The payload gotten from Mqtt3Publish is readonly and throws ReadonlyBufferException...
-                    .withBytes(ByteBufferUtils.clone(payload))
+            final ExternalMessage externalMessage = ExternalMessageFactory
+                    .newExternalMessageBuilder(headers)
+                    .withBytes(payload)
                     .withAuthorizationContext(authorizationContext)
                     .withEnforcement(getEnforcementFilter(topic))
                     .withSourceAddress(sourceAddress)
@@ -175,7 +141,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
     }
 
     @Nullable
-    private EnforcementFilter getEnforcementFilter(final String topic) {
+    private EnforcementFilter<String> getEnforcementFilter(final String topic) {
         if (topicEnforcementFilterFactory != null) {
             return topicEnforcementFilterFactory.getFilter(topic);
         } else {
@@ -183,104 +149,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
         }
     }
 
-    @SuppressWarnings("unused") // ignored for speed - method reference is much faster than lambda
-    private void onClientConnected(final HiveMqtt3ClientActor.HiveMqttClientEvents connected) {
-        log.debug("Client connected, going to subscribe.");
-        final ActorRef sender = getSender();
-        final ActorRef self = getSelf();
-        this.unsubscribe()
-                .exceptionally(throwable -> {
-                    log.info("Ignoring unsubscription error and continuing to subscribe again.");
-                    return null;
-                })
-                .thenCompose(this::subscribe)
-                .whenComplete((ignored, throwable) -> {
-                    if (throwable == null) {
-                        sender.tell(new Status.Success("Successfully subscribed"), self);
-                    } else {
-                        // TODO: may get java.util.concurrent.CompletionException: java.util.concurrent.CompletionException: java.util.NoSuchElementException
-                        //  when starting with consumerCount > 1. We should wrap with our own exception 'cause no one
-                        //  knows what has happened with it.
-                        //  will result in the following error: need to check if we can remove the "null" description
-                        //  DEBUG [][] o.e.d.s.c.m.ConnectionActor
-                        //  - Got response to connectivity.commands:openConnection: org.eclipse.ditto.signals.commands.
-                        //  connectivity.exceptions.ConnectionFailedException [message='The Connection with ID
-                        //  '6fbcd2db-9eb0-4a90-a64e-c6d9290488f1' failed to connect.',
-                        //  errorCode=connectivity:connection.failed, statusCode=GATEWAY_TIMEOUT,
-                        //  description='Cause: null',
-                        //  ....
-                        sender.tell(new ImmutableConnectionFailure(null, throwable, "subscriptions"), self);
-                    }
-                });
-    }
-
-    @SuppressWarnings("unused") // ignored for speed - method reference is much faster than lambda
-    private void onClientDisconnected(final HiveMqtt3ClientActor.HiveMqttClientEvents disconnected) {
-        log.debug("Client disconnected, ignoring.");
-        // TODO: currently we don't care about unsubscribing because we have cleanSession=true. Should we care? At least
-        //  we cannot unsubscribe when already disconnected ...
-//        this.unsubscribe();
-    }
-
-    @Nullable
-    private Mqtt3Subscribe prepareSubscriptions(final Collection<String> topics) {
-        if (topics.isEmpty()) {
-            return null;
-        }
-
-        final Mqtt3SubscribeBuilder.Start subscribeBuilder = topics.stream()
-                .map(topic -> Mqtt3Subscription.builder().topicFilter(topic).qos(DEFAULT_QOS).build())
-                .collect(this.collectMqtt3Subscribption());
-        if (subscribeBuilder instanceof Mqtt3SubscribeBuilder.Complete) {
-            return ((Mqtt3SubscribeBuilder.Complete) subscribeBuilder).build();
-        }
-        return null;
-    }
-
-    private Collector<Mqtt3Subscription, Mqtt3SubscribeBuilder.Start, Mqtt3SubscribeBuilder.Start> collectMqtt3Subscribption() {
-        return Collector.of(
-                Mqtt3Subscribe::builder,
-                Mqtt3SubscribeBuilderBase::addSubscription,
-                (builder1, builder2) -> {throw new UnsupportedOperationException("parallel execution not allowed");});
-    }
-
-    @SuppressWarnings("unused") // ignored for speed - method reference is much faster than lambda
-    private CompletableFuture<Mqtt3SubAck> subscribe(final Void unused) {
-        if (mqtt3Subscribe != null) {
-            final ActorRef self = self();
-            final Iterable<String> localTopics = topics;
-            return client.subscribe(mqtt3Subscribe, msg -> self.tell(msg, ActorRef.noSender()))
-                    .whenComplete((mqtt3SubAck, throwable) -> {
-                        if (throwable != null) {
-                            // Handle failure to subscribe
-                            log.error(throwable, "Error while subscribing to topics: <{}>", localTopics);
-                        } else {
-                            // Handle successful subscription, e.g. logging or incrementing a metric
-                            log.info("Successfully subscribed to <{}>", localTopics);
-                        }
-                    });
-        }
-        return CompletableFuture.completedFuture(null);
-
-    }
-
-    private CompletableFuture<Void> unsubscribe() {
-        if (null != mqtt3Subscribe) {
-            return client.unsubscribe(Mqtt3Unsubscribe.builder().reverse(mqtt3Subscribe).build())
-                    .whenComplete((unused, throwable) -> {
-                        if (null == throwable) {
-                            log.info("Successfully unsubscribed.");
-                        } else {
-                            log.warning("Error while unsubscribing from topics: {}", throwable);
-                        }
-                    });
-        }
-        return CompletableFuture.completedFuture(null);
-    }
-
-    @SuppressWarnings("unused") // ignored for speed - method reference is much faster than lambda
     private boolean isDryRun(final Object message) {
         return dryRun;
     }
-
 }

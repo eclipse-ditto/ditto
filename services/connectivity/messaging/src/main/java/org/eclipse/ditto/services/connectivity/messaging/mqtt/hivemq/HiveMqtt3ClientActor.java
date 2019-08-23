@@ -12,91 +12,92 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
-import static com.hivemq.client.mqtt.MqttClientState.*;
-import static com.hivemq.client.mqtt.MqttClientState.CONNECTING;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
+import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ClientReady;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt3SubscriptionHandler.MqttConsumer;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
-import com.hivemq.client.mqtt.MqttClient;
-import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedContext;
-import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
-import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedContext;
-import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
+import com.hivemq.client.mqtt.mqtt3.lifecycle.Mqtt3ClientConnectedContext;
+import com.hivemq.client.mqtt.mqtt3.lifecycle.Mqtt3ClientDisconnectedContext;
 
 import akka.actor.ActorRef;
+import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.actor.Terminated;
 import akka.japi.pf.FSMStateFunctionBuilder;
+import akka.pattern.Patterns;
 
 // TODO: allow setting an own clientId (by the user) instead of using the connection id.
+
 /**
- * TODO: test
  * Actor which handles connection to MQTT 3.1.1 server.
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
 public final class HiveMqtt3ClientActor extends BaseClientActor {
 
+    // we always want to use clean session -> we need to subscribe after reconnects
     private static final boolean CLEAN_SESSION = true;
+    private final HiveMqtt3ClientFactory clientFactory;
 
-    @Nullable
-    private ActorRef publisherActor;
-    private final ActorRef forwarderToPublisherActor;
-    private final List<ActorRef> consumerActors;
-
-    private final ActorRef forwarderToMessageMappingActor;
+    @Nullable private ActorRef publisherActor;
 
     private final Mqtt3Client client;
-    private final Set<ActorRef> pendingStatusReportsFromStreams;
-
-    private CompletableFuture<Status.Status> testConnectionFuture = null;
+    private final HiveMqtt3SubscriptionHandler subscriptionHandler;
 
     @SuppressWarnings("unused") // used by `props` via reflection
     HiveMqtt3ClientActor(final Connection connection,
-            final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder) {
+            final ActorRef conciergeForwarder,
+            final HiveMqtt3ClientFactory clientFactory) {
+        super(connection, connection.getConnectionStatus(), conciergeForwarder);
+        this.clientFactory = clientFactory;
 
-        super(connection, desiredConnectionStatus, conciergeForwarder);
-        pendingStatusReportsFromStreams = new HashSet<>();
+        final ActorRef self = getContext().getSelf();
+        client = clientFactory.newClient(connection, connection.getId(),
+                connected -> self.tell(connected, ActorRef.noSender()),
+                disconnected -> self.tell(disconnected, ActorRef.noSender()));
 
-        client = buildHiveMqClient(connection, connection.getId(), this::onClientConnected, this::onClientDisconnected);
-        forwarderToPublisherActor = startForwarder(HiveMqtt3PublisherActor.NAME);
-        forwarderToMessageMappingActor = startForwarder(MessageMappingProcessorActor.ACTOR_NAME);
-        consumerActors = new ArrayList<>();
+        this.subscriptionHandler = new HiveMqtt3SubscriptionHandler(connection, client,
+                failure -> self.tell(failure, ActorRef.noSender()),
+                () -> self.tell(getClientReady(), ActorRef.noSender()),
+                log);
     }
 
-    private ActorRef startForwarder(final String actorName) {
-        return getContext().actorOf(ForwardActorWithStrategy.forwardTo(getContext().actorSelection(
-                actorName)), "forwarder-to-" + actorName);
+    @SuppressWarnings("unused") // used by `props` via reflection
+    HiveMqtt3ClientActor(final Connection connection,
+            final ActorRef conciergeForwarder) {
+        this(connection, conciergeForwarder, DefaultHiveMqtt3ClientFactory.getInstance());
+    }
+
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param connection the connection.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param clientFactory factory used to create required mqtt clients
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final Connection connection, final ActorRef conciergeForwarder,
+            final HiveMqtt3ClientFactory clientFactory) {
+        return Props.create(HiveMqtt3ClientActor.class, validateConnection(connection),
+                conciergeForwarder, clientFactory);
     }
 
     /**
@@ -107,60 +108,58 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
-
         return Props.create(HiveMqtt3ClientActor.class, validateConnection(connection),
-                connection.getConnectionStatus(),
                 conciergeForwarder);
+    }
+
+    @Override
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
+        return super.inAnyState()
+                .event(Mqtt3ClientConnectedContext.class, this::handleClientConnected)
+                .event(Mqtt3ClientDisconnectedContext.class, this::handleClientDisconnected);
     }
 
     private static Connection validateConnection(final Connection connection) {
         // nothing to do so far
+        // TODO validate topics with MqttTopicFilter.of(...)
+
+
+        // TODO limit client and consumer count to 1 because mqtt by default does not provide load balancing
+        // validate consumerCount == 1
+//        if (source.getConsumerCount() <= 0) {
+//            log.info("source #{} has {} consumer - not starting consumer actor", source.getIndex(),
+//                    source.getConsumerCount());
+//            return null;
+//        }
+
         return connection;
     }
 
-    @Override
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
-        return super.inTestingState()
-                .event(Status.Status.class, (e, d) -> !Objects.equals(getSender(), getSelf()),
-                        this::handleStatusReportFromChildren)
-                .event(ClientConnected.class, BaseClientData.class, (event, data) -> {
-                    // TODO: this code is a duplicate of MqttClientActor and KafkaClientActor
-                    final String url = data.getConnection().getUri();
-                    final String message = "MQTT connection to " + url + " established successfully.";
-                    completeTestConnectionFuture(new Status.Success(message), data);
-                    return stay();
-                })
-                .event(ConnectionFailure.class, BaseClientData.class, (event, data) -> {
-                    completeTestConnectionFuture(new Status.Failure(event.getFailure().cause()), data);
-                    return stay();
-                });
-    }
-
-    @Override
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
-        return super.inConnectingState()
-                .event(Status.Status.class, this::handleStatusReportFromChildren);
-    }
 
     // TODO: this code is a duplicate of MqttClientActor and KafkaClientActor
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
-        final String testClientId = connection.getId() + "-test";
-        return buildHiveMqClient(connection, testClientId, null, null)
+        final Mqtt3Client testClient = clientFactory.newClient(connection, connection.getId());
+        return testClient
                 .toAsync()
-                .connect()
+                .connectWith()
+                .cleanSession(true)
+                .send()
                 .thenApply(connAck -> {
                     final String url = connection.getUri();
                     final String message = "MQTT connection to " + url + " established successfully.";
+                    log.info(message);
                     return (Status.Status) new Status.Success(message);
                 })
-                .exceptionally(Status.Failure::new);
-//
-//        if (testConnectionFuture != null) {
-//            final Exception error = new IllegalStateException("test future exists");
-//            return CompletableFuture.completedFuture(new Status.Failure(error));
-//        }
-//        testConnectionFuture = new CompletableFuture<>();
+                .thenCompose(s -> {
+                    log.debug("test connection {} closed after test.", connectionId());
+                    return testClient.toAsync().disconnect().thenApply(unused -> s);
+                })
+                .exceptionally(cause -> {
+                    log.info("Connection to {} failed: {}", connection.getUri(), cause.getMessage());
+                    return new Status.Failure(cause);
+                });
+
 //        // TODO: if we would not try to subscribe to the broker, we could directly map the returned future here.
 //        //  does it make sense to start the subscribers? they will subscribe and consume messages (throwing them away though)
 //        connectClient(connection, true);
@@ -168,49 +167,80 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     }
 
     @Override
-    protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
-        // nothing to do here; publisher and consumers started already.
+    protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
+        connectClient(connection, false, origin);
     }
 
     @Override
-    protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        connectClient(connection, false);
+    protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
+        final String connectionId = connection().getId();
+        final List<Target> targets = connection().getTargets();
+
+        publisherActor = getContext().actorOf(HiveMqtt3PublisherActor.props(connectionId, targets, client, isDryRun()),
+                HiveMqtt3PublisherActor.NAME);
+        startMessageMappingProcessorActor(publisherActor);
+        startHiveMqConsumers(client, subscriptionHandler::handleMqttConsumer);
     }
 
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        final ActorRef self = self();
-        disconnectClient().whenComplete((aVoid, throwable) -> {
-            if (null != throwable) {
-                log.warning("Error while disconnecting: {}", throwable);
-            } else {
-                log.info("Successfully disconnected.");
-            }
-            self.tell((ClientDisconnected) () -> null, origin);
-        });
+        final CompletionStage<ClientDisconnected> disconnectFuture = disconnectClient()
+                .handle((aVoid, throwable) -> {
+                    if (null != throwable) {
+                        log.info("Error while disconnecting: {}", throwable);
+                    } else {
+                        log.debug("Successfully disconnected.");
+                    }
+                    return getClientDisconnected(origin);
+                });
+        Patterns.pipe(disconnectFuture, getContext().getDispatcher()).to(getSelf(), origin);
+    }
+
+    private static ClientDisconnected getClientDisconnected(@Nullable final ActorRef origin) {
+        return () -> Optional.ofNullable(origin);
+    }
+
+    @Override
+    protected void cleanupResourcesForConnection() {
+        stopCommandConsumers();
+        stopMessageMappingProcessorActor();
+        stopMqttPublisher();
+        safelyDisconnectClient();
+    }
+
+    /**
+     * Call only in case of a failure to make sure the client is closed properly. E.g. when subscribing to a topic
+     * failed the connection is already established and must be closed to avoid resource leaks.
+     */
+    private void safelyDisconnectClient() {
+        try {
+            disconnectClient();
+        } catch (final Throwable throwable) {
+            log.debug("Disconnecting client failed, it was probably already closed.");
+        }
     }
 
     private CompletionStage<Void> disconnectClient() {
         return client.toAsync().disconnect();
     }
 
-    // callback for the hivemq client
-    private void onClientConnected(final MqttClientConnectedContext context) {
+    private FSM.State<BaseClientState, BaseClientData> handleClientConnected(
+            final Mqtt3ClientConnectedContext connected,
+            final BaseClientData currentData) {
         log.info("Successfully connected client for connection <{}>.", connectionId());
-        final HiveMqttClientEvents event;
-        switch (context.getClientConfig().getState()) {
-            case CONNECTING_RECONNECT:
-                event = HiveMqttClientEvents.RECONNECTED;
-                break;
-            case CONNECTING:
-            default:
-                event = HiveMqttClientEvents.CONNECTED;
-        }
-        tellToChildren(event);
+        subscriptionHandler.handleConnected(connected);
+        return stay().using(currentData);
     }
 
     // callback for the hivemq client
-    private void onClientDisconnected(final MqttClientDisconnectedContext context) {
+    private FSM.State<BaseClientState, BaseClientData> handleClientDisconnected(
+            final Mqtt3ClientDisconnectedContext disconnected,
+            final BaseClientData currentData) {
+
+        log.info("Client disconnected <{}>: {}", connectionId(), disconnected.getCause().getMessage());
+        subscriptionHandler.handleDisconnected(disconnected);
+        return stay().using(currentData);
+
         // On broker failure while connected:
         //  TODO: reconnect might also be false if settings say it should be false ...
         //  Client for connection <6fbcd2db-9eb0-4a90-a64e-c6d9290488f1> disconnected. Reconnect is set to <true>. Client state is <CONNECTED>. Cause for disconnect: <com.hivemq.client.mqtt.exceptions.ConnectionClosedException: Server closed connection without DISCONNECT.>.
@@ -227,102 +257,45 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         //      Failed on the initial connect
 
 
-        if (context.getClientConfig().getState() == CONNECTING) {
-            // we get here if the initial connect fails
-            // see https://github.com/hivemq/hivemq-mqtt-client/issues/302
-            // connectClient() already handles the initial connection failure
-            log.info("Failed on the initial connect.");
-        } else if (context.getClientConfig().getState() == DISCONNECTED) {
-            // TODO: do we get here when trying to disconnect regularly? Do we need to do afterwards?
-            log.info("Disconnected regularly. Doing nothing else??");
-        } else {
-            log.info(
-                    "Client for connection <{}> disconnected. Reconnect is set to <{}>. Client state is <{}>. Cause for disconnect: <{}>.",
-                    connectionId(), context.getReconnector().isReconnect(), context.getClientConfig().getState(),
-                    context.getCause());
-            // TODO: getSelf not ok here since in async callback
-            tellToChildren(HiveMqttClientEvents.DISCONNECTED);
-        }
-
+//        if (context.getClientConfig().getState() == CONNECTING) {
+//            // we get here if the initial connect fails
+//            // see https://github.com/hivemq/hivemq-mqtt-client/issues/302
+//            // connectClient() already handles the initial connection failure
+//            log.info("Failed on the initial connect.");
+//        } else if (context.getClientConfig().getState() == DISCONNECTED) {
+//            // TODO: do we get here when trying to disconnect regularly? Do we need to do afterwards?
+//            log.info("Disconnected regularly. Doing nothing else??");
+//        } else {
+//            log.info(
+//                    "Client for connection <{}> disconnected. Reconnect is set to <{}>. Client state is <{}>. Cause for disconnect: <{}>.",
+//                    connectionId(), context.getReconnector().isReconnect(), context.getClientConfig().getState(),
+//                    context.getCause());
+//            // TODO: getSelf not ok here since in async callback
+//            //  tellToChildren(HiveMqttClientEvents.DISCONNECTED);
+//        }
     }
 
-    private Mqtt3Client buildHiveMqClient(final Connection connection, final String identifier,
-            @Nullable final MqttClientConnectedListener connectedListener,
-            @Nullable final MqttClientDisconnectedListener disconnectedListener) {
-        Mqtt3ClientBuilder mqtt3ClientBuilder = MqttClient.builder().useMqttVersion3();
-        final Optional<String> possibleUsername = connection.getUsername();
-        final Optional<String> possiblePassword = connection.getPassword();
-        // TODO: test if this works
-        if (possibleUsername.isPresent() && possiblePassword.isPresent()) {
-            mqtt3ClientBuilder = mqtt3ClientBuilder.simpleAuth()
-                    .username(possibleUsername.get())
-                    .password(possiblePassword.get().getBytes(StandardCharsets.UTF_8))
-                    .applySimpleAuth();
+    private void startHiveMqConsumers(final Mqtt3Client client, Consumer<MqttConsumer> consumerListener) {
+        final Optional<ActorRef> messageMappingProcessorActor = getMessageMappingProcessorActor();
+        if (!messageMappingProcessorActor.isPresent()) {
+            log.warning("message mapper not available");
+            // TODO goto failure state instead?
+            return;
         }
 
-        if (connection.isFailoverEnabled()) {
-            // TODO: use specific config instead of default config
-            mqtt3ClientBuilder.automaticReconnectWithDefaultConfig();
-        }
-
-        if ("ssl".equals(connection.getProtocol()) || "wss".equals(connection.getProtocol())) {
-            // TODO: apply TLS config
-        }
-
-        if (null != connectedListener) {
-            mqtt3ClientBuilder.addConnectedListener(connectedListener);
-        }
-        if (null != disconnectedListener) {
-            mqtt3ClientBuilder.addDisconnectedListener(disconnectedListener);
-        }
-        return mqtt3ClientBuilder.identifier(identifier)
-                .addConnectedListener(this::onClientConnected)
-                .addDisconnectedListener(this::onClientDisconnected)
-                .build();
+        // TODO: sometimes the hivemq client will run into an exception here if there are multiple consumers on the
+        //  same topic. try to do a reproducer and post to hivemq issues / questions
+        connection().getSources().stream()
+                .map(source -> MqttConsumer.of(source,
+                        startHiveMqConsumer(client, isDryRun(), source, messageMappingProcessorActor.get())))
+                .forEach(consumerListener);
     }
 
-    private List<ActorRef> startHiveMqConsumers(final Mqtt3Client client, final boolean dryRun) {
-        if (isConsuming()) {
-            // TODO: sometimes the hivemq client will run into an exception here if there are multiple consumers on the
-            //  same topic. try to do a reproducer and post to hivemq issues / questions
-            return connection().getSources().stream()
-                    .map(source -> startHiveMqConsumer(client, dryRun, source))
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toList());
-        }
-
-        log.info("Not starting consumption because there is no source.");
-        return Collections.emptyList();
+    private ActorRef startHiveMqConsumer(final Mqtt3Client client, final boolean dryRun, final Source source,
+            final ActorRef mappingActor) {
+        return startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
+                HiveMqtt3ConsumerActor.props(connectionId(), mappingActor, source, dryRun));
     }
-
-    private List<ActorRef> startHiveMqConsumer(final Mqtt3Client client, final boolean dryRun, final Source source) {
-        if (source.getConsumerCount() <= 0) {
-            log.info("source #{} has {} consumer - not starting consumer actor", source.getIndex(),
-                    source.getConsumerCount());
-            return Collections.emptyList();
-        }
-        return Stream.iterate(0, i -> i + 1)
-                .limit(source.getConsumerCount())
-                .map(unused -> startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
-                        HiveMqtt3ConsumerActor.props(
-                                connectionId(),
-                                forwarderToMessageMappingActor,
-                                source,
-                                dryRun,
-                                client
-                        )))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
-        return super.inAnyState()
-                .event(Terminated.class, BaseClientData.class, (terminated, data) -> {
-                    log.error("Terminated {}", terminated);
-                    return stay();
-                });
-    }
-
 
     /**
      * TODO: there are some problems with connection failures / restarts:
@@ -344,18 +317,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
      * @param connection connection of the publisher and subscribers.
      * @param dryRun if set to true, exchange no message between the broker and the Ditto cluster.
      */
-    private void connectClient(final Connection connection, final boolean dryRun) {
-        // TODO: do we really want to start the actors before connecting succeeded?
-        publisherActor =
-                getContext().actorOf(HiveMqtt3PublisherActor.props(connection.getId(), connection.getTargets(),
-                        client,
-                        dryRun), HiveMqtt3PublisherActor.NAME);
-        pendingStatusReportsFromStreams.add(publisherActor);
-        consumerActors.addAll(startHiveMqConsumers(client, dryRun));
-        pendingStatusReportsFromStreams.addAll(consumerActors);
-
-        startMessageMappingProcessorActor(forwarderToPublisherActor);
-
+    private void connectClient(final Connection connection, final boolean dryRun, final ActorRef origin) {
         final ActorRef self = getSelf();
         client.toAsync()
                 .connectWith()
@@ -365,31 +327,17 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                     if (null != throwable) {
                         // BaseClientActor will handle and log all ConnectionFailures.
                         self.tell(new ImmutableConnectionFailure(null, throwable, null), ActorRef.noSender());
+                    } else {
+                        // tell self we connected successfully to proceed with connection establishment
+                        self.tell(new MqttClientConnected(origin), getSelf());
                     }
-                }); // will automatically start subscriptions and publishers in the onconnected and ondisconnected callbacks of the client
+                });
     }
 
     @Override
     protected String getMessageMappingActorName() {
         return MessageMappingProcessorActor.ACTOR_NAME;
     }
-
-    @Override
-    protected void cleanupResourcesForConnection() {
-        pendingStatusReportsFromStreams.clear();
-        stopCommandConsumers();
-        stopMessageMappingProcessorActor();
-        stopMqttPublisher();
-
-        // TODO: this is already called in "doDisconnectClient" - this will probably cause more problems then it will do good.
-        //  here the calls of this method:
-        //  1. socket is closed
-        //  2. StateTimeout during CONNECTING or DISONNECTING - here there would also be called cleanupFurtherResourcesOnConnectionTimeout
-        //  3. on a ClientDisconnected message
-        //  4. on a ConnectionFailure message
-        disconnectClient();
-    }
-
 
     private void stopMqttPublisher() {
         if (publisherActor != null) {
@@ -399,54 +347,19 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     }
 
     private void stopCommandConsumers() {
-        consumerActors.forEach(this::stopChildActor);
-        consumerActors.clear();
+        subscriptionHandler.clearConsumerActors(this::stopChildActor);
     }
 
-    // TODO: duplicated code in MqttClientActor and KafkaClientActor
-    private State<BaseClientState, BaseClientData> handleStatusReportFromChildren(final Status.Status status,
-            final BaseClientData data) {
+    static class MqttClientConnected extends AbstractWithOrigin implements ClientConnected {
 
-        log.info("Status from {} with status {}. Still pending {}", getSender(), status,
-                pendingStatusReportsFromStreams);
-        if (pendingStatusReportsFromStreams.contains(getSender())) {
-            pendingStatusReportsFromStreams.remove(getSender());
-            if (status instanceof Status.Failure) {
-                final Status.Failure failure = (Status.Failure) status;
-                final ConnectionFailure connectionFailure =
-                        new ImmutableConnectionFailure(null, failure.cause(), "child failed");
-                getSelf().tell(connectionFailure, ActorRef.noSender());
-            } else if (pendingStatusReportsFromStreams.isEmpty()) {
-                // all children are ready; this client actor is connected.
-                getSelf().tell((ClientConnected) () -> null, ActorRef.noSender());
-            }
+        MqttClientConnected(@Nullable final ActorRef origin) {
+            super(origin);
         }
-        return stay();
-    }
 
-    // TODO: duplicated code in MqttClientActor and KafkaClientActor
-    private void completeTestConnectionFuture(final Status.Status testResult, final BaseClientData data) {
-        if (testConnectionFuture != null) {
-            testConnectionFuture.complete(testResult);
-        } else {
-            // no future; test failed.
-            final Exception exception = new IllegalStateException("test future not found");
-            getSelf().tell(new Status.Failure(exception), getSelf());
+        @Override
+        public Optional<ActorRef> getOrigin() {
+            return Optional.empty();
         }
-    }
-
-    private void tellToChildren(final Object message) {
-        log.info("Telling all my child consumers and publishers: {}", message);
-        consumerActors.forEach(actor -> actor.tell(message, getSelf()));
-        if (publisherActor != null) {
-            publisherActor.tell(message, getSelf());
-        }
-    }
-
-    enum HiveMqttClientEvents {
-        CONNECTED,
-        RECONNECTED,
-        DISCONNECTED
     }
 
 }

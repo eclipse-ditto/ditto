@@ -35,8 +35,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
 
     private final ConnectionConfig connectionConfig;
 
-    private DefaultClientActorPropsFactory(
-            final ConnectionConfig connectionConfig) {
+    private DefaultClientActorPropsFactory(final ConnectionConfig connectionConfig) {
         this.connectionConfig = connectionConfig;
     }
 

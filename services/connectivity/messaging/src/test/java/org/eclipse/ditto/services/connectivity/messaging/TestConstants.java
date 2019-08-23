@@ -100,6 +100,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -641,6 +643,26 @@ public final class TestConstants {
                     .build();
         }
 
+    }
+
+    public static final class FreePort {
+
+        private static final Logger LOGGER = LoggerFactory.getLogger(FreePort.class);
+
+        private final int port;
+
+        public FreePort() {
+            try (final ServerSocket socket = new ServerSocket(0)) {
+                port = socket.getLocalPort();
+            } catch (final IOException e) {
+                LOGGER.info("Failed to find local port: " + e.getMessage());
+                throw new IllegalStateException(e);
+            }
+        }
+
+        public int getPort() {
+            return port;
+        }
     }
 
 }

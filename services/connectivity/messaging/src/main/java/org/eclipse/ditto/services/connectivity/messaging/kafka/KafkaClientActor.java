@@ -126,6 +126,7 @@ public final class KafkaClientActor extends BaseClientActor {
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
         // nothing to do here; publisher and consumers started already.
+        getSelf().tell(getClientReady(), getSelf());
     }
 
     @Override

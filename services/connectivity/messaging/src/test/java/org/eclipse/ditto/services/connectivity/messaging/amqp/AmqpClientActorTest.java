@@ -308,7 +308,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), aggregator.ref());
             final ResourceStatus resourceStatus = aggregator.expectMsgClass(ResourceStatus.class);
-            System.out.println(resourceStatus);
 
             final JmsConnectionListener connectionListener = checkNotNull(listenerArgumentCaptor.getValue());
 
@@ -332,10 +331,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     private static Boolean awaitStatusInStatusResponse(final TestProbe aggregator,
             final ConnectivityStatus expectedStatus) {
-
-        final ResourceStatus status = aggregator.expectMsgClass(ResourceStatus.class);
-        System.out.println("waiting for " + expectedStatus + ", received: " + status);
-        return expectedStatus.equals(status.getStatus());
+        return expectedStatus.equals(aggregator.expectMsgClass(ResourceStatus.class).getStatus());
     }
 
     @Test

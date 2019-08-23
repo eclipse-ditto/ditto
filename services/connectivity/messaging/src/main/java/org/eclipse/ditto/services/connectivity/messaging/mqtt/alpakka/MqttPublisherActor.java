@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttConnectionFactory;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttPublishTarget;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;

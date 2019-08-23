@@ -260,6 +260,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             startCommandProducer();
             startMessageMappingProcessorActor(Optional.ofNullable(amqpPublisherActor));
             startCommandConsumers(c.consumerList, jmsActor);
+            getSelf().tell(getClientReady(), getSelf());
         } else {
             log.info("ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
         }

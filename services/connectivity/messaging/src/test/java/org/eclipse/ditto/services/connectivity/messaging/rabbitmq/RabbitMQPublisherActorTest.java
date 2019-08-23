@@ -65,8 +65,6 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
         probe.expectMsgClass(ChannelMessage.class);
         final ChannelMessage channelMessage = probe.expectMsgClass(ChannelMessage.class);
 
-        System.out.println("message:" + channelMessage);
-
         channelMessage.onChannel().apply(channel);
 
         final ArgumentCaptor<AMQP.BasicProperties> propertiesCaptor =

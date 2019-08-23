@@ -130,7 +130,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
         final Message message = messageCaptor.getValue();
         assertThat(message).isNotNull();
-        System.out.println(Collections.list(message.getPropertyNames()));
         assertThat(message.getStringProperty("thing_id")).isEqualTo(TestConstants.Things.THING_ID);
         assertThat(message.getStringProperty("suffixed_thing_id")).isEqualTo(
                 TestConstants.Things.THING_ID + ".some.suffix");
