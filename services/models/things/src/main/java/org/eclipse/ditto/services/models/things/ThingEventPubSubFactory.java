@@ -56,7 +56,7 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
     }
 
     /**
-     * Create a pubsub factory for thing events ignoring topics that are not read-subjects.
+     * Create a pubsub factory for thing events ignoring shard ID topics.
      *
      * @param actorSystem the actor system.
      * @param config the pub-sub config.
@@ -66,12 +66,30 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
         return new ThingEventPubSubFactory(actorSystem, readSubjectOnlyExtractor(), config);
     }
 
+    /**
+     * Create a pubsub factory for thing events ignoring read subject topics.
+     *
+     * @param actorSystem the actor system.
+     * @param numberOfShards the number of shards---must be identical between things and thing-updaters.
+     * @return the thing event pug-sub factory.
+     */
+    public static ThingEventPubSubFactory shardIdOnly(final ActorSystem actorSystem, final int numberOfShards) {
+
+        final PubSubTopicExtractor<ThingEvent> topicExtractor =
+                shardIdOnlyExtractor(ShardRegionExtractor.of(numberOfShards, actorSystem));
+        return new ThingEventPubSubFactory(actorSystem, topicExtractor, PubSubConfig.of(actorSystem));
+    }
+
     private static PubSubTopicExtractor<ThingEvent> readSubjectOnlyExtractor() {
         return ReadSubjectExtractor.<ThingEvent>of().with(ConstantTopics.of(ThingEvent.TYPE_PREFIX));
     }
 
+    private static PubSubTopicExtractor<ThingEvent> shardIdOnlyExtractor(final ShardRegionExtractor extractor) {
+        return ShardIdExtractor.of(extractor);
+    }
+
     private static PubSubTopicExtractor<ThingEvent> toTopicExtractor(final ShardRegionExtractor shardRegionExtractor) {
         return ReadSubjectExtractor.<ThingEvent>of().with(
-                Arrays.asList(ConstantTopics.of(ThingEvent.TYPE_PREFIX), ShardIdExtractor.of(shardRegionExtractor)));
+                Arrays.asList(ConstantTopics.of(ThingEvent.TYPE_PREFIX), shardIdOnlyExtractor(shardRegionExtractor)));
     }
 }

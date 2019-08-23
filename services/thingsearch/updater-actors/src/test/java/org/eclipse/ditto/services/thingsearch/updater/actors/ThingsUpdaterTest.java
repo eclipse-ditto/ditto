@@ -25,16 +25,21 @@ import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.thingsearch.common.config.DefaultUpdaterConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
@@ -55,6 +60,7 @@ public final class ThingsUpdaterTest {
             DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_2).build();
     private static final String KNOWN_THING_ID = "namespace:aThing";
     private static final String KNOWN_POLICY_ID = "namespace:aPolicy";
+    private static final Config TEST_CONFIG = ConfigFactory.load("test");
 
     private ActorSystem actorSystem;
     private TestProbe shardMessageReceiver;
@@ -63,7 +69,7 @@ public final class ThingsUpdaterTest {
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.load("test"));
+        actorSystem = ActorSystem.create("AkkaTestSystem", TEST_CONFIG);
         shardMessageReceiver = TestProbe.apply(actorSystem);
         shardRegionFactory = TestUtils.getMockedShardRegionFactory(
                 original -> actorSystem.actorOf(TestUtils.getForwarderActorProps(original, shardMessageReceiver.ref())),
@@ -156,11 +162,14 @@ public final class ThingsUpdaterTest {
     }
 
     private ActorRef createThingsUpdater() {
-        final boolean eventProcessingActive = true;
+        // updater not configured in test.conf; using default config with event processing disabled
+        // so that actor does not poll updater shard region for stats
+        final UpdaterConfig config =
+                DefaultUpdaterConfig.of(ConfigFactory.parseString("updater.event-processing-active=false"));
         final ActorRef thingsShardRegion = shardRegionFactory.getThingsShardRegion(NUMBER_OF_SHARDS);
+        final DistributedSub mockDistributedSub = Mockito.mock(DistributedSub.class);
         return actorSystem.actorOf(
-                ThingsUpdater.props(actorSystem.deadLetters(), thingsShardRegion, eventProcessingActive,
-                        blockedNamespaces));
+                ThingsUpdater.props(mockDistributedSub, thingsShardRegion, config, blockedNamespaces));
     }
 
 }
