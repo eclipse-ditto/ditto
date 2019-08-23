@@ -14,8 +14,6 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.UUID;
-
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
@@ -24,8 +22,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
@@ -121,7 +119,7 @@ public final class JsonifiableSerializerTest {
 
     @Test
     public void shardedMessageEnvelopeSerializationWorksAsExpected() {
-        final EntityId id = DefaultEntityId.of(UUID.randomUUID().toString());
+        final EntityId id = DefaultEntityId.generateRandom();
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final RetrieveThings retrieveThings = RetrieveThings.getBuilder(THING_ID)
                 .dittoHeaders(dittoHeaders)
