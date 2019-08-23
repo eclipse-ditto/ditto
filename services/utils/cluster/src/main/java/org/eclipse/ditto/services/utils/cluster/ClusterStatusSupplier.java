@@ -23,6 +23,7 @@ import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.cluster.config.DefaultClusterConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterRoleStatus;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 
@@ -45,7 +46,7 @@ public final class ClusterStatusSupplier implements Supplier<ClusterStatus> {
      */
     public ClusterStatusSupplier(final Cluster cluster) {
         this.cluster = cluster;
-        clusterConfig = DefaultClusterConfig.of(cluster.system().settings().config());
+        clusterConfig = DefaultClusterConfig.of(DefaultScopedConfig.dittoScoped(cluster.system().settings().config()));
     }
 
     @Override
