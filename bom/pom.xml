@@ -79,7 +79,7 @@
             and update the code otherwise. see implementation of org.eclipse.ditto.services.connectivity.mapping.MessageMapper
         -->
         <js.long.version>3.2.0</js.long.version>
-        <caffeine.version>2.6.2</caffeine.version>
+        <caffeine.version>2.8.0</caffeine.version>
 
         <classindex.version>3.8</classindex.version>
 
@@ -816,6 +816,16 @@
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
                 <version>${caffeine.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.checkerframework</groupId>
+                        <artifactId>checker-qual</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_annotations</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
