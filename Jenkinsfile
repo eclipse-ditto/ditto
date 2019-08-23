@@ -12,6 +12,7 @@ node {
   stage('Build') {
     withMaven(
       maven: 'maven-3.3.9',
+      jdk: 'JDK8-Oracle',
       mavenLocalRepo: theMvnRepo) {
 
       sh "mvn clean deploy javadoc:jar source:jar" +
