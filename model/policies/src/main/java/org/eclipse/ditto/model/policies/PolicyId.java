@@ -54,6 +54,10 @@ public final class PolicyId implements NamespacedEntityId {
         return wrapInPolicyIdInvalidException(() -> new PolicyId(DefaultNamespacedEntityId.of(policyId)));
     }
 
+    public static PolicyId of(PolicyId policyId) {
+        return policyId;
+    }
+
     /**
      * Creates a new {@link PolicyId} with the given namespace and name.
      *

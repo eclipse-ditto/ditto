@@ -63,8 +63,8 @@ public class PolicyIdTest {
 
     @Test
     public void manuallyCreatedDummyIsDummy() {
-        assertThat(PolicyId.of("unknown", "unknown").isDummy()).isTrue();
-        assertThat(PolicyId.of("unknown:unknown").isDummy()).isTrue();
+        assertThat(PolicyId.of("", "_").isDummy()).isTrue();
+        assertThat(PolicyId.of(":_").isDummy()).isTrue();
     }
 
     @Test

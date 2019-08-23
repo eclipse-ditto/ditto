@@ -131,8 +131,8 @@ public class DefaultNamespacedEntityIdTest {
 
     @Test
     public void manuallyCreatedPlaceholderIsPlaceholder() {
-        assertThat(DefaultNamespacedEntityId.of("unknown:unknown").isDummy()).isTrue();
-        assertThat(DefaultNamespacedEntityId.of("unknown", "unknown").isDummy()).isTrue();
+        assertThat(DefaultNamespacedEntityId.of(":_").isDummy()).isTrue();
+        assertThat(DefaultNamespacedEntityId.of("", "_").isDummy()).isTrue();
     }
 
     @Test

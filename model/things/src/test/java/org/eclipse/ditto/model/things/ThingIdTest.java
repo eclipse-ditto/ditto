@@ -63,8 +63,8 @@ public class ThingIdTest {
 
     @Test
     public void manuallyCreatedDummyIsDummy() {
-        assertThat(ThingId.of("unknown", "unknown").isDummy()).isTrue();
-        assertThat(ThingId.of("unknown:unknown").isDummy()).isTrue();
+        assertThat(ThingId.of("", "_").isDummy()).isTrue();
+        assertThat(ThingId.of(":_").isDummy()).isTrue();
     }
 
     @Test

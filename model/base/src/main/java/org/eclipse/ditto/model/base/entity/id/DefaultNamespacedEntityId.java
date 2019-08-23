@@ -31,7 +31,7 @@
  @Immutable
  public final class DefaultNamespacedEntityId implements NamespacedEntityId {
 
-     private static final NamespacedEntityId DUMMY_ID = DefaultNamespacedEntityId.of("unknown:unknown");
+     private static final NamespacedEntityId DUMMY_ID = DefaultNamespacedEntityId.of(":_");
      private static final String DEFAULT_NAMESPACE = "";
 
      private final String namespace;
