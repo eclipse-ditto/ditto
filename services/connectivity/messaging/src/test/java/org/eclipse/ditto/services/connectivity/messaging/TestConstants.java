@@ -97,7 +97,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
-import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -178,15 +177,14 @@ public final class TestConstants {
     static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
         return new DittoProtocolSub() {
             @Override
-            public CompletionStage<SubUpdater.Acknowledgement> subscribe(final Collection<StreamingType> types,
+            public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
                 return CompletableFuture.allOf(types.stream()
                         .map(type -> {
                             final Object sub = DistPubSubAccess.subscribe(type.getDistributedPubSubTopic(), subscriber);
                             return Patterns.ask(pubSubMediator, sub, Duration.ofSeconds(10L)).toCompletableFuture();
                         })
-                        .toArray(CompletableFuture[]::new))
-                        .thenApply(_void -> null);
+                        .toArray(CompletableFuture[]::new));
             }
 
             @Override
@@ -195,8 +193,15 @@ public final class TestConstants {
             }
 
             @Override
-            public CompletionStage<SubUpdater.Acknowledgement> updateSubscription(final Collection<StreamingType> types,
+            public CompletionStage<Void> updateLiveSubscriptions(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
+                // do nothing
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
+                    final Collection<String> topics) {
                 // do nothing
                 return CompletableFuture.completedFuture(null);
             }

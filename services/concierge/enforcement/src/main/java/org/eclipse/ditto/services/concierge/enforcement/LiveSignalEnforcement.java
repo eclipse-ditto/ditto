@@ -193,7 +193,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                     } else {
                         log(liveSignal).warning("No outstanding responses receiver for CommandResponse <{}>",
                                 liveSignal.getType());
-                        return withoutReceiver();
+                        return withoutReceiver(liveSignal);
                     }
                 });
     }

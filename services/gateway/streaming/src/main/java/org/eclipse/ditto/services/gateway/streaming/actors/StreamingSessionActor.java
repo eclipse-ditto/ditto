@@ -172,8 +172,14 @@ final class StreamingSessionActor extends AbstractActor {
                     final AcknowledgeUnsubscription unsubscribeAck =
                             new AcknowledgeUnsubscription(stopStreaming.getStreamingType());
                     final Collection<StreamingType> currentStreamingTypes = namespacesForStreamingTypes.keySet();
-                    dittoProtocolSub.updateSubscription(currentStreamingTypes, authorizationSubjects, getSelf())
-                            .thenAccept(ack -> getSelf().tell(unsubscribeAck, getSelf()));
+                    if (stopStreaming.getStreamingType() != StreamingType.EVENTS) {
+                        dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes, authorizationSubjects,
+                                getSelf())
+                                .thenAccept(ack -> getSelf().tell(unsubscribeAck, getSelf()));
+                    } else {
+                        dittoProtocolSub.removeTwinSubscriber(getSelf(), authorizationSubjects)
+                                .thenAccept(ack -> getSelf().tell(unsubscribeAck, getSelf()));
+                    }
                 })
                 .match(AcknowledgeSubscription.class, msg ->
                         acknowledgeSubscription(msg.getStreamingType(), getSelf()))

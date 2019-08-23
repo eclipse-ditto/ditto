@@ -25,16 +25,16 @@ import org.eclipse.ditto.signals.base.Signal;
 import akka.actor.ActorSystem;
 
 /**
- * Pub-sub factory for one type of live signals.
+ * Pub-sub factory for live signals.
  */
-final class LiveAndTwinSignalPubSubFactory<T extends Signal> extends AbstractPubSubFactory<T> {
+final class LiveSignalPubSubFactory<T extends Signal> extends AbstractPubSubFactory<T> {
 
     /**
      * Cluster role interested in live signals.
      */
-    public static final String CLUSTER_ROLE = "live-and-twin-thing-aware";
+    public static final String CLUSTER_ROLE = "live-signal-aware";
 
-    private LiveAndTwinSignalPubSubFactory(final ActorSystem actorSystem, final PubSubConfig config,
+    private LiveSignalPubSubFactory(final ActorSystem actorSystem, final PubSubConfig config,
             final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor) {
 
         super(actorSystem, CLUSTER_ROLE, messageClass, CLUSTER_ROLE, topicExtractor, config);
@@ -46,12 +46,11 @@ final class LiveAndTwinSignalPubSubFactory<T extends Signal> extends AbstractPub
      * @param actorSystem the actor system.
      * @return the thing
      */
-    public static <T extends Signal> LiveAndTwinSignalPubSubFactory<T> of(final ActorSystem actorSystem,
+    public static <T extends Signal> LiveSignalPubSubFactory<T> of(final ActorSystem actorSystem,
             final PubSubConfig pubSubConfig,
-            final Class<T> signalClass,
-            final PubSubTopicExtractor<T> topicExtractor) {
+            final Class<T> signalClass) {
 
-        return new LiveAndTwinSignalPubSubFactory<>(actorSystem, pubSubConfig, signalClass, topicExtractor);
+        return new LiveSignalPubSubFactory<>(actorSystem, pubSubConfig, signalClass, topicExtractor());
     }
 
     private static Collection<String> getStreamingTypeTopic(final Signal signal) {
@@ -61,7 +60,7 @@ final class LiveAndTwinSignalPubSubFactory<T extends Signal> extends AbstractPub
                 .orElse(Collections.emptySet());
     }
 
-    static PubSubTopicExtractor<Signal> topicExtractor() {
-        return ReadSubjectExtractor.<Signal>of().with(LiveAndTwinSignalPubSubFactory::getStreamingTypeTopic);
+    private static <T extends Signal> PubSubTopicExtractor<T> topicExtractor() {
+        return ReadSubjectExtractor.<T>of().with(LiveSignalPubSubFactory::getStreamingTypeTopic);
     }
 }

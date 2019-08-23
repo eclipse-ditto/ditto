@@ -31,7 +31,6 @@ import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorProps
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
-import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -129,7 +128,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     private static DittoProtocolSub nopSub() {
         return new DittoProtocolSub() {
             @Override
-            public CompletionStage<SubUpdater.Acknowledgement> subscribe(final Collection<StreamingType> types,
+            public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
                 return CompletableFuture.completedFuture(null);
             }
@@ -140,9 +139,15 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
             }
 
             @Override
-            public CompletionStage<SubUpdater.Acknowledgement> updateSubscription(
+            public CompletionStage<Void> updateLiveSubscriptions(
                     final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
+                    final Collection<String> topics) {
                 return CompletableFuture.completedFuture(null);
             }
         };

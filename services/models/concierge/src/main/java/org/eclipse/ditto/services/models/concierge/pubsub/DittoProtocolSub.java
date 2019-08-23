@@ -16,7 +16,6 @@ import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -32,9 +31,9 @@ public interface DittoProtocolSub {
      * @param types the streaming types.
      * @param topics the topics.
      * @param subscriber who is subscribing.
-     * @return future that completes or fails according to the subscriptions.
+     * @return future that completes or fails according to the acknowledgement.
      */
-    CompletionStage<SubUpdater.Acknowledgement> subscribe(Collection<StreamingType> types,
+    CompletionStage<Void> subscribe(Collection<StreamingType> types,
             Collection<String> topics, ActorRef subscriber);
 
     /**
@@ -50,11 +49,19 @@ public interface DittoProtocolSub {
      * @param types the currently active streaming types.
      * @param topics the topics to unsubscribe from.
      * @param subscriber the subscriber.
-     * @return future acknowledgement.
+     * @return future that completes or fails according to the acknowledgement.
      */
-    CompletionStage<SubUpdater.Acknowledgement> updateSubscription(Collection<StreamingType> types,
-            Collection<String> topics,
+    CompletionStage<Void> updateLiveSubscriptions(Collection<StreamingType> types, Collection<String> topics,
             ActorRef subscriber);
+
+    /**
+     * Remove a subscriber from the twin events channel only.
+     *
+     * @param subscriber whom to remove.
+     * @param topics what were the subscribed topics.
+     * @return future that completes or fails according to the acknowledgement.
+     */
+    CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber, final Collection<String> topics);
 
     /**
      * Create {@code DittoProtocolSub} for an actor system.

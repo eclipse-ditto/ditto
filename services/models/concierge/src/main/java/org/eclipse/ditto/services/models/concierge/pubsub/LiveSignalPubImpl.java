@@ -49,8 +49,7 @@ final class LiveSignalPubImpl implements LiveSignalPub {
     static LiveSignalPubImpl of(final ActorSystem actorSystem) {
         final PubSubConfig config = PubSubConfig.of(actorSystem);
         final DistributedPub<?> distributedPub =
-                LiveAndTwinSignalPubSubFactory.of(actorSystem, config, Signal.class,
-                        LiveAndTwinSignalPubSubFactory.topicExtractor()).startDistributedPub();
+                LiveSignalPubSubFactory.of(actorSystem, config, Signal.class).startDistributedPub();
         final DistributedPub<Command> liveCommandPub =
                 distributedPub.withTopicExtractor(getTopicExtractor(StreamingType.LIVE_COMMANDS));
         final DistributedPub<Event> liveEventPub =

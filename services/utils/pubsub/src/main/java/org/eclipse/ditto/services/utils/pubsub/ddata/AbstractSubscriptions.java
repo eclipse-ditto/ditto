@@ -96,13 +96,19 @@ public abstract class AbstractSubscriptions<H, T> implements Subscriptions<T> {
             final Set<String> topics,
             final Predicate<Collection<String>> filter) {
         if (!topics.isEmpty()) {
+            // box the 'changed' flag in an array so that it can be assigned inside a closure.
+            final boolean[] changed = new boolean[1];
+
+            // change filter.
+            subscriberToFilter.compute(subscriber, (k, previousFilter) -> {
+                changed[0] = previousFilter != filter;
+                return filter;
+            });
+
             // add topics to subscriber
-            subscriberToFilter.put(subscriber, filter);
             subscriberToTopic.merge(subscriber, topics, AbstractSubscriptions::unionSet);
 
             // add subscriber for each new topic; detect whether there is any change.
-            // box the 'changed' flag in an array so that it can be assigned inside a closure.
-            final boolean[] changed = new boolean[1];
             for (final String topic : topics) {
                 topicToData.compute(topic, (k, previousData) -> {
                     if (previousData == null) {
@@ -122,8 +128,10 @@ public abstract class AbstractSubscriptions<H, T> implements Subscriptions<T> {
             // update filter if there are any existing topic subscribed
             if (subscriberToTopic.containsKey(subscriber)) {
                 subscriberToFilter.put(subscriber, filter);
+                return true;
+            } else {
+                return false;
             }
-            return false;
         }
     }
 

@@ -13,14 +13,18 @@
 package org.eclipse.ditto.services.models.concierge.pubsub;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
-import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -32,43 +36,78 @@ import akka.actor.ActorSystem;
  */
 final class DittoProtocolSubImpl implements DittoProtocolSub {
 
-    private final DistributedSub distributedSub;
+    private final DistributedSub liveSignalSub;
+    private final DistributedSub twinEventSub;
 
-    private DittoProtocolSubImpl(final DistributedSub distributedSub) {
-        this.distributedSub = distributedSub;
+    private DittoProtocolSubImpl(final DistributedSub liveSignalSub,
+            final DistributedSub twinEventSub) {
+        this.liveSignalSub = liveSignalSub;
+        this.twinEventSub = twinEventSub;
     }
 
     static DittoProtocolSubImpl of(final ActorSystem actorSystem) {
         final PubSubConfig config = PubSubConfig.of(actorSystem);
-        final DistributedSub distributedSub =
-                LiveAndTwinSignalPubSubFactory.of(actorSystem, config, Signal.class,
-                        LiveAndTwinSignalPubSubFactory.topicExtractor())
-                        .startDistributedSub();
-        return new DittoProtocolSubImpl(distributedSub);
+        final DistributedSub liveSignalSub =
+                LiveSignalPubSubFactory.of(actorSystem, config, Signal.class).startDistributedSub();
+        final DistributedSub twinEventSub =
+                ThingEventPubSubFactory.readSubjectsOnly(actorSystem, config).startDistributedSub();
+        return new DittoProtocolSubImpl(liveSignalSub, twinEventSub);
     }
 
     @Override
-    public CompletionStage<SubUpdater.Acknowledgement> subscribe(final Collection<StreamingType> types,
+    public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
             final Collection<String> topics,
             final ActorRef subscriber) {
-        return distributedSub.subscribeWithFilterAndAck(topics, subscriber, toFilter(types));
+        final CompletionStage<?> nop = CompletableFuture.completedFuture(null);
+        return partitionByStreamingTypes(types,
+                liveTypes -> !liveTypes.isEmpty()
+                        ? liveSignalSub.subscribeWithFilterAndAck(topics, subscriber, toFilter(liveTypes))
+                        : nop,
+                hasTwinEvents -> hasTwinEvents
+                        ? twinEventSub.subscribeWithAck(topics, subscriber)
+                        : nop
+        );
     }
 
     @Override
     public void removeSubscriber(final ActorRef subscriber) {
-        distributedSub.removeSubscriber(subscriber);
+        liveSignalSub.removeSubscriber(subscriber);
+        twinEventSub.removeSubscriber(subscriber);
     }
 
     @Override
-    public CompletionStage<SubUpdater.Acknowledgement> updateSubscription(final Collection<StreamingType> types,
+    public CompletionStage<Void> updateLiveSubscriptions(final Collection<StreamingType> types,
             final Collection<String> topics,
             final ActorRef subscriber) {
 
+        return partitionByStreamingTypes(types,
+                liveTypes -> !liveTypes.isEmpty()
+                        ? liveSignalSub.subscribeWithFilterAndAck(topics, subscriber, toFilter(liveTypes))
+                        : liveSignalSub.unsubscribeWithAck(topics, subscriber),
+                hasTwinEvents -> CompletableFuture.completedFuture(null)
+        );
+    }
+
+    @Override
+    public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber, final Collection<String> topics) {
+        return twinEventSub.unsubscribeWithAck(topics, subscriber).thenApply(ack -> null);
+    }
+
+    private CompletionStage<Void> partitionByStreamingTypes(final Collection<StreamingType> types,
+            final Function<Set<StreamingType>, CompletionStage<?>> onLiveSignals,
+            final Function<Boolean, CompletionStage<?>> onTwinEvents) {
+        final Set<StreamingType> liveTypes;
+        final boolean hasTwinEvents;
         if (types.isEmpty()) {
-            return distributedSub.unsubscribeWithAck(topics, subscriber);
+            liveTypes = Collections.emptySet();
+            hasTwinEvents = false;
         } else {
-            return distributedSub.subscribeWithFilterAndAck(topics, subscriber, toFilter(types));
+            liveTypes = EnumSet.copyOf(types);
+            hasTwinEvents = liveTypes.remove(StreamingType.EVENTS);
         }
+        final CompletableFuture<?> liveStage = onLiveSignals.apply(liveTypes).toCompletableFuture();
+        final CompletableFuture<?> twinStage = onTwinEvents.apply(hasTwinEvents).toCompletableFuture();
+        return CompletableFuture.allOf(liveStage, twinStage);
     }
 
     private static Predicate<Collection<String>> toFilter(final Collection<StreamingType> streamingTypes) {

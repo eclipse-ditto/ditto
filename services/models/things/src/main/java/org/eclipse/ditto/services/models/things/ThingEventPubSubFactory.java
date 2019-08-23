@@ -33,7 +33,7 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
     /**
      * Cluster role interested in thing events.
      */
-    public static final String CLUSTER_ROLE = "live-and-twin-thing-aware";
+    public static final String CLUSTER_ROLE = "thing-event-aware";
 
     private ThingEventPubSubFactory(final ActorSystem actorSystem,
             final PubSubTopicExtractor<ThingEvent> topicExtractor,
@@ -63,7 +63,7 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
      * @return the thing event pub-sub factory.
      */
     public static ThingEventPubSubFactory readSubjectsOnly(final ActorSystem actorSystem, final PubSubConfig config) {
-        return new ThingEventPubSubFactory(actorSystem, ReadSubjectExtractor.of(), config);
+        return new ThingEventPubSubFactory(actorSystem, readSubjectOnlyExtractor(), config);
     }
 
     private static PubSubTopicExtractor<ThingEvent> readSubjectOnlyExtractor() {
