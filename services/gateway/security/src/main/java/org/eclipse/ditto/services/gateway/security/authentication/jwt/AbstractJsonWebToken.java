@@ -20,9 +20,9 @@ import java.security.Key;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -154,9 +154,9 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     }
 
     @Override
-    public Set<String> getScopes() {
+    public List<String> getScopes() {
         final String[] strings = body.getValue(JsonFields.SCOPE).map(s -> s.split(" ")).orElseGet(() -> new String[]{});
-        return Arrays.stream(strings).collect(Collectors.toSet());
+        return Arrays.stream(strings).collect(Collectors.toList());
     }
 
     @Override

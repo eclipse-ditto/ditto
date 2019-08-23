@@ -99,7 +99,7 @@ public interface JsonWebToken {
      *
      * @return the scopes.
      */
-    Set<String> getScopes();
+    List<String> getScopes();
 
     /**
      * Checks if this JSON web token is valid in terms of not expired, well formed and correctly signed.
