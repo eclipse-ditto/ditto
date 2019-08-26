@@ -73,7 +73,6 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
-import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
@@ -181,7 +180,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final String connectionId;
-    private final ActorRef pubSubMediator; // for publishing of connection events
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef conciergeForwarder;
     private final long snapshotThreshold;
@@ -203,7 +201,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private Set<Topic> uniqueTopics = Collections.emptySet();
 
-    private final Duration flushPendingResponsesTimeout;
     private final Duration clientActorAskTimeout;
 
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
@@ -216,14 +213,12 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     @SuppressWarnings("unused")
     private ConnectionActor(final String connectionId,
-            final ActorRef pubSubMediator,
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator) {
 
         this.connectionId = connectionId;
-        this.pubSubMediator = pubSubMediator;
         this.dittoProtocolSub = dittoProtocolSub;
         this.conciergeForwarder = conciergeForwarder;
         this.propsFactory = propsFactory;
@@ -247,7 +242,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
         connectionDeletedBehaviour = createConnectionDeletedBehaviour();
 
-        flushPendingResponsesTimeout = connectionConfig.getFlushPendingResponsesTimeout();
         clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
         deletedActorLifetime = connectionConfig.getActivityCheckConfig().getDeletedInterval();
 
@@ -275,15 +269,13 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
      * @return the Akka configuration Props object.
      */
     public static Props props(final String connectionId,
-            final ActorRef pubSubMediator,
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> commandValidator
     ) {
-
-        return Props.create(ConnectionActor.class, connectionId, pubSubMediator, dittoProtocolSub, conciergeForwarder,
-                propsFactory, commandValidator);
+        return Props.create(ConnectionActor.class, connectionId, dittoProtocolSub, conciergeForwarder, propsFactory,
+                commandValidator);
     }
 
     @Override
@@ -1100,12 +1092,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         }
     }
 
-    private void forEachPubSubTopicDo(final Consumer<String> topicConsumer) {
-        uniqueTopics.stream()
-                .map(Topic::getPubSubTopic)
-                .forEach(topicConsumer);
-    }
-
     private void handleCommandDuringInitialization(final ConnectivityCommand command) {
         log.debug("Unexpected command during initialization of actor received: {} - "
                         + "Terminating this actor and sending 'ConnectionNotAccessibleException' to requester ...",
@@ -1119,7 +1105,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         persist(event, persistedEvent -> {
             log.debug("Successfully persisted Event <{}>.", persistedEvent.getType());
             consumer.accept(persistedEvent);
-            pubSubMediator.tell(DistPubSubAccess.publish(event.getType(), event), getSelf());
 
             // save a snapshot if there were too many changes since the last snapshot
             if ((lastSequenceNr() - lastSnapshotSequenceNr) >= snapshotThreshold) {

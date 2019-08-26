@@ -77,8 +77,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
             .build());
 
     @SuppressWarnings("unused")
-    private ConnectionSupervisorActor(final ActorRef pubSubMediator,
-            final DittoProtocolSub dittoProtocolSub,
+    private ConnectionSupervisorActor(final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
@@ -95,7 +94,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
         exponentialBackOffConfig = connectionConfig.getSupervisorConfig().getExponentialBackOffConfig();
 
         persistenceActorProps =
-                ConnectionActor.props(connectionId, pubSubMediator, dittoProtocolSub, conciergeForwarder, propsFactory,
+                ConnectionActor.props(connectionId, dittoProtocolSub, conciergeForwarder, propsFactory,
                         commandValidator);
     }
 
@@ -106,21 +105,19 @@ public final class ConnectionSupervisorActor extends AbstractActor {
      * stops it for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
-     * @param pubSubMediator the PubSub mediator actor.
      * @param dittoProtocolSub Ditto protocol sub access.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param propsFactory the {@link ClientActorPropsFactory}
      * @param commandValidator a custom command validator for connectivity commands
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final ActorRef pubSubMediator,
-            final DittoProtocolSub dittoProtocolSub,
+    public static Props props(final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
-        return Props.create(ConnectionSupervisorActor.class, pubSubMediator, dittoProtocolSub, conciergeForwarder,
-                propsFactory, commandValidator);
+        return Props.create(ConnectionSupervisorActor.class, dittoProtocolSub, conciergeForwarder, propsFactory,
+                commandValidator);
     }
 
     @Override

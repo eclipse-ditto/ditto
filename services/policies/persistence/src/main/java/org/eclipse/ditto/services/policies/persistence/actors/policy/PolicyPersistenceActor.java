@@ -588,7 +588,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
     }
 
     private void notifySubscribers(final PolicyEvent event) {
-        pubSubMediator.tell(DistPubSubAccess.publish(PolicyEvent.TYPE_PREFIX, event), getSelf());
         pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSelf());
     }
 

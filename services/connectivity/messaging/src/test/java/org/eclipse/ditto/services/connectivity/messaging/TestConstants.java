@@ -574,8 +574,8 @@ public final class TestConstants {
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory clientActorPropsFactory) {
 
-        final Props props = ConnectionSupervisorActor.props(pubSubMediator, dummyDittoProtocolSub(pubSubMediator),
-                conciergeForwarder, clientActorPropsFactory, null);
+        final Props props = ConnectionSupervisorActor.props(dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
+                clientActorPropsFactory, null);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId);
 

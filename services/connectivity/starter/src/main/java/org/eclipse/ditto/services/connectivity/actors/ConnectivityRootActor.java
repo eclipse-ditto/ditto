@@ -164,7 +164,7 @@ public final class ConnectivityRootActor extends AbstractActor {
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
         final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(actorSystem);
         final Props connectionSupervisorProps =
-                getConnectionSupervisorProps(pubSubMediator, dittoProtocolSub, conciergeForwarder, commandValidator);
+                getConnectionSupervisorProps(dittoProtocolSub, conciergeForwarder, commandValidator);
 
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
@@ -308,15 +308,14 @@ public final class ConnectivityRootActor extends AbstractActor {
                         conciergeForwarderSignalTransformer));
     }
 
-    private static Props getConnectionSupervisorProps(final ActorRef pubSubMediator,
-            final DittoProtocolSub dittoProtocolSub,
+    private static Props getConnectionSupervisorProps(final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
         final ClientActorPropsFactory clientActorPropsFactory =
                 DefaultClientActorPropsFactory.getInstance();
 
-        return ConnectionSupervisorActor.props(pubSubMediator, dittoProtocolSub, conciergeForwarder,
+        return ConnectionSupervisorActor.props(dittoProtocolSub, conciergeForwarder,
                 clientActorPropsFactory, commandValidator);
     }
 

@@ -33,7 +33,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     private static final String CONFIG_PATH = "connection";
 
-    private final Duration flushPendingResponsesTimeout;
     private final Duration clientActorAskTimeout;
     private final SupervisorConfig supervisorConfig;
     private final SnapshotConfig snapshotConfig;
@@ -43,8 +42,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final ActivityCheckConfig activityCheckConfig;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
-        flushPendingResponsesTimeout =
-                config.getDuration(ConnectionConfigValue.FLUSH_PENDING_RESPONSES_TIMEOUT.getConfigPath());
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
@@ -64,11 +61,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     public static DefaultConnectionConfig of(final Config config) {
         return new DefaultConnectionConfig(
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, ConnectionConfigValue.values()));
-    }
-
-    @Override
-    public Duration getFlushPendingResponsesTimeout() {
-        return flushPendingResponsesTimeout;
     }
 
     @Override
@@ -115,8 +107,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
             return false;
         }
         final DefaultConnectionConfig that = (DefaultConnectionConfig) o;
-        return Objects.equals(flushPendingResponsesTimeout, that.flushPendingResponsesTimeout) &&
-                Objects.equals(clientActorAskTimeout, that.clientActorAskTimeout) &&
+        return Objects.equals(clientActorAskTimeout, that.clientActorAskTimeout) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(amqp10Config, that.amqp10Config) &&
@@ -127,15 +118,14 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(flushPendingResponsesTimeout, clientActorAskTimeout, supervisorConfig, snapshotConfig,
-                amqp10Config, mqttConfig, kafkaConfig, activityCheckConfig);
+        return Objects.hash(clientActorAskTimeout, supervisorConfig, snapshotConfig, amqp10Config, mqttConfig,
+                kafkaConfig, activityCheckConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "flushPendingResponsesTimeout=" + flushPendingResponsesTimeout +
-                ", clientActorAskTimeout=" + clientActorAskTimeout +
+                "clientActorAskTimeout=" + clientActorAskTimeout +
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", amqp10Config=" + amqp10Config +
