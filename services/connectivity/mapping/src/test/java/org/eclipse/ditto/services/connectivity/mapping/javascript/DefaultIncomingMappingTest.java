@@ -1,0 +1,91 @@
+package org.eclipse.ditto.services.connectivity.mapping.javascript;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Collections;
+import java.util.Optional;
+
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.MessagePath;
+import org.eclipse.ditto.protocoladapter.Payload;
+import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.junit.Test;
+
+/*
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+public class DefaultIncomingMappingTest {
+
+    private static final String NAMESPACE = "org.eclipse.ditto";
+    private static final String THING_NAME = "example";
+    private static final String RETRIEVE_THINGS_TOPIC_PATH =
+            NAMESPACE + "/" + THING_NAME + "/things/twin/commands/retrieve";
+
+    private static final String CONTENT_TYPE = "application/vnd.eclipse.ditto+json";
+
+    private static final String RETRIEVE_THINGS_COMMAND = "" +
+            "{\n" +
+            "    \"topic\": \"" + RETRIEVE_THINGS_TOPIC_PATH + "\",\n" +
+            "    \"headers\": {\n" +
+            "        \"content-type\": \"" + CONTENT_TYPE + "\"\n" +
+            "    },\n" +
+            "    \"path\": \"/\"\n" +
+            "}";
+
+    private static final DefaultIncomingMapping UNDER_TEST = DefaultIncomingMapping.get();
+
+    @Test
+    public void applyWithTextPayload() {
+        final ExternalMessageBuilder externalMessageBuilder =
+                ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap());
+
+        final ExternalMessage externalMessage = externalMessageBuilder.withText(RETRIEVE_THINGS_COMMAND).build();
+        final MessagePath expectedPath = Payload.newBuilder(JsonPointer.of("/")).build().getPath();
+        final TopicPath expectedTopicPath =
+                TopicPath.newBuilder(ThingId.of(NAMESPACE, THING_NAME)).things().twin().commands().retrieve().build();
+        final Optional<Adaptable> adaptableOptional = UNDER_TEST.apply(externalMessage);
+
+        assertThat(adaptableOptional).isPresent();
+        final Adaptable adaptable = adaptableOptional.get();
+        assertThat(adaptable.getHeaders()).contains(DittoHeaders.newBuilder().contentType(CONTENT_TYPE).build());
+        assertThat(adaptable.getTopicPath()).isEqualTo(expectedTopicPath);
+        assertThat((CharSequence) adaptable.getPayload().getPath()).isEqualTo(expectedPath);
+    }
+
+    @Test
+    public void applyWithBytePayload() {
+        final ExternalMessageBuilder externalMessageBuilder =
+                ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap());
+
+        final ExternalMessage externalMessage = externalMessageBuilder
+                .withBytes(RETRIEVE_THINGS_COMMAND.getBytes())
+                .build();
+
+        final MessagePath expectedPath = Payload.newBuilder(JsonPointer.of("/")).build().getPath();
+        final TopicPath expectedTopicPath =
+                TopicPath.newBuilder(ThingId.of(NAMESPACE, THING_NAME)).things().twin().commands().retrieve().build();
+        final Optional<Adaptable> adaptableOptional = UNDER_TEST.apply(externalMessage);
+
+        assertThat(adaptableOptional).isPresent();
+        final Adaptable adaptable = adaptableOptional.get();
+        assertThat(adaptable.getHeaders()).contains(DittoHeaders.newBuilder().contentType(CONTENT_TYPE).build());
+        assertThat(adaptable.getTopicPath()).isEqualTo(expectedTopicPath);
+        assertThat((CharSequence) adaptable.getPayload().getPath()).isEqualTo(expectedPath);
+    }
+
+}
