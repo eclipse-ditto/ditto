@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -37,7 +38,12 @@ public class DefaultIncomingMapping implements MappingFunction<ExternalMessage, 
 
     @Override
     public Optional<Adaptable> apply(final ExternalMessage message) {
-        return message.getTextPayload().map(plainString -> DittoJsonException.wrapJsonRuntimeException(() -> {
+        return Optional.ofNullable(
+                message.getTextPayload()
+                        .orElseGet(() -> message.getBytePayload()
+                                .map(b -> StandardCharsets.UTF_8.decode(b).toString())
+                                .orElse(null))
+        ).map(plainString -> DittoJsonException.wrapJsonRuntimeException(() -> {
             final JsonObject jsonObject = JsonFactory.readFrom(plainString).asObject();
             return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
         }));
