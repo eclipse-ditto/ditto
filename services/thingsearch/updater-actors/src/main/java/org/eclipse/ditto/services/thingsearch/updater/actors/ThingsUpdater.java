@@ -130,6 +130,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     private void updateSubscriptions(final ShardRegion.ShardRegionStats stats) {
         final Collection<String> topics = stats.getStats().keySet();
         log.debug("Updating event subscriptions: <{}>", topics);
+        thingEventSub.removeSubscriber(getSelf());
         thingEventSub.subscribeWithoutAck(topics, getSelf());
     }
 

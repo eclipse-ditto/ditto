@@ -117,6 +117,7 @@ final class NewEventForwarder extends AbstractActorWithTimers {
     private void updateSubscriptions(final ShardRegion.ClusterShardingStats stats) {
         final Collection<String> topics = shardRegionExtractor.getInactiveShardIds(getActiveShardIds(stats));
         log.debug("Updating event subscriptions: <{}>", topics);
+        thingEventSub.removeSubscriber(getSelf());
         thingEventSub.subscribeWithoutAck(topics, getSelf());
     }
 
