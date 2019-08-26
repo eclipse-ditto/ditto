@@ -266,8 +266,8 @@ public class SseThingsRoute extends AbstractRoute {
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());
     }
 
-    private static String namespaceFromId(final WithId withId) {
-        return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
+    private static String namespaceFromId(final ThingEvent thingEvent) {
+        return thingEvent.getEntityId().getNamespace();
     }
 
     private static final class AcceptHeaderExtractor extends JavaPartialFunction<HttpHeader, Accept> {
