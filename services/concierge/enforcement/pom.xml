@@ -85,6 +85,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-cache</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-cache-loaders</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>ch.qos.logback</groupId>
