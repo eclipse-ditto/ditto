@@ -38,14 +38,21 @@ public class DefaultIncomingMapping implements MappingFunction<ExternalMessage, 
 
     @Override
     public Optional<Adaptable> apply(final ExternalMessage message) {
-        return Optional.ofNullable(
-                message.getTextPayload()
-                        .orElseGet(() -> message.getBytePayload()
-                                .map(b -> StandardCharsets.UTF_8.decode(b).toString())
-                                .orElse(null))
-        ).map(plainString -> DittoJsonException.wrapJsonRuntimeException(() -> {
+        return getPlainStringPayload(message).map(plainString -> DittoJsonException.wrapJsonRuntimeException(() -> {
             final JsonObject jsonObject = JsonFactory.readFrom(plainString).asObject();
             return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
         }));
+    }
+
+    private static Optional<String> getPlainStringPayload(final ExternalMessage message) {
+        final String plainString;
+        if (message.getTextPayload().isPresent()) {
+            plainString = message.getTextPayload().get();
+        } else {
+            plainString = message.getBytePayload()
+                    .map(b -> StandardCharsets.UTF_8.decode(b).toString())
+                    .orElse(null);
+        }
+        return Optional.ofNullable(plainString);
     }
 }
