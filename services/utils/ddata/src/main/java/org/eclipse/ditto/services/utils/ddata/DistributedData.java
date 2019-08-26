@@ -94,7 +94,7 @@ public abstract class DistributedData<R extends ReplicatedData> {
      *
      * @param replicatorName the name of the replicator.
      * @param replicatorRole the cluster role of members with replicas of the distributed collection.
-     * @return a new config reader object.
+     * @return a new config object.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static DistributedDataConfig createConfig(final ActorSystem actorSystem,

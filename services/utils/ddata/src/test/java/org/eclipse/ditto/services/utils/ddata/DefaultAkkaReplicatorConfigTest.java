@@ -12,8 +12,11 @@
  */
 package org.eclipse.ditto.services.utils.ddata;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+
+import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
@@ -91,6 +94,11 @@ public final class DefaultAkkaReplicatorConfigTest {
         softly.assertThat(underTest.getRole())
                 .as(AkkaReplicatorConfig.AkkaReplicatorConfigValue.ROLE.getConfigPath())
                 .isEqualTo(role);
+
+        // test that akka default config values are copied
+        final Config completeConfig = underTest.getCompleteConfig();
+        assertThat(completeConfig.getDuration("gossip-interval")).isEqualTo(Duration.ofSeconds(2L));
+        assertThat(completeConfig.getBoolean("delta-crdt.enabled")).isEqualTo(true);
     }
 
 }
