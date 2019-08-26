@@ -142,10 +142,10 @@ public final class CompressedUpdate {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() +
-                "[inserts=" + inserts +
-                ",deletes=" + deletes +
-                ",replaceAll=" + replaceAll +
+        return getClass().getSimpleName() + " [" +
+                "inserts=" + inserts +
+                ", deletes=" + deletes +
+                ", replaceAll=" + replaceAll +
                 "]";
     }
 }

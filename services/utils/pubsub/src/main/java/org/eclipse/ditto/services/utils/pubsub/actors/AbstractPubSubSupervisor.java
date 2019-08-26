@@ -17,8 +17,8 @@ import java.util.Collection;
 import java.util.List;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -51,11 +51,9 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
 
     /**
      * Create a supervisor actor.
-     *
-     * @param config the pub-sub config.
      */
-    protected AbstractPubSubSupervisor(final PubSubConfig config) {
-        this.config = config;
+    protected AbstractPubSubSupervisor() {
+        this.config = PubSubConfig.of(getContext().getSystem());
         seeds = Hashes.digestStringsToIntegers(config.getSeed(), config.getHashFamilySize());
     }
 

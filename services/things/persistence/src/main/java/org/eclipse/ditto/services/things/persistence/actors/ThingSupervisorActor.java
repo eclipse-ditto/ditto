@@ -81,7 +81,7 @@ public final class ThingSupervisorActor extends AbstractActor {
             })
             .build());
 
-
+    @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
             final DistributedPub<ThingEvent> distributedPub,
             final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory) {

@@ -16,7 +16,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
@@ -37,7 +36,7 @@ import akka.japi.pf.ReceiveBuilder;
  *          +---------------------------+
  *          |                           |
  *          v                           v
- *       SubUpdater +-----------> PubSubSubscriber
+ *       SubUpdater +-----------> Subscriber
  *       +           update
  *       |           local
  *       |           subscriptions
@@ -60,10 +59,10 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     @Nullable private ActorRef updater;
 
     @SuppressWarnings("unused")
-    private SubSupervisor(final PubSubConfig pubSubConfig, final Class<T> messageClass,
+    private SubSupervisor(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DData<?, U> ddata) {
-        super(pubSubConfig);
+        super();
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
         this.ddataWriter = ddata.getWriter();
@@ -73,7 +72,6 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     /**
      * Create Props object for this actor.
      *
-     * @param pubSubConfig the pub-sub config.
      * @param messageClass class of messages.
      * @param topicExtractor extractor of topics from messages.
      * @param ddata the distributed data access.
@@ -81,12 +79,11 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
      * @param <U> type of ddata updates.
      * @return the Props object.
      */
-    public static <T, U> Props props(final PubSubConfig pubSubConfig,
-            final Class<T> messageClass,
+    public static <T, U> Props props(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DData<?, U> ddata) {
 
-        return Props.create(SubSupervisor.class, pubSubConfig, messageClass, topicExtractor, ddata);
+        return Props.create(SubSupervisor.class, messageClass, topicExtractor, ddata);
     }
 
     @Override

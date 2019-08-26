@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
@@ -34,10 +35,11 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<String> imple
 
     private TestPubSubFactory(final ActorSystem actorSystem, final String clusterRole,
             final Class<String> messageClass,
-            final PubSubTopicExtractor<String> topicExtractor,
-            final PubSubConfig config) {
-        super(actorSystem, clusterRole, messageClass, topicExtractor, config);
-        seeds = Hashes.digestStringsToIntegers(config.getSeed(), config.getHashFamilySize());
+            final PubSubTopicExtractor<String> topicExtractor) {
+        super(actorSystem, clusterRole, messageClass, topicExtractor);
+        final PubSubConfig pubSubConfig =
+                PubSubConfig.of(actorSystem.settings().config().getConfig("test-pubsub-factory"));
+        seeds = Hashes.digestStringsToIntegers(pubSubConfig.getSeed(), pubSubConfig.getHashFamilySize());
     }
 
     /**
@@ -47,17 +49,30 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<String> imple
      * @return the pub-sub factory.
      */
     public static TestPubSubFactory of(final ActorSystem actorSystem) {
-        final PubSubConfig pubSubConfig =
-                PubSubConfig.of(actorSystem.settings().config().getConfig("test-pubsub-factory"));
+
         return new TestPubSubFactory(actorSystem, "dc-default", String.class,
-                TestPubSubFactory::getPrefixes, pubSubConfig);
+                TestPubSubFactory::getPrefixes);
     }
 
     /**
+     *
+     *
      * @return subscribers of a topic in the distributed data.
      */
     public CompletionStage<Collection<ActorRef>> getSubscribers(final String topic) {
-        return ddata.getSubscribers(Collections.singleton(topic));
+        return getSubscribers(Collections.singleton(topic), ddata.getReader());
+    }
+
+    /**
+     * Retrieve subscribers of a collection of topics from the distributed data.
+     * Useful for circumventing lackluster existential type implementation when the reader type parameter isn't known.
+     *
+     * @param topics the topics.
+     * @return subscribers of those topics in the distributed data.
+     */
+    private static <T> CompletionStage<Collection<ActorRef>> getSubscribers(
+            final Collection<String> topics, final DDataReader<T> reader) {
+        return reader.getSubscribers(topics.stream().map(reader::approximate).collect(Collectors.toSet()));
     }
 
     @Override

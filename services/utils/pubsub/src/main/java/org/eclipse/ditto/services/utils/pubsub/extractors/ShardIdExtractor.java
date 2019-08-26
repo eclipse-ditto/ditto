@@ -30,6 +30,13 @@ public final class ShardIdExtractor<T> implements PubSubTopicExtractor<T> {
         this.shardRegionExtractor = shardRegionExtractor;
     }
 
+    /**
+     * Create an extractor of shard-ids as topics.
+     *
+     * @param shardRegionExtractor the ShardRegionExtractor to use in order to determine shard-ids from messages.
+     * @param <T> type of messages.
+     * @return a shard-id extractor.
+     */
     public static <T> ShardIdExtractor<T> of(final ShardRegionExtractor shardRegionExtractor) {
         return new ShardIdExtractor<>(shardRegionExtractor);
     }

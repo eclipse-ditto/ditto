@@ -107,6 +107,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private long accessCounter;
     private Thing thing;
 
+    @SuppressWarnings("unused")
     private ThingPersistenceActor(final String thingId, final DistributedPub<ThingEvent> distributedPub,
             final SnapshotAdapter<Thing> snapshotAdapter) {
 
@@ -148,8 +149,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     public static Props props(final String thingId, final DistributedPub<ThingEvent> distributedPub,
             final SnapshotAdapter<Thing> snapshotAdapter) {
 
-        return Props.create(ThingPersistenceActor.class,
-                () -> new ThingPersistenceActor(thingId, distributedPub, snapshotAdapter));
+        return Props.create(ThingPersistenceActor.class, thingId, distributedPub, snapshotAdapter);
     }
 
     /**

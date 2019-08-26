@@ -39,7 +39,6 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
 
     protected final DistributedDataConfig ddataConfig;
     protected final DData<?, ?> ddata;
-    protected final PubSubConfig config;
 
     /**
      * Create a pub-sub factory.
@@ -48,12 +47,11 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
      * @param clusterRole the role of cluster members participating in the pub-sub.
      * @param messageClass the class of messages to publish and subscribe for.
      * @param topicExtractor a function extracting from each message the topics it was published at.
-     * @param config the pub-sub configuration.
      */
     protected AbstractPubSubFactory(final ActorSystem actorSystem, final String clusterRole,
-            final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor, final PubSubConfig config) {
+            final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor) {
 
-        this(actorSystem, clusterRole, messageClass, messageClass.getCanonicalName(), topicExtractor, config);
+        this(actorSystem, clusterRole, messageClass, messageClass.getCanonicalName(), topicExtractor);
     }
 
     /**
@@ -64,22 +62,21 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
      * @param messageClass the class of messages to publish and subscribe for.
      * @param ddataKey the key of the distributed topic Bloom filters.
      * @param topicExtractor a function extracting from each message the topics it was published at.
-     * @param config the pub-sub configuration.
      */
     protected AbstractPubSubFactory(final ActorSystem actorSystem,
             final String clusterRole,
             final Class<T> messageClass,
             final String ddataKey,
-            final PubSubTopicExtractor<T> topicExtractor,
-            final PubSubConfig config) {
+            final PubSubTopicExtractor<T> topicExtractor) {
 
         this.actorSystem = actorSystem;
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
-        this.config = config;
 
         final String replicatorName = ddataKey + "-replicator";
         ddataConfig = DistributedData.createConfig(actorSystem, replicatorName, clusterRole);
+
+        final PubSubConfig config = PubSubConfig.of(actorSystem);
         switch (config.getDDataType()) {
             case BLOOM_FILTER:
                 ddata = BloomFilterDData.of(actorSystem, ddataConfig, ddataKey, config);
@@ -94,7 +91,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     @Override
     public DistributedPub<T> startDistributedPub() {
         final String pubSupervisorName = messageClass.getSimpleName() + "PubSupervisor";
-        final Props pubSupervisorProps = PubSupervisor.props(config, ddata);
+        final Props pubSupervisorProps = PubSupervisor.props(ddata);
         final ActorRef pubSupervisor = actorSystem.actorOf(pubSupervisorProps, pubSupervisorName);
         return DistributedPub.of(pubSupervisor, topicExtractor);
     }
@@ -102,7 +99,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     @Override
     public DistributedSub startDistributedSub() {
         final String subSupervisorName = messageClass.getSimpleName() + "SubSupervisor";
-        final Props subSupervisorProps = SubSupervisor.props(config, messageClass, topicExtractor, ddata);
+        final Props subSupervisorProps = SubSupervisor.props(messageClass, topicExtractor, ddata);
         final ActorRef subSupervisor = actorSystem.actorOf(subSupervisorProps, subSupervisorName);
         return DistributedSub.of(ddataConfig, subSupervisor);
     }

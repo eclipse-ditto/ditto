@@ -25,7 +25,7 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Remove remote subscriber on dead letter.
+ * Remove remote subscriber on cluster event {@link akka.cluster.ClusterEvent.MemberRemoved}.
  */
 public final class PubUpdater extends AbstractActorWithTimers {
 

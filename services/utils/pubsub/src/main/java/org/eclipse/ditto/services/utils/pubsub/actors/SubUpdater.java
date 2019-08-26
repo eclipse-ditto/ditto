@@ -366,9 +366,9 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
         public String toString() {
             return getClass().getSimpleName() +
                     "[topics=" + topics +
-                    ",subscriber=" + subscriber +
-                    ",writeConsistency=" + writeConsistency +
-                    ",acknowledge=" + acknowledge +
+                    ", subscriber=" + subscriber +
+                    ", writeConsistency=" + writeConsistency +
+                    ", acknowledge=" + acknowledge +
                     "]";
         }
     }

@@ -17,7 +17,6 @@ import java.util.Collections;
 
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.AbstractPubSubFactory;
-import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.signals.base.Signal;
@@ -34,10 +33,10 @@ final class LiveSignalPubSubFactory<T extends Signal> extends AbstractPubSubFact
      */
     public static final String CLUSTER_ROLE = "live-signal-aware";
 
-    private LiveSignalPubSubFactory(final ActorSystem actorSystem, final PubSubConfig config,
-            final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor) {
+    private LiveSignalPubSubFactory(final ActorSystem actorSystem, final Class<T> messageClass,
+            final PubSubTopicExtractor<T> topicExtractor) {
 
-        super(actorSystem, CLUSTER_ROLE, messageClass, CLUSTER_ROLE, topicExtractor, config);
+        super(actorSystem, CLUSTER_ROLE, messageClass, CLUSTER_ROLE, topicExtractor);
     }
 
     /**
@@ -47,10 +46,9 @@ final class LiveSignalPubSubFactory<T extends Signal> extends AbstractPubSubFact
      * @return the thing
      */
     public static <T extends Signal> LiveSignalPubSubFactory<T> of(final ActorSystem actorSystem,
-            final PubSubConfig pubSubConfig,
             final Class<T> signalClass) {
 
-        return new LiveSignalPubSubFactory<>(actorSystem, pubSubConfig, signalClass, topicExtractor());
+        return new LiveSignalPubSubFactory<>(actorSystem, signalClass, topicExtractor());
     }
 
     private static Collection<String> getStreamingTypeTopic(final Signal signal) {

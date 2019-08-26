@@ -16,7 +16,6 @@ import java.util.Arrays;
 
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.pubsub.AbstractPubSubFactory;
-import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ConstantTopics;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
@@ -36,9 +35,8 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
     public static final String CLUSTER_ROLE = "thing-event-aware";
 
     private ThingEventPubSubFactory(final ActorSystem actorSystem,
-            final PubSubTopicExtractor<ThingEvent> topicExtractor,
-            final PubSubConfig config) {
-        super(actorSystem, CLUSTER_ROLE, ThingEvent.class, CLUSTER_ROLE, topicExtractor, config);
+            final PubSubTopicExtractor<ThingEvent> topicExtractor) {
+        super(actorSystem, CLUSTER_ROLE, ThingEvent.class, CLUSTER_ROLE, topicExtractor);
     }
 
     /**
@@ -51,19 +49,17 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
     public static ThingEventPubSubFactory of(final ActorSystem actorSystem,
             final ShardRegionExtractor shardRegionExtractor) {
 
-        final PubSubConfig config = PubSubConfig.of(actorSystem);
-        return new ThingEventPubSubFactory(actorSystem, toTopicExtractor(shardRegionExtractor), config);
+        return new ThingEventPubSubFactory(actorSystem, toTopicExtractor(shardRegionExtractor));
     }
 
     /**
      * Create a pubsub factory for thing events ignoring shard ID topics.
      *
      * @param actorSystem the actor system.
-     * @param config the pub-sub config.
      * @return the thing event pub-sub factory.
      */
-    public static ThingEventPubSubFactory readSubjectsOnly(final ActorSystem actorSystem, final PubSubConfig config) {
-        return new ThingEventPubSubFactory(actorSystem, readSubjectOnlyExtractor(), config);
+    public static ThingEventPubSubFactory readSubjectsOnly(final ActorSystem actorSystem) {
+        return new ThingEventPubSubFactory(actorSystem, readSubjectOnlyExtractor());
     }
 
     /**
@@ -77,7 +73,7 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
 
         final PubSubTopicExtractor<ThingEvent> topicExtractor =
                 shardIdOnlyExtractor(ShardRegionExtractor.of(numberOfShards, actorSystem));
-        return new ThingEventPubSubFactory(actorSystem, topicExtractor, PubSubConfig.of(actorSystem));
+        return new ThingEventPubSubFactory(actorSystem, topicExtractor);
     }
 
     private static PubSubTopicExtractor<ThingEvent> readSubjectOnlyExtractor() {

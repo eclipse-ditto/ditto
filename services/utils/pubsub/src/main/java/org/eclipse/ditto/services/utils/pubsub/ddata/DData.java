@@ -12,12 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
-import java.util.Collection;
-import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
-
-import akka.actor.ActorRef;
-
 /**
  * A package of ddata reader, writer, and creator of local subscriptions to plug into a pub-sub framework.
  *
@@ -41,14 +35,4 @@ public interface DData<R, W> {
      */
     Subscriptions<W> createSubscriptions();
 
-    /**
-     * Retrieve subscribers of a collection of topics from the distributed data.
-     * Useful for circumventing lackluster existential type implementation when the reader type parameter isn't known.
-     *
-     * @param topics the topics.
-     * @return subscribers of those topics in the distributed data.
-     */
-    default CompletionStage<Collection<ActorRef>> getSubscribers(final Collection<String> topics) {
-        return getReader().getSubscribers(topics.stream().map(getReader()::approximate).collect(Collectors.toSet()));
-    }
 }

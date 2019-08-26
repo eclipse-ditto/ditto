@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 
 import akka.actor.ActorRef;
@@ -34,7 +33,7 @@ import akka.japi.pf.ReceiveBuilder;
  *             |                        |
  *             |                        |
  *             v                        v
- *    PubSubPublisher              PubUpdater
+ *        Publisher                PubUpdater
  *         +                         +
  *         |                         |
  *         |                         |
@@ -56,20 +55,19 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
     @Nullable private ActorRef publisher;
 
     @SuppressWarnings("unused")
-    private PubSupervisor(final PubSubConfig pubSubConfig, final DData<?, ?> ddata) {
-        super(pubSubConfig);
+    private PubSupervisor(final DData<?, ?> ddata) {
+        super();
         this.ddata = ddata;
     }
 
     /**
      * Create Props object for this actor.
      *
-     * @param pubSubConfig the pub-sub config.
      * @param ddata read-write access to the distributed data.
      * @return the Props object.
      */
-    public static Props props(final PubSubConfig pubSubConfig, final DData<?, ?> ddata) {
-        return Props.create(PubSupervisor.class, pubSubConfig, ddata);
+    public static Props props(final DData<?, ?> ddata) {
+        return Props.create(PubSupervisor.class, ddata);
     }
 
     @Override

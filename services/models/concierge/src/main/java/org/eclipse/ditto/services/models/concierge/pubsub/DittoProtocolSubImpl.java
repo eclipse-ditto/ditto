@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
-import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorRef;
@@ -46,11 +45,10 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     }
 
     static DittoProtocolSubImpl of(final ActorSystem actorSystem) {
-        final PubSubConfig config = PubSubConfig.of(actorSystem);
         final DistributedSub liveSignalSub =
-                LiveSignalPubSubFactory.of(actorSystem, config, Signal.class).startDistributedSub();
+                LiveSignalPubSubFactory.of(actorSystem, Signal.class).startDistributedSub();
         final DistributedSub twinEventSub =
-                ThingEventPubSubFactory.readSubjectsOnly(actorSystem, config).startDistributedSub();
+                ThingEventPubSubFactory.readSubjectsOnly(actorSystem).startDistributedSub();
         return new DittoProtocolSubImpl(liveSignalSub, twinEventSub);
     }
 

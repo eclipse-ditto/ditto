@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.models.concierge.pubsub;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ConstantTopics;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
@@ -50,9 +49,8 @@ final class LiveSignalPubImpl implements LiveSignalPub {
      * @return the live signal pub.
      */
     static LiveSignalPubImpl of(final ActorSystem actorSystem) {
-        final PubSubConfig config = PubSubConfig.of(actorSystem);
         final DistributedPub<?> distributedPub =
-                LiveSignalPubSubFactory.of(actorSystem, config, Signal.class).startDistributedPub();
+                LiveSignalPubSubFactory.of(actorSystem, Signal.class).startDistributedPub();
         final DistributedPub<Command> liveCommandPub =
                 distributedPub.withTopicExtractor(getTopicExtractor(StreamingType.LIVE_COMMANDS));
         final DistributedPub<Event> liveEventPub =

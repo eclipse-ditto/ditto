@@ -18,7 +18,10 @@ import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import akka.actor.ActorRef;
 
 /**
- * Package-private implementation of {@link org.eclipse.ditto.services.utils.pubsub.DistributedPub}.
+ * Package-private implementation of {@link DistributedPub} for publication access from an already-started
+ * pub-supervisor and topic extractor.
+ *
+ * @param <T> type of messages.
  */
 final class DistributedPubImpl<T> implements DistributedPub<T> {
 

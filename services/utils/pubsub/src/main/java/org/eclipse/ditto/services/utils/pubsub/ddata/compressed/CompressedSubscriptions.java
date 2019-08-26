@@ -15,8 +15,11 @@ package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractSubscriptions;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
@@ -28,6 +31,7 @@ import akka.util.ByteString;
 /**
  * Local subscriptions for distribution of subscribed topics as hash code sequences.
  */
+@NotThreadSafe
 public final class CompressedSubscriptions extends AbstractSubscriptions<ByteString, CompressedUpdate>
         implements Hashes {
 
@@ -103,5 +107,23 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<ByteStr
         } else {
             return updates.exportAndReset();
         }
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+        if (other instanceof CompressedSubscriptions) {
+            final CompressedSubscriptions that = (CompressedSubscriptions) other;
+            return seeds.equals(that.seeds) &&
+                    hashCodeToTopicCount.equals(that.hashCodeToTopicCount) &&
+                    updates.equals(that.updates) &&
+                    super.equals(other);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(seeds, hashCodeToTopicCount, updates, super.hashCode());
     }
 }

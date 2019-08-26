@@ -116,13 +116,13 @@ public interface PubSubConfig {
         /**
          * Probability to flush local subscriptions when there was no change to recover
          * from temporary disassociation, during which a remove member may remove our subscriber
-         * from the distributed data when prompted by a dead letter.
+         * from the distributed data when prompted by a cluster event MemberRemoved.
          */
         FORCE_UPDATE_PROBABILITY("force-update-probability", 0.01),
 
         /**
-         * How much empty space to reserve in the Bloom filters.
-         * 1.0 = optimal size for the present number of subscriptions.
+         * The type of ddata to store the relation between nodes and topics.
+         * Either {@code COMPRESSED} or {@code BLOOM_FILTER}.
          */
         DDATA_TYPE("ddata-type", "COMPRESSED");
 
