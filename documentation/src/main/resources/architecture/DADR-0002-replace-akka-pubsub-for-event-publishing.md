@@ -16,8 +16,6 @@ Up to now Ditto used Akka's distributed publish/subscribe in order to emit e.g. 
     * AMQP 1.0 / AMQP 0.9.1 / MQTT / Kafka sessions publishing events
 * things-search
     * ThingUpdater updating the search index
-* concierge
-    * invalidating ACL/policy caches whenever a authorization changing `ThingEvent` occurred
 
 That naive approach works, but does not provide *horizontal scalability*:
 
