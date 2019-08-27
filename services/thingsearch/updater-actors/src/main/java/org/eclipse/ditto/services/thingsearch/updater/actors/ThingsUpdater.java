@@ -14,9 +14,12 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import static org.eclipse.ditto.services.thingsearch.updater.actors.ShardRegionFactory.UPDATER_SHARD_REGION;
 
-import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -63,6 +66,8 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     private final BlockNamespaceBehavior namespaceBlockingBehavior;
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
     private final DistributedSub thingEventSub;
+
+    private Set<String> previousShardIds = Collections.emptySet();
 
     @SuppressWarnings("unused")
     private ThingsUpdater(final DistributedSub thingEventSub,
@@ -128,10 +133,15 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     }
 
     private void updateSubscriptions(final ShardRegion.ShardRegionStats stats) {
-        final Collection<String> topics = stats.getStats().keySet();
-        log.debug("Updating event subscriptions: <{}>", topics);
-        thingEventSub.removeSubscriber(getSelf());
-        thingEventSub.subscribeWithoutAck(topics, getSelf());
+        final Set<String> currentShardIds = stats.getStats().keySet();
+        log.debug("Updating event subscriptions: <{}> -> <{}>", previousShardIds, currentShardIds);
+        final List<String> toSubscribe =
+                currentShardIds.stream().filter(s -> !previousShardIds.contains(s)).collect(Collectors.toList());
+        final List<String> toUnsubscribe =
+                previousShardIds.stream().filter(s -> !currentShardIds.contains(s)).collect(Collectors.toList());
+        thingEventSub.subscribeWithoutAck(toSubscribe, getSelf());
+        thingEventSub.unsubscribeWithoutAck(toUnsubscribe, getSelf());
+        previousShardIds = currentShardIds;
     }
 
     private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {

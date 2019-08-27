@@ -13,6 +13,9 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -50,6 +53,8 @@ final class NewEventForwarder extends AbstractActorWithTimers {
     private final BlockNamespaceBehavior namespaceBlockingBehavior;
     private final ShardRegion.GetClusterShardingStats getClusterShardingStats;
     private final ShardRegionExtractor shardRegionExtractor;
+
+    private Set<String> previousShardIds = Collections.emptySet();
 
     @SuppressWarnings("unused")
     private NewEventForwarder(final DistributedSub thingEventSub,
@@ -115,10 +120,15 @@ final class NewEventForwarder extends AbstractActorWithTimers {
     }
 
     private void updateSubscriptions(final ShardRegion.ClusterShardingStats stats) {
-        final Collection<String> topics = shardRegionExtractor.getInactiveShardIds(getActiveShardIds(stats));
-        log.debug("Updating event subscriptions: <{}>", topics);
-        thingEventSub.removeSubscriber(getSelf());
-        thingEventSub.subscribeWithoutAck(topics, getSelf());
+        final Set<String> inactiveShardIds = shardRegionExtractor.getInactiveShardIds(getActiveShardIds(stats));
+        log.debug("Updating event subscriptions for inactive shards: <{}> -> <{}>", previousShardIds, inactiveShardIds);
+        final List<String> toSubscribe =
+                inactiveShardIds.stream().filter(s -> !previousShardIds.contains(s)).collect(Collectors.toList());
+        final List<String> toUnsubscribe =
+                previousShardIds.stream().filter(s -> !inactiveShardIds.contains(s)).collect(Collectors.toList());
+        thingEventSub.subscribeWithoutAck(toSubscribe, getSelf());
+        thingEventSub.unsubscribeWithoutAck(toUnsubscribe, getSelf());
+        previousShardIds = inactiveShardIds;
     }
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {
