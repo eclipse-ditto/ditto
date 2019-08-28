@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -26,21 +27,27 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 @Immutable
 public final class JwtSubjectIssuerConfig {
 
+    private final String issuer;
     private final SubjectIssuer subjectIssuer;
-    private final String jwtIssuer;
-    private final String jwkResource;
 
     /**
      * Constructs a new {@code JwtSubjectIssuerConfig}.
      *
-     * @param subjectIssuer the subject issuer
-     * @param jwtIssuer the issuer from the JWT iss field.
-     * @param jwkResource the JWK resource URL.
+     * @param issuer the issuer.
+     * @param subjectIssuer the subject issuer.
      */
-    public JwtSubjectIssuerConfig(final SubjectIssuer subjectIssuer, final String jwtIssuer, final String jwkResource) {
+    public JwtSubjectIssuerConfig(final String issuer, final SubjectIssuer subjectIssuer) {
+        this.issuer = requireNonNull(issuer);
         this.subjectIssuer = requireNonNull(subjectIssuer);
-        this.jwtIssuer = requireNonNull(jwtIssuer);
-        this.jwkResource = requireNonNull(jwkResource);
+    }
+
+    /**
+     * Returns the issuer.
+     *
+     * @return the issuer.
+     */
+    public String getIssuer() {
+        return issuer;
     }
 
     /**
@@ -52,49 +59,25 @@ public final class JwtSubjectIssuerConfig {
         return subjectIssuer;
     }
 
-    /**
-     * Returns the JWT issuer.
-     *
-     * @return the JWT issuer.
-     */
-    public String getJwtIssuer() {
-        return jwtIssuer;
-    }
-
-    /**
-     * Returns the JWK resource URL.
-     *
-     * @return the JWK resource URL
-     */
-    public String getJwkResource() {
-        return jwkResource;
-    }
-
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final JwtSubjectIssuerConfig that = (JwtSubjectIssuerConfig) o;
-        return Objects.equals(subjectIssuer, that.subjectIssuer) &&
-                Objects.equals(jwtIssuer, that.jwtIssuer) &&
-                Objects.equals(jwkResource, that.jwkResource);
+        return Objects.equals(issuer, that.issuer) &&
+                Objects.equals(subjectIssuer, that.subjectIssuer);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(subjectIssuer, jwtIssuer, jwkResource);
+        return Objects.hash(issuer, subjectIssuer);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
+                ", issuer=" + issuer +
                 ", subjectIssuer=" + subjectIssuer +
-                ", jwtIssuer=" + jwtIssuer +
-                ", jwkResource=" + jwkResource +
                 "]";
     }
 
