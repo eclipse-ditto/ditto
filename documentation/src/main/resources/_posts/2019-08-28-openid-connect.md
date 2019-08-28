@@ -1,7 +1,7 @@
 ---
 title: "OpenID Connect"
 published: true
-permalink: 2019-08-12-openid-connect.html
+permalink: 2019-08-28-openid-connect.html
 layout: post
 author: johannes_schneider
 tags: [blog]
