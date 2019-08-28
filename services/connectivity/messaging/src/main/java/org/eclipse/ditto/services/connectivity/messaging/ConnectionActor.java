@@ -1314,9 +1314,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         private void sendBackAggregatedResults() {
             if (origin != null && originHeaders != null && !aggregatedStatus.isEmpty()) {
                 log.debug("Aggregated statuses: {}", aggregatedStatus);
-                final Optional<Status.Status> failure = aggregatedStatus.entrySet().stream()
-                        .filter(s -> s.getValue() instanceof Status.Failure)
-                        .map(Map.Entry::getValue)
+                final Optional<Status.Status> failure = aggregatedStatus.values().stream()
+                        .filter(status -> status instanceof Status.Failure)
                         .findFirst();
                 if (failure.isPresent()) {
                     origin.tell(failure.get(), getSelf());

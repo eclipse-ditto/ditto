@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -52,6 +54,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLog
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetricsResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogsResponse;
@@ -92,6 +96,8 @@ public final class ConnectionActorTest extends WithMockServers {
     private ModifyConnection modifyConnection;
     private ModifyConnection modifyClosedConnection;
     private DeleteConnection deleteConnection;
+    private TestConnection testConnection;
+    private TestConnection testConnectionCausingFailure;
     private CreateConnectionResponse createConnectionResponse;
     private CreateConnectionResponse createClosedConnectionResponse;
     private ModifyConnectionResponse modifyConnectionResponse;
@@ -136,6 +142,8 @@ public final class ConnectionActorTest extends WithMockServers {
         modifyConnectionResponse = ModifyConnectionResponse.modified(connectionId, DittoHeaders.empty());
         openConnection = OpenConnection.of(connectionId, DittoHeaders.empty());
         closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
+        testConnection = TestConnection.of(connection, DittoHeaders.empty());
+        testConnectionCausingFailure = TestConnection.of(connection, DittoHeaders.newBuilder().putHeader("fail", "true").build());
         closeConnectionResponse = CloseConnectionResponse.of(connectionId, DittoHeaders.empty());
         deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());
         retrieveConnection = RetrieveConnection.of(connectionId, DittoHeaders.empty());
@@ -158,6 +166,36 @@ public final class ConnectionActorTest extends WithMockServers {
                                 "publisher started")))
                 .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
+    }
+
+    @Test
+    public void testConnection() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder);
+
+            underTest.tell(testConnection, getRef());
+
+            final TestConnectionResponse testConnectionResponse = TestConnectionResponse
+                    .success(connectionId, "AkkaTestSystem=Success(mock)", DittoHeaders.empty());
+            expectMsg(testConnectionResponse);
+        }};
+    }
+
+    @Test
+    public void testConnectionCausingFailure() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder);
+
+            underTest.tell(testConnectionCausingFailure, getRef());
+
+            final DittoRuntimeException exception =
+                    DittoRuntimeException.newBuilder("some.error", HttpStatusCode.BAD_REQUEST).build();
+            expectMsg(exception);
+        }};
     }
 
     @Test

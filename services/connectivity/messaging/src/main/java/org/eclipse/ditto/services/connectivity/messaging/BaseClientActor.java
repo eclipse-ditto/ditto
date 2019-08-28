@@ -1033,7 +1033,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             connectionLogger.failure(logMessage);
             log.info(logMessage);
-            getSender().tell(dre, getSelf());
             return CompletableFuture.completedFuture(new Status.Failure(dre));
         }
     }

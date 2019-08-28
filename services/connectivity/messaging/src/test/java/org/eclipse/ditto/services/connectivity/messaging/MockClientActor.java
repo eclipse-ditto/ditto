@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -22,6 +24,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 
@@ -123,6 +126,17 @@ public class MockClientActor extends AbstractActor {
                 .match(EnableConnectionLogs.class, ecl-> {
                     log.info("Enable connection logs...");
                     forward(ecl);
+                })
+                .match(TestConnection.class, testConnection -> {
+                    log.info("Testing connection");
+                    final DittoRuntimeException exception =
+                            DittoRuntimeException.newBuilder("some.error", HttpStatusCode.BAD_REQUEST).build();
+
+                    if (testConnection.getDittoHeaders().getOrDefault("fail", "").equals("true")) {
+                        sender().tell(new Status.Failure(exception), getSelf());
+                    }
+
+                    sender().tell(new Status.Success("mock"), getSelf());
                 })
                 .match(CheckConnectionLogsActive.class, ccla -> {
                     log.info("Check connection logs active...");
