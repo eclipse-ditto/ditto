@@ -1,5 +1,5 @@
 ---
-title: "OpenID Connect"
+title: "Eclipse Ditto now supports OpenID Connect"
 published: true
 permalink: 2019-08-28-openid-connect.html
 layout: post
