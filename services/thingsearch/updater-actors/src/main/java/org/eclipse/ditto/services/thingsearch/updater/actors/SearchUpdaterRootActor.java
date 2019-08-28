@@ -118,7 +118,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
 
         final DistributedSub thingEventSub =
-                ThingEventPubSubFactory.shardIdOnly(actorSystem, numberOfShards).startDistributedSub();
+                ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards).startDistributedSub();
         final Props thingsUpdaterProps =
                 ThingsUpdater.props(thingEventSub, updaterShardRegion, updaterConfig, blockedNamespaces);
 

@@ -23,43 +23,33 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
+import akka.actor.ActorContext;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 
 /**
  * Pub-sub factory for tests. Messages are strings. Topics of a message are its prefixes.
  */
 public final class TestPubSubFactory extends AbstractPubSubFactory<String> implements Hashes {
 
+    private static final DDataProvider PROVIDER = DDataProvider.of("dc-default");
+
     private final Collection<Integer> seeds;
 
-    private TestPubSubFactory(final ActorSystem actorSystem, final String clusterRole,
-            final Class<String> messageClass,
+    private TestPubSubFactory(final ActorContext context, final Class<String> messageClass,
             final PubSubTopicExtractor<String> topicExtractor) {
-        super(actorSystem, clusterRole, messageClass, topicExtractor);
-        final PubSubConfig pubSubConfig =
-                PubSubConfig.of(actorSystem.settings().config().getConfig("test-pubsub-factory"));
-        seeds = Hashes.digestStringsToIntegers(pubSubConfig.getSeed(), pubSubConfig.getHashFamilySize());
+        super(context, messageClass, topicExtractor, PROVIDER);
+        final PubSubConfig config = PubSubConfig.of(context.system().settings().config().getConfig("ditto.pubsub"));
+        seeds = Hashes.digestStringsToIntegers(config.getSeed(), config.getHashFamilySize());
+    }
+
+    static TestPubSubFactory of(final ActorContext context) {
+        return new TestPubSubFactory(context, String.class, TestPubSubFactory::getPrefixes);
     }
 
     /**
-     * Create a test pub-sub factory from an actor system in a cluster.
-     *
-     * @param actorSystem the actor system.
-     * @return the pub-sub factory.
-     */
-    public static TestPubSubFactory of(final ActorSystem actorSystem) {
-
-        return new TestPubSubFactory(actorSystem, "dc-default", String.class,
-                TestPubSubFactory::getPrefixes);
-    }
-
-    /**
-     *
-     *
      * @return subscribers of a topic in the distributed data.
      */
-    public CompletionStage<Collection<ActorRef>> getSubscribers(final String topic) {
+    CompletionStage<Collection<ActorRef>> getSubscribers(final String topic) {
         return getSubscribers(Collections.singleton(topic), ddata.getReader());
     }
 

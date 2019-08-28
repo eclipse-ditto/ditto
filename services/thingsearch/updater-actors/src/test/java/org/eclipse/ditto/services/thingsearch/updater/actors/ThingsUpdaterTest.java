@@ -77,7 +77,7 @@ public final class ThingsUpdaterTest {
         );
         // create blocked namespaces cache without role and with the default replicator name
         blockedNamespaces =
-                BlockedNamespaces.of(DistributedData.createConfig(actorSystem, "replicator", ""), actorSystem);
+                BlockedNamespaces.create(DistributedData.createConfig(actorSystem, "replicator", ""), actorSystem);
     }
 
     @After

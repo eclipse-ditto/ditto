@@ -114,7 +114,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
                 newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
 
-        final LiveSignalPub liveSignalPub = LiveSignalPub.of(actorSystem);
+        final LiveSignalPub liveSignalPub = LiveSignalPub.of(context);
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,

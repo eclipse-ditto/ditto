@@ -17,7 +17,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
 
-import akka.actor.ActorSystem;
+import akka.actor.ActorContext;
 
 /**
  * Publishing of all live signals.
@@ -27,11 +27,11 @@ public interface LiveSignalPub {
     /**
      * Start a live signal pub in an actor system.
      *
-     * @param actorSystem the actor system.
+     * @param context context of the actor under which pub and sub actors are started.
      * @return the live signal pub.
      */
-    static LiveSignalPub of(final ActorSystem actorSystem) {
-        return LiveSignalPubImpl.of(actorSystem);
+    static LiveSignalPub of(final ActorContext context) {
+        return LiveSignalPubImpl.of(context);
     }
 
     /**

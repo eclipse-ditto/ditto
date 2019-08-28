@@ -77,7 +77,7 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
      * @param pubSubConfig the pub-sub config.
      * @return access to the distributed data.
      */
-    public static CompressedDDataHandler of(final ActorSystem system, final DistributedDataConfig ddataConfig,
+    public static CompressedDDataHandler create(final ActorSystem system, final DistributedDataConfig ddataConfig,
             final String topicType, final PubSubConfig pubSubConfig) {
 
         final List<Integer> seeds =

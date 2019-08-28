@@ -12,14 +12,16 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 
+import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
-import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.cluster.ddata.ORMultiMap;
 import akka.util.ByteString;
 
 /**
@@ -38,15 +40,21 @@ public final class CompressedDData implements DData<ByteString, CompressedUpdate
      * dispatcher.
      *
      * @param system the actor system.
-     * @param ddataConfig the distributed data config.
-     * @param topicType the type of messages, typically the canonical name of the message class.
-     * @param pubSubConfig the pub-sub config.
+     * @param provider the ddata extension provider.
      * @return access to the distributed data.
      */
-    public static CompressedDData of(final ActorSystem system, final DistributedDataConfig ddataConfig,
-            final String topicType, final PubSubConfig pubSubConfig) {
+    public static CompressedDData of(final ActorSystem system, final Provider provider) {
+        return new CompressedDData(provider.get(system));
+    }
 
-        return new CompressedDData(CompressedDDataHandler.of(system, ddataConfig, topicType, pubSubConfig));
+    /**
+     * Package an existing distributed data extension.
+     *
+     * @param extension the ddata extension.
+     * @return access to the distributed data.
+     */
+    public static CompressedDData of(final CompressedDDataHandler extension) {
+        return new CompressedDData(extension);
     }
 
     @Override
@@ -62,5 +70,20 @@ public final class CompressedDData implements DData<ByteString, CompressedUpdate
     @Override
     public Subscriptions<CompressedUpdate> createSubscriptions() {
         return CompressedSubscriptions.of(handler.getSeeds());
+    }
+
+    /**
+     * Abstract class of distributed data extension provider to be instantiated at user site.
+     */
+    public static abstract class Provider
+            extends DistributedData.Provider<ORMultiMap<ActorRef, ByteString>, CompressedDDataHandler> {
+
+        /**
+         * Get the ddata extension's config from an actor system.
+         *
+         * @param actorSystem The actor system.
+         * @return The ddata extension's config.
+         */
+        public abstract DistributedDataConfig getConfig(final ActorSystem actorSystem);
     }
 }

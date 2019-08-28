@@ -156,7 +156,7 @@ public final class ThingsRootActor extends AbstractActor {
         final ClusterConfig clusterConfig = thingsConfig.getClusterConfig();
         final ShardRegionExtractor shardRegionExtractor =
                 ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem);
-        final ThingEventPubSubFactory pubSubFactory = ThingEventPubSubFactory.of(actorSystem, shardRegionExtractor);
+        final ThingEventPubSubFactory pubSubFactory = ThingEventPubSubFactory.of(getContext(), shardRegionExtractor);
         final DistributedPub<ThingEvent> distributedPub = pubSubFactory.startDistributedPub();
 
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)

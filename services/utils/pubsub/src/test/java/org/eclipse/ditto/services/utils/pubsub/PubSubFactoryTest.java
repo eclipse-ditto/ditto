@@ -29,10 +29,15 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.actor.AbstractActor;
+import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.cluster.Cluster;
+import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Attributes;
+import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
@@ -64,8 +69,8 @@ public final class PubSubFactoryTest {
         cluster2.registerOnMemberUp(latch::countDown);
         cluster1.join(cluster1.selfAddress());
         cluster2.join(cluster1.selfAddress());
-        factory1 = TestPubSubFactory.of(system1);
-        factory2 = TestPubSubFactory.of(system2);
+        factory1 = TestPubSubFactory.of(newContext(system1));
+        factory2 = TestPubSubFactory.of(newContext(system2));
         // wait for both members to be UP
         latch.await();
     }
@@ -208,8 +213,46 @@ public final class PubSubFactoryTest {
         }};
     }
 
+    @Test
+    public void startSeveralTimes() {
+        // This test simulates the situation where the root actor of a Ditto service restarts several times.
+        new TestKit(system2) {{
+            // GIVEN: many pub- and sub-factories start under different actors.
+            for (int i = 0; i < 10; ++i) {
+                TestPubSubFactory.of(newContext(system1));
+                TestPubSubFactory.of(newContext(system2));
+            }
+
+            // WHEN: another pair of pub-sub factories were created.
+            final DistributedPub<String> pub = TestPubSubFactory.of(newContext(system1)).startDistributedPub();
+            final DistributedSub sub = TestPubSubFactory.of(newContext(system2)).startDistributedSub();
+            final TestProbe publisher = TestProbe.apply(system1);
+            final TestProbe subscriber = TestProbe.apply(system2);
+
+            // THEN: they fulfill their function.
+            final SubUpdater.Acknowledgement subAck =
+                    sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
+            assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
+            assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
+            pub.publish("hello", publisher.ref());
+            subscriber.expectMsg("hello");
+        }};
+    }
+
     private void disableLogging() {
         system1.eventStream().setLogLevel(Attributes.logLevelOff());
         system2.eventStream().setLogLevel(Attributes.logLevelOff());
+    }
+
+    private static ActorContext newContext(final ActorSystem actorSystem) {
+        return TestActorRef.create(actorSystem, Props.create(NopActor.class)).underlyingActor().context();
+    }
+
+    private static final class NopActor extends AbstractActor {
+
+        @Override
+        public Receive createReceive() {
+            return ReceiveBuilder.create().build();
+        }
     }
 }

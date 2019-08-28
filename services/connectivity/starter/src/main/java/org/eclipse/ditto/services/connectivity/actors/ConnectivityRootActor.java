@@ -162,7 +162,7 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         final ActorRef conciergeForwarder =
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
-        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(actorSystem);
+        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
         final Props connectionSupervisorProps =
                 getConnectionSupervisorProps(dittoProtocolSub, conciergeForwarder, commandValidator);
 

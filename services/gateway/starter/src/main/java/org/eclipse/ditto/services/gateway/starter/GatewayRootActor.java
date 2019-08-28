@@ -178,7 +178,7 @@ final class GatewayRootActor extends AbstractActor {
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
-        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(actorSystem);
+        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
                 StreamingActor.props(dittoProtocolSub, proxyActor));
 

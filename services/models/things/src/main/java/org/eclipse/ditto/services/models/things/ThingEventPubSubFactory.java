@@ -22,58 +22,55 @@ import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ShardIdExtractor;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
-import akka.actor.ActorSystem;
+import akka.actor.ActorContext;
 
 /**
  * Pub-sub factory for thing events.
  */
 public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEvent> {
 
-    /**
-     * Cluster role interested in thing events.
-     */
-    public static final String CLUSTER_ROLE = "thing-event-aware";
+    private static final DDataProvider PROVIDER = DDataProvider.of("thing-event-aware");
 
-    private ThingEventPubSubFactory(final ActorSystem actorSystem,
-            final PubSubTopicExtractor<ThingEvent> topicExtractor) {
-        super(actorSystem, CLUSTER_ROLE, ThingEvent.class, CLUSTER_ROLE, topicExtractor);
+    private ThingEventPubSubFactory(final ActorContext context, final PubSubTopicExtractor<ThingEvent> topicExtractor) {
+
+        super(context, ThingEvent.class, topicExtractor, PROVIDER);
     }
 
     /**
      * Create a pubsub factory for thing events from an actor system and its shard region extractor.
      *
-     * @param actorSystem the actor system.
+     * @param context context of the actor under which publisher and subscriber actors are created.
      * @param shardRegionExtractor the shard region extractor.
      * @return the thing event pub-sub factory.
      */
-    public static ThingEventPubSubFactory of(final ActorSystem actorSystem,
+    public static ThingEventPubSubFactory of(final ActorContext context,
             final ShardRegionExtractor shardRegionExtractor) {
 
-        return new ThingEventPubSubFactory(actorSystem, toTopicExtractor(shardRegionExtractor));
+        return new ThingEventPubSubFactory(context, toTopicExtractor(shardRegionExtractor));
     }
 
     /**
      * Create a pubsub factory for thing events ignoring shard ID topics.
      *
-     * @param actorSystem the actor system.
+     * @param context context of the actor under which publisher and subscriber actors are created.
      * @return the thing event pub-sub factory.
      */
-    public static ThingEventPubSubFactory readSubjectsOnly(final ActorSystem actorSystem) {
-        return new ThingEventPubSubFactory(actorSystem, readSubjectOnlyExtractor());
+    public static ThingEventPubSubFactory readSubjectsOnly(final ActorContext context) {
+        return new ThingEventPubSubFactory(context, readSubjectOnlyExtractor());
     }
 
     /**
      * Create a pubsub factory for thing events ignoring read subject topics.
      *
-     * @param actorSystem the actor system.
+     * @param context context of the actor under which publisher and subscriber actors are created.
      * @param numberOfShards the number of shards---must be identical between things and thing-updaters.
      * @return the thing event pug-sub factory.
      */
-    public static ThingEventPubSubFactory shardIdOnly(final ActorSystem actorSystem, final int numberOfShards) {
+    public static ThingEventPubSubFactory shardIdOnly(final ActorContext context, final int numberOfShards) {
 
         final PubSubTopicExtractor<ThingEvent> topicExtractor =
-                shardIdOnlyExtractor(ShardRegionExtractor.of(numberOfShards, actorSystem));
-        return new ThingEventPubSubFactory(actorSystem, topicExtractor);
+                shardIdOnlyExtractor(ShardRegionExtractor.of(numberOfShards, context.system()));
+        return new ThingEventPubSubFactory(context, topicExtractor);
     }
 
     private static PubSubTopicExtractor<ThingEvent> readSubjectOnlyExtractor() {

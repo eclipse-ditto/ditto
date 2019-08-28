@@ -17,8 +17,8 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 
+import akka.actor.ActorContext;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 
 /**
  * Subscriptions for Ditto protocol channels.
@@ -66,10 +66,10 @@ public interface DittoProtocolSub {
     /**
      * Create {@code DittoProtocolSub} for an actor system.
      *
-     * @param actorSystem the actor system.
+     * @param context context of the actor under which the subscriber actors are started.
      * @return the {@code DittoProtocolSub}.
      */
-    static DittoProtocolSub of(final ActorSystem actorSystem) {
-        return DittoProtocolSubImpl.of(actorSystem);
+    static DittoProtocolSub of(final ActorContext context) {
+        return DittoProtocolSubImpl.of(context);
     }
 }

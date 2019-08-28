@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
 
-import akka.actor.ActorSystem;
+import akka.actor.ActorContext;
 
 /**
  * Default implementation of {@link LiveSignalPub}.
@@ -45,12 +45,12 @@ final class LiveSignalPubImpl implements LiveSignalPub {
     /**
      * Start a live signal pub in an actor system.
      *
-     * @param actorSystem the actor system.
+     * @param context context of the actor under which the pub and sub supervisors are started.
      * @return the live signal pub.
      */
-    static LiveSignalPubImpl of(final ActorSystem actorSystem) {
+    static LiveSignalPubImpl of(final ActorContext context) {
         final DistributedPub<?> distributedPub =
-                LiveSignalPubSubFactory.of(actorSystem, Signal.class).startDistributedPub();
+                LiveSignalPubSubFactory.of(context).startDistributedPub();
         final DistributedPub<Command> liveCommandPub =
                 distributedPub.withTopicExtractor(getTopicExtractor(StreamingType.LIVE_COMMANDS));
         final DistributedPub<Event> liveEventPub =

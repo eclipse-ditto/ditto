@@ -21,34 +21,30 @@ import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.signals.base.Signal;
 
-import akka.actor.ActorSystem;
+import akka.actor.ActorContext;
 
 /**
  * Pub-sub factory for live signals.
  */
 final class LiveSignalPubSubFactory<T extends Signal> extends AbstractPubSubFactory<T> {
 
-    /**
-     * Cluster role interested in live signals.
-     */
-    public static final String CLUSTER_ROLE = "live-signal-aware";
+    private static final DDataProvider PROVIDER = DDataProvider.of("live-signal-aware");
 
-    private LiveSignalPubSubFactory(final ActorSystem actorSystem, final Class<T> messageClass,
+    private LiveSignalPubSubFactory(final ActorContext context, final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor) {
 
-        super(actorSystem, CLUSTER_ROLE, messageClass, CLUSTER_ROLE, topicExtractor);
+        super(context, messageClass, topicExtractor, PROVIDER);
     }
 
     /**
      * Create a pubsub factory for live signals from an actor system and its shard region extractor.
      *
-     * @param actorSystem the actor system.
+     * @param context context of the actor under which the publisher and subscriber actors are started.
      * @return the thing
      */
-    public static <T extends Signal> LiveSignalPubSubFactory<T> of(final ActorSystem actorSystem,
-            final Class<T> signalClass) {
+    public static LiveSignalPubSubFactory<Signal> of(final ActorContext context) {
 
-        return new LiveSignalPubSubFactory<>(actorSystem, signalClass, topicExtractor());
+        return new LiveSignalPubSubFactory<>(context, Signal.class, topicExtractor());
     }
 
     private static Collection<String> getStreamingTypeTopic(final Signal signal) {

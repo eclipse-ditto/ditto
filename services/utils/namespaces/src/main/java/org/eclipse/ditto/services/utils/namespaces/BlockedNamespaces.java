@@ -19,6 +19,7 @@ import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 
 import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORSet;
@@ -57,14 +58,14 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
     }
 
     /**
-     * Create an instance of this distributed data with the default configuration. The provided Akka system must be a
+     * Get an instance of this distributed data with the default configuration. The provided Akka system must be a
      * cluster member with the role {@code blocked-namespaces-aware}.
      *
      * @param system the actor system where the replicator actor will be created.
      * @return a new instance of the distributed data.
      */
     public static BlockedNamespaces of(final ActorSystem system) {
-        return new BlockedNamespaces(DistributedData.createConfig(system, ACTOR_NAME, CLUSTER_ROLE), system);
+        return Provider.INSTANCE.get(system);
     }
 
     /**
@@ -75,7 +76,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return a new instance of the distributed data.
      * @throws NullPointerException if {@code configReader} is {@code null}.
      */
-    public static BlockedNamespaces of(final DistributedDataConfig config, final ActorSystem system) {
+    public static BlockedNamespaces create(final DistributedDataConfig config, final ActorSystem system) {
         return new BlockedNamespaces(config, system);
     }
 
@@ -125,4 +126,15 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
         return new Replicator.WriteAll(FiniteDuration.apply(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
     }
 
+    private static final class Provider extends DistributedData.Provider<ORSet<String>, BlockedNamespaces> {
+
+        private static Provider INSTANCE = new Provider();
+
+        private Provider() {}
+
+        @Override
+        public BlockedNamespaces createExtension(final ExtendedActorSystem system) {
+            return new BlockedNamespaces(DistributedData.createConfig(system, ACTOR_NAME, CLUSTER_ROLE), system);
+        }
+    }
 }

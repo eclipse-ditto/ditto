@@ -23,9 +23,12 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
+import akka.actor.AbstractExtensionId;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
+import akka.actor.Extension;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ReplicatedData;
 import akka.cluster.ddata.Replicator;
@@ -40,7 +43,7 @@ import scala.concurrent.duration.FiniteDuration;
  *
  * @param <R> type of replicated data.
  */
-public abstract class DistributedData<R extends ReplicatedData> {
+public abstract class DistributedData<R extends ReplicatedData> implements Extension {
 
     /**
      * Default timeout of read operations.
@@ -197,6 +200,34 @@ public abstract class DistributedData<R extends ReplicatedData> {
             return Duration.ofMillis(defaultTimeout.toMillis());
         } else {
             return configuredTimeout;
+        }
+    }
+
+    /**
+     * Extension provider for Ditto distributed data.
+     *
+     * @param <R> type of distributed data.
+     * @param <T> type of the actor system extension to handle the distributed data.
+     */
+    public static abstract class Provider<R extends ReplicatedData, T extends DistributedData<R>>
+            extends AbstractExtensionId<T> {
+
+        /**
+         * Constructor available for subclasses only.
+         */
+        protected Provider() {}
+
+        @Override
+        public abstract T createExtension(ExtendedActorSystem system);
+
+        /**
+         * Lookup an extension provider to load an extension from config on actor system startup.
+         * Required by ExtensionIdProvider; not used by Ditto.
+         *
+         * @return this object.
+         */
+        public Provider<R, T> lookup() {
+            return this;
         }
     }
 
