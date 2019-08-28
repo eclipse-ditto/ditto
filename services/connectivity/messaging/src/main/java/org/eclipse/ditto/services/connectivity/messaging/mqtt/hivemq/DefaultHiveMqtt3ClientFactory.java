@@ -14,13 +14,20 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.DittoTrustManagerFactory;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.KeyManagerFactoryFactory;
 
 import com.hivemq.client.mqtt.MqttClient;
+import com.hivemq.client.mqtt.MqttClientSslConfig;
+import com.hivemq.client.mqtt.MqttClientSslConfigBuilder;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
@@ -32,6 +39,7 @@ import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
 public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
 
     private static final DefaultHiveMqtt3ClientFactory INSTANCE = new DefaultHiveMqtt3ClientFactory();
+    private static final List<String> MQTT_SECURE_SCHEMES = Arrays.asList("ssl", "wss");
 
     /**
      * @return the singleton instance of {@link DefaultHiveMqtt3ClientFactory}
@@ -67,8 +75,24 @@ public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFacto
             mqtt3ClientBuilder.automaticReconnectWithDefaultConfig();
         }
 
-        if ("ssl".equals(connection.getProtocol()) || "wss".equals(connection.getProtocol())) {
-            // TODO: apply TLS config
+        if (isSecuredConnection(connection.getProtocol())) {
+
+            final MqttClientSslConfigBuilder sslConfigBuilder = MqttClientSslConfig.builder();
+
+            if (connection.isValidateCertificates()) {
+                // create DittoTrustManagerFactory to apply hostname verification
+                final TrustManagerFactory trustManagerFactory =
+                        DittoTrustManagerFactory.from(connection);
+                sslConfigBuilder.trustManagerFactory(trustManagerFactory);
+            } else {
+                // TODO need to configure accept any trust manager?
+            }
+
+            connection.getCredentials()
+                    .map(credentials -> credentials.accept(KeyManagerFactoryFactory.getInstance()))
+                    .ifPresent(sslConfigBuilder::keyManagerFactory);
+
+            mqtt3ClientBuilder.sslConfig(sslConfigBuilder.build());
         }
 
         if (null != connectedListener) {
@@ -78,5 +102,9 @@ public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFacto
             mqtt3ClientBuilder.addDisconnectedListener(disconnectedListener);
         }
         return mqtt3ClientBuilder.identifier(identifier).build();
+    }
+
+    private static boolean isSecuredConnection(final String protocol) {
+        return MQTT_SECURE_SCHEMES.contains(protocol.toLowerCase());
     }
 }

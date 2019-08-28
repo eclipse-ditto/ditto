@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.internal;
+package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -28,22 +28,27 @@ import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.PKIXRevocationChecker;
 import java.security.cert.X509CertSelector;
 import java.util.Collection;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.CertPathTrustManagerParameters;
-import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 
-final class TrustManagerFactory {
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
+
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+
+/**
+ * Creates {@link javax.net.ssl.TrustManagerFactory}s from different sources.
+ */
+public final class TrustManagerFactoryFactory {
 
     private static final String PKIX = "PKIX";
     private static final KeyStore DEFAULT_CA_KEYSTORE = loadDefaultCAKeystore();
 
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
-
-    private TrustManagerFactory() {
-        throw new AssertionError();
-    }
+    private final KeyStoreFactory keyStoreFactory;
+    private final ExceptionMapper exceptionMapper;
 
     static {
         try {
@@ -53,14 +58,34 @@ final class TrustManagerFactory {
         }
     }
 
-    static TrustManager[] newTrustManager(@Nullable final String trustedCertificates,
-            final Supplier<KeyStore> keyStoreSupplier)
+    TrustManagerFactoryFactory(final ExceptionMapper exceptionMapper) {
+        this.exceptionMapper = exceptionMapper;
+        keyStoreFactory = new KeyStoreFactory(exceptionMapper);
+    }
+
+    public static TrustManagerFactoryFactory getInstance() {
+        return new TrustManagerFactoryFactory(new ExceptionMapper(DittoHeaders.empty()));
+    }
+
+    public TrustManagerFactory newTrustManagerFactory(@Nullable final String trustedCertificates) {
+        return exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates));
+    }
+
+    public TrustManagerFactory newTrustManagerFactory(final Connection connection) {
+        final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
+        return exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates));
+    }
+
+    public TrustManagerFactory newInsecureTrustManagerFactory() {
+        return InsecureTrustManagerFactory.INSTANCE;
+    }
+
+    private TrustManagerFactory createTrustManagerFactory(@Nullable final String trustedCertificates)
             throws NoSuchAlgorithmException, CertificateException, KeyStoreException,
             InvalidAlgorithmParameterException {
-        final javax.net.ssl.TrustManagerFactory trustManagerFactory =
-                javax.net.ssl.TrustManagerFactory.getInstance(PKIX);
+        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(PKIX);
         if (trustedCertificates != null) {
-            final KeyStore keystore = keyStoreSupplier.get();
+            final KeyStore keystore = keyStoreFactory.newKeystore();
             final Collection<? extends Certificate> caCerts;
             final byte[] caCertsPem = trustedCertificates.getBytes(StandardCharsets.US_ASCII);
             caCerts = X509_CERTIFICATE_FACTORY.generateCertificates(new ByteArrayInputStream(caCertsPem));
@@ -78,16 +103,9 @@ final class TrustManagerFactory {
             parameters.addCertPathChecker(revocationChecker);
             trustManagerFactory.init(new CertPathTrustManagerParameters(parameters));
         }
-        return trustManagerFactory.getTrustManagers();
+        return trustManagerFactory;
     }
 
-    static KeyStore emptyKeyStore()
-            throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
-        final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        // initialize an empty keystore
-        keyStore.load(null, null);
-        return keyStore;
-    }
 
     private static KeyStore loadDefaultCAKeystore() {
         try {
@@ -106,5 +124,4 @@ final class TrustManagerFactory {
             throw new Error("FATAL: Cannot load default CA keystore");
         }
     }
-
 }

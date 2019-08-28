@@ -20,8 +20,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.credentials.Credentials;
-import org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.AcceptAnyTrustManager;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.AcceptAnyTrustManager;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import akka.stream.alpakka.mqtt.MqttConnectionSettings;

@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 
 /**
  * Validate a connection according to its type.
