@@ -131,6 +131,9 @@ public class MockClientActor extends AbstractActor {
                     log.info("Testing connection");
                     final DittoRuntimeException exception =
                             DittoRuntimeException.newBuilder("some.error", HttpStatusCode.BAD_REQUEST).build();
+                    if (testConnection.getDittoHeaders().getOrDefault("error", "").equals("true")) {
+                        sender().tell(exception, getSelf());
+                    }
 
                     if (testConnection.getDittoHeaders().getOrDefault("fail", "").equals("true")) {
                         sender().tell(new Status.Failure(exception), getSelf());

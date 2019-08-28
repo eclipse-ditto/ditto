@@ -98,6 +98,7 @@ public final class ConnectionActorTest extends WithMockServers {
     private DeleteConnection deleteConnection;
     private TestConnection testConnection;
     private TestConnection testConnectionCausingFailure;
+    private TestConnection testConnectionCausingException;
     private CreateConnectionResponse createConnectionResponse;
     private CreateConnectionResponse createClosedConnectionResponse;
     private ModifyConnectionResponse modifyConnectionResponse;
@@ -144,6 +145,7 @@ public final class ConnectionActorTest extends WithMockServers {
         closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
         testConnection = TestConnection.of(connection, DittoHeaders.empty());
         testConnectionCausingFailure = TestConnection.of(connection, DittoHeaders.newBuilder().putHeader("fail", "true").build());
+        testConnectionCausingException = TestConnection.of(connection, DittoHeaders.newBuilder().putHeader("error", "true").build());
         closeConnectionResponse = CloseConnectionResponse.of(connectionId, DittoHeaders.empty());
         deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());
         retrieveConnection = RetrieveConnection.of(connectionId, DittoHeaders.empty());
@@ -191,6 +193,21 @@ public final class ConnectionActorTest extends WithMockServers {
                             conciergeForwarder);
 
             underTest.tell(testConnectionCausingFailure, getRef());
+
+            final DittoRuntimeException exception =
+                    DittoRuntimeException.newBuilder("some.error", HttpStatusCode.BAD_REQUEST).build();
+            expectMsg(exception);
+        }};
+    }
+
+    @Test
+    public void testConnectionCausingException() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder);
+
+            underTest.tell(testConnectionCausingException, getRef());
 
             final DittoRuntimeException exception =
                     DittoRuntimeException.newBuilder("some.error", HttpStatusCode.BAD_REQUEST).build();
