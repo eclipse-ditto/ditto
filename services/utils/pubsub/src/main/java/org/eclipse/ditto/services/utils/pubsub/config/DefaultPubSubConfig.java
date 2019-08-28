@@ -41,7 +41,6 @@ final class DefaultPubSubConfig implements PubSubConfig {
     private final Duration restartDelay;
     private final Duration updateInterval;
     private final double forceUpdateProbability;
-    private final DDataType ddataType;
 
     private DefaultPubSubConfig(final ConfigWithFallback config) {
         seed = config.getString(ConfigValue.SEED.getConfigPath());
@@ -49,7 +48,6 @@ final class DefaultPubSubConfig implements PubSubConfig {
         restartDelay = config.getDuration(ConfigValue.RESTART_DELAY.getConfigPath());
         updateInterval = config.getDuration(ConfigValue.UPDATE_INTERVAL.getConfigPath());
         forceUpdateProbability = config.getDouble(ConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath());
-        ddataType = DDataType.valueOf(config.getString(ConfigValue.DDATA_TYPE.getConfigPath()));
     }
 
     static PubSubConfig of(final Config config) {
@@ -81,20 +79,15 @@ final class DefaultPubSubConfig implements PubSubConfig {
         return forceUpdateProbability;
     }
 
-    @Override
-    public DDataType getDDataType() {
-        return ddataType;
-    }
-
     private String[] getFieldNames() {
         return new String[]{
-                "seed", "hashFamilySize", "restartDelay", "updateInterval", "forceUpdateProbability", "bufferFactor"
+                "seed", "hashFamilySize", "restartDelay", "updateInterval", "forceUpdateProbability"
         };
     }
 
     private Object[] getFieldValues() {
         return new Object[]{
-                seed, hashFamilySize, restartDelay, updateInterval, forceUpdateProbability, ddataType
+                seed, hashFamilySize, restartDelay, updateInterval, forceUpdateProbability
         };
     }
 

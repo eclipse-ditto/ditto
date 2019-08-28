@@ -76,10 +76,6 @@ public final class DefaultPubSubConfigTest {
         softly.assertThat(underTest.getForceUpdateProbability())
                 .as(PubSubConfig.ConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath())
                 .isCloseTo(0.01, Percentage.withPercentage(1.0));
-
-        softly.assertThat(underTest.getDDataType())
-                .as(PubSubConfig.ConfigValue.DDATA_TYPE.getConfigPath())
-                .isEqualTo(DDataType.COMPRESSED);
     }
 
     @Test
@@ -105,10 +101,6 @@ public final class DefaultPubSubConfigTest {
         softly.assertThat(underTest.getForceUpdateProbability())
                 .as(PubSubConfig.ConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath())
                 .isCloseTo(0.011, Percentage.withPercentage(1.0));
-
-        softly.assertThat(underTest.getDDataType())
-                .as(PubSubConfig.ConfigValue.DDATA_TYPE.getConfigPath())
-                .isEqualTo(DDataType.BLOOM_FILTER);
     }
 
 }

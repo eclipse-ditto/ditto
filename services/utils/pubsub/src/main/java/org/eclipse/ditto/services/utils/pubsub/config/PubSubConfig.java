@@ -56,11 +56,6 @@ public interface PubSubConfig {
     double getForceUpdateProbability();
 
     /**
-     * @return The type of ddata to store the relation between nodes and topics.
-     */
-    DDataType getDDataType();
-
-    /**
      * Create a {@code PubSubConfig} object from a {@code Config} object at the key {@code pubsub}.
      *
      * @param config config with path {@code pubsub}.
@@ -118,13 +113,7 @@ public interface PubSubConfig {
          * from temporary disassociation, during which a remove member may remove our subscriber
          * from the distributed data when prompted by a cluster event MemberRemoved.
          */
-        FORCE_UPDATE_PROBABILITY("force-update-probability", 0.01),
-
-        /**
-         * The type of ddata to store the relation between nodes and topics.
-         * Either {@code COMPRESSED} or {@code BLOOM_FILTER}.
-         */
-        DDATA_TYPE("ddata-type", "COMPRESSED");
+        FORCE_UPDATE_PROBABILITY("force-update-probability", 0.01);
 
         private final String path;
         private final Object defaultValue;

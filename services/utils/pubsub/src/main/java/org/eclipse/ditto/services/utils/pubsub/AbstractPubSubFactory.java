@@ -18,7 +18,6 @@ import org.eclipse.ditto.services.utils.pubsub.actors.PubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
-import org.eclipse.ditto.services.utils.pubsub.ddata.bloomfilter.BloomFilterDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
@@ -77,15 +76,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
         ddataConfig = DistributedData.createConfig(actorSystem, replicatorName, clusterRole);
 
         final PubSubConfig config = PubSubConfig.of(actorSystem);
-        switch (config.getDDataType()) {
-            case BLOOM_FILTER:
-                ddata = BloomFilterDData.of(actorSystem, ddataConfig, ddataKey, config);
-                break;
-            case COMPRESSED:
-            default:
-                ddata = CompressedDData.of(actorSystem, ddataConfig, ddataKey, config);
-                break;
-        }
+        ddata = CompressedDData.of(actorSystem, ddataConfig, ddataKey, config);
     }
 
     @Override

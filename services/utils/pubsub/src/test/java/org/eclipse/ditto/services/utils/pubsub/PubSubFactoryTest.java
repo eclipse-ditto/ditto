@@ -22,12 +22,9 @@ import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
-import org.eclipse.ditto.services.utils.pubsub.config.DDataType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -43,16 +40,7 @@ import scala.concurrent.duration.Duration;
 /**
  * Tests Ditto pub-sub as a whole.
  */
-@RunWith(Parameterized.class)
-public final class PubSubTest {
-
-    @Parameterized.Parameters(name = "{0}")
-    public static DDataType[] getParameters() {
-        return DDataType.values();
-    }
-
-    @Parameterized.Parameter
-    public DDataType ddataType;
+public final class PubSubFactoryTest {
 
     private ActorSystem system1;
     private ActorSystem system2;
@@ -62,8 +50,7 @@ public final class PubSubTest {
     private TestPubSubFactory factory2;
 
     private Config getTestConf() {
-        return ConfigFactory.parseString("test-pubsub-factory.pubsub.ddata-type=" + ddataType)
-                .withFallback(ConfigFactory.load("pubsub-factory-test.conf"));
+        return ConfigFactory.load("pubsub-factory-test.conf");
     }
 
     @Before
