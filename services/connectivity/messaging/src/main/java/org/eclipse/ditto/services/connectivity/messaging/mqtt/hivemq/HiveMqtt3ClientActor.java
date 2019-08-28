@@ -29,10 +29,8 @@ import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor
 import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ClientReady;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt3SubscriptionHandler.MqttConsumer;
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.lifecycle.Mqtt3ClientConnectedContext;
@@ -50,7 +48,6 @@ import akka.pattern.Patterns;
 /**
  * Actor which handles connection to MQTT 3.1.1 server.
  */
-@AllParametersAndReturnValuesAreNonnullByDefault
 public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     // we always want to use clean session -> we need to subscribe after reconnects
@@ -63,7 +60,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     private final HiveMqtt3SubscriptionHandler subscriptionHandler;
 
     @SuppressWarnings("unused") // used by `props` via reflection
-    HiveMqtt3ClientActor(final Connection connection,
+    private HiveMqtt3ClientActor(final Connection connection,
             final ActorRef conciergeForwarder,
             final HiveMqtt3ClientFactory clientFactory) {
         super(connection, connection.getConnectionStatus(), conciergeForwarder);
@@ -80,7 +77,8 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                 log);
     }
 
-    @SuppressWarnings("unused") // used by `props` via reflection
+    @SuppressWarnings("unused")
+        // used by `props` via reflection
     HiveMqtt3ClientActor(final Connection connection,
             final ActorRef conciergeForwarder) {
         this(connection, conciergeForwarder, DefaultHiveMqtt3ClientFactory.getInstance());
@@ -121,17 +119,6 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     private static Connection validateConnection(final Connection connection) {
         // nothing to do so far
-        // TODO validate topics with MqttTopicFilter.of(...)
-
-
-        // TODO limit client and consumer count to 1 because mqtt by default does not provide load balancing
-        // validate consumerCount == 1
-//        if (source.getConsumerCount() <= 0) {
-//            log.info("source #{} has {} consumer - not starting consumer actor", source.getIndex(),
-//                    source.getConsumerCount());
-//            return null;
-//        }
-
         return connection;
     }
 

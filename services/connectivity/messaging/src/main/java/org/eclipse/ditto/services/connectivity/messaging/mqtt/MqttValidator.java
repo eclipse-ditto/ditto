@@ -20,11 +20,13 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -59,6 +61,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("tcp", "ssl", "ws", "wss"));
+    private static final Collection<String> SECURE_SCHEMES = Collections.unmodifiableList(Arrays.asList("ssl", "wss"));
 
     private static final String ERROR_DESCRIPTION = "''{0}'' is not a valid value for mqtt enforcement. Valid" +
             " values are: ''{1}''.";
@@ -79,13 +82,13 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
-        validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "MQTT 3.1.1");
+        validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "MQTT 3.1.1");
         validateUriByPaho(connection, dittoHeaders);
+        validateClientCount(connection, dittoHeaders);
         validateAddresses(connection, dittoHeaders);
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
     }
-
 
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
@@ -106,6 +109,8 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
         validateSourceQoS(qos.get(), dittoHeaders, sourceDescription);
         validateSourceEnforcement(source.getEnforcement().orElse(null), dittoHeaders, sourceDescription);
+
+        validateConsumerCount(source, dittoHeaders);
     }
 
     @Override
@@ -278,6 +283,26 @@ public final class MqttValidator extends AbstractProtocolValidator {
                     "Hint: MQTT connection URI may not have trailing '/' or any other path component.";
             throw invalidValueForConfig(connection.getUri(), configName, location)
                     .description(description)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+    }
+
+    private void validateClientCount(final Connection connection,
+            final DittoHeaders dittoHeaders) {
+        if (connection.getClientCount() > 1) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder("Client count limited to 1 for MQTT 3 connections.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+    }
+
+    private void validateConsumerCount(final Source source,
+            final DittoHeaders dittoHeaders) {
+        if (source.getConsumerCount()>1) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder("Consumer count limited to 1 for MQTT 3 connections.")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
