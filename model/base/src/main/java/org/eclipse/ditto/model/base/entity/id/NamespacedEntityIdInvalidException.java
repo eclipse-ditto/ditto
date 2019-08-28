@@ -46,7 +46,7 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
      */
     public static final String ERROR_CODE = "namespacedentity.id.invalid";
 
-    private static final String MESSAGE_TEMPLATE = "Namespaced Entity ID ''{0}'' is not valid!";
+    private static final String MESSAGE_TEMPLATE = "Namespaced entity ID ''{0}'' is not valid!";
 
     private static final String NAMESPACED_ENTITY_ID_DESCRIPTION =
             "It must contain a namespace prefix (java package notation + a colon ':') + ID and must be a valid URI " +
