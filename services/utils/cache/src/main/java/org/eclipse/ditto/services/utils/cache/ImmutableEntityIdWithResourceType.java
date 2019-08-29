@@ -19,16 +19,19 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+
 /**
  * Implementation of {@code EntityId}.
  */
 @Immutable
-final class ImmutableEntityId implements EntityId {
+final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceType {
 
     static final String DELIMITER = ":";
 
     private final String resourceType;
-    private final String id;
+    private final EntityId id;
 
     /**
      * Creates a new {@code ImmutableEntityId}.
@@ -37,7 +40,7 @@ final class ImmutableEntityId implements EntityId {
      * @param id the entity id.
      * @throws IllegalArgumentException if resource type contains ':'.
      */
-    private ImmutableEntityId(final String resourceType, final String id) {
+    private ImmutableEntityIdWithResourceType(final String resourceType, final EntityId id) {
         this.resourceType = checkNotNull(resourceType, "resourceType");
         this.id = checkNotNull(id, "id");
         if (resourceType.contains(DELIMITER)) {
@@ -54,8 +57,8 @@ final class ImmutableEntityId implements EntityId {
      * @param id the entity ID.
      * @return the entity ID with resource type object.
      */
-    static EntityId of(final String resourceType, final String id) {
-        return new ImmutableEntityId(resourceType, id);
+    static EntityIdWithResourceType of(final String resourceType, final EntityId id) {
+        return new ImmutableEntityIdWithResourceType(resourceType, id);
     }
 
     /**
@@ -65,7 +68,7 @@ final class ImmutableEntityId implements EntityId {
      * @return the entity ID with resource type.
      * @throws IllegalArgumentException if the string does not have the expected format.
      */
-    static EntityId readFrom(final String string) {
+    static EntityIdWithResourceType readFrom(final String string) {
         checkNotNull(string, "string");
 
         final int delimiterIndex = string.indexOf(DELIMITER);
@@ -73,9 +76,9 @@ final class ImmutableEntityId implements EntityId {
             final String message = MessageFormat.format("Unexpected EntityId format: <{0}>", string);
             throw new IllegalArgumentException(message);
         } else {
-            final String id = string.substring(delimiterIndex + 1);
+            final EntityId id = DefaultEntityId.of(string.substring(delimiterIndex + 1));
             final String resourceType = string.substring(0, delimiterIndex);
-            return new ImmutableEntityId(resourceType, id);
+            return new ImmutableEntityIdWithResourceType(resourceType, id);
         }
     }
 
@@ -86,14 +89,14 @@ final class ImmutableEntityId implements EntityId {
     }
 
     @Override
-    public String getId() {
+    public EntityId getId() {
         return id;
     }
 
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof ImmutableEntityId) {
-            final ImmutableEntityId that = (ImmutableEntityId) o;
+        if (o instanceof ImmutableEntityIdWithResourceType) {
+            final ImmutableEntityIdWithResourceType that = (ImmutableEntityIdWithResourceType) o;
             return Objects.equals(resourceType, that.resourceType) && Objects.equals(id, that.id);
         } else {
             return false;

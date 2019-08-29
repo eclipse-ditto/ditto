@@ -61,6 +61,27 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <excludes>
+                            <exclude>
+                                <!-- getConnectionId() is still available but implemented in ConnectivityEvent -->
+                                org.eclipse.ditto.signals.events.connectivity.AbstractConnectivityEvent#getConnectionId()
+                            </exclude>
+                            <exclude>
+                                <!-- getId() is still available but implemented in WithId interface -->
+                                org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent#getId()
+                            </exclude>
+
+                            <!-- These methods has been added on purpose -->
+                            <exclude>org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent#getEntityId()
+                            </exclude>
+                            <exclude>
+                                org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent#getConnectionEntityId()
+                            </exclude>
+                        </excludes>
+                    </parameter>
+                </configuration>
             </plugin>
 
             <plugin>

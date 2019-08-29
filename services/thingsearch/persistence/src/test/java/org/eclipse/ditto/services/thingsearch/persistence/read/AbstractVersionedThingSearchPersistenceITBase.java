@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -77,7 +78,7 @@ public abstract class AbstractVersionedThingSearchPersistenceITBase extends Abst
         return qbf.newBuilder(criteria).build();
     }
 
-    ResultList<String> executeVersionedQuery(final Criteria criteria) {
+    ResultList<ThingId> executeVersionedQuery(final Criteria criteria) {
         return executeVersionedQuery(this::query, this::findAll, criteria);
     }
 

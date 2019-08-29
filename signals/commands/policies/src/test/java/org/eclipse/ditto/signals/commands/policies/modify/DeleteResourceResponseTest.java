@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -39,7 +40,7 @@ public class DeleteResourceResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, DeleteResourceResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
-            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(DeleteResourceResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(DeleteResourceResponse.JSON_RESOURCE_KEY, TestConstants.Policy.RESOURCE_KEY.toString())
             .build();
@@ -48,7 +49,7 @@ public class DeleteResourceResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DeleteResourceResponse.class, areImmutable(),
-                provided(Label.class, ResourceKey.class, JsonPointer.class).areAlsoImmutable());
+                provided(Label.class, ResourceKey.class, JsonPointer.class, PolicyId.class).areAlsoImmutable());
     }
 
 

@@ -29,7 +29,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class PolicyTagTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(PolicyTag.JsonFields.ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyTag.JsonFields.ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyTag.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
             .build();
 
@@ -59,7 +59,7 @@ public final class PolicyTagTest {
         final PolicyTag underTest = PolicyTag.fromJson(KNOWN_JSON);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getRevision()).isEqualTo(TestConstants.Policy.REVISION_NUMBER);
     }
 

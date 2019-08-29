@@ -23,6 +23,8 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -32,7 +34,10 @@ import org.junit.Test;
 public final class ShutdownReasonFactoryTest {
 
     private static final String NAMESPACE = "com.example.test";
-    private static final List<String> ENTITY_IDS_TO_PURGE = Arrays.asList("x:y", "a:b", "f:oo");
+    private static final List<EntityId> ENTITY_IDS_TO_PURGE = Arrays.asList(
+            DefaultEntityId.of("x:y"),
+            DefaultEntityId.of("a:b"),
+            DefaultEntityId.of("f:oo"));
 
     private static JsonObject purgeNamespaceReasonJson;
     private static JsonObject purgeEntitiesReasonJson;

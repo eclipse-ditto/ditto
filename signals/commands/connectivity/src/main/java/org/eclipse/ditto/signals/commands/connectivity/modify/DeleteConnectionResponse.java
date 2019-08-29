@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
@@ -46,9 +47,9 @@ public final class DeleteConnectionResponse extends AbstractCommandResponse<Dele
      */
     public static final String TYPE = TYPE_PREFIX + DeleteConnection.NAME;
 
-    private final String connectionId;
+    private final ConnectionId connectionId;
 
-    private DeleteConnectionResponse(final String connectionId, final DittoHeaders dittoHeaders) {
+    private DeleteConnectionResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
         this.connectionId = connectionId;
     }
@@ -61,7 +62,7 @@ public final class DeleteConnectionResponse extends AbstractCommandResponse<Dele
      * @return a new DeleteConnectionResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeleteConnectionResponse of(final String connectionId, final DittoHeaders dittoHeaders) {
+    public static DeleteConnectionResponse of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         return new DeleteConnectionResponse(connectionId, dittoHeaders);
     }
@@ -96,8 +97,9 @@ public final class DeleteConnectionResponse extends AbstractCommandResponse<Dele
                 statusCode -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
+                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
-                    return of(readConnectionId, dittoHeaders);
+                    return of(connectionId, dittoHeaders);
                 });
     }
 
@@ -105,11 +107,12 @@ public final class DeleteConnectionResponse extends AbstractCommandResponse<Dele
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
     }
 
     @Override
-    public String getConnectionId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 

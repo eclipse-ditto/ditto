@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -57,11 +58,11 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
     static final JsonFieldDefinition<JsonObject> JSON_ACL_ENTRY_PERMISSIONS =
             JsonFactory.newJsonObjectFieldDefinition("aclEntryPermissions", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String aclEntrySubject;
     private final JsonObject aclEntryPermissions;
 
-    private RetrieveAclEntryResponse(final String thingId,
+    private RetrieveAclEntryResponse(final ThingId thingId,
             final HttpStatusCode statusCode,
             final String aclEntrySubject,
             final JsonObject aclEntryPermissions,
@@ -81,8 +82,27 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AclEntry, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveAclEntryResponse of(final String thingId, final AclEntry aclEntry,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), aclEntry, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveAclEntry} command.
+     *
+     * @param thingId the Thing ID of the retrieved acl entry.
+     * @param aclEntry the retrieved AclEntry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveAclEntryResponse of(final ThingId thingId, final AclEntry aclEntry,
             final DittoHeaders dittoHeaders) {
 
         checkNotNull(aclEntry, "AclEntry");
@@ -120,8 +140,9 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
     public static RetrieveAclEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAclEntryResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String aclEntrySubject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY_SUBJECT);
                     final JsonObject aclEntryPermissions = jsonObject.getValueOrThrow(JSON_ACL_ENTRY_PERMISSIONS);
                     final AclEntry extractedAclEntry =
@@ -132,7 +153,7 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -172,7 +193,7 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ACL_ENTRY_SUBJECT, aclEntrySubject, predicate);
         jsonObjectBuilder.set(JSON_ACL_ENTRY_PERMISSIONS, aclEntryPermissions, predicate);
     }

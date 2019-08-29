@@ -19,8 +19,10 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
@@ -55,7 +57,7 @@ public final class ConnectionActorRecoveryTest extends WithMockServers {
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
     private static ActorRef conciergeForwarder;
-    private String connectionId;
+    private ConnectionId connectionId;
 
     private ConnectionCreated connectionCreated;
     private ConnectionClosed connectionClosed;
@@ -133,18 +135,18 @@ public final class ConnectionActorRecoveryTest extends WithMockServers {
      */
     static class RecoverActor extends AbstractPersistentActor {
 
-        private final String connectionId;
+        private final ConnectionId connectionId;
         private final ActorRef ref;
         private final Queue<Object> expected;
 
-        private RecoverActor(final String connectionId, final ActorRef ref,
+        private RecoverActor(final ConnectionId connectionId, final ActorRef ref,
                 final Queue<Object> expected) {
             this.connectionId = connectionId;
             this.ref = ref;
             this.expected = expected;
         }
 
-        static Props props(final String connectionId, final ActorRef probe,
+        static Props props(final ConnectionId connectionId, final ActorRef probe,
                 final Queue<Object> expected) {
             return Props.create(RecoverActor.class, new Creator<RecoverActor>() {
                 private static final long serialVersionUID = 1L;
@@ -222,18 +224,18 @@ public final class ConnectionActorRecoveryTest extends WithMockServers {
      */
     static class FakePersistenceActor extends AbstractPersistentActor {
 
-        private final String connectionId;
+        private final ConnectionId connectionId;
         private final ActorRef probe;
         private final Queue<ConnectivityEvent> events;
 
-        private FakePersistenceActor(final String connectionId, final ActorRef probe,
+        private FakePersistenceActor(final ConnectionId connectionId, final ActorRef probe,
                 final Queue<ConnectivityEvent> events) {
             this.connectionId = connectionId;
             this.probe = probe;
             this.events = events;
         }
 
-        static Props props(final String connectionId, final ActorRef probe,
+        static Props props(final ConnectionId connectionId, final ActorRef probe,
                 final Queue<ConnectivityEvent> events) {
             return Props.create(FakePersistenceActor.class,
                     (Creator<FakePersistenceActor>) () -> new FakePersistenceActor(connectionId, probe, events));

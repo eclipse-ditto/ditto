@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 
 
@@ -30,7 +31,7 @@ public interface Scenario2Nested extends Scenario {
     String SUBJECT_FEATURES_READ_GRANTED = "sid_features_read";
 
     Policy POLICY = PoliciesModelFactory //
-            .newPolicyBuilder("benchmark:" + Scenario2Nested1.class.getSimpleName()) //
+            .newPolicyBuilder(PolicyId.of("benchmark", Scenario2Nested1.class.getSimpleName())) //
             .forLabel("attributes") //
             .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ATTRIBUTES_ALL_GRANTED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes"), "READ",

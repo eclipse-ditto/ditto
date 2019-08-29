@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -67,7 +68,7 @@ public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> im
     private final Label label;
     private final Subject subject;
 
-    private SubjectCreated(final String policyId,
+    private SubjectCreated(final PolicyId policyId,
             final Label label,
             final Subject subject,
             final long revision,
@@ -89,8 +90,32 @@ public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> im
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectCreated.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subject, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static SubjectCreated of(final String policyId,
+            final Label label,
+            final Subject subject,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subject, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code SubjectCreated} object.
+     *
+     * @param policyId the identifier of the Policy to which the created subject belongs.
+     * @param label the label of the Policy Entry to which the created subject belongs.
+     * @param subject the created {@link Subject}.
+     * @param revision the revision of the Policy.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created SubjectCreated.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static SubjectCreated of(final PolicyId policyId,
             final Label label,
             final Subject subject,
             final long revision,
@@ -110,8 +135,34 @@ public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> im
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectCreated.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subject, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static SubjectCreated of(final String policyId,
+            final Label label,
+            final Subject subject,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subject, revision, timestamp, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code SubjectCreated} object.
+     *
+     * @param policyId the identifier of the Policy to which the created subject belongs.
+     * @param label the label of the Policy Entry to which the created subject belongs.
+     * @param subject the created {@link Subject}.
+     * @param revision the revision of the Policy.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created SubjectCreated.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     */
+    public static SubjectCreated of(final PolicyId policyId,
             final Label label,
             final Subject subject,
             final long revision,
@@ -145,7 +196,8 @@ public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> im
      */
     public static SubjectCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<SubjectCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final String subjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
             final JsonObject subjectJsonObject = jsonObject.getValueOrThrow(JSON_SUBJECT);
@@ -186,12 +238,12 @@ public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> im
 
     @Override
     public SubjectCreated setRevision(final long revision) {
-        return of(getPolicyId(), label, subject, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), label, subject, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public SubjectCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyId(), label, subject, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), label, subject, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

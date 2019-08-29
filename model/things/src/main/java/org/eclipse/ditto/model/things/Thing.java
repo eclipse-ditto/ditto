@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * A generic entity which can be used as a "handle" for multiple {@link Feature}s belonging to this Thing. A Thing can
@@ -84,7 +85,7 @@ public interface Thing extends Entity<ThingRevision> {
 
     @Override
     default JsonSchemaVersion getImplementedSchemaVersion() {
-        return (getAccessControlList().isPresent() && !getPolicyId().isPresent())
+        return (getAccessControlList().isPresent() && !getPolicyEntityId().isPresent())
                 ? JsonSchemaVersion.V_1 : JsonSchemaVersion.LATEST;
     }
 
@@ -116,6 +117,9 @@ public interface Thing extends Entity<ThingRevision> {
      * @return a copy of this Thing with all of its attributes removed.
      */
     Thing removeAttributes();
+
+    @Override
+    Optional<ThingId> getEntityId();
 
     /**
      * Sets the given attribute on a copy of this Thing.
@@ -455,8 +459,31 @@ public interface Thing extends Entity<ThingRevision> {
      * Returns the Policy ID of this Thing.
      *
      * @return the Policy ID of this Thing.
+     * @deprecated Policy ID of the thing is now typed. Use {@link #getPolicyEntityId()} instead.
      */
-    Optional<String> getPolicyId();
+    @Deprecated
+    default Optional<String> getPolicyId() {
+        return getPolicyEntityId().map(String::valueOf);
+    }
+
+    /**
+     * Returns the Policy ID of this Thing.
+     *
+     * @return the Policy ID of this Thing.
+     */
+    Optional<PolicyId> getPolicyEntityId();
+
+    /**
+     * Sets the given Policy ID on a copy of this Thing.
+     *
+     * @param policyId the Policy ID to set.
+     * @return a copy of this Thing with {@code policyId} as its Policy ID.
+     * @deprecated Policy ID of the thing is now typed. Use {@link #setPolicyId(PolicyId)} ()} instead.
+     */
+    @Deprecated
+    default Thing setPolicyId(@Nullable String policyId) {
+        return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
+    }
 
     /**
      * Sets the given Policy ID on a copy of this Thing.
@@ -464,7 +491,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param policyId the Policy ID to set.
      * @return a copy of this Thing with {@code policyId} as its Policy ID.
      */
-    Thing setPolicyId(@Nullable String policyId);
+    Thing setPolicyId(@Nullable PolicyId policyId);
 
     /**
      * Returns the Features of this Thing.
@@ -506,15 +533,10 @@ public interface Thing extends Entity<ThingRevision> {
     Thing removeFeature(String featureId);
 
     /**
-     * Validates the thingId and policyId of this Thing.
-     *
-     * @param headers headers of exceptions to be thrown.
-     *
-     * @throws ThingIdInvalidException if {@code thingId} is invalid.
-     * @throws ThingPolicyIdInvalidException if {@code policyId} is invalid.
+     * @deprecated this method does nothing anymore. IDs are now typed and already validated.
      */
-    void validate(DittoHeaders headers);
-
+    @Deprecated
+    default void validate(DittoHeaders headers) { }
     /**
      * An enumeration of the known {@link JsonField}s of a Thing.
      */

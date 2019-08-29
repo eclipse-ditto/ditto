@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
@@ -50,13 +51,13 @@ final class DeleteAttributeStrategy
         return attrs
                 .map(attributes -> getDeleteAttributeResult(context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributeNotFound(context.getThingId(), attrPointer,
+                        ExceptionFactory.attributeNotFound(context.getThingEntityId(), attrPointer,
                                 command.getDittoHeaders())));
     }
 
     private Result getDeleteAttributeResult(final Context context, final long nextRevision,
             final DeleteAttribute command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final JsonPointer attrPointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

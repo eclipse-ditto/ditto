@@ -200,8 +200,8 @@ public class KafkaBootstrapServerSpecificConfigTest {
         if (null != bootstrapServers) {
             specificConfig.put(BOOTSTRAP_SERVERS_CONFIG_KEY, bootstrapServers);
         }
-        return ConnectivityModelFactory.newConnectionBuilder("kafka", ConnectionType.KAFKA,
-                ConnectivityStatus.OPEN, DEFAULT_URI)
+        return ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
+                ConnectionType.KAFKA, ConnectivityStatus.OPEN, DEFAULT_URI)
                 .targets(singletonList(
                         org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget("target",
                                 AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))

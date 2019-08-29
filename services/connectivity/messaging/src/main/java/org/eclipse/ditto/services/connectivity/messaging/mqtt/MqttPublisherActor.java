@@ -20,6 +20,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -60,7 +61,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     private final boolean dryRun;
 
     @SuppressWarnings("unused")
-    private MqttPublisherActor(final String connectionId, final List<Target> targets,
+    private MqttPublisherActor(final ConnectionId connectionId, final List<Target> targets,
             final MqttConnectionFactory factory,
             final ActorRef mqttClientActor,
             final boolean dryRun) {
@@ -91,7 +92,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId, final List<Target> targets,
+    static Props props(final ConnectionId connectionId, final List<Target> targets,
             final MqttConnectionFactory factory, final ActorRef mqttClientActor,
             final boolean dryRun) {
 

@@ -220,7 +220,7 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent<?>> {
 
     @Override
     public Adaptable constructAdaptable(final ThingEvent<?> event, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getThingId());
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getThingEntityId());
 
         final EventsTopicPathBuilder eventsTopicPathBuilder;
         if (channel == TopicPath.Channel.TWIN) {

@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
@@ -52,7 +53,7 @@ final class ModifyAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
         final AccessControlList modifiedAcl = acl.setEntry(command.getAclEntry());
         final Validator validator = getAclValidator(modifiedAcl);
         if (!validator.isValid()) {
-            return ResultFactory.newErrorResult(ExceptionFactory.aclInvalid(context.getThingId(), validator.getReason(),
+            return ResultFactory.newErrorResult(ExceptionFactory.aclInvalid(context.getThingEntityId(), validator.getReason(),
                     command.getDittoHeaders()));
         }
 
@@ -75,7 +76,7 @@ final class ModifyAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
 
     private Result getModifyResult(final Context context, final long nextRevision,
             final ModifyAclEntry command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final AclEntry aclEntry = command.getAclEntry();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -86,7 +87,7 @@ final class ModifyAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
 
     private Result getCreateResult(final Context context, final long nextRevision,
             final ModifyAclEntry command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final AclEntry aclEntry = command.getAclEntry();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

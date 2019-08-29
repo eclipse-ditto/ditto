@@ -16,6 +16,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.things.ThingId;
+
 /**
  * Represents the path of a topic for the Ditto Protocol.
  * <p>
@@ -28,6 +30,20 @@ import java.util.stream.Stream;
 public interface TopicPath {
 
     String ID_PLACEHOLDER = "_";
+
+    /**
+     * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
+     *
+     * @param thingId the identifier of the {@code Thing}.
+     * @return the builder.
+     * @throws NullPointerException if {@code thingId} is {@code null}.
+     * @deprecated Thing ID is now typed. Use {@link #newBuilder(org.eclipse.ditto.model.things.ThingId)} instead.
+     */
+    @Deprecated
+    static TopicPathBuilder newBuilder(final String thingId) {
+        return newBuilder(ThingId.of(thingId));
+    }
+
     /**
      * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
      *
@@ -35,7 +51,7 @@ public interface TopicPath {
      * @return the builder.
      * @throws NullPointerException if {@code thingId} is {@code null}.
      */
-    static TopicPathBuilder newBuilder(final String thingId) {
+    static TopicPathBuilder newBuilder(final ThingId thingId) {
         return ProtocolFactory.newTopicPathBuilder(thingId);
     }
 

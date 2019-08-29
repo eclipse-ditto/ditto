@@ -31,6 +31,7 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortOption;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
@@ -178,7 +179,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
     }
 
     @Override
-    public Source<ResultList<String>, NotUsed> findAll(final Query query,
+    public Source<ResultList<ThingId>, NotUsed> findAll(final Query query,
             @Nullable final List<String> authorizationSubjectIds,
             @Nullable final Set<String> namespaces) {
 
@@ -211,13 +212,13 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                 .log("findAll");
     }
 
-    private ResultList<String> toResultList(final List<Document> resultsPlus0ne, final int skip, final int limit,
+    private ResultList<ThingId> toResultList(final List<Document> resultsPlus0ne, final int skip, final int limit,
             final List<SortOption> sortOptions) {
 
         log.debug("Creating paged ResultList from parameters: resultsPlusOne=<{}>,skip={},limit={}",
                 resultsPlus0ne, skip, limit);
 
-        final ResultList<String> pagedResultList;
+        final ResultList<ThingId> pagedResultList;
         if (resultsPlus0ne.size() <= limit || limit <= 0) {
             pagedResultList = new ResultListImpl<>(toIds(resultsPlus0ne), ResultList.NO_NEXT_PAGE);
         } else {
@@ -233,9 +234,10 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         return pagedResultList;
     }
 
-    private static List<String> toIds(final List<Document> docs) {
+    private static List<ThingId> toIds(final List<Document> docs) {
         return docs.stream()
                 .map(doc -> doc.getString(PersistenceConstants.FIELD_ID))
+                .map(ThingId::of)
                 .collect(Collectors.toList());
     }
 

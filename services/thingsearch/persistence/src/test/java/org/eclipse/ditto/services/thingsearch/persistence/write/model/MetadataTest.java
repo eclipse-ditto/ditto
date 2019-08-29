@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -26,7 +28,9 @@ public final class MetadataTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(Metadata.class, areImmutable());
+        assertInstancesOf(Metadata.class,
+                areImmutable(),
+                provided(ThingId.class).isAlsoImmutable());
     }
 
     @Test

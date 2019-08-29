@@ -24,13 +24,14 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -44,7 +45,8 @@ import akka.actor.ActorRef;
  * Loads an acl-enforcer by asking the things shard-region-proxy.
  */
 @Immutable
-public final class AclEnforcerCacheLoader implements AsyncCacheLoader<EntityId, Entry<Enforcer>> {
+public final class AclEnforcerCacheLoader
+        implements AsyncCacheLoader<EntityIdWithResourceType, Entry<Enforcer>> {
 
     private final ActorAskCacheLoader<Enforcer, Command> delegate;
 
@@ -58,7 +60,7 @@ public final class AclEnforcerCacheLoader implements AsyncCacheLoader<EntityId, 
         requireNonNull(askTimeout);
         requireNonNull(thingsShardRegionProxy);
 
-        final Function<String, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
+        final Function<EntityId, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
         final Function<Object, Entry<Enforcer>> responseTransformer =
                 AclEnforcerCacheLoader::handleSudoRetrieveThingResponse;
 
@@ -67,7 +69,8 @@ public final class AclEnforcerCacheLoader implements AsyncCacheLoader<EntityId, 
     }
 
     @Override
-    public CompletableFuture<Entry<Enforcer>> asyncLoad(final EntityId key, final Executor executor) {
+    public CompletableFuture<Entry<Enforcer>> asyncLoad(final EntityIdWithResourceType key,
+            final Executor executor) {
         return delegate.asyncLoad(key, executor);
     }
 

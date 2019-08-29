@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
@@ -65,21 +66,21 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
     @Test
     public void modifyFeaturesOfThingWithoutFeatures() {
         final CommandStrategy.Context context = getDefaultContext();
-        final ModifyFeatures command = ModifyFeatures.of(context.getThingId(), modifiedFeatures, DittoHeaders.empty());
+        final ModifyFeatures command = ModifyFeatures.of(context.getThingEntityId(), modifiedFeatures, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeFeatures(), command,
                 FeaturesCreated.class,
-                modifyFeaturesResponse(context.getThingId(), modifiedFeatures, command.getDittoHeaders(), true));
+                modifyFeaturesResponse(context.getThingEntityId(), modifiedFeatures, command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyExistingFeatures() {
         final CommandStrategy.Context context = getDefaultContext();
-        final ModifyFeatures command = ModifyFeatures.of(context.getThingId(), modifiedFeatures, DittoHeaders.empty());
+        final ModifyFeatures command = ModifyFeatures.of(context.getThingEntityId(), modifiedFeatures, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeaturesModified.class,
-                modifyFeaturesResponse(context.getThingId(), modifiedFeatures, command.getDittoHeaders(), false));
+                modifyFeaturesResponse(context.getThingEntityId(), modifiedFeatures, command.getDittoHeaders(), false));
     }
 
     @Test
@@ -99,7 +100,7 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
         final JsonObject largeAttributes = JsonObject.newBuilder()
                 .set("a", sb.toString())
                 .build();
-        final String thingId = "foo:bar";
+        final ThingId thingId = ThingId.of("foo","bar");
         final Thing thing = Thing.newBuilder()
                 .setId(thingId)
                 .setAttributes(largeAttributes)

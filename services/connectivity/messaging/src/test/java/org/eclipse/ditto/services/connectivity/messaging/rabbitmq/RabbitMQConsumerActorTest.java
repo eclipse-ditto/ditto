@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 
@@ -32,7 +33,7 @@ import akka.actor.Props;
  */
 public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<Delivery> {
 
-    private static final String CONNECTION_ID = "theConnection";
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final Envelope ENVELOPE = new Envelope(1, false, "inbound", "ditto");
 
     @Override

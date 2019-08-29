@@ -20,6 +20,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -62,9 +64,19 @@ public interface BatchEvent<T extends BatchEvent> extends Event<T> {
         throw new UnsupportedOperationException("This Event does not support a revision!");
     }
 
+    /**
+     * @return the batch ID.
+     * @deprecated Entity IDs are now typed. User {@link #getEntityId()} instead.
+     */
     @Override
+    @Deprecated
     default String getId() {
         return getBatchId();
+    }
+
+    @Override
+    default EntityId getEntityId() {
+        return DefaultEntityId.of(getBatchId());
     }
 
     @Override

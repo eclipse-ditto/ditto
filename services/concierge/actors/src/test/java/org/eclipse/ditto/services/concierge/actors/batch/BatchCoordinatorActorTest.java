@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
@@ -51,7 +52,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Kill;
 import akka.actor.Props;
-import akka.event.Logging;
 import akka.japi.pf.ReceiveBuilder;
 import akka.routing.ConsistentHashingRouter;
 
@@ -66,8 +66,8 @@ public final class BatchCoordinatorActorTest {
     private static final String FEATURE_ID_1 = "feature1";
     private static final String FEATURE_ID_2 = "feature2";
     private static final String FEATURE_ID_3 = "feature3";
-    public static final String THING1_ID = "com.bosch.iot.things.test:thing1";
-    public static final String THING2_ID = "com.bosch.iot.things.test:thing2";
+    public static final ThingId THING1_ID = ThingId.of("com.bosch.iot.things.test:thing1");
+    public static final ThingId THING2_ID = ThingId.of("com.bosch.iot.things.test:thing2");
 
     private static ActorSystem actorSystem;
     private static ActorRef conciergeForwarder;
@@ -120,9 +120,9 @@ public final class BatchCoordinatorActorTest {
                             EventAssertions.assertThat(batchExecutionFinished).hasCorrelationId(batchId);
                             Assertions.assertThat(batchExecutionFinished.getCommandResponses())
                                     .containsExactlyInAnyOrder(
-                                            ModifyThingResponse.modified(modifyThing1.getId(),
+                                            ModifyThingResponse.modified(modifyThing1.getEntityId(),
                                                     modifyThing1.getDittoHeaders()),
-                                            ModifyThingResponse.modified(modifyThing2.getId(),
+                                            ModifyThingResponse.modified(modifyThing2.getEntityId(),
                                                     modifyThing2.getDittoHeaders()));
                         })
                         .run();
@@ -136,7 +136,7 @@ public final class BatchCoordinatorActorTest {
         new JavaTestProbe(actorSystem) {
             {
                 final String batchId = randomBatchId();
-                final String thingId = "com.bosch.iot.things.test:thing";
+                final ThingId thingId = ThingId.of("com.bosch.iot.things.test:thing");
                 final String correlationIdModifyFeature2 = UUID.randomUUID().toString();
                 final String correlationIdModifyFeature3 = UUID.randomUUID().toString();
 
@@ -190,7 +190,7 @@ public final class BatchCoordinatorActorTest {
         new JavaTestProbe(actorSystem) {
             {
                 final String batchId = randomBatchId();
-                final String thingId = "com.bosch.iot.things.test:thing";
+                final ThingId thingId = ThingId.of("com.bosch.iot.things.test:thing");
 
                 final ExecuteBatch executeBatch =
                         ExecuteBatch.of(batchId, Arrays.asList(
@@ -326,12 +326,12 @@ public final class BatchCoordinatorActorTest {
             if (obj instanceof ModifyThing) {
                 final ModifyThing command = (ModifyThing) obj;
 
-                getSender().tell(ModifyThingResponse.modified(command.getId(),
+                getSender().tell(ModifyThingResponse.modified(command.getEntityId(),
                         command.getDittoHeaders()), getSelf());
             } else if (obj instanceof ModifyFeature) {
                 final ModifyFeature command = (ModifyFeature) obj;
 
-                final String thingId = command.getThingId();
+                final ThingId thingId = command.getThingEntityId();
                 final String featureId = command.getFeatureId();
                 if (command.getDittoHeaders().isDryRun()) {
                     if (featureId.equals(FEATURE_ID_1)) {
@@ -371,7 +371,7 @@ public final class BatchCoordinatorActorTest {
 
         private void respondToModifyAttributes(final ModifyAttributes command) {
             final ModifyAttributesResponse response =
-                    ModifyAttributesResponse.modified(command.getThingId(), command.getDittoHeaders());
+                    ModifyAttributesResponse.modified(command.getThingEntityId(), command.getDittoHeaders());
             getSender().tell(response, getSelf());
         }
     }

@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -42,6 +43,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
@@ -85,9 +87,9 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return adaptable.getPayload().getFields().orElse(null);
     }
 
-    protected static String thingIdFrom(final Adaptable adaptable) {
+    protected static ThingId thingIdFrom(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        return topicPath.getNamespace() + ":" + topicPath.getId();
+        return ThingId.of(topicPath.getNamespace(), topicPath.getId());
     }
 
     protected static Thing thingFrom(final Adaptable adaptable) {
@@ -194,10 +196,11 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return adaptable.getPayload().getValue().orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static String policyIdFrom(final Adaptable adaptable) {
+    protected static PolicyId policyIdFrom(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asString)
+                .map(PolicyId::of)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 

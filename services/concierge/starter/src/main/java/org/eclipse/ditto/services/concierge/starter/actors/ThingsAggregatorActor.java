@@ -17,14 +17,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.ThingsAggregatorConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
@@ -59,8 +58,6 @@ public final class ThingsAggregatorActor extends AbstractActor {
     public static final String ACTOR_NAME = "aggregator";
 
     private static final String AGGREGATOR_INTERNAL_DISPATCHER = "aggregator-internal-dispatcher";
-
-    private static final Pattern THING_ID_PATTERN = Pattern.compile(Thing.ID_REGEX);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef targetActor;
@@ -100,7 +97,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                     LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
                     log.info("Got '{}' message. Retrieving requested '{}' Things..",
                             RetrieveThings.class.getSimpleName(),
-                            rt.getThingIds().size());
+                            rt.getThingEntityIds().size());
                     retrieveThings(rt, getSender());
                 })
 
@@ -125,7 +122,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private void retrieveThings(final RetrieveThings retrieveThings, final ActorRef resultReceiver) {
         final JsonFieldSelector selectedFields = retrieveThings.getSelectedFields().orElse(null);
-        retrieveThingsAndSendResult(retrieveThings.getThingIds(), selectedFields, retrieveThings, resultReceiver);
+        retrieveThingsAndSendResult(retrieveThings.getThingEntityIds(), selectedFields, retrieveThings, resultReceiver);
     }
 
     private void retrieveThings(final SudoRetrieveThings sudoRetrieveThings, final ActorRef resultReceiver) {
@@ -134,7 +131,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 resultReceiver);
     }
 
-    private void retrieveThingsAndSendResult(final Collection<String> thingIds,
+    private void retrieveThingsAndSendResult(final Collection<ThingId> thingIds,
             @Nullable final JsonFieldSelector selectedFields,
             final Command<?> command, final ActorRef resultReceiver) {
 
@@ -142,8 +139,6 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
         final CompletionStage<?> commandResponseSource = Source.from(thingIds)
                 .filter(Objects::nonNull)
-                .filterNot(String::isEmpty)
-                .filter(thingId -> THING_ID_PATTERN.matcher(thingId).matches())
                 .map(thingId -> {
                     final Command<?> toBeWrapped;
                     if (command instanceof RetrieveThings) {
@@ -168,7 +163,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 .to(resultReceiver);
     }
 
-    private int calculateParallelism(final Collection<String> thingIds) {
+    private int calculateParallelism(final Collection<ThingId> thingIds) {
         final int size = thingIds.size();
         if (size < maxParallelism / 2) {
             return size;

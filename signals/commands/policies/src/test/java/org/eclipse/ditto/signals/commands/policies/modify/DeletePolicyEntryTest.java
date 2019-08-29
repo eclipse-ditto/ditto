@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -36,7 +37,7 @@ public class DeletePolicyEntryTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, DeletePolicyEntry.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(DeletePolicyEntry.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .build();
 
@@ -45,7 +46,7 @@ public class DeletePolicyEntryTest {
     public void assertImmutability() {
         assertInstancesOf(DeletePolicyEntry.class,
                 areImmutable(),
-                provided(Label.class).isAlsoImmutable());
+                provided(Label.class, PolicyId.class).isAlsoImmutable());
     }
 
 
@@ -59,7 +60,13 @@ public class DeletePolicyEntryTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        DeletePolicyEntry.of(null, TestConstants.Policy.LABEL,
+        DeletePolicyEntry.of((PolicyId) null, TestConstants.Policy.LABEL,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        DeletePolicyEntry.of((String) null, TestConstants.Policy.LABEL,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -68,8 +75,7 @@ public class DeletePolicyEntryTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> DeletePolicyEntry.of("undefined", TestConstants.Policy.LABEL,
-                        TestConstants.EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        TestConstants.EMPTY_DITTO_HEADERS));
     }
 
 

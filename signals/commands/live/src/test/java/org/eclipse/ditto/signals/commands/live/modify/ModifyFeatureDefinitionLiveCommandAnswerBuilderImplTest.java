@@ -42,7 +42,7 @@ public final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImplTest {
 
     @Before
     public void setUp() {
-        Mockito.when(commandMock.getThingId()).thenReturn(TestConstants.Thing.THING_ID);
+        Mockito.when(commandMock.getThingEntityId()).thenReturn(TestConstants.Thing.THING_ID);
         Mockito.when(commandMock.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         Mockito.when(commandMock.getFeatureId()).thenReturn(TestConstants.Feature.FLUX_CAPACITOR_ID);
         Mockito.when(commandMock.getDefinition()).thenReturn(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION);

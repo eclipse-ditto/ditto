@@ -106,6 +106,7 @@ import org.eclipse.ditto.model.enforcers.tree.TreeBasedPolicyEnforcer;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -540,7 +541,8 @@ public abstract class AbstractPolicyAlgorithmTest {
     public void grantedPolicyTypeDoesNotGrantThingAccess() {
         final String SUBJECT_ALL_POLICY_GRANTED = "sid_policy_all";
 
-        final Policy POLICY = Policy.newBuilder("org.eclipse.ditto:" + UUID.randomUUID().toString().replace("-", ""))
+        final PolicyId policyId = PolicyId.of("org.eclipse.ditto", UUID.randomUUID().toString().replace("-", ""));
+        final Policy POLICY = Policy.newBuilder(policyId)
                 .forLabel("DEFAULT")
                 .setSubject(Subject.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_POLICY_GRANTED))
                 .setGrantedPermissions(PoliciesResourceType.policyResource("/"),

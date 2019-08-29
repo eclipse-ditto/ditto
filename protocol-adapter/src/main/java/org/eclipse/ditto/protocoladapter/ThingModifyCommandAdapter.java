@@ -139,7 +139,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
 
     @Override
     public Adaptable constructAdaptable(final ThingModifyCommand command, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(command.getThingId());
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(command.getThingEntityId());
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder =
                 fromTopicPathBuilderWithChannel(topicPathBuilder, channel);

@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
@@ -77,7 +78,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
             JsonFactory.newStringFieldDefinition("namespace", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final List<String> thingIds;
+    private final List<ThingId> thingIds;
     @Nullable private final JsonFieldSelector selectedFields;
     @Nullable private final String namespace;
 
@@ -88,7 +89,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
     /**
      * @throws MissingThingIdsException When {@code thingIds} is empty
      */
-    private RetrieveThings(final List<String> thingIds,
+    private RetrieveThings(final List<ThingId> thingIds,
             @Nullable final JsonFieldSelector selectedFields,
             @Nullable final String namespace,
             final DittoHeaders dittoHeaders) {
@@ -108,13 +109,11 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
 
     @Nullable
     private static String checkForDistinctNamespace(@Nullable final String providedNamespace,
-            final Collection<String> thingIds) {
+            final Collection<ThingId> thingIds) {
 
         if (providedNamespace != null) {
             final List<String> distinctNamespaces = thingIds.stream()
-                    .map(id -> id.split(":"))
-                    .filter(parts -> parts.length > 1)
-                    .map(parts -> parts[0])
+                    .map(ThingId::getNamespace)
                     .distinct()
                     .collect(Collectors.toList());
 
@@ -138,8 +137,25 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      * @param thingIds one or more Thing IDs to be retrieved.
      * @return a builder for a Thing retrieving command.
      * @throws NullPointerException if {@code thingIds} is {@code null}.
+     * @deprecated Thing IDs are now typed. Use {@link #getBuilder(org.eclipse.ditto.model.things.ThingId...)}
+     * instead.
      */
+    @Deprecated
     public static Builder getBuilder(final String... thingIds) {
+        final List<ThingId> thingIdList = Arrays.stream(checkNotNull(thingIds, "thing ids"))
+                .map(ThingId::of)
+                .collect(Collectors.toList());
+        return new Builder(thingIdList);
+    }
+
+    /**
+     * Returns a builder for a command for retrieving the Things.
+     *
+     * @param thingIds one or more Thing IDs to be retrieved.
+     * @return a builder for a Thing retrieving command.
+     * @throws NullPointerException if {@code thingIds} is {@code null}.
+     */
+    public static Builder getBuilder(final ThingId... thingIds) {
         return new Builder(Arrays.asList(checkNotNull(thingIds, "thing ids")));
     }
 
@@ -150,7 +166,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      * @return a builder for a Thing retrieving command.
      * @throws NullPointerException if {@code thingIds} is {@code null}.
      */
-    public static Builder getBuilder(final List<String> thingIds) {
+    public static Builder getBuilder(final List<ThingId> thingIds) {
         return new Builder(checkNotNull(thingIds, "thing ids"));
     }
 
@@ -194,10 +210,11 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
 
         final String namespace = jsonObject.getValue(JSON_NAMESPACE).orElse(null);
 
-        final List<String> extractedThingIds = jsonObject.getValueOrThrow(JSON_THING_IDS)
+        final List<ThingId> extractedThingIds = jsonObject.getValueOrThrow(JSON_THING_IDS)
                 .stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
+                .map(ThingId::of)
                 .collect(Collectors.toList());
 
         final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(JSON_SELECTED_FIELDS)
@@ -213,8 +230,19 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      * Returns an unmodifiable unsorted List of the identifiers of the {@code Thing}s to be retrieved.
      *
      * @return the identifiers of the Things.
+     * @deprecated the thing ID is now typed. Use {@link #getThingEntityIds()} instead.
      */
+    @Deprecated
     public List<String> getThingIds() {
+        return getThingEntityIds().stream().map(String::valueOf).collect(Collectors.toList());
+    }
+
+    /**
+     * Returns an unmodifiable unsorted List of the identifiers of the {@code Thing}s to be retrieved.
+     *
+     * @return the identifiers of the Things.
+     */
+    public List<ThingId> getThingEntityIds() {
         return thingIds;
     }
 
@@ -229,8 +257,8 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
     }
 
     @Override
-    public String getThingId() {
-        return "";
+    public ThingId getThingEntityId() {
+        return ThingId.dummy();
     }
 
     @Override
@@ -243,6 +271,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonArray thingIdsArray = thingIds.stream()
+                .map(String::valueOf)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray());
         jsonObjectBuilder.set(JSON_THING_IDS, thingIdsArray, predicate);
@@ -297,13 +326,13 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
     @NotThreadSafe
     public static final class Builder {
 
-        private final List<String> thingIds;
+        private final List<ThingId> thingIds;
 
         private DittoHeaders dittoHeaders;
         @Nullable private JsonFieldSelector selectedFields;
         @Nullable private String namespace;
 
-        private Builder(final List<String> thingIds) {
+        private Builder(final List<ThingId> thingIds) {
             this.thingIds = new ArrayList<>(thingIds);
             dittoHeaders = DittoHeaders.empty();
             selectedFields = null;
@@ -311,7 +340,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
         }
 
         private Builder(final RetrieveThings retrieveThings) {
-            this.thingIds = retrieveThings.getThingIds();
+            this.thingIds = retrieveThings.getThingEntityIds();
             dittoHeaders = retrieveThings.getDittoHeaders();
             selectedFields = retrieveThings.getSelectedFields().orElse(null);
             namespace = retrieveThings.getNamespace().orElse(null);

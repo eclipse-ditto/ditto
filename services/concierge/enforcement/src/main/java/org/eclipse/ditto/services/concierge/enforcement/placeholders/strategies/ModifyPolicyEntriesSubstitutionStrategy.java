@@ -44,7 +44,7 @@ final class ModifyPolicyEntriesSubstitutionStrategy extends AbstractTypedSubstit
         if (existingPolicyEntries.equals(substitutedEntries)) {
             return modifyPolicyEntries;
         } else {
-            return ModifyPolicyEntries.of(modifyPolicyEntries.getId(), substitutedEntries,
+            return ModifyPolicyEntries.of(modifyPolicyEntries.getEntityId(), substitutedEntries,
                     dittoHeaders);
         }
     }

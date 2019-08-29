@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -62,12 +63,12 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
             JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
     private final JsonPointer featurePropertyPointer;
     @Nullable private final JsonValue featurePropertyValue;
 
-    private ModifyFeaturePropertyResponse(final String thingId,
+    private ModifyFeaturePropertyResponse(final ThingId thingId,
             final String featureId,
             final JsonPointer featurePropertyPointer,
             @Nullable final JsonValue featurePropertyValue,
@@ -93,8 +94,33 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created FeatureProperty.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #created(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyFeaturePropertyResponse created(final String thingId,
+            final String featureId,
+            final JsonPointer featurePropertyPointer,
+            final JsonValue featureValue,
+            final DittoHeaders dittoHeaders) {
+
+        return created(ThingId.of(thingId), featureId, featurePropertyPointer, featureValue, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyFeaturePropertyResponse} for a created FeatureProperty. This corresponds to the HTTP
+     * status code {@link HttpStatusCode#CREATED}.
+     *
+     * @param thingId the Thing ID of the created feature property.
+     * @param featureId the {@code Feature}'s ID whose Property was created.
+     * @param featurePropertyPointer the pointer of the created FeatureProperty.
+     * @param featureValue the created FeatureProperty value.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a created FeatureProperty.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ModifyFeaturePropertyResponse created(final ThingId thingId,
             final String featureId,
             final JsonPointer featurePropertyPointer,
             final JsonValue featureValue,
@@ -115,8 +141,29 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureProperty.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #modified(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyFeaturePropertyResponse modified(final String thingId, final String featureId,
+            final JsonPointer featurePropertyPointer, final DittoHeaders dittoHeaders) {
+
+        return modified(ThingId.of(thingId), featureId, featurePropertyPointer, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyFeaturePropertyResponse} for a modified FeatureProperty. This corresponds to the HTTP
+     * status code {@link HttpStatusCode#NO_CONTENT}.
+     *
+     * @param thingId the Thing ID of the modified feature property.
+     * @param featureId the {@code Feature}'s ID whose Property was modified.
+     * @param featurePropertyPointer the pointer of the modified FeatureProperty.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a modified FeatureProperty.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static ModifyFeaturePropertyResponse modified(final ThingId thingId, final String featureId,
             final JsonPointer featurePropertyPointer, final DittoHeaders dittoHeaders) {
 
         return new ModifyFeaturePropertyResponse(thingId, featureId, featurePropertyPointer, null,
@@ -153,8 +200,9 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyFeaturePropertyResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final String pointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
                     final JsonPointer extractedFeaturePropertyPointer = JsonFactory.newPointer(pointerString);
@@ -166,7 +214,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -212,7 +260,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_PROPERTY, featurePropertyPointer.toString(), predicate);
         if (null != featurePropertyValue) {

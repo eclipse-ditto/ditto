@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -53,10 +54,10 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
     static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRIES =
             JsonFactory.newJsonObjectFieldDefinition("policyEntries", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final JsonObject policyEntries;
 
-    private RetrievePolicyEntriesResponse(final String policyId,
+    private RetrievePolicyEntriesResponse(final PolicyId policyId,
             final HttpStatusCode statusCode,
             final JsonObject policyEntries,
             final DittoHeaders dittoHeaders) {
@@ -74,15 +75,15 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, Iterable, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrievePolicyEntriesResponse of(final String policyId, final Iterable<PolicyEntry> policyEntries,
             final DittoHeaders dittoHeaders) {
 
-        final JsonObjectBuilder objectBuilder = JsonFactory.newObjectBuilder();
-        checkNotNull(policyEntries, "Policy Entries").forEach(entry -> objectBuilder
-                .set(entry.getLabel().toString(),
-                        entry.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST))));
-        return new RetrievePolicyEntriesResponse(policyId, HttpStatusCode.OK, objectBuilder.build(), dittoHeaders);
+        return of(PolicyId.of(policyId), policyEntries, dittoHeaders);
     }
 
     /**
@@ -94,7 +95,45 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
+    public static RetrievePolicyEntriesResponse of(final PolicyId policyId, final Iterable<PolicyEntry> policyEntries,
+            final DittoHeaders dittoHeaders) {
+
+        final JsonObjectBuilder objectBuilder = JsonFactory.newObjectBuilder();
+        checkNotNull(policyEntries, "Policy Entries").forEach(entry -> objectBuilder
+                .set(entry.getLabel().toString(),
+                        entry.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST))));
+        return of(policyId, objectBuilder.build(), dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrievePolicyEntries} command.
+     *
+     * @param policyId the Policy ID of the retrieved policy entries.
+     * @param policyEntries the retrieved Policy entries.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
     public static RetrievePolicyEntriesResponse of(final String policyId, final JsonObject policyEntries,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policyEntries, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrievePolicyEntries} command.
+     *
+     * @param policyId the Policy ID of the retrieved policy entries.
+     * @param policyEntries the retrieved Policy entries.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrievePolicyEntriesResponse of(final PolicyId policyId, final JsonObject policyEntries,
             final DittoHeaders dittoHeaders) {
 
         return new RetrievePolicyEntriesResponse(policyId, HttpStatusCode.OK, policyEntries, dittoHeaders);
@@ -128,8 +167,9 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
 
         return new CommandResponseJsonDeserializer<RetrievePolicyEntriesResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String policyId =
+                    final String extractedPolicyId =
                             jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final JsonObject extractedPolicyEntries = jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES);
 
                     return of(policyId, extractedPolicyEntries, dittoHeaders);
@@ -137,7 +177,7 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -176,7 +216,8 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+                predicate);
         jsonObjectBuilder.set(JSON_POLICY_ENTRIES, policyEntries, predicate);
     }
 

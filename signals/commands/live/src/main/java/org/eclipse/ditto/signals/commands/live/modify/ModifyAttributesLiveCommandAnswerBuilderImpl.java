@@ -73,20 +73,21 @@ final class ModifyAttributesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ModifyAttributesResponse created() {
-            return ModifyAttributesResponse.created(command.getThingId(), command.getAttributes(),
+            return ModifyAttributesResponse.created(command.getThingEntityId(), command.getAttributes(),
                     command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ModifyAttributesResponse modified() {
-            return ModifyAttributesResponse.modified(command.getThingId(), command.getDittoHeaders());
+            return ModifyAttributesResponse.modified(command.getThingEntityId(), command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse attributesNotAccessibleError() {
-            return errorResponse(command.getThingId(), AttributesNotAccessibleException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    AttributesNotAccessibleException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -94,7 +95,8 @@ final class ModifyAttributesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse attributesNotModifiableError() {
-            return errorResponse(command.getThingId(), AttributesNotModifiableException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    AttributesNotModifiableException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -106,14 +108,14 @@ final class ModifyAttributesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public AttributesCreated created() {
-            return AttributesCreated.of(command.getThingId(), command.getAttributes(), -1, Instant.now(),
+            return AttributesCreated.of(command.getThingEntityId(), command.getAttributes(), -1, Instant.now(),
                     command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public AttributesModified modified() {
-            return AttributesModified.of(command.getThingId(), command.getAttributes(), -1, Instant.now(),
+            return AttributesModified.of(command.getThingEntityId(), command.getAttributes(), -1, Instant.now(),
                     command.getDittoHeaders());
         }
     }

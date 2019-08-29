@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -39,7 +40,7 @@ public final class ModifyAclEntryTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.ID, ModifyAclEntry.NAME)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyAclEntry.JSON_ACL_ENTRY,
                     TestConstants.Authorization.ACL_ENTRY_GRIMES.toJson(JsonSchemaVersion.V_1,
                             FieldType.regularOrSpecial()))
@@ -49,7 +50,7 @@ public final class ModifyAclEntryTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyAclEntry.class,
                 areImmutable(),
-                provided(JsonObject.class, AclEntry.class, Permission.class).areAlsoImmutable(),
+                provided(JsonObject.class, AclEntry.class, Permission.class, ThingId.class).areAlsoImmutable(),
                 assumingFields("permissions").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
@@ -89,7 +90,7 @@ public final class ModifyAclEntryTest {
                 ModifyAclEntry.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getAclEntry()).isEqualTo(TestConstants.Authorization.ACL_ENTRY_GRIMES);
     }
 

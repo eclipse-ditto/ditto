@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
 /**
@@ -43,11 +44,11 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageCommandResponse>
         extends AbstractCommandResponse<C> implements MessageCommandResponse<T, C> {
 
-    private final String thingId;
+    private final ThingId thingId;
     private final Message<T> message;
 
     AbstractMessageCommandResponse(final String type,
-            final String thingId,
+            final ThingId thingId,
             final Message<T> message,
             final HttpStatusCode httpStatusCode,
             final DittoHeaders dittoHeaders) {
@@ -58,7 +59,7 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -71,7 +72,8 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(MessageCommandResponse.JsonFields.JSON_THING_ID, getThingId(), predicate);
+        jsonObjectBuilder.set(MessageCommandResponse.JsonFields.JSON_THING_ID, getThingEntityId().toString(),
+                predicate);
 
         final JsonObjectBuilder messageBuilder = JsonFactory.newObjectBuilder();
         final JsonObject messageHeadersObject = message.getHeaders().toJson();

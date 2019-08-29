@@ -36,7 +36,8 @@ public final class FireAndForgetMessageUtil {
             final MessageCommand<?, ?> command) {
         if (isFireAndForgetMessage(command)) {
             return Optional.of(
-                    SendMessageAcceptedResponse.newInstance(command.getThingId(), command.getMessage().getHeaders(),
+                    SendMessageAcceptedResponse.newInstance(command.getThingEntityId(),
+                            command.getMessage().getHeaders(),
                             command.getDittoHeaders()));
         } else {
             return Optional.empty();

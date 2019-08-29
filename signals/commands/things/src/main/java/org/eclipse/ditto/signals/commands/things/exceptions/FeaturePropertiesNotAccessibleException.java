@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * This exception indicates, that the requested Properties do not exist or the request has insufficient rights.
@@ -62,7 +63,7 @@ public final class FeaturePropertiesNotAccessibleException extends DittoRuntimeE
      * @param featureId the ID of the feature.
      * @return the builder.
      */
-    public static Builder newBuilder(final String thingId, final String featureId) {
+    public static Builder newBuilder(final ThingId thingId, final String featureId) {
         return new Builder(thingId, featureId);
     }
 
@@ -111,9 +112,9 @@ public final class FeaturePropertiesNotAccessibleException extends DittoRuntimeE
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId, final String featureId) {
+        private Builder(final ThingId thingId, final String featureId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, featureId, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, featureId, String.valueOf(thingId)));
         }
 
         @Override

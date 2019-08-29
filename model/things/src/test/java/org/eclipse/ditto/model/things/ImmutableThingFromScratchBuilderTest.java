@@ -617,7 +617,7 @@ public final class ImmutableThingFromScratchBuilderTest {
 
     @Test
     public void setIdWithNamespace() {
-        final String thingId = "foo.a42:foobar2000";
+        final ThingId thingId = ThingId.of("foo.a42", "foobar2000");
         underTest.setId(thingId);
         final Thing thing = underTest.build();
 
@@ -628,7 +628,7 @@ public final class ImmutableThingFromScratchBuilderTest {
 
     @Test
     public void setIdWithNamespace2() {
-        final String thingId = "ad:foobar2000";
+        final ThingId thingId = ThingId.of("ad", "foobar2000");
         underTest.setId(thingId);
         final Thing thing = underTest.build();
 
@@ -639,7 +639,7 @@ public final class ImmutableThingFromScratchBuilderTest {
 
     @Test
     public void setIdWithNamespace3() {
-        final String thingId = "da23:foobar2000";
+        final ThingId thingId = ThingId.of("da23", "foobar2000");
         underTest.setId(thingId);
         final Thing thing = underTest.build();
 
@@ -653,7 +653,7 @@ public final class ImmutableThingFromScratchBuilderTest {
         underTest.setGeneratedId();
         final Thing thing = underTest.build();
 
-        assertThat(thing.getId()).isPresent();
+        assertThat(thing.getEntityId()).isPresent();
     }
 
     @Test

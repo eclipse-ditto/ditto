@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
@@ -49,7 +50,7 @@ public final class PoliciesAclMigrations {
      * @return the Policy.
      */
     public static Policy accessControlListToPolicyEntries(final AccessControlList accessControlList,
-            final String policyId, final List<SubjectIssuer> subjectIssuers) {
+            final PolicyId policyId, final List<SubjectIssuer> subjectIssuers) {
         final PolicyBuilder policyBuilder = PoliciesModelFactory.newPolicyBuilder(policyId);
         accessControlList.getEntriesSet().forEach(aclEntry -> {
             final String sid = aclEntry.getAuthorizationSubject().getId();

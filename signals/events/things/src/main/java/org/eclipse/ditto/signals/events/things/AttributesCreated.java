@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -58,7 +59,7 @@ public final class AttributesCreated extends AbstractThingEvent<AttributesCreate
 
     private final Attributes attributesCreated;
 
-    private AttributesCreated(final String thingId,
+    private AttributesCreated(final ThingId thingId,
             final Attributes attributesCreated,
             final long revision,
             @Nullable final Instant timestamp,
@@ -77,8 +78,30 @@ public final class AttributesCreated extends AbstractThingEvent<AttributesCreate
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the AttributesCreated created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Attributes, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static AttributesCreated of(final String thingId,
+            final Attributes attributesCreated,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), attributesCreated, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code AttributesCreated} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param attributesCreated the changes on the attributes object.
+     * @param revision the revision of the Thing.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the AttributesCreated created.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static AttributesCreated of(final ThingId thingId,
             final Attributes attributesCreated,
             final long revision,
             final DittoHeaders dittoHeaders) {
@@ -96,8 +119,32 @@ public final class AttributesCreated extends AbstractThingEvent<AttributesCreate
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the AttributesCreated created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Attributes, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static AttributesCreated of(final String thingId,
+            final Attributes attributesCreated,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), attributesCreated, revision, timestamp, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code AttributesCreated} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param attributesCreated the changes on the attributes object.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the AttributesCreated created.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     */
+    public static AttributesCreated of(final ThingId thingId,
             final Attributes attributesCreated,
             final long revision,
             @Nullable final Instant timestamp,
@@ -134,10 +181,11 @@ public final class AttributesCreated extends AbstractThingEvent<AttributesCreate
         return new EventJsonDeserializer<AttributesCreated>(TYPE, jsonObject)
                 .deserialize((revision, timestamp) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
                     final Attributes extractedAttributes = ThingsModelFactory.newAttributes(attributesJsonObject);
 
-                    return of(extractedThingId, extractedAttributes, revision, timestamp, dittoHeaders);
+                    return of(thingId, extractedAttributes, revision, timestamp, dittoHeaders);
                 });
     }
 
@@ -162,12 +210,12 @@ public final class AttributesCreated extends AbstractThingEvent<AttributesCreate
 
     @Override
     public AttributesCreated setRevision(final long revision) {
-        return of(getThingId(), attributesCreated, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), attributesCreated, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public AttributesCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), attributesCreated, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), attributesCreated, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -53,10 +54,10 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
     static final JsonFieldDefinition<JsonObject> JSON_POLICY =
             JsonFactory.newJsonObjectFieldDefinition("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final JsonObject policy;
 
-    private RetrievePolicyResponse(final String policyId,
+    private RetrievePolicyResponse(final PolicyId policyId,
             final HttpStatusCode statusCode,
             final JsonObject policy,
             final DittoHeaders dittoHeaders) {
@@ -74,13 +75,15 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Policy, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrievePolicyResponse of(final String policyId, final Policy policy,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrievePolicyResponse(policyId, HttpStatusCode.OK,
-                checkNotNull(policy, "Policy").toJson(
-                        dittoHeaders.getSchemaVersion().orElse(policy.getLatestSchemaVersion())), dittoHeaders);
+        return of(PolicyId.of(policyId), policy, dittoHeaders);
     }
 
     /**
@@ -92,7 +95,44 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
+    public static RetrievePolicyResponse of(final PolicyId policyId, final Policy policy,
+            final DittoHeaders dittoHeaders) {
+
+        final JsonObject jsonPolicy = checkNotNull(policy, "Policy")
+                .toJson(dittoHeaders.getSchemaVersion().orElse(policy.getLatestSchemaVersion()));
+
+        return of(policyId, jsonPolicy, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrievePolicy} command.
+     *
+     * @param policyId the Policy ID of the retrieved Policy.
+     * @param policy the retrieved Policy.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy Id is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
     public static RetrievePolicyResponse of(final String policyId, final JsonObject policy,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policy, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrievePolicy} command.
+     *
+     * @param policyId the Policy ID of the retrieved Policy.
+     * @param policy the retrieved Policy.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrievePolicyResponse of(final PolicyId policyId, final JsonObject policy,
             final DittoHeaders dittoHeaders) {
 
         return new RetrievePolicyResponse(policyId, HttpStatusCode.OK, policy, dittoHeaders);
@@ -125,7 +165,9 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrievePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrievePolicyResponse>(TYPE, jsonObject).deserialize(statusCode -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId =
+                    jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final JsonObject extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
 
             return of(policyId, extractedPolicy, dittoHeaders);
@@ -133,7 +175,7 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -172,7 +214,8 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+                predicate);
         jsonObjectBuilder.set(JSON_POLICY, policy, predicate);
     }
 

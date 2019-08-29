@@ -44,7 +44,7 @@ final class ModifyAclSubstitutionStrategy extends AbstractTypedSubstitutionStrat
         if (existingAcl.equals(substitutedAcl)) {
             return modifyAcl;
         } else {
-            return ModifyAcl.of(modifyAcl.getThingId(), substitutedAcl, dittoHeaders);
+            return ModifyAcl.of(modifyAcl.getThingEntityId(), substitutedAcl, dittoHeaders);
         }
     }
 

@@ -41,6 +41,7 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActor;
@@ -122,7 +123,7 @@ final class MessagesRoute extends AbstractRoute {
      * @return the {@code /{inbox|outbox}} route.
      */
     public Route buildThingsInboxOutboxRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+            final ThingId thingId) {
 
         return route(
                 claimMessages(ctx, dittoHeaders, thingId), // /inbox/claim
@@ -140,7 +141,7 @@ final class MessagesRoute extends AbstractRoute {
      */
     public Route buildFeaturesInboxOutboxRoute(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final String thingId,
+            final ThingId thingId,
             final String featureId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
@@ -154,7 +155,7 @@ final class MessagesRoute extends AbstractRoute {
      *
      * @return route for claim messages resource.
      */
-    private Route claimMessages(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
+    private Route claimMessages(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_INBOX), () -> // /inbox
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_CLAIM), () -> // /inbox/claim
                         post(() ->
@@ -191,7 +192,7 @@ final class MessagesRoute extends AbstractRoute {
      */
     private Route thingMessages(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final String thingId,
+            final ThingId thingId,
             final String inboxOutbox) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
@@ -234,7 +235,7 @@ final class MessagesRoute extends AbstractRoute {
      */
     private Route featureMessages(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final String thingId,
+            final ThingId thingId,
             final String featureId,
             final String inboxOutbox) {
 
@@ -284,7 +285,7 @@ final class MessagesRoute extends AbstractRoute {
     private static Function<ByteBuffer, MessageCommand<?, ?>> buildSendThingMessage(final MessageDirection direction,
             final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final String thingId,
+            final ThingId thingId,
             final String msgSubject,
             final Duration timeout) {
 
@@ -308,7 +309,7 @@ final class MessagesRoute extends AbstractRoute {
     private static Function<ByteBuffer, MessageCommand<?, ?>> buildSendFeatureMessage(final MessageDirection direction,
             final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final String thingId,
+            final ThingId thingId,
             final String featureId,
             final String msgSubject,
             final Duration timeout) {
@@ -346,7 +347,7 @@ final class MessagesRoute extends AbstractRoute {
 
     private static Function<ByteBuffer, MessageCommand<?, ?>> buildSendClaimMessage(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final String thingId,
+            final ThingId thingId,
             final Duration timeout) {
 
         return payload -> {

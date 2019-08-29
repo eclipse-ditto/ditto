@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -52,7 +53,7 @@ public final class InfoProviderFactoryTest {
 
     @Test
     public void forSignal() {
-        final String thingId = "the:thing";
+        final ThingId thingId = ThingId.of("the:thing");
         final String correlationId = "theCorrelation";
         final DittoHeaders headersWithCorrelationId = DittoHeaders.newBuilder().correlationId(correlationId).build();
         final Signal<?> signal = RetrieveThing.of(thingId, headersWithCorrelationId);
@@ -150,7 +151,7 @@ public final class InfoProviderFactoryTest {
                 .putHeader("foo", "bar")
                 .putHeader("138", "ditto")
                 .build();
-        final Signal<?> signal = RetrieveThing.of("the:thing", headers);
+        final Signal<?> signal = RetrieveThing.of(ThingId.of("the:thing"), headers);
 
         final ConnectionMonitor.InfoProvider info = InfoProviderFactory.forSignal(signal);
 
@@ -164,7 +165,7 @@ public final class InfoProviderFactoryTest {
                 .putHeader("foo", "bar")
                 .putHeader("138", "ditto")
                 .build();
-        final Signal<?> signal = RetrieveThing.of("the:thing", headers);
+        final Signal<?> signal = RetrieveThing.of(ThingId.of("the:thing"), headers);
         final String expectedTextPayload = signal.toJsonString();
 
         final ConnectionMonitor.InfoProvider info = InfoProviderFactory.forSignal(signal);

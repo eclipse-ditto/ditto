@@ -60,7 +60,7 @@ public final class ThingMongoEventAdapterTest {
         final JsonObject eventJson = JsonFactory.newObjectBuilder()
                 .set("event", ThingCreated.NAME)
                 .set("__schemaVersion", 1)
-                .set("/payload/thingId", TestConstants.Thing.THING_ID)
+                .set("/payload/thingId", TestConstants.Thing.THING_ID.toString())
                 .set("/payload/thing", TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1))
                 .build();
 
@@ -69,13 +69,13 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(ThingCreated.NAME);
         assertThat(event.getType()).isEqualTo(ThingCreated.TYPE);
         assertThat(event).isInstanceOf(ThingCreated.class);
         final ThingCreated thingCreated = (ThingCreated) event;
         assertThat(thingCreated.getThing().toJsonString()).isEqualTo(TestConstants.Thing.THING_V1.toJsonString());
-        assertThat(thingCreated.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) thingCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
     }
 
     @Test
@@ -87,7 +87,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", "thingAttributeModified")
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("attributeJsonPointer", attributePointer)
                         .set("attributeValue", attributeValue)
                         .set("created", true)
@@ -99,12 +99,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(AttributeCreated.NAME);
         assertThat(event.getType()).isEqualTo(AttributeCreated.TYPE);
         assertThat(event).isInstanceOf(AttributeCreated.class);
         final AttributeCreated attributeCreated = (AttributeCreated) event;
-        assertThat(attributeCreated.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) attributeCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(attributeCreated.getAttributePointer()).isEqualTo(JsonPointer.of(attributePointer));
         assertThat(attributeCreated.getAttributeValue()).isEqualTo(attributeValue);
     }
@@ -118,7 +118,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", "thingAttributeModified")
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("attributeJsonPointer", attributePointer)
                         .set("attributeValue", attributeValue)
                         .set("created", false)
@@ -130,12 +130,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(AttributeModified.NAME);
         assertThat(event.getType()).isEqualTo(AttributeModified.TYPE);
         assertThat(event).isInstanceOf(AttributeModified.class);
         final AttributeModified attributeModified = (AttributeModified) event;
-        assertThat(attributeModified.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) attributeModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(attributeModified.getAttributePointer()).isEqualTo(JsonPointer.of(attributePointer));
         assertThat(attributeModified.getAttributeValue()).isEqualTo(attributeValue);
     }
@@ -148,7 +148,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", "thingAttributeDeleted")
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("attributeJsonPointer", attributePointer)
                         .build())
                 .build();
@@ -158,12 +158,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(AttributeDeleted.NAME);
         assertThat(event.getType()).isEqualTo(AttributeDeleted.TYPE);
         assertThat(event).isInstanceOf(AttributeDeleted.class);
         final AttributeDeleted attributeDeleted = (AttributeDeleted) event;
-        assertThat(attributeDeleted.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) attributeDeleted.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(attributeDeleted.getAttributePointer()).isEqualTo(JsonPointer.of(attributePointer));
     }
 
@@ -173,7 +173,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", "thingAttributesDeleted")
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .build())
                 .build();
 
@@ -182,12 +182,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(AttributesDeleted.NAME);
         assertThat(event.getType()).isEqualTo(AttributesDeleted.TYPE);
         assertThat(event).isInstanceOf(AttributesDeleted.class);
         final AttributesDeleted attributesDeleted = (AttributesDeleted) event;
-        assertThat(attributesDeleted.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) attributesDeleted.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
     }
 
     @Test
@@ -196,7 +196,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", "thingAttributesModified")
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("attributes", TestConstants.Thing.ATTRIBUTES.toJson(JsonSchemaVersion.V_1))
                         .set("created", true)
                         .build())
@@ -207,12 +207,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(AttributesCreated.NAME);
         assertThat(event.getType()).isEqualTo(AttributesCreated.TYPE);
         assertThat(event).isInstanceOf(AttributesCreated.class);
         final AttributesCreated attributesCreated = (AttributesCreated) event;
-        assertThat(attributesCreated.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) attributesCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(attributesCreated.getCreatedAttributes().toJsonString())
                 .isEqualTo(TestConstants.Thing.ATTRIBUTES.toJsonString());
     }
@@ -223,7 +223,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", "thingAttributesModified")
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("attributes", TestConstants.Thing.ATTRIBUTES.toJson(JsonSchemaVersion.V_1))
                         .set("created", false)
                         .build())
@@ -234,12 +234,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(AttributesModified.NAME);
         assertThat(event.getType()).isEqualTo(AttributesModified.TYPE);
         assertThat(event).isInstanceOf(AttributesModified.class);
         final AttributesModified attributesModified = (AttributesModified) event;
-        assertThat(attributesModified.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) attributesModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(attributesModified.getModifiedAttributes().toJsonString())
                 .isEqualTo(TestConstants.Thing.ATTRIBUTES.toJsonString());
     }
@@ -250,7 +250,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", "thingAclModified")
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("acl", TestConstants.Thing.ACL.toJson(JsonSchemaVersion.V_1))
                         .build())
                 .build();
@@ -260,12 +260,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(AclModified.NAME);
         assertThat(event.getType()).isEqualTo(AclModified.TYPE);
         assertThat(event).isInstanceOf(AclModified.class);
         final AclModified aclModified = (AclModified) event;
-        assertThat(aclModified.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) aclModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(aclModified.getAccessControlList().toJsonString()).isEqualTo(TestConstants.Thing.ACL.toJsonString());
     }
 
@@ -275,7 +275,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", "thingAclEntryDeleted")
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("authorizationSubject", TestConstants.Authorization.AUTH_SUBJECT_OLDMAN.getId())
                         .build())
                 .build();
@@ -285,12 +285,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(AclEntryDeleted.NAME);
         assertThat(event.getType()).isEqualTo(AclEntryDeleted.TYPE);
         assertThat(event).isInstanceOf(AclEntryDeleted.class);
         final AclEntryDeleted aclEntryDeleted = (AclEntryDeleted) event;
-        assertThat(aclEntryDeleted.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) aclEntryDeleted.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(aclEntryDeleted.getAuthorizationSubject().getId())
                 .isEqualTo(TestConstants.Authorization.AUTH_SUBJECT_OLDMAN.getId());
     }
@@ -301,7 +301,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", "thingAclEntryModified")
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("aclEntry", TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJson(JsonSchemaVersion.V_1))
                         .set("created", true)
                         .build())
@@ -312,12 +312,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(AclEntryCreated.NAME);
         assertThat(event.getType()).isEqualTo(AclEntryCreated.TYPE);
         assertThat(event).isInstanceOf(AclEntryCreated.class);
         final AclEntryCreated aclEntryCreated = (AclEntryCreated) event;
-        assertThat(aclEntryCreated.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) aclEntryCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(aclEntryCreated.getAclEntry().toJsonString())
                 .isEqualTo(TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJsonString());
     }
@@ -328,7 +328,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", "thingAclEntryModified")
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("aclEntry", TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJson(JsonSchemaVersion.V_1))
                         .set("created", false)
                         .build())
@@ -339,12 +339,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(AclEntryModified.NAME);
         assertThat(event.getType()).isEqualTo(AclEntryModified.TYPE);
         assertThat(event).isInstanceOf(AclEntryModified.class);
         final AclEntryModified aclEntryModified = (AclEntryModified) event;
-        assertThat(aclEntryModified.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) aclEntryModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(aclEntryModified.getAclEntry().toJsonString())
                 .isEqualTo(TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJsonString());
     }
@@ -355,7 +355,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", FeatureModified.NAME) // use modified with created true to simulate old created events
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
                         .set("feature", TestConstants.Feature.FLUX_CAPACITOR.toJson(JsonSchemaVersion.V_1))
                         .set("created", true)
@@ -367,12 +367,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(FeatureCreated.NAME);
         assertThat(event.getType()).isEqualTo(FeatureCreated.TYPE);
         assertThat(event).isInstanceOf(FeatureCreated.class);
         final FeatureCreated featureCreated = (FeatureCreated) event;
-        assertThat(featureCreated.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) featureCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(featureCreated.getFeature().toJsonString())
                 .isEqualTo(TestConstants.Feature.FLUX_CAPACITOR.toJsonString());
     }
@@ -383,7 +383,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", FeatureModified.NAME)
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
                         .set("feature", TestConstants.Feature.FLUX_CAPACITOR.toJson(JsonSchemaVersion.V_1))
                         .set("created", false)
@@ -395,12 +395,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(FeatureModified.NAME);
         assertThat(event.getType()).isEqualTo(FeatureModified.TYPE);
         assertThat(event).isInstanceOf(FeatureModified.class);
         final FeatureModified featureModified = (FeatureModified) event;
-        assertThat(featureModified.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) featureModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(featureModified.getFeature().toJsonString())
                 .isEqualTo(TestConstants.Feature.FLUX_CAPACITOR.toJsonString());
     }
@@ -411,7 +411,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", FeaturesModified.NAME) // use modified with created true to simulate old created events
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("features", TestConstants.Feature.FEATURES.toJson(JsonSchemaVersion.V_1))
                         .set("created", true)
                         .build())
@@ -422,12 +422,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(FeaturesCreated.NAME);
         assertThat(event.getType()).isEqualTo(FeaturesCreated.TYPE);
         assertThat(event).isInstanceOf(FeaturesCreated.class);
         final FeaturesCreated featuresCreated = (FeaturesCreated) event;
-        assertThat(featuresCreated.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) featuresCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(featuresCreated.getFeatures().toJsonString()).isEqualTo(
                 TestConstants.Feature.FEATURES.toJsonString());
     }
@@ -438,7 +438,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", FeaturesModified.NAME)
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("features", TestConstants.Feature.FEATURES.toJson(JsonSchemaVersion.V_1))
                         .set("created", false)
                         .build())
@@ -449,12 +449,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(FeaturesModified.NAME);
         assertThat(event.getType()).isEqualTo(FeaturesModified.TYPE);
         assertThat(event).isInstanceOf(FeaturesModified.class);
         final FeaturesModified featuresModified = (FeaturesModified) event;
-        assertThat(featuresModified.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) featuresModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(featuresModified.getFeatures().toJsonString())
                 .isEqualTo(TestConstants.Feature.FEATURES.toJsonString());
     }
@@ -467,7 +467,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", FeaturePropertyDeleted.NAME)
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
                         .set("propertyJsonPointer", propertyPointer.toString())
                         .build())
@@ -478,12 +478,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(FeaturePropertyDeleted.NAME);
         assertThat(event.getType()).isEqualTo(FeaturePropertyDeleted.TYPE);
         assertThat(event).isInstanceOf(FeaturePropertyDeleted.class);
         final FeaturePropertyDeleted featurePropertyDeleted = (FeaturePropertyDeleted) event;
-        assertThat(featurePropertyDeleted.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) featurePropertyDeleted.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(featurePropertyDeleted.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(featurePropertyDeleted.getPropertyPointer()).isEqualTo(propertyPointer);
     }
@@ -498,7 +498,7 @@ public final class ThingMongoEventAdapterTest {
                         FeaturePropertyModified.NAME) // use modified with created true to simulate old created events
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
                         .set("propertyJsonPointer", propertyPointer.toString())
                         .set("propertyValue", propertyValue)
@@ -511,12 +511,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(FeaturePropertyCreated.NAME);
         assertThat(event.getType()).isEqualTo(FeaturePropertyCreated.TYPE);
         assertThat(event).isInstanceOf(FeaturePropertyCreated.class);
         final FeaturePropertyCreated featurePropertyCreated = (FeaturePropertyCreated) event;
-        assertThat(featurePropertyCreated.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) featurePropertyCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(featurePropertyCreated.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(featurePropertyCreated.getPropertyPointer()).isEqualTo(propertyPointer);
         assertThat(featurePropertyCreated.getPropertyValue()).isEqualTo(propertyValue);
@@ -531,7 +531,7 @@ public final class ThingMongoEventAdapterTest {
                 .set("event", FeaturePropertyModified.NAME)
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
                         .set("propertyJsonPointer", propertyPointer.toString())
                         .set("propertyValue", propertyValue)
@@ -544,12 +544,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(FeaturePropertyModified.NAME);
         assertThat(event.getType()).isEqualTo(FeaturePropertyModified.TYPE);
         assertThat(event).isInstanceOf(FeaturePropertyModified.class);
         final FeaturePropertyModified featurePropertyModified = (FeaturePropertyModified) event;
-        assertThat(featurePropertyModified.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) featurePropertyModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(featurePropertyModified.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(featurePropertyModified.getPropertyPointer()).isEqualTo(propertyPointer);
         assertThat(featurePropertyModified.getPropertyValue()).isEqualTo(propertyValue);
@@ -562,7 +562,7 @@ public final class ThingMongoEventAdapterTest {
                         FeaturePropertiesModified.NAME) // use modified with created true to simulate old created events
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
                         .set("properties",
                                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(JsonSchemaVersion.V_1))
@@ -575,12 +575,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(FeaturePropertiesCreated.NAME);
         assertThat(event.getType()).isEqualTo(FeaturePropertiesCreated.TYPE);
         assertThat(event).isInstanceOf(FeaturePropertiesCreated.class);
         final FeaturePropertiesCreated featurePropertiesCreated = (FeaturePropertiesCreated) event;
-        assertThat(featurePropertiesCreated.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) featurePropertiesCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(featurePropertiesCreated.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(featurePropertiesCreated.getProperties().toJsonString())
                 .isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJsonString());
@@ -593,7 +593,7 @@ public final class ThingMongoEventAdapterTest {
                         FeaturePropertiesModified.NAME) // use modified with created true to simulate old created events
                 .set("__schemaVersion", 1)
                 .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("thingId", TestConstants.Thing.THING_ID.toString())
                         .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
                         .set("properties",
                                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(JsonSchemaVersion.V_1))
@@ -606,12 +606,12 @@ public final class ThingMongoEventAdapterTest {
 
         assertThat(actual).isInstanceOf(ThingEvent.class);
         final ThingEvent event = (ThingEvent) actual;
-        assertThat(event.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(event.getName()).isEqualTo(FeaturePropertiesModified.NAME);
         assertThat(event.getType()).isEqualTo(FeaturePropertiesModified.TYPE);
         assertThat(event).isInstanceOf(FeaturePropertiesModified.class);
         final FeaturePropertiesModified featurePropertiesModified = (FeaturePropertiesModified) event;
-        assertThat(featurePropertiesModified.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) featurePropertiesModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(featurePropertiesModified.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(featurePropertiesModified.getProperties().toJsonString())
                 .isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJsonString());
