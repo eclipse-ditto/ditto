@@ -14,11 +14,14 @@ package org.eclipse.ditto.signals.commands.cleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.junit.Test;
@@ -30,17 +33,17 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class CleanupPersistenceResponseTest {
 
-    private static final String ID = "thing:eclipse:ditto";
+    private static final EntityId ID = DefaultEntityId.of("thing:eclipse:ditto");
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, CleanupPersistenceResponse.TYPE)
-            .set(CleanupCommandResponse.JsonFields.ENTITY_ID, ID)
+            .set(CleanupCommandResponse.JsonFields.ENTITY_ID, ID.toString())
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .build();
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder().correlationId("123").build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(CleanupPersistenceResponse.class, areImmutable());
+        assertInstancesOf(CleanupPersistenceResponse.class, areImmutable(), provided(EntityId.class).isAlsoImmutable());
     }
 
     @Test

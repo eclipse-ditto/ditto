@@ -62,10 +62,10 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
     public void modifyFeaturePropertyOnThingWithoutFeatures() {
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureProperty command =
-                ModifyFeatureProperty.of(context.getThingId(), featureId, propertyPointer, newPropertyValue,
+                ModifyFeatureProperty.of(context.getThingEntityId(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
@@ -75,10 +75,10 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
     public void modifyFeaturePropertyOnThingWithoutThatFeature() {
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureProperty command =
-                ModifyFeatureProperty.of(context.getThingId(), featureId, propertyPointer, newPropertyValue,
+                ModifyFeatureProperty.of(context.getThingEntityId(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeature(featureId), command, expectedException);
@@ -88,12 +88,12 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
     public void modifyFeaturePropertyOfFeatureWithoutProperties() {
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureProperty command =
-                ModifyFeatureProperty.of(context.getThingId(), featureId, propertyPointer, newPropertyValue,
+                ModifyFeatureProperty.of(context.getThingEntityId(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeFeatureProperties(featureId), command,
                 FeaturePropertyCreated.class,
-                modifyFeaturePropertyResponse(context.getThingId(), command.getFeatureId(),
+                modifyFeaturePropertyResponse(context.getThingEntityId(), command.getFeatureId(),
                         command.getPropertyPointer(), command.getPropertyValue(), command.getDittoHeaders(), true));
     }
 
@@ -101,12 +101,12 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
     public void modifyExistingFeatureProperty() {
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureProperty command =
-                ModifyFeatureProperty.of(context.getThingId(), featureId, propertyPointer, newPropertyValue,
+                ModifyFeatureProperty.of(context.getThingEntityId(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeaturePropertyModified.class,
-                modifyFeaturePropertyResponse(context.getThingId(), command.getFeatureId(),
+                modifyFeaturePropertyResponse(context.getThingEntityId(), command.getFeatureId(),
                         command.getPropertyPointer(), command.getPropertyValue(), command.getDittoHeaders(), false));
     }
 

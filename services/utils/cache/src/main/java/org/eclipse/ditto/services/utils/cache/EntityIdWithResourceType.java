@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+
 /**
  * Entity ID together with resource type.
  */
-public interface EntityId {
+public interface EntityIdWithResourceType {
 
     /**
      * Retrieve the resource type.
@@ -29,7 +31,7 @@ public interface EntityId {
      *
      * @return the ID.
      */
-    String getId();
+    EntityId getId();
 
     /**
      * Serialize this object as string.
@@ -45,7 +47,7 @@ public interface EntityId {
      * @param id the entity ID.
      * @return the entity ID with resource type object.
      */
-    static EntityId of(final String resourceType, final String id) {
+    static EntityIdWithResourceType of(final String resourceType, final EntityId id) {
         return CacheFactory.newEntityId(resourceType, id);
     }
 
@@ -56,7 +58,7 @@ public interface EntityId {
      * @return the entity ID with resource type.
      * @throws IllegalArgumentException if the string does not have the expected format.
      */
-    static EntityId readFrom(final String string) {
+    static EntityIdWithResourceType readFrom(final String string) {
         return CacheFactory.readEntityIdFrom(string);
     }
 }

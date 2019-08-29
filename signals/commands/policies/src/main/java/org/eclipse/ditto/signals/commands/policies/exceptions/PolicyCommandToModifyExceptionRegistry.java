@@ -57,53 +57,60 @@ public final class PolicyCommandToModifyExceptionRegistry
     private static PolicyCommandToModifyExceptionRegistry createInstance() {
         final Map<String, Function<PolicyCommand, DittoRuntimeException>> mappingStrategies = new HashMap<>();
 
-        mappingStrategies.put(DeletePolicy.TYPE, command -> PolicyNotModifiableException.newBuilder(command.getId())
+        mappingStrategies.put(DeletePolicy.TYPE,
+                command -> PolicyNotModifiableException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
-        mappingStrategies.put(DeletePolicyEntry.TYPE, command -> PolicyEntryNotModifiableException.newBuilder(command.getId(),
+        mappingStrategies.put(DeletePolicyEntry.TYPE,
+                command -> PolicyEntryNotModifiableException.newBuilder(command.getEntityId(),
                 ((DeletePolicyEntry) command).getLabel())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
         mappingStrategies.put(DeleteResource.TYPE, command ->
-                ResourceNotModifiableException.newBuilder(command.getId(), ((DeleteResource) command).getLabel(),
+                ResourceNotModifiableException.newBuilder(command.getEntityId(), ((DeleteResource) command).getLabel(),
                         command.getResourcePath().toString())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(DeleteSubject.TYPE, command ->
-                SubjectNotModifiableException.newBuilder(command.getId(), ((DeleteSubject) command).getLabel(),
+                SubjectNotModifiableException.newBuilder(command.getEntityId(), ((DeleteSubject) command).getLabel(),
                         ((DeleteSubject) command).getSubjectId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
-        mappingStrategies.put(CreatePolicy.TYPE, command -> PolicyNotAccessibleException.newBuilder(command.getId())
+        mappingStrategies.put(CreatePolicy.TYPE,
+                command -> PolicyNotAccessibleException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
-        mappingStrategies.put(ModifyPolicy.TYPE, command -> PolicyNotModifiableException.newBuilder(command.getId())
+        mappingStrategies.put(ModifyPolicy.TYPE,
+                command -> PolicyNotModifiableException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
         mappingStrategies.put(ModifyPolicyEntries.TYPE,
-                command -> PolicyNotModifiableException.newBuilder(command.getId())
+                command -> PolicyNotModifiableException.newBuilder(command.getEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(ModifyPolicyEntry.TYPE,
-                command -> PolicyEntryNotModifiableException.newBuilder(command.getId(),
+                command -> PolicyEntryNotModifiableException.newBuilder(command.getEntityId(),
                         ((ModifyPolicyEntry) command).getPolicyEntry().getLabel())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
-        mappingStrategies.put(ModifyResource.TYPE, command -> ResourceNotModifiableException.newBuilder(command.getId(),
+        mappingStrategies.put(ModifyResource.TYPE,
+                command -> ResourceNotModifiableException.newBuilder(command.getEntityId(),
                 ((ModifyResource) command).getLabel(), command.getResourcePath().toString())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
         mappingStrategies.put(ModifyResources.TYPE,
-                command -> ResourcesNotModifiableException.newBuilder(command.getId(),
+                command -> ResourcesNotModifiableException.newBuilder(command.getEntityId(),
                         ((ModifyResources) command).getLabel())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
-        mappingStrategies.put(ModifySubject.TYPE, command -> SubjectNotModifiableException.newBuilder(command.getId(),
+        mappingStrategies.put(ModifySubject.TYPE,
+                command -> SubjectNotModifiableException.newBuilder(command.getEntityId(),
                 ((ModifySubject) command).getLabel(),
                 ((ModifySubject) command).getSubject().getId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
-        mappingStrategies.put(ModifySubjects.TYPE, command -> SubjectsNotModifiableException.newBuilder(command.getId(),
+        mappingStrategies.put(ModifySubjects.TYPE,
+                command -> SubjectsNotModifiableException.newBuilder(command.getEntityId(),
                 ((ModifySubjects) command).getLabel())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());

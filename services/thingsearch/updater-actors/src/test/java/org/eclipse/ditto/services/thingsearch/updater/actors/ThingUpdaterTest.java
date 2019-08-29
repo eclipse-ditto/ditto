@@ -14,12 +14,14 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
@@ -51,7 +53,7 @@ public final class ThingUpdaterTest {
 
     private static final String NAMESPACE = "abc";
 
-    private static final String THING_ID = NAMESPACE + ":myId";
+    private static final ThingId THING_ID = ThingId.of(NAMESPACE, "myId");
 
     private static final long REVISION = 1L;
 
@@ -170,11 +172,12 @@ public final class ThingUpdaterTest {
             {
                 final ActorRef underTest = createThingUpdaterActor();
 
-                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(THING_ID, newPolicyRevision)),
+                final PolicyId policyId = PolicyId.of(THING_ID);
+                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId, newPolicyRevision)),
                         ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, THING_ID, newPolicyRevision));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId.toString(), newPolicyRevision));
 
-                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(THING_ID, REVISION)),
+                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId, REVISION)),
                         ActorRef.noSender());
                 changeQueueTestProbe.expectNoMessage();
             }
@@ -183,21 +186,21 @@ public final class ThingUpdaterTest {
 
     @Test
     public void policyIdChangeTriggersSync() {
-        final String policy1Id = "policy:1";
-        final String policy2Id = "policy:2";
+        final PolicyId policyId1 = PolicyId.of("policy", "1");
+        final PolicyId policyId2 = PolicyId.of("policy", "2");
 
         new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createThingUpdaterActor();
 
                 // establish policy ID
-                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policy1Id, 99L)),
+                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId1, 99L)),
                         ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policy1Id, 99L));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId1.toString(), 99L));
 
-                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policy2Id, 9L)),
+                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId2, 9L)),
                         ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policy2Id, 9L));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId2.toString(), 9L));
             }
         };
     }
@@ -272,8 +275,7 @@ public final class ThingUpdaterTest {
     }
 
     private ActorRef createThingUpdaterActor() {
-        return actorSystem.actorOf(
-                ThingUpdater.props(pubSubTestProbe.ref(), changeQueueTestProbe.ref()),
-                THING_ID);
+        return actorSystem.actorOf(ThingUpdater.props(pubSubTestProbe.ref(), changeQueueTestProbe.ref()),
+                THING_ID.toString());
     }
 }

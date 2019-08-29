@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Represents connection log entry.
@@ -70,7 +71,7 @@ public interface LogEntry extends Jsonifiable.WithFieldSelectorAndPredicate<Json
     /**
      * @return thing ID if the log can be correlated to a known Thing, empty otherwise.
      */
-    Optional<String> getThingId();
+    Optional<ThingId> getThingId();
 
 
     /**

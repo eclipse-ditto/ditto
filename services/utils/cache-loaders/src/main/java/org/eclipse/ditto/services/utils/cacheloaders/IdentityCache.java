@@ -17,13 +17,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 
 /**
  * Cache that returns the key as result.
  */
-public final class IdentityCache implements Cache<EntityId, Entry<EntityId>> {
+public final class IdentityCache implements Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> {
 
     /**
      * The single instance of this cache.
@@ -35,33 +35,33 @@ public final class IdentityCache implements Cache<EntityId, Entry<EntityId>> {
     }
 
     @Override
-    public CompletableFuture<Optional<Entry<EntityId>>> get(final EntityId key) {
+    public CompletableFuture<Optional<Entry<EntityIdWithResourceType>>> get(final EntityIdWithResourceType key) {
         return CompletableFuture.completedFuture(getBlocking(key));
     }
 
     @Override
-    public CompletableFuture<Optional<Entry<EntityId>>> getIfPresent(final EntityId key) {
+    public CompletableFuture<Optional<Entry<EntityIdWithResourceType>>> getIfPresent(final EntityIdWithResourceType key) {
         return get(key);
     }
 
     @Override
-    public Optional<Entry<EntityId>> getBlocking(final EntityId key) {
+    public Optional<Entry<EntityIdWithResourceType>> getBlocking(final EntityIdWithResourceType key) {
         return Optional.of(Entry.permanent(key));
     }
 
     @Override
-    public boolean invalidate(final EntityId key) {
+    public boolean invalidate(final EntityIdWithResourceType key) {
         // do nothing
         return false;
     }
 
     @Override
-    public void put(final EntityId key, final Entry<EntityId> value) {
+    public void put(final EntityIdWithResourceType key, final Entry<EntityIdWithResourceType> value) {
         // do nothing
     }
 
     @Override
-    public ConcurrentMap<EntityId, Entry<EntityId>> asMap() {
+    public ConcurrentMap<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> asMap() {
         throw new UnsupportedOperationException("IdentityCache may not be viewed as map");
     }
 }

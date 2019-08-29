@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Indicates that the feature cannot be modified.
@@ -63,7 +64,7 @@ public class FeatureNotModifiableException extends DittoRuntimeException impleme
      * access permissions.
      * @return the builder.
      */
-    public static FeatureNotModifiableException.Builder newBuilder(final String thingId, final String featureId) {
+    public static FeatureNotModifiableException.Builder newBuilder(final ThingId thingId, final String featureId) {
         return new FeatureNotModifiableException.Builder(thingId, featureId);
     }
 
@@ -110,9 +111,9 @@ public class FeatureNotModifiableException extends DittoRuntimeException impleme
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId, final String featureId) {
+        private Builder(final ThingId thingId, final String featureId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, featureId, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, featureId, String.valueOf(thingId)));
         }
 
         @Override

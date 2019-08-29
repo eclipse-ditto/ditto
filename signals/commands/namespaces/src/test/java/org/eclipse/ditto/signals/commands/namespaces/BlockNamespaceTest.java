@@ -87,6 +87,11 @@ public final class BlockNamespaceTest {
     }
 
     @Test
+    public void getEntityIdReturnsNamespace() {
+        assertThat(underTest.getEntityId().toString()).isEqualTo(underTest.getNamespace());
+    }
+
+    @Test
     public void toStringContainsExpected() {
         assertThat(underTest.toString())
                 .contains(underTest.getClass().getSimpleName())

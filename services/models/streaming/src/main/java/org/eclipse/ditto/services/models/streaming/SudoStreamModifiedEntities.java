@@ -37,6 +37,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -49,7 +50,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommand(typePrefix = SudoStreamModifiedEntities.TYPE_PREFIX, name = SudoStreamModifiedEntities.NAME)
 public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStreamModifiedEntities>
-        implements StartStreamRequest {
+        implements StartStreamRequest, WithIdButActuallyNot {
 
     private static final Integer DEFAULT_BURST = 1;
 
@@ -233,11 +234,6 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
                 + ", burst=" + burst
                 + ", timeoutMillis=" + timeoutMillis
                 + "]";
-    }
-
-    @Override
-    public String getId() {
-        return "";
     }
 
     @Override

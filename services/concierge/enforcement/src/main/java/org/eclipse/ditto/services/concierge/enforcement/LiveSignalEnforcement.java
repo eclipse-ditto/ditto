@@ -28,13 +28,14 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.base.Signal;
@@ -60,9 +61,10 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
     private final EnforcerRetriever enforcerRetriever;
     private final Cache<String, ActorRef> responseReceivers;
 
-    private LiveSignalEnforcement(final Contextual<Signal> context, final Cache<EntityId, Entry<EntityId>> thingIdCache,
-            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-            final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
+    private LiveSignalEnforcement(final Contextual<Signal> context,
+            final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache) {
 
         super(context);
         requireNonNull(thingIdCache);
@@ -78,9 +80,9 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
      */
     public static final class Provider implements EnforcementProvider<Signal> {
 
-        private final Cache<EntityId, Entry<EntityId>> thingIdCache;
-        private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
-        private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
+        private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
+        private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
+        private final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache;
 
         /**
          * Constructor.
@@ -89,9 +91,9 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param aclEnforcerCache the acl-enforcer cache.
          */
-        public Provider(final Cache<EntityId, Entry<EntityId>> thingIdCache,
-                final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-                final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
+        public Provider(final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
+                final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
+                final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache) {
 
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
@@ -164,8 +166,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
             log(liveSignal).info(
                     "Command of type <{}> with ID <{}> could not be dispatched as no enforcer could be" +
                             " looked up! Answering with ThingNotAccessibleException.", liveSignal.getType(),
-                    liveSignal.getId());
-            throw ThingNotAccessibleException.newBuilder(entityId().getId())
+                    liveSignal.getEntityId());
+            throw ThingNotAccessibleException.newBuilder(ThingId.of(entityId().getId()))
                     .dittoHeaders(liveSignal.getDittoHeaders())
                     .build();
         }
@@ -250,7 +252,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                     publishToMediator(withReadSubjects, StreamingType.LIVE_EVENTS.getDistributedPubSubTopic()));
         } else {
             log(liveSignal).info("Live Event was NOT authorized: <{}>", liveSignal);
-            throw EventSendNotAllowedException.newBuilder(((ThingEvent) liveSignal).getThingId())
+            throw EventSendNotAllowedException.newBuilder(((ThingEvent) liveSignal).getThingEntityId())
                     .dittoHeaders(liveSignal.getDittoHeaders())
                     .build();
         }
@@ -306,7 +308,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
     private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand command) {
         final MessageSendNotAllowedException error =
-                MessageSendNotAllowedException.newBuilder(command.getThingId())
+                MessageSendNotAllowedException.newBuilder(command.getThingEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build();
 
@@ -342,8 +344,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
             final MessageCommand<?, ?> command) {
         if (isFireAndForgetMessage(command)) {
             return Optional.of(
-                    SendMessageAcceptedResponse.newInstance(command.getThingId(), command.getMessage().getHeaders(),
-                            command.getDittoHeaders()));
+                    SendMessageAcceptedResponse.newInstance(command.getThingEntityId(),
+                            command.getMessage().getHeaders(), command.getDittoHeaders()));
         } else {
             return Optional.empty();
         }

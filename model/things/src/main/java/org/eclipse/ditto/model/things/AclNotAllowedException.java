@@ -61,7 +61,7 @@ public final class AclNotAllowedException extends DittoRuntimeException implemen
      * @param thingId the identifier of the Thing.
      * @return the builder.
      */
-    public static Builder newBuilder(final String thingId) {
+    public static Builder newBuilder(final ThingId thingId) {
         return new Builder(thingId);
     }
 
@@ -112,9 +112,9 @@ public final class AclNotAllowedException extends DittoRuntimeException implemen
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId) {
+        private Builder(final ThingId thingId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)));
         }
 
         @Override

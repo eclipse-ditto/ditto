@@ -58,7 +58,7 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, thing.getId().orElse(null), revision, timestamp, dittoHeaders);
+        super(TYPE, thing.getEntityId().orElse(null), revision, timestamp, dittoHeaders);
         this.thing = thing;
     }
 

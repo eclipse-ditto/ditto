@@ -41,6 +41,7 @@ import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.SourceAddressPlaceholder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttTopic;
@@ -151,7 +152,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
             validateEnforcementInput(enforcement, sourceDescription, dittoHeaders);
 
-            final String dummyThingId = "namespace:name";
+            final ThingId dummyThingId = ThingId.of("namespace","name");
             final Map<String, String> filtersMap = PlaceholderFilter.applyThingPlaceholderToAddresses(enforcement.getFilters(),
                     dummyThingId, filter -> {
                         throw invalidValueForConfig(filter, "filters", sourceDescription.get())

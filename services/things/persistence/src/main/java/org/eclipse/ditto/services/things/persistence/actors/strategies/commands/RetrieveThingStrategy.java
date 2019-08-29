@@ -47,7 +47,7 @@ final class RetrieveThingStrategy
                 .map(t -> !t.isDeleted())
                 .orElse(false);
 
-        return Objects.equals(context.getThingId(), command.getId()) && thingExists;
+        return Objects.equals(context.getThingEntityId(), command.getEntityId()) && thingExists;
     }
 
     @Override
@@ -60,7 +60,7 @@ final class RetrieveThingStrategy
     private static WithDittoHeaders getRetrieveThingResponse(@Nullable final Thing thing,
             final ThingQueryCommand<RetrieveThing> command) {
         if (thing != null) {
-            return RetrieveThingResponse.of(command.getThingId(), getThingJson(thing, command),
+            return RetrieveThingResponse.of(command.getThingEntityId(), getThingJson(thing, command),
                     command.getDittoHeaders());
         } else {
             return notAccessible(command);
@@ -74,14 +74,14 @@ final class RetrieveThingStrategy
     }
 
     private static ThingNotAccessibleException notAccessible(final ThingQueryCommand<?> command) {
-        return new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders());
+        return new ThingNotAccessibleException(command.getThingEntityId(), command.getDittoHeaders());
     }
 
     @Override
     protected Result unhandled(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
         return ResultFactory.newErrorResult(
-                new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
+                new ThingNotAccessibleException(context.getThingEntityId(), command.getDittoHeaders()));
     }
 
     @Override

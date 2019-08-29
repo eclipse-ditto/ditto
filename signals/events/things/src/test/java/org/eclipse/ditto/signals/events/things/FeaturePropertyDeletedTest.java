@@ -22,6 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.TestConstants.Thing;
 import org.junit.Test;
@@ -39,7 +41,7 @@ public class FeaturePropertyDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeaturePropertyDeleted.TYPE)
             .set(Event.JsonFields.REVISION, Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeaturePropertyDeleted.JSON_PROPERTY, PROPERTY_JSON_POINTER.toString())
             .build();
@@ -60,10 +62,15 @@ public class FeaturePropertyDeletedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        FeaturePropertyDeleted.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+                Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        FeaturePropertyDeleted.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+        FeaturePropertyDeleted.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
                 Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
@@ -101,7 +108,7 @@ public class FeaturePropertyDeletedTest {
                 FeaturePropertyDeleted.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(Thing.THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getPropertyPointer()).isEqualTo(PROPERTY_JSON_POINTER);
     }

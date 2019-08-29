@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -51,6 +52,7 @@ import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
 import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -81,9 +83,9 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class MessageMappingProcessorActorTest {
 
-    private static final String KNOWN_THING_ID = "my:thing";
+    private static final ThingId KNOWN_THING_ID = ThingId.of("my:thing");
 
-    private static final String CONNECTION_ID = "testConnection";
+    private static final ConnectionId CONNECTION_ID = ConnectionId.of("testConnection");
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
@@ -154,9 +156,9 @@ public final class MessageMappingProcessorActorTest {
         final Enforcement mqttEnforcement =
                 ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
                         "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
-        final EnforcementFilterFactory<String, String> factory =
+        final EnforcementFilterFactory<String, CharSequence> factory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
-        final EnforcementFilter<String> enforcementFilter = factory.getFilter("mqtt/topic/my/thing");
+        final EnforcementFilter<CharSequence> enforcementFilter = factory.getFilter("mqtt/topic/my/thing");
         testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, true);
     }
 
@@ -166,14 +168,14 @@ public final class MessageMappingProcessorActorTest {
         final Enforcement mqttEnforcement =
                 ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
                         "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
-        final EnforcementFilterFactory<String, String> factory =
+        final EnforcementFilterFactory<String, CharSequence> factory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
-        final EnforcementFilter<String> enforcementFilter = factory.getFilter("some/invalid/target");
+        final EnforcementFilter<CharSequence> enforcementFilter = factory.getFilter("some/invalid/target");
         testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, false);
     }
 
-    private void testExternalMessageInDittoProtocolIsProcessed(@Nullable final EnforcementFilter<String> enforcement,
-            final boolean expectSuccess) {
+    private void testExternalMessageInDittoProtocolIsProcessed(
+            @Nullable final EnforcementFilter<CharSequence> enforcement, final boolean expectSuccess) {
 
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
@@ -199,7 +201,7 @@ public final class MessageMappingProcessorActorTest {
                 // thing ID is included in the header for error reporting
                 assertThat(modifyAttribute.getDittoHeaders())
                         .extracting(headers -> headers.get(MessageHeaderDefinition.THING_ID.getKey()))
-                        .isEqualTo(KNOWN_THING_ID);
+                        .isEqualTo(KNOWN_THING_ID.toString());
             } else {
                 final OutboundSignal errorResponse = expectMsgClass(OutboundSignal.WithExternalMessage.class);
                 assertThat(errorResponse.getSource()).isInstanceOf(ThingErrorResponse.class);

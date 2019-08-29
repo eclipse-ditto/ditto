@@ -42,14 +42,14 @@ public final class PolicyCreatedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyCreated.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
-            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyCreated.JSON_POLICY, TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial()))
             .build();
 
     private static final JsonObject KNOWN_JSON_WITHOUT_REVISION = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyCreated.TYPE)
-            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyCreated.JSON_POLICY, TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial()))
             .build();
 

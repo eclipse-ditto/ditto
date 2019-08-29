@@ -751,7 +751,7 @@ public final class ImmutableThingFromCopyBuilderTest {
         underTestV2.removePolicyId();
         final Thing thing = underTestV2.build();
 
-        assertThat(thing.getPolicyId()).isEmpty();
+        assertThat(thing.getPolicyEntityId()).isEmpty();
     }
 
     @Test
@@ -774,7 +774,7 @@ public final class ImmutableThingFromCopyBuilderTest {
         underTestV1.setGeneratedId();
         final Thing thing = underTestV1.build();
 
-        assertThat(thing.getId()).isPresent();
+        assertThat(thing.getEntityId()).isPresent();
     }
 
     @Test
@@ -835,7 +835,7 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     private void assertSetIdWithValidNamespace(final String namespace) {
-        final String thingId = namespace + ":" + "foobar2000";
+        final ThingId thingId = ThingId.of(namespace, "foobar2000");
         underTestV1.setId(thingId);
         final Thing thing = underTestV1.build();
 

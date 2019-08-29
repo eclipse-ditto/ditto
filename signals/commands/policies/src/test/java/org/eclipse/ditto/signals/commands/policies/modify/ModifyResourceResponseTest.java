@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -37,7 +38,7 @@ public final class ModifyResourceResponseTest {
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, ModifyResourceResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.CREATED.toInt())
-            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ModifyResourceResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(ModifyResourceResponse.JSON_RESOURCE_KEY, TestConstants.Policy.RESOURCE.getFullQualifiedPath())
             .set(ModifyResourceResponse.JSON_RESOURCE,
@@ -47,7 +48,7 @@ public final class ModifyResourceResponseTest {
     private static final JsonObject KNOWN_JSON_UPDATED = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, ModifyResourceResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
-            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ModifyResourceResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .build();
 
@@ -55,7 +56,7 @@ public final class ModifyResourceResponseTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyResourceResponse.class,
                 areImmutable(),
-                provided(Label.class, Resource.class).areAlsoImmutable());
+                provided(Label.class, Resource.class, PolicyId.class).areAlsoImmutable());
     }
 
     @Test

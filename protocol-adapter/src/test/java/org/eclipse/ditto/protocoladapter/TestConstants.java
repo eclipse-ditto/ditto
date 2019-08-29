@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  */
@@ -39,13 +40,13 @@ final class TestConstants {
 
     static final String NAMESPACE = "org.eclipse.ditto.test";
 
-    static final String ID = "myThing";
-    static final String ID2 = "myThing2";
+    static final String NAME = "myThing";
+    static final String NAME2 = "myThing2";
 
     static final String CORRELATION_ID = "dittoCorrelationId";
 
-    static final String THING_ID = NAMESPACE + ":" + ID;
-    static final String THING_ID2 = NAMESPACE + ":" + ID2;
+    static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
+    static final ThingId THING_ID2 = ThingId.of(NAMESPACE, NAME2);
 
     static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
 

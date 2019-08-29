@@ -20,7 +20,6 @@ import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -31,6 +30,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -45,7 +45,7 @@ import org.junit.Test;
  */
 public class ConnectionMigrationUtilTest {
 
-    private static final String ID = UUID.randomUUID().toString();
+    private static final ConnectionId ID = ConnectionId.generateRandom();
     private static final String NAME = "my-connection";
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
@@ -122,7 +122,7 @@ public class ConnectionMigrationUtilTest {
     private static final Set<String> KNOWN_TAGS = Collections.singleton("HONO");
 
     private static final JsonObject KNOWN_CONNECTION_JSON = JsonObject.newBuilder()
-            .set(Connection.JsonFields.ID, ID)
+            .set(Connection.JsonFields.ID, ID.toString())
             .set(Connection.JsonFields.NAME, NAME)
             .set(ConnectionMigrationUtil.AUTHORIZATION_CONTEXT, AUTHORIZATION_CONTEXT.getAuthorizationSubjects()
                     .stream()
@@ -149,7 +149,7 @@ public class ConnectionMigrationUtilTest {
 
         final Connection migratedConnection =
                 ConnectionMigrationUtil.connectionFromJsonWithMigration(KNOWN_CONNECTION_JSON);
-        assertThat(migratedConnection.getId()).isEqualTo(ID);
+        assertThat((CharSequence) migratedConnection.getId()).isEqualTo(ID);
         assertThat(migratedConnection.getName()).contains(NAME);
         assertThat((Object) migratedConnection.getConnectionType()).isEqualTo(TYPE);
         assertThat(migratedConnection.getUri()).isEqualTo(URI);
@@ -177,7 +177,7 @@ public class ConnectionMigrationUtilTest {
                         .collect(JsonCollectors.valuesToArray())).get());
         final Connection migratedConnection = ConnectionMigrationUtil.connectionFromJsonWithMigration(builder.build());
 
-        assertThat(migratedConnection.getId()).isEqualTo(ID);
+        assertThat((CharSequence) migratedConnection.getId()).isEqualTo(ID);
         assertThat(migratedConnection.getName()).contains(NAME);
         assertThat((Object) migratedConnection.getConnectionType()).isEqualTo(TYPE);
         assertThat(migratedConnection.getUri()).isEqualTo(URI);

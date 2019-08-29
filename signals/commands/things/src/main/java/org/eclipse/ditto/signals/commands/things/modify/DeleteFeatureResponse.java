@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -51,10 +52,10 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
             JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
 
-    private DeleteFeatureResponse(final String thingId, final String featureId,
+    private DeleteFeatureResponse(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
@@ -69,8 +70,26 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeleteFeatureResponse of(final String thingId, final String featureId,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), featureId, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link DeleteFeature} command.
+     *
+     * @param thingId the Thing ID of the deleted Feature.
+     * @param featureId the ID of the deleted {@code Feature}.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static DeleteFeatureResponse of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
         return new DeleteFeatureResponse(thingId, featureId, dittoHeaders);
     }
@@ -103,8 +122,9 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
     public static DeleteFeatureResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteFeatureResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
                     return of(thingId, featureId, dittoHeaders);
@@ -112,7 +132,7 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -135,7 +155,7 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 

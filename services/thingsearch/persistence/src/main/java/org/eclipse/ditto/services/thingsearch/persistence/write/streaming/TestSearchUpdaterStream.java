@@ -14,21 +14,21 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
+import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.EnforcedThingMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
-
-import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.EnforcedThingMapper;
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 
 /**
  * Run parts of the updater stream for unit tests.
@@ -64,8 +64,8 @@ public final class TestSearchUpdaterStream {
             final Enforcer enforcer,
             final long policyRevision) {
 
-        final AbstractWriteModel writeModel =
-                EnforcedThingMapper.toWriteModel(thing.toJson(FieldType.all()), enforcer, policyRevision, -1);
+        final JsonObject thingJson = thing.toJson(FieldType.all());
+        final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, enforcer, policyRevision, -1);
 
         return Source.single(Source.single(writeModel))
                 .via(mongoSearchUpdaterFlow.start(1, 1, Duration.ZERO));

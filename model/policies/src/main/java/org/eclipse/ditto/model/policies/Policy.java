@@ -49,9 +49,22 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * @param id the ID of the new Policy.
      * @return the new builder.
      * @throws PolicyIdInvalidException if {@code id} is invalid.
+     * @deprecated policy ID is now typed. Use {@link #newBuilder(PolicyId)} instead.
      */
+    @Deprecated
     static PolicyBuilder newBuilder(final CharSequence id) {
-        return PoliciesModelFactory.newPolicyBuilder(id);
+        return newBuilder(PolicyId.of(id));
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@code Policy}.
+     *
+     * @param policyId the ID of the new Policy.
+     * @return the new builder.
+     * @throws PolicyIdInvalidException if {@code id} is invalid.
+     */
+    static PolicyBuilder newBuilder(final PolicyId policyId) {
+        return PoliciesModelFactory.newPolicyBuilder(policyId);
     }
 
     /**
@@ -62,6 +75,17 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      */
     default PolicyBuilder toBuilder() {
         return PoliciesModelFactory.newPolicyBuilder(this);
+    }
+
+    @Override
+    Optional<PolicyId> getEntityId();
+
+    /**
+     * @deprecated
+     */
+    @Deprecated
+    default Optional<String> getId() {
+        return getEntityId().map(String::valueOf);
     }
 
     /**

@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.junit.Test;
@@ -52,7 +53,7 @@ public final class EnforcedThingMapperTest {
                 "}");
 
         final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(
-                PoliciesModelFactory.newPolicyBuilder("policy:id")
+                PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy", "id"))
                         .forLabel("grant-root")
                         .setSubject("g:0", SubjectType.GENERATED)
                         .setGrantedPermissions(THING, "/", Permission.READ)

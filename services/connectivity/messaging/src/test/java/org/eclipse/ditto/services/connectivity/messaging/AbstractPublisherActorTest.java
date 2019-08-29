@@ -72,7 +72,7 @@ public abstract class AbstractPublisherActorTest {
             setupMocks(probe);
             final OutboundSignal outboundSignal = mock(OutboundSignal.class);
             final Signal source = mock(Signal.class);
-            when(source.getId()).thenReturn(TestConstants.Things.THING_ID);
+            when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
             when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
             when(outboundSignal.getSource()).thenReturn(source);
             final Target target = createTestTarget();

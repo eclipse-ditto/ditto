@@ -28,6 +28,8 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.actors.cleanup.credits.CreditDecisionSource;
@@ -360,8 +362,10 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                         .match(ConnectionTag.class, connTag ->
                                 askShardRegionForCleanup(shardRegions.connections(), ConnectivityCommand.RESOURCE_TYPE, connTag))
                         .matchAny(e -> {
+                            final String msg = "Unexpected entity ID type: " + e.getClass().getSimpleName();
                             final CleanupPersistenceResponse error =
-                                    CleanupPersistenceResponse.failure("Unexpected entity ID type: ", DittoHeaders.empty());
+                                    //TODO: Dont build entity id of message.
+                                    CleanupPersistenceResponse.failure(DefaultEntityId.of(msg), DittoHeaders.empty());
                             return CompletableFuture.completedFuture(error);
                         })
                         .build();
@@ -376,7 +380,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     private CompletionStage<CleanupPersistenceResponse> askShardRegionForCleanup(final ActorRef shardRegion,
             final String resourceType, final EntityIdWithRevision tag) {
 
-        final String id = tag.getId();
+        final EntityId id = tag.getEntityId();
         final CleanupPersistence cleanupPersistence = getCleanupCommand(id);
         return Patterns.ask(shardRegion, cleanupPersistence, config.getCleanupTimeout())
                 .handle((result, error) -> {
@@ -388,7 +392,8 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                     } else {
                         final String msg = String.format("Unexpected response from shard <%s>: result=<%s> error=<%s>",
                                 resourceType, Objects.toString(result), Objects.toString(error));
-                        return CleanupPersistenceResponse.failure(msg, cleanupPersistence.getDittoHeaders());
+                        return //TODO: Dont build entity id of message.
+                                CleanupPersistenceResponse.failure(DefaultEntityId.of(msg), cleanupPersistence.getDittoHeaders());
                     }
                 });
     }
@@ -434,13 +439,13 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         final DittoHeaders headers = response.getDittoHeaders();
         final int status = response.getStatusCodeValue();
         final String start = headers.getOrDefault(START, "unknown");
-        final String tagLine = String.format("%d start=%s <%s>", status, start, response.getId());
+        final String tagLine = String.format("%d start=%s <%s>", status, start, response.getEntityId());
         return JsonObject.newBuilder()
                 .set(element.first().toString(), tagLine)
                 .build();
     }
 
-    private static CleanupPersistence getCleanupCommand(final String id) {
+    private static CleanupPersistence getCleanupCommand(final EntityId id) {
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .putHeader(START, Instant.now().toString())
                 .build();

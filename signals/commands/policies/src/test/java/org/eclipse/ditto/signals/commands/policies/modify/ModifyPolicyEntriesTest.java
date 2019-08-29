@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -39,7 +40,7 @@ public class ModifyPolicyEntriesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, ModifyPolicyEntries.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ModifyPolicyEntries.JSON_POLICY_ENTRIES,
                     StreamSupport.stream(TestConstants.Policy.POLICY_ENTRIES.spliterator(), false)
                             .map(entry -> JsonFactory.newObjectBuilder()
@@ -53,7 +54,7 @@ public class ModifyPolicyEntriesTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyPolicyEntries.class,
                 areImmutable(),
-                provided(Iterable.class, PolicyEntry.class).isAlsoImmutable());
+                provided(Iterable.class, PolicyEntry.class, PolicyId.class).isAlsoImmutable());
     }
 
 
@@ -67,7 +68,13 @@ public class ModifyPolicyEntriesTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ModifyPolicyEntries.of(null, TestConstants.Policy.POLICY_ENTRIES,
+        ModifyPolicyEntries.of((PolicyId) null, TestConstants.Policy.POLICY_ENTRIES,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        ModifyPolicyEntries.of((String) null, TestConstants.Policy.POLICY_ENTRIES,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -76,8 +83,7 @@ public class ModifyPolicyEntriesTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> ModifyPolicyEntries.of("undefined", TestConstants.Policy.POLICY_ENTRIES,
-                        TestConstants.EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        TestConstants.EMPTY_DITTO_HEADERS));
     }
 
 

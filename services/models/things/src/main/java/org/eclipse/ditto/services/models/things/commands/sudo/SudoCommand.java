@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -25,7 +26,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface SudoCommand<T extends SudoCommand> extends Command<T> {
+public interface SudoCommand<T extends SudoCommand> extends Command<T>, WithIdButActuallyNot {
 
     /**
      * Type Prefix of Sudo commands.
@@ -55,16 +56,6 @@ public interface SudoCommand<T extends SudoCommand> extends Command<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
-
-    /**
-     * Sudo commands do not have an ID. Thus this implementation always returns an empty string.
-     *
-     * @return an empty string.
-     */
-    @Override
-    default String getId() {
-        return "";
-    }
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a Thing command.

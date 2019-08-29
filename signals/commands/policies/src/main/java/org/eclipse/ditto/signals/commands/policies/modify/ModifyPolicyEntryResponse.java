@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -57,10 +58,10 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     static final JsonFieldDefinition<JsonValue> JSON_POLICY_ENTRY =
             JsonFactory.newJsonValueFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     @Nullable private final PolicyEntry policyEntryCreated;
 
-    private ModifyPolicyEntryResponse(final String policyId,
+    private ModifyPolicyEntryResponse(final PolicyId policyId,
             final HttpStatusCode statusCode,
             @Nullable final PolicyEntry policyEntryCreated,
             final DittoHeaders dittoHeaders) {
@@ -78,8 +79,27 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #created(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.PolicyEntry, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyPolicyEntryResponse created(final String policyId, final PolicyEntry policyEntryCreated,
+            final DittoHeaders dittoHeaders) {
+
+        return created(PolicyId.of(policyId), policyEntryCreated, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifyPolicyEntry} command.
+     *
+     * @param policyId the Policy ID of the created policy entry.
+     * @param policyEntryCreated (optional) the PolicyEntry created.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     */
+    public static ModifyPolicyEntryResponse created(final PolicyId policyId, final PolicyEntry policyEntryCreated,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyPolicyEntryResponse(policyId, HttpStatusCode.CREATED, policyEntryCreated, dittoHeaders);
@@ -92,8 +112,24 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy Id is now Typed. Use
+     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyPolicyEntryResponse modified(final String policyId, final DittoHeaders dittoHeaders) {
+        return modified(PolicyId.of(policyId), dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifyPolicyEntry} command.
+     *
+     * @param policyId the Policy ID of the modified policy entry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ModifyPolicyEntryResponse modified(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         return new ModifyPolicyEntryResponse(policyId, HttpStatusCode.NO_CONTENT, null, dittoHeaders);
     }
 
@@ -123,8 +159,9 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     public static ModifyPolicyEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyPolicyEntryResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId =
+                    jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Optional<String> readLabel = jsonObject.getValue(JSON_LABEL);
 
                     final PolicyEntry extractedPolicyEntryCreated = jsonObject.getValue(JSON_POLICY_ENTRY)
@@ -139,7 +176,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -172,7 +209,8 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+                predicate);
         if (null != policyEntryCreated) {
             jsonObjectBuilder.set(JSON_LABEL, policyEntryCreated.getLabel().toString(), predicate);
             jsonObjectBuilder.set(JSON_POLICY_ENTRY, policyEntryCreated.toJson(schemaVersion, thePredicate), predicate);

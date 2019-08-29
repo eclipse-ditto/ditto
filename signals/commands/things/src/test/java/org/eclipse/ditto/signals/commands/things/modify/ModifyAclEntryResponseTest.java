@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.AclEntry;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public final class ModifyAclEntryResponseTest {
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyAclEntryResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.CREATED.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyAclEntryResponse.JSON_ACL_ENTRY,
                     TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -52,7 +53,7 @@ public final class ModifyAclEntryResponseTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyAclEntryResponse.class,
                 areImmutable(),
-                provided(AuthorizationSubject.class, AclEntry.class).areAlsoImmutable());
+                provided(AuthorizationSubject.class, AclEntry.class, ThingId.class).areAlsoImmutable());
     }
 
 

@@ -15,12 +15,14 @@ package org.eclipse.ditto.signals.commands.things.modify;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -35,13 +37,13 @@ public final class DeleteFeaturePropertiesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, DeleteFeatureProperties.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(DeleteFeatureProperties.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DeleteFeatureProperties.class, areImmutable());
+        assertInstancesOf(DeleteFeatureProperties.class, areImmutable(), provided(ThingId.class).isAlsoImmutable());
     }
 
     @Test
@@ -52,11 +54,17 @@ public final class DeleteFeaturePropertiesTest {
     }
 
     @Test
-    public void tryToCreateInstanceWithNullThingId() {
+    public void tryToCreateInstanceWithNullThingIdString() {
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> DeleteFeatureProperties.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                .isThrownBy(() -> DeleteFeatureProperties.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                        TestConstants.EMPTY_DITTO_HEADERS));
+    }
+
+    @Test
+    public void tryToCreateInstanceWithNullThingId() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> DeleteFeatureProperties.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("The ID is not valid because it was 'null'!")
                 .withNoCause();
     }
 
@@ -92,7 +100,7 @@ public final class DeleteFeaturePropertiesTest {
                 DeleteFeatureProperties.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
     }
 

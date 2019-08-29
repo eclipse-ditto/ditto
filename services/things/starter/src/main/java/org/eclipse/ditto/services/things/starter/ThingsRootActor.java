@@ -23,6 +23,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.common.config.ThingsConfig;
@@ -146,7 +147,7 @@ public final class ThingsRootActor extends AbstractActor {
     private ThingsRootActor(final ThingsConfig thingsConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final Function<String, Props> thingPersistenceActorPropsFactory) {
+            final Function<ThingId, Props> thingPersistenceActorPropsFactory) {
 
         final ActorSystem actorSystem = getContext().system();
 
@@ -229,7 +230,7 @@ public final class ThingsRootActor extends AbstractActor {
     public static Props props(final ThingsConfig thingsConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final Function<String, Props> thingPersistenceActorPropsFactory) {
+            final Function<ThingId, Props> thingPersistenceActorPropsFactory) {
 
         // Beware: Function<String, Props> is not serializable.
         return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, materializer,
@@ -276,7 +277,7 @@ public final class ThingsRootActor extends AbstractActor {
     }
 
     private static Props getThingSupervisorActorProps(final ActorRef pubSubMediator,
-            final Function<String, Props> thingPersistenceActorPropsFactory) {
+            final Function<ThingId, Props> thingPersistenceActorPropsFactory) {
 
         return ThingSupervisorActor.props(pubSubMediator, thingPersistenceActorPropsFactory);
     }

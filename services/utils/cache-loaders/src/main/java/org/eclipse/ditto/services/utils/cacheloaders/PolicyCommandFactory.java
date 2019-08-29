@@ -14,7 +14,9 @@ package org.eclipse.ditto.services.utils.cacheloaders;
 
 import java.util.UUID;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.slf4j.Logger;
@@ -31,18 +33,22 @@ final class PolicyCommandFactory {
         throw new AssertionError();
     }
 
+
+    static SudoRetrievePolicy sudoRetrievePolicy(final EntityId policyId) {
+        return sudoRetrievePolicy(PolicyId.of(policyId));
+    }
     /**
      * Creates a sudo command for retrieving a policy.
      *
      * @param policyId the policyId.
      * @return the created command.
      */
-    static SudoRetrievePolicy sudoRetrievePolicy(final String policyId) {
+    static SudoRetrievePolicy sudoRetrievePolicy(final PolicyId policyId) {
         return SudoRetrievePolicy.of(policyId,
                 DittoHeaders.newBuilder().correlationId(getCorrelationId(policyId)).build());
     }
 
-    private static String getCorrelationId(final String policyId) {
+    private static String getCorrelationId(final PolicyId policyId) {
         return LogUtil.getCorrelationId(() -> {
             final String correlationId = UUID.randomUUID().toString();
             LOGGER.debug("Found no correlation-id for SudoRetrievePolicy on Policy <{}>. " +

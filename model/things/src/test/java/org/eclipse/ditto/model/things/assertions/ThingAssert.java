@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.assertions.JsonifiableWithPredicateAssert;
 import org.eclipse.ditto.model.base.assertions.JsonifiableWithSelectorAndPredicateAssert;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Permissions;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -60,15 +62,16 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         super(actual, ThingAssert.class);
     }
 
-    public ThingAssert hasId(final String expectedIdentifier) {
+    public ThingAssert hasId(final ThingId expectedIdentifier) {
         isNotNull();
 
-        final Optional<String> actualIdOptional = actual.getId();
+        final Optional<ThingId> actualIdOptional = actual.getEntityId();
 
-        assertThat(actualIdOptional.isPresent() && Objects.equals(actualIdOptional.get(), expectedIdentifier))
-                .overridingErrorMessage("Expected Thing identifier to be \n<%s> but was \n<%s>", expectedIdentifier,
-                        actualIdOptional.orElse(null))
-                .isTrue();
+        assertThat(actualIdOptional)
+                .overridingErrorMessage("Expected Thing identifier to be \n<%s> but was \n<%s>",
+                        expectedIdentifier.toString(),
+                        String.valueOf(actualIdOptional.orElse(null)))
+                .contains(expectedIdentifier);
 
         return this;
     }
@@ -76,12 +79,12 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasNoId() {
         isNotNull();
 
-        final Optional<String> actualIdOptional = actual.getId();
+        final Optional<ThingId> actualIdOptional = actual.getEntityId();
 
-        assertThat(actualIdOptional.isPresent())
+        assertThat(actualIdOptional)
                 .overridingErrorMessage("Expected Thing not have an identifier but it had <%s>",
-                        actualIdOptional.orElse(null))
-                .isFalse();
+                        String.valueOf(actualIdOptional.orElse(null)))
+                .isNotPresent();
 
         return this;
     }
@@ -127,10 +130,23 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         return this;
     }
 
+    public ThingAssert hasPolicyId(final PolicyId expectedPolicyId) {
+        isNotNull();
+
+        final Optional<PolicyId> optionalPolicyId = actual.getPolicyEntityId();
+
+        assertThat(optionalPolicyId.isPresent() && Objects.equals(optionalPolicyId.get(), expectedPolicyId))
+                .overridingErrorMessage("Expected Policy ID to be \n<%s> but was \n<%s>", expectedPolicyId,
+                        optionalPolicyId.orElse(null))
+                .isTrue();
+
+        return this;
+    }
+
     public ThingAssert hasNoPolicyId() {
         isNotNull();
 
-        final Optional<String> policyIdOptional = actual.getPolicyId();
+        final Optional<PolicyId> policyIdOptional = actual.getPolicyEntityId();
 
         assertThat(policyIdOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not have a PolicyId but it had <%s>",
@@ -516,7 +532,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         assertThat(actual).isNotNull();
 
         assertThat(actual.getModified()).isPresent();
-        assertThat(actual.getId()).isEqualTo(expected.getId());
+        assertThat(actual.getEntityId()).isEqualTo(expected.getEntityId());
         assertThat(actual.getAttributes()).isEqualTo(expected.getAttributes());
         assertThat(actual.getFeatures()).isEqualTo(expected.getFeatures());
 
@@ -524,7 +540,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
             assertThat(actual.getAccessControlList()).isEqualTo(expected.getAccessControlList());
         }
         if (JsonSchemaVersion.V_2.equals(expected.getImplementedSchemaVersion())) {
-            assertThat(actual.getPolicyId()).isEqualTo(expected.getPolicyId());
+            assertThat(actual.getPolicyEntityId()).isEqualTo(expected.getPolicyEntityId());
         }
 
         return this;

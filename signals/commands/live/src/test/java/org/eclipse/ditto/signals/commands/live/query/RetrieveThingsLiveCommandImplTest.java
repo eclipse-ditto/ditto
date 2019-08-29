@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
@@ -40,7 +41,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class RetrieveThingsLiveCommandImplTest {
 
-    private static List<String> thingIds;
+    private static List<ThingId> thingIds;
 
     private RetrieveThings retrieveThingTwinCommand;
     private RetrieveThingsLiveCommand underTest;
@@ -49,9 +50,9 @@ public final class RetrieveThingsLiveCommandImplTest {
     @BeforeClass
     public static void initThingIds() {
         thingIds = new ArrayList<>();
-        thingIds.add(":foo");
-        thingIds.add(":bar");
-        thingIds.add(":baz");
+        thingIds.add(ThingId.inDefaultNamespace("foo"));
+        thingIds.add(ThingId.inDefaultNamespace("bar"));
+        thingIds.add(ThingId.inDefaultNamespace("baz"));
     }
 
     /** */
@@ -108,10 +109,10 @@ public final class RetrieveThingsLiveCommandImplTest {
         assertThat(underTest)
                 .withType(retrieveThingTwinCommand.getType())
                 .withDittoHeaders(retrieveThingTwinCommand.getDittoHeaders())
-                .withId(retrieveThingTwinCommand.getThingId())
+                .withId(retrieveThingTwinCommand.getThingEntityId())
                 .withManifest(retrieveThingTwinCommand.getManifest())
                 .withResourcePath(retrieveThingTwinCommand.getResourcePath());
-        assertThat(underTest.getThingIds()).isEqualTo(retrieveThingTwinCommand.getThingIds());
+        assertThat(underTest.getThingEntityIds()).isEqualTo(retrieveThingTwinCommand.getThingEntityIds());
     }
 
     /** */

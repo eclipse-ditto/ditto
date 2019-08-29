@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 
 @Immutable
@@ -62,7 +63,7 @@ public final class AttributeNotAccessibleException extends DittoRuntimeException
      * @param jsonPointer the JSON pointer of the attribute.
      * @return the builder.
      */
-    public static Builder newBuilder(final String thingId, final JsonPointer jsonPointer) {
+    public static Builder newBuilder(final ThingId thingId, final JsonPointer jsonPointer) {
         return new Builder(thingId, jsonPointer);
     }
 
@@ -111,9 +112,9 @@ public final class AttributeNotAccessibleException extends DittoRuntimeException
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId, final JsonPointer attributeKey) {
+        private Builder(final ThingId thingId, final JsonPointer attributeKey) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, attributeKey, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, attributeKey, String.valueOf(thingId)));
         }
 
         @Override

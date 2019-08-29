@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -57,13 +57,12 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
             JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
 
-    private DeleteFeatureDefinition(final String thingId, final String featureId, final DittoHeaders dittoHeaders) {
+    private DeleteFeatureDefinition(final ThingId thingId, final String featureId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
-        this.thingId = thingId;
+        this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
     }
 
@@ -75,10 +74,27 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
      * @param dittoHeaders the headers of the command.
      * @return a Command for deleting the provided Definition.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeleteFeatureDefinition of(final String thingId, final String featureId,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, dittoHeaders);
+    }
+
+    /**
+     * Returns a Command for deleting a Feature's Definition on a Thing.
+     *
+     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Definition to delete.
+     * @param featureId the {@code Feature}'s ID whose Definition to delete.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for deleting the provided Definition.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     */
+    public static DeleteFeatureDefinition of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
         return new DeleteFeatureDefinition(thingId, featureId, dittoHeaders);
@@ -95,7 +111,7 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteFeatureDefinition fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -111,19 +127,20 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteFeatureDefinition fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteFeatureDefinition>(TYPE, jsonObject).deserialize(() -> {
             final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
-            return of(extractedThingId, extractedFeatureId, dittoHeaders);
+            return of(thingId, extractedFeatureId, dittoHeaders);
         });
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -143,7 +160,7 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 

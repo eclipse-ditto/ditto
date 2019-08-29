@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricType;
@@ -42,8 +43,6 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
-
 /**
  * Tests {@link ConnectivityCounterRegistry}.
  */
@@ -51,7 +50,7 @@ public class ConnectivityCounterRegistryTest {
 
     private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
             ConnectivityCounterRegistry.fromConfig(TestConstants.MONITORING_CONFIG.counter());
-    private static final String CONNECTION_ID = "theConnection";
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final String SOURCE = "source1";
     private static final String TARGET = "target1";
     private static final Instant FIXED_INSTANT = Instant.now();
@@ -128,7 +127,7 @@ public class ConnectivityCounterRegistryTest {
                 ConnectivityCounterRegistry.mergeRetrieveConnectionMetricsResponse(
                         TestConstants.Metrics.METRICS_RESPONSE1, TestConstants.Metrics.METRICS_RESPONSE2);
 
-        assertThat(merged.getConnectionId()).isEqualTo(TestConstants.Metrics.ID);
+        assertThat((CharSequence) merged.getConnectionEntityId()).isEqualTo(TestConstants.Metrics.ID);
 
         // check overall sum of connection metrics
         assertThat(merged.getConnectionMetrics().getInboundMetrics().getMeasurements())

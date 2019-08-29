@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -62,7 +63,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
 
     private final String featureId;
 
-    private SendFeatureMessage(final String thingId,
+    private SendFeatureMessage(final ThingId thingId,
             final String featureId,
             final Message<T> message,
             final DittoHeaders dittoHeaders) {
@@ -103,8 +104,31 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      * @param <T> the type of the message's payload.
      * @return new instance of {@code SendFeatureMessage}.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.messages.Message, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static <T> SendFeatureMessage<T> of(final String thingId,
+            final String featureId,
+            final Message<T> message,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, message, dittoHeaders);
+    }
+
+    /**
+     * Creates a new instance of {@code SendFeatureMessage}.
+     *
+     * @param thingId the ID of the Thing to which the Feature belongs
+     * @param featureId the ID of the Feature to send the message to
+     * @param message the message to send to the Feature
+     * @param dittoHeaders the DittoHeaders of this message.
+     * @param <T> the type of the message's payload.
+     * @return new instance of {@code SendFeatureMessage}.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static <T> SendFeatureMessage<T> of(final ThingId thingId,
             final String featureId,
             final Message<T> message,
             final DittoHeaders dittoHeaders) {
@@ -153,7 +177,8 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      */
     public static <T> SendFeatureMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<SendFeatureMessage<T>>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
             final Message<T> message = deserializeMessageFromJson(jsonObject);
 
@@ -168,7 +193,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
 
     @Override
     public SendFeatureMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), featureId, getMessage(), dittoHeaders);
+        return of(getThingEntityId(), featureId, getMessage(), dittoHeaders);
     }
 
     @Override
@@ -180,7 +205,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
         jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
         final JsonObject superBuild = jsonObjectBuilder.build();
         jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingId());
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString());
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
         jsonObjectBuilder.setAll(superBuild);
     }

@@ -54,7 +54,7 @@ import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 @Immutable
 final class ImmutableConnection implements Connection {
 
-    private final String id;
+    private final ConnectionId id;
     @Nullable private final String name;
     private final ConnectionType connectionType;
     private final ConnectivityStatus connectionStatus;
@@ -104,7 +104,7 @@ final class ImmutableConnection implements Connection {
      * @return new instance of {@code ConnectionBuilder}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionBuilder getBuilder(final String id,
+    public static ConnectionBuilder getBuilder(final ConnectionId id,
             final ConnectionType connectionType,
             final ConnectivityStatus connectionStatus,
             final String uri) {
@@ -155,7 +155,7 @@ final class ImmutableConnection implements Connection {
     public static Connection fromJson(final JsonObject jsonObject) {
         final ConnectionType type = getConnectionTypeOrThrow(jsonObject);
         final ConnectionBuilder builder = new Builder(type)
-                .id(jsonObject.getValueOrThrow(JsonFields.ID))
+                .id(ConnectionId.of(jsonObject.getValueOrThrow(JsonFields.ID)))
                 .connectionStatus(getConnectionStatusOrThrow(jsonObject))
                 .uri(jsonObject.getValueOrThrow(JsonFields.URI))
                 .sources(getSources(jsonObject))
@@ -242,7 +242,7 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public String getId() {
+    public ConnectionId getId() {
         return id;
     }
 
@@ -366,7 +366,7 @@ final class ImmutableConnection implements Connection {
         if (null != lifecycle) {
             jsonObjectBuilder.set(Connection.JsonFields.LIFECYCLE, lifecycle.name(), predicate);
         }
-        jsonObjectBuilder.set(JsonFields.ID, id, predicate);
+        jsonObjectBuilder.set(JsonFields.ID, String.valueOf(id), predicate);
         jsonObjectBuilder.set(JsonFields.NAME, name, predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_TYPE, connectionType.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.getName(), predicate);
@@ -472,7 +472,7 @@ final class ImmutableConnection implements Connection {
         private final ConnectionType connectionType;
 
         // required but changeable:
-        @Nullable private String id;
+        @Nullable private ConnectionId id;
         @Nullable private ConnectivityStatus connectionStatus;
         @Nullable private String uri;
 
@@ -498,7 +498,7 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder id(final String id) {
+        public ConnectionBuilder id(final ConnectionId id) {
             this.id = checkNotNull(id, "ID");
             return this;
         }

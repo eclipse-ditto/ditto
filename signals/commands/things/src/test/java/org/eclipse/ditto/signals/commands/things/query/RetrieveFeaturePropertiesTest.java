@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -38,13 +39,13 @@ public final class RetrieveFeaturePropertiesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveFeatureProperties.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveFeatureProperties.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_FIELD_SELECTION = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveFeatureProperties.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveFeatureProperties.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(RetrieveFeatureProperties.JSON_SELECTED_FIELDS, SELECTED_FIELDS)
             .build();
@@ -57,7 +58,7 @@ public final class RetrieveFeaturePropertiesTest {
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeatureProperties.class,
                 areImmutable(),
-                provided(JsonFieldSelector.class).isAlsoImmutable());
+                provided(JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -68,10 +69,15 @@ public final class RetrieveFeaturePropertiesTest {
                 .verify();
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        RetrieveFeatureProperties.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        RetrieveFeatureProperties.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        RetrieveFeatureProperties.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -118,7 +124,7 @@ public final class RetrieveFeaturePropertiesTest {
                 RetrieveFeatureProperties.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
     }
 
@@ -129,7 +135,7 @@ public final class RetrieveFeaturePropertiesTest {
                 .fromJson(KNOWN_JSON_WITH_FIELD_SELECTION.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getSelectedFields())
                 .contains(JsonFactory.newFieldSelector(SELECTED_FIELDS, JSON_PARSE_OPTIONS));
     }

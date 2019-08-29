@@ -34,8 +34,8 @@ public final class ConnectionLogUtil {
      *
      * @param connectionId the connection ID to set.
      */
-    public static void enhanceLogWithConnectionId(final String connectionId) {
-        LogUtil.enhanceLogWithCustomField(LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId));
+    public static void enhanceLogWithConnectionId(final CharSequence connectionId) {
+        LogUtil.enhanceLogWithCustomField(LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId.toString()));
     }
 
     /**
@@ -44,7 +44,8 @@ public final class ConnectionLogUtil {
      * @param correlationId the correlation ID to set.
      * @param connectionId the connection ID to set.
      */
-    public static void enhanceLogWithCorrelationIdAndConnectionId(final String correlationId, final String connectionId) {
+    public static void enhanceLogWithCorrelationIdAndConnectionId(final String correlationId,
+            final CharSequence connectionId) {
         enhanceLogWithConnectionId(connectionId);
         LogUtil.enhanceLogWithCorrelationId(correlationId);
     }
@@ -57,8 +58,8 @@ public final class ConnectionLogUtil {
      * @param connectionId the connection ID to set.
      */
     public static void enhanceLogWithConnectionId(final DiagnosticLoggingAdapter loggingAdapter,
-            final String connectionId) {
-        LogUtil.enhanceLogWithCustomField(loggingAdapter, MDC_CONNECTION_ID, connectionId);
+            final CharSequence connectionId) {
+        LogUtil.enhanceLogWithCustomField(loggingAdapter, MDC_CONNECTION_ID, connectionId.toString());
     }
 
     /**
@@ -71,9 +72,9 @@ public final class ConnectionLogUtil {
      */
     public static void enhanceLogWithCorrelationIdAndConnectionId(final DiagnosticLoggingAdapter loggingAdapter,
             final WithDittoHeaders<?> signal,
-            final String connectionId) {
+            final CharSequence connectionId) {
         LogUtil.enhanceLogWithCorrelationId(loggingAdapter, signal,
-                LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId));
+                LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId.toString()));
     }
 
     /**
@@ -85,9 +86,9 @@ public final class ConnectionLogUtil {
      */
     public static void enhanceLogWithCorrelationIdAndConnectionId(final DiagnosticLoggingAdapter loggingAdapter,
             final String correlationId,
-            final String connectionId) {
+            final CharSequence connectionId) {
         LogUtil.enhanceLogWithCorrelationId(loggingAdapter, correlationId,
-                LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId));
+                LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId.toString()));
     }
 
 }

@@ -30,6 +30,13 @@ public interface AuthenticationConfig {
     HttpProxyConfig getHttpProxyConfig();
 
     /**
+     * Returns the configuration settings for the supported OAuth authorization servers.
+     *
+     * @return the config.
+     */
+    OAuthConfig getOAuthConfig();
+
+    /**
      * Indicates whether dummy authentication should be enabled.
      *
      * @return {@code true} if dummy authentication is enabled, {@code false} else.
@@ -57,7 +64,7 @@ public interface AuthenticationConfig {
         private final String path;
         private final Object defaultValue;
 
-        private AuthenticationConfigValue(final String thePath, final Object theDefaultValue) {
+        AuthenticationConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

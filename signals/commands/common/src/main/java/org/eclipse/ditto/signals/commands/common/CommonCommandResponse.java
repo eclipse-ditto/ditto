@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.commands.common;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
 /**
@@ -22,8 +23,8 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public abstract class CommonCommandResponse<T extends AbstractCommandResponse> extends AbstractCommandResponse<T> {
-
+public abstract class CommonCommandResponse<T extends AbstractCommandResponse> extends AbstractCommandResponse<T>
+        implements WithIdButActuallyNot {
     /**
      * Type prefix.
      */
@@ -47,11 +48,6 @@ public abstract class CommonCommandResponse<T extends AbstractCommandResponse> e
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
         super(responseType, statusCode, dittoHeaders);
-    }
-
-    @Override
-    public String getId() {
-        return "";
     }
 
     @Override

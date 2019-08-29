@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 import org.junit.Test;
@@ -44,7 +45,7 @@ public final class ImmutableConnectionTest {
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
-    private static final String ID = "myConnectionId";
+    private static final ConnectionId ID = ConnectionId.of("myConnectionId");
     private static final String NAME = "myConnection";
 
     private static final String URI = "amqps://foo:bar@example.com:443";
@@ -113,7 +114,7 @@ public final class ImmutableConnectionTest {
     private static final Set<String> KNOWN_TAGS = Collections.singleton("HONO");
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
-            .set(Connection.JsonFields.ID, ID)
+            .set(Connection.JsonFields.ID, ID.toString())
             .set(Connection.JsonFields.NAME, NAME)
             .set(Connection.JsonFields.CONNECTION_TYPE, TYPE.getName())
             .set(Connection.JsonFields.CONNECTION_STATUS, STATUS.getName())
@@ -142,7 +143,7 @@ public final class ImmutableConnectionTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableConnection.class, areImmutable(),
                 provided(AuthorizationContext.class, Source.class, Target.class,
-                        MappingContext.class, Credentials.class).isAlsoImmutable());
+                        MappingContext.class, Credentials.class, ConnectionId.class).isAlsoImmutable());
     }
 
     @Test
@@ -152,7 +153,7 @@ public final class ImmutableConnectionTest {
                 .targets(TARGETS)
                 .build();
 
-        assertThat(connection.getId()).isEqualTo(ID);
+        assertThat((CharSequence) connection.getId()).isEqualTo(ID);
         assertThat((Object) connection.getConnectionType()).isEqualTo(TYPE);
         assertThat(connection.getUri()).isEqualTo(URI);
         assertThat(connection.getSources()).isEqualTo(SOURCES);
@@ -192,7 +193,7 @@ public final class ImmutableConnectionTest {
                         .build())
                 .validateCertificate(true)
                 .uri("amqps://some.amqp.org:5672")
-                .id("id")
+                .id(ID)
                 .build();
 
         assertThat(ImmutableConnection.getBuilder(connection).build()).isEqualTo(connection);

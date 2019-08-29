@@ -42,7 +42,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      *
      * @return the identifier.
      */
-    String getId();
+    ConnectionId getId();
 
     /**
      * Returns the name of this {@code Connection}.

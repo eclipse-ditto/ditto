@@ -18,10 +18,13 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -143,6 +146,17 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     public Audience getAudience() {
         final Optional<JsonValue> audience = body.getValue(JsonFields.AUDIENCE);
         return audience.map(Audience::fromJson).orElseGet(Audience::empty);
+    }
+
+    @Override
+    public String getAuthorizedParty() {
+        return body.getValue(JsonFields.AUTHORIZED_PARTY).orElseGet(String::new);
+    }
+
+    @Override
+    public List<String> getScopes() {
+        final String[] strings = body.getValue(JsonFields.SCOPE).map(s -> s.split(" ")).orElseGet(() -> new String[]{});
+        return Arrays.stream(strings).collect(Collectors.toList());
     }
 
     @Override

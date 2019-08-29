@@ -61,7 +61,7 @@ public final class ThingModified extends AbstractThingEvent<ThingModified>
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, requireNonNull(thing, "The Thing must not be null!").getId().orElse(null), revision, timestamp,
+        super(TYPE, requireNonNull(thing, "The Thing must not be null!").getEntityId().orElse(null), revision, timestamp,
                 dittoHeaders);
         this.thing = thing;
     }

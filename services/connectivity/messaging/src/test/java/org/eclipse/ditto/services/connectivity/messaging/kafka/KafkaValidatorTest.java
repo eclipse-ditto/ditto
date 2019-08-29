@@ -24,11 +24,13 @@ import java.util.Map;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -38,6 +40,7 @@ import org.junit.Test;
  */
 public final class KafkaValidatorTest {
 
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static Map<String, String> defaultSpecificConfig = new HashMap<>();
 
     private KafkaValidator underTest;
@@ -104,7 +107,7 @@ public final class KafkaValidatorTest {
     }
 
     private static Connection getConnectionWithTarget(final String target) {
-        return ConnectivityModelFactory.newConnectionBuilder("kafka", ConnectionType.KAFKA,
+        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .targets(singletonList(
                         ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
@@ -115,7 +118,7 @@ public final class KafkaValidatorTest {
     private static Connection getConnectionWithBootstrapServers(final String bootstrapServers) {
         final Map<String, String> specificConfig = new HashMap<>();
         specificConfig.put("bootstrapServers", bootstrapServers);
-        return ConnectivityModelFactory.newConnectionBuilder("kafka", ConnectionType.KAFKA,
+        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .targets(singletonList(ConnectivityModelFactory.newTarget("events", AUTHORIZATION_CONTEXT, null, 1,
                         Topic.LIVE_EVENTS)))

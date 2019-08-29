@@ -23,6 +23,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.FeatureProperties;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -38,7 +40,7 @@ public final class FeaturePropertiesModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeaturePropertiesModified.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeaturePropertiesModified.JSON_PROPERTIES,
                     TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(FieldType.regularOrSpecial()))
@@ -60,10 +62,16 @@ public final class FeaturePropertiesModifiedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        FeaturePropertiesModified.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
+                TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        FeaturePropertiesModified.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        FeaturePropertiesModified.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
                 TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
     }
@@ -104,7 +112,7 @@ public final class FeaturePropertiesModifiedTest {
                 FeaturePropertiesModified.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getProperties()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
     }

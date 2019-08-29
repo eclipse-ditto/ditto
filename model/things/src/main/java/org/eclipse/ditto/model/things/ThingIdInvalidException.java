@@ -41,8 +41,8 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
     private static final String MESSAGE_TEMPLATE = "Thing ID ''{0}'' is not valid!";
 
     private static final String DEFAULT_DESCRIPTION =
-            "It must contain a namespace prefix (java package notation + a colon ':') + ID and must be a valid URI " +
-                    "path segment according to RFC-3986";
+            "It must contain a namespace prefix (java package notation + a colon ':') + a name and must be a valid " +
+                    "URI path segment according to RFC-3986";
 
     private static final long serialVersionUID = -2026814719409279158L;
 
@@ -69,7 +69,7 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * @param thingId the ID of the thing.
      * @return the builder.
      */
-    public static Builder newBuilder(final CharSequence thingId) {
+    public static Builder newBuilder(@Nullable final CharSequence thingId) {
         return new Builder(thingId);
     }
 
@@ -115,7 +115,7 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final CharSequence thingId) {
+        private Builder(@Nullable final CharSequence thingId) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
         }

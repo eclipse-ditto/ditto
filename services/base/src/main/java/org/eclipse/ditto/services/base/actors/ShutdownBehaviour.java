@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.services.base.actors;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.model.namespaces.NamespaceReader;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReason;
@@ -36,11 +36,11 @@ public final class ShutdownBehaviour {
     private static final Logger LOG = LoggerFactory.getLogger(ShutdownBehaviour.class);
 
     private final String namespace;
-    private final String entityId;
+    private final EntityId entityId;
 
     private final ActorRef self;
 
-    private ShutdownBehaviour(final String namespace, final String entityId, final ActorRef self) {
+    private ShutdownBehaviour(final String namespace, final EntityId entityId, final ActorRef self) {
         this.namespace = namespace;
         this.entityId = entityId;
         this.self = self;
@@ -54,14 +54,12 @@ public final class ShutdownBehaviour {
      * @param self reference of the actor itself.
      * @return the actor behavior.
      */
-    public static ShutdownBehaviour fromId(final String entityId, final ActorRef pubSubMediator,
+    public static ShutdownBehaviour fromId(final NamespacedEntityId entityId, final ActorRef pubSubMediator,
             final ActorRef self) {
 
-        argumentNotEmpty(entityId, "Entity ID");
+        checkNotNull(entityId, "Entity ID");
         checkNotNull(self, "Self");
-
-        final String namespace = NamespaceReader.fromEntityId(entityId).orElse("");
-
+        final String namespace = entityId.getNamespace();
         final ShutdownBehaviour purgeEntitiesBehaviour = new ShutdownBehaviour(namespace, entityId, self);
 
         purgeEntitiesBehaviour.subscribePubSub(checkNotNull(pubSubMediator, "Pub-Sub-Mediator"));

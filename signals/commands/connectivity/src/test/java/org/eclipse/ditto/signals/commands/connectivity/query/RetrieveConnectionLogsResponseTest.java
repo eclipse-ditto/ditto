@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ImmutableLogEntry;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
@@ -53,7 +54,7 @@ public class RetrieveConnectionLogsResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ConnectivityCommandResponse.JsonFields.STATUS, 200)
             .set(ConnectivityCommandResponse.JsonFields.TYPE, RetrieveConnectionLogsResponse.TYPE)
-            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
+            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID.toString())
             .set(RetrieveConnectionLogsResponse.JsonFields.ENABLED_SINCE, ENABLED_SINCE.toString())
             .set(RetrieveConnectionLogsResponse.JsonFields.ENABLED_UNTIL, ENABLED_UNTIL.toString())
             .set(RetrieveConnectionLogsResponse.JsonFields.CONNECTION_LOGS, TestConstants.Logs.Json.ENTRIES_JSON)
@@ -171,7 +172,7 @@ public class RetrieveConnectionLogsResponseTest {
         final Collection<LogEntry> expectedEntries = new ArrayList<>(TestConstants.Logs.ENTRIES);
         expectedEntries.addAll(secondLogEntries);
 
-        assertThat(merged.getConnectionId()).isEqualTo(ID);
+        assertThat((CharSequence) merged.getConnectionEntityId()).isEqualTo(ID);
         assertThat(merged.getEnabledSince()).contains(ENABLED_SINCE);
         assertThat(merged.getEnabledUntil()).contains(ENABLED_UNTIL);
         assertThat(merged.getConnectionLogs()).containsOnlyElementsOf(expectedEntries);
@@ -188,7 +189,7 @@ public class RetrieveConnectionLogsResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionLogsResponse.class, areImmutable(),
-                provided(LogEntry.class).areAlsoImmutable());
+                provided(LogEntry.class, ConnectionId.class).areAlsoImmutable());
     }
 
 }

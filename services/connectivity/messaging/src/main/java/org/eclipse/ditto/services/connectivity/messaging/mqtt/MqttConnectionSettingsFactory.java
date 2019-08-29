@@ -41,7 +41,7 @@ final class MqttConnectionSettingsFactory {
     MqttConnectionSettings createMqttConnectionSettings(final Connection connection, final DittoHeaders dittoHeaders) {
         final String uri = connection.getUri();
         MqttConnectionSettings connectionSettings = MqttConnectionSettings
-                .create(uri, connection.getId(), new MemoryPersistence());
+                .create(uri, connection.getId().toString(), new MemoryPersistence());
 
         connectionSettings = connectionSettings.withAutomaticReconnect(connection.isFailoverEnabled());
 
