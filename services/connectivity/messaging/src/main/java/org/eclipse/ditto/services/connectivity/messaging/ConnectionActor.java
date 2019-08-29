@@ -899,7 +899,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         // wrap in Broadcast message because these management messages must be delivered to each client actor
         if (clientActorRouter != null && connection != null) {
             final ActorRef aggregationActor = getContext().actorOf(
-                    AggregateActor.props(clientActorRouter, connection.getClientCount(), responseTimeout));
+                    AggregateActor.props(clientActorRouter, connection.getClientCount(), responseTimeout,
+                            connection.getId()));
             Patterns.ask(aggregationActor, cmd, clientActorAskTimeout)
                     .whenComplete((response, exception) -> {
                         log.debug("Got response to {}: {}", cmd.getType(),
@@ -1040,10 +1041,10 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 );
         final RetrieveConnectionMetricsResponse metricsResponse =
                 RetrieveConnectionMetricsResponse.getBuilder(connectionId, command.getDittoHeaders())
-                .connectionMetrics(metrics)
-                .sourceMetrics(ConnectivityModelFactory.emptySourceMetrics())
-                .targetMetrics(ConnectivityModelFactory.emptyTargetMetrics())
-                .build();
+                        .connectionMetrics(metrics)
+                        .sourceMetrics(ConnectivityModelFactory.emptySourceMetrics())
+                        .targetMetrics(ConnectivityModelFactory.emptyTargetMetrics())
+                        .build();
         origin.tell(metricsResponse, getSelf());
     }
 
@@ -1266,23 +1267,29 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
         private int responseCount = 0;
         @Nullable private ActorRef origin;
-        @Nullable private DittoHeaders originHeaders;
 
         /**
          * Creates Akka configuration object for this actor.
          *
+         * @param clientActor the client actor router
+         * @param expectedResponses the number of expected responses
+         * @param timeout the timeout in milliseconds
+         * @param connectionId the connection id
          * @return the Akka configuration Props object
          */
-        static Props props(final ActorRef clientActor, final int expectedResponses, final long timeout) {
-            return Props.create(AggregateActor.class, clientActor, expectedResponses, timeout);
+        static Props props(final ActorRef clientActor, final int expectedResponses, final long timeout,
+                final String connectionId) {
+            return Props.create(AggregateActor.class, clientActor, expectedResponses, timeout, connectionId);
         }
 
         @SuppressWarnings("unused")
-        private AggregateActor(final ActorRef clientActor, final int expectedResponses, final long timeout) {
+        private AggregateActor(final ActorRef clientActor, final int expectedResponses, final long timeout,
+                final String connectionId) {
             this.clientActor = clientActor;
             this.expectedResponses = expectedResponses;
             this.timeout = timeout;
             aggregatedStatus = new HashMap<>();
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         }
 
         @Override
@@ -1290,7 +1297,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             return ReceiveBuilder.create()
                     .match(Command.class, command -> {
                         clientActor.tell(new Broadcast(command), getSelf());
-                        originHeaders = command.getDittoHeaders();
                         origin = getSender();
 
                         getContext().setReceiveTimeout(Duration.ofMillis(timeout / 2));
@@ -1299,41 +1305,49 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                             // send back (partially) gathered responses
                             sendBackAggregatedResults()
                     )
+                    .match(Status.Status.class, status -> {
+                        aggregatedStatus.put(getSender().path().address().hostPort(), status);
+                        respondIfExpectedResponsesReceived();
+                    })
                     .matchAny(any -> {
-                        if (any instanceof Status.Status) {
-                            aggregatedStatus.put(getSender().path().address().hostPort(),
-                                    (Status.Status) any);
-                        } else {
-                            log.error("Could not handle non-Status response: {}", any);
-                        }
-                        responseCount++;
-                        if (expectedResponses == responseCount) {
-                            // send back all gathered responses
-                            sendBackAggregatedResults();
-                        }
+                        log.info("Could not handle non-Status response: {}", any);
+                        respondIfExpectedResponsesReceived();
                     })
                     .build();
         }
 
         private void sendBackAggregatedResults() {
-            if (origin != null && originHeaders != null && !aggregatedStatus.isEmpty()) {
-                log.debug("Aggregated statuses: {}", aggregatedStatus);
-                final Optional<Status.Status> failure = aggregatedStatus.entrySet().stream()
-                        .filter(s -> s.getValue() instanceof Status.Failure)
-                        .map(Map.Entry::getValue)
-                        .findFirst();
-                if (failure.isPresent()) {
-                    origin.tell(failure.get(), getSelf());
+            if (origin != null) {
+                if (!aggregatedStatus.isEmpty()) {
+                    log.debug("Aggregated statuses: {}", aggregatedStatus);
+                    final Optional<Status.Status> failure = aggregatedStatus.values().stream()
+                            .filter(status -> status instanceof Status.Failure)
+                            .findFirst();
+                    if (failure.isPresent()) {
+                        origin.tell(failure.get(), getSelf());
+                    } else {
+                        final String aggregatedStatusStr = aggregatedStatus.entrySet().stream()
+                                .map(Object::toString)
+                                .collect(Collectors.joining(","));
+                        origin.tell(new Status.Success(aggregatedStatusStr), getSelf());
+                    }
                 } else {
-                    final String aggregatedStatusStr = aggregatedStatus.entrySet().stream()
-                            .map(Object::toString)
-                            .collect(Collectors.joining(","));
-                    origin.tell(new Status.Success(aggregatedStatusStr), getSelf());
+                    // no status response received, most likely a timeout
+                    log.info("Waiting for status responses timed out.");
+                    origin.tell(new RuntimeException("Waiting for status responses timed out."), getSelf());
                 }
             } else {
-                log.warning("No origin was present or results were empty in order to send back aggregated results to");
+                log.info("No origin was present to send back aggregated results.");
             }
             getContext().stop(getSelf());
+        }
+
+        private void respondIfExpectedResponsesReceived() {
+            responseCount++;
+            if (expectedResponses == responseCount) {
+                // send back all gathered responses
+                sendBackAggregatedResults();
+            }
         }
 
     }

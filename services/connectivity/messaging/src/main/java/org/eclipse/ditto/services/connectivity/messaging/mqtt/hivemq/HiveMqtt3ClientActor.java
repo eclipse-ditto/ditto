@@ -122,10 +122,9 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         return connection;
     }
 
-
-    // TODO: this code is a duplicate of MqttClientActor and KafkaClientActor
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
+        // attention: do not use reconnect, otherwise the future never returns
         final Mqtt3Client testClient = clientFactory.newClient(connection, connection.getId(), false);
         return testClient
                 .toAsync()
