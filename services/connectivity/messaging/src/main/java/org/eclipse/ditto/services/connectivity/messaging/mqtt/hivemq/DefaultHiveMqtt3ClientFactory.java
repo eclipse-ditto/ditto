@@ -52,7 +52,7 @@ public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFacto
     }
 
     @Override
-    public Mqtt3Client newClient(final Connection connection, final String identifier,
+    public Mqtt3Client newClient(final Connection connection, final String identifier, final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener) {
         final Mqtt3ClientBuilder mqtt3ClientBuilder = MqttClient.builder().useMqttVersion3();
@@ -70,7 +70,7 @@ public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFacto
                     .applySimpleAuth();
         }
 
-        if (connection.isFailoverEnabled()) {
+        if (allowReconnect && connection.isFailoverEnabled()) {
             // TODO: use specific config instead of default config
             mqtt3ClientBuilder.automaticReconnectWithDefaultConfig();
         }

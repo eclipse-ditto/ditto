@@ -33,11 +33,13 @@ public interface HiveMqtt3ClientFactory {
      *
      * @param connection the connection containing the configuration
      * @param identifier the identifier of the client
+     * @param allowReconnect whether client can be configured with automatic reconnect enabled, e.g. reconnect must
+     * be disabled for testing a connection
      * @param connectedListener the connected listener passed to the created client
      * @param disconnectedListener the disconnected listener passed to the created client
      * @return the new {@link Mqtt3Client}
      */
-    Mqtt3Client newClient(final Connection connection, final String identifier,
+    Mqtt3Client newClient(final Connection connection, final String identifier, final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener);
 
@@ -47,10 +49,11 @@ public interface HiveMqtt3ClientFactory {
      *
      * @param connection the connection containing the configuration
      * @param identifier the identifier of the client
+     * @param allowReconnect whether client can be configured with automatic reconnect enabled
      * @return the new {@link Mqtt3Client}
      */
-    default Mqtt3Client newClient(final Connection connection, final String identifier) {
-        return newClient(connection, identifier, null, null);
+    default Mqtt3Client newClient(final Connection connection, final String identifier, final boolean allowReconnect) {
+        return newClient(connection, identifier, allowReconnect, null, null);
     }
 
 }

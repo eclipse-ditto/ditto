@@ -67,7 +67,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         this.clientFactory = clientFactory;
 
         final ActorRef self = getContext().getSelf();
-        client = clientFactory.newClient(connection, connection.getId(),
+        client = clientFactory.newClient(connection, connection.getId(), true,
                 connected -> self.tell(connected, ActorRef.noSender()),
                 disconnected -> self.tell(disconnected, ActorRef.noSender()));
 
@@ -126,7 +126,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     // TODO: this code is a duplicate of MqttClientActor and KafkaClientActor
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
-        final Mqtt3Client testClient = clientFactory.newClient(connection, connection.getId());
+        final Mqtt3Client testClient = clientFactory.newClient(connection, connection.getId(), false);
         return testClient
                 .toAsync()
                 .connectWith()
@@ -313,7 +313,8 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                 .whenComplete((unused, throwable) -> {
                     if (null != throwable) {
                         // BaseClientActor will handle and log all ConnectionFailures.
-                        self.tell(new ImmutableConnectionFailure(null, throwable, null), ActorRef.noSender());
+                        log.debug("Connecting failed ({}): {}", throwable.getClass().getName(), throwable.getMessage());
+                        self.tell(new ImmutableConnectionFailure(origin, throwable, null), origin);
                     } else {
                         // tell self we connected successfully to proceed with connection establishment
                         self.tell(new MqttClientConnected(origin), getSelf());

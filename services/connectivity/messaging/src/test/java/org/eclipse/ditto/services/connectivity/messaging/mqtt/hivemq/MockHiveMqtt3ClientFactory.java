@@ -93,7 +93,7 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
     }
 
     @Override
-    public Mqtt3Client newClient(final Connection connection, final String identifier,
+    public Mqtt3Client newClient(final Connection connection, final String identifier, final boolean reconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener) {
 
