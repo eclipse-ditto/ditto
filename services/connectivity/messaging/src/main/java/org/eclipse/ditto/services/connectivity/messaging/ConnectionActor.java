@@ -1299,8 +1299,9 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                     )
                     .matchAny(any -> {
                         if (any instanceof Status.Status) {
-                            aggregatedStatus.put(getSender().path().address().hostPort(),
-                                    (Status.Status) any);
+                            addStatus((Status.Status) any);
+                        } else if (any instanceof DittoRuntimeException) {
+                            addStatus(new Status.Failure((DittoRuntimeException) any));
                         } else {
                             log.error("Could not handle non-Status response: {}", any);
                         }
@@ -1313,12 +1314,15 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                     .build();
         }
 
+        private void addStatus(final Status.Status status) {
+            aggregatedStatus.put(getSender().path().address().hostPort(), status);
+        }
+
         private void sendBackAggregatedResults() {
             if (origin != null && originHeaders != null && !aggregatedStatus.isEmpty()) {
                 log.debug("Aggregated statuses: {}", aggregatedStatus);
-                final Optional<Status.Status> failure = aggregatedStatus.entrySet().stream()
-                        .filter(s -> s.getValue() instanceof Status.Failure)
-                        .map(Map.Entry::getValue)
+                final Optional<Status.Status> failure = aggregatedStatus.values().stream()
+                        .filter(status -> status instanceof Status.Failure)
                         .findFirst();
                 if (failure.isPresent()) {
                     origin.tell(failure.get(), getSelf());
