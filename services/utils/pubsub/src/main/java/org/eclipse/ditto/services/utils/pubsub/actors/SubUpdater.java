@@ -285,6 +285,7 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
         if (request.shouldAcknowledge()) {
             final Acknowledgement acknowledgement = Acknowledgement.of(request, getSender());
             awaitUpdate.add(acknowledgement);
+            awaitUpdateMetric.increment();
         }
     }
 
