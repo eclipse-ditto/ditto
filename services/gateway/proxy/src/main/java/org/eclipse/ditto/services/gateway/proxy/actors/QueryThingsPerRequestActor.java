@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
@@ -94,8 +95,9 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
                     log.debug("Received QueryThingsResponse: {}", qtr);
 
-                    final List<String> thingIds = qtr.getSearchResult().stream()
+                    final List<ThingId> thingIds = qtr.getSearchResult().stream()
                             .map(val -> val.asObject().getValue(Thing.JsonFields.ID).orElse(null))
+                            .map(ThingId::of)
                             .collect(Collectors.toList());
 
                     if (thingIds.isEmpty()) {

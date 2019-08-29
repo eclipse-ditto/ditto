@@ -18,7 +18,7 @@ import java.util.Collections;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cluster.AbstractPubSubListenerActor;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -37,10 +37,10 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
      */
     public static final String ACTOR_NAME = "policyCacheUpdater";
 
-    private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
+    private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
 
     @SuppressWarnings("unused")
-    private PolicyCacheUpdateActor(final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+    private PolicyCacheUpdateActor(final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
             final ActorRef pubSubMediator, final String instanceIndex) {
 
         super(pubSubMediator, Collections.singleton(PolicyEvent.TYPE_PREFIX), instanceIndex);
@@ -56,7 +56,7 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
      * @param instanceIndex the index of this service instance.
      * @return Akka {@code Props} object.
      */
-    public static Props props(final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+    public static Props props(final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
             final ActorRef pubSubMediator, final String instanceIndex) {
         requireNonNull(policyEnforcerCache);
         requireNonNull(pubSubMediator);
@@ -70,7 +70,8 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
     }
 
     private void handleEvent(final PolicyEvent policyEvent) {
-        final EntityId key = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyEvent.getId());
+        final EntityIdWithResourceType key =
+                EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyEvent.getEntityId());
         policyEnforcerCache.invalidate(key);
     }
 }

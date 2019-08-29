@@ -17,19 +17,21 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * Represents the ID of an entity with a revision of the entity.
  */
-public interface EntityIdWithRevision extends Jsonifiable<JsonObject>, IdentifiableStreamingMessage {
+public interface EntityIdWithRevision<I extends EntityId> extends Jsonifiable<JsonObject>,
+        IdentifiableStreamingMessage {
 
     /**
-     * Returns the ID of the modified entity.
+     * Returns the Entity ID of the modified entity.
      *
      * @return the ID of the modified entity.
      */
-    String getId();
+    I getEntityId();
 
     /**
      * Returns the revision of the modified entity.
@@ -44,7 +46,7 @@ public interface EntityIdWithRevision extends Jsonifiable<JsonObject>, Identifia
      * @return the tag as an identifier
      */
     default String asIdentifierString() {
-        return getId() + ":" + getRevision();
+        return getEntityId() + ":" + getRevision();
     }
 
     /**

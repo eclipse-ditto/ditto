@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
@@ -40,7 +41,7 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private SendClaimMessageResponse(final String thingId,
+    private SendClaimMessageResponse(final ThingId thingId,
             final Message<T> message,
             final HttpStatusCode responseStatusCode,
             final DittoHeaders dittoHeaders) {
@@ -50,7 +51,30 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
 
     @Override
     public SendClaimMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), getMessage(), getStatusCode(), dittoHeaders);
+        return of(getThingEntityId(), getMessage(), getStatusCode(), dittoHeaders);
+    }
+
+    /**
+     * Creates a new instance of {@code SendClaimMessageResponse}.
+     *
+     * @param thingId the ID of the Thing to send the message from.
+     * @param message the claim response message to send from the Thing.
+     * @param responseStatusCode the optional status code of this response.
+     * @param dittoHeaders the DittoHeaders of this message.
+     * @param <T> the type of the message's payload.
+     * @return new instance of {@code SendClaimMessageResponse}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.messages.Message, org.eclipse.ditto.model.base.common.HttpStatusCode, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static <T> SendClaimMessageResponse<T> of(final String thingId,
+            final Message<T> message,
+            final HttpStatusCode responseStatusCode,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), message, responseStatusCode, dittoHeaders);
     }
 
     /**
@@ -64,7 +88,7 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
      * @return new instance of {@code SendClaimMessageResponse}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <T> SendClaimMessageResponse<T> of(final String thingId,
+    public static <T> SendClaimMessageResponse<T> of(final ThingId thingId,
             final Message<T> message,
             final HttpStatusCode responseStatusCode,
             final DittoHeaders dittoHeaders) {
@@ -102,7 +126,9 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
 
         return new CommandResponseJsonDeserializer<SendClaimMessageResponse<T>>(TYPE, jsonObject)
                 .deserialize(statusCode -> {
-                    final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
+                    final String extractedThingId =
+                            jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final Message<T> message = deserializeMessageFromJson(jsonObject);
 
                     return of(thingId, message, statusCode, dittoHeaders);

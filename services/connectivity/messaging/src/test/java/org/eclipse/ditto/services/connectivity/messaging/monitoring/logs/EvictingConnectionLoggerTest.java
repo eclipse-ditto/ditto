@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.model.connectivity.LogLevel;
 import org.eclipse.ditto.model.connectivity.LogType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -53,7 +54,7 @@ public final class EvictingConnectionLoggerTest {
     private static final LogCategory CATEGORY = LogCategory.TARGET;
     private static final LogType TYPE = LogType.MAPPED;
 
-    private static final String THING_ID = "any:thing";
+    private static final ThingId THING_ID = ThingId.of("any:thing");
     private static final ConnectionMonitor.InfoProvider INFO_PROVIDER_WITH_THING = infoProviderWithThingId(THING_ID);
 
     @Test
@@ -340,7 +341,7 @@ public final class EvictingConnectionLoggerTest {
         return InfoProviderFactory.forExternalMessage(externalMessage);
     }
 
-    private static ConnectionMonitor.InfoProvider infoProviderWithThingId(final String thingId) {
+    private static ConnectionMonitor.InfoProvider infoProviderWithThingId(final ThingId thingId) {
         return InfoProviderFactory.forSignal(RetrieveThing.of(thingId, DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build()));
     }
 
@@ -398,7 +399,7 @@ public final class EvictingConnectionLoggerTest {
             return this;
         }
 
-        private LogEntryAssert hasThingId(@Nullable final String thingId) {
+        private LogEntryAssert hasThingId(@Nullable final ThingId thingId) {
             if (null == thingId) {
                 return hasNoThingId();
             }

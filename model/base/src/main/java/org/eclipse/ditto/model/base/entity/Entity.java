@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -33,29 +34,22 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public interface Entity<T extends Revision<T>> extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * The regex pattern for a Namespace.
+     * Returns the ID of this entity.
+     *
+     * @return the ID of this entity.
+     * @deprecated entity IDs are now typed. Use {@link #getEntityId()} instead.
      */
-    String NAMESPACE_REGEX = "(?<ns>(?:(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
-
-    /**
-     * The regex pattern for an Entity Name. Has to be conform to
-     * <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC-3986</a>.
-     */
-    String ENTITY_NAME_REGEX =
-            "(?<id>(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";
-
-    /**
-     * The regex pattern for an Entity ID.
-     * Combines "namespace" pattern (java package notation + a colon) and "name" pattern.
-     */
-    String ID_REGEX = NAMESPACE_REGEX + "\\:" + ENTITY_NAME_REGEX;
+    @Deprecated
+    default Optional<String> getId() {
+        return getEntityId().map(String::valueOf);
+    }
 
     /**
      * Returns the ID of this entity.
      *
      * @return the ID of this entity.
      */
-    Optional<String> getId();
+    Optional<? extends EntityId> getEntityId();
 
     /**
      * Returns the current revision of this entity.

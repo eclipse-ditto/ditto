@@ -22,6 +22,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -46,9 +48,9 @@ public final class CleanupPersistence
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final String entityId;
+    private final EntityId entityId;
 
-    private CleanupPersistence(final String entityId, final DittoHeaders dittoHeaders) {
+    private CleanupPersistence(final EntityId entityId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.entityId = ConditionChecker.checkNotNull(entityId, "entityId");
     }
@@ -61,12 +63,12 @@ public final class CleanupPersistence
      * @param dittoHeaders the headers of the command.
      * @return a command for cleaning up persistence.
      */
-    public static CleanupPersistence of(final String entityId, final DittoHeaders dittoHeaders) {
+    public static CleanupPersistence of(final EntityId entityId, final DittoHeaders dittoHeaders) {
         return new CleanupPersistence(entityId, dittoHeaders);
     }
 
     @Override
-    public String getEntityId() {
+    public EntityId getEntityId() {
         return entityId;
     }
 
@@ -78,7 +80,7 @@ public final class CleanupPersistence
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set(CleanupCommand.JsonFields.ENTITY_ID, entityId, predicate);
+        jsonObjectBuilder.set(CleanupCommand.JsonFields.ENTITY_ID, String.valueOf(entityId), predicate);
     }
 
     /**
@@ -95,7 +97,11 @@ public final class CleanupPersistence
      */
     public static CleanupPersistence fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<CleanupPersistence>(TYPE, jsonObject).deserialize(
-                () -> of(jsonObject.getValueOrThrow(CleanupCommand.JsonFields.ENTITY_ID), dittoHeaders));
+                () -> {
+                    final String readEntityId = jsonObject.getValueOrThrow(CleanupCommand.JsonFields.ENTITY_ID);
+                    final EntityId entityId = DefaultEntityId.of(readEntityId);
+                    return of(entityId, dittoHeaders);
+                });
     }
 
     @Override

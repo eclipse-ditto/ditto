@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -40,7 +41,7 @@ public final class ModifyAclTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.ID, ModifyAcl.NAME)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyAcl.JSON_ACCESS_CONTROL_LIST,
                     TestConstants.Thing.ACL.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial()))
             .build();
@@ -51,7 +52,7 @@ public final class ModifyAclTest {
         assertInstancesOf(ModifyAcl.class,
                 areImmutable(),
                 provided(JsonObject.class, AccessControlList.class, AclEntry.class,
-                        Permission.class).areAlsoImmutable());
+                        Permission.class, ThingId.class).areAlsoImmutable());
     }
 
 
@@ -66,10 +67,15 @@ public final class ModifyAclTest {
                 .verify();
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        ModifyAcl.of((String) null, TestConstants.Thing.ACL, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+
+    @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        ModifyAcl.of(null, TestConstants.Thing.ACL, TestConstants.EMPTY_DITTO_HEADERS);
+        ModifyAcl.of((ThingId) null, TestConstants.Thing.ACL, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
@@ -95,7 +101,7 @@ public final class ModifyAclTest {
         final ModifyAcl underTest = ModifyAcl.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getAccessControlList()).isEqualTo(TestConstants.Thing.ACL);
     }
 

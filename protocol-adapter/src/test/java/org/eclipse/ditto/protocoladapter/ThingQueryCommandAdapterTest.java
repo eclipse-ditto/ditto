@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
@@ -758,9 +759,12 @@ public final class ThingQueryCommandAdapterTest implements ProtocolAdapterTest {
     }
 
     private void retrieveThingsFromAdaptable(final String namespace) {
+        final String namespaceOfThings = "org.eclipse.ditto.example";
+        final ThingId id1 = ThingId.of(namespaceOfThings, "id1");
+        final ThingId id2 = ThingId.of(namespaceOfThings, "id2");
         final RetrieveThings expected =
                 RetrieveThings.getBuilder(
-                        Arrays.asList("org.eclipse.ditto.example:id1", "org.eclipse.ditto.example:id2"))
+                        Arrays.asList(id1, id2))
                         .dittoHeaders(TestConstants.DITTO_HEADERS_V_2)
                         .namespace(namespace)
                         .build();
@@ -813,9 +817,11 @@ public final class ThingQueryCommandAdapterTest implements ProtocolAdapterTest {
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
-        final RetrieveThings retrieveThings =
-                RetrieveThings.getBuilder(
-                        Arrays.asList("org.eclipse.ditto.example:id1", "org.eclipse.ditto.example:id2"))
+        final String namespaceOfThings = "org.eclipse.ditto.example";
+        final ThingId id1 = ThingId.of(namespaceOfThings, "id1");
+        final ThingId id2 = ThingId.of(namespaceOfThings, "id2");
+
+        final RetrieveThings retrieveThings = RetrieveThings.getBuilder(Arrays.asList(id1, id2))
                         .dittoHeaders(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE)
                         .namespace(namespace)
                         .build();
@@ -842,7 +848,7 @@ public final class ThingQueryCommandAdapterTest implements ProtocolAdapterTest {
         public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
             return JsonObject.newBuilder()
                     .set(JsonFields.TYPE, getType())
-                    .set("thingId", getThingId())
+                    .set("thingId", getThingEntityId().toString())
                     .build();
         }
 
@@ -857,7 +863,7 @@ public final class ThingQueryCommandAdapterTest implements ProtocolAdapterTest {
         }
 
         @Override
-        public String getThingId() {
+        public ThingId getThingEntityId() {
             return TestConstants.THING_ID;
         }
 

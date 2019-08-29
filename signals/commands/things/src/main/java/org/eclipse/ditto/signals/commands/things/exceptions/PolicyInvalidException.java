@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * This exception indicates that a Policy is not valid for a Thing.
@@ -69,7 +70,7 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
      * @param thingId the identifier of the Thing.
      * @return the builder.
      */
-    public static Builder newBuilder(final Collection<String> permissions, final String thingId) {
+    public static Builder newBuilder(final Collection<String> permissions, final ThingId thingId) {
         checkNotNull(permissions, "permissions");
         checkNotNull(thingId, "thingId");
         return new Builder(permissions, thingId);
@@ -82,7 +83,7 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
      * @param thingId ID of the thing the policy applies to.
      * @return the builder.
      */
-    public static Builder newBuilderForCause(final Throwable cause, final String thingId) {
+    public static Builder newBuilderForCause(final Throwable cause, final ThingId thingId) {
         checkNotNull(cause, "cause");
         checkNotNull(thingId, "thingId");
         return new Builder(cause, thingId);
@@ -126,13 +127,13 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
             description(DESCRIPTION_TEMPLATE);
         }
 
-        private Builder(final Collection<String> permissions, final String thingId) {
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+        private Builder(final Collection<String> permissions, final ThingId thingId) {
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)));
             description(MessageFormat.format(DESCRIPTION_TEMPLATE, permissions));
         }
 
-        private Builder(final Throwable cause, final String thingId) {
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+        private Builder(final Throwable cause, final ThingId thingId) {
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)));
             description(cause.getMessage());
             cause(cause);
         }

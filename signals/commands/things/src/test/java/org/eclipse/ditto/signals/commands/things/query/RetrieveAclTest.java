@@ -13,6 +13,7 @@
 package org.eclipse.ditto.signals.commands.things.query;
 
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -20,6 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -36,13 +38,13 @@ public final class RetrieveAclTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.ID, RetrieveAcl.NAME)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .build();
 
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveAcl.class, areImmutable());
+        assertInstancesOf(RetrieveAcl.class, areImmutable(), provided(ThingId.class).isAlsoImmutable());
     }
 
 
@@ -53,10 +55,14 @@ public final class RetrieveAclTest {
                 .verify();
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        RetrieveAcl.of((String) null, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        RetrieveAcl.of(null, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveAcl.of((ThingId) null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
@@ -74,7 +80,7 @@ public final class RetrieveAclTest {
         final RetrieveAcl underTest = RetrieveAcl.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
     }
 
 }

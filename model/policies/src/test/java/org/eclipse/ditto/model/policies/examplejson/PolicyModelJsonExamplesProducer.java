@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.TestConstants;
@@ -61,7 +62,7 @@ public final class PolicyModelJsonExamplesProducer {
         final Path modelDir = rootPath.resolve(Paths.get("model"));
         Files.createDirectories(modelDir);
 
-        final String policyId = "org.eclipse.ditto.example:the_thingId";
+        final PolicyId policyId = PolicyId.of("org.eclipse.ditto.example", "the_thingId");
 
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("EndUser")

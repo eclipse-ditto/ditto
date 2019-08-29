@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Thrown if the Thing could not be deleted because the requester had insufficient permissions to delete it.
@@ -67,7 +68,7 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
      * @param thingId the ID of the thing.
      * @return the builder.
      */
-    public static Builder newBuilder(final String thingId) {
+    public static Builder newBuilder(final ThingId thingId) {
         return new Builder(thingId);
     }
 
@@ -111,13 +112,13 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingNotDeletableException> {
 
-        private String thingId;
+        private ThingId thingId;
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId) {
+        private Builder(final ThingId thingId) {
             this();
             this.thingId = checkNotNull(thingId, "Thing identifier");
         }
@@ -134,11 +135,11 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
             if (message == null) {
                 if (schemaVersion.equals(JsonSchemaVersion.V_1)) {
                     return new ThingNotDeletableException(dittoHeaders,
-                            MessageFormat.format(MESSAGE_TEMPLATE_V1, thingId),
+                            MessageFormat.format(MESSAGE_TEMPLATE_V1, String.valueOf(thingId)),
                             description, cause, href);
                 } else {
                     return new ThingNotDeletableException(dittoHeaders,
-                            MessageFormat.format(MESSAGE_TEMPLATE, thingId),
+                            MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)),
                             description, cause, href);
                 }
             }

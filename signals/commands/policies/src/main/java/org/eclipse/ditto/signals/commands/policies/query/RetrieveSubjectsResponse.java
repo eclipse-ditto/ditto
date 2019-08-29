@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -57,11 +58,11 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
     static final JsonFieldDefinition<JsonObject> JSON_SUBJECTS =
             JsonFactory.newJsonObjectFieldDefinition("subjects", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final JsonObject subjects;
 
-    private RetrieveSubjectsResponse(final String policyId,
+    private RetrieveSubjectsResponse(final PolicyId policyId,
             final Label label,
             final JsonObject subjects,
             final HttpStatusCode statusCode,
@@ -82,15 +83,17 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subjects, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveSubjectsResponse of(final String policyId,
             final Label label,
             final Subjects subjects,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveSubjectsResponse(policyId, label, checkNotNull(subjects, "Subjects").toJson(
-                dittoHeaders.getSchemaVersion().orElse(subjects.getLatestSchemaVersion())), HttpStatusCode.OK,
-                dittoHeaders);
+        return of(PolicyId.of(policyId), label, subjects, dittoHeaders);
     }
 
     /**
@@ -103,7 +106,50 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
+    public static RetrieveSubjectsResponse of(final PolicyId policyId,
+            final Label label,
+            final Subjects subjects,
+            final DittoHeaders dittoHeaders) {
+
+        final JsonObject jsonSubjects = checkNotNull(subjects, "Subjects")
+                .toJson(dittoHeaders.getSchemaVersion().orElse(subjects.getLatestSchemaVersion()));
+
+        return of(policyId, label, jsonSubjects, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrieveSubjects} command.
+     *
+     * @param policyId the Policy ID of the retrieved subjects.
+     * @param label the Label of the PolicyEntry.
+     * @param subjects the retrieved Subjects.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
     public static RetrieveSubjectsResponse of(final String policyId,
+            final Label label,
+            final JsonObject subjects,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subjects, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrieveSubjects} command.
+     *
+     * @param policyId the Policy ID of the retrieved subjects.
+     * @param label the Label of the PolicyEntry.
+     * @param subjects the retrieved Subjects.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveSubjectsResponse of(final PolicyId policyId,
             final Label label,
             final JsonObject subjects,
             final DittoHeaders dittoHeaders) {
@@ -139,8 +185,9 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
     public static RetrieveSubjectsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveSubjectsResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final String extractedPolicyId =
+                            jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
                     final JsonObject extractedSubjects = jsonObject.getValueOrThrow(JSON_SUBJECTS);
 
@@ -149,7 +196,7 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -198,7 +245,8 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+                predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECTS, subjects, predicate);
     }

@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.model.policies.Subject} was either not present or the requester had insufficient
@@ -64,7 +65,7 @@ public final class SubjectNotAccessibleException extends DittoRuntimeException i
      * @param subjectId the identifier of the Subject.
      * @return the builder.
      */
-    public static Builder newBuilder(final String policyId, final CharSequence label, final CharSequence subjectId) {
+    public static Builder newBuilder(final PolicyId policyId, final CharSequence label, final CharSequence subjectId) {
         return new Builder(policyId, label, subjectId);
     }
 
@@ -112,9 +113,9 @@ public final class SubjectNotAccessibleException extends DittoRuntimeException i
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String policyId, final CharSequence label, final CharSequence subjectId) {
+        private Builder(final PolicyId policyId, final CharSequence label, final CharSequence subjectId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, subjectId, label, policyId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, subjectId, label, String.valueOf(policyId)));
         }
 
         @Override

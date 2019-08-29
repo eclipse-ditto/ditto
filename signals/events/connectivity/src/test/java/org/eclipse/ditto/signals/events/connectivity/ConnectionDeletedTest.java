@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ public final class ConnectionDeletedTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Event.JsonFields.TYPE, ConnectionDeleted.TYPE)
-            .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID)
+            .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID.toString())
             .build();
 
     @Test
@@ -50,9 +51,17 @@ public final class ConnectionDeletedTest {
     }
 
     @Test
+    public void createInstanceWithNullConnectionIdString() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> ConnectionDeleted.of((String) null, DittoHeaders.empty()))
+                .withMessage("The ID must not be null!")
+                .withNoCause();
+    }
+
+    @Test
     public void createInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionDeleted.of(null, DittoHeaders.empty()))
+                .isThrownBy(() -> ConnectionDeleted.of((ConnectionId) null, DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "Connection ID")
                 .withNoCause();
     }

@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * A mutable builder with a fluent API for an immutable {@link MessageHeaders} object.
@@ -58,12 +59,33 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
      * @throws SubjectInvalidException if {@code subject} is invalid.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newInstance(MessageDirection, org.eclipse.ditto.model.things.ThingId, CharSequence)}
+     * instead.
      */
+    @Deprecated
     public static MessageHeadersBuilder newInstance(final MessageDirection direction, final CharSequence thingId,
             final CharSequence subject) {
 
+        return newInstance(direction, ThingId.of(thingId), subject);
+    }
+
+    /**
+     * Returns a new instance of {@code MessageHeadersBuilder}.
+     *
+     * @param direction the direction of the message.
+     * @param thingId the thing ID of the message.
+     * @param subject the subject of the message.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
+     * @throws SubjectInvalidException if {@code subject} is invalid.
+     */
+    public static MessageHeadersBuilder newInstance(final MessageDirection direction, final ThingId thingId,
+            final CharSequence subject) {
+
         checkNotNull(direction, MessageHeaderDefinition.DIRECTION.getKey());
-        argumentNotEmpty(thingId, MessageHeaderDefinition.THING_ID.getKey());
+        checkNotNull(thingId, MessageHeaderDefinition.THING_ID.getKey());
         argumentNotEmpty(subject, MessageHeaderDefinition.SUBJECT.getKey());
 
         final Map<String, String> initialHeaders = new HashMap<>();

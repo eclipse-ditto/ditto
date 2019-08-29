@@ -30,7 +30,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ThingTagTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(ThingTag.JsonFields.ID, TestConstants.Thing.THING_ID)
+            .set(ThingTag.JsonFields.ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingTag.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .build();
 
@@ -59,7 +59,7 @@ public final class ThingTagTest {
         final ThingTag underTest = ThingTag.fromJson(KNOWN_JSON);
 
         Assertions.assertThat(underTest).isNotNull();
-        Assertions.assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        Assertions.assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         Assertions.assertThat(underTest.getRevision()).isEqualTo(TestConstants.Thing.REVISION_NUMBER);
     }
 

@@ -27,6 +27,7 @@ import java.util.function.BiConsumer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
@@ -118,7 +119,7 @@ public final class ResultFactoryTest {
     private static CommandStrategy.Context createContext() {
         final DiagnosticLoggingAdapter log = mock(DiagnosticLoggingAdapter.class);
 
-        return DefaultContext.getInstance("org.example:my-thing", log, mock(Runnable.class), mock(Runnable.class));
+        return DefaultContext.getInstance(ThingId.of("org.example","my-thing"), log, mock(Runnable.class), mock(Runnable.class));
     }
 
     interface Dummy {

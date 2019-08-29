@@ -16,5 +16,5 @@ package org.eclipse.ditto.model.placeholders;
 /**
  * A {@link Placeholder} that requires a {@code String} (a valid Thing ID) to resolve its placeholders.
  */
-public interface ThingPlaceholder extends Placeholder<String> {
+public interface ThingPlaceholder extends Placeholder<CharSequence> {
 }

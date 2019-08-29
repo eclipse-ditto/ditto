@@ -24,6 +24,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceNotSupportedException;
 
 /**
@@ -45,10 +47,10 @@ public final class ReferencePlaceholder {
                     fieldSelectorGroup + placeholderEnding);
 
     private final ReferencedEntityType referencedEntityType;
-    private final String referencedEntityId;
+    private final EntityId referencedEntityId;
     private final JsonPointer referencedField;
 
-    private ReferencePlaceholder(final ReferencedEntityType referencedEntityType, final String referencedEntityId,
+    private ReferencePlaceholder(final ReferencedEntityType referencedEntityType, final EntityId referencedEntityId,
             final JsonPointer referencedField) {
         this.referencedEntityType = referencedEntityType;
         this.referencedEntityId = referencedEntityId;
@@ -71,9 +73,10 @@ public final class ReferencePlaceholder {
 
         final Matcher matcher = referencePlaceholderPattern.matcher(input);
         if (matcher.find()) {
-            return Optional.of(
-                    new ReferencePlaceholder(ReferencedEntityType.fromString(matcher.group(1)), matcher.group(2),
-                            JsonPointer.of(matcher.group(3))));
+            final ReferencedEntityType referencedEntityType = ReferencedEntityType.fromString(matcher.group(1));
+            final EntityId entityId = DefaultEntityId.of(matcher.group(2));
+            final JsonPointer referencedField = JsonPointer.of(matcher.group(3));
+            return Optional.of(new ReferencePlaceholder(referencedEntityType, entityId, referencedField));
         }
 
         return Optional.empty();
@@ -84,7 +87,7 @@ public final class ReferencePlaceholder {
         return referencedEntityType;
     }
 
-    String getReferencedEntityId() {
+    EntityId getReferencedEntityId() {
         return referencedEntityId;
     }
 

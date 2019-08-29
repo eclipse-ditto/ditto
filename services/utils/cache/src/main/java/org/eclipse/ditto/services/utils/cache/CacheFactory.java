@@ -18,6 +18,7 @@ import java.util.concurrent.Executor;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -40,8 +41,8 @@ public final class CacheFactory {
      * @param id the entity ID.
      * @return the entity ID with resource type object.
      */
-    public static EntityId newEntityId(final String resourceType, final String id) {
-        return ImmutableEntityId.of(resourceType, id);
+    public static EntityIdWithResourceType newEntityId(final String resourceType, final EntityId id) {
+        return ImmutableEntityIdWithResourceType.of(resourceType, id);
     }
 
     /**
@@ -51,8 +52,8 @@ public final class CacheFactory {
      * @return the entity ID with resource type.
      * @throws IllegalArgumentException if the string does not have the expected format.
      */
-    public static EntityId readEntityIdFrom(final String string) {
-        return ImmutableEntityId.readFrom(string);
+    public static EntityIdWithResourceType readEntityIdFrom(final String string) {
+        return ImmutableEntityIdWithResourceType.readFrom(string);
     }
 
     /**

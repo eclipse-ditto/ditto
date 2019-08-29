@@ -21,6 +21,8 @@ import javax.annotation.Nonnull;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -33,9 +35,9 @@ public final class TestEvent implements Event<TestEvent> {
 
     public static final String NAME = "type";
     public static final String TYPE = TYPE_PREFIX + NAME;
-    private final String id;
+    private final EntityId id;
 
-    private TestEvent(final String id) {
+    private TestEvent(final EntityId id) {
         this.id = id;
     }
 
@@ -50,7 +52,7 @@ public final class TestEvent implements Event<TestEvent> {
     }
 
     @Override
-    public String getId() {
+    public EntityId getEntityId() {
         return id;
     }
 
@@ -65,11 +67,11 @@ public final class TestEvent implements Event<TestEvent> {
     }
 
     public static TestEvent fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new TestEvent("0");
+        return new TestEvent(DefaultNamespacedEntityId.of("test", "0"));
     }
 
     public static TestEvent alternativeFromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new TestEvent("1");
+        return new TestEvent(DefaultNamespacedEntityId.of("test","1"));
     }
 
     @Override

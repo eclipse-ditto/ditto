@@ -19,6 +19,7 @@ import java.util.List;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 
 /**
  * A factory for getting instances of {@link ShutdownReason}.
@@ -80,7 +81,7 @@ public final class ShutdownReasonFactory {
      * @throws NullPointerException if {@code entityIds} is {@code null}.
      * @throws IllegalArgumentException if {@code entityIds} is empty.
      */
-    public static ShutdownReason getPurgeEntitiesReason(final List<String> entityIds) {
+    public static ShutdownReason getPurgeEntitiesReason(final List<EntityId> entityIds) {
         return PurgeEntitiesReason.of(entityIds);
     }
 

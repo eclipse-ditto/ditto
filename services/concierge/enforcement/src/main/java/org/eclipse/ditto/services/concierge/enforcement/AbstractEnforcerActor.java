@@ -23,7 +23,7 @@ import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
@@ -57,11 +57,11 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     private final EnforcementConfig enforcementConfig;
 
     @Nullable
-    private final Cache<EntityId, Entry<EntityId>> thingIdCache;
+    private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
     @Nullable
-    private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
+    private final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache;
     @Nullable
-    private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
+    private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
 
 
     /**
@@ -75,9 +75,9 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
      */
     protected AbstractEnforcerActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
-            @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
-            @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
+            @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
+            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
+            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
         super();
 
@@ -102,12 +102,12 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(InvalidateCacheEntry.class, invalidateCacheEntry -> {
             log.debug("received <{}>", invalidateCacheEntry);
-            final EntityId entityId = invalidateCacheEntry.getEntityId();
+            final EntityIdWithResourceType entityId = invalidateCacheEntry.getEntityId();
             invalidateCaches(entityId);
         });
     }
 
-    private void invalidateCaches(final EntityId entityId) {
+    private void invalidateCaches(final EntityIdWithResourceType entityId) {
         if (thingIdCache != null) {
             final boolean invalidated = thingIdCache.invalidate(entityId);
             log.debug("thingId cache for entity id <{}> was invalidated: {}", entityId, invalidated);

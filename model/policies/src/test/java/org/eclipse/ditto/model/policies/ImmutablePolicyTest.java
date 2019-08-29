@@ -48,7 +48,7 @@ public final class ImmutablePolicyTest {
             EffectedPermissions.newInstance(Permissions.newInstance(TestConstants.Policy.PERMISSION_READ),
                     Permissions.newInstance(TestConstants.Policy.PERMISSION_WRITE));
     private static final Label SUPPORT_LABEL = Label.of("SupportGroup");
-    private static final String POLICY_ID = "com.example:myPolicy";
+    private static final PolicyId POLICY_ID = PolicyId.of("com.example", "myPolicy");
 
     private static Policy createPolicy() {
         final List<PolicyEntry> policyEntries = Arrays.asList(createPolicyEntry1(), createPolicyEntry2());
@@ -78,7 +78,7 @@ public final class ImmutablePolicyTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutablePolicy.class,
                 areImmutable(),
-                provided(Label.class, PolicyRevision.class, PolicyEntry.class).areAlsoImmutable());
+                provided(PolicyId.class, Label.class, PolicyRevision.class, PolicyEntry.class).areAlsoImmutable());
     }
 
     @Test

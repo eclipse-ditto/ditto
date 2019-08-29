@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * This exception indicates that the requested modification of the ACL of a Thing is invalid for some reason. The cause
@@ -63,7 +64,7 @@ public final class AclModificationInvalidException extends DittoRuntimeException
      * @param thingId the ID of the thing.
      * @return the builder.
      */
-    public static Builder newBuilder(final String thingId) {
+    public static Builder newBuilder(final ThingId thingId) {
         return new Builder(thingId);
     }
 
@@ -113,9 +114,9 @@ public final class AclModificationInvalidException extends DittoRuntimeException
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId) {
+        private Builder(final ThingId thingId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)));
         }
 
         @Override

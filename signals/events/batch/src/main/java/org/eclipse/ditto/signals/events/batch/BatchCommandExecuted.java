@@ -38,8 +38,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  */
 @Immutable
 @JsonParsableEvent(name = BatchCommandExecuted.NAME, typePrefix= BatchCommandExecuted.TYPE_PREFIX)
-public final class BatchCommandExecuted extends AbstractBatchEvent<BatchCommandExecuted>
-        implements BatchEvent<BatchCommandExecuted> {
+public final class BatchCommandExecuted extends AbstractBatchEvent<BatchCommandExecuted> {
 
     /**
      * The name of this event.

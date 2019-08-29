@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -217,8 +217,8 @@ public abstract class AbstractEnforcement<T extends Signal> {
     /**
      * @return the entity ID.
      */
-    protected EntityId entityId() {
-        return context.getEntityId();
+    protected EntityIdWithResourceType entityId() {
+        return context.getEntityIdWithResourceType();
     }
 
     /**

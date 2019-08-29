@@ -47,7 +47,7 @@ final class RetrieveAclStrategy
                 .orElseGet(JsonFactory::newObject);
 
         return ResultFactory.newQueryResult(command, thing,
-                RetrieveAclResponse.of(context.getThingId(), aclJson, command.getDittoHeaders()), this);
+                RetrieveAclResponse.of(context.getThingEntityId(), aclJson, command.getDittoHeaders()), this);
     }
 
     private Optional<AccessControlList> extractAcl(final @Nullable Thing thing) {

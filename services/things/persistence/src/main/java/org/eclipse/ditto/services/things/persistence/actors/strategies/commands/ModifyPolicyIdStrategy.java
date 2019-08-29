@@ -18,7 +18,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
@@ -29,7 +31,7 @@ import org.eclipse.ditto.signals.events.things.PolicyIdModified;
  */
 @Immutable
 final class ModifyPolicyIdStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyPolicyId, String> {
+        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyPolicyId, PolicyId> {
 
     /**
      * Constructs a new {@code ModifyPolicyIdStrategy} object.
@@ -47,25 +49,25 @@ final class ModifyPolicyIdStrategy
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private Optional<String> extractPolicyId(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getPolicyId();
+    private Optional<PolicyId> extractPolicyId(final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getPolicyEntityId();
     }
 
     private Result getModifyResult(final Context context, final long nextRevision,
             final ModifyPolicyId command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newMutationResult(command,
-                PolicyIdModified.of(thingId, command.getPolicyId(), nextRevision, getEventTimestamp(),
+                PolicyIdModified.of(thingId, command.getPolicyEntityId(), nextRevision, getEventTimestamp(),
                         dittoHeaders),
                 ModifyPolicyIdResponse.modified(thingId, dittoHeaders), this);
     }
 
     private Result getCreateResult(final Context context, final long nextRevision,
             final ModifyPolicyId command) {
-        final String thingId = context.getThingId();
-        final String policyId = command.getPolicyId();
+        final ThingId thingId = context.getThingEntityId();
+        final PolicyId policyId = command.getPolicyEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newMutationResult(command,
@@ -74,7 +76,7 @@ final class ModifyPolicyIdStrategy
     }
 
     @Override
-    public Optional<String> determineETagEntity(final ModifyPolicyId command, @Nullable final Thing thing) {
+    public Optional<PolicyId> determineETagEntity(final ModifyPolicyId command, @Nullable final Thing thing) {
         return extractPolicyId(thing);
     }
 }

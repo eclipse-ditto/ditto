@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.commands.cleanup;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -38,11 +39,6 @@ public interface CleanupCommandResponse<T extends CleanupCommandResponse> extend
     String RESOURCE_TYPE = "cleanup";
 
     @Override
-    default String getId() {
-        return getEntityId();
-    }
-
-    @Override
     default String getResourceType() {
         return RESOURCE_TYPE;
     }
@@ -55,7 +51,8 @@ public interface CleanupCommandResponse<T extends CleanupCommandResponse> extend
     /**
      * @return the entity ID for which snapshots and journal entries for in the database were cleaned up.
      */
-    String getEntityId();
+    @Override
+    EntityId getEntityId();
 
     /**
      * This class contains definitions for all specific fields of a {@code CleanupCommand}'s JSON representation.

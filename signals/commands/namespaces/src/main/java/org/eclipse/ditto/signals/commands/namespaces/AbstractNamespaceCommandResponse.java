@@ -25,6 +25,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -77,6 +79,11 @@ abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceComma
     @Override
     public String getId() {
         return getNamespace();
+    }
+
+    @Override
+    public EntityId getEntityId() {
+        return DefaultEntityId.of(getNamespace());
     }
 
     @Override

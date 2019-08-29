@@ -20,6 +20,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
@@ -86,7 +87,7 @@ public final class MessageMappers implements MessageMapperInstantiation {
      */
     @Nullable
     @Override
-    public MessageMapper apply(@Nullable final String connectionId, final MappingContext mappingContext,
+    public MessageMapper apply(@Nullable final ConnectionId connectionId, final MappingContext mappingContext,
             final ExtendedActorSystem actorSystem) {
 
         final String mapperName = checkNotNull(mappingContext, "MappingContext").getMappingEngine();

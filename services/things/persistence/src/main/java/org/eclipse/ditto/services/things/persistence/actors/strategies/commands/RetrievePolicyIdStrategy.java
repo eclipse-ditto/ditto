@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyId;
@@ -27,7 +28,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
  */
 @Immutable
 final class RetrievePolicyIdStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrievePolicyId, String> {
+        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrievePolicyId, PolicyId> {
 
     /**
      * Constructs a new {@code RetrievePolicyIdStrategy} object.
@@ -41,19 +42,21 @@ final class RetrievePolicyIdStrategy
             final long nextRevision, final RetrievePolicyId command) {
 
         return extractPolicyId(thing)
-                .map(policyId -> RetrievePolicyIdResponse.of(context.getThingId(), policyId, command.getDittoHeaders()))
+                .map(policyId -> RetrievePolicyIdResponse.of(context.getThingEntityId(), policyId,
+                        command.getDittoHeaders()))
                 .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
-                .orElseGet(() -> ResultFactory.newErrorResult(PolicyIdNotAccessibleException.newBuilder(context.getThingId())
+                .orElseGet(() -> ResultFactory.newErrorResult(
+                        PolicyIdNotAccessibleException.newBuilder(context.getThingEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build()));
     }
 
-    private Optional<String> extractPolicyId(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getPolicyId();
+    private Optional<PolicyId> extractPolicyId(final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getPolicyEntityId();
     }
 
     @Override
-    public Optional<String> determineETagEntity(final RetrievePolicyId command, @Nullable final Thing thing) {
+    public Optional<PolicyId> determineETagEntity(final RetrievePolicyId command, @Nullable final Thing thing) {
         return extractPolicyId(thing);
     }
 }

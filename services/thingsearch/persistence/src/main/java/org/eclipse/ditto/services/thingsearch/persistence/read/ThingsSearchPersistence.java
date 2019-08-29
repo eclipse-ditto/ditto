@@ -19,6 +19,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 
 import akka.NotUsed;
@@ -73,7 +74,7 @@ public interface ThingsSearchPersistence {
      * @return an {@link Source} which emits the IDs.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
-    Source<ResultList<String>, NotUsed> findAll(Query query, List<String> authorizationSubjectIds,
+    Source<ResultList<ThingId>, NotUsed> findAll(Query query, List<String> authorizationSubjectIds,
             @Nullable Set<String> namespaces);
 
     /**
@@ -84,7 +85,7 @@ public interface ThingsSearchPersistence {
      * @return an {@link Source} which emits the IDs.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
-    default Source<ResultList<String>, NotUsed> findAll(final Query query, final List<String> authorizationSubjectIds) {
+    default Source<ResultList<ThingId>, NotUsed> findAll(final Query query, final List<String> authorizationSubjectIds) {
         return findAll(query, authorizationSubjectIds, null);
     }
 

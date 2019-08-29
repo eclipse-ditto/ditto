@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.common.CachesConfig;
@@ -43,7 +44,7 @@ import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClust
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
@@ -89,23 +90,23 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         final ActorRef thingsShardRegionProxy = shardRegions.things();
 
-        final AsyncCacheLoader<EntityId, Entry<EntityId>> thingEnforcerIdCacheLoader =
+        final AsyncCacheLoader<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
-        final Cache<EntityId, Entry<EntityId>> thingIdCache =
+        final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache =
                 CacheFactory.createCache(thingEnforcerIdCacheLoader, cachesConfig.getIdCacheConfig(),
                         ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
                         actorSystem.dispatchers().lookup("thing-id-cache-dispatcher"));
 
-        final AsyncCacheLoader<EntityId, Entry<Enforcer>> policyEnforcerCacheLoader =
+        final AsyncCacheLoader<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
-        final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
+        final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
                         actorSystem.dispatchers().lookup("policy-enforcer-cache-dispatcher"));
 
-        final AsyncCacheLoader<EntityId, Entry<Enforcer>> aclEnforcerCacheLoader =
+        final AsyncCacheLoader<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
-        final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache =
+        final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache =
                 CacheFactory.createCache(aclEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl",
                         actorSystem.dispatchers().lookup("acl-enforcer-cache-dispatcher"));
@@ -175,7 +176,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
             if (!createThing.getThing().getNamespace().isPresent()) {
                 final Thing thingInDefaultNamespace = createThing.getThing()
                         .toBuilder()
-                        .setId(DEFAULT_NAMESPACE + createThing.getThingId())
+                        .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getThingEntityId().toString()))
                         .build();
                 final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
                 return CreateThing.of(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());

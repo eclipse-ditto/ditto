@@ -13,6 +13,7 @@
 package org.eclipse.ditto.signals.commands.policies;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
@@ -49,14 +51,14 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
 
     private static final GlobalErrorRegistry GLOBAL_ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final DittoRuntimeException dittoRuntimeException;
 
-    private PolicyErrorResponse(final String policyId, final DittoRuntimeException dittoRuntimeException,
+    private PolicyErrorResponse(final PolicyId policyId, final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoRuntimeException.getStatusCode(), dittoHeaders);
-        this.policyId = requireNonNull(policyId, "Policy ID");
+        this.policyId = checkNotNull(policyId, "Policy ID");
         this.dittoRuntimeException =
                 requireNonNull(dittoRuntimeException, "The Ditto Runtime Exception must not be null");
     }
@@ -69,7 +71,23 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
     public static PolicyErrorResponse of(final DittoRuntimeException dittoRuntimeException) {
-        return of("unknown:unknown", dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
+        return of(PolicyId.dummy(), dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
+    }
+
+    /**
+     * Creates a new {@code PolicyErrorResponse} for the specified {@code dittoRuntimeException}.
+     *
+     * @param policyId the Policy ID related to the exception.
+     * @param dittoRuntimeException the exception.
+     * @return the response.
+     * @throws NullPointerException if one of the arguments is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.exceptions.DittoRuntimeException)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyErrorResponse of(final String policyId, final DittoRuntimeException dittoRuntimeException) {
+        return of(PolicyId.of(policyId), dittoRuntimeException);
     }
 
     /**
@@ -80,8 +98,8 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
      * @return the response.
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
-    public static PolicyErrorResponse of(final String policyId, final DittoRuntimeException dittoRuntimeException) {
-        return new PolicyErrorResponse(policyId, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
+    public static PolicyErrorResponse of(final PolicyId policyId, final DittoRuntimeException dittoRuntimeException) {
+        return of(policyId, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
     }
 
     /**
@@ -95,7 +113,26 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
     public static PolicyErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
 
-        return of("unknown:unknown", dittoRuntimeException, dittoHeaders);
+        return of(PolicyId.dummy(), dittoRuntimeException, dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code PolicyErrorResponse} for the specified {@code dittoRuntimeException}.
+     *
+     * @param policyId the Policy ID related to the exception.
+     * @param dittoRuntimeException the exception.
+     * @param dittoHeaders the headers of the command which caused the exception.
+     * @return the response.
+     * @throws NullPointerException if one of the arguments is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.exceptions.DittoRuntimeException, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyErrorResponse of(final String policyId, final DittoRuntimeException dittoRuntimeException,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), dittoRuntimeException, dittoHeaders);
     }
 
     /**
@@ -107,7 +144,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
      * @return the response.
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
-    public static PolicyErrorResponse of(final String policyId, final DittoRuntimeException dittoRuntimeException,
+    public static PolicyErrorResponse of(final PolicyId policyId, final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
 
         return new PolicyErrorResponse(policyId, dittoRuntimeException, dittoHeaders);
@@ -120,7 +157,8 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
     }
 
     public static PolicyErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final String policyId = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
+        final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
+        final PolicyId policyId = PolicyId.of(extractedPolicyId);
         final JsonObject payload = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.PAYLOAD).asObject();
         final DittoRuntimeException exception = GLOBAL_ERROR_REGISTRY.parse(payload, dittoHeaders);
 
@@ -128,7 +166,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -146,7 +184,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.PAYLOAD,
                 dittoRuntimeException.toJson(schemaVersion, thePredicate), predicate);
     }

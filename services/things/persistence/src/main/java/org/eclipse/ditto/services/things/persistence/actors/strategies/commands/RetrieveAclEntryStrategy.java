@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 
@@ -41,7 +42,7 @@ final class RetrieveAclEntryStrategy
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveAclEntry command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final AuthorizationSubject authorizationSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

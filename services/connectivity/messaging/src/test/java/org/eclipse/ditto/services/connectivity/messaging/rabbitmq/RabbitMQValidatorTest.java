@@ -120,8 +120,8 @@ public final class RabbitMQValidatorTest {
     }
 
     private Connection connectionWithTarget(final String target) {
-        return ConnectivityModelFactory.newConnectionBuilder("rabbitmq", ConnectionType.AMQP_091,
-                ConnectivityStatus.OPEN, "amqp://localhost:1883")
+        return ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
+                ConnectionType.AMQP_091, ConnectivityStatus.OPEN, "amqp://localhost:1883")
                 .targets(singletonList(
                         ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
                 .build();
