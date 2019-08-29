@@ -12,21 +12,15 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
+import java.util.function.Supplier;
 
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.github.benmanes.caffeine.cache.stats.StatsCounter;
 
@@ -133,10 +127,11 @@ public final class MetricsStatsCounter implements StatsCounter {
     private final Gauge maxSize;
     private final Counter estimatedInvalidations;
     private final Counter estimatedInvalidationsWithoutItem;
+    private final Supplier<Long> maxSizeSupplier;
+    private final Supplier<Long> estimatedSizeSupplier;
 
-    private volatile @Nullable Cache cache;
-
-    private MetricsStatsCounter(final String cacheName) {
+    private MetricsStatsCounter(final String cacheName, final Supplier<Long> maxSizeSupplier,
+            final Supplier<Long> estimatedSizeSupplier) {
         hitCount = DittoMetrics.counter(MetricName.HITS.getValue()).tag(CACHE_NAME_TAG, cacheName);
         missCount = DittoMetrics.counter(MetricName.MISSES.getValue()).tag(CACHE_NAME_TAG, cacheName);
         totalLoadTime = DittoMetrics.timer(MetricName.TOTAL_LOAD_TIME.getValue()).tag(CACHE_NAME_TAG, cacheName);
@@ -150,6 +145,8 @@ public final class MetricsStatsCounter implements StatsCounter {
                 DittoMetrics.counter(MetricName.ESTIMATED_INVALIDATIONS.getValue()).tag(CACHE_NAME_TAG, cacheName);
         estimatedInvalidationsWithoutItem =
                 DittoMetrics.counter(MetricName.ESTIMATED_INVALIDATIONS_WITHOUT_ITEM.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        this.maxSizeSupplier = maxSizeSupplier;
+        this.estimatedSizeSupplier = estimatedSizeSupplier;
     }
 
     /**
@@ -158,22 +155,9 @@ public final class MetricsStatsCounter implements StatsCounter {
      * @param cacheName The name of the cache.
      * @return the instance.
      */
-    static MetricsStatsCounter of(final String cacheName) {
-        requireNonNull(cacheName);
-
-        return new MetricsStatsCounter(cacheName);
-    }
-
-    /**
-     * Configures the given cache, which allows reporting of estimated and maximum size.
-     *
-     * @param cache the cache.
-     */
-    public void configureCache(final Cache cache) {
-        if (this.cache != null) {
-            throw new IllegalStateException("Cache has already been configured!");
-        }
-        this.cache = requireNonNull(cache);
+    static MetricsStatsCounter of(final String cacheName, final Supplier<Long> maxSizeSupplier,
+            final Supplier<Long> estimatedSizeSupplier) {
+        return new MetricsStatsCounter(cacheName, maxSizeSupplier, estimatedSizeSupplier);
     }
 
     @Override
@@ -244,23 +228,8 @@ public final class MetricsStatsCounter implements StatsCounter {
     }
 
     private void updateCacheSizeMetrics() {
-        if (cache != null) {
-            estimatedSize.set(getRequiredCache().estimatedSize());
-            final Long currentMaxCacheSize = getMaxSize();
-            if (currentMaxCacheSize != null) {
-                maxSize.set(currentMaxCacheSize);
-            }
-        }
+        maxSize.set(maxSizeSupplier.get());
+        estimatedSize.set(estimatedSizeSupplier.get());
     }
 
-    @Nullable
-    private Long getMaxSize() {
-        @SuppressWarnings("unchecked") final Optional<Policy.Eviction> evictionOptional =
-                getRequiredCache().policy().eviction();
-        return evictionOptional.map(Policy.Eviction::getMaximum).orElse(null);
-    }
-
-    private Cache getRequiredCache() {
-        return requireNonNull(cache);
-    }
 }

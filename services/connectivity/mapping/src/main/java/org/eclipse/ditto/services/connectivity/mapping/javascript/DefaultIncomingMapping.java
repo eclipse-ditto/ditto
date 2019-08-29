@@ -25,7 +25,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 /**
  * The default mapping for incoming messages that maps messages from Ditto protocol format.
  */
-public class DefaultIncomingMapping implements MappingFunction<ExternalMessage, Optional<Adaptable>> {
+public final class DefaultIncomingMapping implements MappingFunction<ExternalMessage, Optional<Adaptable>> {
 
     private static final DefaultIncomingMapping INSTANCE = new DefaultIncomingMapping();
 
@@ -46,13 +46,10 @@ public class DefaultIncomingMapping implements MappingFunction<ExternalMessage, 
 
     private static Optional<String> getPlainStringPayload(final ExternalMessage message) {
         final String plainString;
-        if (message.getTextPayload().isPresent()) {
-            plainString = message.getTextPayload().get();
-        } else {
-            plainString = message.getBytePayload()
-                    .map(b -> StandardCharsets.UTF_8.decode(b).toString())
-                    .orElse(null);
-        }
+        final Optional<String> textPayloadOptional = message.getTextPayload();
+        plainString = textPayloadOptional.orElseGet(() -> message.getBytePayload()
+                .map(b -> StandardCharsets.UTF_8.decode(b).toString())
+                .orElse(null));
         return Optional.ofNullable(plainString);
     }
 }
