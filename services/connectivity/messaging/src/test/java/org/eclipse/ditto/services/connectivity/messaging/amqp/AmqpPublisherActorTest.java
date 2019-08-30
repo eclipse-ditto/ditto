@@ -113,14 +113,15 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
 
             // second producer created as first one was removed from cache
-            verify(session, timeout(1_000)).createProducer(ArgumentMatchers.any(Destination.class));
+            verify(session, timeout(1_000).atLeastOnce()).createProducer(ArgumentMatchers.any(Destination.class));
         }};
 
     }
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), session, loadConnectionConfig());
+        return AmqpPublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), session,
+                loadConnectionConfig());
     }
 
     @Override
