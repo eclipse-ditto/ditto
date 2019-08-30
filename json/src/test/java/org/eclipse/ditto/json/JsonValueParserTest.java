@@ -164,7 +164,6 @@ public final class JsonValueParserTest {
     public void wrapsNullPointerException() {
         final Function<String, JsonValue> underTest = JsonValueParser.fromString();
 
-        underTest.apply(null);
         //noinspection ConfusingArgumentToVarargsMethod
         assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.apply(null))

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,10 +76,9 @@ public final class ValueListJsonHandlerTest {
 
     @Test
     public void tryToParseNullString() {
-        assertThatNullPointerException()
+        assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> parser.accept(null))
-                .withMessage("The %s must not be null!", "JSON string to be parsed")
-                .withNoCause();
+                .withCauseExactlyInstanceOf(NullPointerException.class);
     }
 
     @Test
