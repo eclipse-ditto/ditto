@@ -15,11 +15,15 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.services.gateway.endpoints.config.DefaultDevOpsConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
@@ -45,16 +49,18 @@ public final class DevOpsRouteTest extends EndpointTestBase {
         final ActorSystem actorSystem = system();
         final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
 
-        devOpsRoute = new DevOpsRoute(createDummyResponseActor(), actorSystem, httpConfig, authConfig.getDevOpsConfig(),
+        devOpsRoute = new DevOpsRoute(createDummyResponseActor(), actorSystem, httpConfig, getInsecureDevopsConfig(),
                 adapterProvider.getHttpHeaderTranslator());
 
         final Route route = extractRequestContext(ctx -> devOpsRoute.buildDevOpsRoute(ctx));
         underTest = testRoute(route);
     }
+
     @Test
     public void testPiggyback() {
         final RetrieveThing retrieveThing = RetrieveThing.of("thing:id", DittoHeaders.empty());
-        final ExecutePiggybackCommand body = ExecutePiggybackCommand.of("things", "1", retrieveThing.toJson(), DittoHeaders.empty());
+        final ExecutePiggybackCommand body =
+                ExecutePiggybackCommand.of("things", "1", retrieveThing.toJson(), DittoHeaders.empty());
         final RequestEntity requestEntity = HttpEntities.create(ContentTypes.APPLICATION_JSON, body.toJsonString());
         final TestRouteResult result = underTest.run(HttpRequest.POST("/devops/piggyback")
                 .withEntity(requestEntity));
@@ -70,15 +76,19 @@ public final class DevOpsRouteTest extends EndpointTestBase {
                         "\"value\":%s}",
                 tooLongNumber);
         final String executePiggyBack = String.format("{\"type\":\"devops.commands:executePiggybackCommand\"," +
-                "\"serviceName\":\"things\"," +
-                "\"instance\":null," +
-                "\"targetActorSelection\":\"1\"," +
-                "\"piggybackCommand\":%s}",
+                        "\"serviceName\":\"things\"," +
+                        "\"instance\":null," +
+                        "\"targetActorSelection\":\"1\"," +
+                        "\"piggybackCommand\":%s}",
                 modifyAttribute);
         final RequestEntity requestEntity = HttpEntities.create(ContentTypes.APPLICATION_JSON, executePiggyBack);
         final TestRouteResult result = underTest.run(HttpRequest.POST("/devops/piggyback")
                 .withEntity(requestEntity));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    private static DevOpsConfig getInsecureDevopsConfig() {
+        return DefaultDevOpsConfig.of(ConfigFactory.parseString("devops.securestatus=false"));
     }
 
 }
