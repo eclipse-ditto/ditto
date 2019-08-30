@@ -519,7 +519,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             log.debug("Signal dropped: No topics present.");
             return;
         }
-        if (connectionId.equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
+        if (connectionId.toString().equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
             log.debug("Signal dropped: was sent by myself.");
             return;
         }

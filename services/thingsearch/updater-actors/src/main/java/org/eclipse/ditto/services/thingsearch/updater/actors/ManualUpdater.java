@@ -145,7 +145,7 @@ final class ManualUpdater extends AbstractActor {
             return Optional.of(ThingTag.of(thingId, revision));
         } catch (final ClassCastException | NullPointerException e) {
             log.debug("Failed to convert doc '{}' to ThingTag: [{}] {}",
-                    document != null ? document.toString() : "<null>",
+                    String.valueOf(document),
                     e.getClass().getName(), e.getMessage());
             return Optional.empty();
         }
