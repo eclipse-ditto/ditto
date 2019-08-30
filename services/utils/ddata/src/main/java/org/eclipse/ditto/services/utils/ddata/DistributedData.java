@@ -209,13 +209,13 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
      * @param <R> type of distributed data.
      * @param <T> type of the actor system extension to handle the distributed data.
      */
-    public static abstract class Provider<R extends ReplicatedData, T extends DistributedData<R>>
+    public abstract static class AbstractDDataProvider<R extends ReplicatedData, T extends DistributedData<R>>
             extends AbstractExtensionId<T> {
 
         /**
          * Constructor available for subclasses only.
          */
-        protected Provider() {}
+        protected AbstractDDataProvider() {}
 
         @Override
         public abstract T createExtension(ExtendedActorSystem system);
@@ -226,7 +226,7 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
          *
          * @return this object.
          */
-        public Provider<R, T> lookup() {
+        public AbstractDDataProvider<R, T> lookup() {
             return this;
         }
     }

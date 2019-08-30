@@ -124,8 +124,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         thingsUpdaterActor = getContext().actorOf(thingsUpdaterProps, ThingsUpdater.ACTOR_NAME);
         startClusterSingletonActor(NewEventForwarder.ACTOR_NAME,
-                NewEventForwarder.props(thingEventSub, updaterShardRegion, updaterConfig, clusterConfig,
-                        blockedNamespaces));
+                NewEventForwarder.props(thingEventSub, updaterShardRegion, blockedNamespaces));
 
         // start policy event forwarder as cluster singleton
         final Props policyEventForwarderProps =

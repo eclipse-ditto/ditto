@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -19,10 +19,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
@@ -59,11 +61,14 @@ final class NewEventForwarder extends AbstractActorWithTimers {
     @SuppressWarnings("unused")
     private NewEventForwarder(final DistributedSub thingEventSub,
             final ActorRef thingUpdaterShardRegion,
-            final UpdaterConfig updaterConfig,
-            final ClusterConfig clusterConfig,
             final BlockedNamespaces blockedNamespaces) {
 
         this.thingEventSub = thingEventSub;
+
+        final DittoSearchConfig searchConfig =
+                DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
+        final UpdaterConfig updaterConfig = searchConfig.getUpdaterConfig();
+        final ClusterConfig clusterConfig = searchConfig.getClusterConfig();
 
         shardRegion = thingUpdaterShardRegion;
 
@@ -88,19 +93,14 @@ final class NewEventForwarder extends AbstractActorWithTimers {
      *
      * @param thingEventSub Ditto distributed-sub access for thing events.
      * @param thingUpdaterShardRegion shard region of thing-updaters
-     * @param updaterConfig configuration for updaters.
-     * @param clusterConfig configuration for the Ditto cluster.
      * @param blockedNamespaces cache of namespaces to block.
      * @return the Akka configuration Props object
      */
     static Props props(final DistributedSub thingEventSub,
             final ActorRef thingUpdaterShardRegion,
-            final UpdaterConfig updaterConfig,
-            final ClusterConfig clusterConfig,
             final BlockedNamespaces blockedNamespaces) {
 
-        return Props.create(NewEventForwarder.class, thingEventSub, thingUpdaterShardRegion, updaterConfig,
-                clusterConfig, blockedNamespaces);
+        return Props.create(NewEventForwarder.class, thingEventSub, thingUpdaterShardRegion, blockedNamespaces);
     }
 
     @Override

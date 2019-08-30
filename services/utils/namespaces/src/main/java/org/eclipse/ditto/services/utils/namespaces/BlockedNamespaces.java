@@ -126,9 +126,10 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
         return new Replicator.WriteAll(FiniteDuration.apply(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
     }
 
-    private static final class Provider extends DistributedData.Provider<ORSet<String>, BlockedNamespaces> {
+    private static final class Provider
+            extends DistributedData.AbstractDDataProvider<ORSet<String>, BlockedNamespaces> {
 
-        private static Provider INSTANCE = new Provider();
+        private static final Provider INSTANCE = new Provider();
 
         private Provider() {}
 

@@ -75,8 +75,8 @@ public final class CompressedDData implements DData<ByteString, CompressedUpdate
     /**
      * Abstract class of distributed data extension provider to be instantiated at user site.
      */
-    public static abstract class Provider
-            extends DistributedData.Provider<ORMultiMap<ActorRef, ByteString>, CompressedDDataHandler> {
+    public abstract static class Provider
+            extends DistributedData.AbstractDDataProvider<ORMultiMap<ActorRef, ByteString>, CompressedDDataHandler> {
 
         /**
          * Get the ddata extension's config from an actor system.
@@ -84,6 +84,6 @@ public final class CompressedDData implements DData<ByteString, CompressedUpdate
          * @param actorSystem The actor system.
          * @return The ddata extension's config.
          */
-        public abstract DistributedDataConfig getConfig(final ActorSystem actorSystem);
+        public abstract DistributedDataConfig getConfig(ActorSystem actorSystem);
     }
 }
