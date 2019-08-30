@@ -40,7 +40,7 @@ import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
 
- /**
+/**
  * Retrieve persistence metrics when given the number of instances that report them.
  * <ul>
  * <li>
@@ -53,29 +53,29 @@ import scala.util.Right;
  */
 final class PersistenceStatusStage {
 
-     private PersistenceStatusStage() {
-         throw new AssertionError();
-     }
+    private PersistenceStatusStage() {
+        throw new AssertionError();
+    }
 
-     /**
-      * Creates the persistence status stage - whenever a message
-      * (an integer which describes the number of instances to expect {@link StatusInfo messages from}) triggers the stage,
-      * <ul>
-      * <li>a message on the the pub/sub topic {@link MongoMetricsReporter#PUBSUB_TOPIC} is published asking for
-      * {@link RetrieveHealth} (to be received by the amount of instances which were passed into the stage)</li>
-      * <li>a {@link MessageAggregator} is created waiting for the expected amount of responses</li>
-      * <li>if all expected responses were received, a list of {@link StatusInfo}s is emitted in outlet 0 containing
-      * the max times required in order to decide for a positive {@link CreditDecision}</li>
-      * <li>if not all expected responses were received, a negative {@link CreditDecision} it emitted directly in
-      * outlet 1</li>
-      * </ul>
-      *
-      * @param pubSubMediator the pub/sub mediator ref to use for publishing.
-      * @param actorRefFactory the context in which to create the {@link MessageAggregator} actor in.
-      * @param timeout the timeout to apply when aggregating the results.
-      * @return the created persistence status stage.
-      */
-     static Graph<FanOutShape2<Integer, List<StatusInfo>, CreditDecision>, NotUsed> create(
+    /**
+     * Creates the persistence status stage - whenever a message
+     * (an integer which describes the number of instances to expect {@link StatusInfo messages from}) triggers the stage,
+     * <ul>
+     * <li>a message on the the pub/sub topic {@link MongoMetricsReporter#PUBSUB_TOPIC} is published asking for
+     * {@link RetrieveHealth} (to be received by the amount of instances which were passed into the stage)</li>
+     * <li>a {@link MessageAggregator} is created waiting for the expected amount of responses</li>
+     * <li>if all expected responses were received, a list of {@link StatusInfo}s is emitted in outlet 0 containing
+     * the max times required in order to decide for a positive {@link CreditDecision}</li>
+     * <li>if not all expected responses were received, a negative {@link CreditDecision} it emitted directly in
+     * outlet 1</li>
+     * </ul>
+     *
+     * @param pubSubMediator the pub/sub mediator ref to use for publishing.
+     * @param actorRefFactory the context in which to create the {@link MessageAggregator} actor in.
+     * @param timeout the timeout to apply when aggregating the results.
+     * @return the created persistence status stage.
+     */
+    static Graph<FanOutShape2<Integer, List<StatusInfo>, CreditDecision>, NotUsed> create(
             final ActorRef pubSubMediator, final ActorRefFactory actorRefFactory, final Duration timeout) {
 
         return GraphDSL.create(builder -> {
