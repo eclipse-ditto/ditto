@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
@@ -213,7 +214,7 @@ public final class SearchActorIT {
 
     private void insertTestThings() {
         final Thing baseThing = ThingsModelFactory.newThingBuilder()
-                .setId("thing:00")
+                .setId(ThingId.of("thing", "00"))
                 .setRevision(1234L)
                 .setPermissions(AUTH_CONTEXT.getFirstAuthorizationSubject().orElseThrow(AssertionError::new),
                         Permission.READ)
@@ -241,7 +242,7 @@ public final class SearchActorIT {
 
     private static Thing template(final Thing thing, final int i, final CharSequence attribute) {
         return thing.toBuilder()
-                .setId("thing:" + i)
+                .setId(ThingId.of("thing", String.valueOf(i)))
                 .setAttribute(JsonPointer.of(attribute), JsonValue.of(i))
                 .build();
     }

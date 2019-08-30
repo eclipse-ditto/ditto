@@ -55,6 +55,9 @@ public final class StatsRoute extends AbstractRoute {
     static final String SEARCH_PATH = "search";
     private static final String DETAILS_PATH = "details";
 
+    private static final String ENTITY_PARAM = "entity";
+    private static final String NAMESPACE_PARAM = "namespace";
+
     private final DevOpsConfig devOpsConfig;
 
     /**
@@ -98,14 +101,7 @@ public final class StatsRoute extends AbstractRoute {
         return concat(
                 pathPrefix(THINGS_PATH, () -> // /stats/things
                         concat(
-                                path(DETAILS_PATH, () -> {
-                                    final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
-                                            DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
-                                    return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS,
-                                            handleDevOpsPerRequest(ctx,
-                                                    RetrieveStatisticsDetails.of(
-                                                            buildDevOpsDittoHeaders(correlationId))));
-                                }),
+                                path(DETAILS_PATH, () -> buildDetailsRoute(ctx, correlationId)),
                                 pathEndOrSingleSlash(() ->
                                         handleDevOpsPerRequest(ctx,
                                                 RetrieveStatistics.of(
@@ -119,6 +115,18 @@ public final class StatsRoute extends AbstractRoute {
                                         buildDevOpsDittoHeaders(correlationId)))
                 )
         );
+    }
+
+    private Route buildDetailsRoute(final RequestContext ctx, final CharSequence correlationId) {
+        final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
+                DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
+        return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS,
+                parameterList(ENTITY_PARAM, shardRegions ->
+                        parameterList(NAMESPACE_PARAM, namespaces ->
+                                handleDevOpsPerRequest(ctx, RetrieveStatisticsDetails.of(shardRegions, namespaces,
+                                        buildDevOpsDittoHeaders(correlationId)))
+                        )
+                ));
     }
 
     private Route handleDevOpsPerRequest(final RequestContext ctx, final DevOpsCommand command) {

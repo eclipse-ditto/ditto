@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
@@ -49,7 +50,7 @@ public final class ModifyThingTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyThing.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyThing.JSON_THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
             .build();
 
@@ -57,7 +58,7 @@ public final class ModifyThingTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyThing.class,
                 areImmutable(),
-                provided(Thing.class, JsonObject.class).isAlsoImmutable());
+                provided(Thing.class, JsonObject.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -201,11 +202,11 @@ public final class ModifyThingTest {
                 .set("a", sb.toString())
                 .build();
         final Thing thing = Thing.newBuilder()
-                .setId("foo:bar")
+                .setId(ThingId.of("foo", "bar"))
                 .setAttributes(largeAttributes)
                 .build();
 
-        assertThatThrownBy(() -> ModifyThing.of(thing.getId().get(), thing, null, DittoHeaders.empty()))
+        assertThatThrownBy(() -> ModifyThing.of(thing.getEntityId().get(), thing, null, DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }
 

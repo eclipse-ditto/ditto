@@ -131,7 +131,7 @@ public interface ExternalMessage {
     /**
      * @return the required data to apply the enforcement (if enforcement is enabled), empty otherwise
      */
-    Optional<EnforcementFilter<String>> getEnforcementFilter();
+    Optional<EnforcementFilter<CharSequence>> getEnforcementFilter();
 
     /**
      * @return the optional header mapping

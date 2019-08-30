@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
@@ -61,7 +62,7 @@ public final class ThingSupervisorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final Props persistenceActorProps;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final ShutdownBehaviour shutdownBehaviour;
@@ -82,13 +83,13 @@ public final class ThingSupervisorActor extends AbstractActor {
 
 
     private ThingSupervisorActor(final ActorRef pubSubMediator,
-            final Function<String, Props> thingPersistenceActorPropsFactory) {
+            final Function<ThingId, Props> thingPersistenceActorPropsFactory) {
 
         final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
         try {
-            thingId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
+            thingId = ThingId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
@@ -113,7 +114,7 @@ public final class ThingSupervisorActor extends AbstractActor {
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final Function<String, Props> thingPersistenceActorPropsFactory) {
+            final Function<ThingId, Props> thingPersistenceActorPropsFactory) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, thingPersistenceActorPropsFactory);
     }

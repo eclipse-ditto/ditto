@@ -21,8 +21,10 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -45,14 +47,15 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class PolicyCacheUpdateActorTest {
 
-    private static final String POLICY_ID = "my.namespace:policy_id";
-    private static final EntityId ENTITY_ID = EntityId.of(PolicyCommand.RESOURCE_TYPE, POLICY_ID);
+    private static final PolicyId POLICY_ID = PolicyId.of("my.namespace", "policy_id");
+    private static final EntityIdWithResourceType
+            ENTITY_ID = EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, POLICY_ID);
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
     private static final int REVISION = 1;
 
     private static ActorSystem system;
 
-    private Cache<EntityId, Entry<Enforcer>> mockEnforcerCache;
+    private Cache<EntityIdWithResourceType, Entry<Enforcer>> mockEnforcerCache;
 
     private ActorRef updateActor;
     private TestKit testKit;
@@ -94,8 +97,8 @@ public final class PolicyCacheUpdateActorTest {
     @Test
     public void arbitraryPolicyEventTriggersInvalidation() {
         final PolicyEvent arbitraryPolicyEvent = mock(PolicyEvent.class);
-        when(arbitraryPolicyEvent.getId()).thenReturn(POLICY_ID);
-        when(arbitraryPolicyEvent.getPolicyId()).thenReturn(POLICY_ID);
+        when(arbitraryPolicyEvent.getEntityId()).thenReturn(POLICY_ID);
+        when(arbitraryPolicyEvent.getPolicyEntityId()).thenReturn(POLICY_ID);
 
         sendEvent(arbitraryPolicyEvent);
 
@@ -105,7 +108,7 @@ public final class PolicyCacheUpdateActorTest {
     @Test
     public void irrelevantEventDoesNotTriggerAnyInvalidation() {
         final AttributeModified irrelevantEvent =
-                AttributeModified.of("my.namespace:thing_id", JsonPointer.of("foo"), JsonValue.of("bar"),
+                AttributeModified.of(ThingId.of("my.namespace", "thing_id"), JsonPointer.of("foo"), JsonValue.of("bar"),
                         REVISION, DITTO_HEADERS);
         sendEvent(irrelevantEvent);
 

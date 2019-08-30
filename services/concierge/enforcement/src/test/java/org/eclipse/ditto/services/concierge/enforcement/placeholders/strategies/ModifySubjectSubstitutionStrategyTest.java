@@ -52,7 +52,7 @@ public class ModifySubjectSubstitutionStrategyTest extends AbstractSubstitutionS
 
         final WithDittoHeaders response = applyBlocking(commandWithPlaceholders);
 
-        final ModifySubject expectedCommandReplaced = ModifySubject.of(commandWithPlaceholders.getId(),
+        final ModifySubject expectedCommandReplaced = ModifySubject.of(commandWithPlaceholders.getEntityId(),
                 commandWithPlaceholders.getLabel(), Subject.newInstance(SUBJECT_ID, SubjectType.GENERATED),
                 DITTO_HEADERS);
         assertThat(response).isEqualTo(expectedCommandReplaced);

@@ -38,7 +38,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -503,17 +504,14 @@ public final class WebsocketRoute {
         } else if (jsonifiable instanceof CommandResponse) {
             adaptable = adapter.toAdaptable((CommandResponse) jsonifiable, channel);
         } else if (jsonifiable instanceof DittoRuntimeException) {
-            final DittoHeaders enhancedHeaders = ((DittoRuntimeException) jsonifiable).getDittoHeaders().toBuilder()
+            final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) jsonifiable;
+            final DittoHeaders enhancedHeaders = dittoRuntimeException.getDittoHeaders().toBuilder()
                     .channel(channel.getName())
                     .build();
-            ThingErrorResponse errorResponse;
-            try {
-                errorResponse = ThingErrorResponse.of(MessageHeaders.of(enhancedHeaders).getThingId(),
-                        (DittoRuntimeException) jsonifiable, enhancedHeaders);
-            } catch (final IllegalStateException | IllegalArgumentException | DittoRuntimeException e) {
-                // thrown if headers did not contain the thing ID:
-                errorResponse = ThingErrorResponse.of((DittoRuntimeException) jsonifiable, enhancedHeaders);
-            }
+            final String nullableThingId = enhancedHeaders.get(MessageHeaderDefinition.THING_ID.getKey());
+            final ThingErrorResponse errorResponse = nullableThingId != null
+                    ? ThingErrorResponse.of(ThingId.of(nullableThingId), dittoRuntimeException, enhancedHeaders)
+                    : ThingErrorResponse.of(dittoRuntimeException, enhancedHeaders);
             adaptable = adapter.toAdaptable(errorResponse, channel);
         } else {
             throw new IllegalArgumentException("Jsonifiable was neither Command nor CommandResponse nor"

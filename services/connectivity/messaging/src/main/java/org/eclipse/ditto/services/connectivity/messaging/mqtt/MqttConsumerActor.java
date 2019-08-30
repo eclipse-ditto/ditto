@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
@@ -36,7 +37,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.routing.ConsistentHashingRouter;
 import akka.stream.alpakka.mqtt.MqttMessage;
 
@@ -51,10 +51,10 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef deadLetters;
     private final boolean dryRun;
-    @Nullable private final EnforcementFilterFactory<String, String> topicEnforcementFilterFactory;
+    @Nullable private final EnforcementFilterFactory<String, CharSequence> topicEnforcementFilterFactory;
 
     @SuppressWarnings("unused")
-    private MqttConsumerActor(final String connectionId, final ActorRef messageMappingProcessor,
+    private MqttConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext, @Nullable final Enforcement enforcement,
             final boolean dryRun, final String sourceAddress) {
         super(connectionId, sourceAddress, messageMappingProcessor, sourceAuthorizationContext, null);
@@ -80,7 +80,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
      * @param topic the topic for which this consumer receives messages
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId, final ActorRef messageMappingProcessor,
+    static Props props(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext,
             @Nullable final Enforcement enforcement,
             final boolean dryRun, final String topic) {
@@ -136,7 +136,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     }
 
     @Nullable
-    private EnforcementFilter getEnforcementFilter(final String topic) {
+    private EnforcementFilter<CharSequence> getEnforcementFilter(final String topic) {
         if (topicEnforcementFilterFactory != null) {
             return topicEnforcementFilterFactory.getFilter(topic);
         } else {

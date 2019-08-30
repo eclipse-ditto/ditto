@@ -44,7 +44,7 @@ public final class ThingEventToThingConverter {
         return Optional.ofNullable(EVENT_TO_THING_MAPPERS.get(thingEvent.getClass()))
                 .map(eventToThingMapper -> {
                     final ThingBuilder.FromScratch thingBuilder = Thing.newBuilder()
-                            .setId(thingEvent.getThingId())
+                            .setId(thingEvent.getThingEntityId())
                             .setRevision(thingEvent.getRevision())
                             .setModified(thingEvent.getTimestamp().orElse(null));
                     return eventToThingMapper.apply(thingEvent, thingBuilder);
@@ -71,9 +71,9 @@ public final class ThingEventToThingConverter {
                 (te, tb) -> tb.build());
 
         mappers.put(PolicyIdCreated.class,
-                (te, tb) -> tb.setPolicyId(((PolicyIdCreated) te).getPolicyId()).build());
+                (te, tb) -> tb.setPolicyId(((PolicyIdCreated) te).getPolicyEntityId()).build());
         mappers.put(PolicyIdModified.class,
-                (te, tb) -> tb.setPolicyId(((PolicyIdModified) te).getPolicyId()).build());
+                (te, tb) -> tb.setPolicyId(((PolicyIdModified) te).getPolicyEntityId()).build());
 
         mappers.put(AttributesCreated.class,
                 (te, tb) -> tb.setAttributes(((AttributesCreated) te).getCreatedAttributes()).build());

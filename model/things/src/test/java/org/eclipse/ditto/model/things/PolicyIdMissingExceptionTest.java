@@ -29,7 +29,7 @@ import org.junit.Test;
 public class PolicyIdMissingExceptionTest {
 
     private static final String KNOWN_MESSAGE = "any Message";
-    private static final String KNOWN_THING_ID = "org.eclipse.ditto:a.thing";
+    private static final ThingId KNOWN_THING_ID = ThingId.of("org.eclipse.ditto", "a.thing");
     private static final String KNOWN_DESCRIPTION = "any description";
     private static final URI KNOWN_HREF = URI.create("any://href");
     private static final String KNOWN_ERROR_CODE = PolicyIdMissingException.ERROR_CODE;
@@ -64,13 +64,13 @@ public class PolicyIdMissingExceptionTest {
     @Test
     public void fromThingIdOnUpdate() {
         final PolicyIdMissingException exception = PolicyIdMissingException.fromThingIdOnUpdate(KNOWN_THING_ID, KNOWN_HEADERS);
-        Assertions.assertThat(exception.getMessage()).contains(KNOWN_THING_ID);
+        Assertions.assertThat(exception.getMessage()).contains(KNOWN_THING_ID.toString());
     }
 
     @Test
     public void fromThingIdOnCreate() {
         final PolicyIdMissingException exception = PolicyIdMissingException.fromThingIdOnCreate(KNOWN_THING_ID,
                 KNOWN_HEADERS);
-        Assertions.assertThat(exception.getMessage()).contains(KNOWN_THING_ID);
+        Assertions.assertThat(exception.getMessage()).contains(KNOWN_THING_ID.toString());
     }
 }

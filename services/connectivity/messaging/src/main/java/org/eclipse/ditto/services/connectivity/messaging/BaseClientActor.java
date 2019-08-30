@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -115,6 +116,8 @@ import scala.util.Right;
  */
 public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseClientData> {
 
+    private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
+
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -143,7 +146,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         checkNotNull(connection, "connection");
 
-        ConnectionLogUtil.enhanceLogWithConnectionId(log, connection.getId());
+        final ConnectionId connectionId = connection.getId();
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
         this.connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -153,29 +157,30 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
-        final BaseClientData startingData = new BaseClientData(connection.getId(), connection,
+        final BaseClientData startingData = new BaseClientData(connectionId, connection,
                 ConnectivityStatus.UNKNOWN, desiredConnectionStatus, "initialized", Instant.now(), null, null);
 
-
         clientGauge = DittoMetrics.gauge("connection_client")
-                .tag("id", connection.getId())
+                .tag("id",  connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
         clientConnectingGauge = DittoMetrics.gauge("connecting_client")
-                .tag("id", connection.getId())
+                .tag("id", connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
-
-        startWith(UNKNOWN, startingData, clientConfig.getInitTimeout());
 
         // stable states
         when(UNKNOWN, inUnknownState());
         when(CONNECTED, inConnectedState());
         when(DISCONNECTED, inDisconnectedState());
 
-        // volatile states that time out
-        final Duration connectingTimeout = clientConfig.getConnectingMinTimeout();
-        when(CONNECTING, connectingTimeout, inConnectingState());
-        when(DISCONNECTING, connectingTimeout, inDisconnectingState());
-        when(TESTING, clientConfig.getTestingTimeout(), inTestingState());
+        // volatile states
+        //
+        // DO NOT use state timeout:
+        // FSM state timeout gets reset by any message, AND cannot be longer than 5 minutes (Akka v2.5.23).
+        when(DISCONNECTING, inDisconnectingState());
+        when(CONNECTING, inConnectingState());
+        when(TESTING, inTestingState());
+
+        startWith(UNKNOWN, startingData, clientConfig.getInitTimeout());
 
         onTransition(this::onTransition);
 
@@ -188,7 +193,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         this.connectionLoggerRegistry.initForConnection(connection);
         this.connectionCounterRegistry.initForConnection(connection);
 
-        this.connectionLogger = this.connectionLoggerRegistry.forConnection(connection.getId());
+        this.connectionLogger = this.connectionLoggerRegistry.forConnection(connectionId);
 
         this.reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
 
@@ -376,7 +381,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * @return the Connection Id
      */
-    protected final String connectionId() {
+    protected final ConnectionId connectionId() {
         return stateData().getConnectionId();
     }
 
@@ -419,6 +424,31 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         if (from == CONNECTING) {
             clientConnectingGauge.decrement();
         }
+        // cancel our own state timeout if target state is stable
+        switch (to) {
+            case UNKNOWN:
+            case CONNECTED:
+            case DISCONNECTED:
+                cancelStateTimeout();
+        }
+    }
+
+    /*
+     * For each volatile state, use the special goTo methods for timer management.
+     */
+    private FSM.State<BaseClientState, BaseClientData> goToConnecting(final Duration timeout) {
+        scheduleStateTimeout(timeout);
+        return goTo(CONNECTING);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> goToDisconnecting() {
+        scheduleStateTimeout(clientConfig.getConnectingMinTimeout());
+        return goTo(DISCONNECTING);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> goToTesting() {
+        scheduleStateTimeout(clientConfig.getTestingTimeout());
+        return goTo(TESTING);
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
@@ -460,7 +490,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
-                .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
+                .event(ConnectionFailure.class, BaseClientData.class, this::connectingConnectionFailed)
                 .event(ClientConnected.class, BaseClientData.class, this::clientConnected)
                 .event(CloseConnection.class, BaseClientData.class, this::closeConnection);
     }
@@ -471,7 +501,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @return an FSM function builder
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
-        return matchEvent(CloseConnection.class, BaseClientData.class, this::closeConnection);
+        return matchEvent(CloseConnection.class, BaseClientData.class, this::closeConnection)
+                .event(OpenConnection.class, BaseClientData.class, this::connectionAlreadyOpen)
+                .event(ConnectionFailure.class, BaseClientData.class, this::connectedConnectionFailed);
     }
 
     /**
@@ -481,7 +513,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
-                .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
+                .event(ConnectionFailure.class, BaseClientData.class, this::connectingConnectionFailed)
                 .event(ClientDisconnected.class, BaseClientData.class, this::clientDisconnected);
     }
 
@@ -548,7 +580,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
         final ActorRef sender = getSender();
         doDisconnectClient(data.getConnection(), sender);
-        return goTo(DISCONNECTING).using(setSession(data, sender, closeConnection.getDittoHeaders())
+        return goToDisconnecting().using(setSession(data, sender, closeConnection.getDittoHeaders())
                 .setDesiredConnectionStatus(ConnectivityStatus.CLOSED)
                 .setConnectionStatusDetails("closing or deleting connection at " + Instant.now()));
     }
@@ -560,18 +592,26 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final Connection connection = data.getConnection();
         final DittoHeaders dittoHeaders = openConnection.getDittoHeaders();
         reconnectTimeoutStrategy.reset();
+        final Duration connectingTimeout = clientConfig.getConnectingMinTimeout();
         if (canConnectViaSocket(connection)) {
             doConnectClient(connection, sender);
-            return goTo(CONNECTING).using(setSession(data, sender, dittoHeaders));
+            return goToConnecting(connectingTimeout).using(setSession(data, sender, dittoHeaders));
         } else {
             cleanupResourcesForConnection();
             final DittoRuntimeException error = newConnectionFailedException(data.getConnection(), dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
-            return goTo(CONNECTING)
+            return goToConnecting(connectingTimeout)
                     .using(data.setConnectionStatus(ConnectivityStatus.FAILED)
                             .setConnectionStatusDetails(error.getMessage())
                             .resetSession());
         }
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> connectionAlreadyOpen(final OpenConnection openConnection,
+            final BaseClientData data) {
+
+        getSender().tell(new Status.Success(CONNECTED), getSelf());
+        return stay();
     }
 
     private void reconnect(final BaseClientData data) {
@@ -622,10 +662,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     });
         }
 
-        return goTo(TESTING)
-                .using(setSession(data, sender, testConnection.getDittoHeaders())
-                        .setConnection(connection)
-                        .setConnectionStatusDetails("Testing connection since " + Instant.now()));
+        return goToTesting().using(setSession(data, sender, testConnection.getDittoHeaders())
+                .setConnection(connection)
+                .setConnectionStatusDetails("Testing connection since " + Instant.now()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> connectionTimedOut(final BaseClientData data) {
@@ -644,11 +683,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
                 reconnect(data);
-                connectionLogger.failure("Connection timed out. Will try to reconnect.");
-                return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getNextTimeout())
-                        .using(data.resetSession()
-                                .setConnectionStatus(ConnectivityStatus.FAILED)
-                                .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
+                return goToConnecting(reconnectTimeoutStrategy.getNextTimeout()).using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
             } else {
                 connectionLogger.failure(
                         "Connection timed out. Reached maximum tries and thus will no longer try to reconnect.");
@@ -658,8 +695,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
                 return goTo(UNKNOWN).using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
-                        .setConnectionStatusDetails(timeoutMessage
-                                + " Reached maximum retries and thus will not try to reconnect any longer."));
+                        .setConnectionStatusDetails(timeoutMessage +
+                                " Reached maximum retries and thus will not try to reconnect any longer."));
             }
         }
 
@@ -699,7 +736,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         });
     }
 
-    private State<BaseClientState, BaseClientData> connectionFailure(final ConnectionFailure event,
+    private State<BaseClientState, BaseClientData> connectingConnectionFailed(final ConnectionFailure event,
             final BaseClientData data) {
         return ifEventUpToDate(event, () -> {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
@@ -708,35 +745,66 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             cleanupResourcesForConnection();
             data.getSessionSender().ifPresent(sender -> sender.tell(statusToReport, getSelf()));
 
-            if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
-                if (reconnectTimeoutStrategy.canReconnect()) {
-                    connectionLogger.failure("Connection failed due to: {0}. Will try to reconnect.",
-                            event.getFailureDescription());
-                    return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getNextTimeout()).using(data.resetSession()
-                            .setConnectionStatus(ConnectivityStatus.FAILED)
-                            .setConnectionStatusDetails(event.getFailureDescription()));
-                } else {
-                    connectionLogger.failure(
-                            "Connection failed due to: {0}. Reached maximum tries and thus will no longer try to reconnect.",
-                            event.getFailureDescription());
-                    log.info(
-                            "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
-                            connectionId());
+            return backoffAfterFailure(event, data);
+        });
+    }
 
-                    return goTo(UNKNOWN).using(data.resetSession()
-                            .setConnectionStatus(ConnectivityStatus.FAILED)
-                            .setConnectionStatusDetails(event.getFailureDescription()
-                                    + " Reached maximum retries and thus will not try to reconnect any longer."));
-                }
+    private State<BaseClientState, BaseClientData> connectedConnectionFailed(final ConnectionFailure event,
+            final BaseClientData data) {
+        return ifEventUpToDate(event, () -> {
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
+            // do not bother to disconnect gracefully - the other end of the connection is probably dead
+            cleanupResourcesForConnection();
+            cleanupFurtherResourcesOnConnectionTimeout(stateName());
+
+            return backoffAfterFailure(event, data);
+        });
+    }
+
+    /**
+     * Attempt to reconnect after a failure. Ensure resources were cleaned up before calling it.
+     * Enter state CONNECTING without actually attempting reconnection.
+     * Actual reconnection happens after the state times out.
+     *
+     * @param event the failure event
+     * @param data the current client data
+     */
+    private State<BaseClientState, BaseClientData> backoffAfterFailure(final ConnectionFailure event,
+            final BaseClientData data) {
+        if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
+            if (reconnectTimeoutStrategy.canReconnect()) {
+                final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
+                final String errorMessage =
+                        String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
+                connectionLogger.failure(errorMessage, event.getFailureDescription());
+                log.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
+                return goToConnecting(nextBackoff).using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(event.getFailureDescription()));
+            } else {
+                connectionLogger.failure(
+                        "Connection failed due to: {0}. Reached maximum tries and thus will no longer try to reconnect.",
+                        event.getFailureDescription());
+                log.info(
+                        "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
+                        connectionId());
+
+                // stay in UNKNOWN state until re-opened manually
+                return goTo(UNKNOWN).using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(event.getFailureDescription()
+                                + " Reached maximum retries and thus will not try to reconnect any longer."));
             }
 
-            connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
-            return goTo(UNKNOWN).using(data.resetSession()
-                    .setConnectionStatus(ConnectivityStatus.FAILED)
-                    .setConnectionStatusDetails(event.getFailureDescription())
-            );
-        });
+        }
+
+        connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
+        return goTo(UNKNOWN)
+                .using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(event.getFailureDescription())
+                );
     }
 
     private State<BaseClientState, BaseClientData> ifEventUpToDate(final Object event,
@@ -755,7 +823,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionStatus(final RetrieveConnectionStatus command,
             final BaseClientData data) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received RetrieveConnectionStatus message from {}, forwarding to consumers and publishers.",
                 getSender());
 
@@ -784,7 +852,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
             final RetrieveConnectionMetrics command) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
                 .source(getInstanceIdentifier())
@@ -796,17 +864,21 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final ConnectionMetrics connectionMetrics =
                 connectionCounterRegistry.aggregateConnectionMetrics(sourceMetrics, targetMetrics);
 
-        getSender().tell(
-                RetrieveConnectionMetricsResponse.of(connectionId(), connectionMetrics, sourceMetrics, targetMetrics,
-                        dittoHeaders),
-                getSelf());
+        final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
+                RetrieveConnectionMetricsResponse.getBuilder(connectionId(), dittoHeaders)
+                .connectionMetrics(connectionMetrics)
+                .sourceMetrics(sourceMetrics)
+                .targetMetrics(targetMetrics)
+                .build();
+
+        this.getSender().tell(retrieveConnectionMetricsResponse, this.getSelf());
         return stay();
     }
 
     private FSM.State<BaseClientState, BaseClientData> resetConnectionMetrics(final ResetConnectionMetrics command,
             final BaseClientData data) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received ResetConnectionMetrics message, resetting metrics.");
         //  TODO: think about just clearing the counters instead of completely rebuilding them
         connectionCounterRegistry.resetForConnection(data.getConnection());
@@ -818,7 +890,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> enableConnectionLogs(
             final EnableConnectionLogs command) {
 
-        final String connectionId = command.getConnectionId();
+        final ConnectionId connectionId = command.getConnectionEntityId();
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, connectionId);
         log.debug("Received EnableConnectionLogs message, enabling logs.");
 
@@ -830,7 +902,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> checkLoggingActive(
             final CheckConnectionLogsActive command) {
 
-        final String connectionId = command.getConnectionId();
+        final ConnectionId connectionId = command.getConnectionEntityId();
         final Instant timestamp = command.getTimestamp();
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         log.debug("Received checkLoggingActive message, check if Logging for connection <{}> is expired.",
@@ -846,7 +918,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionLogs(final RetrieveConnectionLogs command) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received RetrieveConnectionLogs message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
                 .source(getInstanceIdentifier())
@@ -868,7 +940,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final ResetConnectionLogs command,
             final BaseClientData data) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received ResetConnectionLogs message, resetting logs.");
 
         this.connectionLoggerRegistry.resetForConnection(data.getConnection());
@@ -938,7 +1010,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         enhanceLogUtil(signal.getSource());
         if (messageMappingProcessorActor != null) {
             final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal,
-                    signal.getSource().getId());
+                    signal.getSource().getEntityId().toString());
             messageMappingProcessorActor.tell(msg, getSender());
         } else {
             log.info("Cannot handle <{}> signal as there is no MessageMappingProcessor available.",
@@ -963,7 +1035,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             connectionLogger.failure(logMessage);
             log.info(logMessage);
-            getSender().tell(dre, getSelf());
             return CompletableFuture.completedFuture(new Status.Failure(dre));
         }
     }
@@ -1063,6 +1134,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
+    private void cancelStateTimeout() {
+        cancelTimer(DITTO_STATE_TIMEOUT_TIMER);
+    }
+
+    private void scheduleStateTimeout(final Duration duration) {
+        setTimer(DITTO_STATE_TIMEOUT_TIMER, StateTimeout(), duration, false);
+    }
+
     /**
      * Add meaningful message to status for reporting.
      *
@@ -1103,6 +1182,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     /**
      * Reconnect timeout strategy that provides increasing timeouts for reconnecting the client.
+     * On timeout, increase the next timeout so that backoff happens when connecting to a drop-all firewall.
+     * On failure, increase backoff-wait so that backoff happens when connecting to a broken broker.
+     * Timeout and backoff are incremented individually in case the remote end refuse or drop packets at random.
+     * Each failure causes a timeout. As a result, failures increment both timeout and backoff. The counter
+     * {@code currentTries} is only incremented on timeout so that it is not incremented twice on failure.
      */
     public interface ReconnectTimeoutStrategy {
 
@@ -1112,6 +1196,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         Duration getNextTimeout();
 
+        Duration getNextBackoff();
     }
 
     /**
@@ -1121,24 +1206,32 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         private final Duration minTimeout;
         private final Duration maxTimeout;
+        private final Duration minBackoff;
+        private final Duration maxBackoff;
         private final int maxTries;
         private Duration currentTimeout;
+        private Duration nextBackoff;
         private int currentTries;
 
+        @Nullable
+        private Instant lastTimeoutIncrease = null;
+
         DuplicationReconnectTimeoutStrategy(final Duration minTimeout, final Duration maxTimeout,
-                final int maxTries) {
+                final int maxTries, final Duration minBackoff, final Duration maxBackoff) {
+            this.maxTimeout = checkArgument(maxTimeout, isPositiveOrZero(), () -> "maxTimeout must be positive");
+            this.maxBackoff = checkArgument(maxBackoff, isPositiveOrZero(), () -> "maxBackoff must be positive");
             this.minTimeout = checkArgument(minTimeout, isPositiveOrZero().and(isLowerThanOrEqual(maxTimeout)),
                     () -> "minTimeout must be positive and lower than or equal to maxTimeout");
-            this.maxTimeout = checkArgument(maxTimeout, isPositiveOrZero(),
-                    () -> "maxTimeout must be positive");
-            this.currentTimeout = minTimeout;
+            this.minBackoff = checkArgument(minBackoff, isPositiveOrZero().and(isLowerThanOrEqual(maxBackoff)),
+                    () -> "minBackoff must be positive and lower than or equal to maxTimeout");
             this.maxTries = checkArgument(maxTries, arg -> arg > 0, () -> "maxTries must be positive");
-            this.currentTries = 0;
+            reset();
         }
 
         private static DuplicationReconnectTimeoutStrategy fromConfig(final ClientConfig clientConfig) {
             return new DuplicationReconnectTimeoutStrategy(clientConfig.getConnectingMinTimeout(),
-                    clientConfig.getConnectingMaxTimeout(), clientConfig.getConnectingMaxTries());
+                    clientConfig.getConnectingMaxTimeout(), clientConfig.getConnectingMaxTries(),
+                    clientConfig.getMinBackoff(), clientConfig.getMaxBackoff());
         }
 
         @Override
@@ -1149,23 +1242,73 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         @Override
         public void reset() {
             this.currentTimeout = this.minTimeout;
+            this.nextBackoff = this.minBackoff;
             this.currentTries = 0;
         }
 
         @Override
         public Duration getNextTimeout() {
-            this.increase();
+            this.increaseTimeoutAfterRecovery();
             return this.currentTimeout;
         }
 
-        private void increase() {
-            if (!maxTimeout.equals(currentTimeout)) {
-                this.currentTimeout = this.currentTimeout.multipliedBy(2L);
-                if (maxTimeout.minus(currentTimeout).isNegative()) {
-                    this.currentTimeout = maxTimeout;
+        @Override
+        public Duration getNextBackoff() {
+            // no need to perform recovery here because timeout always happens after a backoff
+            final Duration result = nextBackoff;
+            nextBackoff = minDuration(maxBackoff, nextBackoff.multipliedBy(2L));
+            return result;
+        }
+
+        private void increaseTimeoutAfterRecovery() {
+            final Instant now = Instant.now();
+            performRecovery(now);
+            currentTimeout = minDuration(maxTimeout, currentTimeout.multipliedBy(2L));
+            ++currentTries;
+        }
+
+        /*
+         * Some form of recovery (reduction of backoff, timeout and retry counter) is necessary so that
+         * connections that experience short downtime once every couple days do not fail permanently
+         * after some time.
+         *
+         * Simply resetting the timeout strategy on connection success is not sufficient,
+         * because AMQP 1.0 connections can enter CONNECTED state and then fail immediately
+         * if source or target addresses are misconfigured--the broker would reject requests
+         * to create message consumers and publishers. If this strategy is reset on entering
+         * CONNECTED, then those misconfigured connections do not experience exponential
+         * backoff; reconnection would happen every minimum backoff duration forever.
+         *
+         * This recovery strategy is based on the duration D between timeouts, which are
+         * also caused by errors. If D is larger than a threshold, then the connection is considered
+         * stable and the timeout strategy is reset. Otherwise the connection is considered unstable
+         * and retry counter will count up until we give up for good.
+         *
+         * The recovery threshold is chosen to be 2*(maxTimeout + maxBackoff) so that after this much
+         * time, the connection has stayed open without errors for at least (maxTimeout + maxBackoff).
+         */
+        private void performRecovery(final Instant now) {
+            // no point to perform linear recovery if this is the first timeout increase
+            if (lastTimeoutIncrease != null) {
+                final Duration durationSinceLastTimeout = Duration.between(lastTimeoutIncrease, now);
+                final Duration resetThreshold = maxTimeout.plus(maxBackoff).multipliedBy(2L);
+                if (isLonger(durationSinceLastTimeout, resetThreshold)) {
+                    reset();
                 }
             }
-            ++currentTries;
+            lastTimeoutIncrease = now;
+        }
+
+        private static Duration minDuration(final Duration d1, final Duration d2) {
+            return isLonger(d1, d2) ? d2 : d1;
+        }
+
+        private static Duration maxDuration(final Duration d1, final Duration d2) {
+            return isLonger(d2, d1) ? d2 : d1;
+        }
+
+        private static boolean isLonger(final Duration d1, final Duration d2) {
+            return d2.minus(d1).isNegative();
         }
 
         private static Predicate<Duration> isLowerThanOrEqual(final Duration otherDuration) {

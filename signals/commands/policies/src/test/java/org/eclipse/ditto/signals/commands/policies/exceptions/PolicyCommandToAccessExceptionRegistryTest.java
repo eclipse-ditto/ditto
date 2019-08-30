@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assert
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,10 +35,10 @@ public final class PolicyCommandToAccessExceptionRegistryTest {
 
     @Test
     public void mapRetrievePolicyToPolicyNotAccessible() {
-        final RetrievePolicy retrieveAttribute = RetrievePolicy.of("org.eclipse.ditto:thingId",
-                DittoHeaders.empty());
-        final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(retrieveAttribute);
-        final DittoRuntimeException expectedException = PolicyNotAccessibleException.newBuilder(":thingId").build();
+        final PolicyId policyId = PolicyId.of("org.eclipse.ditto", "thingId");
+        final RetrievePolicy retrievePolicy = RetrievePolicy.of(policyId, DittoHeaders.empty());
+        final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(retrievePolicy);
+        final DittoRuntimeException expectedException = PolicyNotAccessibleException.newBuilder(policyId).build();
         assertThat(mappedException).isEqualTo(expectedException);
     }
 

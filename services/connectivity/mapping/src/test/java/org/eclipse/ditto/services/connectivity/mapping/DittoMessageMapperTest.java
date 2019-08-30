@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -90,11 +91,10 @@ public final class DittoMessageMapperTest {
         final Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:thing1");
         final JsonifiableAdaptable adaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
-                        (ProtocolFactory.newTopicPathBuilder("org.eclipse.ditto" +
-                                ":thing1").things().twin().commands().modify().build())
+                        (ProtocolFactory.newTopicPathBuilder(thingId).things().twin().commands().modify().build())
                 .withHeaders(DittoHeaders.of(headers))
                 .withPayload(ProtocolFactory
                         .newPayloadBuilder(JsonPointer.of("/features"))
@@ -161,9 +161,9 @@ public final class DittoMessageMapperTest {
         headers.put("header-key", "header-value");
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
+        ThingId thingId = ThingId.of("org.eclipse.ditto:thing1");
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
-                (ProtocolFactory.newTopicPathBuilder("org.eclipse.ditto" +
-                        ":thing1").things().twin().commands().modify().build())
+                (ProtocolFactory.newTopicPathBuilder(thingId).things().twin().commands().modify().build())
                 .withHeaders(DittoHeaders.of(headers))
                 .withPayload(ProtocolFactory
                         .newPayloadBuilder(JsonPointer.of("/features"))

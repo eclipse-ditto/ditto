@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -22,6 +23,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.FeatureDefinition;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -36,7 +39,7 @@ public final class FeatureDefinitionDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeatureDefinitionDeleted.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .build();
 
@@ -54,9 +57,17 @@ public final class FeatureDefinitionDeletedTest {
     }
 
     @Test
+    public void tryToCreateInstanceWithNullThingIdString() {
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> FeatureDefinitionDeleted.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                        TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("Thing ID 'null' is not valid!");
+    }
+
+    @Test
     public void tryToCreateInstanceWithNullThingId() {
         assertThatNullPointerException()
-                .isThrownBy(() -> FeatureDefinitionDeleted.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                .isThrownBy(() -> FeatureDefinitionDeleted.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS))
                 .withMessage("The %s must not be null!", "Thing identifier")
                 .withNoCause();
@@ -88,7 +99,7 @@ public final class FeatureDefinitionDeletedTest {
                 FeatureDefinitionDeleted.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
     }
 

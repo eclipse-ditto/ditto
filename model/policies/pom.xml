@@ -83,6 +83,15 @@
                 <configuration>
                     <parameter>
                         <excludes>
+                            <exclude>org.eclipse.ditto.model.policies.PolicyIdValidator</exclude>
+                            <exclude>
+                                org.eclipse.ditto.model.policies.PolicyBuilder#setId(org.eclipse.ditto.model.policies.PolicyId)
+                            </exclude>
+                            <exclude>
+                                org.eclipse.ditto.model.policies.Policy#newBuilder(org.eclipse.ditto.model.policies.PolicyId)
+                            </exclude>
+                            <exclude>org.eclipse.ditto.model.policies.Policy#getId()</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.Policy#getEntityId()</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

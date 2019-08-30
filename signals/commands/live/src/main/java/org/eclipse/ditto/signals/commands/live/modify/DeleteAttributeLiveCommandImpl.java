@@ -62,7 +62,8 @@ final class DeleteAttributeLiveCommandImpl
 
     @Override
     public DeleteAttributeLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new DeleteAttributeLiveCommandImpl(DeleteAttribute.of(getThingId(), attributePointer, dittoHeaders));
+        return new DeleteAttributeLiveCommandImpl(
+                DeleteAttribute.of(getThingEntityId(), attributePointer, dittoHeaders));
     }
 
     @Override

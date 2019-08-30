@@ -79,7 +79,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyIdMissingException.
      */
-    public static PolicyIdMissingException fromThingIdOnUpdate(final String thingId, final DittoHeaders dittoHeaders) {
+    public static PolicyIdMissingException fromThingIdOnUpdate(final ThingId thingId, final DittoHeaders dittoHeaders) {
         final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         return new Builder(thingId, schemaVersion, MESSAGE_TEMPLATE_UPDATE, DEFAULT_DESCRIPTION_UPDATE)
                 .dittoHeaders(dittoHeaders)
@@ -93,7 +93,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyIdMissingException.
      */
-    public static PolicyIdMissingException fromThingIdOnCreate(final String thingId, final DittoHeaders dittoHeaders) {
+    public static PolicyIdMissingException fromThingIdOnCreate(final ThingId thingId, final DittoHeaders dittoHeaders) {
         final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         return new Builder(thingId, schemaVersion, MESSAGE_TEMPLATE_CREATE, DEFAULT_DESCRIPTION_CREATE)
                 .dittoHeaders(dittoHeaders)
@@ -135,11 +135,11 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
             description(DEFAULT_DESCRIPTION_GENERIC);
         }
 
-        private Builder(final String thingId, final JsonSchemaVersion version, final String messageTemplate,
+        private Builder(final ThingId thingId, final JsonSchemaVersion version, final String messageTemplate,
                 final String description) {
 
             this();
-            message(MessageFormat.format(messageTemplate, thingId, version.toInt()));
+            message(MessageFormat.format(messageTemplate, String.valueOf(thingId), version.toInt()));
             description(description);
         }
 

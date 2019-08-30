@@ -48,9 +48,9 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
     public void retrieveAclEntryFromThingWithoutAcl() {
         final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAclEntry command =
-                RetrieveAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+                RetrieveAclEntry.of(context.getThingEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.aclEntryNotFound(command.getThingId(), command.getAuthorizationSubject(),
+                ExceptionFactory.aclEntryNotFound(command.getThingEntityId(), command.getAuthorizationSubject(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2, command, expectedException);
@@ -60,9 +60,9 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
     public void retrieveAclEntryFromThingWithoutThatAclEntry() {
         final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAclEntry command =
-                RetrieveAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+                RetrieveAclEntry.of(context.getThingEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.aclEntryNotFound(command.getThingId(), command.getAuthorizationSubject(),
+                ExceptionFactory.aclEntryNotFound(command.getThingEntityId(), command.getAuthorizationSubject(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2, command, expectedException);
@@ -72,9 +72,9 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
     public void retrieveExistingAclEntry() {
         final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAclEntry command =
-                RetrieveAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+                RetrieveAclEntry.of(context.getThingEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
         final RetrieveAclEntryResponse expectedResponse =
-                retrieveAclEntryResponse(command.getThingId(), TestConstants.Authorization.ACL_ENTRY_GRIMES,
+                retrieveAclEntryResponse(command.getThingEntityId(), TestConstants.Authorization.ACL_ENTRY_GRIMES,
                         command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V1, command, expectedResponse);

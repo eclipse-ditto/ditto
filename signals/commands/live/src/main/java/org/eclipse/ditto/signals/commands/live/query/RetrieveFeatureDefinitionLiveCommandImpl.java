@@ -56,7 +56,7 @@ final class RetrieveFeatureDefinitionLiveCommandImpl
 
     @Override
     public RetrieveFeatureDefinitionLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(RetrieveFeatureDefinition.of(getThingId(), getFeatureId(), dittoHeaders));
+        return of(RetrieveFeatureDefinition.of(getThingEntityId(), getFeatureId(), dittoHeaders));
     }
 
     @Nonnull

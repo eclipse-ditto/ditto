@@ -17,7 +17,8 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -33,8 +34,8 @@ public interface ThingCommandResponse<T extends ThingCommandResponse> extends Co
     String TYPE_PREFIX = "things." + TYPE_QUALIFIER + ":";
 
     @Override
-    default String getId() {
-        return getThingId();
+    default ThingId getEntityId() {
+        return getThingEntityId();
     }
 
     @Override

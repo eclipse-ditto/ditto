@@ -64,9 +64,9 @@ final class ModifyFeaturesStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newMutationResult(command,
-                FeaturesModified.of(command.getId(), command.getFeatures(), nextRevision,
+                FeaturesModified.of(command.getThingEntityId(), command.getFeatures(), nextRevision,
                         getEventTimestamp(), dittoHeaders),
-                ModifyFeaturesResponse.modified(context.getThingId(), dittoHeaders),
+                ModifyFeaturesResponse.modified(context.getThingEntityId(), dittoHeaders),
                 this);
     }
 
@@ -76,9 +76,9 @@ final class ModifyFeaturesStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newMutationResult(command,
-                FeaturesCreated.of(command.getId(), features, nextRevision, getEventTimestamp(),
+                FeaturesCreated.of(command.getThingEntityId(), features, nextRevision, getEventTimestamp(),
                         dittoHeaders),
-                ModifyFeaturesResponse.created(context.getThingId(), features, dittoHeaders),
+                ModifyFeaturesResponse.created(context.getThingEntityId(), features, dittoHeaders),
                 this);
     }
 

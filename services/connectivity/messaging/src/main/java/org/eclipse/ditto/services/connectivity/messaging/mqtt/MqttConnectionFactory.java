@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -32,7 +33,7 @@ public interface MqttConnectionFactory {
      *
      * @return the ID.
      */
-    String connectionId();
+    EntityId connectionId();
 
     /**
      * Create an Akka stream source of MQTT messages.

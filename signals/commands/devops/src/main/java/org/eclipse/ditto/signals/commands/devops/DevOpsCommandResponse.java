@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -27,7 +28,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface DevOpsCommandResponse<T extends DevOpsCommandResponse> extends CommandResponse<T> {
+public interface DevOpsCommandResponse<T extends DevOpsCommandResponse> extends CommandResponse<T>,
+        WithIdButActuallyNot {
 
     /**
      * Type Prefix of DevOps commands.
@@ -36,11 +38,6 @@ public interface DevOpsCommandResponse<T extends DevOpsCommandResponse> extends 
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
-
-    @Override
-    default String getId() {
-        return ""; // empty ID for DevOps commands
-    }
 
     @Override
     default String getResourceType() {

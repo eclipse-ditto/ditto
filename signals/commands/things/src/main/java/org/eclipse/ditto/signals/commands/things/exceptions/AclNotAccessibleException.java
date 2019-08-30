@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * This exception indicates that the ACL of a Thing cannot be accessed by a particular Authorization Subject because the
@@ -66,7 +67,7 @@ public final class AclNotAccessibleException extends DittoRuntimeException imple
      * requester had insufficient access permissions.
      * @return the builder.
      */
-    public static Builder newBuilder(final String thingId, final AuthorizationSubject authorizationSubject) {
+    public static Builder newBuilder(final ThingId thingId, final AuthorizationSubject authorizationSubject) {
         return new Builder(thingId, authorizationSubject);
     }
 
@@ -114,9 +115,9 @@ public final class AclNotAccessibleException extends DittoRuntimeException imple
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId, final AuthorizationSubject authorizationSubject) {
+        private Builder(final ThingId thingId, final AuthorizationSubject authorizationSubject) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, authorizationSubject, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, authorizationSubject, String.valueOf(thingId)));
         }
 
         @Override

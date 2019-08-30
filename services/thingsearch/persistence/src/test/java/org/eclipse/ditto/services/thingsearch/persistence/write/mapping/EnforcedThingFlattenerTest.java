@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.Permission;
@@ -142,7 +143,7 @@ public final class EnforcedThingFlattenerTest {
                 "}");
 
         final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(
-                PoliciesModelFactory.newPolicyBuilder("policy:id")
+                PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy","id"))
                         .forLabel("grant-root")
                         .setSubject("grant:root", SubjectType.GENERATED)
                         .setGrantedPermissions(THING, "/", Permission.READ)
@@ -296,6 +297,7 @@ public final class EnforcedThingFlattenerTest {
                                 .set("tag3", newObjectBuilder().set("foo", nullLiteral()).build())
                                 .set("tag4", newObjectBuilder().set("foo", empty()).build())
                                 .set("tag5", JsonArray.empty())
+                                .set("tag6", JsonArray.of(JsonArray.of(JsonArray.empty())))
                                 .build()
                 ).build();
 
@@ -309,6 +311,27 @@ public final class EnforcedThingFlattenerTest {
         DittoJsonAssertions.assertThat(result).contains(flattened("/attributes/tag3/foo", JsonValue.nullLiteral()));
         DittoJsonAssertions.assertThat(result).contains(flattened("/attributes/tag4/foo", JsonObject.empty()));
         DittoJsonAssertions.assertThat(result).contains(flattened("/attributes/tag5", JsonObject.empty()));
+        DittoJsonAssertions.assertThat(result).contains(flattened("/attributes/tag6", JsonObject.empty()));
+    }
+
+    @Test
+    public void testZeroMaxArraySize() {
+        final Enforcer emptyEnforcer = AclEnforcer.of(ThingsModelFactory.newAclBuilder().build());
+        final EnforcedThingFlattener underTest = new EnforcedThingFlattener("thing:id", emptyEnforcer, 0);
+
+        final JsonObject inputJson = newObjectBuilder()
+                .set("attributes",
+                        newObjectBuilder()
+                                .set("trimmedArray", JsonArray.of(0, 1, 2))
+                                .build()
+                ).build();
+
+        final JsonArray result = underTest.eval(inputJson)
+                .map(Document::toJson)
+                .map(JsonFactory::readFrom)
+                .collect(JsonCollectors.valuesToArray());
+
+        DittoJsonAssertions.assertThat(result).contains(flattened("/attributes/trimmedArray", JsonObject.empty()));
     }
 
     private JsonValue flattened(final String path, JsonValue value) {

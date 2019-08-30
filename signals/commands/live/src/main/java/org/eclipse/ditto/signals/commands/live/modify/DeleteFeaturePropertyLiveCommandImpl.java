@@ -71,7 +71,7 @@ final class DeleteFeaturePropertyLiveCommandImpl
 
     @Override
     public DeleteFeaturePropertyLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new DeleteFeaturePropertyLiveCommandImpl(DeleteFeatureProperty.of(getThingId(), getFeatureId(),
+        return new DeleteFeaturePropertyLiveCommandImpl(DeleteFeatureProperty.of(getThingEntityId(), getFeatureId(),
                 getPropertyPointer(), dittoHeaders));
     }
 

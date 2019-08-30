@@ -11,7 +11,8 @@ node {
 
   stage('Build') {
     withMaven(
-      maven: 'maven-3.3.9',
+      maven: 'maven-3.6.0',
+      jdk: 'JDK8',
       mavenLocalRepo: theMvnRepo) {
 
       sh "mvn clean deploy javadoc:jar source:jar" +

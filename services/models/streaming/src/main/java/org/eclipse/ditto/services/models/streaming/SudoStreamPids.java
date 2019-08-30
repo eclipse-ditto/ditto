@@ -28,9 +28,11 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -41,7 +43,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommand(typePrefix = SudoStreamPids.TYPE_PREFIX, name = SudoStreamPids.NAME)
 public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
-        implements StartStreamRequest {
+        implements StartStreamRequest, WithIdButActuallyNot {
 
     static final String NAME = "SudoStreamPids";
 
@@ -56,17 +58,23 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     static final JsonFieldDefinition<Long> JSON_TIMEOUT_MILLIS =
             JsonFactory.newLongFieldDefinition("payload/timeoutMillis", REGULAR, V_1, V_2);
 
+    static final JsonFieldDefinition<JsonObject> JSON_LOWER_BOUND =
+            JsonFactory.newJsonObjectFieldDefinition("payload/lowerBound", REGULAR, V_1, V_2);
+
     private final int burst;
 
     private final long timeoutMillis;
 
-    private SudoStreamPids(final Integer burst, final Long timeoutMillis,
+    private final EntityIdWithRevision<?> lowerBound;
+
+    private SudoStreamPids(final Integer burst, final Long timeoutMillis, final EntityIdWithRevision lowerBound,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
 
         this.burst = burst;
         this.timeoutMillis = timeoutMillis;
+        this.lowerBound = lowerBound;
     }
 
     /**
@@ -81,7 +89,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     public static SudoStreamPids of(final Integer burst, final Long timeoutMillis,
             final DittoHeaders dittoHeaders) {
 
-        return new SudoStreamPids(burst, timeoutMillis, dittoHeaders);
+        return new SudoStreamPids(burst, timeoutMillis, new LowerBound(), dittoHeaders);
     }
 
     /**
@@ -98,7 +106,38 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
 
         final int burst = jsonObject.getValueOrThrow(JSON_BURST);
         final long timeoutMillis = jsonObject.getValueOrThrow(JSON_TIMEOUT_MILLIS);
-        return SudoStreamPids.of(burst, timeoutMillis, dittoHeaders);
+        final EntityIdWithRevision lowerBound =
+                jsonObject.getValue(JSON_LOWER_BOUND).map(LowerBound::new).orElseGet(LowerBound::new);
+        return new SudoStreamPids(burst, timeoutMillis, lowerBound, dittoHeaders);
+    }
+
+    /**
+     * Create a copy of this command with a lower-bound set. The lower bound must be a full PID consisting of a prefix
+     * and an entity ID.
+     *
+     * @param lowerBound the lower bound.
+     * @return a copy of this command with lower-bound set.
+     */
+    public SudoStreamPids withLowerBound(final EntityIdWithRevision lowerBound) {
+        return new SudoStreamPids(burst, timeoutMillis, lowerBound, getDittoHeaders());
+    }
+
+    /**
+     * Return the lower-bound PID to resume a stream.
+     *
+     * @return the lower-bound PID.
+     */
+    public EntityIdWithRevision getLowerBound() {
+        return lowerBound;
+    }
+
+    /**
+     * Return whether the command has a non-empty lower bound.
+     *
+     * @return whether the command has a non-empty lower bound.
+     */
+    public boolean hasNonEmptyLowerBound() {
+        return !lowerBound.getEntityId().isDummy();
     }
 
     @Override
@@ -122,6 +161,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_BURST, burst, predicate);
         jsonObjectBuilder.set(JSON_TIMEOUT_MILLIS, timeoutMillis, predicate);
+        jsonObjectBuilder.set(JSON_LOWER_BOUND, lowerBound.toJson(), predicate);
     }
 
     @Override
@@ -141,14 +181,15 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), burst, timeoutMillis);
+        return Objects.hash(super.hashCode(), burst, timeoutMillis, lowerBound);
     }
 
     @Override
     public boolean equals(@Nullable final Object obj) {
         if (obj instanceof SudoStreamPids) {
             final SudoStreamPids that = (SudoStreamPids) obj;
-            return burst == that.burst && timeoutMillis == that.timeoutMillis && super.equals(that);
+            return burst == that.burst && timeoutMillis == that.timeoutMillis && lowerBound.equals(that.lowerBound) &&
+                    super.equals(that);
         } else {
             return false;
         }
@@ -164,12 +205,8 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
         return getClass().getSimpleName() + " [" + super.toString()
                 + ", burst=" + burst
                 + ", timeoutMillis=" + timeoutMillis
+                + ", lowerBound=" + lowerBound
                 + "]";
-    }
-
-    @Override
-    public String getId() {
-        return "";
     }
 
     @Override
@@ -180,5 +217,17 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     @Override
     public String getResourceType() {
         return TYPE;
+    }
+
+    static final class LowerBound extends AbstractEntityIdWithRevision {
+
+        private LowerBound() {
+            super(DefaultEntityId.dummy(), 0L);
+        }
+
+        LowerBound(final JsonObject jsonObject) {
+            super(DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ID)),
+                    jsonObject.getValueOrThrow(JsonFields.REVISION));
+        }
     }
 }

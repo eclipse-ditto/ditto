@@ -24,9 +24,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,7 +41,7 @@ public abstract class AbstractSubstitutionStrategyTestBase {
     protected static final String SUBJECT_ID_PLACEHOLDER = "{{ request:subjectId }}";
 
     private static final String NAMESPACE = "org.eclipse.ditto";
-    protected static final String POLICY_ID = NAMESPACE + ":my-policy";
+    protected static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "my-policy");
     protected static final String LABEL = "my-label";
     protected static final String LABEL_2 = "my-label-2";
     protected static final String SUBJECT_ID = "nginx:ditto";
@@ -48,7 +50,7 @@ public abstract class AbstractSubstitutionStrategyTestBase {
             Resource.newInstance("resourceKey", "resourcePath",
             EffectedPermissions.newInstance(Collections.singleton("READ"), Collections.emptySet())));
 
-    protected static final String THING_ID = NAMESPACE + ":my-thing";
+    protected static final ThingId THING_ID = ThingId.of(NAMESPACE, "my-thing");
     protected static final Thing THING = Thing.newBuilder().setId(THING_ID)
             .setAttributes(JsonObject.newBuilder().set("key", "val").build())
             .build();

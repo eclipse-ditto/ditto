@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -52,10 +53,10 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
     static final JsonFieldDefinition<String> JSON_AUTHORIZATION_SUBJECT =
             JsonFactory.newStringFieldDefinition("authorizationSubject", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final AuthorizationSubject authorizationSubject;
 
-    private DeleteAclEntryResponse(final String thingId, final AuthorizationSubject authorizationSubject,
+    private DeleteAclEntryResponse(final ThingId thingId, final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
@@ -71,8 +72,27 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeleteAclEntryResponse of(final String thingId, final AuthorizationSubject authorizationSubject,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link DeleteAclEntry} command.
+     *
+     * @param thingId the Thing ID of the deleted ACL entry.
+     * @param authorizationSubject the deleted authorization subject.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static DeleteAclEntryResponse of(final ThingId thingId, final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
 
         return new DeleteAclEntryResponse(thingId, authorizationSubject, dittoHeaders);
@@ -105,9 +125,10 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
      */
     public static DeleteAclEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteAclEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
+                .deserialize(statusCode -> {
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String authSubjectId = jsonObject.getValueOrThrow(JSON_AUTHORIZATION_SUBJECT);
                     final AuthorizationSubject extractedAuthSubject =
                             AuthorizationModelFactory.newAuthSubject(authSubjectId);
@@ -117,7 +138,7 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -139,7 +160,7 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_AUTHORIZATION_SUBJECT, authorizationSubject.getId(), predicate);
     }
 

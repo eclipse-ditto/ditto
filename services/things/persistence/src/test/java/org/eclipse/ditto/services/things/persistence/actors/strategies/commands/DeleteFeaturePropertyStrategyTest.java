@@ -60,11 +60,11 @@ public final class DeleteFeaturePropertyStrategyTest extends AbstractCommandStra
     public void successfullyDeleteFeaturePropertyFromThing() {
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperty command =
-                DeleteFeatureProperty.of(context.getThingId(), featureId, propertyPointer, DittoHeaders.empty());
+                DeleteFeatureProperty.of(context.getThingEntityId(), featureId, propertyPointer, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeaturePropertyDeleted.class,
-                DeleteFeaturePropertyResponse.of(context.getThingId(),
+                DeleteFeaturePropertyResponse.of(context.getThingEntityId(),
                         command.getFeatureId(), propertyPointer, command.getDittoHeaders()));
     }
 
@@ -72,9 +72,9 @@ public final class DeleteFeaturePropertyStrategyTest extends AbstractCommandStra
     public void deleteFeaturePropertyFromThingWithoutFeatures() {
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperty command =
-                DeleteFeatureProperty.of(context.getThingId(), featureId, propertyPointer, DittoHeaders.empty());
+                DeleteFeatureProperty.of(context.getThingEntityId(), featureId, propertyPointer, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
@@ -84,9 +84,9 @@ public final class DeleteFeaturePropertyStrategyTest extends AbstractCommandStra
     public void deleteFeaturePropertyFromThingWithoutThatFeature() {
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperty command =
-                DeleteFeatureProperty.of(context.getThingId(), featureId, propertyPointer, DittoHeaders.empty());
+                DeleteFeatureProperty.of(context.getThingEntityId(), featureId, propertyPointer, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeature(featureId), command, expectedException);
@@ -97,9 +97,9 @@ public final class DeleteFeaturePropertyStrategyTest extends AbstractCommandStra
         final Feature feature = FLUX_CAPACITOR.removeProperties();
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperty command =
-                DeleteFeatureProperty.of(context.getThingId(), feature.getId(), propertyPointer, DittoHeaders.empty());
+                DeleteFeatureProperty.of(context.getThingEntityId(), feature.getId(), propertyPointer, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featurePropertyNotFound(context.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featurePropertyNotFound(context.getThingEntityId(), command.getFeatureId(),
                         propertyPointer, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.setFeature(feature), command, expectedException);
@@ -110,9 +110,9 @@ public final class DeleteFeaturePropertyStrategyTest extends AbstractCommandStra
         final Feature feature = FLUX_CAPACITOR.removeProperty(propertyPointer);
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperty command =
-                DeleteFeatureProperty.of(context.getThingId(), feature.getId(), propertyPointer, DittoHeaders.empty());
+                DeleteFeatureProperty.of(context.getThingEntityId(), feature.getId(), propertyPointer, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featurePropertyNotFound(context.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featurePropertyNotFound(context.getThingEntityId(), command.getFeatureId(),
                         propertyPointer, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.setFeature(feature), command, expectedException);

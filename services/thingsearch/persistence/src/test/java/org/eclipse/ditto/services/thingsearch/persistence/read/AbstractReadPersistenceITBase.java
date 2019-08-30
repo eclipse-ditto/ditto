@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
@@ -33,10 +34,10 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
-import org.junit.Before;
-
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceITBase;
+import org.junit.Before;
 
 
 /**
@@ -44,7 +45,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPer
  */
 public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchPersistenceITBase {
 
-    static final String POLICY_ID = "global:policy";
+    static final PolicyId POLICY_ID = PolicyId.of("global", "policy");
 
     private Enforcer policyEnforcer;
 
@@ -55,7 +56,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
         policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy());
     }
 
-    ResultList<String> findForCriteria(final Criteria criteria) {
+    ResultList<ThingId> findForCriteria(final Criteria criteria) {
         return findAll(qbf.newBuilder(criteria).build());
     }
 
@@ -72,6 +73,10 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing createThing(final String thingId) {
+        return createThing(ThingId.of(thingId));
+    }
+
+    Thing createThing(final ThingId thingId) {
         if (isV1()) {
             return createThingV1(thingId);
         } else {
@@ -79,7 +84,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
         }
     }
 
-    List<Thing> createThings(final Collection<String> thingIds) {
+    List<Thing> createThings(final Collection<ThingId> thingIds) {
         return thingIds
                 .stream()
                 .map(this::createThing)
@@ -93,11 +98,11 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
      * @param id The id of the thing.
      * @return The created (not persisted) Thing object.
      */
-    Thing createThingV1(final String id) {
+    Thing createThingV1(final ThingId id) {
         return createThingV1(id, KNOWN_SUBJECTS);
     }
 
-    Thing createThingV1(final String id, final Collection<String> subjects) {
+    Thing createThingV1(final ThingId id, final Collection<String> subjects) {
         final List<AclEntry> aclEntries = subjects.stream()
                 .map(subject -> AclEntry.newInstance(AuthorizationSubject.newInstance(subject),
                         Collections.singletonList(Permission.READ)))
@@ -114,11 +119,11 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
         return thingV1;
     }
 
-    Thing createThingV2(final String id) {
-        return createThingV2(id, POLICY_ID);
+    Thing createThingV2(final ThingId id) {
+        return createThingV2(id, POLICY_ID.toString());
     }
 
-    Thing createThingV2(final String id, final String policyId) {
+    Thing createThingV2(final ThingId id, final String policyId) {
         return Thing.newBuilder()
                 .setId(id)
                 .setPolicyId(policyId)
@@ -127,7 +132,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing persistThingV2(final Thing thingV2) {
-        final Enforcer enforcer = getPolicyEnforcer(thingV2.getId().orElseThrow(IllegalStateException::new));
+        final Enforcer enforcer = getPolicyEnforcer(thingV2.getEntityId().orElseThrow(IllegalStateException::new));
         log.info("EXECUTED {}", runBlockingWithReturn(writePersistence.write(thingV2, enforcer, 0L)));
         return thingV2;
     }
@@ -148,7 +153,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
      *
      * @param thingId The thingId for which the policy enforcer should be got
      */
-    Enforcer getPolicyEnforcer(final String thingId) {
+    Enforcer getPolicyEnforcer(final ThingId thingId) {
         return policyEnforcer;
     }
 

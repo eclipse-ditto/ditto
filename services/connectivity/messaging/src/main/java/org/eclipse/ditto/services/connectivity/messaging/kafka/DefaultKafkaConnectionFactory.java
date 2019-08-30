@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
 
@@ -49,7 +50,7 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
     }
 
     @Override
-    public String connectionId() {
+    public EntityId connectionId() {
         return connection.getId();
     }
 

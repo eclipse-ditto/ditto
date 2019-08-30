@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
@@ -90,7 +91,7 @@ final class FeaturesRoute extends AbstractRoute {
      *
      * @return the {@code /features} route.
      */
-    public Route buildFeaturesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
+    public Route buildFeaturesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_PREFIX), () ->
                 concat(
                         features(ctx, dittoHeaders, thingId),
@@ -108,7 +109,7 @@ final class FeaturesRoute extends AbstractRoute {
      *
      * @return {@code /features} route.
      */
-    private Route features(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
+    private Route features(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
         return pathEndOrSingleSlash(() ->
                 concat(
                         get(() -> // GET /features?fields=<fieldsString>
@@ -139,7 +140,7 @@ final class FeaturesRoute extends AbstractRoute {
      *
      * @return {@code /features/<featureId>} route.
      */
-    private Route featuresEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
+    private Route featuresEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 pathEndOrSingleSlash(() ->
                         concat(
@@ -181,7 +182,7 @@ final class FeaturesRoute extends AbstractRoute {
      * @return {@code /features/<featureId>/definition} route.
      */
     private Route featuresEntryDefinition(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+            final ThingId thingId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_DEFINITION), () ->
@@ -218,7 +219,7 @@ final class FeaturesRoute extends AbstractRoute {
      * @return {@code /features/<featureId>/properties} route.
      */
     private Route featuresEntryProperties(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+            final ThingId thingId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_PROPERTIES), () ->
@@ -265,7 +266,7 @@ final class FeaturesRoute extends AbstractRoute {
      * @return {@code /features/<featureId>/properties/<propertyJsonPointer>} route.
      */
     private Route featuresEntryPropertiesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+            final ThingId thingId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_PROPERTIES), () ->
@@ -320,7 +321,7 @@ final class FeaturesRoute extends AbstractRoute {
      * @return {@code /features/{featureId}/{inbox|outbox}} route.
      */
     private Route featuresEntryInboxOutbox(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+            final ThingId thingId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 // POST /features/{featureId}/<inbox|outbox>

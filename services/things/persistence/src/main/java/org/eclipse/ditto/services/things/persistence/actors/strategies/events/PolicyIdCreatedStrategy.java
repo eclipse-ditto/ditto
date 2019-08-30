@@ -25,7 +25,7 @@ final class PolicyIdCreatedStrategy extends AbstractEventStrategy<PolicyIdCreate
 
     @Override
     protected ThingBuilder.FromCopy applyEvent(final PolicyIdCreated event, final ThingBuilder.FromCopy thingBuilder) {
-        return thingBuilder.setPolicyId(event.getPolicyId());
+        return thingBuilder.setPolicyId(event.getPolicyEntityId());
     }
 
 }

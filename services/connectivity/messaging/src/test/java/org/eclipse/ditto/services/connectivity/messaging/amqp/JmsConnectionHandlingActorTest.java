@@ -27,6 +27,7 @@ import javax.jms.Session;
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsSession;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
@@ -55,7 +56,7 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
 
-    private static final String connectionId = TestConstants.createRandomConnectionId();
+    private static final ConnectionId connectionId = TestConstants.createRandomConnectionId();
     private static Connection connection;
 
     @Mock private final Session mockSession = Mockito.mock(Session.class);

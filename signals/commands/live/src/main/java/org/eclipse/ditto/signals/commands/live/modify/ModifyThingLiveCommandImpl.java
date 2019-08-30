@@ -62,7 +62,7 @@ final class ModifyThingLiveCommandImpl extends AbstractModifyLiveCommand<ModifyT
 
     @Override
     public ModifyThingLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ModifyThingLiveCommandImpl(ModifyThing.of(getThingId(), getThing(), null, dittoHeaders));
+        return new ModifyThingLiveCommandImpl(ModifyThing.of(getThingEntityId(), getThing(), null, dittoHeaders));
     }
 
     @Override

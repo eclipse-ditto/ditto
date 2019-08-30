@@ -27,12 +27,14 @@ import java.util.Collections;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.junit.Test;
 
@@ -40,6 +42,8 @@ import org.junit.Test;
  * Tests {@link org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator}.
  */
 public class ConnectionValidatorTest {
+
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
 
     @Test
     public void testImmutability() {
@@ -52,7 +56,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void acceptValidConnection() {
-        final Connection connection = createConnection("connectionId");
+        final Connection connection = createConnection(CONNECTION_ID);
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty());
     }
@@ -60,8 +64,8 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithSourceWithoutAddresses() {
         final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectivityStatus.OPEN,
-                        "amqp://localhost:5671")
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
+                        ConnectionType.AMQP_10, ConnectivityStatus.OPEN, "amqp://localhost:5671")
                         .sources(singletonList(
                                 ConnectivityModelFactory.newSourceBuilder()
                                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
@@ -78,8 +82,8 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithEmptySourceAddress() {
         final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectivityStatus.OPEN,
-                        "amqp://localhost:5671")
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
+                        ConnectionType.AMQP_10, ConnectivityStatus.OPEN, "amqp://localhost:5671")
                         .sources(singletonList(
                                 ConnectivityModelFactory.newSourceBuilder()
                                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
@@ -97,8 +101,8 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithEmptyTargetAddress() {
         final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectivityStatus.OPEN,
-                        "amqp://localhost:5671")
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
+                        ConnectionType.AMQP_10, ConnectivityStatus.OPEN, "amqp://localhost:5671")
                         .targets(Collections.singletonList(
                                 ConnectivityModelFactory.newTarget("",
                                         Authorization.AUTHORIZATION_CONTEXT,
@@ -113,7 +117,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void rejectConnectionWithIllFormedTrustedCertificates() {
-        final Connection connection = createConnection("connectionId").toBuilder()
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
                 .trustedCertificates("Wurst")
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
@@ -128,7 +132,7 @@ public class ConnectionValidatorTest {
                 Certificates.SERVER_CRT,
                 Certificates.CLIENT_CRT,
                 Certificates.CLIENT_SELF_SIGNED_CRT);
-        final Connection connection = createConnection("connectionId").toBuilder()
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
                 .trustedCertificates(trustedCertificates)
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
@@ -137,7 +141,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void rejectIllFormedClientCertificate() {
-        final Connection connection = createConnection("connectionId").toBuilder()
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
                 .credentials(ClientCertificateCredentials.newBuilder()
                         .clientKey(Certificates.CLIENT_KEY)
                         .clientCertificate("Wurst")
@@ -150,7 +154,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void rejectIllFormedClientKey() {
-        final Connection connection = createConnection("connectionId").toBuilder()
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
                 .credentials(ClientCertificateCredentials.newBuilder()
                         .clientKey("-----BEGIN RSA PRIVATE KEY-----\nWurst\n-----END RSA PRIVATE KEY-----")
                         .clientCertificate(Certificates.CLIENT_CRT)
@@ -164,7 +168,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void acceptClientCertificate() {
-        final Connection connection = createConnection("connectionId").toBuilder()
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
                 .credentials(ClientCertificateCredentials.newBuilder()
                         .clientKey(Certificates.CLIENT_KEY)
                         .clientCertificate(Certificates.CLIENT_CRT)

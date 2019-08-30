@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.FeatureProperties;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -39,7 +40,7 @@ public class RetrieveFeaturePropertiesResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeaturePropertiesResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveFeaturePropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(RetrieveFeaturePropertiesResponse.JSON_PROPERTIES,
                     TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(KNOWN_SCHEMA_VERSION))
@@ -49,7 +50,7 @@ public class RetrieveFeaturePropertiesResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeaturePropertiesResponse.class, areImmutable(),
-                provided(FeatureProperties.class).isAlsoImmutable());
+                provided(FeatureProperties.class, ThingId.class).isAlsoImmutable());
     }
 
 

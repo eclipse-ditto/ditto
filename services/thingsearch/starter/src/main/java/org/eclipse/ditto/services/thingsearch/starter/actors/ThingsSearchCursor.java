@@ -50,6 +50,7 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.thingsearch.CursorOption;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;
@@ -422,7 +423,7 @@ final class ThingsSearchCursor {
     static SearchResult processSearchResult(final QueryThings queryThings,
             @Nullable final ThingsSearchCursor cursor,
             final SearchResult searchResult,
-            final ResultList<String> resultList) {
+            final ResultList<ThingId> resultList) {
 
         if (!findAll(LimitOption.class, getOptions(queryThings)).isEmpty()) {
             // do not deliver cursor if "limit" is specified

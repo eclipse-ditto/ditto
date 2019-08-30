@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -160,10 +162,8 @@ final class StreamingSessionActor extends AbstractActor {
 
                     outstandingSubscriptionAcks.add(startStreaming.getStreamingType());
                     // In Cluster: Subscribe
-                    pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(
-                            startStreaming.getStreamingType().getDistributedPubSubTopic(),
-                            connectionCorrelationId,
-                            getSelf()), getSelf());
+                    pubSubMediator.tell(DistPubSubAccess.subscribe(
+                            startStreaming.getStreamingType().getDistributedPubSubTopic(), getSelf()), getSelf());
                 })
                 .match(StopStreaming.class, stopStreaming -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
@@ -174,9 +174,8 @@ final class StreamingSessionActor extends AbstractActor {
                     eventFilterCriteriaForStreamingTypes.remove(stopStreaming.getStreamingType());
 
                     // In Cluster: Unsubscribe
-                    pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(
-                            stopStreaming.getStreamingType().getDistributedPubSubTopic(),
-                            connectionCorrelationId, getSelf()), getSelf());
+                    pubSubMediator.tell(DistPubSubAccess.unsubscribe(
+                            stopStreaming.getStreamingType().getDistributedPubSubTopic(), getSelf()), getSelf());
                 })
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
@@ -224,8 +223,7 @@ final class StreamingSessionActor extends AbstractActor {
                     Arrays.stream(StreamingType.values())
                             .map(StreamingType::getDistributedPubSubTopic)
                             .forEach(topic ->
-                                    pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(topic,
-                                            connectionCorrelationId, getSelf()), getSelf()));
+                                    pubSubMediator.tell(DistPubSubAccess.unsubscribe(topic, getSelf()), getSelf()));
 
                     getContext().getSystem()
                             .scheduler()
@@ -292,7 +290,7 @@ final class StreamingSessionActor extends AbstractActor {
     }
 
     private static String namespaceFromId(final WithId withId) {
-        return withId.getId().split(":", 2)[0];
+        return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
     }
 
     /**

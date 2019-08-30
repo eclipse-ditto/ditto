@@ -22,8 +22,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.Subjects;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public class ModifySubjectsTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, ModifySubjects.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ModifySubjects.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(ModifySubjects.JSON_SUBJECTS, TestConstants.Policy.SUBJECTS.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -47,7 +48,7 @@ public class ModifySubjectsTest {
     public void assertImmutability() {
         assertInstancesOf(ModifySubjects.class,
                 areImmutable(),
-                provided(Label.class, Subjects.class, JsonObject.class).areAlsoImmutable());
+                provided(Label.class, Subjects.class, JsonObject.class, PolicyId.class).areAlsoImmutable());
     }
 
 
@@ -61,7 +62,14 @@ public class ModifySubjectsTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ModifySubjects.of(null, TestConstants.Policy.LABEL,
+        ModifySubjects.of((PolicyId) null, TestConstants.Policy.LABEL,
+                TestConstants.Policy.SUBJECTS, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        ModifySubjects.of((String) null, TestConstants.Policy.LABEL,
                 TestConstants.Policy.SUBJECTS, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -70,8 +78,7 @@ public class ModifySubjectsTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> ModifySubjects.of("undefined", TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECTS, TestConstants.EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        TestConstants.Policy.SUBJECTS, TestConstants.EMPTY_DITTO_HEADERS));
     }
 
 

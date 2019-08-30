@@ -54,13 +54,15 @@ import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 @Immutable
 final class ImmutableConnection implements Connection {
 
-    private final String id;
+    private final ConnectionId id;
     @Nullable private final String name;
     private final ConnectionType connectionType;
     private final ConnectivityStatus connectionStatus;
     private final ConnectionUri uri;
     @Nullable private final Credentials credentials;
     @Nullable private final String trustedCertificates;
+    @Nullable private final ConnectionLifecycle lifecycle;
+
 
     private final List<Source> sources;
     private final List<Target> targets;
@@ -89,6 +91,7 @@ final class ImmutableConnection implements Connection {
         specificConfig = Collections.unmodifiableMap(new HashMap<>(builder.specificConfig));
         mappingContext = builder.mappingContext;
         tags = Collections.unmodifiableSet(new HashSet<>(builder.tags));
+        lifecycle = builder.lifecycle;
     }
 
     /**
@@ -101,7 +104,7 @@ final class ImmutableConnection implements Connection {
      * @return new instance of {@code ConnectionBuilder}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionBuilder getBuilder(final String id,
+    public static ConnectionBuilder getBuilder(final ConnectionId id,
             final ConnectionType connectionType,
             final ConnectivityStatus connectionStatus,
             final String uri) {
@@ -137,7 +140,8 @@ final class ImmutableConnection implements Connection {
                 .specificConfig(connection.getSpecificConfig())
                 .mappingContext(connection.getMappingContext().orElse(null))
                 .name(connection.getName().orElse(null))
-                .tags(connection.getTags());
+                .tags(connection.getTags())
+                .lifecycle(connection.getLifecycle().orElse(null));
     }
 
     /**
@@ -151,7 +155,7 @@ final class ImmutableConnection implements Connection {
     public static Connection fromJson(final JsonObject jsonObject) {
         final ConnectionType type = getConnectionTypeOrThrow(jsonObject);
         final ConnectionBuilder builder = new Builder(type)
-                .id(jsonObject.getValueOrThrow(JsonFields.ID))
+                .id(ConnectionId.of(jsonObject.getValueOrThrow(JsonFields.ID)))
                 .connectionStatus(getConnectionStatusOrThrow(jsonObject))
                 .uri(jsonObject.getValueOrThrow(JsonFields.URI))
                 .sources(getSources(jsonObject))
@@ -163,6 +167,8 @@ final class ImmutableConnection implements Connection {
                 .specificConfig(getSpecificConfiguration(jsonObject))
                 .tags(getTags(jsonObject));
 
+        jsonObject.getValue(Connection.JsonFields.LIFECYCLE)
+                .flatMap(ConnectionLifecycle::forName).ifPresent(builder::lifecycle);
         jsonObject.getValue(JsonFields.CREDENTIALS).ifPresent(builder::credentialsFromJson);
         jsonObject.getValue(JsonFields.CLIENT_COUNT).ifPresent(builder::clientCount);
         jsonObject.getValue(JsonFields.FAILOVER_ENABLED).ifPresent(builder::failoverEnabled);
@@ -236,7 +242,7 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public String getId() {
+    public ConnectionId getId() {
         return id;
     }
 
@@ -345,13 +351,22 @@ final class ImmutableConnection implements Connection {
         return tags;
     }
 
+
+    @Override
+    public Optional<ConnectionLifecycle> getLifecycle() {
+        return Optional.ofNullable(lifecycle);
+    }
+
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(JsonFields.ID, id, predicate);
+        if (null != lifecycle) {
+            jsonObjectBuilder.set(Connection.JsonFields.LIFECYCLE, lifecycle.name(), predicate);
+        }
+        jsonObjectBuilder.set(JsonFields.ID, String.valueOf(id), predicate);
         jsonObjectBuilder.set(JsonFields.NAME, name, predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_TYPE, connectionType.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.getName(), predicate);
@@ -414,6 +429,7 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(validateCertificate, that.validateCertificate) &&
                 Objects.equals(specificConfig, that.specificConfig) &&
                 Objects.equals(mappingContext, that.mappingContext) &&
+                Objects.equals(lifecycle, that.lifecycle) &&
                 Objects.equals(tags, that.tags);
     }
 
@@ -421,7 +437,7 @@ final class ImmutableConnection implements Connection {
     public int hashCode() {
         return Objects.hash(id, name, connectionType, connectionStatus, sources, targets, clientCount, failOverEnabled,
                 credentials, trustedCertificates, uri, validateCertificate, processorPoolSize, specificConfig,
-                mappingContext, tags);
+                mappingContext, tags, lifecycle);
     }
 
     @Override
@@ -443,6 +459,7 @@ final class ImmutableConnection implements Connection {
                 ", specificConfig=" + specificConfig +
                 ", mappingContext=" + mappingContext +
                 ", tags=" + tags +
+                ", lifecycle=" + lifecycle +
                 "]";
     }
 
@@ -455,7 +472,7 @@ final class ImmutableConnection implements Connection {
         private final ConnectionType connectionType;
 
         // required but changeable:
-        @Nullable private String id;
+        @Nullable private ConnectionId id;
         @Nullable private ConnectivityStatus connectionStatus;
         @Nullable private String uri;
 
@@ -464,6 +481,7 @@ final class ImmutableConnection implements Connection {
         @Nullable private Credentials credentials;
         @Nullable private MappingContext mappingContext = null;
         @Nullable private String trustedCertificates;
+        @Nullable private ConnectionLifecycle lifecycle = null;
 
         // optional with default:
         private Set<String> tags = new HashSet<>();
@@ -480,7 +498,7 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder id(final String id) {
+        public ConnectionBuilder id(final ConnectionId id) {
             this.id = checkNotNull(id, "ID");
             return this;
         }
@@ -547,6 +565,18 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
+        public ConnectionBuilder setSources(final List<Source> sources) {
+            this.sources.clear();
+            return sources(sources);
+        }
+
+        @Override
+        public ConnectionBuilder setTargets(final List<Target> targets) {
+            this.targets.clear();
+            return targets(targets);
+        }
+
+        @Override
         public ConnectionBuilder clientCount(final int clientCount) {
             checkArgument(clientCount, ps -> ps > 0, () -> "The client count must be > 0!");
             this.clientCount = clientCount;
@@ -574,6 +604,12 @@ final class ImmutableConnection implements Connection {
         @Override
         public ConnectionBuilder tag(final String tag) {
             tags.add(checkNotNull(tag, "tag to set"));
+            return this;
+        }
+
+        @Override
+        public ConnectionBuilder lifecycle(final ConnectionLifecycle lifecycle) {
+            this.lifecycle = lifecycle;
             return this;
         }
 

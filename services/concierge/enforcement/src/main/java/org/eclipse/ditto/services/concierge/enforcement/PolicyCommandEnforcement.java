@@ -30,15 +30,17 @@ import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.IdentityCache;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
@@ -52,7 +54,6 @@ import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 
 import akka.actor.ActorRef;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 
@@ -69,10 +70,10 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
 
     private final ActorRef policiesShardRegion;
     private final EnforcerRetriever enforcerRetriever;
-    private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+    private final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
 
     private PolicyCommandEnforcement(final Contextual<PolicyCommand> data, final ActorRef policiesShardRegion,
-            final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache) {
 
         super(data);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
@@ -216,7 +217,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
                 throw errorForPolicyCommand(signal());
             }
         } else {
-            throw PolicyNotAccessibleException.newBuilder(policyCommand.getId())
+            throw PolicyNotAccessibleException.newBuilder(policyCommand.getEntityId())
                             .dittoHeaders(policyCommand.getDittoHeaders())
                             .build();
         }
@@ -230,7 +231,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      */
     private Contextual<WithDittoHeaders> forwardToPoliciesShardRegion(final PolicyCommand command) {
         if (command instanceof PolicyModifyCommand) {
-            invalidateCaches(command.getId());
+            invalidateCaches(command.getEntityId());
         }
         return withMessageToReceiver(command, policiesShardRegion);
     }
@@ -241,10 +242,10 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      *
      * @param policyId the ID of the Policy to invalidate caches for.
      */
-    private void invalidateCaches(final String policyId) {
-        final EntityId entityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
+    private void invalidateCaches(final PolicyId policyId) {
+        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId);
         enforcerCache.invalidate(entityId);
-        pubSubMediator().tell(new DistributedPubSubMediator.SendToAll(
+        pubSubMediator().tell(DistPubSubAccess.sendToAll(
                         ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
                         InvalidateCacheEntry.of(entityId),
                         true),
@@ -275,7 +276,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
             final PolicyQueryCommand command,
             final AskTimeoutException askTimeoutException) {
         log(command).error(askTimeoutException, "Timeout before building JsonView");
-        return PolicyUnavailableException.newBuilder(command.getId())
+        return PolicyUnavailableException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
@@ -296,7 +297,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      */
     public static final class Provider implements EnforcementProvider<PolicyCommand> {
 
-        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+        private final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
         private ActorRef policiesShardRegion;
 
         /**
@@ -306,7 +307,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
          * @param enforcerCache the enforcer cache.
          */
         public Provider(final ActorRef policiesShardRegion,
-                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+                final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache) {
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.enforcerCache = requireNonNull(enforcerCache);
         }

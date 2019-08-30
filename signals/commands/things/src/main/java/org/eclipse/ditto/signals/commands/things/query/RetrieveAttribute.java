@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -57,15 +57,14 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
             JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final JsonPointer attributePointer;
 
-    private RetrieveAttribute(final JsonPointer attributePointer, final String thingId,
+    private RetrieveAttribute(final JsonPointer attributePointer, final ThingId thingId,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
-        this.thingId = thingId;
+        this.thingId = checkNotNull(thingId, "Thing ID");
         this.attributePointer = checkNotNull(attributePointer, "JSON pointer which attribute to retrieve");
     }
 
@@ -78,10 +77,28 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
      * @return a Command for retrieving a single attribute of the Thing with the {@code thingId} as its ID which is
      * readable from the passed authorization context.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveAttribute of(final String thingId, final JsonPointer attributeJsonPointer,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), attributeJsonPointer, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for retrieving an attribute of a Thing with the given ID.
+     *
+     * @param thingId the ID of a single Thing from which a single attribute will be retrieved by this command.
+     * @param attributeJsonPointer defines one JSON pointer of the attribute to retrieve.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving a single attribute of the Thing with the {@code thingId} as its ID which is
+     * readable from the passed authorization context.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     */
+    public static RetrieveAttribute of(final ThingId thingId, final JsonPointer attributeJsonPointer,
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveAttribute(attributeJsonPointer, thingId, dittoHeaders);
@@ -98,7 +115,7 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveAttribute fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -114,11 +131,12 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveAttribute>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedPointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
             final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
 
@@ -136,7 +154,7 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -151,7 +169,7 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE, attributePointer.toString(), predicate);
     }
 

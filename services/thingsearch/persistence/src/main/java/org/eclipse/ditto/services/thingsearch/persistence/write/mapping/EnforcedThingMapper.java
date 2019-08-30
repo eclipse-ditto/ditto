@@ -37,6 +37,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingWriteModel;
@@ -93,7 +94,8 @@ public final class EnforcedThingMapper {
             final long policyRevision,
             final int maxArraySize) {
 
-        final String thingId = thing.getValueOrThrow(Thing.JsonFields.ID);
+        final String extractedThing = thing.getValueOrThrow(Thing.JsonFields.ID);
+        final ThingId thingId = ThingId.of(extractedThing);
         final long thingRevision = thing.getValueOrThrow(Thing.JsonFields.REVISION);
         final String nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).orElse(null);
         final Metadata metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision);
@@ -105,7 +107,7 @@ public final class EnforcedThingMapper {
         final BsonArray flattenedValues = EnforcedThingFlattener.flattenJson(thing, enforcer, maxArraySize);
 
         final Document thingDocument =
-                new Document().append(FIELD_ID, thingId)
+                new Document().append(FIELD_ID, thingId.toString())
                         .append(FIELD_REVISION, thingRevision)
                         .append(FIELD_NAMESPACE, metadata.getNamespaceInPersistence())
                         .append(FIELD_GLOBAL_READ, getGlobalRead(enforcer))

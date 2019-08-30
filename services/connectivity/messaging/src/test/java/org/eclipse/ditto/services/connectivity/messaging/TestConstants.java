@@ -16,6 +16,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -51,6 +52,8 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -72,6 +75,7 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -171,7 +175,7 @@ public final class TestConstants {
 
         public static final String NAMESPACE = "ditto";
         public static final String ID = "thing";
-        public static final String THING_ID = NAMESPACE + ":" + ID;
+        public static final ThingId THING_ID = ThingId.of(NAMESPACE, ID);
         public static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
 
     }
@@ -223,7 +227,7 @@ public final class TestConstants {
                 newTarget("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}",
                         Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         null, Topic.TWIN_EVENTS);
-        static final Target TWIN_TARGET =
+        public static final Target TWIN_TARGET =
                 newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         null, Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =
@@ -302,22 +306,24 @@ public final class TestConstants {
 
 
         static {
-            when(MONITOR_REGISTRY_MOCK.forInboundConsumed(anyString(), anyString())).thenReturn(
-                    CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundDropped(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundEnforced(anyString(), anyString())).thenReturn(
-                    CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundMapped(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundDispatched(anyString(), anyString())).thenReturn(
-                    CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundFiltered(anyString(), anyString())).thenReturn(
-                    CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundPublished(anyString(), anyString())).thenReturn(
-                    CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseDropped(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseMapped(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponsePublished(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundConsumed(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundDropped(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundEnforced(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundMapped(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundDispatched(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundFiltered(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundPublished(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDropped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseMapped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponsePublished(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
         }
 
     }
@@ -329,7 +335,7 @@ public final class TestConstants {
         private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
                 ConnectivityCounterRegistry.fromConfig(MONITORING_CONFIG.counter());
 
-        public static final String ID = "myConnectionId";
+        public static final ConnectionId ID = ConnectionId.of("myConnectionId");
 
 
         public static final Duration ONE_MINUTE = Duration.ofMinutes(1);
@@ -372,8 +378,12 @@ public final class TestConstants {
         public static final ConnectionMetrics CONNECTION_METRICS1 = COUNTER_REGISTRY
                 .aggregateConnectionMetrics(SOURCE_METRICS1, TARGET_METRICS1);
 
-        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE1 = RetrieveConnectionMetricsResponse
-                .of(ID, CONNECTION_METRICS1, SOURCE_METRICS1, TARGET_METRICS1, DittoHeaders.empty());
+        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE1 =
+                RetrieveConnectionMetricsResponse.getBuilder(ID, DittoHeaders.empty())
+                        .connectionMetrics(CONNECTION_METRICS1)
+                        .sourceMetrics(SOURCE_METRICS1)
+                        .targetMetrics(TARGET_METRICS1)
+                        .build();
 
         public static final SourceMetrics SOURCE_METRICS2 = ConnectivityModelFactory.newSourceMetrics(
                 asMap(entry("source2", INBOUND_METRIC), entry("source3", INBOUND_METRIC)));
@@ -382,8 +392,12 @@ public final class TestConstants {
         public static final ConnectionMetrics CONNECTION_METRICS2 = COUNTER_REGISTRY
                 .aggregateConnectionMetrics(SOURCE_METRICS2, TARGET_METRICS2);
 
-        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE2 = RetrieveConnectionMetricsResponse
-                .of(ID, CONNECTION_METRICS2, SOURCE_METRICS2, TARGET_METRICS2, DittoHeaders.empty());
+        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE2 =
+                RetrieveConnectionMetricsResponse.getBuilder(ID, DittoHeaders.empty())
+                        .connectionMetrics(CONNECTION_METRICS2)
+                        .sourceMetrics(SOURCE_METRICS2)
+                        .targetMetrics(TARGET_METRICS2)
+                        .build();
 
         public static Measurement mergeMeasurements(final MetricType type,
                 final boolean success,
@@ -415,8 +429,8 @@ public final class TestConstants {
         return Stream.of(entries).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    public static String createRandomConnectionId() {
-        return "connection-" + UUID.randomUUID();
+    public static ConnectionId createRandomConnectionId() {
+        return ConnectionId.of("connection-" + UUID.randomUUID());
     }
 
     /**
@@ -481,24 +495,29 @@ public final class TestConstants {
         MOCK_SERVERS.clear();
     }
 
-    public static Connection createConnection(final String connectionId) {
+    public static Connection createConnection() {
+        return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_AUTH_CONTEXT);
+    }
+
+    public static Connection createConnection(final ConnectionId connectionId) {
         return createConnection(connectionId, Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
-    public static Connection createConnection(final String connectionId, final List<Source> sources) {
+    public static Connection createConnection(final ConnectionId connectionId, final List<Source> sources) {
         return createConnection(connectionId, STATUS, sources);
     }
 
-    public static Connection createConnection(final String connectionId, final ConnectivityStatus status,
+    public static Connection createConnection(final ConnectionId connectionId, final ConnectivityStatus status,
             final List<Source> sources) {
 
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
                 .sources(sources)
                 .targets(Targets.TARGETS)
+                .lifecycle(ConnectionLifecycle.ACTIVE)
                 .build();
     }
 
-    public static Connection createConnection(final String connectionId,
+    public static Connection createConnection(final ConnectionId connectionId,
             final Target... targets) {
 
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUriOfNewMockServer())
@@ -512,13 +531,13 @@ public final class TestConstants {
         return new HashSet<>(asList(array));
     }
 
-    static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
+    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId, final ActorSystem actorSystem,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         return createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder,
                 mockClientActorPropsFactory);
     }
 
-    static ActorRef createConnectionSupervisorActor(final String connectionId,
+    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
@@ -527,7 +546,7 @@ public final class TestConstants {
         final Props props = ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarder,
                 clientActorPropsFactory, null);
 
-        final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId);
+        final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 
         final int maxAttempts = 5;
         final long backOffMs = 1000L;

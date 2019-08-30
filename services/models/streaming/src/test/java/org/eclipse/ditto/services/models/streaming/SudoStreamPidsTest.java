@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.models.streaming;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -34,18 +35,21 @@ public final class SudoStreamPidsTest {
 
     private static final int KNOWN_BURST = 1234;
     private static final long KNOWN_TIMEOUT = 60_000L;
+    private static final EntityIdWithRevision<?> KNOWN_LOWER_BOUND =
+            new SudoStreamPids.LowerBound(JsonFactory.newObject("{\"id\":\"myId\",\"revision\":5}"));
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SudoStreamPids.TYPE)
             .set(SudoStreamPids.JSON_BURST, KNOWN_BURST)
             .set(SudoStreamPids.JSON_TIMEOUT_MILLIS, KNOWN_TIMEOUT)
+            .set(SudoStreamPids.JSON_LOWER_BOUND, KNOWN_LOWER_BOUND.toJson())
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SudoStreamPids.class, areImmutable());
+        assertInstancesOf(SudoStreamPids.class, areImmutable(), provided(EntityIdWithRevision.class).isAlsoImmutable());
     }
 
     @Test
@@ -58,7 +62,7 @@ public final class SudoStreamPidsTest {
     @Test
     public void toJsonReturnsExpected() {
         final SudoStreamPids underTest =
-                SudoStreamPids.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS);
+                SudoStreamPids.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS).withLowerBound(KNOWN_LOWER_BOUND);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -70,7 +74,7 @@ public final class SudoStreamPidsTest {
                 SudoStreamPids.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
         final SudoStreamPids expectedCommand =
-                SudoStreamPids.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS);
+                SudoStreamPids.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS).withLowerBound(KNOWN_LOWER_BOUND);
 
         assertThat(underTest).isNotNull();
         assertThat(underTest).isEqualTo(expectedCommand);

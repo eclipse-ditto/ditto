@@ -14,11 +14,14 @@
 package org.eclipse.ditto.signals.commands.connectivity.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 
 /**
@@ -28,8 +31,7 @@ public final class ConnectionNotAccessibleExceptionTest {
 
     @Test
     public void checkToJsonFromJson() {
-        final String id = "connection-id";
-        final ConnectionNotAccessibleException exception = ConnectionNotAccessibleException.newBuilder(id)
+        final ConnectionNotAccessibleException exception = ConnectionNotAccessibleException.newBuilder(TestConstants.ID)
                 .message("message")
                 .description("description")
                 .build();
@@ -40,7 +42,6 @@ public final class ConnectionNotAccessibleExceptionTest {
                 ConnectionNotAccessibleException.fromJson(JsonFactory.readFrom(jsonString).asObject(), DittoHeaders.empty());
 
         assertThat(decoded.toJsonString()).isEqualTo(exception.toJsonString());
-        assertThat(decoded.getConnectionId()).isEqualTo(exception.getConnectionId());
     }
 
     @Test

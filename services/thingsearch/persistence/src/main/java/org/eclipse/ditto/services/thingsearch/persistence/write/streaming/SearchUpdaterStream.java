@@ -15,11 +15,10 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.namespaces.NamespaceReader;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.DeleteConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.PersistenceStreamConfig;
@@ -133,7 +132,7 @@ public final class SearchUpdaterStream {
 
         final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> source =
                 ChangeQueueActor.createSource(changeQueueActor, streamConfig.getWriteInterval())
-                        .via(filterMapKeysByBlockedNamepaces())
+                        .via(filterMapKeysByBlockedNamespaces())
                         .via(enforcementFlow.create(retrievalConfig.getParallelism())
                                 .map(writeModelSource -> writeModelSource.via(
                                         blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel))));
@@ -167,11 +166,11 @@ public final class SearchUpdaterStream {
                 () -> sink);
     }
 
-    private <T> Flow<Map<String, T>, Map<String, T>, NotUsed> filterMapKeysByBlockedNamepaces() {
-        return Flow.<Map<String, T>>create()
+    private <T> Flow<Map<ThingId, T>, Map<ThingId, T>, NotUsed> filterMapKeysByBlockedNamespaces() {
+        return Flow.<Map<ThingId, T>>create()
                 .flatMapConcat(map ->
                         Source.fromIterator(map.entrySet()::iterator)
-                                .via(blockNamespaceFlow(entry -> NamespaceReader.fromEntityId(entry.getKey())))
+                                .via(blockNamespaceFlow(entry -> entry.getKey().getNamespace()))
                                 .fold(new HashMap<>(), (accumulator, entry) -> {
                                     accumulator.put(entry.getKey(), entry.getValue());
                                     return accumulator;
@@ -179,23 +178,20 @@ public final class SearchUpdaterStream {
                 );
     }
 
-    private <T> Flow<T, T, NotUsed> blockNamespaceFlow(final Function<T, Optional<String>> namespaceExtractor) {
+    private <T> Flow<T, T, NotUsed> blockNamespaceFlow(final Function<T, String> namespaceExtractor) {
         return Flow.<T>create()
-                .flatMapConcat(element ->
-                        namespaceExtractor.apply(element)
-                                .map(namespace -> {
-                                    final CompletionStage<Boolean> shouldUpdate = blockedNamespaces.contains(namespace)
-                                            .handle((result, error) -> result == null || !result);
-                                    return Source.fromCompletionStage(shouldUpdate)
-                                            .filter(Boolean::valueOf)
-                                            .map(bool -> element);
-                                })
-                                .orElseGet(() -> Source.single(element))
-                );
+                .flatMapConcat(element -> {
+                    final String namespace = namespaceExtractor.apply(element);
+                    final CompletionStage<Boolean> shouldUpdate = blockedNamespaces.contains(namespace)
+                            .handle((result, error) -> result == null || !result);
+                    return Source.fromCompletionStage(shouldUpdate)
+                            .filter(Boolean::valueOf)
+                            .map(bool -> element);
+                });
     }
 
-    private static Optional<String> namespaceOfWriteModel(final AbstractWriteModel writeModel) {
-        return NamespaceReader.fromEntityId(writeModel.getMetadata().getThingId());
+    private static String namespaceOfWriteModel(final AbstractWriteModel writeModel) {
+        return writeModel.getMetadata().getThingId().getNamespace();
     }
 
     private static String logResult(final BulkWriteResult bulkWriteResult) {

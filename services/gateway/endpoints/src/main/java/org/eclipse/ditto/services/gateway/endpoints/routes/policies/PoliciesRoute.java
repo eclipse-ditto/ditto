@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
@@ -71,12 +72,17 @@ public final class PoliciesRoute extends AbstractRoute {
      */
     public Route buildPoliciesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_POLICIES), () ->
-                rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), policyId -> // /policies/<policyId>
-                        concat(
-                                policyEntry(ctx, dittoHeaders, policyId),
-                                policyEntryEntries(ctx, dittoHeaders, policyId)
-                        )
+                rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), policyId ->
+                        // /policies/<policyId>
+                        policyRoute(ctx, dittoHeaders, PolicyId.of(policyId))
                 )
+        );
+    }
+
+    private Route policyRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
+        return concat(
+                policyEntry(ctx, dittoHeaders, policyId),
+                policyEntryEntries(ctx, dittoHeaders, policyId)
         );
     }
 
@@ -84,7 +90,7 @@ public final class PoliciesRoute extends AbstractRoute {
      * Describes {@code /policies/<policyId>} route.
      * @return {@code /policies/<policyId>} route.
      */
-    private Route policyEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final String policyId) {
+    private Route policyEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
         return pathEndOrSingleSlash(() ->
                 concat(
                         get(() -> // GET /policies/<policyId>
@@ -107,11 +113,11 @@ public final class PoliciesRoute extends AbstractRoute {
         );
     }
 
-    private static JsonObject createPolicyJsonObjectForPut(final String jsonString, final String policyId) {
+    private static JsonObject createPolicyJsonObjectForPut(final String jsonString, final PolicyId policyId) {
         final JsonObject policyJsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         policyJsonObject.getValue(Policy.JsonFields.ID.getPointer())
                 .ifPresent(policyIdJsonValue -> {
-                    if (!policyIdJsonValue.isString() || !policyId.equals(policyIdJsonValue.asString())) {
+                    if (!policyIdJsonValue.isString() || !policyId.toString().equals(policyIdJsonValue.asString())) {
                         throw PolicyIdNotExplicitlySettableException.newBuilder().build();
                     }
                 });
@@ -124,7 +130,7 @@ public final class PoliciesRoute extends AbstractRoute {
      * @return {@code /policies/<policyId>/entries} route.
      */
     private Route policyEntryEntries(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String policyId) {
+            final PolicyId policyId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ENTRIES), () -> // /policies/<policyId>/entries
                 policyEntriesRoute.buildPolicyEntriesRoute(ctx, dittoHeaders, policyId)
         );

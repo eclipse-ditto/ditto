@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.things.persistence.actors;
 
 import java.util.regex.Pattern;
 
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
@@ -45,12 +47,20 @@ public final class ThingsPersistenceStreamingActorCreator {
      */
     public static Props props(final int streamingCacheSize) {
         return DefaultPersistenceStreamingActor.props(ThingTag.class,
-                streamingCacheSize, ThingsPersistenceStreamingActorCreator::createElement);
+                streamingCacheSize,
+                ThingsPersistenceStreamingActorCreator::createElement,
+                ThingsPersistenceStreamingActorCreator::createPidWithSeqNr);
     }
 
     private static ThingTag createElement(final PidWithSeqNr pidWithSeqNr) {
         final String id = PERSISTENCE_ID_PATTERN.matcher(pidWithSeqNr.getPersistenceId()).replaceFirst("");
-        return ThingTag.of(id, pidWithSeqNr.getSequenceNr());
+        final ThingId thingId = ThingId.of(id);
+        return ThingTag.of(thingId, pidWithSeqNr.getSequenceNr());
+    }
+
+    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision connectionTag) {
+        return new PidWithSeqNr(ThingPersistenceActor.PERSISTENCE_ID_PREFIX + connectionTag.getEntityId(),
+                connectionTag.getRevision());
     }
 
 }

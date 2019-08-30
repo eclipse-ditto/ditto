@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Resources;
@@ -83,7 +84,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      *
      * @return the {@code /entries} route.
      */
-    Route buildPolicyEntriesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final String policyId) {
+    Route buildPolicyEntriesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
         return concat(
                 thingsEntryPolicyEntries(ctx, dittoHeaders, policyId),
                 thingsEntryPolicyEntry(ctx, dittoHeaders, policyId),
@@ -100,7 +101,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      * @return {@code /entries} route.
      */
     private Route thingsEntryPolicyEntries(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String policyId) {
+            final PolicyId policyId) {
 
         return pathEndOrSingleSlash(() ->
                 concat(
@@ -128,7 +129,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      * @return {@code /entries/<label>} route.
      */
     private Route thingsEntryPolicyEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String policyId) {
+            final PolicyId policyId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 pathEndOrSingleSlash(() ->
@@ -173,7 +174,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      * @return {@code /entries/<label>/subjects} route.
      */
     private Route thingsEntryPolicyEntrySubjects(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String policyId) {
+            final PolicyId policyId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_SUBJECTS), () ->
@@ -206,7 +207,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      * @return {@code /entries/<label>/subjects/<subjectId>} route.
      */
     private Route thingsEntryPolicyEntrySubjectsEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String policyId) {
+            final PolicyId policyId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_SUBJECTS), () ->
@@ -256,7 +257,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      * @return {@code /entries/<label>/resources} route.
      */
     private Route thingsEntryPolicyEntryResources(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String policyId) {
+            final PolicyId policyId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_RESOURCES), () ->
@@ -291,7 +292,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      * @return {@code /entries/<label>/resources/<resource>} route.
      */
     private Route thingsEntryPolicyEntryResourcesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String policyId) {
+            final PolicyId policyId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_RESOURCES), () ->

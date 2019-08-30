@@ -23,6 +23,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.common.config.ThingsConfig;
@@ -31,6 +32,7 @@ import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
@@ -57,7 +59,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
@@ -146,7 +147,7 @@ public final class ThingsRootActor extends AbstractActor {
     private ThingsRootActor(final ThingsConfig thingsConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final Function<String, Props> thingPersistenceActorPropsFactory) {
+            final Function<ThingId, Props> thingPersistenceActorPropsFactory) {
 
         final ActorSystem actorSystem = getContext().system();
 
@@ -188,8 +189,8 @@ public final class ThingsRootActor extends AbstractActor {
         final ActorRef persistenceStreamingActor = startChildActor(ThingsPersistenceStreamingActorCreator.ACTOR_NAME,
                 ThingsPersistenceStreamingActorCreator.props(tagsConfig.getStreamingCacheSize()));
 
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
         final HttpConfig httpConfig = thingsConfig.getHttpConfig();
         String hostname = httpConfig.getHostname();
@@ -229,7 +230,7 @@ public final class ThingsRootActor extends AbstractActor {
     public static Props props(final ThingsConfig thingsConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final Function<String, Props> thingPersistenceActorPropsFactory) {
+            final Function<ThingId, Props> thingPersistenceActorPropsFactory) {
 
         // Beware: Function<String, Props> is not serializable.
         return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, materializer,
@@ -276,7 +277,7 @@ public final class ThingsRootActor extends AbstractActor {
     }
 
     private static Props getThingSupervisorActorProps(final ActorRef pubSubMediator,
-            final Function<String, Props> thingPersistenceActorPropsFactory) {
+            final Function<ThingId, Props> thingPersistenceActorPropsFactory) {
 
         return ThingSupervisorActor.props(pubSubMediator, thingPersistenceActorPropsFactory);
     }

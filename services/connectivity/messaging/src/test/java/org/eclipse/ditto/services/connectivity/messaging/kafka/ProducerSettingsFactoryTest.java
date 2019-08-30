@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -50,6 +51,7 @@ public final class ProducerSettingsFactoryTest {
     @SuppressWarnings("squid:S2068")
     private static final String PASSWORD = "pw";
     private static final String TARGET_ADDRESS = "events";
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
 
     private static KafkaConfig kafkaConfig;
     private static Connection connection;
@@ -66,8 +68,8 @@ public final class ProducerSettingsFactoryTest {
         specificConfig.put("bootstrapServers", additionalBootstrapServers);
 
         connection =
-                ConnectivityModelFactory.newConnectionBuilder("kafka", ConnectionType.KAFKA, ConnectivityStatus.OPEN,
-                        uri)
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
+                        ConnectivityStatus.OPEN, uri)
                 .targets(singletonList(
                         ConnectivityModelFactory.newTarget(TARGET_ADDRESS, AUTHORIZATION_CONTEXT, null, 1,
                                 Topic.LIVE_EVENTS)))

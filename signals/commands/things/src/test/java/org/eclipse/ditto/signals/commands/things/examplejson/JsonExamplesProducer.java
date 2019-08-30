@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
@@ -44,6 +45,7 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
@@ -150,8 +152,8 @@ public class JsonExamplesProducer {
     /*
      * Thing
      */
-    private static final String THING_ID = NAMESPACE + ":xdk_53";
-    private static final String POLICY_ID = NAMESPACE + ":policy0815";
+    private static final ThingId THING_ID = ThingId.of(NAMESPACE, "xdk_53");
+    private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "policy0815");
     private static final ThingLifecycle LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final AuthorizationSubject AUTH_SUBJECT_1 =
             newAuthSubject("the_auth_subject");
@@ -247,8 +249,8 @@ public class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("retrieveThing-withSnapshotRevision.json")),
                 retrieveThingWithSnapshotRevision);
 
-        final String[] thingIds =
-                {NAMESPACE + ":xdk_53", NAMESPACE + ":xdk_58", NAMESPACE + ":xdk_67"};
+        final ThingId[] thingIds =
+                {ThingId.of(NAMESPACE, "xdk_53"), ThingId.of(NAMESPACE, "xdk_58"), ThingId.of(NAMESPACE, "xdk_67")};
         final RetrieveThings retrieveThings =
                 RetrieveThings.getBuilder(thingIds).dittoHeaders(DITTO_HEADERS).build();
         writeJson(commandsDir.resolve(Paths.get("retrieveThings.json")), retrieveThings);

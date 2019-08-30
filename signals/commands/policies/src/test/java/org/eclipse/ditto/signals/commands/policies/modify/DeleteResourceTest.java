@@ -23,9 +23,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -39,7 +40,7 @@ public class DeleteResourceTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, DeleteResource.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(DeleteResource.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(DeleteResource.JSON_RESOURCE_KEY, TestConstants.Policy.RESOURCE_KEY.toString())
             .build();
@@ -49,7 +50,8 @@ public class DeleteResourceTest {
     public void assertImmutability() {
         assertInstancesOf(DeleteResource.class,
                 areImmutable(),
-                provided(Label.class, ResourceKey.class, Resource.class, JsonPointer.class).areAlsoImmutable());
+                provided(Label.class, ResourceKey.class, Resource.class, JsonPointer.class,
+                        PolicyId.class).areAlsoImmutable());
     }
 
 
@@ -63,7 +65,14 @@ public class DeleteResourceTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        DeleteResource.of(null, TestConstants.Policy.LABEL,
+        DeleteResource.of((PolicyId) null, TestConstants.Policy.LABEL,
+                TestConstants.Policy.RESOURCE_KEY, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        DeleteResource.of((String) null, TestConstants.Policy.LABEL,
                 TestConstants.Policy.RESOURCE_KEY, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -72,8 +81,7 @@ public class DeleteResourceTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> DeleteResource.of("undefined", TestConstants.Policy.LABEL,
-                        TestConstants.Policy.RESOURCE_KEY, TestConstants.EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        TestConstants.Policy.RESOURCE_KEY, TestConstants.EMPTY_DITTO_HEADERS));
     }
 
 

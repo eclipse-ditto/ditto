@@ -18,10 +18,14 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
@@ -38,7 +42,7 @@ public final class TestConnectionResponseTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, TestConnectionResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.CONNECTION.getId())
+            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.CONNECTION.getId().toString())
             .set(TestConnectionResponse.JSON_TEST_RESULT, "connected")
             .build();
 
@@ -51,9 +55,9 @@ public final class TestConnectionResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(TestConnectionResponse.class, areImmutable(), provided(Connection.class,
-                MappingContext.class)
-                .isAlsoImmutable());
+        assertInstancesOf(TestConnectionResponse.class,
+                areImmutable(),
+                provided(Connection.class, MappingContext.class, ConnectionId.class).isAlsoImmutable());
     }
 
     @Test
@@ -83,4 +87,13 @@ public final class TestConnectionResponseTest {
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
 
+    @Test
+    public void getResourcePathReturnsExpected() {
+        final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
+
+        final TestConnectionResponse underTest =
+                TestConnectionResponse.success(TestConstants.ID, "connected", DittoHeaders.empty());
+
+        DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
+    }
 }

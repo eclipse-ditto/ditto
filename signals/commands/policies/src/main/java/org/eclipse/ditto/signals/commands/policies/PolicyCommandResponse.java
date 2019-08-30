@@ -17,6 +17,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -48,6 +49,9 @@ public interface PolicyCommandResponse<T extends PolicyCommandResponse> extends 
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
+
+    @Override
+    PolicyId getEntityId();
 
     /**
      * This class contains definitions for all specific fields of a {@code PolicyCommandResponse}'s JSON

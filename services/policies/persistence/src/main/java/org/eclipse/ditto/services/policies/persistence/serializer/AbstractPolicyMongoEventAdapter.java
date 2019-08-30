@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,13 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+
 package org.eclipse.ditto.services.policies.persistence.serializer;
 
 import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -30,7 +28,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
@@ -39,20 +36,15 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.actor.ExtendedActorSystem;
 import akka.persistence.journal.EventAdapter;
 import akka.persistence.journal.EventSeq;
 import akka.persistence.journal.Tagged;
 
-/**
- * EventAdapter for {@link PolicyEvent}s persisted into akka-persistence event-journal. Converts Event to MongoDB BSON
- * objects and vice versa.
- */
-public final class PolicyMongoEventAdapter implements EventAdapter {
+public abstract class AbstractPolicyMongoEventAdapter implements EventAdapter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PolicyMongoEventAdapter.class);
+    private final Logger logger;
 
     private static final Predicate<JsonField> IS_REVISION = field -> field.getDefinition()
             .map(Event.JsonFields.REVISION::equals)
@@ -63,14 +55,17 @@ public final class PolicyMongoEventAdapter implements EventAdapter {
             JsonFactory.newJsonObjectFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final Map<String, Function<JsonObject, JsonObject>> migrationMappings;
-    @Nullable private final ExtendedActorSystem system;
-    private final GlobalEventRegistry eventRegistry;
+    protected static final JsonFieldDefinition<JsonObject> POLICY_ENTRIES =
+            JsonFactory.newJsonObjectFieldDefinition("policy/entries", FieldType.SPECIAL, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    public PolicyMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
+    protected final GlobalEventRegistry eventRegistry;
+    @Nullable private final ExtendedActorSystem system;
+
+    protected AbstractPolicyMongoEventAdapter(final Logger logger, @Nullable final ExtendedActorSystem system) {
+        this.logger = logger;
         this.system = system;
         eventRegistry = GlobalEventRegistry.getInstance();
-        migrationMappings = new HashMap<>();
     }
 
     @Override
@@ -100,7 +95,7 @@ public final class PolicyMongoEventAdapter implements EventAdapter {
         }
     }
 
-    private Set<String> calculateReadSubjects(final Event<?> theEvent) {
+    private static Set<String> calculateReadSubjects(final Event<?> theEvent) {
         return theEvent.getDittoHeaders().getReadSubjects().stream()
                 .map(rs -> "rs:" + rs)
                 .collect(Collectors.toSet());
@@ -125,34 +120,25 @@ public final class PolicyMongoEventAdapter implements EventAdapter {
             if (system != null) {
                 system.log().error(e, message);
             } else {
-                LOGGER.error(message, e);
+                logger.error(message, e);
             }
             return null;
         }
     }
 
-    private Event createEventFrom(final JsonValue json) {
-        final JsonObject jsonObject = json.asObject()
-                .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
-        return eventRegistry.parse(migrateComplex(migratePayload(jsonObject)), DittoHeaders.empty());
-    }
+    protected abstract Event createEventFrom(final JsonValue json);
 
     /**
      * A "payload" object was wrapping the events payload until the introduction of "cr-commands 1.0.0". This field has
-     * to be used as fallback for already persisted events with "things-model" < 3.0.0. Removing this workaround is
+     * to be used as fallback for already persisted events with "things-model" &lt; 3.0.0. Removing this workaround is
      * possible if we are sure that no "old" events are ever loaded again!
+     *
+     * @param jsonObject the jsonObject to be migrated.
+     * @return the migrated jsonObject.
      */
-    private static JsonObject migratePayload(final JsonObject jsonObject) {
+    protected static JsonObject migratePayload(final JsonObject jsonObject) {
         return jsonObject.getValue(PAYLOAD)
                 .map(obj -> jsonObject.remove(PAYLOAD.getPointer()).setAll(obj))
-                .orElse(jsonObject);
-    }
-
-    @SuppressWarnings("squid:CallToDeprecatedMethod")
-    private JsonObject migrateComplex(final JsonObject jsonObject) {
-        return jsonObject.getValue(Event.JsonFields.ID)
-                .map(migrationMappings::get)
-                .map(migration -> migration.apply(jsonObject))
                 .orElse(jsonObject);
     }
 

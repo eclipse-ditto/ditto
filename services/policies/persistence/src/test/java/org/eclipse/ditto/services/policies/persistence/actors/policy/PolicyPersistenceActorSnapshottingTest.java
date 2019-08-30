@@ -31,9 +31,10 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.PolicyRevision;
-import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoEventAdapter;
+import org.eclipse.ditto.services.policies.persistence.serializer.DefaultPolicyMongoEventAdapter;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.policies.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesJournalTestHelper;
@@ -55,7 +56,6 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyCreated;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -79,7 +79,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     private static final String SNAPSHOT_THRESHOLD = POLICY_SNAPSHOT_PREFIX + "threshold";
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
 
-    private PolicyMongoEventAdapter eventAdapter;
+    private DefaultPolicyMongoEventAdapter eventAdapter;
     private PoliciesJournalTestHelper<Event> journalTestHelper;
     private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
     private Map<Class<? extends Command>, BiFunction<Command, Long, Event>> commandToEventMapperRegistry;
@@ -87,7 +87,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     @Override
     protected void setup(final Config customConfig) {
         super.setup(customConfig);
-        eventAdapter = new PolicyMongoEventAdapter((ExtendedActorSystem) actorSystem);
+        eventAdapter = new DefaultPolicyMongoEventAdapter((ExtendedActorSystem) actorSystem);
 
         journalTestHelper = new PoliciesJournalTestHelper<>(actorSystem, this::convertJournalEntryToEvent,
                 PolicyPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
@@ -106,7 +106,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         });
         commandToEventMapperRegistry.put(DeletePolicy.class, (command, revision) -> {
             final DeletePolicy deleteCommand = (DeletePolicy) command;
-            return PolicyDeleted.of(deleteCommand.getId(), revision, DittoHeaders.empty());
+            return PolicyDeleted.of(deleteCommand.getEntityId(), revision, DittoHeaders.empty());
         });
     }
 
@@ -114,7 +114,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         return ((Event) eventAdapter.fromJournal(dbObject, null).events().head()).setRevision(sequenceNumber);
     }
 
-    private static String convertDomainIdToPersistenceId(final String domainId) {
+    private static String convertDomainIdToPersistenceId(final PolicyId domainId) {
         return PolicyPersistenceActor.PERSISTENCE_ID_PREFIX + domainId;
     }
 
@@ -141,7 +141,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
 
                 ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -215,7 +215,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
 
                 ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -282,7 +282,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -334,7 +334,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -369,30 +369,11 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         };
     }
 
-    // TODO Fix test
-    @Ignore
-    @Test
-    public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
-        final Config customConfig = testConfig
-                .withValue(SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-                .withValue(SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(-1));
-        setup(customConfig);
-
-        disableLogging();
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createPersistenceActorFor("fail");
-                watch(underTest);
-                expectTerminated(underTest);
-            }
-        };
-    }
-
-    private void assertSnapshotsEmpty(final String policyId) {
+    private void assertSnapshotsEmpty(final PolicyId policyId) {
         assertSnapshots(policyId, Collections.emptyList());
     }
 
-    private void assertJournal(final String policyId, final List<Event> expectedEvents) {
+    private void assertJournal(final PolicyId policyId, final List<Event> expectedEvents) {
         retryOnAssertionError(() -> {
             final List<Event> actualEvents = journalTestHelper.getAllEvents(policyId);
 
@@ -424,7 +405,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         assertThat(actualPolicy.getModified()).isEmpty(); // is not required in journal entry
     }
 
-    private ActorRef createPersistenceActorFor(final String policyId) {
+    private ActorRef createPersistenceActorFor(final PolicyId policyId) {
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
         final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         return actorSystem.actorOf(props);
@@ -440,7 +421,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         return commandToEventFunction.apply(command, revision);
     }
 
-    private void assertSnapshots(final String policyId, final List<Policy> expectedSnapshots) {
+    private void assertSnapshots(final PolicyId policyId, final List<Policy> expectedSnapshots) {
         retryOnAssertionError(() -> {
             final List<Policy> snapshots = snapshotTestHelper.getAllSnapshotsAscending(policyId);
             Assertions.assertListWithIndexInfo(snapshots,

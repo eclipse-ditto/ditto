@@ -101,8 +101,8 @@ public final class ShutdownTest {
     }
 
     @Test
-    public void getIdReturnsEmptyString() {
-        assertThat(underTest.getId()).isEmpty();
+    public void getIdReturnsDummyId() {
+        assertThat(underTest.getEntityId().isDummy()).isTrue();
     }
 
     @Test

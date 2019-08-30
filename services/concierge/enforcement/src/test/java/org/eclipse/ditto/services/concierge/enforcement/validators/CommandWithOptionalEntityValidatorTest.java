@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.junit.Test;
 
@@ -62,7 +63,7 @@ public final class CommandWithOptionalEntityValidatorTest {
     }
 
     private WithDittoHeaders createTestCommand(final JsonValue jsonValue) {
-        final String thingId = "com.bosch.iot.things.test:myThing";
+        final ThingId thingId = ThingId.of("com.bosch.iot.things.test:myThing");
         final String featureId = "myFeature";
         final JsonPointer propertyJsonPointer = JsonPointer.of("/bumlux");
         return ModifyFeatureProperty.of(thingId, featureId, propertyJsonPointer, jsonValue, DittoHeaders.empty());

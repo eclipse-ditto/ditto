@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * A filter implementation to replace defined placeholders with their values.
@@ -70,7 +71,8 @@ public final class PlaceholderFilter {
      * @return map from successfully filtered addresses to the result of placeholder substitution.
      * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
      */
-    public static Map<String, String> applyThingPlaceholderToAddresses(final Collection<String> addresses, final String thingId,
+    public static Map<String, String> applyThingPlaceholderToAddresses(final Collection<String> addresses,
+            final ThingId thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
 
         return addresses.stream()
@@ -85,11 +87,11 @@ public final class PlaceholderFilter {
     }
 
     @Nullable
-    private static String applyThingPlaceholder(final String address, final String thingId,
+    private static String applyThingPlaceholder(final String address, final ThingId thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
         try {
-            return apply(address, PlaceholderFactory.newExpressionResolver(
-                    PlaceholderFactory.newThingPlaceholder(), thingId));
+            return apply(address,
+                    PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newThingPlaceholder(), thingId));
         } catch (final UnresolvedPlaceholderException e) {
             unresolvedPlaceholderListener.accept(address);
             return null;

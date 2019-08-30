@@ -78,6 +78,10 @@
                             <exclude>org.eclipse.ditto.signals.commands.devops.ChangeLogLevel</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig</exclude>
+
+                            <!-- getId() is still available but implemented in the interface WithIdButActuallyNot -->
+                            <exclude>org.eclipse.ditto.signals.commands.devops.DevOpsCommand#getId()</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponse#getId()</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

@@ -24,11 +24,12 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,9 +41,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class EnforcerRetrieverTest {
 
     @Mock
-    private Cache<EntityId, Entry<EntityId>> idCache;
+    private Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> idCache;
     @Mock
-    private Cache<EntityId, Entry<Enforcer>> enforcerCache;
+    private Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
 
     private EnforcerRetriever retriever;
 
@@ -56,8 +57,8 @@ public class EnforcerRetrieverTest {
         final DittoRuntimeException expectedException =
                 DittoRuntimeException.newBuilder("this should be happening", HttpStatusCode.HTTPVERSION_NOT_SUPPORTED)
                         .build();
-        final EntityId entityId = EntityId.of("any", "id");
-        when(idCache.get(any(EntityId.class))).thenReturn(
+        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
+        when(idCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
         final CompletionStage<Contextual<WithDittoHeaders>> result = retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
@@ -74,11 +75,12 @@ public class EnforcerRetrieverTest {
         final DittoRuntimeException expectedException =
                 DittoRuntimeException.newBuilder("this should be happening", HttpStatusCode.HTTPVERSION_NOT_SUPPORTED)
                         .build();
-        final EntityId entityId = EntityId.of("any", "id");
-        final EntityId innerEntityId = EntityId.of("other", "randomId");
-        when(idCache.get(any(EntityId.class))).thenReturn(
+        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
+        final EntityIdWithResourceType innerEntityId =
+                EntityIdWithResourceType.of("other", DefaultEntityId.of("randomId"));
+        when(idCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.permanent(innerEntityId))));
-        when(enforcerCache.get(any(EntityId.class))).thenReturn(
+        when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
         final CompletionStage<Contextual<WithDittoHeaders>> result = retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
             throw expectedException;
@@ -94,8 +96,8 @@ public class EnforcerRetrieverTest {
         final DittoRuntimeException expectedException =
                 DittoRuntimeException.newBuilder("this should be happening", HttpStatusCode.HTTPVERSION_NOT_SUPPORTED)
                         .build();
-        final EntityId entityId = EntityId.of("any", "id");
-        when(enforcerCache.get(any(EntityId.class))).thenReturn(
+        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
+        when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
         final CompletionStage<Contextual<WithDittoHeaders>> result = retriever.retrieveByEnforcerKey(entityId, enforcerEntry -> {

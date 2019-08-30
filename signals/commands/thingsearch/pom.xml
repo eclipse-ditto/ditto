@@ -100,6 +100,17 @@
                             <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandRegistry</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponseRegistry</exclude>
+
+                            <!-- getId is still available, but implemented in an interface (WithIdButActuallyNot) -->
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand#getId()</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponse#getId()</exclude>
+
+                            <!-- These methods has been added to the interface -->
+                            <exclude>org.eclipse.ditto.model.messages.Message#getThingEntityId()</exclude>
+                            <exclude>org.eclipse.ditto.model.messages.MessageBuilder#newHeadersBuilder(org.eclipse.ditto.model.messages.MessageDirection,org.eclipse.ditto.model.things.ThingId,java.lang.CharSequence)</exclude>
+                            <exclude>org.eclipse.ditto.model.messages.MessageHeaders#getThingEntityId()</exclude>
+                            <exclude>org.eclipse.ditto.model.messages.MessageHeaders#newBuilder(org.eclipse.ditto.model.messages.MessageDirection,org.eclipse.ditto.model.things.ThingId,java.lang.CharSequence)</exclude>
+                            <exclude>org.eclipse.ditto.model.messages.MessageHeaders#newBuilderForClaiming(org.eclipse.ditto.model.things.ThingId)</exclude>
                         </excludes>
                         <ignoreMissingClasses>false</ignoreMissingClasses>
                         <onlyModified>true</onlyModified>

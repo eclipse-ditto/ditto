@@ -19,6 +19,7 @@ import java.time.Instant;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
@@ -45,11 +46,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     @Nullable protected final HeaderMapping headerMapping;
     protected final ConnectionMonitor inboundMonitor;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
-    protected final String connectionId;
+    protected final ConnectionId connectionId;
 
     @Nullable protected ResourceStatus resourceStatus;
 
-    protected BaseConsumerActor(final String connectionId, final String sourceAddress,
+    protected BaseConsumerActor(final ConnectionId connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
             @Nullable final HeaderMapping headerMapping) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
@@ -57,8 +58,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
         this.headerMapping = headerMapping;
-        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
+        resetResourceStatus();
 
         final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -66,6 +66,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
         this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connectionId, sourceAddress);
+    }
+
+    protected void resetResourceStatus() {
+        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
+                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
     }
 
     protected ResourceStatus getCurrentSourceStatus() {

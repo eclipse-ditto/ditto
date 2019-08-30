@@ -48,6 +48,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.AccessControlList;
@@ -61,10 +62,12 @@ import org.eclipse.ditto.model.things.Permissions;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
@@ -163,7 +166,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = getIdOrThrow(thing);
+                final ThingId thingId = getIdOrThrow(thing);
 
                 final ActorRef underTest = createSupervisorActorFor(thingId);
 
@@ -202,7 +205,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void tryToModifyFeaturePropertyAndReceiveCorrectErrorCode() {
-        final String thingId = "org.eclipse.ditto:myThing";
+        final ThingId thingId = ThingId.of("org.eclipse.ditto","myThing");
         final Thing thing = Thing.newBuilder()
                 .setId(thingId)
                 .setFeatures(JsonFactory.newObject())
@@ -238,7 +241,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void tryToRetrieveThingWhichWasNotYetCreated() {
-        final String thingId = "test.ns:23420815";
+        final ThingId thingId = ThingId.of("test.ns","23420815");
         final ThingCommand retrieveThingCommand = RetrieveThing.of(thingId, dittoHeadersV2);
 
         new TestKit(actorSystem) {
@@ -256,7 +259,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
      */
     @Test
     public void tryToCreateThingWithDifferentThingId() {
-        final String thingIdOfActor = "test.ns:23420815";
+        final ThingId thingIdOfActor = ThingId.of("test.ns","23420815");
         final Thing thing = createThingV2WithRandomId();
         final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
 
@@ -375,7 +378,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final Thing thingWithFirstLevelFields, final Thing thingWithDifferentFirstLevelFields,
             final DittoHeaders dittoHeaders) {
 
-        final String thingId = getIdOrThrow(thingWithFirstLevelFields);
+        final ThingId thingId = getIdOrThrow(thingWithFirstLevelFields);
 
         final ModifyThing modifyThingCommand =
                 ModifyThing.of(thingId, thingWithDifferentFirstLevelFields, null, dittoHeaders);
@@ -430,7 +433,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     private void doTestModifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten(
             final Thing thingWithFirstLevelFields, final DittoHeaders dittoHeaders) {
 
-        final String thingId = getIdOrThrow(thingWithFirstLevelFields);
+        final ThingId thingId = getIdOrThrow(thingWithFirstLevelFields);
 
         final Thing minimalThing = Thing.newBuilder()
                 .setId(thingId)
@@ -476,7 +479,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final ThingBuilder.FromScratch thingBuilder = Thing.newBuilder()
                         .setPermissions(AuthorizationSubject.newInstance("nginx:ditto"),
                                 Permission.READ, Permission.WRITE, Permission.ADMINISTRATE)
-                        .setId("thing:id");
+                        .setId(ThingId.of("thing","id"));
                 int i = 0;
                 Thing thing;
                 do {
@@ -530,7 +533,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void retrieveThingsWithoutThingIdOfActor() {
         final Thing thing = createThingV2WithRandomId();
 
-        final RetrieveThings retrieveThingsCommand = RetrieveThings.getBuilder("foo", "bar").build();
+        final RetrieveThings retrieveThingsCommand =
+                RetrieveThings.getBuilder(ThingId.of("foo", "bar"), ThingId.of("bum", "lux")).build();
 
         new TestKit(actorSystem) {
             {
@@ -595,8 +599,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final Thing initialThing = createThingV2WithRandomId();
-                final String thingId = getIdOrThrow(initialThing);
-                final String policyId = initialThing.getPolicyId().orElseThrow(IllegalStateException::new);
+                final ThingId thingId = getIdOrThrow(initialThing);
+                final PolicyId policyId = initialThing.getPolicyEntityId().orElseThrow(IllegalStateException::new);
                 final ActorRef underTest = createPersistenceActorFor(initialThing);
 
                 final CreateThing createThing = CreateThing.of(initialThing, null, dittoHeadersV2);
@@ -638,7 +642,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
 
-                final String thingId = "org.eclipse.ditto:myThing";
+                final ThingId thingId = ThingId.of("org.eclipse.ditto", "myThing");
                 final Feature smokeDetector = ThingsModelFactory.newFeature("smokeDetector");
                 final Feature fireExtinguisher = ThingsModelFactory.newFeature("fireExtinguisher");
                 final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -676,7 +680,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
 
-                final String thingId = "org.eclipse.ditto:myThing";
+                final ThingId thingId = ThingId.of("org.eclipse.ditto", "myThing");
 
                 final JsonPointer fooPointer = JsonFactory.newPointer("foo");
                 final JsonValue fooValue = JsonFactory.newValue("bar");
@@ -727,7 +731,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final JsonPointer attributeKey = JsonFactory.newPointer("isValid");
         final JsonValue newAttributeValue = JsonFactory.newValue(true);
 
-        final String thingId = getIdOrThrow(thing);
+        final ThingId thingId = getIdOrThrow(thing);
 
         new TestKit(actorSystem) {
             {
@@ -764,7 +768,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .setPolicyId(POLICY_ID)
                 .build();
 
-        final String thingId = getIdOrThrow(thing);
+        final ThingId thingId = getIdOrThrow(thing);
 
         new TestKit(actorSystem) {
             {
@@ -799,7 +803,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .setPolicyId(POLICY_ID)
                 .build();
 
-        final String thingId = getIdOrThrow(thing);
+        final ThingId thingId = getIdOrThrow(thing);
 
         new TestKit(actorSystem) {
             {
@@ -822,7 +826,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     @Test
     public void tryToRetrieveThingAfterDeletion() {
         final Thing thing = createThingV2WithRandomId();
-        final String thingId = getIdOrThrow(thing);
+        final ThingId thingId = getIdOrThrow(thing);
         final DeleteThing deleteThingCommand = DeleteThing.of(thingId, dittoHeadersV2);
         final RetrieveThing retrieveThingCommand = RetrieveThing.of(thingId, dittoHeadersV2);
 
@@ -850,7 +854,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = getIdOrThrow(thing);
+                final ThingId thingId = getIdOrThrow(thing);
 
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -872,7 +876,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                     underTestAfterRestart.tell(retrieveThing, getRef());
                     final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
                     final Thing thingAsPersisted = retrieveThingResponse.getThing();
-                    assertThat(thingAsPersisted.getId()).contains(getIdOrThrow(thing));
+                    assertThat(thingAsPersisted.getEntityId()).contains(getIdOrThrow(thing));
                     assertThat(thingAsPersisted.getAttributes()).isEqualTo(thing.getAttributes());
                     assertThat(thingAsPersisted.getFeatures()).isEqualTo(thing.getFeatures());
                 });
@@ -885,7 +889,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = getIdOrThrow(thing);
+                final ThingId thingId = getIdOrThrow(thing);
 
                 ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -928,9 +932,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final AccessControlList acl = ThingsModelFactory.newAcl(newAclEntry(AUTHORIZED_SUBJECT, PERMISSIONS),
                         newAclEntry(AUTHORIZATION_SUBJECT, PERMISSIONS));
-                final ModifyAcl modifyAcl = ModifyAcl.of(thingV1.getId().orElse(null), acl, dittoHeadersV1);
+                final ModifyAcl modifyAcl = ModifyAcl.of(thingV1.getEntityId().orElse(null), acl, dittoHeadersV1);
                 thingPersistenceActor.tell(modifyAcl, getRef());
-                expectMsgEquals(modifyAclResponse(thingV1.getId().get(), acl, dittoHeadersV1, false));
+                expectMsgEquals(modifyAclResponse(thingV1.getEntityId().get(), acl, dittoHeadersV1, false));
 
                 // restart
                 thingPersistenceActor.tell(PoisonPill.getInstance(), getRef());
@@ -940,7 +944,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final Thing thingWithUpdatedAcl = incrementThingRevision(thingV1).setAccessControlList(acl);
                 final RetrieveThing retrieveThing =
-                        RetrieveThing.of(thingWithUpdatedAcl.getId().orElse(null), dittoHeadersV1);
+                        RetrieveThing.of(thingWithUpdatedAcl.getEntityId().orElse(null), dittoHeadersV1);
 
                 Awaitility.await().atMost(10L, TimeUnit.SECONDS).untilAsserted(() -> {
                     thingPersistenceActorRecovered.tell(retrieveThing, getRef());
@@ -1039,7 +1043,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = getIdOrThrow(thing);
+                final ThingId thingId = getIdOrThrow(thing);
 
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -1079,7 +1083,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = getIdOrThrow(thing);
+                final ThingId thingId = getIdOrThrow(thing);
 
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -1124,7 +1128,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void createThingInV1AndRetrieveWithV1() {
-        final String thingIdOfActor = "test.ns.v1:createThingInV1AndRetrieveWithV1";
+        final ThingId thingIdOfActor = ThingId.of("test.ns.v1", "createThingInV1AndRetrieveWithV1");
         final Thing thingV1 = ThingsModelFactory.newThingBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setAttributes(THING_ATTRIBUTES)
@@ -1152,7 +1156,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void createThingInV1AndRetrieveWithV2() {
-        final String thingIdOfActor = "test.ns.v1:createThingInV1AndRetrieveWithV2";
+        final ThingId thingIdOfActor = ThingId.of("test.ns.v1", "createThingInV1AndRetrieveWithV2");
         final Thing thingV1 = ThingsModelFactory.newThingBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setAttributes(THING_ATTRIBUTES)
@@ -1180,7 +1184,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void createThingInV1AndUpdateWithV2() {
-        final String thingId = "test.ns.v1:createThingInV1AndUpdateWithV2";
+        final ThingId thingId = ThingId.of("test.ns.v1", "createThingInV1AndUpdateWithV2");
         final Thing thingV1 = ThingsModelFactory.newThingBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setAttributes(THING_ATTRIBUTES)
@@ -1193,7 +1197,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final Thing thingV2WithPolicy = incrementThingRevision(thingV1).toBuilder()
                 .removeAllPermissions()
-                .setPolicyId(thingId)
+                .setPolicyId(thingId.toString())
                 .build();
 
         final ModifyThing modifyThingV2 = ModifyThing.of(thingId, thingV2WithPolicy, null, dittoHeadersV2);
@@ -1219,7 +1223,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void createThingInV2WithMissingPolicyIdThrowsPolicyIdMissingException() {
-        final String thingIdOfActor = "test.ns.v1:createThingInV2WithMissingPolicyId";
+        final ThingId thingIdOfActor = ThingId.of("test.ns.v1", "createThingInV2WithMissingPolicyId");
         final Thing thingV2 = ThingsModelFactory.newThingBuilder()
                 .setAttributes(THING_ATTRIBUTES)
                 .setId(thingIdOfActor)
@@ -1241,7 +1245,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void responsesDuringInitializationAreSentWithDittoHeaders() {
         new TestKit(actorSystem) {
             {
-                final String thingId = "org.eclipse.ditto:myThing";
+                final ThingId thingId = ThingId.of("org.eclipse.ditto", "myThing");
+
                 final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                         .authorizationSubjects("authSubject")
                         .correlationId("correlationId")
@@ -1373,7 +1378,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void retrieveFeatureReturnsExpected() {
-        final String thingId = "org.eclipse.ditto:thing1";
+        final ThingId thingId = ThingId.of("org.eclipse.ditto", "thing1");
         final String gyroscopeFeatureId = "Gyroscope.0";
         final Feature gyroscopeFeature = ThingsModelFactory.newFeatureBuilder()
                 .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
@@ -1416,7 +1421,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void createThingInV1AndUpdateWithV2WithoutPolicyId() {
-        final String thingId = "test.ns.v1:createThingInV1AndUpdateWithV2WithoutPolicyId";
+        final ThingId thingId = ThingId.of("test.ns.v1", "createThingInV1AndUpdateWithV2WithoutPolicyId");
         final Thing thingV1 = buildThing(thingId, JsonSchemaVersion.V_1);
         final Thing thingV2WithoutPolicyId = buildThing(thingId, JsonSchemaVersion.V_2)
                 .toBuilder()
@@ -1437,7 +1442,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void createThingInV1AndUpdateWithV2WithPolicyId() {
-        final String thingId = "test.ns.v1:createThingInV1AndUpdateWithV2WithPolicyId";
+        final ThingId thingId = ThingId.of("test.ns.v1", "createThingInV1AndUpdateWithV2WithPolicyId");
         final Thing thingV1 = buildThing(thingId, JsonSchemaVersion.V_1);
         final Thing thingV2 = buildThing(thingId, JsonSchemaVersion.V_2)
                 .toBuilder()
@@ -1458,14 +1463,14 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void createThingInV2AndUpdateWithV1() {
-        final String thingId = "test.ns.v1:createThingInV2AndUpdateWithV1";
+        final ThingId thingId = ThingId.of("test.ns.v1", "createThingInV2AndUpdateWithV1");
         final Thing thingV2 = buildThing(thingId, JsonSchemaVersion.V_2);
         final Thing thingV1WithoutACL = buildThing(thingId, JsonSchemaVersion.V_1)
                 .toBuilder()
                 .removeAllPermissions()
                 .build();
         final Thing expected = thingV1WithoutACL.toBuilder()
-                .setPolicyId(thingV2.getPolicyId().get())
+                .setPolicyId(thingV2.getPolicyEntityId().get())
                 .build();
 
         new TestKit(actorSystem) {{
@@ -1484,11 +1489,11 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void createThingInV2AndUpdateWithV1WithACL() {
-        final String thingId = "test.ns.v1:createThingInV2AndUpdateWithV1WithACL";
+        final ThingId thingId = ThingId.of("test.ns.v1", "createThingInV2AndUpdateWithV1WithACL");
         final Thing thingV2 = buildThing(thingId, JsonSchemaVersion.V_2);
         final Thing thingV1 = buildThing(thingId, JsonSchemaVersion.V_1);
         final Thing expected = thingV1.toBuilder()
-                .setPolicyId(thingV2.getPolicyId().get())
+                .setPolicyId(thingV2.getPolicyEntityId().get())
                 .removeAllPermissions()
                 .build();
 
@@ -1507,7 +1512,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void createThingInV2AndUpdateWithV2AndChangedPolicyId() {
-        final String thingId = "test.ns.v1:createThingInV2AndUpdateWithV2AndChangedPolicyId";
+        final ThingId thingId = ThingId.of("test.ns.v1", "createThingInV2AndUpdateWithV2AndChangedPolicyId");
         final Thing thingV2 = buildThing(thingId, JsonSchemaVersion.V_2);
         final Thing thingV2_2 = thingV2.toBuilder().setPolicyId(thingId + ".ANY.OTHER.NAMESPACE").build();
 
@@ -1531,7 +1536,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final ActorRef underTest = watch(createSupervisorActorFor(getIdOrThrow(thing)));
 
             final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(Shutdown.TYPE, underTest);
+                    DistPubSubAccess.subscribe(Shutdown.TYPE, underTest);
             pubSubTestProbe.expectMsg(subscribe);
             pubSubTestProbe.reply(new DistributedPubSubMediator.SubscribeAck(subscribe));
 
@@ -1568,7 +1573,11 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     private static void assertPublishEvent(final TestKit pubSubMediator, final ThingEvent event) {
+        // the first pub/sub w/o group:
         final DistributedPubSubMediator.Publish result =
+                pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
+        // the second pub/sub with group:
+        final DistributedPubSubMediator.Publish result2 =
                 pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
         final ThingEvent msg = (ThingEvent) result.msg();
         Assertions.assertThat(msg.toJson())
@@ -1576,7 +1585,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         assertThat(msg.getDittoHeaders().getSchemaVersion()).isEqualTo(event.getDittoHeaders().getSchemaVersion());
     }
 
-    private static Thing buildThing(final String thingId, final JsonSchemaVersion schemaVersion) {
+    private static Thing buildThing(final ThingId thingId, final JsonSchemaVersion schemaVersion) {
         final ThingBuilder.FromScratch builder = ThingsModelFactory.newThingBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setAttributes(THING_ATTRIBUTES)
@@ -1605,7 +1614,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .schemaVersion(version)
                 .authorizationSubjects(AUTH_SUBJECT)
                 .build();
-        return ModifyThing.of(thing.getId().orElseThrow(() -> new IllegalStateException("[test]")),
+        return ModifyThing.of(getIdOrThrow(thing),
                 thing,
                 null,
                 dittoHeaders);
@@ -1619,8 +1628,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         return createPersistenceActorWithPubSubFor(getIdOrThrow(thing), pubSubMediator, thingConfig);
     }
 
-    private static String getIdOrThrow(final Thing thing) {
-        return thing.getId().orElseThrow(() -> new NoSuchElementException("Failed to get ID from thing!"));
+    private static ThingId getIdOrThrow(final Thing thing) {
+        return thing.getEntityId().orElseThrow(() -> new NoSuchElementException("Failed to get ID from thing!"));
     }
 
     private static Thing incrementThingRevision(final Thing thing) {

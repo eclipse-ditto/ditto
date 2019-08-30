@@ -75,7 +75,7 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
         final Map<String, Function<ThingCommand, DittoRuntimeException>> mappingStrategies = new HashMap<>();
 
         // modify
-        mappingStrategies.put(CreateThing.TYPE, command -> ThingConflictException.newBuilder(command.getThingId())
+        mappingStrategies.put(CreateThing.TYPE, command -> ThingConflictException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
         mappingStrategies.put(ModifyThing.TYPE, ThingCommandToAccessExceptionRegistry::commandToThingException);
@@ -112,13 +112,13 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
         mappingStrategies.put(RetrieveThing.TYPE, ThingCommandToAccessExceptionRegistry::commandToThingException);
 
         mappingStrategies.put(RetrievePolicyId.TYPE,
-                command -> PolicyIdNotAccessibleException.newBuilder(command.getId())
+                command -> PolicyIdNotAccessibleException.newBuilder(command.getThingEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
 
         mappingStrategies.put(RetrieveAcl.TYPE, ThingCommandToAccessExceptionRegistry::commandToThingException);
         mappingStrategies.put(RetrieveAclEntry.TYPE,
-                command -> AclNotAccessibleException.newBuilder(command.getThingId(),
+                command -> AclNotAccessibleException.newBuilder(command.getThingEntityId(),
                         ((RetrieveAclEntry) command).getAuthorizationSubject())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
@@ -140,38 +140,39 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
     }
 
     private static ThingNotAccessibleException commandToThingException(final ThingCommand command) {
-        return ThingNotAccessibleException.newBuilder(command.getThingId())
+        return ThingNotAccessibleException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
 
     private static AttributesNotAccessibleException commandToAttributesException(final ThingCommand command) {
-        return AttributesNotAccessibleException.newBuilder(command.getThingId())
+        return AttributesNotAccessibleException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
 
     private static AttributeNotAccessibleException commandToAttributeException(final ThingCommand command) {
-        return AttributeNotAccessibleException.newBuilder(command.getId(), command.getResourcePath())
+        return AttributeNotAccessibleException.newBuilder(command.getThingEntityId(), command.getResourcePath())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
 
     private static FeaturesNotAccessibleException commandToFeaturesException(final ThingCommand command) {
-        return FeaturesNotAccessibleException.newBuilder(command.getThingId())
+        return FeaturesNotAccessibleException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
 
     private static FeatureNotAccessibleException commandToFeatureException(final ThingCommand command) {
-        return FeatureNotAccessibleException.newBuilder(command.getThingId(), ((WithFeatureId) command).getFeatureId())
+        return FeatureNotAccessibleException.newBuilder(command.getThingEntityId(),
+                ((WithFeatureId) command).getFeatureId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
 
     private static FeatureDefinitionNotAccessibleException commandToFeatureDefinitionException(
             final ThingCommand command) {
-        return FeatureDefinitionNotAccessibleException.newBuilder(command.getThingId(),
+        return FeatureDefinitionNotAccessibleException.newBuilder(command.getThingEntityId(),
                 ((WithFeatureId) command).getFeatureId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
@@ -179,14 +180,14 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
 
     private static FeaturePropertiesNotAccessibleException commandToFeaturePropertiesException(
             final ThingCommand command) {
-        return FeaturePropertiesNotAccessibleException.newBuilder(command.getThingId(),
+        return FeaturePropertiesNotAccessibleException.newBuilder(command.getThingEntityId(),
                 ((WithFeatureId) command).getFeatureId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
 
     private static FeaturePropertyNotAccessibleException commandToFeaturePropertyException(final ThingCommand command) {
-        return FeaturePropertyNotAccessibleException.newBuilder(command.getId(),
+        return FeaturePropertyNotAccessibleException.newBuilder(command.getThingEntityId(),
                 ((WithFeatureId) command).getFeatureId(), command.getResourcePath())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();

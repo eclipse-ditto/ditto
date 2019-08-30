@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Immutable implementation of {@link org.eclipse.ditto.model.connectivity.LogEntry}.
@@ -45,7 +46,7 @@ public final class ImmutableLogEntry implements LogEntry {
     private final LogLevel logLevel;
     private final String message;
     @Nullable private final String address;
-    @Nullable private final String thingId;
+    @Nullable private final ThingId thingId;
 
     private ImmutableLogEntry(final Builder builder) {
         this.correlationId = builder.correlationId;
@@ -65,7 +66,7 @@ public final class ImmutableLogEntry implements LogEntry {
 
     public static LogEntryBuilder getBuilder(final String correlationId, final Instant timestamp, final LogCategory logCategory,
             final LogType logType, final LogLevel logLevel, final String message,
-            @Nullable final String address, @Nullable final String thingId) {
+            @Nullable final String address, @Nullable final ThingId thingId) {
         return new Builder(correlationId, timestamp, logCategory, logType, logLevel, message)
                 .address(address)
                 .thingId(thingId);
@@ -79,7 +80,7 @@ public final class ImmutableLogEntry implements LogEntry {
         final LogLevel level = getLogLevelOrThrow(jsonObject);
         final String message = jsonObject.getValueOrThrow(JsonFields.MESSAGE);
         final String address = jsonObject.getValue(JsonFields.ADDRESS).orElse(null);
-        final String thingId = jsonObject.getValue(JsonFields.THING_ID).orElse(null);
+        final ThingId thingId = jsonObject.getValue(JsonFields.THING_ID).map(ThingId::of).orElse(null);
 
         return getBuilder(correlationId, timestamp, category, type, level, message, address, thingId)
                 .build();
@@ -157,7 +158,7 @@ public final class ImmutableLogEntry implements LogEntry {
     }
 
     @Override
-    public Optional<String> getThingId() {
+    public Optional<ThingId> getThingId() {
         return Optional.ofNullable(thingId);
     }
 
@@ -174,7 +175,7 @@ public final class ImmutableLogEntry implements LogEntry {
             builder.set(JsonFields.ADDRESS, address);
         }
         if (null != thingId) {
-            builder.set(JsonFields.THING_ID, thingId);
+            builder.set(JsonFields.THING_ID, thingId.toString());
         }
         return builder.build();
     }
@@ -231,7 +232,7 @@ public final class ImmutableLogEntry implements LogEntry {
         private String message;
 
         @Nullable private String address;
-        @Nullable private String thingId;
+        @Nullable private ThingId thingId;
 
         Builder(final String correlationId, final Instant timestamp, final LogCategory logCategory,
                 final LogType logType, final LogLevel logLevel, final String message) {
@@ -286,7 +287,7 @@ public final class ImmutableLogEntry implements LogEntry {
         }
 
         @Override
-        public LogEntryBuilder thingId(@Nullable final String thingId) {
+        public LogEntryBuilder thingId(@Nullable final ThingId thingId) {
             this.thingId = thingId;
             return this;
         }

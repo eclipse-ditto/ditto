@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.junit.AfterClass;
@@ -43,7 +44,8 @@ public class ThingsAggregatorProxyActorTest {
                     .build();
     private static final GatewayInternalErrorException GATEWAY_INTERNAL_ERROR_EXCEPTION =
             GatewayInternalErrorException.newBuilder().dittoHeaders(DITTO_HEADERS).build();
-    private static final RetrieveThings RETRIEVE_THINGS_COMMAND = RetrieveThings.getBuilder("ditto:thing")
+    private static final RetrieveThings RETRIEVE_THINGS_COMMAND =
+            RetrieveThings.getBuilder(ThingId.of("ditto", "thing"))
             .dittoHeaders(DITTO_HEADERS)
             .build();
 

@@ -17,6 +17,7 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
@@ -100,7 +101,7 @@ public final class MongoMetricsReporter extends AbstractHealthCheckingActor {
     }
 
     private void subscribeForTopicWithoutGroup(final ActorRef pubSubMediator) {
-        final Object subscribe = new DistributedPubSubMediator.Subscribe(PUBSUB_TOPIC, getSelf());
+        final Object subscribe = DistPubSubAccess.subscribe(PUBSUB_TOPIC, getSelf());
         pubSubMediator.tell(subscribe, getSelf());
     }
 

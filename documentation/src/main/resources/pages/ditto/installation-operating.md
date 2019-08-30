@@ -502,7 +502,7 @@ piggyback command contains any error, then an error is logged and the actor's co
 ```
 
 
-##### Modify background cleanup coordinator configuration
+##### Shutdown background cleanup coordinator
 
 Send a piggyback command of type `common.commands:shutdown` to stop the background cleanup process.
 The next process is scheduled after the `quiet-period` duration in the coordinator's configuration.
