@@ -12,14 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
-import static akka.http.javadsl.server.Directives.delete;
-import static akka.http.javadsl.server.Directives.extractDataBytes;
-import static akka.http.javadsl.server.Directives.extractUnmatchedPath;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.put;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
@@ -58,7 +50,6 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjects;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -94,7 +85,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      * @return the {@code /entries} route.
      */
     Route buildPolicyEntriesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
-        return Directives.route(
+        return concat(
                 thingsEntryPolicyEntries(ctx, dittoHeaders, policyId),
                 thingsEntryPolicyEntry(ctx, dittoHeaders, policyId),
                 thingsEntryPolicyEntrySubjects(ctx, dittoHeaders, policyId),
@@ -113,7 +104,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
             final PolicyId policyId) {
 
         return pathEndOrSingleSlash(() ->
-                Directives.route(
+                concat(
                         get(() -> // GET /entries
                                 handlePerRequest(ctx,
                                         RetrievePolicyEntries.of(policyId, dittoHeaders))
@@ -142,7 +133,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 pathEndOrSingleSlash(() ->
-                        route(
+                        concat(
                                 get(() -> // GET /entries/<label>
                                         handlePerRequest(ctx,
                                                 RetrievePolicyEntry.of(policyId,
@@ -188,7 +179,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_SUBJECTS), () ->
                         pathEndOrSingleSlash(() ->
-                                route(
+                                concat(
                                         get(() -> // GET /entries/<label>/subjects
                                                 handlePerRequest(ctx, RetrieveSubjects.of(policyId,
                                                         Label.of(label), dittoHeaders))
@@ -221,7 +212,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_SUBJECTS), () ->
                         rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.remaining()), subjectId ->
-                                route(
+                                concat(
                                         get(() -> // GET /entries/<label>/subjects/<subjectId>
                                                 handlePerRequest(ctx, RetrieveSubject.of(policyId,
                                                         Label.of(label),
@@ -271,7 +262,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_RESOURCES), () ->
                         pathEndOrSingleSlash(() ->
-                                route(
+                                concat(
                                         get(() -> // GET /entries/<label>/resources
                                                 handlePerRequest(ctx, RetrieveResources.of(policyId,
                                                         Label.of(label), dittoHeaders))
@@ -306,7 +297,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_RESOURCES), () ->
                         extractUnmatchedPath(resource ->
-                                route(
+                                concat(
                                         get(() -> // GET /entries/<label>/resources/<resource>
                                                 handlePerRequest(ctx, RetrieveResource.of(policyId,
                                                         Label.of(label),

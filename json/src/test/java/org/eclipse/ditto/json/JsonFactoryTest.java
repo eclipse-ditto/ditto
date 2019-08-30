@@ -290,7 +290,7 @@ public final class JsonFactoryTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test(expected = JsonParseException.class)
     public void tryToReadFromNullReader() {
         JsonFactory.readFrom((Reader) null);
     }
