@@ -153,6 +153,8 @@ public final class MetricsStatsCounter implements StatsCounter {
      * Creates an instance to be used by a single cache.
      *
      * @param cacheName The name of the cache.
+     * @param maxSizeSupplier supplier for the maximum size of the cache
+     * @param estimatedSizeSupplier supplier for the estimated size of the cache.
      * @return the instance.
      */
     static MetricsStatsCounter of(final String cacheName, final Supplier<Long> maxSizeSupplier,
@@ -161,24 +163,24 @@ public final class MetricsStatsCounter implements StatsCounter {
     }
 
     @Override
-    public void recordHits(int count) {
+    public void recordHits(final int count) {
         hitCount.increment(count);
     }
 
     @Override
-    public void recordMisses(int count) {
+    public void recordMisses(final int count) {
         missCount.increment(count);
     }
 
     @Override
-    public void recordLoadSuccess(long loadTimeInNanos) {
+    public void recordLoadSuccess(final long loadTimeInNanos) {
         loadSuccessCount.increment();
         totalLoadTime.record(loadTimeInNanos, TimeUnit.NANOSECONDS);
         updateCacheSizeMetrics();
     }
 
     @Override
-    public void recordLoadFailure(long loadTimeInNanos) {
+    public void recordLoadFailure(final long loadTimeInNanos) {
         loadFailureCount.increment();
         totalLoadTime.record(loadTimeInNanos, TimeUnit.NANOSECONDS);
     }
@@ -190,7 +192,7 @@ public final class MetricsStatsCounter implements StatsCounter {
     }
 
     @Override
-    public void recordEviction(int weight) {
+    public void recordEviction(final int weight) {
         evictionCount.increment();
         evictionWeight.increment(weight);
         updateCacheSizeMetrics();
@@ -199,12 +201,12 @@ public final class MetricsStatsCounter implements StatsCounter {
     /**
      * Records the invalidation of an entry in the cache.
      */
-    public void recordInvalidation() {
+    void recordInvalidation() {
         estimatedInvalidations.increment();
         updateCacheSizeMetrics();
     }
 
-    public void recordInvalidationWithoutItem() {
+    void recordInvalidationWithoutItem() {
         estimatedInvalidationsWithoutItem.increment();
     }
 
