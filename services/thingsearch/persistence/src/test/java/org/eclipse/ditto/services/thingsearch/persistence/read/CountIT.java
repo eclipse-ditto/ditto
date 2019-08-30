@@ -24,16 +24,16 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.things.Thing;
-import org.junit.Test;
-
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
+import org.junit.Test;
 
 /**
  * Tests for complex search criteria on the persistence.
  */
 public final class CountIT extends AbstractReadPersistenceITBase {
 
-    private static final String THING_BASE_ID = TestConstants.thingId("thingsearch", "countThing");
+    private static final ThingId THING_BASE_ID = TestConstants.thingId("thingsearch", "countThing");
     private static final String KNOWN_ATTRIBUTE_KEY_1 = "attributeKey1";
     private static final String KNOWN_ATTRIBUTE_KEY_2 = "attributeKey2";
 
@@ -48,7 +48,8 @@ public final class CountIT extends AbstractReadPersistenceITBase {
         final long expectedCount = random.nextInt(100) + 10;
 
         for (int i = 0; i < expectedCount; i++) {
-            insertThingWithAttribute(THING_BASE_ID + i, KNOWN_STRING_VALUE);
+            final ThingId individualThingId = ThingId.of(THING_BASE_ID.getNamespace(), THING_BASE_ID.getName() + i);
+            insertThingWithAttribute(individualThingId, KNOWN_STRING_VALUE);
         }
 
         final long actualCount = executeCount(cf.any());
@@ -72,7 +73,8 @@ public final class CountIT extends AbstractReadPersistenceITBase {
         final String attributeValue = UUID.randomUUID().toString();
 
         for (int i = 0; i < expectedCount; i++) {
-            insertThingWithAttribute(THING_BASE_ID + i, attributeValue);
+            final ThingId individualThingId = ThingId.of(THING_BASE_ID.getNamespace(), THING_BASE_ID.getName() + i);
+            insertThingWithAttribute(individualThingId, attributeValue);
         }
 
         final long actualCount =
@@ -85,18 +87,18 @@ public final class CountIT extends AbstractReadPersistenceITBase {
 
     @Test
     public void countWithNoMatchingResults() {
-        final String nonExistingThingId =
+        final ThingId nonExistingThingId =
                 TestConstants.thingId(TestConstants.Thing.NAMESPACE, UUID.randomUUID().toString());
 
         final long actualCount = executeCount(
                 cf.fieldCriteria(
                         fef.filterByThingId(),
-                        cf.eq(nonExistingThingId)));
+                        cf.eq(nonExistingThingId.toString())));
 
         assertThat(actualCount).isEqualTo(0);
     }
 
-    private void insertThingWithAttribute(final String thingId, final String attributeValue) {
+    private void insertThingWithAttribute(final ThingId thingId, final String attributeValue) {
         final Thing thing = createThingV1(thingId, KNOWN_SUBJECTS);
 
         persistThing(thing
@@ -105,8 +107,8 @@ public final class CountIT extends AbstractReadPersistenceITBase {
     }
 
     @Override
-    protected Enforcer getPolicyEnforcer(final String thingId) {
-        if (thingId.startsWith(SUDO_NAMESPACE + ":")) {
+    protected Enforcer getPolicyEnforcer(final ThingId thingId) {
+        if (thingId.getNamespace().equals(SUDO_NAMESPACE)) {
             return otherPolicyEnforcer;
         } else {
             return super.getPolicyEnforcer(thingId);

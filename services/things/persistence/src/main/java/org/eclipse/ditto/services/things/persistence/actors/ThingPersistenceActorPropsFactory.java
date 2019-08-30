@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -30,5 +31,5 @@ public interface ThingPersistenceActorPropsFactory {
      * @param distributedPub the distributed-pub access.
      * @return Props of the thing-persistence-actor.
      */
-    Props props(String thingId, DistributedPub<ThingEvent> distributedPub);
+    Props props(ThingId thingId, DistributedPub<ThingEvent> distributedPub);
 }

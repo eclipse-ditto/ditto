@@ -41,6 +41,7 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 
 
 public final class ThingModelJsonExamplesProducer {
@@ -71,7 +72,7 @@ public final class ThingModelJsonExamplesProducer {
         final Path modelDir = rootPath.resolve(Paths.get("model"));
         Files.createDirectories(modelDir);
 
-        final String thingId = "org.eclipse.ditto.example:the_thingId";
+        final ThingId thingId = ThingId.of("org.eclipse.ditto.example", "the_thingId");
         final AuthorizationSubject authorizationSubject1 = newAuthSubject("the_acl_subject");
 
         final Thing thing = ThingsModelFactory.newThingBuilder() //

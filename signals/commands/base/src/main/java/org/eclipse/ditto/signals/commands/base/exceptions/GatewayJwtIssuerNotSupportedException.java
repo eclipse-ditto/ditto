@@ -50,7 +50,7 @@ public final class GatewayJwtIssuerNotSupportedException extends DittoRuntimeExc
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatusCode.UNAUTHORIZED, dittoHeaders, message, description, cause, href);
     }
 
     /**

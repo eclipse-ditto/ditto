@@ -104,4 +104,14 @@ public final class ThingsRouteTest extends EndpointTestBase {
         result.assertEntity(expected.toJsonString());
     }
 
+    @Test
+    public void putAttributeWithJsonException() {
+        final String tooLongNumber = "89314404000484999942";
+        final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes/attribute")
+                .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, tooLongNumber));
+        final TestRouteResult result =
+                underTest.run(request);
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
 }

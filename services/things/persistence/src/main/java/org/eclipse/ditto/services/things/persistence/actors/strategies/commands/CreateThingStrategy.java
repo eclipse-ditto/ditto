@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclInvalidException;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
@@ -72,7 +73,7 @@ public final class CreateThingStrategy
                 .map(t -> !t.isDeleted())
                 .orElse(false);
 
-        return !thingExists && Objects.equals(context.getThingId(), command.getId());
+        return !thingExists && Objects.equals(context.getThingEntityId(), command.getEntityId());
     }
 
     @Override
@@ -99,8 +100,8 @@ public final class CreateThingStrategy
 
         // for v2 upwards, set the policy-id to the thing-id if none is specified:
         final boolean isV2Upwards = !JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion());
-        if (isV2Upwards && !newThing.getPolicyId().isPresent()) {
-                newThing = newThing.setPolicyId(context.getThingId());
+        if (isV2Upwards && !newThing.getPolicyEntityId().isPresent()) {
+            newThing = newThing.setPolicyId(PolicyId.of(context.getThingEntityId()));
         }
 
         final Instant modified = Instant.now();
@@ -128,12 +129,12 @@ public final class CreateThingStrategy
         else {
             //acl is not allowed to be set in v2
             if (thing.getAccessControlList().isPresent()) {
-                throw AclNotAllowedException.newBuilder(context.getThingId()).dittoHeaders(dittoHeaders).build();
+                throw AclNotAllowedException.newBuilder(context.getThingEntityId()).dittoHeaders(dittoHeaders).build();
             }
 
             // policyId is required for v2
-            if (!thing.getPolicyId().isPresent()) {
-                throw PolicyIdMissingException.fromThingIdOnCreate(context.getThingId(), dittoHeaders);
+            if (!thing.getPolicyEntityId().isPresent()) {
+                throw PolicyIdMissingException.fromThingIdOnCreate(context.getThingEntityId(), dittoHeaders);
             }
 
             return setLifecycleActive(thing);
@@ -185,14 +186,14 @@ public final class CreateThingStrategy
                 // before persisting, check if the ACL is valid and reject if not:
                 if (!aclValidator.isValid()) {
                     final AclInvalidException aclInvalidException =
-                            AclInvalidException.newBuilder(context.getThingId())
+                            AclInvalidException.newBuilder(context.getThingEntityId())
                                 .dittoHeaders(headers)
                                 .build();
                     return newErrorResult(aclInvalidException);
                 }
             } else {
                 final AclInvalidException aclInvalidException =
-                        AclInvalidException.newBuilder(context.getThingId())
+                        AclInvalidException.newBuilder(context.getThingEntityId())
                                 .dittoHeaders(headers)
                                 .build();
                 return newErrorResult(aclInvalidException);

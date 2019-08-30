@@ -12,33 +12,27 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
-import static akka.http.javadsl.server.Directives.delete;
-import static akka.http.javadsl.server.Directives.extractDataBytes;
-import static akka.http.javadsl.server.Directives.extractUnmatchedPath;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.parameter;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.path;
-import static akka.http.javadsl.server.Directives.pathEnd;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.post;
-import static akka.http.javadsl.server.Directives.put;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
@@ -90,8 +84,8 @@ public final class ThingsRoute extends AbstractRoute {
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem to use.
-     * @param messageConfig
-     * @param claimMessageConfig
+     * @param messageConfig the MessageConfig.
+     * @param claimMessageConfig the MessageConfig for claim messages.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
@@ -123,22 +117,27 @@ public final class ThingsRoute extends AbstractRoute {
      */
     public Route buildThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_THINGS), () ->
-                route(
+                concat(
                         things(ctx, dittoHeaders),
                         rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()),
-                                thingId -> // /things/<thingId>
-                                        route(
-                                                thingsEntry(ctx, dittoHeaders, thingId),
-                                                thingsEntryPolicyId(ctx, dittoHeaders, thingId),
-                                                thingsEntryAcl(ctx, dittoHeaders, thingId),
-                                                thingsEntryAclEntry(ctx, dittoHeaders, thingId),
-                                                thingsEntryAttributes(ctx, dittoHeaders, thingId),
-                                                thingsEntryAttributesEntry(ctx, dittoHeaders, thingId),
-                                                thingsEntryFeatures(ctx, dittoHeaders, thingId),
-                                                thingsEntryInboxOutbox(ctx, dittoHeaders, thingId)
-                                        )
+                                // /things/<thingId>
+                                thingId -> buildThingEntryRoute(ctx, dittoHeaders, ThingId.of(thingId))
                         )
                 )
+        );
+    }
+
+    private Route buildThingEntryRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final ThingId thingId) {
+        return concat(
+                thingsEntry(ctx, dittoHeaders, thingId),
+                thingsEntryPolicyId(ctx, dittoHeaders, thingId),
+                thingsEntryAcl(ctx, dittoHeaders, thingId),
+                thingsEntryAclEntry(ctx, dittoHeaders, thingId),
+                thingsEntryAttributes(ctx, dittoHeaders, thingId),
+                thingsEntryAttributesEntry(ctx, dittoHeaders, thingId),
+                thingsEntryFeatures(ctx, dittoHeaders, thingId),
+                thingsEntryInboxOutbox(ctx, dittoHeaders, thingId)
         );
     }
 
@@ -149,7 +148,7 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route things(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return pathEndOrSingleSlash(() ->
-                route( //
+                concat( //
                         get(() -> // GET /things?ids=<idsString>&fields=<fieldsString>
                                 buildRetrieveThingsRoute(ctx, dittoHeaders)
                         ),
@@ -170,12 +169,19 @@ public final class ThingsRoute extends AbstractRoute {
         return parameter(ThingsParameter.IDS.toString(), idsString ->
                 parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                         handlePerRequest(ctx, dittoHeaders, Source.empty(), emptyRequestBody -> RetrieveThings
-                                .getBuilder((idsString).isEmpty() ? new String[0] : idsString.split(","))
+                                .getBuilder(
+                                        (idsString).isEmpty() ? Collections.emptyList() : splitThingIdString(idsString))
                                 .selectedFields(calculateSelectedFields(fieldsString))
                                 .dittoHeaders(dittoHeaders).build())
                 )
 
         );
+    }
+
+    private List<ThingId> splitThingIdString(final String thingIdString) {
+        return Arrays.stream(thingIdString.split(","))
+                .map(ThingId::of)
+                .collect(Collectors.toList());
     }
 
     private static Thing createThingForPost(final String jsonString) {
@@ -184,10 +190,10 @@ public final class ThingsRoute extends AbstractRoute {
             throw ThingIdNotExplicitlySettableException.newBuilder(true).build();
         }
 
-        final String thingId = ThingBuilder.generateRandomThingId();
+        final ThingId thingId = ThingBuilder.generateRandomTypedThingId();
 
         final JsonObjectBuilder outputJsonBuilder = inputJson.toBuilder();
-        outputJsonBuilder.set(Thing.JsonFields.ID.getPointer(), thingId);
+        outputJsonBuilder.set(Thing.JsonFields.ID.getPointer(), thingId.toString());
 
         return ThingsModelFactory.newThingBuilder(outputJsonBuilder.build())
                 .setId(thingId)
@@ -211,9 +217,9 @@ public final class ThingsRoute extends AbstractRoute {
      * Describes {@code /things/<thingId>} route.
      * @return {@code /things/<thingId>} route.
      */
-    private Route thingsEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
+    private Route thingsEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
         return pathEndOrSingleSlash(() ->
-                route(
+                concat(
                         get(() -> // GET /things/things/<thingId>?fields=<fieldsString>
                                 parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                         handlePerRequest(ctx, RetrieveThing.getBuilder(thingId, dittoHeaders)
@@ -225,7 +231,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 extractDataBytes(payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 thingJson -> ModifyThing.of(thingId, ThingsModelFactory.newThing(
-                                                        createThingJsonObjectForPut(thingJson, thingId)),
+                                                        createThingJsonObjectForPut(thingJson, thingId.toString())),
                                                         createInlinePolicyJson(thingJson),
                                                         getCopyPolicyFrom(thingJson),
                                                         dittoHeaders))
@@ -262,9 +268,9 @@ public final class ThingsRoute extends AbstractRoute {
      * @return {@code /things/<thingId>/policyId} route.
      */
     private Route thingsEntryPolicyId(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+            final ThingId thingId) {
         return path(PATH_POLICY_ID, () -> // /things/<thingId>/policyId
-                route(
+                concat(
                         get(() -> // GET /things/<thingId>/policyId
                                 handlePerRequest(ctx, RetrievePolicyId.of(thingId, dittoHeaders))
                         ),
@@ -272,10 +278,10 @@ public final class ThingsRoute extends AbstractRoute {
                                 extractDataBytes(payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 policyIdJson -> ModifyPolicyId.of(thingId,
-                                                        Optional.of(JsonFactory.readFrom(policyIdJson))
+                                                        PolicyId.of(Optional.of(JsonFactory.readFrom(policyIdJson))
                                                                 .filter(JsonValue::isString)
                                                                 .map(JsonValue::asString)
-                                                                .orElse(policyIdJson), dittoHeaders)
+                                                                .orElse(policyIdJson)), dittoHeaders)
                                         )
                                 )
                         )
@@ -288,10 +294,10 @@ public final class ThingsRoute extends AbstractRoute {
      *
      * @return {@code /things/<thingId>/acl} route.
      */
-    private Route thingsEntryAcl(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
+    private Route thingsEntryAcl(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ACL), () -> // /things/<thingId>/acl
                 pathEndOrSingleSlash(() ->
-                        route(
+                        concat(
                                 get(() -> // GET /things/<thingId>/acl
                                         handlePerRequest(ctx, RetrieveAcl.of(thingId, dittoHeaders))
                                 ),
@@ -313,11 +319,12 @@ public final class ThingsRoute extends AbstractRoute {
      *
      * @return {@code /things/<thingId>/acl/<authorizationSubject>} route.
      */
-    private Route thingsEntryAclEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
+    private Route thingsEntryAclEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final ThingId thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ACL), () ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), subject ->
                         pathEndOrSingleSlash(() ->
-                                route(
+                                concat(
                                         get(() -> // GET
                                                 // /things/<thingId>/acl/<authorizationSubject>?fields=<fieldsString>
                                                 parameterOptional(ThingsParameter.FIELDS.toString(),
@@ -360,11 +367,11 @@ public final class ThingsRoute extends AbstractRoute {
      * @return {@code /things/<thingId>/attributes} route.
      */
     private Route thingsEntryAttributes(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+            final ThingId thingId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ATTRIBUTES), () ->
                 pathEndOrSingleSlash(() ->
-                        route(
+                        concat(
                                 get(() -> // GET /things/<thingId>/attributes?fields=<fieldsString>
                                         parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                                 handlePerRequest(ctx, RetrieveAttributes
@@ -404,10 +411,10 @@ public final class ThingsRoute extends AbstractRoute {
      * @return {@code /things/<thingId>/attributes/<attributeJsonPointer>} route.
      */
     private Route thingsEntryAttributesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+            final ThingId thingId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ATTRIBUTES), () ->
-                route(
+                concat(
                         get(() -> // GET /things/<thingId>/attributes
                                 pathEnd(() -> // GET /things/<thingId>/attributes/
                                         handlePerRequest(ctx, RetrieveAttributes.of(thingId, dittoHeaders))
@@ -437,8 +444,9 @@ public final class ThingsRoute extends AbstractRoute {
                                                                                 JsonFactory.newPointer(
                                                                                         decodePath(
                                                                                                 attributePointerStr)),
-                                                                                JsonFactory.readFrom(
-                                                                                        attributeValueJson),
+                                                                                DittoJsonException.wrapJsonRuntimeException(
+                                                                                        () -> JsonFactory.readFrom(
+                                                                                                attributeValueJson)),
                                                                                 dittoHeaders))
                                                 )
                                         )
@@ -465,7 +473,8 @@ public final class ThingsRoute extends AbstractRoute {
      *
      * @return {@code /things/<thingId>/features} route.
      */
-    private Route thingsEntryFeatures(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
+    private Route thingsEntryFeatures(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final ThingId thingId) {
         return featuresRoute.buildFeaturesRoute(ctx, dittoHeaders, thingId); // /things/<thingId>/features
     }
 
@@ -475,7 +484,7 @@ public final class ThingsRoute extends AbstractRoute {
      * @return {@code /things/<thingId>/{inbox|outbox}} route.
      */
     private Route thingsEntryInboxOutbox(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+            final ThingId thingId) {
 
         return messagesRoute.buildThingsInboxOutboxRoute(ctx, dittoHeaders,
                 thingId); // /things/<thingId>/<inbox|outbox>

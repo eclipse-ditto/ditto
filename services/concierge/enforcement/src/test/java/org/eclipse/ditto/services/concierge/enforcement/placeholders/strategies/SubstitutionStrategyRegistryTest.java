@@ -34,8 +34,10 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.junit.Before;
@@ -63,7 +65,7 @@ public class SubstitutionStrategyRegistryTest {
 
     @Test
     public void getMatchingStrategyReturnsEmptyOptionalWhenNoStrategyMatches() {
-        final ModifyAttribute nonHandledCommand = ModifyAttribute.of("org.eclipse.ditto:my-thing",
+        final ModifyAttribute nonHandledCommand = ModifyAttribute.of(ThingId.of("org.eclipse.ditto:my-thing"),
                 JsonPointer.of("attributePointer"), JsonValue.of("attributeValue"), DITTO_HEADERS);
 
         final Optional<SubstitutionStrategy> strategy = underTest.getMatchingStrategy(nonHandledCommand);
@@ -72,7 +74,7 @@ public class SubstitutionStrategyRegistryTest {
 
     @Test
     public void getMatchingStrategyReturnsStrategyWhenStrategyMatches() {
-        final ModifySubject commandWithoutPlaceholders = ModifySubject.of("org.eclipse.ditto:my-policy",
+        final ModifySubject commandWithoutPlaceholders = ModifySubject.of(PolicyId.of("org.eclipse.ditto:my-policy"),
                 Label.of("my-label"), Subject.newInstance("my-issuer:my-id", SubjectType.GENERATED),
                 DITTO_HEADERS);
 

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+
 import akka.NotUsed;
 import akka.kafka.ProducerMessage;
 import akka.stream.javadsl.Flow;
@@ -26,7 +28,7 @@ interface KafkaConnectionFactory {
      *
      * @return the ID.
      */
-    String connectionId();
+    EntityId connectionId();
 
     /**
      * Create an Akka stream flow of Kafka messages.

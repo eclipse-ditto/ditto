@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Tests Policy with granted permissions only.
@@ -50,12 +52,13 @@ public final class JsonViewScenario13 implements JsonViewScenario {
 
     }
 
-    private static final String POLICY_ID = "org.eclipse.ditto:" + JsonViewScenario13.class.getSimpleName();
+    private static final PolicyId POLICY_ID =
+            PolicyId.of("org.eclipse.ditto", JsonViewScenario13.class.getSimpleName());
     private static final String LABEL_OWNER = "owner";
     private static final String LABEL_CLIENT = "client";
     private static final SubjectId SUBJECT_ID_OWNER = SubjectId.newInstance(SubjectIssuer.GOOGLE, LABEL_OWNER);
     private static final SubjectId SUBJECT_ID_CLIENT = SubjectId.newInstance(SubjectIssuer.GOOGLE, LABEL_CLIENT);
-    private static final String TEST_THING_ID = "org.eclipse.ditto:thing1";
+    private static final ThingId TEST_THING_ID = ThingId.of("org.eclipse.ditto", "thing1");
     private static final Feature GYROSCOPE_FEATURE = ThingsModelFactory.newFeatureBuilder()
             .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
                     .set("status", JsonFactory.newObjectBuilder()

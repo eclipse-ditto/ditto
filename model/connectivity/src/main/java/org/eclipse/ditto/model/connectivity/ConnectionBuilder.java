@@ -33,7 +33,7 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code id} is {@code null}.
      */
-    ConnectionBuilder id(String id);
+    ConnectionBuilder id(ConnectionId id);
 
     /**
      * Sets the name to use in the {@code Connection}.

@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -56,11 +57,11 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
     static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRY =
             JsonFactory.newJsonObjectFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final String policyEntryLabel;
     private final JsonObject policyEntry;
 
-    private RetrievePolicyEntryResponse(final String policyId,
+    private RetrievePolicyEntryResponse(final PolicyId policyId,
             final HttpStatusCode statusCode,
             final String policyEntryLabel,
             final JsonObject policyEntry,
@@ -80,14 +81,56 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.PolicyEntry, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrievePolicyEntryResponse of(final String policyId, final PolicyEntry policyEntry,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrievePolicyEntryResponse(policyId, HttpStatusCode.OK, policyEntry.getLabel().toString(),
-                checkNotNull(policyEntry, "Policy Entry")
-                        .toJson(dittoHeaders.getSchemaVersion().orElse(policyEntry.getLatestSchemaVersion())),
-                dittoHeaders);
+        return of(PolicyId.of(policyId), policyEntry, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrievePolicyEntry} command.
+     *
+     * @param policyId the Policy ID of the retrieved policy entry.
+     * @param policyEntry the retrieved Policy entry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrievePolicyEntryResponse of(final PolicyId policyId, final PolicyEntry policyEntry,
+            final DittoHeaders dittoHeaders) {
+
+        final String policyEntryLabel = policyEntry.getLabel().toString();
+        final JsonObject jsonPolicyEntry = checkNotNull(policyEntry, "Policy Entry")
+                .toJson(dittoHeaders.getSchemaVersion().orElse(policyEntry.getLatestSchemaVersion()));
+
+        return of(policyId, policyEntryLabel, jsonPolicyEntry, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrievePolicyEntry} command.
+     *
+     * @param policyId the Policy ID of the retrieved policy entry.
+     * @param policyEntryLabel the Label for the PolicyEntry to create.
+     * @param policyEntry the retrieved Policy entry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, String, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrievePolicyEntryResponse of(final String policyId,
+            final String policyEntryLabel,
+            final JsonObject policyEntry,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policyEntryLabel, policyEntry, dittoHeaders);
     }
 
     /**
@@ -100,7 +143,7 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrievePolicyEntryResponse of(final String policyId,
+    public static RetrievePolicyEntryResponse of(final PolicyId policyId,
             final String policyEntryLabel,
             final JsonObject policyEntry,
             final DittoHeaders dittoHeaders) {
@@ -139,8 +182,9 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
 
         return new CommandResponseJsonDeserializer<RetrievePolicyEntryResponse>(TYPE, jsonObject)
                 .deserialize(statusCode -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final String extractedPolicyId =
+                            jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final String extractedLabel = jsonObject.getValueOrThrow(JSON_LABEL);
                     final JsonObject extractedPolicyEntry = jsonObject.getValueOrThrow(JSON_POLICY_ENTRY);
 
@@ -149,7 +193,7 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -189,7 +233,8 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+                predicate);
         jsonObjectBuilder.set(JSON_LABEL, policyEntryLabel, predicate);
         jsonObjectBuilder.set(JSON_POLICY_ENTRY, policyEntry, predicate);
     }

@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -40,7 +41,7 @@ public final class ModifyFeaturePropertiesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyFeatureProperties.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeatureProperties.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(ModifyFeatureProperties.JSON_PROPERTIES, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
             .build();
@@ -49,7 +50,7 @@ public final class ModifyFeaturePropertiesTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyFeatureProperties.class,
                 areImmutable(),
-                provided(FeatureProperties.class).isAlsoImmutable());
+                provided(FeatureProperties.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -60,10 +61,16 @@ public final class ModifyFeaturePropertiesTest {
                 .verify();
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        ModifyFeatureProperties.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+
+    @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        ModifyFeatureProperties.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        ModifyFeatureProperties.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -99,7 +106,7 @@ public final class ModifyFeaturePropertiesTest {
                 ModifyFeatureProperties.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         Assertions.assertThat(underTest.getProperties()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
     }
@@ -114,7 +121,7 @@ public final class ModifyFeaturePropertiesTest {
 
         final FeatureProperties featureProperties = FeatureProperties.newBuilder().set("a", JsonValue.of(sb.toString())).build();
 
-        assertThatThrownBy(() -> ModifyFeatureProperties.of("foo:bar", "foo", featureProperties,
+        assertThatThrownBy(() -> ModifyFeatureProperties.of(ThingId.of("foo", "bar"), "foo", featureProperties,
                 DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }

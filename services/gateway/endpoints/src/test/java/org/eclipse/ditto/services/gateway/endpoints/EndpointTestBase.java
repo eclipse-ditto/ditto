@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
@@ -244,6 +245,11 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
         @Override
         public String getId() {
+            return null;
+        }
+
+        @Override
+        public EntityId getEntityId() {
             return null;
         }
 

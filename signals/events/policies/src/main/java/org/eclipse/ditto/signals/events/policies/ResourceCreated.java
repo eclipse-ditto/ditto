@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
@@ -69,7 +70,7 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
     private final Label label;
     private final Resource resource;
 
-    private ResourceCreated(final String policyId,
+    private ResourceCreated(final PolicyId policyId,
             final Label label,
             final Resource resource,
             final long revision,
@@ -91,8 +92,32 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created ResourceCreated.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resource, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ResourceCreated of(final String policyId,
+            final Label label,
+            final Resource resource,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, resource, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code ResourceCreated} object.
+     *
+     * @param policyId the identifier of the Policy to which the created Resource belongs
+     * @param label the label of the Policy Entry to which the created Resource belongs
+     * @param resource the created {@link Resource}
+     * @param revision the revision of the Policy.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created ResourceCreated.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ResourceCreated of(final PolicyId policyId,
             final Label label,
             final Resource resource,
             final long revision,
@@ -112,8 +137,34 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created ResourceCreated.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resource, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ResourceCreated of(final String policyId,
+            final Label label,
+            final Resource resource,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, resource, revision, timestamp, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code ResourceCreated} object.
+     *
+     * @param policyId the identifier of the Policy to which the created Resource belongs
+     * @param label the label of the Policy Entry to which the created Resource belongs
+     * @param resource the created {@link Resource}
+     * @param revision the revision of the Policy.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created ResourceCreated.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     */
+    public static ResourceCreated of(final PolicyId policyId,
             final Label label,
             final Resource resource,
             final long revision,
@@ -147,7 +198,8 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      */
     public static ResourceCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ResourceCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final ResourceKey resourceKey = ResourceKey.newInstance(jsonObject.getValueOrThrow(JSON_RESOURCE_KEY));
             final JsonObject resourceJsonObject = jsonObject.getValueOrThrow(JSON_RESOURCE);
@@ -188,12 +240,12 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
 
     @Override
     public ResourceCreated setRevision(final long revision) {
-        return of(getPolicyId(), label, resource, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), label, resource, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public ResourceCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyId(), label, resource, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), label, resource, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

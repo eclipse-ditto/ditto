@@ -95,7 +95,8 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
             throw UnknownCommandResponseException.newBuilder(responseName).build();
         }
 
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(commandResponse.getId());
+        final TopicPathBuilder topicPathBuilder =
+                ProtocolFactory.newTopicPathBuilder(commandResponse.getThingEntityId());
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder =
                 fromTopicPathBuilderWithChannel(topicPathBuilder, channel);

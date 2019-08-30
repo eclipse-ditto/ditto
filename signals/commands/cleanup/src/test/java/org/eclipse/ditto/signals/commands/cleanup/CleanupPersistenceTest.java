@@ -13,10 +13,13 @@
 package org.eclipse.ditto.signals.commands.cleanup;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Test;
@@ -28,16 +31,16 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class CleanupPersistenceTest {
 
-    private static final String ID = "thing:eclipse:ditto";
+    private static final EntityId ID = DefaultEntityId.of("thing:eclipse:ditto");
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Command.JsonFields.TYPE, CleanupPersistence.TYPE)
-            .set(CleanupCommand.JsonFields.ENTITY_ID, ID)
+            .set(CleanupCommand.JsonFields.ENTITY_ID, ID.toString())
             .build();
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder().correlationId("123").build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(CleanupPersistence.class, areImmutable());
+        assertInstancesOf(CleanupPersistence.class, areImmutable(), provided(EntityId.class).isAlsoImmutable());
     }
 
     @Test

@@ -16,12 +16,12 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.OAuthConfig;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationFailureAggregator;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationFailureAggregators;
@@ -43,10 +43,6 @@ import org.slf4j.LoggerFactory;
  * Ditto's default factory for building authentication directives.
  */
 public final class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthenticationDirectiveFactory {
-
-    private static final String JWT_ISSUER_GOOGLE_DOMAIN = "accounts.google.com";
-    private static final String JWT_ISSUER_GOOGLE_URL = "https://accounts.google.com";
-    private static final String JWK_RESOURCE_GOOGLE = "https://www.googleapis.com/oauth2/v2/certs";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DittoGatewayAuthenticationDirectiveFactory.class);
 
@@ -88,7 +84,8 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
             authenticationProviders.add(DummyAuthenticationProvider.getInstance());
         }
 
-        final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig();
+        final JwtSubjectIssuersConfig jwtSubjectIssuersConfig =
+                buildJwtSubjectIssuersConfig(authConfig.getOAuthConfig());
 
         final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
                 publicKeysCacheConfig, "ditto_authorization_jwt_publicKeys_cache");
@@ -111,13 +108,10 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
         return new GatewayAuthenticationDirective(authenticationChain);
     }
 
-    private static JwtSubjectIssuersConfig buildJwtSubjectIssuersConfig() {
-        final Set<JwtSubjectIssuerConfig> configItems = new HashSet<>(2);
-
-        configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, JWT_ISSUER_GOOGLE_DOMAIN,
-                JWK_RESOURCE_GOOGLE));
-        configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, JWT_ISSUER_GOOGLE_URL,
-                JWK_RESOURCE_GOOGLE));
+    private static JwtSubjectIssuersConfig buildJwtSubjectIssuersConfig(final OAuthConfig config) {
+        final Set<JwtSubjectIssuerConfig> configItems = config.getOpenIdConnectIssuers().entrySet().stream()
+                .map(entry -> new JwtSubjectIssuerConfig(entry.getValue(), entry.getKey()))
+                .collect(Collectors.toSet());
 
         return new JwtSubjectIssuersConfig(configItems);
     }

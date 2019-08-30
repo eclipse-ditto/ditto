@@ -26,8 +26,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
 import org.eclipse.ditto.services.things.common.config.ThingConfig;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandReceiveStrategy;
@@ -45,7 +47,6 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -89,7 +90,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private static final CreateThingStrategy CREATE_THING_STRATEGY = CreateThingStrategy.getInstance();
 
     private final DiagnosticLoggingAdapter log;
-    private final String thingId;
+    private final ThingId thingId;
     private final DistributedPub<ThingEvent> distributedPub;
     private final SnapshotAdapter<Thing> snapshotAdapter;
     private final Receive handleThingEvents;
@@ -108,7 +109,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private Thing thing;
 
     @SuppressWarnings("unused")
-    private ThingPersistenceActor(final String thingId, final DistributedPub<ThingEvent> distributedPub,
+    private ThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub,
             final SnapshotAdapter<Thing> snapshotAdapter) {
 
         this.thingId = thingId;
@@ -146,7 +147,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
      * @param snapshotAdapter the snapshot adapter.
      * @return the Akka configuration Props object
      */
-    public static Props props(final String thingId, final DistributedPub<ThingEvent> distributedPub,
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub,
             final SnapshotAdapter<Thing> snapshotAdapter) {
 
         return Props.create(ThingPersistenceActor.class, thingId, distributedPub, snapshotAdapter);
@@ -159,7 +160,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
      * @param distributedPub the distributed-pub access to publish thing events.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final String thingId, final DistributedPub<ThingEvent> distributedPub) {
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub) {
         return props(thingId, distributedPub, new ThingMongoSnapshotAdapter());
     }
 
@@ -498,7 +499,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
 
             final String messageType = getMessageType(message);
             if (isWithThingId(message)) {
-                final String messageThingId = getMessageThingId((WithThingId) message);
+                final ThingId messageThingId = ((WithThingId) message).getThingEntityId();
                 if (isEqualToActorThingId(messageThingId)) {
                     logInfoAboutIncomingMessage(messageType);
                 } else {
@@ -524,12 +525,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
             return message instanceof WithThingId;
         }
 
-        private boolean isEqualToActorThingId(final String messageThingId) {
+        private boolean isEqualToActorThingId(final ThingId messageThingId) {
             return Objects.equals(thingId, messageThingId);
-        }
-
-        private String getMessageThingId(final WithThingId withThingId) {
-            return withThingId.getThingId();
         }
 
         private void logInfoAboutIncomingMessage(final String messageType) {
@@ -606,8 +603,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
             return null != thing && thing.hasLifecycle(ThingLifecycle.DELETED);
         }
 
-        private void shutdown(final String shutdownLogTemplate, final String thingId) {
-            log.debug(shutdownLogTemplate, thingId);
+        private void shutdown(final String shutdownLogTemplate, final ThingId thingId) {
+            log.debug(shutdownLogTemplate, String.valueOf(thingId));
             stopThisActor();
         }
 

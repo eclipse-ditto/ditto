@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -45,12 +46,18 @@ public interface ConnectivityEvent<T extends ConnectivityEvent> extends Event<T>
      * Returns the identifier of the modified {@code Connection}.
      *
      * @return the identifier.
+     * @deprecated entity IDs are now typed. Use {@link #getConnectionEntityId()} instead.
      */
-    String getConnectionId();
+    @Deprecated
+    default String getConnectionId() {
+        return String.valueOf(getConnectionEntityId());
+    }
+
+    ConnectionId getConnectionEntityId();
 
     @Override
-    default String getId() {
-        return getConnectionId();
+    default ConnectionId getEntityId() {
+        return getConnectionEntityId();
     }
 
     @Override

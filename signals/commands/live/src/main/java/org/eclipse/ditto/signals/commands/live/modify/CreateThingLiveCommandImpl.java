@@ -18,6 +18,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
@@ -50,8 +51,8 @@ final class CreateThingLiveCommandImpl extends AbstractModifyLiveCommand<CreateT
     }
 
     @Override
-    public String getThingId() {
-        return thing.getId().orElse(null);
+    public ThingId getThingEntityId() {
+        return thing.getEntityId().orElse(null);
     }
 
     @Override

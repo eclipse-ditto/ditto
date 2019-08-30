@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 
 /**
@@ -30,7 +31,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = RetrieveHealth.TYPE_PREFIX, name = RetrieveHealth.NAME)
-public final class RetrieveHealth extends AbstractCommand<RetrieveHealth> {
+public final class RetrieveHealth extends AbstractCommand<RetrieveHealth> implements WithIdButActuallyNot {
 
     /**
      * Type prefix of this command.
@@ -92,12 +93,6 @@ public final class RetrieveHealth extends AbstractCommand<RetrieveHealth> {
     @Override
     public RetrieveHealth setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new RetrieveHealth(dittoHeaders);
-    }
-
-    @Override
-    public String getId() {
-        // no ID
-        return "";
     }
 
     @Override

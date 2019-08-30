@@ -15,6 +15,8 @@ package org.eclipse.ditto.signals.commands.batch;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -41,9 +43,19 @@ public interface BatchCommand<T extends BatchCommand> extends Command<T> {
         return TYPE_PREFIX;
     }
 
+    /**
+     * @return the batch ID.
+     * @deprecated Entity IDs are now typed. User {@link #getEntityId()} instead.
+     */
     @Override
+    @Deprecated
     default String getId() {
         return getBatchId();
+    }
+
+    @Override
+    default EntityId getEntityId() {
+        return DefaultEntityId.of(getBatchId());
     }
 
     @Override

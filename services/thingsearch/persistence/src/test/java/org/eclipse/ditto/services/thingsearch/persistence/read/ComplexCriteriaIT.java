@@ -20,11 +20,10 @@ import java.util.Collection;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 
 /**
  * Tests for complex search criteria on the persistence.
@@ -37,17 +36,17 @@ public final class ComplexCriteriaIT extends AbstractReadPersistenceITBase {
     private static final String KNOWN_STRING_VALUE = "value";
     private static final String OTHER_STRING_VALUE = "otherValue";
 
-    private static final String THING_ID_WITH_KEY_1_AND_2 =
+    private static final ThingId THING_ID_WITH_KEY_1_AND_2 =
             TestConstants.thingId(TestConstants.Thing.NAMESPACE, "with1and2");
-    private static final String THING_ID_WITH_KEY_1_ONLY =
+    private static final ThingId THING_ID_WITH_KEY_1_ONLY =
             TestConstants.thingId(TestConstants.Thing.NAMESPACE, "with1Only");
-    private static final String THING_ID_WITH_KEY_2_ONLY =
+    private static final ThingId THING_ID_WITH_KEY_2_ONLY =
             TestConstants.thingId(TestConstants.Thing.NAMESPACE, "with2Only");
-    private static final String THING_ID_WITH_OTHER_VALUE_1 =
+    private static final ThingId THING_ID_WITH_OTHER_VALUE_1 =
             TestConstants.thingId(TestConstants.Thing.NAMESPACE, "withOtherValue1");
-    private static final String THING_ID_WITH_OTHER_VALUE_2 =
+    private static final ThingId THING_ID_WITH_OTHER_VALUE_2 =
             TestConstants.thingId(TestConstants.Thing.NAMESPACE, "withOtherValue2");
-    private static final String THING_ID_WITH_NO_KEY =
+    private static final ThingId THING_ID_WITH_NO_KEY =
             TestConstants.thingId(TestConstants.Thing.NAMESPACE, "withNoKey");
 
     @Before
@@ -60,7 +59,7 @@ public final class ComplexCriteriaIT extends AbstractReadPersistenceITBase {
         final Criteria crit = cf.and(Arrays.asList(
                 searchForValue(KNOWN_ATTRIBUTE_KEY_1),
                 searchForValue(KNOWN_ATTRIBUTE_KEY_2)));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING_ID_WITH_KEY_1_AND_2);
     }
 
@@ -71,7 +70,7 @@ public final class ComplexCriteriaIT extends AbstractReadPersistenceITBase {
                         searchForKnownKey(KNOWN_STRING_VALUE),
                         searchForKnownKey(OTHER_STRING_VALUE))));
 
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING_ID_WITH_KEY_1_AND_2, THING_ID_WITH_KEY_1_ONLY,
                 THING_ID_WITH_OTHER_VALUE_1, THING_ID_WITH_NO_KEY, THING_ID_WITH_KEY_2_ONLY,
                 THING_ID_WITH_OTHER_VALUE_2);
@@ -83,7 +82,7 @@ public final class ComplexCriteriaIT extends AbstractReadPersistenceITBase {
                 searchForValue(KNOWN_ATTRIBUTE_KEY_1),
                 searchForValue(KNOWN_ATTRIBUTE_KEY_2)));
 
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING_ID_WITH_KEY_1_AND_2, THING_ID_WITH_KEY_1_ONLY, THING_ID_WITH_KEY_2_ONLY);
     }
 
@@ -93,7 +92,7 @@ public final class ComplexCriteriaIT extends AbstractReadPersistenceITBase {
                 searchForValue(KNOWN_ATTRIBUTE_KEY_1),
                 searchForValue(KNOWN_ATTRIBUTE_KEY_2))));
 
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING_ID_WITH_NO_KEY, THING_ID_WITH_OTHER_VALUE_1, THING_ID_WITH_OTHER_VALUE_2);
     }
 
@@ -103,7 +102,7 @@ public final class ComplexCriteriaIT extends AbstractReadPersistenceITBase {
                 searchForValue(KNOWN_ATTRIBUTE_KEY_1),
                 searchForValue(KNOWN_ATTRIBUTE_KEY_2)));
 
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
 
         assertThat(result).containsOnly(THING_ID_WITH_NO_KEY, THING_ID_WITH_OTHER_VALUE_1, THING_ID_WITH_OTHER_VALUE_2);
     }
@@ -114,7 +113,7 @@ public final class ComplexCriteriaIT extends AbstractReadPersistenceITBase {
                 searchForValue(KNOWN_ATTRIBUTE_KEY_1),
                 searchForValue(KNOWN_ATTRIBUTE_KEY_2))));
 
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING_ID_WITH_KEY_1_AND_2, THING_ID_WITH_KEY_1_ONLY, THING_ID_WITH_KEY_2_ONLY);
     }
 

@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
@@ -258,7 +259,7 @@ final class StreamingSessionActor extends AbstractActor {
     }
 
     private static String namespaceFromId(final WithId withId) {
-        return withId.getId().split(":", 2)[0];
+        return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
     }
 
     /**

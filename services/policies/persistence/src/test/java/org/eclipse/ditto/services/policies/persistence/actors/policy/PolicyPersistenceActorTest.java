@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.entity.Revision;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -38,6 +40,7 @@ import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.model.policies.Resource;
@@ -118,7 +121,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     @Test
     public void tryToRetrievePolicyWhichWasNotYetCreated() {
-        final String policyId = "test.ns:23420815";
+        final PolicyId policyId = PolicyId.of("test.ns", "23420815");
         final PolicyCommand retrievePolicyCommand = RetrievePolicy.of(policyId, dittoHeadersV2);
 
         new TestKit(actorSystem) {
@@ -136,7 +139,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
      */
     @Test
     public void tryToCreatePolicyWithDifferentPolicyId() {
-        final String policyIdOfActor = "test.ns:23420815";
+        final PolicyId policyIdOfActor = PolicyId.of("test.ns", "23420815");
         final Policy policy = createPolicyWithRandomId();
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
 
@@ -177,7 +180,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
         final Policy modifiedPolicy = policy.setEntry(
                 PoliciesModelFactory.newPolicyEntry(Label.of("anotherOne"), POLICY_SUBJECTS, POLICY_RESOURCES_ALL));
-        final ModifyPolicy modifyPolicyCommand = ModifyPolicy.of(policy.getId().get(), modifiedPolicy, dittoHeadersV2);
+        final ModifyPolicy modifyPolicyCommand =
+                ModifyPolicy.of(policy.getEntityId().get(), modifiedPolicy, dittoHeadersV2);
 
         new TestKit(actorSystem) {
             {
@@ -197,7 +201,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void retrievePolicy() {
         final Policy policy = createPolicyWithRandomId();
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
-        final PolicyCommand retrievePolicyCommand = RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
+        final PolicyCommand retrievePolicyCommand =
+                RetrievePolicy.of(policy.getEntityId().orElse(null), dittoHeadersV2);
         final PolicyQueryCommandResponse expectedResponse =
                 retrievePolicyResponse(incrementRevision(policy, 1), retrievePolicyCommand.getDittoHeaders());
 
@@ -221,7 +226,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
 
         final SudoRetrievePolicy sudoRetrievePolicyCommand =
-                SudoRetrievePolicy.of(policy.getId().orElseThrow(NoSuchElementException::new), dittoHeadersV2);
+                SudoRetrievePolicy.of(policy.getEntityId().orElseThrow(NoSuchElementException::new), dittoHeadersV2);
 
         new TestKit(actorSystem) {
             {
@@ -250,7 +255,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().orElse(null))
                         .isEqualEqualToButModified(policy);
 
-                final String policyId = policy.getId().orElseThrow(NoSuchElementException::new);
+                final PolicyId policyId = policy.getEntityId().orElseThrow(NoSuchElementException::new);
                 final DeletePolicy deletePolicy = DeletePolicy.of(policyId, dittoHeadersV2);
                 policyPersistenceActor.tell(deletePolicy, getRef());
                 expectMsgEquals(DeletePolicyResponse.of(policyId, dittoHeadersV2));
@@ -270,7 +275,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -304,7 +309,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -337,7 +342,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -361,7 +366,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyPolicyEntrySoThatPolicyGetsTooLarge() {
         new TestKit(actorSystem) {
             {
-                final PolicyBuilder policyBuilder = Policy.newBuilder("new:policy");
+                final PolicyBuilder policyBuilder = Policy.newBuilder(PolicyId.of("new", "policy"));
                 int i = 0;
                 Policy policy;
                 do {
@@ -384,7 +389,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                         .isEqualEqualToButModified(policy);
 
-                final PolicyEntry policyEntry = Policy.newBuilder("new:policy")
+                final PolicyEntry policyEntry = Policy.newBuilder(PolicyId.of("new", "policy"))
                         .forLabel("TEST")
                         .setSubject("nginx:ditto", SubjectType.UNKNOWN)
                         .setGrantedPermissions("policy", "/", "READ", "WRITE")
@@ -393,7 +398,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         .get();
 
                 final ModifyPolicyEntry command =
-                        ModifyPolicyEntry.of(policy.getId().get(), policyEntry, DittoHeaders.empty());
+                        ModifyPolicyEntry.of(policy.getEntityId().get(), policyEntry, DittoHeaders.empty());
 
                 // but modifying the policy entry which would cause the Policy to exceed the limit should not be allowed:
                 underTest.tell(command, getRef());
@@ -411,7 +416,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -446,7 +451,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -475,7 +480,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -512,7 +517,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -549,7 +554,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -575,7 +580,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -616,7 +621,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -652,7 +657,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -685,7 +690,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
 
-                final String policyId = policy.getId().orElse(null);
+                final PolicyId policyId = policy.getEntityId().orElse(null);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
 
                 final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
@@ -729,7 +734,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 terminate(this, policyPersistenceActor);
                 final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(this, policy);
                 final RetrievePolicy retrievePolicy =
-                        RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
+                        RetrievePolicy.of(policy.getEntityId().orElse(null), dittoHeadersV2);
 
                 final RetrievePolicyResponse expectedResponse =
                         retrievePolicyResponse(incrementRevision(policy, 1), dittoHeadersV2);
@@ -757,16 +762,16 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                         .isEqualEqualToButModified(policy);
 
-                final DeletePolicy deletePolicy = DeletePolicy.of(policy.getId().get(), dittoHeadersV2);
+                final DeletePolicy deletePolicy = DeletePolicy.of(policy.getEntityId().get(), dittoHeadersV2);
                 policyPersistenceActor.tell(deletePolicy, getRef());
-                expectMsgEquals(DeletePolicyResponse.of(policy.getId().get(), dittoHeadersV2));
+                expectMsgEquals(DeletePolicyResponse.of(policy.getEntityId().get(), dittoHeadersV2));
 
                 // restart
                 terminate(this, policyPersistenceActor);
                 final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(this, policy);
 
                 // A deleted Policy cannot be retrieved anymore.
-                final RetrievePolicy retrievePolicy = RetrievePolicy.of(policy.getId().get(), dittoHeadersV2);
+                final RetrievePolicy retrievePolicy = RetrievePolicy.of(policy.getEntityId().get(), dittoHeadersV2);
                 policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
                 expectMsgClass(PolicyNotAccessibleException.class);
 
@@ -803,9 +808,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         Subjects.newInstance(newSubject), Resources.newInstance(newResource));
 
                 final ModifyPolicyEntry modifyPolicyEntry =
-                        ModifyPolicyEntry.of(policy.getId().orElse(null), policyEntry, dittoHeadersV2);
+                        ModifyPolicyEntry.of(policy.getEntityId().orElse(null), policyEntry, dittoHeadersV2);
                 policyPersistenceActor.tell(modifyPolicyEntry, getRef());
-                expectMsgEquals(modifyPolicyEntryResponse(policy.getId().get(), policyEntry,
+                expectMsgEquals(modifyPolicyEntryResponse(policy.getEntityId().get(), policyEntry,
                         dittoHeadersV2, true));
 
                 // event published with group:
@@ -819,7 +824,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 final Policy policyWithUpdatedPolicyEntry = policy.setEntry(policyEntry);
                 final RetrievePolicy retrievePolicy =
-                        RetrievePolicy.of(policyWithUpdatedPolicyEntry.getId().orElse(null), dittoHeadersV2);
+                        RetrievePolicy.of(policyWithUpdatedPolicyEntry.getEntityId().orElse(null), dittoHeadersV2);
                 final RetrievePolicyResponse expectedResponse =
                         retrievePolicyResponse(incrementRevision(policyWithUpdatedPolicyEntry, 2), dittoHeadersV2);
 
@@ -847,9 +852,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         .isEqualEqualToButModified(policy);
 
                 final DeletePolicyEntry deletePolicyEntry =
-                        DeletePolicyEntry.of(policy.getId().get(), ANOTHER_POLICY_LABEL, dittoHeadersV2);
+                        DeletePolicyEntry.of(policy.getEntityId().get(), ANOTHER_POLICY_LABEL, dittoHeadersV2);
                 policyPersistenceActor.tell(deletePolicyEntry, getRef());
-                expectMsgEquals(DeletePolicyEntryResponse.of(policy.getId().orElse(null), ANOTHER_POLICY_LABEL,
+                expectMsgEquals(DeletePolicyEntryResponse.of(policy.getEntityId().orElse(null), ANOTHER_POLICY_LABEL,
                         dittoHeadersV2));
 
                 // restart
@@ -857,7 +862,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(this, policy);
 
                 final RetrievePolicy retrievePolicy =
-                        RetrievePolicy.of(policy.getId().get(), dittoHeadersV2);
+                        RetrievePolicy.of(policy.getEntityId().get(), dittoHeadersV2);
                 final RetrievePolicyResponse expectedResponse =
                         retrievePolicyResponse(incrementRevision(policy, 2).removeEntry(ANOTHER_POLICY_LABEL),
                                 dittoHeadersV2);
@@ -888,9 +893,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // modify the policy's entries - results in sequence number 2
                 final DeletePolicyEntry deletePolicyEntry =
-                        DeletePolicyEntry.of(policy.getId().orElse(null), ANOTHER_POLICY_LABEL, dittoHeadersV2);
+                        DeletePolicyEntry.of(policy.getEntityId().orElse(null), ANOTHER_POLICY_LABEL, dittoHeadersV2);
                 policyPersistenceActor.tell(deletePolicyEntry, getRef());
-                expectMsgEquals(DeletePolicyEntryResponse.of(policy.getId().orElse(null), ANOTHER_POLICY_LABEL,
+                expectMsgEquals(DeletePolicyEntryResponse.of(policy.getEntityId().orElse(null), ANOTHER_POLICY_LABEL,
                         dittoHeadersV2));
 
                 // retrieve the policy's sequence number
@@ -900,7 +905,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         .setRevision(versionExpected) //
                         .build();
                 final RetrievePolicy retrievePolicy =
-                        RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
+                        RetrievePolicy.of(policy.getEntityId().orElse(null), dittoHeadersV2);
                 policyPersistenceActor.tell(retrievePolicy, getRef());
                 expectMsgEquals(retrievePolicyResponse(policyExpected, retrievePolicy.getDittoHeaders()));
             }
@@ -923,9 +928,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // modify the policy's entries - results in sequence number 2
                 final DeletePolicyEntry deletePolicyEntry =
-                        DeletePolicyEntry.of(policy.getId().orElse(null), ANOTHER_POLICY_LABEL, dittoHeadersV2);
+                        DeletePolicyEntry.of(policy.getEntityId().orElse(null), ANOTHER_POLICY_LABEL, dittoHeadersV2);
                 policyPersistenceActor.tell(deletePolicyEntry, getRef());
-                expectMsgEquals(DeletePolicyEntryResponse.of(policy.getId().orElse(null), ANOTHER_POLICY_LABEL,
+                expectMsgEquals(DeletePolicyEntryResponse.of(policy.getEntityId().orElse(null), ANOTHER_POLICY_LABEL,
                         dittoHeadersV2));
 
                 // retrieve the policy's sequence number from recovered actor
@@ -938,7 +943,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // restart
                 terminate(this, policyPersistenceActor);
                 final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(this, policy);
-                final RetrievePolicy retrievePolicy = RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
+                final RetrievePolicy retrievePolicy =
+                        RetrievePolicy.of(policy.getEntityId().orElse(null), dittoHeadersV2);
 
                 final RetrievePolicyResponse expectedResponse =
                         retrievePolicyResponse(policyExpected, retrievePolicy.getDittoHeaders());
@@ -965,8 +971,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                     .isEqualEqualToButModified(policy);
 
-            final String entityId = PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
-                    policy.getId().orElseThrow(IllegalStateException::new);
+            final EntityId entityId = DefaultEntityId.of(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
+                    policy.getEntityId().orElseThrow(IllegalStateException::new));
             policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
             expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
         }};
@@ -990,8 +996,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             policyPersistenceActor.tell(deletePolicyCommand, getRef());
             expectMsgClass(DeletePolicyResponse.class);
 
-            final String entityId = PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
-                    policy.getId().orElseThrow(IllegalStateException::new);
+            final EntityId entityId = DefaultEntityId.of(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
+                    policy.getEntityId().orElseThrow(IllegalStateException::new));
             policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
             expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
         }};
@@ -1002,7 +1008,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 // GIVEN: a PolicyPersistenceActor is created in a parent that forwards all messages to us
-                final String policyId = "test.ns:nonexistent.policy";
+                final PolicyId policyId = PolicyId.of("test.ns", "nonexistent.policy");
                 final Props persistentActorProps =
                         PolicyPersistenceActor.props(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator);
 
@@ -1057,10 +1063,10 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     private ActorRef createPersistenceActorFor(final TestKit testKit, final Policy policy) {
-        return createPersistenceActorFor(testKit, policy.getId().orElseThrow(NoSuchElementException::new));
+        return createPersistenceActorFor(testKit, policy.getEntityId().orElseThrow(NoSuchElementException::new));
     }
 
-    private ActorRef createPersistenceActorFor(final TestKit testKit, final String policyId) {
+    private ActorRef createPersistenceActorFor(final TestKit testKit, final PolicyId policyId) {
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
         final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         return testKit.watch(actorSystem.actorOf(props));

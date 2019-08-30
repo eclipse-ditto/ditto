@@ -22,8 +22,9 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.base.WithId;
-import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
@@ -59,8 +60,8 @@ public interface MessageCommandResponse<T, C extends MessageCommandResponse>
     }
 
     @Override
-    default String getId() {
-        return getThingId();
+    default ThingId getEntityId() {
+        return getThingEntityId();
     }
 
     @Override

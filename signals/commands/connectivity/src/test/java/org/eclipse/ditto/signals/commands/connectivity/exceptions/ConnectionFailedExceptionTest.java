@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 
 /**
@@ -33,7 +34,7 @@ public final class ConnectionFailedExceptionTest {
 
     @Test
     public void checkToJsonFromJson() {
-        final ConnectionFailedException failedException = ConnectionFailedException.newBuilder("id")
+        final ConnectionFailedException failedException = ConnectionFailedException.newBuilder(TestConstants.ID)
                 .message("message")
                 .description("description")
                 .build();

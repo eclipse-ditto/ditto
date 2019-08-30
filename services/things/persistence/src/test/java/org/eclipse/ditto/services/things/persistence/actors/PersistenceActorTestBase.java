@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.things.common.config.DefaultThingConfig;
@@ -60,7 +61,7 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class PersistenceActorTestBase {
 
-    protected static final String THING_ID = "org.eclipse.ditto:thingId";
+    protected static final ThingId THING_ID = ThingId.of("org.eclipse.ditto", "thingId");
     protected static final String POLICY_ID = "org.eclipse.ditto:policyId";
     protected static final String AUTH_SUBJECT = "allowedId";
     protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
@@ -119,10 +120,10 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected static Thing createThingV2WithRandomId() {
-        return createThingV2WithId(THING_ID + UUID.randomUUID());
+        return createThingV2WithId(ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + UUID.randomUUID()));
     }
 
-    protected static Thing createThingV2WithId(final String thingId) {
+    protected static Thing createThingV2WithId(final ThingId thingId) {
         return ThingsModelFactory.newThingBuilder()
                 .setLifecycle(THING_LIFECYCLE)
                 .setAttributes(THING_ATTRIBUTES)
@@ -134,16 +135,16 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected static Thing createThingV1WithRandomId() {
-        return createThingV1WithId(THING_ID + new Random().nextInt());
+        return createThingV1WithId(ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + new Random().nextInt()));
     }
 
-    protected static Thing createThingV1WithId(final String thingId) {
+    protected static Thing createThingV1WithId(final ThingId thingId) {
         return ThingsModelFactory.newThingBuilder()
                 .setLifecycle(THING_LIFECYCLE)
                 .setAttributes(THING_ATTRIBUTES)
                 .setFeatures(THING_FEATURES)
                 .setRevision(THING_REVISION)
-                .setId("test.ns:" + thingId)
+                .setId(thingId)
                 .setPermissions(AUTHORIZED_SUBJECT, AccessControlListModelFactory.allPermissions()).build();
     }
 
@@ -165,25 +166,25 @@ public abstract class PersistenceActorTestBase {
         actorSystem = null;
     }
 
-    protected ActorRef createPersistenceActorFor(final String thingId) {
+    protected ActorRef createPersistenceActorFor(final ThingId thingId) {
         return createPersistenceActorWithPubSubFor(thingId);
     }
 
-    protected ActorRef createPersistenceActorWithPubSubFor(final String thingId) {
+    protected ActorRef createPersistenceActorWithPubSubFor(final ThingId thingId) {
 
         return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, getDistributedPub()));
     }
 
-    private Props getPropsOfThingPersistenceActor(final String thingId, final DistributedPub<ThingEvent> pub) {
+    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent> pub) {
 
         return ThingPersistenceActor.props(thingId, pub);
     }
 
-    protected ActorRef createSupervisorActorFor(final String thingId) {
+    protected ActorRef createSupervisorActorFor(final ThingId thingId) {
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator, getDistributedPub(), this::getPropsOfThingPersistenceActor);
 
-        return actorSystem.actorOf(props, thingId);
+        return actorSystem.actorOf(props, thingId.toString());
     }
 
     /**

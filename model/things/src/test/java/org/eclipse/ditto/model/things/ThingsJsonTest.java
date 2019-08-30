@@ -80,7 +80,7 @@ public final class ThingsJsonTest {
         featurePropertyJsonObjectBuilder.set("someObj", JsonFactory.newObject(toMap("aKey", "aValue")));
 
         final String featureId = "tester-2000";
-        final String thingId = "test.ns:myThing";
+        final ThingId thingId = ThingId.of("test.ns", "myThing");
 
         final String expectedJson = "{" + "\"thingId\":\"" + thingId + "\"," + "\"attributes\":{"
                 + "\"someIntAttribute\":23," + "\"someStringAttribute\":\"someAttrValue\","
@@ -115,7 +115,7 @@ public final class ThingsJsonTest {
         final JsonObjectBuilder featurePropertyJsonObjectBuilder = JsonFactory.newObjectBuilder();
         featurePropertyJsonObjectBuilder.set("someObj", JsonFactory.newObject(toMap("aKey", "aValue")));
 
-        final String thingId = "test.ns:myThing";
+        final ThingId thingId = ThingId.of("test.ns", "myThing");
         final String featureId = "tester-2000";
         final String thingJson =
                 "{ " + "\"thingId\": \"" + thingId + "\"," + "\"acl\":" + "{\"" + KNOWN_AUTH_SUBJECT.getId() + "\":" +
@@ -205,7 +205,7 @@ public final class ThingsJsonTest {
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector(Thing.JsonFields.ID);
 
         final JsonObject expectedJson = JsonFactory.newObjectBuilder()
-                .set(Thing.JsonFields.ID.getPointer(), TestConstants.Thing.THING_ID)
+                .set(Thing.JsonFields.ID.getPointer(), TestConstants.Thing.THING_ID.toString())
                 .build();
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(fieldSelector);
@@ -279,7 +279,7 @@ public final class ThingsJsonTest {
                 JsonFactory.newFieldSelector(Thing.JsonFields.ID, Thing.JsonFields.REVISION);
 
         final JsonObject expectedJson = JsonFactory.newObjectBuilder()
-                .set(Thing.JsonFields.ID.getPointer(), TestConstants.Thing.THING_ID)
+                .set(Thing.JsonFields.ID.getPointer(), TestConstants.Thing.THING_ID.toString())
                 .set(Thing.JsonFields.REVISION.getPointer(), TestConstants.Thing.REVISION_NUMBER)
                 .build();
 
@@ -292,7 +292,7 @@ public final class ThingsJsonTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject expectedJson = JsonFactory.newObjectBuilder()
-                .set(Thing.JsonFields.ID, TestConstants.Thing.THING_ID)
+                .set(Thing.JsonFields.ID, TestConstants.Thing.THING_ID.toString())
                 .set(Thing.JsonFields.ACL, TestConstants.Thing.ACL.toJson(JsonSchemaVersion.V_1))
                 .set(Thing.JsonFields.ATTRIBUTES, TestConstants.Thing.ATTRIBUTES)
                 .set(Thing.JsonFields.FEATURES, TestConstants.Feature.FEATURES.toJson())

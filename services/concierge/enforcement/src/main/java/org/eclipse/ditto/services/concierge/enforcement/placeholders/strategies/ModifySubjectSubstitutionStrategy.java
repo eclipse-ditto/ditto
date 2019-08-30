@@ -42,7 +42,7 @@ final class ModifySubjectSubstitutionStrategy extends AbstractTypedSubstitutionS
         } else {
             final Subject newSubject =
                     Subject.newInstance(substitutedSubjectId, modifySubject.getSubject().getType());
-            return ModifySubject.of(modifySubject.getId(), modifySubject.getLabel(), newSubject,
+            return ModifySubject.of(modifySubject.getEntityId(), modifySubject.getLabel(), newSubject,
                     modifySubject.getDittoHeaders());
         }
     }

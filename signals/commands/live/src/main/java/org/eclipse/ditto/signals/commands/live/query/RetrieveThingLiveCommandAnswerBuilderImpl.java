@@ -64,13 +64,13 @@ final class RetrieveThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public RetrieveThingResponse retrieved(final Thing thing) {
-            return RetrieveThingResponse.of(command.getThingId(), thing, command.getDittoHeaders());
+            return RetrieveThingResponse.of(command.getThingEntityId(), thing, command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse thingNotAccessibleError() {
-            return errorResponse(command.getThingId(), ThingNotAccessibleException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(), ThingNotAccessibleException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }

@@ -34,6 +34,7 @@ import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -86,7 +87,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
             final OutboundSignal outboundSignal = mock(OutboundSignal.class);
             final Signal source = mock(Signal.class);
-            when(source.getId()).thenReturn(TestConstants.Things.THING_ID);
+            when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
             when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
             when(outboundSignal.getSource()).thenReturn(source);
             final Target target = createTestTarget();
@@ -98,7 +99,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final OutboundSignal.WithExternalMessage mappedOutboundSignal =
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
 
-            final Props props = AmqpPublisherActor.props("theConnection",
+            final Props props = AmqpPublisherActor.props(ConnectionId.generateRandom(),
                     Collections.singletonList(TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())),
                     session,
                     loadConnectionConfig());
@@ -106,20 +107,21 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
             publisherActor.tell(mappedOutboundSignal, getRef());
             publisherActor.tell(mappedOutboundSignal, getRef());
-            // producer is cache so created only once
+            // producer is cached so created only once
             verify(session, timeout(1_000)).createProducer(ArgumentMatchers.any(Destination.class));
 
             publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
 
-            // second producer created as first one was removed from cache
-            verify(session, timeout(1_000)).createProducer(ArgumentMatchers.any(Destination.class));
+            // second producer created as first one was removed from cache for a total of 2 invocations
+            verify(session, timeout(10_000).times(2)).createProducer(ArgumentMatchers.any(Destination.class));
         }};
 
     }
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props("theConnection", Collections.emptyList(), session, loadConnectionConfig());
+        return AmqpPublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), session,
+                loadConnectionConfig());
     }
 
     @Override
@@ -131,13 +133,15 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
         final Message message = messageCaptor.getValue();
         assertThat(message).isNotNull();
         System.out.println(Collections.list(message.getPropertyNames()));
-        assertThat(message.getStringProperty("thing_id")).isEqualTo(TestConstants.Things.THING_ID);
+        assertThat(message.getStringProperty("thing_id"))
+                .isEqualTo(TestConstants.Things.THING_ID.toString());
         assertThat(message.getStringProperty("suffixed_thing_id")).isEqualTo(
                 TestConstants.Things.THING_ID + ".some.suffix");
         assertThat(message.getStringProperty("prefixed_thing_id")).isEqualTo(
                 "some.prefix." + TestConstants.Things.THING_ID);
         assertThat(message.getStringProperty("eclipse")).isEqualTo("ditto");
-        assertThat(message.getStringProperty("device_id")).isEqualTo(TestConstants.Things.THING_ID);
+        assertThat(message.getStringProperty("device_id"))
+                .isEqualTo(TestConstants.Things.THING_ID.toString());
     }
 
     @Override

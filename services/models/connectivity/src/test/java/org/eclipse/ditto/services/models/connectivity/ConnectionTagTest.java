@@ -20,6 +20,7 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -29,12 +30,12 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ConnectionTagTest {
 
-    private static final String CONNECTION_ID = "connection-tag-test-connection-id";
+    private static final ConnectionId CONNECTION_ID = ConnectionId.of("connection-tag-test-connection-id");
 
     private static final long REVISION = 5624191235L;
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(ConnectionTag.JsonFields.ID, CONNECTION_ID)
+            .set(ConnectionTag.JsonFields.ID, CONNECTION_ID.toString())
             .set(ConnectionTag.JsonFields.REVISION, REVISION)
             .build();
 
@@ -63,7 +64,7 @@ public final class ConnectionTagTest {
         final ConnectionTag underTest = ConnectionTag.fromJson(KNOWN_JSON);
 
         Assertions.assertThat(underTest).isNotNull();
-        Assertions.assertThat(underTest.getId()).isEqualTo(CONNECTION_ID);
+        Assertions.assertThat((CharSequence) underTest.getEntityId()).isEqualTo(CONNECTION_ID);
         Assertions.assertThat(underTest.getRevision()).isEqualTo(REVISION);
     }
 

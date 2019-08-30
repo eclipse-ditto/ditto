@@ -26,6 +26,9 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -39,7 +42,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class PurgeEntitiesReasonTest {
 
     private static ShutdownReasonType purgeEntitiesType;
-    private static List<String> knownEntityIds;
+    private static List<EntityId> knownEntityIds;
     private static JsonObject knownJsonRepresentation;
 
     private PurgeEntitiesReason underTest;
@@ -47,7 +50,10 @@ public final class PurgeEntitiesReasonTest {
     @BeforeClass
     public static void initTestConstants() {
         purgeEntitiesType = ShutdownReasonType.Known.PURGE_ENTITIES;
-        knownEntityIds = Arrays.asList("x:y", "a:b", "f:oo");
+        knownEntityIds = Arrays.asList(
+                DefaultEntityId.of("x:y"),
+                DefaultEntityId.of("a:b"),
+                DefaultEntityId.of("f:oo"));
         knownJsonRepresentation = JsonFactory.newObjectBuilder()
                 .set(ShutdownReason.JsonFields.TYPE, purgeEntitiesType.toString())
                 .set(ShutdownReason.JsonFields.DETAILS, JsonArray.of(knownEntityIds))
@@ -111,7 +117,17 @@ public final class PurgeEntitiesReasonTest {
     }
 
     @Test
-    public void isRelevantForIsTrueIfNamespaceIsEqual() {
+    public void isRelevantForIsTrueIfWrappedInDefaultEntityId() {
+        assertThat(underTest.isRelevantFor(DefaultEntityId.of("f:oo"))).isTrue();
+    }
+
+    @Test
+    public void isRelevantForIsTrueIfWrappedInDefaultNamespacedEntityId() {
+        assertThat(underTest.isRelevantFor(DefaultNamespacedEntityId.of("f","oo"))).isTrue();
+    }
+
+    @Test
+    public void isRelevantForIsTrueIfPlainString() {
         assertThat(underTest.isRelevantFor("f:oo")).isTrue();
     }
 

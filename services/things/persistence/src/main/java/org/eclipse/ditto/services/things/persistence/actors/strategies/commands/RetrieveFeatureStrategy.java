@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 
@@ -42,7 +43,7 @@ final class RetrieveFeatureStrategy
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveFeature command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
 
         return extractFeatures(thing)
                 .map(features -> getFeatureResult(features, thingId, command, thing))
@@ -54,7 +55,7 @@ final class RetrieveFeatureStrategy
         return getThingOrThrow(thing).getFeatures();
     }
 
-    private Result getFeatureResult(final Features features, final String thingId,
+    private Result getFeatureResult(final Features features, final ThingId thingId,
             final RetrieveFeature command, @Nullable final Thing thing) {
 
         final String featureId = command.getFeatureId();

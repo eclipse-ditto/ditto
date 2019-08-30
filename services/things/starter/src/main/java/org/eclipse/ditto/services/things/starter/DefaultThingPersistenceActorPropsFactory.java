@@ -13,12 +13,12 @@
 package org.eclipse.ditto.services.things.starter;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActorPropsFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
+import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActorPropsFactory;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -43,7 +43,7 @@ final class DefaultThingPersistenceActorPropsFactory implements ThingPersistence
     }
 
     @Override
-    public Props props(final String thingId, final DistributedPub<ThingEvent> distributedPub) {
+    public Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub) {
         argumentNotEmpty(thingId);
         return ThingPersistenceActor.props(thingId, distributedPub);
     }

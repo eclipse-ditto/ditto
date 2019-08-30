@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
@@ -63,15 +64,14 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveConnectionStatus.NAME;
 
-    private final String connectionId;
+    private final ConnectionId connectionId;
     private final JsonObject jsonObject;
 
-    private RetrieveConnectionStatusResponse(final String connectionId,
+    private RetrieveConnectionStatusResponse(final ConnectionId connectionId,
             final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
-        checkNotNull(connectionId, "Connection ID");
-        this.connectionId = connectionId;
+        this.connectionId = checkNotNull(connectionId, "Connection ID");
         this.jsonObject = jsonObject;
     }
 
@@ -83,7 +83,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @return a new RetrieveConnectionStatusResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionStatusResponse of(final String connectionId,
+    public static RetrieveConnectionStatusResponse of(final ConnectionId connectionId,
             final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new RetrieveConnectionStatusResponse(connectionId, jsonObject, dittoHeaders);
@@ -100,7 +100,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @return a new RetrieveConnectionStatusResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionStatusResponse closedResponse(final String connectionId,
+    public static RetrieveConnectionStatusResponse closedResponse(final ConnectionId connectionId,
             final String address,
             final Instant connectionClosedAt,
             final ConnectivityStatus clientStatus,
@@ -150,8 +150,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveConnectionStatusResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
-                    final String connectionId =
+                    final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
+                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
                     return of(connectionId, jsonObject, dittoHeaders);
                 });
@@ -214,22 +215,25 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
 
         jsonObjectBuilder.setAll(jsonObject);
     }
 
     @Override
-    public String getConnectionId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 
     @Override
     public RetrieveConnectionStatusResponse setEntity(final JsonValue entity) {
         final JsonObject jsonEntity = entity.asObject();
+        final String readConnectionId =
+                jsonEntity.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
+        final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
-        return of(jsonEntity.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID),
-                jsonEntity, getDittoHeaders());
+        return of(connectionId, jsonEntity, getDittoHeaders());
     }
 
     @Override
@@ -247,7 +251,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         return of(connectionId, jsonObject, dittoHeaders);
     }
 
-    public static Builder getBuilder(final String connectionId, final DittoHeaders dittoHeaders) {
+    public static Builder getBuilder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         return new Builder(connectionId, dittoHeaders);
     }
 
@@ -319,7 +323,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     @NotThreadSafe
     public static final class Builder {
 
-        private final String connectionId;
+        private final ConnectionId connectionId;
         private final DittoHeaders dittoHeaders;
         private ConnectivityStatus connectionStatus;
         private ConnectivityStatus liveStatus;
@@ -328,7 +332,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         private List<ResourceStatus> sourceStatus;
         private List<ResourceStatus> targetStatus;
 
-        private Builder(final String connectionId, final DittoHeaders dittoHeaders) {
+        private Builder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
             this.connectionId = connectionId;
             this.dittoHeaders = dittoHeaders;
         }
@@ -406,7 +410,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
             jsonObjectBuilder.set(CommandResponse.JsonFields.TYPE, TYPE);
             jsonObjectBuilder.set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt());
-            jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId);
+            jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID,
+                    String.valueOf(connectionId));
 
             if (connectionStatus != null) {
                 jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.toString());

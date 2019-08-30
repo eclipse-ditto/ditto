@@ -65,7 +65,7 @@ final class ModifyThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
         if (existingThing.equals(substitutedThing) && Objects.equals(inlinePolicyJson, substitutedInlinePolicyJson)) {
             return modifyThing;
         } else {
-            return ModifyThing.of(modifyThing.getThingId(), substitutedThing, substitutedInlinePolicyJson,
+            return ModifyThing.of(modifyThing.getEntityId(), substitutedThing, substitutedInlinePolicyJson,
                     modifyThing.getPolicyIdOrPlaceholder().orElse(null), dittoHeaders);
         }
     }

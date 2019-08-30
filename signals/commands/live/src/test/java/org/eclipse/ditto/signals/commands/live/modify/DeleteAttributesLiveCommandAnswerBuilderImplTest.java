@@ -45,7 +45,7 @@ public final class DeleteAttributesLiveCommandAnswerBuilderImplTest {
     /** */
     @Before
     public void setUp() {
-        Mockito.when(commandMock.getThingId()).thenReturn(TestConstants.Thing.THING_ID);
+        Mockito.when(commandMock.getThingEntityId()).thenReturn(TestConstants.Thing.THING_ID);
         Mockito.when(commandMock.getDittoHeaders()).thenReturn(DittoHeaders.empty());
 
         underTest = DeleteAttributesLiveCommandAnswerBuilderImpl.newInstance(commandMock);

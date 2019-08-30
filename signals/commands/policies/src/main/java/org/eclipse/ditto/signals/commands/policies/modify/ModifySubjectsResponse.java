@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -52,10 +53,10 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
     static final JsonFieldDefinition<String> JSON_LABEL =
             JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
 
-    private ModifySubjectsResponse(final String policyId,
+    private ModifySubjectsResponse(final PolicyId policyId,
             final Label label,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
@@ -73,8 +74,27 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifySubjectsResponse of(final String policyId, final Label label,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifySubjects} command.
+     *
+     * @param policyId the Policy ID of the modified subjects.
+     * @param label the Label of the PolicyEntry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ModifySubjectsResponse of(final PolicyId policyId, final Label label,
             final DittoHeaders dittoHeaders) {
 
         return new ModifySubjectsResponse(policyId, label, HttpStatusCode.NO_CONTENT, dittoHeaders);
@@ -107,7 +127,9 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      */
     public static ModifySubjectsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifySubjectsResponse>(TYPE, jsonObject).deserialize(statusCode -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId =
+                    jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
 
             return new ModifySubjectsResponse(policyId, label, statusCode, dittoHeaders);
@@ -115,7 +137,7 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -139,7 +161,8 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+                predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 

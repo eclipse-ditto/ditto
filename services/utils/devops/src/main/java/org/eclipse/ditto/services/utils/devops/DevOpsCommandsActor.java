@@ -455,9 +455,12 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
         private static Duration getReceiveTimeout(final DittoHeaders dittoHeaders) {
             Duration result = DEFAULT_RECEIVE_TIMEOUT;
+            final long defaultTimeout = DEFAULT_RECEIVE_TIMEOUT.toMillis();
             @Nullable final String timeoutHeaderValue = dittoHeaders.get(TIMEOUT_HEADER);
             if (null != timeoutHeaderValue) {
-                result = Duration.ofMillis(Integer.parseInt(timeoutHeaderValue));
+                final long parsedTimeout = Long.parseLong(timeoutHeaderValue);
+                final long timeout = Math.max(parsedTimeout, defaultTimeout);
+                result = Duration.ofMillis(timeout);
             }
             return result;
         }

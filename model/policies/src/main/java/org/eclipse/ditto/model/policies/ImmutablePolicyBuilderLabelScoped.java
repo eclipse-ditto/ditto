@@ -58,7 +58,13 @@ final class ImmutablePolicyBuilderLabelScoped implements PolicyBuilder.LabelScop
     }
 
     @Override
+    @Deprecated
     public ImmutablePolicyBuilderLabelScoped setId(@Nullable final CharSequence id) {
+        return setId(PolicyId.of(id));
+    }
+
+    @Override
+    public ImmutablePolicyBuilderLabelScoped setId(@Nullable final PolicyId id) {
         delegate.setId(id);
         return this;
     }

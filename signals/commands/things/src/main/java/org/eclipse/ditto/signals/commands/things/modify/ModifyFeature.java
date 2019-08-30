@@ -33,8 +33,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -66,12 +66,11 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
             JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final Feature feature;
 
-    private ModifyFeature(final String thingId, final Feature feature, final DittoHeaders dittoHeaders) {
+    private ModifyFeature(final ThingId thingId, final Feature feature, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         this.thingId = thingId;
         this.feature = checkNotNull(feature, "Feature");
 
@@ -87,10 +86,25 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
      * @param dittoHeaders the headers of the command.
      * @return a Command for modifying the provided Feature.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Feature, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyFeature of(final String thingId, final Feature feature, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), feature, dittoHeaders);
+    }
+
+    /**
+     * Returns a Command for modifying a Feature on a Thing.
+     *
+     * @param thingId the ID of the {@code Thing} on which the {@code Feature} to modify.
+     * @param feature the {@code Feature} to modify.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for modifying the provided Feature.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     */
+    public static ModifyFeature of(final ThingId thingId, final Feature feature, final DittoHeaders dittoHeaders) {
         return new ModifyFeature(thingId, feature, dittoHeaders);
     }
 
@@ -105,7 +119,7 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ModifyFeature fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -121,11 +135,12 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ModifyFeature fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyFeature>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
             final JsonObject featureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
 
@@ -152,7 +167,7 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -176,7 +191,7 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE, feature.toJson(schemaVersion, thePredicate), predicate);
     }

@@ -83,19 +83,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>com.github.siom79.japicmp</groupId>
-                <artifactId>japicmp-maven-plugin</artifactId>
-                <configuration>
-                    <!-- TODO remove after next release: -->
-                    <skip>true</skip>
-                    <parameter>
-                        <excludes>
-                        </excludes>
-                    </parameter>
-                </configuration>
-            </plugin>
-
-            <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
                     <execution>

@@ -47,7 +47,7 @@ final class RetrieveFeaturePropertyStrategy extends
 
         return extractFeature(command, thing)
                 .map(feature -> getRetrieveFeaturePropertyResult(feature, context, command, thing))
-                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(context.getThingId(),
+                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(context.getThingEntityId(),
                         featureId, command.getDittoHeaders())));
     }
 
@@ -62,7 +62,7 @@ final class RetrieveFeaturePropertyStrategy extends
         return feature.getProperties()
                 .map(featureProperties -> getRetrieveFeaturePropertyResult(featureProperties, context, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertiesNotFound(context.getThingId(), feature.getId(),
+                        ExceptionFactory.featurePropertiesNotFound(context.getThingEntityId(), feature.getId(),
                                 command.getDittoHeaders())));
     }
 
@@ -74,11 +74,11 @@ final class RetrieveFeaturePropertyStrategy extends
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return featureProperties.getValue(propertyPointer)
-                .map(featureProperty -> RetrieveFeaturePropertyResponse.of(context.getThingId(), featureId,
+                .map(featureProperty -> RetrieveFeaturePropertyResponse.of(context.getThingEntityId(), featureId,
                         propertyPointer, featureProperty, dittoHeaders))
                 .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertyNotFound(context.getThingId(), featureId, propertyPointer,
+                        ExceptionFactory.featurePropertyNotFound(context.getThingEntityId(), featureId, propertyPointer,
                                 dittoHeaders)));
     }
 

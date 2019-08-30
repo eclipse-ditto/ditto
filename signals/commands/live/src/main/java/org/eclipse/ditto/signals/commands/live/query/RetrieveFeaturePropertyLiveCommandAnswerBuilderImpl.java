@@ -66,7 +66,7 @@ final class RetrieveFeaturePropertyLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public RetrieveFeaturePropertyResponse retrieved(final JsonValue propertyValue) {
-            return RetrieveFeaturePropertyResponse.of(command.getThingId(), command.getFeatureId(),
+            return RetrieveFeaturePropertyResponse.of(command.getThingEntityId(), command.getFeatureId(),
                     command.getPropertyPointer(),
                     propertyValue, command.getDittoHeaders());
         }
@@ -74,8 +74,8 @@ final class RetrieveFeaturePropertyLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse featurePropertyNotAccessibleError() {
-            return errorResponse(command.getThingId(),
-                    FeaturePropertyNotAccessibleException.newBuilder(command.getThingId(),
+            return errorResponse(command.getThingEntityId(),
+                    FeaturePropertyNotAccessibleException.newBuilder(command.getThingEntityId(),
                             command.getFeatureId(), command.getPropertyPointer())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());

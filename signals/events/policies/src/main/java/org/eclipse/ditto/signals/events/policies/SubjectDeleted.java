@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -61,7 +62,7 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
     private final Label label;
     private final SubjectId subjectId;
 
-    private SubjectDeleted(final String policyId,
+    private SubjectDeleted(final PolicyId policyId,
             final Label label,
             final SubjectId subjectId,
             final long revision,
@@ -83,8 +84,32 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectDeleted.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static SubjectDeleted of(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subjectId, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code SubjectDeleted} object.
+     *
+     * @param policyId the identifier of the Policy to which the deleted subject belongs.
+     * @param label the label of the Policy Entry to which the deleted subject belongs.
+     * @param subjectId the identifier of the deleted {@link org.eclipse.ditto.model.policies.Subject}.
+     * @param revision the revision of the Policy.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created SubjectDeleted.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static SubjectDeleted of(final PolicyId policyId,
             final Label label,
             final SubjectId subjectId,
             final long revision,
@@ -104,8 +129,34 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectDeleted.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static SubjectDeleted of(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subjectId, revision, timestamp, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code SubjectDeleted} object.
+     *
+     * @param policyId the identifier of the Policy to which the deleted subject belongs.
+     * @param label the label of the Policy Entry to which the deleted subject belongs.
+     * @param subjectId the identifier of the deleted {@link org.eclipse.ditto.model.policies.Subject}.
+     * @param revision the revision of the Policy.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created SubjectDeleted.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     */
+    public static SubjectDeleted of(final PolicyId policyId,
             final Label label,
             final SubjectId subjectId,
             final long revision,
@@ -139,7 +190,8 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
      */
     public static SubjectDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<SubjectDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final SubjectId extractedDeletedSubjectId =
                     SubjectId.newInstance(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
@@ -174,12 +226,12 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
 
     @Override
     public SubjectDeleted setRevision(final long revision) {
-        return of(getPolicyId(), label, subjectId, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), label, subjectId, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public SubjectDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyId(), label, subjectId, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), label, subjectId, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

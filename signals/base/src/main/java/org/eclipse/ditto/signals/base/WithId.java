@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.signals.base;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+
 /**
- * Implementations of this interface are associated to an entity identified by the value returned from {@link #getId()}.
+ * Implementations of this interface are associated to an entity identified by the value returned from {@link #getEntityId()}.
  */
 public interface WithId {
 
@@ -21,7 +23,18 @@ public interface WithId {
      * Returns the identifier of the entity.
      *
      * @return the identifier of the entity.
+     * @deprecated entity IDs are now typed. Use {@link #getEntityId()} instead.
      */
-    String getId();
+    @Deprecated
+    default String getId() {
+        return String.valueOf(getEntityId());
+    }
 
+
+    /**
+     * Returns the identifier of the entity.
+     *
+     * @return the identifier of the entity.
+     */
+    EntityId getEntityId();
 }

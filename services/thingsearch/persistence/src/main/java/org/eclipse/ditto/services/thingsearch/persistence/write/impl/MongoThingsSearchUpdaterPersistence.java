@@ -21,6 +21,7 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
@@ -28,6 +29,8 @@ import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
@@ -50,11 +53,9 @@ import akka.stream.javadsl.Source;
  */
 public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUpdaterPersistence {
 
-    private final MongoDatabase database;
     private final MongoCollection<Document> collection;
 
     private MongoThingsSearchUpdaterPersistence(final MongoDatabase database) {
-        this.database = database;
         collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
     }
 
@@ -68,16 +69,21 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
     }
 
     @Override
-    public Source<PolicyReferenceTag, NotUsed> getPolicyReferenceTags(final Map<String, Long> policyRevisions) {
-        final Bson filter = in(PersistenceConstants.FIELD_POLICY_ID, policyRevisions.keySet());
+    public Source<PolicyReferenceTag, NotUsed> getPolicyReferenceTags(final Map<PolicyId, Long> policyRevisions) {
+        final Bson filter =
+                in(PersistenceConstants.FIELD_POLICY_ID, policyRevisions.keySet()
+                        .stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.toSet()));
         final Publisher<Document> publisher =
                 collection.find(filter).projection(new Document()
                         .append(PersistenceConstants.FIELD_ID, new BsonInt32(1))
                         .append(PersistenceConstants.FIELD_POLICY_ID, new BsonInt32(1)));
         return Source.fromPublisher(publisher)
                 .mapConcat(doc -> {
-                    final String thingId = doc.getString(PersistenceConstants.FIELD_ID);
-                    final String policyId = doc.getString(PersistenceConstants.FIELD_POLICY_ID);
+                    final ThingId thingId = ThingId.of(doc.getString(PersistenceConstants.FIELD_ID));
+                    final String policyIdString = doc.getString(PersistenceConstants.FIELD_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(policyIdString);
                     final Long revision = policyRevisions.get(policyId);
                     if (revision == null) {
                         return Collections.emptyList();
@@ -89,14 +95,15 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
     }
 
     @Override
-    public Source<String, NotUsed> getOutdatedThingIds(final PolicyTag policyTag) {
-        final String policyId = policyTag.getId();
-        final Bson filter = and(eq(PersistenceConstants.FIELD_POLICY_ID, policyId), lt(
+    public Source<ThingId, NotUsed> getOutdatedThingIds(final PolicyTag policyTag) {
+        final PolicyId policyId = policyTag.getEntityId();
+        final Bson filter = and(eq(PersistenceConstants.FIELD_POLICY_ID, policyId.toString()), lt(
                 PersistenceConstants.FIELD_POLICY_REVISION, policyTag.getRevision()));
         final Publisher<Document> publisher =
                 collection.find(filter).projection(new BsonDocument(PersistenceConstants.FIELD_ID, new BsonInt32(1)));
         return Source.fromPublisher(publisher)
-                .map(doc -> doc.getString(PersistenceConstants.FIELD_ID));
+                .map(doc -> doc.getString(PersistenceConstants.FIELD_ID))
+                .map(ThingId::of);
     }
 
     @Override

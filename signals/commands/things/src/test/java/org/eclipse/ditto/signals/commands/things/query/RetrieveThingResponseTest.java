@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
@@ -39,13 +40,14 @@ public final class RetrieveThingResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveThingResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveThingResponse.JSON_THING_PLAIN_JSON, TestConstants.Thing.THING.toJsonString())
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveThingResponse.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable(),
+        assertInstancesOf(RetrieveThingResponse.class, areImmutable(),
+                provided(JsonObject.class, ThingId.class).isAlsoImmutable(),
                 assumingFields("thing").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
 

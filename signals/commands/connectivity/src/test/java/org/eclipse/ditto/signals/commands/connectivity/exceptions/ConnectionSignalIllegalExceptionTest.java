@@ -20,6 +20,7 @@ import java.time.Duration;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.junit.Test;
 
@@ -35,7 +36,7 @@ public final class ConnectionSignalIllegalExceptionTest {
 
     @Test
     public void serializeConnectingMessage() {
-        final ConnectionSignalIllegalException exception = ConnectionSignalIllegalException.newBuilder("connection-id")
+        final ConnectionSignalIllegalException exception = ConnectionSignalIllegalException.newBuilder(TestConstants.ID)
                 .operationName("busy")
                 .timeout(1)
                 .timeout(Duration.ofSeconds(1))
@@ -51,14 +52,15 @@ public final class ConnectionSignalIllegalExceptionTest {
 
     @Test
     public void serializeStayingMessage() {
-        final ConnectionSignalIllegalException exception = ConnectionSignalIllegalException.newBuilder("connection-id")
+        final ConnectionSignalIllegalException exception = ConnectionSignalIllegalException.newBuilder(TestConstants.ID)
                 .illegalSignalForState(OpenConnection.TYPE, "open")
                 .build();
 
         final String jsonString = exception.toJsonString();
 
-        final ConnectionSignalIllegalException failedExceptionFromJson =
-                ConnectionSignalIllegalException.fromJson(JsonFactory.readFrom(jsonString).asObject(), DittoHeaders.empty());
+        final ConnectionSignalIllegalException failedExceptionFromJson = ConnectionSignalIllegalException.fromJson(
+                JsonFactory.readFrom(jsonString).asObject(), DittoHeaders.empty()
+        );
 
         Assertions.assertThat(failedExceptionFromJson.toJsonString()).isEqualTo(exception.toJsonString());
     }

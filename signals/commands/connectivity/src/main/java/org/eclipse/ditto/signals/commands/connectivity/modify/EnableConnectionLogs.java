@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -51,9 +52,9 @@ public final class EnableConnectionLogs extends AbstractCommand<EnableConnection
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final String connectionId;
+    private final ConnectionId connectionId;
 
-    private EnableConnectionLogs(final String connectionId, final DittoHeaders dittoHeaders) {
+    private EnableConnectionLogs(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionId = connectionId;
     }
@@ -66,7 +67,7 @@ public final class EnableConnectionLogs extends AbstractCommand<EnableConnection
      * @return a new instance of the command.
      * @throws java.lang.NullPointerException if any argument is {@code null}.
      */
-    public static EnableConnectionLogs of(final String connectionId, final DittoHeaders dittoHeaders) {
+    public static EnableConnectionLogs of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         return new EnableConnectionLogs(connectionId, dittoHeaders);
     }
@@ -97,8 +98,9 @@ public final class EnableConnectionLogs extends AbstractCommand<EnableConnection
     public static EnableConnectionLogs fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<EnableConnectionLogs>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
+            final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
-            return of(readConnectionId, dittoHeaders);
+            return of(connectionId, dittoHeaders);
         });
     }
 
@@ -106,11 +108,12 @@ public final class EnableConnectionLogs extends AbstractCommand<EnableConnection
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
     }
 
     @Override
-    public String getConnectionId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 

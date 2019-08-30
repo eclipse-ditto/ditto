@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * Thrown if the Policy exists but is not available at the moment.
@@ -61,7 +62,7 @@ public final class PolicyUnavailableException extends DittoRuntimeException impl
      * @param policyId the ID of the policy.
      * @return the builder.
      */
-    public static Builder newBuilder(final String policyId) {
+    public static Builder newBuilder(final PolicyId policyId) {
         return new Builder(policyId);
     }
 
@@ -110,9 +111,9 @@ public final class PolicyUnavailableException extends DittoRuntimeException impl
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String policyId) {
+        private Builder(final PolicyId policyId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, policyId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(policyId)));
         }
 
         @Override

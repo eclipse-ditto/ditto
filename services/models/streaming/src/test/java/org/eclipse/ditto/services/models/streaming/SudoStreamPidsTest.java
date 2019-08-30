@@ -35,7 +35,7 @@ public final class SudoStreamPidsTest {
 
     private static final int KNOWN_BURST = 1234;
     private static final long KNOWN_TIMEOUT = 60_000L;
-    private static final EntityIdWithRevision KNOWN_LOWER_BOUND =
+    private static final EntityIdWithRevision<?> KNOWN_LOWER_BOUND =
             new SudoStreamPids.LowerBound(JsonFactory.newObject("{\"id\":\"myId\",\"revision\":5}"));
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()

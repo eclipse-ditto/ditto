@@ -15,12 +15,10 @@ package org.eclipse.ditto.protocoladapter;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 
 /**
@@ -30,10 +28,8 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopicPathBuilder, EventsTopicPathBuilder,
         CommandsTopicPathBuilder {
 
-    private static final Pattern THING_ID_PATTERN = Pattern.compile(Thing.ID_REGEX);
-
     private final String namespace;
-    private final String id;
+    private final String name;
 
     private TopicPath.Group group;
     private TopicPath.Channel channel;
@@ -41,9 +37,9 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     private TopicPath.Action action;
     private String subject;
 
-    private ImmutableTopicPathBuilder(final String namespace, final String id) {
+    private ImmutableTopicPathBuilder(final String namespace, final String name) {
         this.namespace = namespace;
-        this.id = id;
+        this.name = name;
     }
 
     /**
@@ -64,20 +60,9 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
      * @throws NullPointerException if {@code thingId} is {@code null}.
      * @throws ThingIdInvalidException if {@code thingId} is not in the expected format.
      */
-    public static TopicPathBuilder of(final String thingId) {
+    public static TopicPathBuilder of(final ThingId thingId) {
         requireNonNull(thingId, "thing id");
-
-        final Matcher matcher = THING_ID_PATTERN.matcher(thingId);
-        final boolean matches = matcher.matches();
-
-        if (!matches) {
-            throw ThingIdInvalidException.newBuilder(thingId).build();
-        }
-
-        final String namespace = matcher.group("ns");
-        final String id = matcher.group("id");
-
-        return new ImmutableTopicPathBuilder(namespace, id);
+        return new ImmutableTopicPathBuilder(thingId.getNamespace(), thingId.getName());
     }
 
     /**
@@ -200,12 +185,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
     @Override
     public TopicPath build() {
-        if (action != null && id != null) {
-            return ImmutableTopicPath.of(namespace, id, group, channel, criterion, action);
+        if (action != null && name != null) {
+            return ImmutableTopicPath.of(namespace, name, group, channel, criterion, action);
         } else if (subject != null) {
-            return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
+            return ImmutableTopicPath.of(namespace, name, group, channel, criterion, subject);
         } else {
-            return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
+            return ImmutableTopicPath.of(namespace, name, group, channel, criterion);
         }
     }
 

@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.utils.persistence.operations;
 import java.util.Collection;
 import java.util.List;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
 
@@ -40,10 +42,10 @@ public interface EntityPersistenceOperations {
      * @param entityIds the IDs of the entities to delete
      * @return source of any errors during the purge.
      */
-    default Source<List<Throwable>, NotUsed> purgeEntities(final Collection<String> entityIds) {
+    default Source<List<Throwable>, NotUsed> purgeEntities(final Collection<EntityId> entityIds) {
         Source<List<Throwable>, NotUsed> result = Source.empty();
 
-        for (final String entityId : entityIds) {
+        for (final EntityId entityId : entityIds) {
             result = result.merge(purgeEntity(entityId));
         }
 

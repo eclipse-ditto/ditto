@@ -18,7 +18,6 @@ import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELA
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +28,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
@@ -72,7 +72,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
     private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
-    protected final String connectionId;
+    protected final ConnectionId connectionId;
     protected final List<Target> targets;
     protected final Map<Target, ResourceStatus> resourceStatusMap;
 
@@ -81,7 +81,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     private final ConnectionMonitor responseDroppedMonitor;
 
-    protected BasePublisherActor(final String connectionId, final List<Target> targets) {
+    protected BasePublisherActor(final ConnectionId connectionId, final List<Target> targets) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.targets = checkNotNull(targets, "targets");
         resourceStatusMap = new HashMap<>();
@@ -271,7 +271,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
             final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                     PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, originalHeaders),
-                    PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, sourceSignal.getId()),
+                    PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, sourceSignal.getEntityId()),
                     PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER,
                             originalMessage.getTopicPath().orElse(null))
             );

@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
@@ -73,8 +74,8 @@ public final class TestConstants {
         throw new AssertionError();
     }
 
-    public static String thingId(final String namespace, final String idWithoutNamespace) {
-        return requireNonNull(namespace) + ":" + requireNonNull(idWithoutNamespace);
+    public static ThingId thingId(final String namespace, final String idWithoutNamespace) {
+        return ThingId.of(namespace, idWithoutNamespace);
     }
 
     /**
@@ -219,7 +220,7 @@ public final class TestConstants {
 
         public static final String NAMESPACE = "example.com.things";
 
-        public static final String THING_ID = NAMESPACE + ":testThing";
+        public static final ThingId THING_ID = ThingId.of(NAMESPACE,"testThing");
 
         public static final String POLICY_ID = NAMESPACE + ":testPolicy";
 

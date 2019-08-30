@@ -259,14 +259,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             // only for not idempotent requests (e.g.: POST), add the "createdId" to the path:
             final String uriStr = request.getUri().toString();
             String createdLocation;
-            final int uriIdIndex = uriStr.indexOf(commandResponse.getId());
+            final int uriIdIndex = uriStr.indexOf(commandResponse.getEntityId().toString());
 
             // if the URI contains the ID, but *not* at the beginning
             if (uriIdIndex > 0) {
-                createdLocation = uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
+                createdLocation = uriStr.substring(0, uriIdIndex) + commandResponse.getEntityId() +
                         commandResponse.getResourcePath();
             } else {
-                createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath();
+                createdLocation = uriStr + "/" + commandResponse.getEntityId() + commandResponse.getResourcePath();
             }
 
             if (createdLocation.endsWith("/")) {

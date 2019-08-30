@@ -96,18 +96,6 @@
             </plugin>
 
             <plugin>
-                <groupId>com.github.siom79.japicmp</groupId>
-                <artifactId>japicmp-maven-plugin</artifactId>
-                <configuration>
-                    <parameter>
-                        <excludes>
-                            <exclude>org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing</exclude>
-                        </excludes>
-                    </parameter>
-                </configuration>
-            </plugin>
-
-            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <executions>

@@ -26,12 +26,14 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.assertions.DittoThingsAssertions;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoEventAdapter;
 import org.eclipse.ditto.services.things.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsJournalTestHelper;
@@ -110,7 +112,7 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
         });
         commandToEventMapperRegistry.put(DeleteThing.class, (command, revision) -> {
             final DeleteThing deleteCommand = (DeleteThing) command;
-            return ThingDeleted.of(deleteCommand.getThingId(), revision, DittoHeaders.empty());
+            return ThingDeleted.of(deleteCommand.getThingEntityId(), revision, DittoHeaders.empty());
         });
     }
 
@@ -139,11 +141,11 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
                 .isModified(); // we cannot check exact timestamp
     }
 
-    void assertSnapshotsEmpty(final String thingId) {
+    void assertSnapshotsEmpty(final ThingId thingId) {
         assertSnapshots(thingId, Collections.emptyList());
     }
 
-    void assertJournal(final String thingId, final List<Event> expectedEvents) {
+    void assertJournal(final ThingId thingId, final List<Event> expectedEvents) {
         retryOnAssertionError(() -> {
             final List<ThingEvent> actualEvents = journalTestHelper.getAllEvents(thingId);
             Assertions.assertListWithIndexInfo(actualEvents, (actual, expected) -> {
@@ -179,7 +181,7 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
         return commandToEventFunction.apply(command, revision);
     }
 
-    void assertSnapshots(final String thingId, final List<Thing> expectedSnapshots) {
+    void assertSnapshots(final ThingId thingId, final List<Thing> expectedSnapshots) {
         retryOnAssertionError(() -> {
             final List<Thing> snapshots = snapshotTestHelper.getAllSnapshotsAscending(thingId);
             Assertions.assertListWithIndexInfo(snapshots,
@@ -208,7 +210,7 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
         return thing;
     }
 
-    private static String convertDomainIdToPersistenceId(final String domainId) {
+    private static String convertDomainIdToPersistenceId(final EntityId domainId) {
         return ThingPersistenceActor.PERSISTENCE_ID_PREFIX + domainId;
     }
 

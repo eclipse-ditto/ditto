@@ -57,22 +57,22 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
     public void modifyAttributesOfThingWithoutAttributes() {
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyAttributes command =
-                ModifyAttributes.of(context.getThingId(), modifiedAttributes, DittoHeaders.empty());
+                ModifyAttributes.of(context.getThingEntityId(), modifiedAttributes, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributesCreated.class,
-                modifyAttributesResponse(context.getThingId(), modifiedAttributes, command.getDittoHeaders(), true));
+                modifyAttributesResponse(context.getThingEntityId(), modifiedAttributes, command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyAttributesOfThingWithAttributes() {
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyAttributes command =
-                ModifyAttributes.of(context.getThingId(), modifiedAttributes, DittoHeaders.empty());
+                ModifyAttributes.of(context.getThingEntityId(), modifiedAttributes, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributesModified.class,
-                modifyAttributesResponse(context.getThingId(), modifiedAttributes, command.getDittoHeaders(), false));
+                modifyAttributesResponse(context.getThingEntityId(), modifiedAttributes, command.getDittoHeaders(), false));
     }
 
 }

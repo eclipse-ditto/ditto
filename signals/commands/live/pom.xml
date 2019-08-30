@@ -119,6 +119,26 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <ignoreMissingClassesByRegularExpressions>
+                            <ignoreMissingClassesByRegularExpression>
+                                <!--org.eclipse.ditto.signals.base.WithThingId has been moved to org.eclipse.ditto.model.things.WithThingId-->
+                                org.eclipse.ditto.signals.base.WithThingId
+                            </ignoreMissingClassesByRegularExpression>
+                        </ignoreMissingClassesByRegularExpressions>
+                        <excludes>
+                            <exclude>
+                                <!-- This method has been added to the interface on purpose-->
+                                org.eclipse.ditto.signals.commands.live.base.LiveCommandResponseFactory#errorResponse(org.eclipse.ditto.model.things.ThingId,org.eclipse.ditto.model.base.exceptions.DittoRuntimeException)
+                            </exclude>
+                            <exclude>
+                                <!-- This method has been added to the interface on purpose-->
+                                org.eclipse.ditto.signals.commands.live.query.RetrieveThingsLiveCommand#getThingEntityIds()
+                            </exclude>
+                        </excludes>
+                    </parameter>
+                </configuration>
             </plugin>
         </plugins>
     </build>
