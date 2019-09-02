@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.services.utils.cluster.config;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 
@@ -28,9 +30,12 @@ public final class DefaultClusterConfig implements ClusterConfig {
     private static final String CONFIG_PATH = "cluster";
 
     private final int numberOfShards;
+    private final List<String> clusterStatusRolesBlacklist;
 
     private DefaultClusterConfig(final ConfigWithFallback config) {
         numberOfShards = config.getInt(ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath());
+        clusterStatusRolesBlacklist = Collections.unmodifiableList(
+                new ArrayList<>(config.getStringList(ClusterConfigValue.CLUSTER_STATUS_ROLES_BLACKLIST.getConfigPath())));
     }
 
     /**
@@ -51,7 +56,12 @@ public final class DefaultClusterConfig implements ClusterConfig {
     }
 
     @Override
-    public boolean equals(@Nullable final Object o) {
+    public Collection<String> getClusterStatusRolesBlacklist() {
+        return clusterStatusRolesBlacklist;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -59,19 +69,20 @@ public final class DefaultClusterConfig implements ClusterConfig {
             return false;
         }
         final DefaultClusterConfig that = (DefaultClusterConfig) o;
-        return numberOfShards == that.numberOfShards;
+        return numberOfShards == that.numberOfShards &&
+                Objects.equals(clusterStatusRolesBlacklist, that.clusterStatusRolesBlacklist);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(numberOfShards);
+        return Objects.hash(numberOfShards, clusterStatusRolesBlacklist);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "numberOfShards=" + numberOfShards +
+                ", clusterStatusRolesBlacklist=" + clusterStatusRolesBlacklist +
                 "]";
     }
-
 }

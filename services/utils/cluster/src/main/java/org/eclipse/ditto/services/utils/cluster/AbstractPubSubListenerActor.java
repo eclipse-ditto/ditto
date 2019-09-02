@@ -36,14 +36,12 @@ public abstract class AbstractPubSubListenerActor extends AbstractActor {
      *
      * @param pubSubMediator the DistributedPubSubMediator for registering for events.
      * @param eventTopics the event topics to register for.
-     * @param instanceIndex index of this service instance.
      */
     protected AbstractPubSubListenerActor(final ActorRef pubSubMediator,
-            final Set<String> eventTopics,
-            final String instanceIndex) {
+            final Set<String> eventTopics) {
         checkNotNull(eventTopics, "Event Topics");
 
-        eventTopics.forEach(topic ->{
+        eventTopics.forEach(topic -> {
             log.info("Subscribing for pub/sub topic <{}>", topic);
             pubSubMediator.tell(subscribe(topic), getSelf());
         });

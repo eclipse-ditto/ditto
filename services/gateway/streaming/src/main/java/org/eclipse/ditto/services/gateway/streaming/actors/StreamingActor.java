@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
@@ -49,7 +50,7 @@ public final class StreamingActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
-    private final ActorRef pubSubMediator;
+    private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef commandRouter;
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
@@ -65,8 +66,8 @@ public final class StreamingActor extends AbstractActor {
     private final Cancellable sessionCounterScheduler;
 
     @SuppressWarnings("unused")
-    private StreamingActor(final ActorRef pubSubMediator, final ActorRef commandRouter) {
-        this.pubSubMediator = pubSubMediator;
+    private StreamingActor(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter) {
+        this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
 
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
@@ -91,13 +92,13 @@ public final class StreamingActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this StreamingActor.
      *
-     * @param pubSubMediator the PubSub mediator actor
+     * @param dittoProtocolSub the Ditto protocol sub access.
      * @param commandRouter the command router used to send signals into the cluster
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ActorRef commandRouter) {
+    public static Props props(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter) {
 
-        return Props.create(StreamingActor.class, pubSubMediator, commandRouter);
+        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter);
     }
 
     @Override
@@ -114,7 +115,7 @@ public final class StreamingActor extends AbstractActor {
                     eventAndResponsePublisher.forward(connect, getContext());
                     final String connectionCorrelationId = connect.getConnectionCorrelationId();
                     getContext().actorOf(
-                            StreamingSessionActor.props(connectionCorrelationId, connect.getType(), pubSubMediator,
+                            StreamingSessionActor.props(connectionCorrelationId, connect.getType(), dittoProtocolSub,
                                     eventAndResponsePublisher), connectionCorrelationId);
                 })
                 .match(StartStreaming.class,

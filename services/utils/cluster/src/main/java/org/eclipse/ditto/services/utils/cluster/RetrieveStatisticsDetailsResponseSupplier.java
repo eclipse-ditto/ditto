@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetailsRespon
 import akka.actor.ActorRef;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 
 /**
  * Supplier of {@link RetrieveStatisticsDetailsResponse}s for a specific shard region - determines the "hot entities"
@@ -67,8 +67,7 @@ public final class RetrieveStatisticsDetailsResponseSupplier
 
     @Override
     public CompletionStage<RetrieveStatisticsDetailsResponse> apply(final DittoHeaders dittoHeaders) {
-        return PatternsCS.ask(shardRegion, ShardRegion.getShardRegionStateInstance(),
-                Duration.ofSeconds(5))
+        return Patterns.ask(shardRegion, ShardRegion.getShardRegionStateInstance(), Duration.ofSeconds(5))
                 .handle((result, throwable) -> {
                     if (throwable != null) {
                         log.error(throwable, "Could not determine 'ShardRegionState' for shard region <{}>",

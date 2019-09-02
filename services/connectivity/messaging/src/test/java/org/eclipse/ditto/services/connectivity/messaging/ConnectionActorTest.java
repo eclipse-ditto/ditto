@@ -563,7 +563,8 @@ public final class ConnectionActorTest extends WithMockServers {
     public void exceptionDuringClientActorPropsCreation() {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
-                    ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator, conciergeForwarder,
+                    ConnectionActor.props(TestConstants.createRandomConnectionId(),
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
                             (connection, conciergeForwarder) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
@@ -592,8 +593,9 @@ public final class ConnectionActorTest extends WithMockServers {
     public void exceptionDueToCustomValidator() {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
-                    ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator,
-                            conciergeForwarder, mockClientActorPropsFactory,
+                    ConnectionActor.props(TestConstants.createRandomConnectionId(),
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
+                            mockClientActorPropsFactory,
                             command -> {
                                 throw ConnectionUnavailableException.newBuilder(connectionId)
                                         .dittoHeaders(command.getDittoHeaders())

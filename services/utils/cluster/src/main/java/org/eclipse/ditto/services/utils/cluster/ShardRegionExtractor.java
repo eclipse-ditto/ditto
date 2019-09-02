@@ -15,8 +15,12 @@ package org.eclipse.ditto.services.utils.cluster;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.IntStream;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -105,6 +109,21 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
             return Integer.toString(nonNegativeHashcode % numberOfShards);
         }
         return null;
+    }
+
+    /**
+     * Get shard IDs that are not active.
+     *
+     * @param activeShardIds what shard IDs are active.
+     * @return the set of inactive shard IDs.
+     */
+    public Set<String> getInactiveShardIds(final Collection<String> activeShardIds) {
+        final HashSet<String> remainingShardIds = new HashSet<>();
+        IntStream.range(0, numberOfShards)
+                .mapToObj(Integer::toString)
+                .forEach(remainingShardIds::add);
+        activeShardIds.forEach(remainingShardIds::remove);
+        return remainingShardIds;
     }
 
     private Jsonifiable createJsonifiableFrom(final ShardedMessageEnvelope messageEnvelope) {

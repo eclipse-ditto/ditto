@@ -491,7 +491,7 @@ public final class WebsocketRoute {
     }
 
     private static boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+        return StreamingType.isLiveSignal(signal);
     }
 
     private static Adaptable jsonifiableToAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,

@@ -27,17 +27,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithActivityChe
 public interface ConnectionConfig extends WithSupervisorConfig, WithActivityCheckConfig {
 
     /**
-     * Returns the delay between subscribing to Akka pub/sub and responding to the command that triggered the
-     * subscription.
-     * The delay gives Akka pub/sub a chance to reach consensus in the cluster before clients start expecting
-     * messages and events.
-     * The default value is {@code 5s}.
-     *
-     * @return the timeout.
-     */
-    Duration getFlushPendingResponsesTimeout();
-
-    /**
      * Returns the amount of time for how long the connection actor waits for response from client actors.
      * By default this value is very high because connection establishment can take very long.
      * If the timeout was set too low early, the connection would not be subscribed for events properly.

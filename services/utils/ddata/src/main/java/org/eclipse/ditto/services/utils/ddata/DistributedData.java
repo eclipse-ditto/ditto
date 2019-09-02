@@ -21,12 +21,19 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+
+import akka.actor.AbstractExtensionId;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
+import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
+import akka.actor.Extension;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ReplicatedData;
 import akka.cluster.ddata.Replicator;
-import akka.pattern.PatternsCS;
+import akka.cluster.ddata.ReplicatorSettings;
+import akka.pattern.Patterns;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -36,7 +43,7 @@ import scala.concurrent.duration.FiniteDuration;
  *
  * @param <R> type of replicated data.
  */
-public abstract class DistributedData<R extends ReplicatedData> {
+public abstract class DistributedData<R extends ReplicatedData> implements Extension {
 
     /**
      * Default timeout of read operations.
@@ -58,30 +65,46 @@ public abstract class DistributedData<R extends ReplicatedData> {
     /**
      * Create a wrapper of distributed data replicator.
      *
-     * @param configReader specific config for this replicator.
+     * @param config specific config for this replicator.
      * @param factory creator of this replicator.
      * @throws NullPointerException if {@code configReader} is {@code null}.
      */
-    protected DistributedData(final DistributedDataConfigReader configReader, final ActorRefFactory factory,
+    protected DistributedData(final DistributedDataConfig config, final ActorRefFactory factory,
             final Executor ddataExecutor) {
-        requireNonNull(configReader, "The DistributedDataConfigReader must not be null!");
-        replicator = createReplicator(configReader, factory);
+        requireNonNull(config, "The DistributedDataConfig must not be null!");
+        replicator = createReplicator(config, factory);
         this.ddataExecutor = ddataExecutor;
-        readTimeout = configReader.getReadTimeout();
-        writeTimeout = configReader.getWriteTimeout();
+        readTimeout = config.getReadTimeout();
+        writeTimeout = config.getWriteTimeout();
     }
 
     /**
      * Create a distributed data replicator in an actor system.
      *
-     * @param configReader distributed data configuration reader.
+     * @param config distributed data configuration reader.
      * @param factory creator of this replicator.
      * @return reference to the created replicator.
      */
-    private static ActorRef createReplicator(final DistributedDataConfigReader configReader,
-            final ActorRefFactory factory) {
+    private static ActorRef createReplicator(final DistributedDataConfig config, final ActorRefFactory factory) {
 
-        return factory.actorOf(Replicator.props(configReader.toReplicatorSettings()), configReader.getName());
+        final AkkaReplicatorConfig akkaReplicatorConfig = config.getAkkaReplicatorConfig();
+        return factory.actorOf(Replicator.props(ReplicatorSettings.apply(akkaReplicatorConfig.getCompleteConfig())),
+                akkaReplicatorConfig.getName());
+    }
+
+    /**
+     * Create a distributed data config with Akka's default options.
+     *
+     * @param replicatorName the name of the replicator.
+     * @param replicatorRole the cluster role of members with replicas of the distributed collection.
+     * @return a new config object.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static DistributedDataConfig createConfig(final ActorSystem actorSystem,
+            final CharSequence replicatorName, final CharSequence replicatorRole) {
+
+        return DefaultDistributedDataConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()),
+                replicatorName, replicatorRole);
     }
 
     /**
@@ -102,7 +125,7 @@ public abstract class DistributedData<R extends ReplicatedData> {
      */
     public CompletionStage<Optional<R>> get(final Replicator.ReadConsistency readConsistency) {
         final Replicator.Get<R> replicatorGet = new Replicator.Get<>(getKey(), readConsistency);
-        return PatternsCS.ask(replicator, replicatorGet, getAskTimeout(readConsistency.timeout(), readTimeout))
+        return Patterns.ask(replicator, replicatorGet, getAskTimeout(readConsistency.timeout(), readTimeout))
                 .thenApplyAsync(this::handleGetResponse, ddataExecutor);
     }
 
@@ -118,7 +141,7 @@ public abstract class DistributedData<R extends ReplicatedData> {
 
         final Replicator.Update<R> replicatorUpdate =
                 new Replicator.Update<>(getKey(), getInitialValue(), writeConsistency, updateFunction);
-        return PatternsCS.ask(replicator, replicatorUpdate, getAskTimeout(writeConsistency.timeout(), writeTimeout))
+        return Patterns.ask(replicator, replicatorUpdate, getAskTimeout(writeConsistency.timeout(), writeTimeout))
                 .thenApplyAsync(this::handleUpdateResponse, ddataExecutor);
     }
 
@@ -177,6 +200,34 @@ public abstract class DistributedData<R extends ReplicatedData> {
             return Duration.ofMillis(defaultTimeout.toMillis());
         } else {
             return configuredTimeout;
+        }
+    }
+
+    /**
+     * Extension provider for Ditto distributed data.
+     *
+     * @param <R> type of distributed data.
+     * @param <T> type of the actor system extension to handle the distributed data.
+     */
+    public abstract static class AbstractDDataProvider<R extends ReplicatedData, T extends DistributedData<R>>
+            extends AbstractExtensionId<T> {
+
+        /**
+         * Constructor available for subclasses only.
+         */
+        protected AbstractDDataProvider() {}
+
+        @Override
+        public abstract T createExtension(ExtendedActorSystem system);
+
+        /**
+         * Lookup an extension provider to load an extension from config on actor system startup.
+         * Required by ExtensionIdProvider; not used by Ditto.
+         *
+         * @return this object.
+         */
+        public AbstractDDataProvider<R, T> lookup() {
+            return this;
         }
     }
 

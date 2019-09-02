@@ -34,11 +34,14 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.things.common.config.DefaultThingConfig;
 import org.eclipse.ditto.services.things.common.config.ThingConfig;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.rules.TestWatcher;
@@ -164,33 +167,24 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected ActorRef createPersistenceActorFor(final ThingId thingId) {
-        return createPersistenceActorWithPubSubFor(thingId, pubSubMediator, thingConfig);
+        return createPersistenceActorWithPubSubFor(thingId);
     }
 
-    protected ActorRef createPersistenceActorFor(final ThingId thingId, final ThingConfig thingConfig) {
-        return createPersistenceActorWithPubSubFor(thingId, pubSubMediator, thingConfig);
+    protected ActorRef createPersistenceActorWithPubSubFor(final ThingId thingId) {
+
+        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, getDistributedPub()));
     }
 
-    protected ActorRef createPersistenceActorWithPubSubFor(final ThingId thingId, final ActorRef pubSubMediator,
-            final ThingConfig thingConfig) {
+    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent> pub) {
 
-        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, pubSubMediator));
-    }
-
-    private static Props getPropsOfThingPersistenceActor(final ThingId thingId, final ActorRef pubSubMediator) {
-
-        return ThingPersistenceActor.props(thingId, pubSubMediator);
+        return ThingPersistenceActor.props(thingId, pub);
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
         final Props props =
-                ThingSupervisorActor.props(pubSubMediator, this::getPropsOfThingPersistenceActor);
+                ThingSupervisorActor.props(pubSubMediator, getDistributedPub(), this::getPropsOfThingPersistenceActor);
 
         return actorSystem.actorOf(props, thingId.toString());
-    }
-
-    private Props getPropsOfThingPersistenceActor(final ThingId thingId) {
-        return getPropsOfThingPersistenceActor(thingId, pubSubMediator);
     }
 
     /**
@@ -218,4 +212,23 @@ public abstract class PersistenceActorTestBase {
         actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
     }
 
+    protected DistributedPub<ThingEvent> getDistributedPub() {
+        return new TestPub();
+    }
+
+    @AllParametersAndReturnValuesAreNonnullByDefault
+    private final class TestPub implements DistributedPub<ThingEvent> {
+
+        private TestPub() {}
+
+        @Override
+        public ActorRef getPublisher() {
+            return pubSubMediator;
+        }
+
+        @Override
+        public Object wrapForPublication(final ThingEvent message) {
+            return message;
+        }
+    }
 }

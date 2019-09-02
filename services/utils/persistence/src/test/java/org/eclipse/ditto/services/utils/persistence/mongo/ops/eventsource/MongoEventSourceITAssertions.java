@@ -147,7 +147,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
      * @param id ID of the entity.
      * @return reference to the entity actor.
      */
-    protected abstract ActorRef startEntityActor(ActorSystem system, ActorRef pubSubMediator, EntityId id);
+    protected abstract ActorRef startEntityActor(ActorSystem system, ActorRef pubSubMediator, I id);
 
     /**
      * Starts the NamespaceOps actor.

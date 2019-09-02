@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.cluster.config;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
@@ -30,6 +33,13 @@ public interface ClusterConfig {
     int getNumberOfShards();
 
     /**
+     * Returns the cluster roles which should not be included when determining cluster status/health.
+     *
+     * @return the cluster roles blacklist.
+     */
+    Collection<String> getClusterStatusRolesBlacklist();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ClusterConfig}.
      */
@@ -38,12 +48,20 @@ public interface ClusterConfig {
         /**
          * The number of shards in a cluster.
          */
-        NUMBER_OF_SHARDS("number-of-shards", 30);
+        NUMBER_OF_SHARDS("number-of-shards", 30),
+
+        /**
+         * The cluster roles which should not be included when determining cluster status/health.
+         */
+        CLUSTER_STATUS_ROLES_BLACKLIST("cluster-status-roles-blacklist", Arrays.asList(
+                "dc-default",
+                "blocked-namespaces-aware"
+        ));
 
         private final String path;
         private final Object defaultValue;
 
-        private ClusterConfigValue(final String thePath, final Object theDefaultValue) {
+        ClusterConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
