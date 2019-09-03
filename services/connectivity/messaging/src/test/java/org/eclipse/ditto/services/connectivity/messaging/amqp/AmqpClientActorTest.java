@@ -491,7 +491,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             verify(mockConnection, timeout(2000).times(2)).createSession(Session.CLIENT_ACKNOWLEDGE);
 
             // close is called on old session
-            verify(mockSession, times(2)).close();
+            verify(mockSession, timeout(2000).times(2)).close();
 
             // verify publishing an event works with new session/producer
             sendThingEventAndExpectPublish(amqpClientActor, target, () -> getProducerForAddress(target.getAddress()));
