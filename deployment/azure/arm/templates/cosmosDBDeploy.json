@@ -624,5 +624,11 @@
                 }
             }
         }
-    ]
+    ],
+    "outputs": {
+        "primaryMasterKey": {
+            "type": "string",
+            "value": "[listKeys(variables('accountName'), '2016-03-31').primaryMasterKey]"
+        }
+    }
 }
