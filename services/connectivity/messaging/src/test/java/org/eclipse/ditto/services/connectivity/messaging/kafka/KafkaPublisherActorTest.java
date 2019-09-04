@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor.PublisherStarted.PUBLISHER_STARTED;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -91,6 +92,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void publisherCreated(final TestKit kit, final ActorRef publisherActor) {
+        kit.expectMsg(PUBLISHER_STARTED);
         kit.expectMsgClass(Status.Success.class);
     }
 

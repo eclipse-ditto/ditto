@@ -85,7 +85,7 @@ public abstract class AbstractPublisherActorTest {
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
 
             final Props props = getPublisherActorProps();
-            final ActorRef publisherActor = actorSystem.actorOf(props);
+            final ActorRef publisherActor = childActorOf(props);
 
             publisherCreated(this, publisherActor);
 
