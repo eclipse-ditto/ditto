@@ -37,7 +37,6 @@ import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.routing.ConsistentHashingRouter;
 
 /**
  * Actor which receives message from an MQTT broker and forwards them to a {@code MessageMappingProcessorActor}.
@@ -95,11 +94,8 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
     private void handleMqttMessage(final Mqtt3Publish message) {
         log.info("Received message: {}", message);
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
-        if (externalMessageOptional.isPresent()) {
-            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessageOptional.get(),
-                    message.getTopic().toString());
-            messageMappingProcessor.tell(msg, ActorRef.noSender());
-        }
+        externalMessageOptional.ifPresent(
+                externalMessage -> forwardToMappingActor(externalMessage, message.getTopic().toString()));
     }
 
     private Optional<ExternalMessage> hiveToExternalMessage(final Mqtt3Publish message, final String connectionId) {

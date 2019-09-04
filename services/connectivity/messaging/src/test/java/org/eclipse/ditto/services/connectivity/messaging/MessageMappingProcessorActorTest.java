@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
+import static org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor.PublisherStarted.PUBLISHER_STARTED;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
@@ -174,7 +175,6 @@ public final class MessageMappingProcessorActorTest {
 
     private void testExternalMessageInDittoProtocolIsProcessed(@Nullable final EnforcementFilter<String> enforcement,
             final boolean expectSuccess) {
-
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
             final ModifyAttribute modifyCommand = createModifyAttributeCommand();
@@ -331,9 +331,7 @@ public final class MessageMappingProcessorActorTest {
             final Consumer<T> verifyReceivedMessage) {
 
         new TestKit(actorSystem) {{
-
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
-
             final Map<String, String> headers = new HashMap<>();
             headers.put("correlation-id", correlationId);
             headers.put("content-type", "application/json");
@@ -357,8 +355,7 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testCommandResponseIsProcessed() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor =
-                    createMessageMappingProcessorActor(getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
 
             final String correlationId = UUID.randomUUID().toString();
             final ModifyAttributeResponse commandResponse =
@@ -381,8 +378,7 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testThingNotAccessibleExceptionRetainsTopic() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor =
-                    createMessageMappingProcessorActor(getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
 
             // WHEN: message mapping processor receives ThingNotAccessibleException with thing-id set from topic path
             final String correlationId = UUID.randomUUID().toString();
@@ -412,29 +408,26 @@ public final class MessageMappingProcessorActorTest {
 
     @Test
     public void testCommandResponseWithResponseRequiredFalseIsNotProcessed() {
-        new TestKit(actorSystem) {
-            {
-                final ActorRef messageMappingProcessorActor =
-                        createMessageMappingProcessorActor(getRef());
+        new TestKit(actorSystem) {{
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
 
-                final ModifyAttributeResponse commandResponse =
-                        ModifyAttributeResponse.modified(KNOWN_THING_ID, JsonPointer.of("foo"),
-                                DittoHeaders.newBuilder()
-                                        .responseRequired(false)
-                                        .build());
+            final ModifyAttributeResponse commandResponse =
+                    ModifyAttributeResponse.modified(KNOWN_THING_ID, JsonPointer.of("foo"),
+                            DittoHeaders.newBuilder()
+                                    .responseRequired(false)
+                                    .build());
 
-                messageMappingProcessorActor.tell(commandResponse, getRef());
+            messageMappingProcessorActor.tell(commandResponse, getRef());
 
-                expectNoMessage();
-            }
-        };
+            expectNoMessage();
+        }};
     }
 
-    private static ActorRef createMessageMappingProcessorActor(final ActorRef publisherActor) {
-        final Props props =
-                MessageMappingProcessorActor.props(publisherActor, publisherActor, getMessageMappingProcessor(),
-                        CONNECTION_ID);
-        return actorSystem.actorOf(props);
+    private static ActorRef createMessageMappingProcessorActor(final ActorRef ref) {
+        final Props props = MessageMappingProcessorActor.props(ref, getMessageMappingProcessor(), CONNECTION_ID);
+        final ActorRef mappingActor = actorSystem.actorOf(props);
+        mappingActor.tell(PUBLISHER_STARTED, ref);
+        return mappingActor;
     }
 
     private static MessageMappingProcessor getMessageMappingProcessor() {

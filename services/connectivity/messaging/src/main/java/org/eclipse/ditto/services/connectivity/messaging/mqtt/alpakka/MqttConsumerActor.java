@@ -36,7 +36,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.routing.ConsistentHashingRouter;
 import akka.stream.alpakka.mqtt.MqttMessage;
 
 /**
@@ -122,8 +121,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                     .build();
             inboundMonitor.success(externalMessage);
 
-            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, message.topic());
-            messageMappingProcessor.tell(msg, getSelf());
+            forwardToMappingActor(externalMessage, message.topic());
             replyStreamAck();
         } catch (final DittoRuntimeException e) {
             log.info("Failed to handle MQTT message: {}", e.getMessage());
@@ -135,7 +133,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     }
 
     @Nullable
-    private EnforcementFilter getEnforcementFilter(final String topic) {
+    private EnforcementFilter<String> getEnforcementFilter(final String topic) {
         if (topicEnforcementFilterFactory != null) {
             return topicEnforcementFilterFactory.getFilter(topic);
         } else {

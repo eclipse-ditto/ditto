@@ -32,7 +32,6 @@ import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 
@@ -52,11 +51,6 @@ public class HiveMqtt3PublisherActorTest extends AbstractPublisherActorTest {
             received.add(msg);
             return CompletableFuture.completedFuture(msg);
         });
-    }
-
-    @Override
-    protected void publisherCreated(final ActorRef publisherActor) {
-        //
     }
 
     @Override

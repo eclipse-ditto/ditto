@@ -25,7 +25,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -445,7 +444,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         }};
     }
 
-
     @Test
     public void testConnectionRestoredExpectRecreateSession() throws JMSException {
 
@@ -484,7 +482,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             verify(mockConnection, timeout(2000).times(2)).createSession(Session.CLIENT_ACKNOWLEDGE);
 
             // close is called on old session
-            verify(mockSession, times(2)).close();
+            verify(mockSession, timeout(2000).times(2)).close();
 
             // verify publishing an event works with new session/producer
             sendThingEventAndExpectPublish(amqpClientActor, target, () -> getProducerForAddress(target.getAddress()));

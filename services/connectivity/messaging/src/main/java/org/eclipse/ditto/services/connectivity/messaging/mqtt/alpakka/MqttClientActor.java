@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -25,7 +24,6 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -59,7 +57,6 @@ import akka.stream.javadsl.Balance;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
-import scala.util.Either;
 
 /**
  * Actor which handles connection to MQTT 3.1.1 server.
@@ -67,9 +64,6 @@ import scala.util.Either;
 public final class MqttClientActor extends BaseClientActor {
 
     private SharedKillSwitch consumerKillSwitch;
-
-    @Nullable
-    private ActorRef mqttPublisherActor;
 
     private final Map<String, ActorRef> consumerByActorNameWithIndex;
     private final Set<ActorRef> pendingStatusReportsFromStreams;
@@ -184,23 +178,12 @@ public final class MqttClientActor extends BaseClientActor {
         // start publisher
         startMqttPublisher(factory, dryRun);
 
-        // start message mapping processor actor early so that consumer streams can be run.
-        // note that it has to be started after the publisher since the publisher actor is needed inside the mapping processor
-        final Either<DittoRuntimeException, ActorRef> messageMappingProcessor =
-                startMessageMappingProcessorActor(Optional.ofNullable(mqttPublisherActor));
-
         // start consumers
         if (isConsuming()) {
-            if (messageMappingProcessor.isLeft()) {
-                final DittoRuntimeException e = messageMappingProcessor.left().get();
-                log.warning("failed to start mapping processor due to {}", e);
-            } else {
-                final ActorRef mappingActor = messageMappingProcessor.right().get();
-                // start new KillSwitch for the next batch of consumers
-                refreshConsumerKillSwitch(KillSwitches.shared("consumerKillSwitch"));
-                connection().getSources().forEach(source ->
-                        startMqttConsumers(factory, mappingActor, source, dryRun));
-            }
+            // start new KillSwitch for the next batch of consumers
+            refreshConsumerKillSwitch(KillSwitches.shared("consumerKillSwitch"));
+            connection().getSources().forEach(source ->
+                    startMqttConsumers(factory, getMessageMappingProcessorActor(), source, dryRun));
         } else {
             log.info("Not starting consumption because there is no source.");
         }
@@ -209,8 +192,8 @@ public final class MqttClientActor extends BaseClientActor {
     private void startMqttPublisher(final MqttConnectionFactory factory, final boolean dryRun) {
         log.info("Starting MQTT publisher actor.");
         // ensure no previous publisher stays in memory
-        stopMqttPublisher();
-        mqttPublisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
+        stopPublisherActor();
+        final ActorRef mqttPublisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
                 MqttPublisherActor.props(connectionId(), getTargetsOrEmptyList(), factory, getSelf(), dryRun));
         pendingStatusReportsFromStreams.add(mqttPublisherActor);
     }
@@ -283,8 +266,7 @@ public final class MqttClientActor extends BaseClientActor {
         pendingStatusReportsFromStreams.clear();
         activateConsumerKillSwitch();
         stopCommandConsumers();
-        stopMessageMappingProcessorActor();
-        stopMqttPublisher();
+        stopPublisherActor();
     }
 
     private void activateConsumerKillSwitch() {
@@ -297,13 +279,6 @@ public final class MqttClientActor extends BaseClientActor {
             consumerKillSwitch.shutdown();
         }
         consumerKillSwitch = nextKillSwitch;
-    }
-
-    private void stopMqttPublisher() {
-        if (mqttPublisherActor != null) {
-            stopChildActor(mqttPublisherActor);
-            mqttPublisherActor = null;
-        }
     }
 
     private void stopCommandConsumers() {

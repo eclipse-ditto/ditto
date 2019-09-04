@@ -86,8 +86,7 @@ public final class BaseClientActorTest {
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
 
-            final ActorRef dummyClientActor = actorSystem.actorOf(props);
-            watch(dummyClientActor);
+            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
             whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
             andConnectionNotSuccessful(dummyClientActor);
@@ -107,8 +106,7 @@ public final class BaseClientActorTest {
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
 
-            final ActorRef dummyClientActor = actorSystem.actorOf(props);
-            watch(dummyClientActor);
+            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
             whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
             thenExpectConnectClientCalled();
@@ -212,11 +210,11 @@ public final class BaseClientActorTest {
     }
 
     private void thenExpectDisconnectClientCalled() {
-        verify(delegate, timeout(100)).doDisconnectClient(any(Connection.class), nullable(ActorRef.class));
+        verify(delegate, timeout(200)).doDisconnectClient(any(Connection.class), nullable(ActorRef.class));
     }
 
     private void thenExpectConnectClientCalledAfterTimeout(final Duration connectingTimeout) {
-        verify(delegate, timeout(connectingTimeout.toMillis() + 100).atLeastOnce())
+        verify(delegate, timeout(connectingTimeout.toMillis() + 200).atLeastOnce())
                 .doConnectClient(any(Connection.class), nullable(ActorRef.class));
     }
 
@@ -225,7 +223,8 @@ public final class BaseClientActorTest {
     }
 
     private void thenExpectNoConnectClientCalledAfterTimeout(final Duration connectingTimeout) {
-        verify(delegate, timeout(connectingTimeout.toMillis() + 100).times(0)).doConnectClient(any(Connection.class), nullable(ActorRef.class));
+        verify(delegate, timeout(connectingTimeout.toMillis() + 200).times(0)).doConnectClient(any(Connection.class),
+                nullable(ActorRef.class));
     }
 
     private void thenExpectCleanupResourcesCalled() {
@@ -233,7 +232,7 @@ public final class BaseClientActorTest {
     }
 
     private void thenExpectCleanupResourcesCalledAfterTimeout(final Duration connectingTimeout) {
-        verify(delegate, timeout(connectingTimeout.toMillis() + 100).atLeastOnce()).cleanupResourcesForConnection();
+        verify(delegate, timeout(connectingTimeout.toMillis() + 200).atLeastOnce()).cleanupResourcesForConnection();
     }
 
     private void whenOpeningConnection(final ActorRef clientActor, final OpenConnection openConnection, final ActorRef sender) {

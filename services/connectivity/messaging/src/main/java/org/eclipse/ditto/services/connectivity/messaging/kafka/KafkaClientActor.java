@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -44,10 +43,6 @@ import akka.japi.pf.FSMStateFunctionBuilder;
 public final class KafkaClientActor extends BaseClientActor {
 
     private final KafkaPublisherActorFactory publisherActorFactory;
-
-    @Nullable
-    private ActorRef kafkaPublisherActor;
-
     private final Set<ActorRef> pendingStatusReportsFromStreams;
     private final KafkaConnectionFactory connectionFactory;
 
@@ -147,7 +142,6 @@ public final class KafkaClientActor extends BaseClientActor {
     private void connectClient(final boolean dryRun) {
         // start publisher
         startKafkaPublisher(dryRun);
-        startMessageMappingProcessorActor(Optional.ofNullable(kafkaPublisherActor));
         // no command consumers as we don't support consuming from sources yet
     }
 
@@ -155,9 +149,11 @@ public final class KafkaClientActor extends BaseClientActor {
         log.info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopKafkaPublisher();
-        kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(),
+        final Props publisherActorProps =
                 publisherActorFactory.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, getSelf(),
-                        dryRun));
+                        dryRun);
+        final ActorRef kafkaPublisherActor =
+                startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
 
@@ -169,11 +165,10 @@ public final class KafkaClientActor extends BaseClientActor {
 
 
     private void stopKafkaPublisher() {
-        if (kafkaPublisherActor != null) {
-            log.debug("Stopping child actor <{}>.", kafkaPublisherActor.path());
+        if (getPublisherActor() != null) {
+            log.debug("Stopping child actor <{}>.", getPublisherActor().path());
             // shutdown using a message, so the actor can clean up first
-            kafkaPublisherActor.tell(KafkaPublisherActor.GracefulStop.INSTANCE, getSelf());
-            kafkaPublisherActor = null;
+            getPublisherActor().tell(KafkaPublisherActor.GracefulStop.INSTANCE, getSelf());
         }
     }
 

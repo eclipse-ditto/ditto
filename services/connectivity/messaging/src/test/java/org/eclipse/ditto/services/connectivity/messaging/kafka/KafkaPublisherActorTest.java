@@ -36,6 +36,7 @@ import akka.actor.Status;
 import akka.kafka.ProducerMessage;
 import akka.stream.javadsl.Flow;
 import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaPublisherActor}.
@@ -45,13 +46,10 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     private static final String OUTBOUND_ADDRESS = "anyTopic/keyA";
 
     private final List<ProducerMessage.Message<String, String, Object>> received = new LinkedList<>();
-    private TestProbe clientActor;
     private KafkaConnectionFactory connectionFactory;
 
-
     @Override
-    protected void setupMocks(final TestProbe probe) throws Exception {
-        this.clientActor = probe;
+    protected void setupMocks(final TestProbe probe) {
         connectionFactory = mock(KafkaConnectionFactory.class);
         when(connectionFactory.newFlow())
                 .thenReturn(
@@ -72,8 +70,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return KafkaPublisherActor.props("theConnection", Collections.emptyList(), connectionFactory, clientActor.ref(),
-                false);
+        return KafkaPublisherActor.props("theConnection", Collections.emptyList(), connectionFactory, false);
     }
 
     @Override
@@ -93,12 +90,8 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     @Override
-    protected void publisherCreated(final ActorRef publisherActor) {
-        expectClientActorIsNotifiedOnSuccessfulConnection();
-    }
-
-    private void expectClientActorIsNotifiedOnSuccessfulConnection() {
-        clientActor.expectMsgClass(Status.Success.class);
+    protected void publisherCreated(final TestKit kit, final ActorRef publisherActor) {
+        kit.expectMsgClass(Status.Success.class);
     }
 
     @Override

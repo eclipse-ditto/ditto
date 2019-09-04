@@ -25,7 +25,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.javadsl.Sink;
@@ -43,11 +42,6 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest {
         this.probe = probe;
         mqttConnectionFactory = mock(MqttConnectionFactory.class);
         when(mqttConnectionFactory.newSink()).thenReturn(Sink.foreach(received::add));
-    }
-
-    @Override
-    protected void publisherCreated(final ActorRef publisherActor) {
-        //
     }
 
     @Override

@@ -84,7 +84,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private final Map<String, ActorRef> consumerByAddressWithIndex;
 
     @Nullable private ActorRef rmqConnectionActor;
-    @Nullable private ActorRef rmqPublisherActor;
 
     /*
      * This constructor is called via reflection by the static method propsForTest.
@@ -102,7 +101,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
         consumerByAddressWithIndex = new HashMap<>();
 
         rmqConnectionActor = null;
-        rmqPublisherActor = null;
     }
 
     /*
@@ -199,7 +197,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
         log.debug("Received ClientConnected");
         if (clientConnected instanceof RmqConsumerChannelCreated) {
-            startMessageMappingProcessorActor(Optional.ofNullable(rmqPublisherActor));
             final RmqConsumerChannelCreated rmqConsumerChannelCreated = (RmqConsumerChannelCreated) clientConnected;
             startCommandConsumers(rmqConsumerChannelCreated.getChannel());
             getSelf().tell(getClientReady(), getSelf());
@@ -210,16 +207,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void cleanupResourcesForConnection() {
         log.debug("cleaning up");
         stopCommandConsumers();
-        stopMessageMappingProcessorActor();
         stopCommandPublisher();
         if (rmqConnectionActor != null) {
             stopChildActor(rmqConnectionActor);
             rmqConnectionActor = null;
         }
-        if (rmqPublisherActor != null) {
-            stopChildActor(rmqPublisherActor);
-            rmqPublisherActor = null;
-        }
+        stopPublisherActor();
     }
 
     private static Optional<ConnectionFactory> tryToCreateConnectionFactory(
@@ -268,18 +261,18 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         });
 
                 rmqConnectionActor = startChildActorConflictFree(RMQ_CONNECTION_ACTOR_NAME, props);
-                rmqPublisherActor = startRmqPublisherActor();
+                startRmqPublisherActor();
 
                 // create publisher channel
-                final ActorRef finalRmqPublisherActor = rmqPublisherActor;
                 final CreateChannel createChannel = CreateChannel.apply(
                         ChannelActor.props((channel, channelActor) -> {
                             log.info("Did set up publisher channel: {}. Telling the publisher actor the new channel",
                                     channel);
                             // provide the new channel to the publisher after the channel was connected (also includes reconnects)
-                            if (finalRmqPublisherActor != null) {
+                            final ActorRef publisherActor = getPublisherActor();
+                            if (publisherActor != null) {
                                 final ChannelCreated channelCreated = new ChannelCreated(channelActor);
-                                finalRmqPublisherActor.tell(channelCreated, channelActor);
+                                publisherActor.tell(channelCreated, channelActor);
                             }
                             return null;
                         }),
@@ -355,35 +348,31 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private void startConsumers(final Channel channel) {
-        final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessorActor();
-        if (messageMappingProcessor.isPresent()) {
-            getSourcesOrEmptyList().forEach(source ->
-                    source.getAddresses().forEach(sourceAddress -> {
-                        for (int i = 0; i < source.getConsumerCount(); i++) {
-                            final String addressWithIndex = sourceAddress + "-" + i;
-                            final AuthorizationContext authorizationContext = source.getAuthorizationContext();
-                            final Enforcement enforcement = source.getEnforcement().orElse(null);
-                            final HeaderMapping headerMapping = source.getHeaderMapping().orElse(null);
-                            final ActorRef consumer = startChildActorConflictFree(
-                                    CONSUMER_ACTOR_PREFIX + addressWithIndex,
-                                    RabbitMQConsumerActor.props(sourceAddress, messageMappingProcessor.get(),
-                                            authorizationContext, enforcement, headerMapping, connectionId()));
-                            consumerByAddressWithIndex.put(addressWithIndex, consumer);
-                            try {
-                                final String consumerTag = channel.basicConsume(sourceAddress, false,
-                                        new RabbitMQMessageConsumer(consumer, channel, sourceAddress));
-                                log.debug("Consuming queue <{}>, consumer tag is <{}>.", addressWithIndex, consumerTag);
-                                consumedTagsToAddresses.put(consumerTag, addressWithIndex);
-                            } catch (final IOException e) {
-                                connectionLogger.failure("Failed to consume queue {0}: {1}", addressWithIndex, e.getMessage());
-                                log.warning("Failed to consume queue <{}>: <{}>", addressWithIndex, e.getMessage());
-                            }
+        getSourcesOrEmptyList().forEach(source ->
+                source.getAddresses().forEach(sourceAddress -> {
+                    for (int i = 0; i < source.getConsumerCount(); i++) {
+                        final String addressWithIndex = sourceAddress + "-" + i;
+                        final AuthorizationContext authorizationContext = source.getAuthorizationContext();
+                        final Enforcement enforcement = source.getEnforcement().orElse(null);
+                        final HeaderMapping headerMapping = source.getHeaderMapping().orElse(null);
+                        final ActorRef consumer = startChildActorConflictFree(
+                                CONSUMER_ACTOR_PREFIX + addressWithIndex,
+                                RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(),
+                                        authorizationContext, enforcement, headerMapping, connectionId()));
+                        consumerByAddressWithIndex.put(addressWithIndex, consumer);
+                        try {
+                            final String consumerTag = channel.basicConsume(sourceAddress, false,
+                                    new RabbitMQMessageConsumer(consumer, channel, sourceAddress));
+                            log.debug("Consuming queue <{}>, consumer tag is <{}>.", addressWithIndex, consumerTag);
+                            consumedTagsToAddresses.put(consumerTag, addressWithIndex);
+                        } catch (final IOException e) {
+                            connectionLogger.failure("Failed to consume queue {0}: {1}", addressWithIndex,
+                                    e.getMessage());
+                            log.warning("Failed to consume queue <{}>: <{}>", addressWithIndex, e.getMessage());
                         }
-                    })
-            );
-        } else {
-            log.warning("The MessageMappingProcessor was not available and therefore no consumers were started!");
-        }
+                    }
+                })
+        );
     }
 
     private void ensureQueuesExist(final Channel channel) {
@@ -400,8 +389,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             // Our client will automatically close the connection if a queue does not exists. This will
                             // cause an AlreadyClosedException for the following queue (e.g. ['existing1', 'notExisting', -->'existing2'])
                             // That's why we will ignore this error if the missingQueues list isn't empty.
-                            log.warning("Received exception of type {} when trying to declare queue {}. This happens when a previous " +
-                                    "queue was missing and thus the connection got closed.", e.getClass().getName(), address);
+                            log.warning(
+                                    "Received exception of type {} when trying to declare queue {}. This happens when a previous " +
+                                            "queue was missing and thus the connection got closed.",
+                                    e.getClass().getName(), address);
                         } else {
                             log.error("Exception while declaring queue {}", address, e);
                             throw e;
@@ -511,13 +502,15 @@ public final class RabbitMQClientActor extends BaseClientActor {
             try {
                 consumerActor.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.getSelf());
             } catch (final Exception e) {
-                connectionLogger.failure("Failed to process delivery {0}: {1}", envelope.getDeliveryTag(), e.getMessage());
+                connectionLogger.failure("Failed to process delivery {0}: {1}", envelope.getDeliveryTag(),
+                        e.getMessage());
                 log.info("Failed to process delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
             } finally {
                 try {
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } catch (final IOException e) {
-                    connectionLogger.failure("Failed to ack delivery {0}: {1}", envelope.getDeliveryTag(), e.getMessage());
+                    connectionLogger.failure("Failed to ack delivery {0}: {1}", envelope.getDeliveryTag(),
+                            e.getMessage());
                     log.info("Failed to ack delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
                 }
             }
@@ -560,8 +553,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
-                connectionLogger.failure("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
-                        "been shut down.", consumingQueueByTag);
+                connectionLogger.failure(
+                        "Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
+                                "been shut down.", consumingQueueByTag);
                 log.warning("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
                         "been shut down on connection <{}>.", consumingQueueByTag, connectionId());
             }

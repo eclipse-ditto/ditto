@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor.PublisherStarted.PUBLISHER_STARTED;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
@@ -44,6 +45,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.routing.Broadcast;
 import akka.routing.ConsistentHashingPool;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -176,18 +178,18 @@ public abstract class AbstractConsumerActorTest<M> {
 
     private ActorRef setupMessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarderActor) {
-
         final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         final MessageMappingProcessor mappingProcessor = MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem,
                 connectivityConfig, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(publisherActor, conciergeForwarderActor, mappingProcessor,
-                        CONNECTION_ID);
+                MessageMappingProcessorActor.props(conciergeForwarderActor, mappingProcessor, CONNECTION_ID);
 
-        return actorSystem.actorOf(new ConsistentHashingPool(2)
+        final ActorRef mappingActor = actorSystem.actorOf(new ConsistentHashingPool(2)
                         .withDispatcher("message-mapping-processor-dispatcher")
                         .props(messageMappingProcessorProps),
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
+        mappingActor.tell(new Broadcast(PUBLISHER_STARTED), publisherActor);
+        return mappingActor;
     }
 
 }

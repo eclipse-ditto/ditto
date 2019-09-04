@@ -18,7 +18,6 @@ import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELA
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +98,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(this.connectionId);
         connectionLogger =
                 ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(this.connectionId);
+
+        getContext().getParent().tell(PublisherStarted.PUBLISHER_STARTED, getSelf());
     }
 
     private static String getInstanceIdentifier() {
@@ -290,6 +291,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     .withAdditionalHeaders(mappedHeaders)
                     .build();
         }).orElseGet(messageBuilder::build);
+    }
+
+    public enum PublisherStarted {
+        PUBLISHER_STARTED
     }
 
 }

@@ -98,13 +98,12 @@ import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.Terminated;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FSMStateFunctionBuilder;
+import akka.routing.Broadcast;
 import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
-import scala.util.Either;
-import scala.util.Left;
-import scala.util.Right;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -123,7 +122,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     protected final ConnectionLogger connectionLogger;
 
-
     protected final ConnectivityConfig connectivityConfig;
     protected final ClientConfig clientConfig;
     private final ProtocolAdapterProvider protocolAdapterProvider;
@@ -132,13 +130,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private final Gauge clientConnectingGauge;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
+    private final ActorRef messageMappingProcessorActor;
 
-
-    @Nullable private ActorRef messageMappingProcessorActor;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
+    @Nullable private ActorRef publisherActor = null;
 
     protected BaseClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
@@ -195,6 +193,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         this.connectionLogger = this.connectionLoggerRegistry.forConnection(connection.getId());
 
         this.reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
+
+        this.messageMappingProcessorActor = startMessageMappingProcessorActor();
 
         initialize();
     }
@@ -283,14 +283,37 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
                     handleOutboundSignal(signal);
                     return stay();
+                })
+                .event(BasePublisherActor.PublisherStarted.class, (publisherStarted, data) -> {
+                    this.publisherActor = getContext().watch(getSender());
+                    getMessageMappingProcessorActor().forward(new Broadcast(publisherStarted), getContext());
+                    return stay();
+                })
+                .event(Terminated.class, (terminated, data) -> {
+                    if (terminated.getActor().equals(publisherActor)) {
+                        log.debug("Publisher actor stopped.");
+                        publisherActor = null;
+                    }
+                    return stay();
                 });
     }
 
     /**
-     * @return the optional MessageMappingProcessorActor.
+     * @return the MessageMappingProcessorActor.
      */
-    protected final Optional<ActorRef> getMessageMappingProcessorActor() {
-        return Optional.ofNullable(messageMappingProcessorActor);
+    protected final ActorRef getMessageMappingProcessorActor() {
+        return messageMappingProcessorActor;
+    }
+
+    @Nullable
+    protected final ActorRef getPublisherActor() {
+        return publisherActor;
+    }
+
+    protected final void stopPublisherActor() {
+        if (publisherActor != null) {
+            stopChildActor(publisherActor);
+        }
     }
 
     /**
@@ -1008,14 +1031,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private void handleOutboundSignal(final OutboundSignal signal) {
         enhanceLogUtil(signal.getSource());
-        if (messageMappingProcessorActor != null) {
-            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal,
-                    signal.getSource().getId());
-            messageMappingProcessorActor.tell(msg, getSender());
-        } else {
-            log.info("Cannot handle <{}> signal as there is no MessageMappingProcessor available.",
-                    signal.getSource().getType());
-        }
+        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal, signal.getSource().getId());
+        messageMappingProcessorActor.tell(msg, getSender());
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
@@ -1051,89 +1068,60 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
-    // TODO: this overloaded method only exists because the ClientActors don't know if their
-    //  publisher-actor already exists. They should find a way to not rely on the existance of the publisher
-    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessorActor(final Optional<ActorRef> receivingActor) {
-        return startMessageMappingProcessorActor(
-                receivingActor.orElseThrow(() -> new NullPointerException("publisher actor must not be null.")));
-    }
-
-    // TODO: after the optional actorref problem is fixed, we could start the message mapping actor once and leave it alive
-    //  until the BaseClientActor is stopped. This is possible since the message mapping processor is then only
-    //  dependent on the connection and if the connection is updated, the clientActor is stopped and restarted with a new connection.
-    //  so there is no need to restart the mapper on every close/open. this would also solve the problem with the
-    //  single name of the mapping actor.
     /**
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
      *
-     * @param receivingActor Actor that will receive the external messages that were mapped by the message mapping acotr.
      * @return {@link org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor} or exception,
      * which will also cause an sideeffect that stores the mapping actor in the local variable {@code
      * messageMappingProcessorActor}.
      */
-    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessorActor(final ActorRef receivingActor) {
+    private ActorRef startMessageMappingProcessorActor() {
         final MappingContext mappingContext = stateData().getConnection().getMappingContext().orElse(null);
 
-        if (!getMessageMappingProcessorActor().isPresent()) {
-            final Connection connection = connection();
+        final Connection connection = connection();
 
-            final MessageMappingProcessor processor;
-            try {
-                // this one throws DittoRuntimeExceptions when the mapper could not be configured
-                processor = MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(),
-                        connectivityConfig, protocolAdapterProvider, log);
-            } catch (final DittoRuntimeException dre) {
-                connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
-                log.info(
-                        "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
-                        dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
-                return Left.apply(dre);
-            }
-
-            log.info("Configured for processing messages with the following MessageMapperRegistry: <{}>",
-                    processor.getRegistry());
-
-            log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
-                    connection.getProcessorPoolSize());
-            final Props props =
-                    MessageMappingProcessorActor.props(receivingActor, conciergeForwarder, processor,
-                            connectionId());
-
-            /*
-             * By using a ConsistentHashingPool, messages sent to this actor which are wrapped into
-             * akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope may define which consistent hashing
-             * key to use.
-             * That way the message with the same hash are always sent to the same pooled instance of the
-             * MessageMappingProcessorActor.
-             *
-             * That is needed in order to guarantee message processing order. Otherwise two messages received for the
-             * same Thing may be processed out-of-order if the mapping of the first message takes longer than the
-             * mapping of the second message.
-             * This however will also limit throughput as the used hashing key is often connection source address based
-             * and does not yet "know" of the Thing ID.
-             */
-            // TODO: check if this will work with only one name. -> not yet for e.g. Amqp
-            messageMappingProcessorActor =
-                    getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
-                            .withDispatcher("message-mapping-processor-dispatcher")
-                            .props(props), getMessageMappingActorName());
-        } else {
-            log.info("MessageMappingProcessor already instantiated: not initializing again.");
+        final MessageMappingProcessor processor;
+        try {
+            // this one throws DittoRuntimeExceptions when the mapper could not be configured
+            processor = MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(),
+                    connectivityConfig, protocolAdapterProvider, log);
+        } catch (final DittoRuntimeException dre) {
+            connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
+            log.info(
+                    "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
+                    dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
+            // TODO check if throw is correct here
+            throw dre;
         }
-        return Right.apply(messageMappingProcessorActor);
+
+        log.info("Configured for processing messages with the following MessageMapperRegistry: <{}>",
+                processor.getRegistry());
+
+        log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
+                connection.getProcessorPoolSize());
+        final Props props = MessageMappingProcessorActor.props(conciergeForwarder, processor, connectionId());
+
+        /*
+         * By using a ConsistentHashingPool, messages sent to this actor which are wrapped into
+         * akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope may define which consistent hashing
+         * key to use.
+         * That way the message with the same hash are always sent to the same pooled instance of the
+         * MessageMappingProcessorActor.
+         *
+         * That is needed in order to guarantee message processing order. Otherwise two messages received for the
+         * same Thing may be processed out-of-order if the mapping of the first message takes longer than the
+         * mapping of the second message.
+         * This however will also limit throughput as the used hashing key is often connection source address based
+         * and does not yet "know" of the Thing ID.
+         */
+        return getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
+                .withDispatcher("message-mapping-processor-dispatcher")
+                .props(props), getMessageMappingActorName());
     }
 
     protected String getMessageMappingActorName() {
         return nextChildActorName(MessageMappingProcessorActor.ACTOR_NAME);
-    }
-
-    protected void stopMessageMappingProcessorActor() {
-        if (messageMappingProcessorActor != null) {
-            log.debug("Stopping MessageMappingProcessorActor.");
-            getContext().stop(messageMappingProcessorActor);
-            messageMappingProcessorActor = null;
-        }
     }
 
     protected boolean isDryRun() {

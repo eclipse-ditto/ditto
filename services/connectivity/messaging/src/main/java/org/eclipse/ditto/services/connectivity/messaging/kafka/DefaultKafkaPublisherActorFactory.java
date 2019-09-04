@@ -62,7 +62,7 @@ public final class DefaultKafkaPublisherActorFactory implements KafkaPublisherAc
             final ActorRef kafkaClientActor,
             final boolean dryRun) {
 
-        return KafkaPublisherActor.props(connectionId, targets, factory, kafkaClientActor, dryRun);
+        return KafkaPublisherActor.props(connectionId, targets, factory, dryRun);
     }
 
 }

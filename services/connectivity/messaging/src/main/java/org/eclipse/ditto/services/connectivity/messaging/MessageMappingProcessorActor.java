@@ -65,6 +65,7 @@ import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor.PublisherStarted;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -104,7 +105,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ActorRef publisherActor;
     private final Map<String, StartedTimer> timers;
 
     private final MessageMappingProcessor messageMappingProcessor;
@@ -124,13 +124,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitor responseMappedMonitor;
 
+    @Nullable private ActorRef publisherActor;
+
     @SuppressWarnings("unused")
-    private MessageMappingProcessorActor(final ActorRef publisherActor,
-            final ActorRef conciergeForwarder,
+    private MessageMappingProcessorActor(final ActorRef conciergeForwarder,
             final MessageMappingProcessor messageMappingProcessor,
             final String connectionId) {
 
-        this.publisherActor = publisherActor;
         this.conciergeForwarder = conciergeForwarder;
         this.messageMappingProcessor = messageMappingProcessor;
         this.connectionId = connectionId;
@@ -158,19 +158,16 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param publisherActor actor that handles/publishes outgoing messages.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection ID.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef publisherActor,
-            final ActorRef conciergeForwarder,
+    public static Props props(final ActorRef conciergeForwarder,
             final MessageMappingProcessor processor,
             final String connectionId) {
 
-        return Props.create(MessageMappingProcessorActor.class, publisherActor, conciergeForwarder, processor,
-                connectionId);
+        return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, processor, connectionId);
     }
 
     @Override
@@ -180,6 +177,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .match(CommandResponse.class, this::handleCommandResponse)
                 .match(OutboundSignal.class, this::handleOutboundSignal)
                 .match(Signal.class, this::handleSignal)
+                .match(PublisherStarted.class, publisherStarted -> {
+                    log.debug("Received publisher actor reference: {}", getSender());
+                    publisherActor = getSender();
+                })
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()))
@@ -344,11 +345,19 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .map(externalMessage -> replaceTargetAddressPlaceholders.apply(outbound, externalMessage));
 
         if (mappedOutboundSignal.isPresent()) {
-            publisherActor.forward(mappedOutboundSignal.get(), getContext());
+            forwardToPublisherActor(mappedOutboundSignal.get());
         } else {
             log.debug("Message mapping returned null, message is dropped.");
             getMonitorsForDroppedSignal(outbound, connectionId)
                     .forEach(monitor -> monitor.success(outbound.getSource()));
+        }
+    }
+
+    private void forwardToPublisherActor(final OutboundSignal.WithExternalMessage mappedOutboundSignal) {
+        if (publisherActor != null) {
+            publisherActor.forward(mappedOutboundSignal, getContext());
+        } else {
+            log.info("Publisher actor not available, dropping message.");
         }
     }
 

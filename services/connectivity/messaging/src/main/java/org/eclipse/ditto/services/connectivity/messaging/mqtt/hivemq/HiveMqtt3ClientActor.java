@@ -54,8 +54,6 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     private static final boolean CLEAN_SESSION = true;
     private final HiveMqtt3ClientFactory clientFactory;
 
-    @Nullable private ActorRef publisherActor;
-
     private final Mqtt3Client client;
     private final HiveMqtt3SubscriptionHandler subscriptionHandler;
 
@@ -162,9 +160,8 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         final String connectionId = connection().getId();
         final List<Target> targets = connection().getTargets();
 
-        publisherActor = getContext().actorOf(HiveMqtt3PublisherActor.props(connectionId, targets, client, isDryRun()),
-                HiveMqtt3PublisherActor.NAME);
-        startMessageMappingProcessorActor(publisherActor);
+        final Props publisherActorProps = HiveMqtt3PublisherActor.props(connectionId, targets, client, isDryRun());
+        getContext().actorOf(publisherActorProps, HiveMqtt3PublisherActor.NAME);
         startHiveMqConsumers(client, subscriptionHandler::handleMqttConsumer);
     }
 
@@ -189,8 +186,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     @Override
     protected void cleanupResourcesForConnection() {
         stopCommandConsumers();
-        stopMessageMappingProcessorActor();
-        stopMqttPublisher();
+        stopPublisherActor();
         safelyDisconnectClient();
     }
 
@@ -262,18 +258,11 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     }
 
     private void startHiveMqConsumers(final Mqtt3Client client, Consumer<MqttConsumer> consumerListener) {
-        final Optional<ActorRef> messageMappingProcessorActor = getMessageMappingProcessorActor();
-        if (!messageMappingProcessorActor.isPresent()) {
-            log.warning("message mapper not available");
-            // TODO goto failure state instead?
-            return;
-        }
-
         // TODO: sometimes the hivemq client will run into an exception here if there are multiple consumers on the
         //  same topic. try to do a reproducer and post to hivemq issues / questions
         connection().getSources().stream()
                 .map(source -> MqttConsumer.of(source,
-                        startHiveMqConsumer(client, isDryRun(), source, messageMappingProcessorActor.get())))
+                        startHiveMqConsumer(client, isDryRun(), source, getMessageMappingProcessorActor())))
                 .forEach(consumerListener);
     }
 
@@ -324,13 +313,6 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     @Override
     protected String getMessageMappingActorName() {
         return MessageMappingProcessorActor.ACTOR_NAME;
-    }
-
-    private void stopMqttPublisher() {
-        if (publisherActor != null) {
-            stopChildActor(publisherActor);
-            publisherActor = null;
-        }
     }
 
     private void stopCommandConsumers() {

@@ -140,11 +140,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     @Override
-    protected void publisherCreated(final ActorRef publisherActor) {
-        // nothing to do
-    }
-
-    @Override
     protected Target decorateTarget(final Target target) {
         return target;
     }

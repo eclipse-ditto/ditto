@@ -16,6 +16,7 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
+import static org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor.PublisherStarted.PUBLISHER_STARTED;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -310,8 +311,8 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
             private MockKafkaPublisherActor(final ActorRef testProbe) {
                 this.testProbe = testProbe;
-
                 this.testProbe.tell(new ReportActorRef(getSelf()), getSelf());
+                getContext().getParent().tell(PUBLISHER_STARTED, getSelf());
             }
 
             public static Props props(final ActorRef testProbe) {

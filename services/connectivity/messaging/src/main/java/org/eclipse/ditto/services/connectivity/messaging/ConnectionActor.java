@@ -466,6 +466,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                         createConnection -> validateAndForward(createConnection, this::createConnection))
                 .match(ConnectivityCommand.class, this::handleCommandWhenDeleted)
                 .match(Signal.class, this::ignoreBroadcastSignalWhenDeleted)
+                .match(DistributedPubSubMediator.SubscribeAck.class, this::handleSubscribeAck)
+                .match(DistributedPubSubMediator.UnsubscribeAck.class, this::handleUnsubscribeAck)
                 .matchEquals(STOP_SELF_IF_DELETED, msg -> stopSelf())
                 .match(SaveSnapshotSuccess.class, this::handleSnapshotSuccess)
                 .matchAny(m -> {
