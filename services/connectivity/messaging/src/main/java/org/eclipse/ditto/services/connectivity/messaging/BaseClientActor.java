@@ -285,6 +285,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     return stay();
                 })
                 .event(BasePublisherActor.PublisherStarted.class, (publisherStarted, data) -> {
+                    log.debug("Received publisher actor reference: {}", getSender());
                     this.publisherActor = getContext().watch(getSender());
                     getMessageMappingProcessorActor().forward(new Broadcast(publisherStarted), getContext());
                     return stay();
