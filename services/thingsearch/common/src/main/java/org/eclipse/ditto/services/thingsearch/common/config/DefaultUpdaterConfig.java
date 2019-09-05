@@ -38,7 +38,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
 
     private final Duration maxIdleTime;
     private final int maxBulkSize;
-    private final Duration activityCheckInterval;
+    private final Duration shardingStatePollInterval;
     private final boolean eventProcessingActive;
     private final SyncConfig thingsSyncConfig;
     private final SyncConfig policiesSyncConfig;
@@ -46,8 +46,8 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     private DefaultUpdaterConfig(final ConfigWithFallback updaterScopedConfig) {
         maxIdleTime = updaterScopedConfig.getDuration(UpdaterConfigValue.MAX_IDLE_TIME.getConfigPath());
         maxBulkSize = updaterScopedConfig.getInt(UpdaterConfigValue.MAX_BULK_SIZE.getConfigPath());
-        activityCheckInterval =
-                updaterScopedConfig.getDuration(UpdaterConfigValue.ACTIVITY_CHECK_INTERVAL.getConfigPath());
+        shardingStatePollInterval =
+                updaterScopedConfig.getDuration(UpdaterConfigValue.SHARDING_STATE_POLL_INTERVAL.getConfigPath());
         eventProcessingActive =
                 updaterScopedConfig.getBoolean(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath());
         thingsSyncConfig = DefaultSyncConfig.getInstance(updaterScopedConfig, THINGS_SYNC_CONFIG_PATH);
@@ -77,8 +77,8 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     }
 
     @Override
-    public Duration getActivityCheckInterval() {
-        return activityCheckInterval;
+    public Duration getShardingStatePollInterval() {
+        return shardingStatePollInterval;
     }
 
     @Override
@@ -108,15 +108,15 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
         return maxBulkSize == that.maxBulkSize &&
                 eventProcessingActive == that.eventProcessingActive &&
                 Objects.equals(maxIdleTime, that.maxIdleTime) &&
-                Objects.equals(activityCheckInterval, that.activityCheckInterval) &&
+                Objects.equals(shardingStatePollInterval, that.shardingStatePollInterval) &&
                 Objects.equals(thingsSyncConfig, that.thingsSyncConfig) &&
                 Objects.equals(policiesSyncConfig, that.policiesSyncConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxIdleTime, maxBulkSize, activityCheckInterval, eventProcessingActive, thingsSyncConfig,
-                policiesSyncConfig);
+        return Objects.hash(maxIdleTime, maxBulkSize, shardingStatePollInterval, eventProcessingActive,
+                thingsSyncConfig, policiesSyncConfig);
     }
 
     @Override
@@ -124,7 +124,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
         return getClass().getSimpleName() + " [" +
                 "maxIdleTime=" + maxIdleTime +
                 ", maxBulkSize=" + maxBulkSize +
-                ", activityCheckInterval=" + activityCheckInterval +
+                ", shardingStatePollInterval=" + shardingStatePollInterval +
                 ", eventProcessingActive=" + eventProcessingActive +
                 ", thingsSyncConfig=" + thingsSyncConfig +
                 ", policiesSyncConfig=" + policiesSyncConfig +

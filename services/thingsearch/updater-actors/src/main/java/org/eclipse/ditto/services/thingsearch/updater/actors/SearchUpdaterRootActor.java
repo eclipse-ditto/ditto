@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
+import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import com.mongodb.event.CommandListener;
@@ -106,8 +108,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
         final UpdaterConfig updaterConfig = searchConfig.getUpdaterConfig();
-        final boolean eventProcessingActive = updaterConfig.isEventProcessingActive();
-        if (!eventProcessingActive) {
+        if (!updaterConfig.isEventProcessingActive()) {
             log.warning("Event processing is disabled!");
         }
 
@@ -116,10 +117,14 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ActorRef updaterShardRegion =
                 shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
 
+        final DistributedSub thingEventSub =
+                ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards).startDistributedSub();
         final Props thingsUpdaterProps =
-                ThingsUpdater.props(pubSubMediator, updaterShardRegion, eventProcessingActive, blockedNamespaces);
+                ThingsUpdater.props(thingEventSub, updaterShardRegion, updaterConfig, blockedNamespaces);
 
         thingsUpdaterActor = getContext().actorOf(thingsUpdaterProps, ThingsUpdater.ACTOR_NAME);
+        startClusterSingletonActor(NewEventForwarder.ACTOR_NAME,
+                NewEventForwarder.props(thingEventSub, updaterShardRegion, blockedNamespaces));
 
         // start policy event forwarder as cluster singleton
         final Props policyEventForwarderProps =

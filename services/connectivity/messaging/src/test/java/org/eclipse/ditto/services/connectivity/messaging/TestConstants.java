@@ -41,6 +41,8 @@ import java.util.Optional;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -91,8 +93,11 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.base.Signal;
@@ -115,6 +120,7 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.pattern.Patterns;
 
 public final class TestConstants {
 
@@ -170,6 +176,40 @@ public final class TestConstants {
     }
 
     public static final Instant INSTANT = Instant.now();
+
+    static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
+        return new DittoProtocolSub() {
+            @Override
+            public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
+                    final Collection<String> topics, final ActorRef subscriber) {
+                return CompletableFuture.allOf(types.stream()
+                        .map(type -> {
+                            final Object sub = DistPubSubAccess.subscribe(type.getDistributedPubSubTopic(), subscriber);
+                            return Patterns.ask(pubSubMediator, sub, Duration.ofSeconds(10L)).toCompletableFuture();
+                        })
+                        .toArray(CompletableFuture[]::new));
+            }
+
+            @Override
+            public void removeSubscriber(final ActorRef subscriber) {
+                // do nothing
+            }
+
+            @Override
+            public CompletionStage<Void> updateLiveSubscriptions(final Collection<StreamingType> types,
+                    final Collection<String> topics, final ActorRef subscriber) {
+                // do nothing
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
+                    final Collection<String> topics) {
+                // do nothing
+                return CompletableFuture.completedFuture(null);
+            }
+        };
+    }
 
     public static final class Things {
 
@@ -543,7 +583,7 @@ public final class TestConstants {
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory clientActorPropsFactory) {
 
-        final Props props = ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarder,
+        final Props props = ConnectionSupervisorActor.props(dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
                 clientActorPropsFactory, null);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());

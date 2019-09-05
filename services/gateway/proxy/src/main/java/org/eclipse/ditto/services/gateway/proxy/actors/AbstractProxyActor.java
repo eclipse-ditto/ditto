@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
@@ -51,7 +51,7 @@ public abstract class AbstractProxyActor extends AbstractActor {
     }
 
     static boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+        return StreamingType.isLiveSignal(signal);
     }
 
     protected abstract void addCommandBehaviour(final ReceiveBuilder receiveBuilder);

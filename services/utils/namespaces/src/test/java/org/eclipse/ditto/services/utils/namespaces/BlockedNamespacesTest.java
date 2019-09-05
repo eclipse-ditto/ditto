@@ -14,7 +14,10 @@ package org.eclipse.ditto.services.utils.namespaces;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import java.util.function.Supplier;
+
+import org.eclipse.ditto.services.utils.ddata.DistributedData;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,12 +36,12 @@ import akka.testkit.javadsl.TestKit;
 public final class BlockedNamespacesTest {
 
     private ActorSystem actorSystem;
-    private DistributedDataConfigReader configReader;
+    private DistributedDataConfig config;
 
     @Before
     public void setup() {
         actorSystem = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test.conf"));
-        configReader = DistributedDataConfigReader.of(actorSystem, "replicator", "");
+        config = DistributedData.createConfig(actorSystem, "replicator", "");
     }
 
     @After
@@ -56,13 +59,28 @@ public final class BlockedNamespacesTest {
 
     @Test
     public void startWithoutRole() throws Exception {
-        testCRUD(BlockedNamespaces.of(configReader, actorSystem), actorSystem);
+        testCRUD(BlockedNamespaces.create(config, actorSystem), actorSystem);
     }
 
     @Test
     public void startWithMatchingRole() throws Exception {
-        testCRUD(BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem, "replicator", "ddata-aware"),
+        testCRUD(BlockedNamespaces.create(DistributedData.createConfig(actorSystem, "replicator", "ddata-aware"),
                 actorSystem), actorSystem);
+    }
+
+    @Test
+    public void startSeveralTimes() throws Exception {
+        // This test simulates the situation where the root actor of a Ditto service restarts several times.
+
+        // GIVEN: Many blocked-namespaces objects were obtained in the same actor system.
+        final Supplier<BlockedNamespaces> blockedNamespacesSupplier = () -> BlockedNamespaces.of(actorSystem);
+        for (int i = 0; i < 10; ++i) {
+            blockedNamespacesSupplier.get();
+        }
+
+        // WHEN: Another blocked-namespaces object is obtained.
+        // THEN: It fulfills its function.
+        testCRUD(blockedNamespacesSupplier.get(), actorSystem);
     }
 
     @Test
@@ -70,7 +88,7 @@ public final class BlockedNamespacesTest {
         // logging disabled to not print expected stacktrace; re-enable logging to debug.
         actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
         new TestKit(actorSystem) {{
-            final BlockedNamespaces underTest = BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem,
+            final BlockedNamespaces underTest = BlockedNamespaces.create(DistributedData.createConfig(actorSystem,
                     "replicator", "wrong-role"), actorSystem);
             watch(underTest.getReplicator());
             expectTerminated(underTest.getReplicator());

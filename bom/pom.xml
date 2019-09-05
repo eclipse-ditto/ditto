@@ -571,6 +571,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-commands-live</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-connectivity</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -727,6 +732,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-protocol</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-utils-pubsub</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

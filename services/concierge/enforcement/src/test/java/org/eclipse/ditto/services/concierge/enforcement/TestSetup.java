@@ -36,6 +36,8 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.concierge.common.CachesConfig;
 import org.eclipse.ditto.services.concierge.common.DefaultCachesConfig;
+import org.eclipse.ditto.services.models.concierge.pubsub.LiveSignalPub;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
@@ -43,10 +45,15 @@ import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoader;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.events.base.Event;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.Config;
@@ -119,7 +126,8 @@ public final class TestSetup {
                 policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache, preEnforcer));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
         enforcementProviders.add(
-                new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
+                new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache,
+                        new DummyLiveSignalPub(testActorRef)));
 
         final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder,
                 preEnforcer, null, null, null);
@@ -165,4 +173,57 @@ public final class TestSetup {
                 clazz.getName(), clazz::isInstance);
     }
 
+    private static final class DummyLiveSignalPub implements LiveSignalPub {
+
+        final ActorRef pubSubMediator;
+
+        private DummyLiveSignalPub(final ActorRef pubSubMediator) {
+            this.pubSubMediator = pubSubMediator;
+        }
+
+        @Override
+        public DistributedPub<Command> command() {
+            return new DistributedPub<Command>() {
+                @Override
+                public ActorRef getPublisher() {
+                    return pubSubMediator;
+                }
+
+                @Override
+                public Object wrapForPublication(final Command message) {
+                    return DistPubSubAccess.publish(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic(), message);
+                }
+            };
+        }
+
+        @Override
+        public DistributedPub<Event> event() {
+            return new DistributedPub<Event>() {
+                @Override
+                public ActorRef getPublisher() {
+                    return pubSubMediator;
+                }
+
+                @Override
+                public Object wrapForPublication(final Event message) {
+                    return DistPubSubAccess.publish(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic(), message);
+                }
+            };
+        }
+
+        @Override
+        public DistributedPub<Signal> message() {
+            return new DistributedPub<Signal>() {
+                @Override
+                public ActorRef getPublisher() {
+                    return pubSubMediator;
+                }
+
+                @Override
+                public Object wrapForPublication(final Signal message) {
+                    return DistPubSubAccess.publish(StreamingType.MESSAGES.getDistributedPubSubTopic(), message);
+                }
+            };
+        }
+    }
 }

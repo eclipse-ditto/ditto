@@ -123,7 +123,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     }
 
     @Override
-    protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final EntityId id) {
+    protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final PolicyId id) {
         final Props props = PolicySupervisorActor.props(pubSubMediator, new PolicyMongoSnapshotAdapter());
 
         return system.actorOf(props, id.toString());

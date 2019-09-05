@@ -223,6 +223,14 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void putFeatureEntryPropertiesEntryWithJsonException() {
+        final String tooLongNumber = "89314404000484999942";
+        final TestRouteResult result = underTest.run(HttpRequest.PUT(FEATURE_ENTRY_PROPERTIES_ENTRY_PATH).withEntity
+                (tooLongNumber));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
     public void deleteFeatureEntryPropertiesEntry() {
         final TestRouteResult result = underTest.run(HttpRequest.DELETE(FEATURE_ENTRY_PROPERTIES_ENTRY_PATH));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);

@@ -793,12 +793,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                         .isEqualEqualToButModified(policy);
 
-                // the first w/o group:
-                final DistributedPubSubMediator.Publish policyCreatedPublish =
-                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
-                assertThat(policyCreatedPublish.msg()).isInstanceOf(PolicyCreated.class);
-
-                // the second with group:
+                // event published with group:
                 final DistributedPubSubMediator.Publish policyCreatedPublishSecond =
                         pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
                 assertThat(policyCreatedPublishSecond.msg()).isInstanceOf(PolicyCreated.class);
@@ -818,12 +813,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgEquals(modifyPolicyEntryResponse(policy.getEntityId().get(), policyEntry,
                         dittoHeadersV2, true));
 
-                // the first w/o group:
-                final DistributedPubSubMediator.Publish policyEntryModifiedPublish =
-                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
-                assertThat(policyEntryModifiedPublish.msg()).isInstanceOf(PolicyEntryCreated.class);
-
-                // the second with group:
+                // event published with group:
                 final DistributedPubSubMediator.Publish policyEntryModifiedPublishSecond =
                         pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
                 assertThat(policyEntryModifiedPublishSecond.msg()).isInstanceOf(PolicyEntryCreated.class);

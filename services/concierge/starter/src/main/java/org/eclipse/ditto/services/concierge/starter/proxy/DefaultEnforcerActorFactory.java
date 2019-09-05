@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
-import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.common.CachesConfig;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
@@ -42,6 +41,7 @@ import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.services.models.concierge.pubsub.LiveSignalPub;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
@@ -51,7 +51,6 @@ import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespacesUpdater;
@@ -116,12 +115,14 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
                 newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
 
+        final LiveSignalPub liveSignalPub = LiveSignalPub.of(context);
+
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
                 policiesShardRegionProxy, thingIdCache, policyEnforcerCache, aclEnforcerCache, preEnforcer));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
-                aclEnforcerCache));
+                aclEnforcerCache, liveSignalPub));
 
         final ActorRef conciergeEnforcerRouter =
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,
@@ -134,12 +135,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                         ConciergeForwarderActor.ACTOR_NAME);
         pubSubMediator.tell(DistPubSubAccess.put(conciergeForwarder), ActorRef.noSender());
 
-        // start cache updaters
-        final String instanceIndex = InstanceIdentifierSupplier.getInstance().get();
-        final Props policyCacheUpdateActorProps =
-                PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
-        context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
-
+        // start cache invalidator
         final Props cachedNamespaceInvalidatorProps =
                 CachedNamespaceInvalidator.props(blockedNamespaces,
                         Arrays.asList(thingIdCache, policyEnforcerCache, aclEnforcerCache));

@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.gateway.starter;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -50,13 +49,10 @@ import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
-import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
@@ -80,7 +76,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
-import akka.cluster.sharding.ClusterSharding;
 import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
@@ -183,8 +178,9 @@ final class GatewayRootActor extends AbstractActor {
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
+        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
-                StreamingActor.props(pubSubMediator, proxyActor));
+                StreamingActor.props(dittoProtocolSub, proxyActor));
 
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
@@ -268,7 +264,8 @@ final class GatewayRootActor extends AbstractActor {
 
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
         final CachesConfig cachesConfig = gatewayConfig.getCachesConfig();
-        final DefaultHttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
+        final DefaultHttpClientFacade httpClient =
+                DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
         final MessageDispatcher authenticationDispatcher = actorSystem.dispatchers().lookup(
                 AUTHENTICATION_DISPATCHER_NAME);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =

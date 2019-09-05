@@ -306,8 +306,8 @@ public abstract class AbstractEnforcement<T extends Signal> {
      *
      * @return the adjusted context.
      */
-    protected <S extends WithDittoHeaders> Contextual<S> withoutReceiver() {
-        return context.<S>withMessage(null).withReceiver(null);
+    protected <S extends WithDittoHeaders> Contextual<S> withoutReceiver(final S message) {
+        return context.withMessage(message).withReceiver(null);
     }
 
     /**
