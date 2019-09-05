@@ -151,7 +151,7 @@ public final class MqttClientActor extends BaseClientActor {
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
         // nothing to do here; publisher and consumers started already.
-        getSelf().tell(getClientReady(), getSelf());
+        notifyConsumersReady();
     }
 
     @Override
@@ -193,9 +193,9 @@ public final class MqttClientActor extends BaseClientActor {
         log.info("Starting MQTT publisher actor.");
         // ensure no previous publisher stays in memory
         stopPublisherActor();
-        final ActorRef mqttPublisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
+        publisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
                 MqttPublisherActor.props(connectionId(), getTargetsOrEmptyList(), factory, getSelf(), dryRun));
-        pendingStatusReportsFromStreams.add(mqttPublisherActor);
+        pendingStatusReportsFromStreams.add(publisherActor);
     }
 
     private void startMqttConsumers(final MqttConnectionFactory factory,

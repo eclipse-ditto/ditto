@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor.PublisherStarted.PUBLISHER_STARTED;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
@@ -26,6 +25,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedE
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -59,6 +59,7 @@ public abstract class AbstractConsumerActorTest<M> {
     protected static final Map.Entry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to-address");
     protected static final Enforcement ENFORCEMENT =
             ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
+    private static final int PROCESSOR_POOL_SIZE = 2;
 
     protected static ActorSystem actorSystem;
     protected static ProtocolAdapterProvider protocolAdapterProvider;
@@ -156,7 +157,11 @@ public abstract class AbstractConsumerActorTest<M> {
             final TestProbe concierge = TestProbe.apply(actorSystem);
             final TestProbe publisher = TestProbe.apply(actorSystem);
 
-            final ActorRef mappingActor = setupMessageMappingProcessorActor(publisher.ref(), concierge.ref());
+            final ActorRef mappingActor = setupMessageMappingProcessorActor(getRef(), publisher.ref(), concierge.ref());
+
+            for (int i = 0; i < PROCESSOR_POOL_SIZE; i++) {
+                expectMsgClass(ResourceReady.class);
+            }
 
             final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor));
 
@@ -176,7 +181,7 @@ public abstract class AbstractConsumerActorTest<M> {
         }};
     }
 
-    private ActorRef setupMessageMappingProcessorActor(final ActorRef publisherActor,
+    private ActorRef setupMessageMappingProcessorActor(final ActorRef testRef, final ActorRef publisher,
             final ActorRef conciergeForwarderActor) {
         final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         final MessageMappingProcessor mappingProcessor = MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem,
@@ -184,11 +189,11 @@ public abstract class AbstractConsumerActorTest<M> {
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(conciergeForwarderActor, mappingProcessor, CONNECTION_ID);
 
-        final ActorRef mappingActor = actorSystem.actorOf(new ConsistentHashingPool(2)
+        final ActorRef mappingActor = actorSystem.actorOf(new ConsistentHashingPool(PROCESSOR_POOL_SIZE)
                         .withDispatcher("message-mapping-processor-dispatcher")
                         .props(messageMappingProcessorProps),
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
-        mappingActor.tell(new Broadcast(PUBLISHER_STARTED), publisherActor);
+        mappingActor.tell(new Broadcast(ResourceReady.publisherReady(publisher)), testRef);
         return mappingActor;
     }
 

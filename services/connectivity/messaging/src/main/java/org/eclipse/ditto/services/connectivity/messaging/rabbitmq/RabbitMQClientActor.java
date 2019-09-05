@@ -199,7 +199,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         if (clientConnected instanceof RmqConsumerChannelCreated) {
             final RmqConsumerChannelCreated rmqConsumerChannelCreated = (RmqConsumerChannelCreated) clientConnected;
             startCommandConsumers(rmqConsumerChannelCreated.getChannel());
-            getSelf().tell(getClientReady(), getSelf());
+            notifyConsumersReady();
         }
     }
 
@@ -261,7 +261,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         });
 
                 rmqConnectionActor = startChildActorConflictFree(RMQ_CONNECTION_ACTOR_NAME, props);
-                startRmqPublisherActor();
+                publisherActor = startRmqPublisherActor();
 
                 // create publisher channel
                 final CreateChannel createChannel = CreateChannel.apply(
@@ -269,7 +269,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             log.info("Did set up publisher channel: {}. Telling the publisher actor the new channel",
                                     channel);
                             // provide the new channel to the publisher after the channel was connected (also includes reconnects)
-                            final ActorRef publisherActor = getPublisherActor();
                             if (publisherActor != null) {
                                 final ChannelCreated channelCreated = new ChannelCreated(channelActor);
                                 publisherActor.tell(channelCreated, channelActor);

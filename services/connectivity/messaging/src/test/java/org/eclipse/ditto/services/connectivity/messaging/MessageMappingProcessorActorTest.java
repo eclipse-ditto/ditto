@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
-import static org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor.PublisherStarted.PUBLISHER_STARTED;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
@@ -55,6 +54,7 @@ import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -121,7 +121,7 @@ public final class MessageMappingProcessorActorTest {
             final String fixedAddress = "fixedAddress";
             final Command command = createSendMessageCommand();
 
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(command, Arrays.asList(
                             newTarget(addressWithTopicPlaceholder, addressWithTopicPlaceholder),
@@ -176,7 +176,7 @@ public final class MessageMappingProcessorActorTest {
     private void testExternalMessageInDittoProtocolIsProcessed(@Nullable final EnforcementFilter<String> enforcement,
             final boolean expectSuccess) {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
             final ModifyAttribute modifyCommand = createModifyAttributeCommand();
             final ExternalMessage externalMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(modifyCommand.getDittoHeaders())
@@ -241,7 +241,7 @@ public final class MessageMappingProcessorActorTest {
 
         new TestKit(actorSystem) {{
 
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
 
             // WHEN: message sent valid topic and invalid topic+path combination
             final String messageContent = "{  \n" +
@@ -277,7 +277,7 @@ public final class MessageMappingProcessorActorTest {
 
         new TestKit(actorSystem) {{
 
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
 
             // WHEN: message sent with valid topic and invalid topic+path combination
             final String topicPrefix = "Testspace/octopus/things/live/";
@@ -331,7 +331,7 @@ public final class MessageMappingProcessorActorTest {
             final Consumer<T> verifyReceivedMessage) {
 
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
             final Map<String, String> headers = new HashMap<>();
             headers.put("correlation-id", correlationId);
             headers.put("content-type", "application/json");
@@ -355,7 +355,7 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testCommandResponseIsProcessed() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
 
             final String correlationId = UUID.randomUUID().toString();
             final ModifyAttributeResponse commandResponse =
@@ -378,7 +378,7 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testThingNotAccessibleExceptionRetainsTopic() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
 
             // WHEN: message mapping processor receives ThingNotAccessibleException with thing-id set from topic path
             final String correlationId = UUID.randomUUID().toString();
@@ -409,7 +409,7 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testCommandResponseWithResponseRequiredFalseIsNotProcessed() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
 
             final ModifyAttributeResponse commandResponse =
                     ModifyAttributeResponse.modified(KNOWN_THING_ID, JsonPointer.of("foo"),
@@ -423,10 +423,12 @@ public final class MessageMappingProcessorActorTest {
         }};
     }
 
-    private static ActorRef createMessageMappingProcessorActor(final ActorRef ref) {
-        final Props props = MessageMappingProcessorActor.props(ref, getMessageMappingProcessor(), CONNECTION_ID);
+    private static ActorRef createMessageMappingProcessorActor(final TestKit kit) {
+        final Props props =
+                MessageMappingProcessorActor.props(kit.getRef(), getMessageMappingProcessor(), CONNECTION_ID);
         final ActorRef mappingActor = actorSystem.actorOf(props);
-        mappingActor.tell(PUBLISHER_STARTED, ref);
+        mappingActor.tell(ResourceReady.publisherReady(kit.getRef()), kit.getRef());
+        kit.expectMsgClass(ResourceReady.class);
         return mappingActor;
     }
 

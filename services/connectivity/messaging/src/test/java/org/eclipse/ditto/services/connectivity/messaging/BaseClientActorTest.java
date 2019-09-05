@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
@@ -127,8 +128,7 @@ public final class BaseClientActorTest {
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
 
-            final ActorRef dummyClientActor = actorSystem.actorOf(props);
-            watch(dummyClientActor);
+            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
             whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
             thenExpectConnectClientCalled();
@@ -152,8 +152,7 @@ public final class BaseClientActorTest {
                             .build();
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
 
-            final ActorRef dummyClientActor = actorSystem.actorOf(props);
-            watch(dummyClientActor);
+            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
             whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
 
@@ -164,7 +163,6 @@ public final class BaseClientActorTest {
             thenExpectCleanupResourcesCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingMinTimeout());
             thenExpectNoConnectClientCalled();
         }};
-
     }
 
     @Test
@@ -172,11 +170,10 @@ public final class BaseClientActorTest {
         new TestKit(actorSystem) {{
             final String randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
-                    TestConstants.createConnection(randomConnectionId,new Target[0]);
+                    TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
 
-            final ActorRef dummyClientActor = actorSystem.actorOf(props);
-            watch(dummyClientActor);
+            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
             whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
             thenExpectConnectClientCalled();
@@ -196,8 +193,7 @@ public final class BaseClientActorTest {
                     TestConstants.createConnection(randomConnectionId,new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
 
-            final ActorRef dummyClientActor = actorSystem.actorOf(props);
-            watch(dummyClientActor);
+            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
             thenExpectConnectClientCalledAfterTimeout(Duration.ofSeconds(5L));
             Mockito.clearInvocations(delegate);
@@ -293,7 +289,8 @@ public final class BaseClientActorTest {
         protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
             LOGGER.info("allocateResourcesOnConnection");
             delegate.allocateResourcesOnConnection(clientConnected);
-            getSelf().tell(getClientReady(), getSelf());
+            getSelf().tell(ResourceReady.publisherReady(getSelf()), getSelf());
+            notifyConsumersReady();
         }
 
         @Override

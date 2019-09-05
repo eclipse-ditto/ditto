@@ -258,7 +258,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             // note: start order is important (publisher -> mapping -> consumer actor)
             startCommandProducer();
             startCommandConsumers(c.consumerList, jmsActor);
-            getSelf().tell(getClientReady(), getSelf());
+            notifyConsumersReady();
         } else {
             log.info("ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
         }
@@ -340,7 +340,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final Props props =
                     AmqpPublisherActor.props(connectionId(), getTargetsOrEmptyList(), jmsSession,
                             connectivityConfig.getConnectionConfig());
-            startChildActorConflictFree(namePrefix, props);
+            publisherActor = startChildActorConflictFree(namePrefix, props);
         } else {
             throw ConnectionFailedException
                     .newBuilder(connectionId())
@@ -447,8 +447,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private FSM.State<BaseClientState, BaseClientData> handleProducerClosed(
             final ProducerClosedStatusReport statusReport,
             final BaseClientData currentData) {
-        if (getPublisherActor() != null) {
-            getPublisherActor().tell(statusReport, ActorRef.noSender());
+        if (publisherActor != null) {
+            publisherActor.tell(statusReport, ActorRef.noSender());
         }
         return stay().using(currentData);
     }
@@ -487,7 +487,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
 
         jmsSession = sessionRecovered.getSession();
-        // note: start order is important (publisher -> mapping -> consumer actor)
+
         startCommandProducer();
         startCommandConsumers(sessionRecovered.getConsumerList(), jmsActor);
 

@@ -65,7 +65,7 @@ import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor.PublisherStarted;
+import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -88,6 +88,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -177,13 +178,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .match(CommandResponse.class, this::handleCommandResponse)
                 .match(OutboundSignal.class, this::handleOutboundSignal)
                 .match(Signal.class, this::handleSignal)
-                .match(PublisherStarted.class, publisherStarted -> {
-                    log.debug("Received publisher actor reference: {}", getSender());
-                    publisherActor = getSender();
-                })
+                .match(ResourceReady.class, ResourceReady::isPublisher, this::handlePublisherReady)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()))
+                .match(Terminated.class, this::handleTerminated)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -370,6 +369,20 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         // map to outbound signal without authorized target (responses and errors are only sent to its origin)
         log.debug("Handling raw signal: {}", signal);
         handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptyList()));
+    }
+
+    private void handlePublisherReady(ResourceReady publisherReady) {
+        log.debug("Received publisher reference: {}", publisherReady.getResourceRef());
+        publisherReady.getResourceRef().ifPresent(ref -> this.publisherActor = getContext().watch(ref));
+        // now that we have a publisher reference we can signal readiness for this mapping actor
+        getSender().tell(ResourceReady.mapperReady(), getSelf());
+    }
+
+    private void handleTerminated(Terminated terminated) {
+        if (terminated.getActor().equals(publisherActor)) {
+            log.debug("Associated publisher actor terminated: {}", terminated.getActor());
+            publisherActor = null;
+        }
     }
 
     private Optional<ExternalMessage> mapToExternalMessage(final OutboundSignal outbound) {

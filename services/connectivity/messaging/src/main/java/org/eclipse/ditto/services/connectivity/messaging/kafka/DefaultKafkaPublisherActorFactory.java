@@ -19,7 +19,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Target;
 
-import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -59,7 +58,6 @@ public final class DefaultKafkaPublisherActorFactory implements KafkaPublisherAc
     public Props props(final String connectionId,
             final List<Target> targets,
             final KafkaConnectionFactory factory,
-            final ActorRef kafkaClientActor,
             final boolean dryRun) {
 
         return KafkaPublisherActor.props(connectionId, targets, factory, dryRun);

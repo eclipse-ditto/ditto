@@ -19,9 +19,8 @@ import java.util.List;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttClientActorTest;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,10 +52,13 @@ public class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3P
                     .withFailingSubscribe();
 
             final Props props = HiveMqtt3ClientActor.props(connection, getRef(), clientFactory);
-            final ActorRef mqttClientActor = actorSystem.actorOf(props);
+            final ActorRef mqttClientActor = actorSystem.actorOf(props, "mqttClientActor-testSubscribeFails");
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsgClass(Status.Failure.class);
+
+            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
 

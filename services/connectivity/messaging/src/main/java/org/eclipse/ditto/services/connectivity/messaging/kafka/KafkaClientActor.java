@@ -120,8 +120,8 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
-        // nothing to do here; publisher and consumers started already.
-        getSelf().tell(getClientReady(), getSelf());
+        // consuming not supported, so we report consumer as ready
+        notifyConsumersReady();
     }
 
     @Override
@@ -148,27 +148,26 @@ public final class KafkaClientActor extends BaseClientActor {
     private void startKafkaPublisher(final boolean dryRun) {
         log.info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
-        stopKafkaPublisher();
+        stopPublisherActor();
         final Props publisherActorProps =
-                publisherActorFactory.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, getSelf(),
-                        dryRun);
-        final ActorRef kafkaPublisherActor =
-                startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
-        pendingStatusReportsFromStreams.add(kafkaPublisherActor);
+                publisherActorFactory.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, dryRun);
+        publisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
+        pendingStatusReportsFromStreams.add(publisherActor);
     }
 
     @Override
     protected void cleanupResourcesForConnection() {
         pendingStatusReportsFromStreams.clear();
-        stopKafkaPublisher();
+        stopPublisherActor();
     }
 
 
-    private void stopKafkaPublisher() {
-        if (getPublisherActor() != null) {
-            log.debug("Stopping child actor <{}>.", getPublisherActor().path());
+    @Override
+    protected void stopPublisherActor() {
+        if (publisherActor != null) {
+            log.debug("Stopping child actor <{}>.", publisherActor.path());
             // shutdown using a message, so the actor can clean up first
-            getPublisherActor().tell(KafkaPublisherActor.GracefulStop.INSTANCE, getSelf());
+            publisherActor.tell(KafkaPublisherActor.GracefulStop.INSTANCE, getSelf());
         }
     }
 

@@ -31,8 +31,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
-import com.hivemq.client.mqtt.mqtt3.lifecycle.Mqtt3ClientConnectedContext;
-import com.hivemq.client.mqtt.mqtt3.lifecycle.Mqtt3ClientDisconnectedContext;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscribe;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3SubscribeBuilder;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscription;
@@ -69,12 +67,12 @@ final class HiveMqtt3SubscriptionHandler {
         mqtt3Subscribe = prepareSubscriptions();
     }
 
-    void handleConnected(final Mqtt3ClientConnectedContext connected) {
+    void handleConnected() {
         isConnected = true;
         subscribeIfReady();
     }
 
-    void handleDisconnected(final Mqtt3ClientDisconnectedContext disconnected) {
+    void handleDisconnected() {
         isConnected = false;
     }
 
