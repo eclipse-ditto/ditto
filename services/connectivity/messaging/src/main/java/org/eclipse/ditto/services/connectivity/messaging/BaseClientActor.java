@@ -210,8 +210,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected abstract CompletionStage<Status.Status> doTestConnection(Connection connection);
 
     /**
-     * TODO DG javadoc
-     * Allocate resources (publishers and consumers) once this {@code Client} connected successfully.
+     * Subclasses should allocate resources (publishers and consumers) in the implementation. This method is called once
+     * this {@code Client} connected successfully.
      *
      * @param clientConnected the ClientConnected message which may be subclassed and thus adding more information
      */
@@ -1091,7 +1091,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.info(
                     "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
-            // TODO check if throw is correct here
+            getSender().tell(dre, getSelf());
             throw dre;
         }
 

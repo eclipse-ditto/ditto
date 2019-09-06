@@ -158,7 +158,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                     }
                     subscriptions.clearConsumerActors(this::stopChildActor);
                     stopPublisherActor();
-                    safelyDisconnectClient(client);
+                    safelyDisconnectClient(testClient);
                 });
     }
 
@@ -244,52 +244,15 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         return stay().using(currentData);
     }
 
-    // callback for the hivemq client
     private FSM.State<BaseClientState, BaseClientData> handleClientDisconnected(
             final Mqtt3ClientDisconnectedContext disconnected,
             final BaseClientData currentData) {
-
         log.info("Client disconnected <{}>: {}", connectionId(), disconnected.getCause().getMessage());
         subscriptionHandler.handleDisconnected();
         return stay().using(currentData);
-
-        // On broker failure while connected:
-        //  TODO: reconnect might also be false if settings say it should be false ...
-        //  Client for connection <6fbcd2db-9eb0-4a90-a64e-c6d9290488f1> disconnected. Reconnect is set to <true>. Client state is <CONNECTED>. Cause for disconnect: <com.hivemq.client.mqtt.exceptions.ConnectionClosedException: Server closed connection without DISCONNECT.>.
-
-        // On regular Disconnect
-        //  Client for connection <6fbcd2db-9eb0-4a90-a64e-c6d9290488f1> disconnected. Reconnect is set to <false>. Client state is <CONNECTED>. Cause for disconnect: <com.hivemq.client.mqtt.mqtt3.exceptions.Mqtt3DisconnectException: Client sent DISCONNECT>.
-
-        // On open port but no MQTT possible:
-        //  1. when having status open and then starting the broker:
-        //     log.info("Failed on the initial connect.");
-        //  2. when opening the connection
-        //   Client for connection <6fbcd2db-9eb0-4a90-a64e-c6d9290488f1> disconnected. Reconnect is set to <true>. Client state is <CONNECTING_RECONNECT>. Cause for disconnect: <com.hivemq.client.mqtt.mqtt3.exceptions.Mqtt3DisconnectException: Timeout while waiting for CONNACK>.
-        //    shortly later:
-        //      Failed on the initial connect
-
-
-//        if (context.getClientConfig().getState() == CONNECTING) {
-//            // we get here if the initial connect fails
-//            // see https://github.com/hivemq/hivemq-mqtt-client/issues/302
-//            // connectClient() already handles the initial connection failure
-//            log.info("Failed on the initial connect.");
-//        } else if (context.getClientConfig().getState() == DISCONNECTED) {
-//            // TODO: do we get here when trying to disconnect regularly? Do we need to do afterwards?
-//            log.info("Disconnected regularly. Doing nothing else??");
-//        } else {
-//            log.info(
-//                    "Client for connection <{}> disconnected. Reconnect is set to <{}>. Client state is <{}>. Cause for disconnect: <{}>.",
-//                    connectionId(), context.getReconnector().isReconnect(), context.getClientConfig().getState(),
-//                    context.getCause());
-//            // TODO: getSelf not ok here since in async callback
-//            //  tellToChildren(HiveMqttClientEvents.DISCONNECTED);
-//        }
     }
 
     private void startHiveMqConsumers(Consumer<MqttConsumer> consumerListener) {
-        // TODO: sometimes the hivemq client will run into an exception here if there are multiple consumers on the
-        //  same topic. try to do a reproducer and post to hivemq issues / questions
         connection().getSources().stream()
                 .map(source -> MqttConsumer.of(source,
                         startHiveMqConsumer(isDryRun(), source, getMessageMappingProcessorActor())))
@@ -300,20 +263,6 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         return startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
                 HiveMqtt3ConsumerActor.props(connectionId(), mappingActor, source, dryRun));
     }
-
-    /**
-     * TODO: there are some problems with connection failures / restarts:
-     * When the connection is closed/opened because of some connection failures (broker down, server no mqtt server)
-     * and everything goes really fast, the HiveMqtt3PublisherActor can't be restarted. This is because the clientActor
-     * still knows the name of the actor and therefore thinks it will start a duplicate.
-     *
-     * akka's solution for this problem: The clientActor needs to watch the publisher and wait for a Terminated message of
-     * it.
-     *
-     * Another possible solution: Give the actor another name every time an use a wildcard actor selection in the forwarder
-     * actor. But don't know yet if this is possible (see comment in the ForwarderActor).
-     */
-
 
     @Override
     protected String getMessageMappingActorName() {

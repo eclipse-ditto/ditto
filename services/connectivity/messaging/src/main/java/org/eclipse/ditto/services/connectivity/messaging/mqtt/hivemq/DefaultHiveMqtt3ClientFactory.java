@@ -60,7 +60,6 @@ public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFacto
         mqtt3ClientBuilder.serverHost(uri.getHost());
         mqtt3ClientBuilder.serverPort(uri.getPort());
 
-        // TODO: test if this works -> works!
         final Optional<String> possibleUsername = connection.getUsername();
         final Optional<String> possiblePassword = connection.getPassword();
         if (possibleUsername.isPresent() && possiblePassword.isPresent()) {
@@ -71,7 +70,6 @@ public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFacto
         }
 
         if (allowReconnect && connection.isFailoverEnabled()) {
-            // TODO: use specific config instead of default config
             mqtt3ClientBuilder.automaticReconnectWithDefaultConfig();
         }
 
@@ -84,8 +82,6 @@ public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFacto
                 final TrustManagerFactory trustManagerFactory =
                         DittoTrustManagerFactory.from(connection);
                 sslConfigBuilder.trustManagerFactory(trustManagerFactory);
-            } else {
-                // TODO need to configure accept any trust manager?
             }
 
             connection.getCredentials()

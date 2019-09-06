@@ -72,7 +72,6 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        // TODO this could already be done in client actor?
         receiveBuilder.match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
                 outbound -> log().info("Message dropped in dry run mode: {}", outbound));
     }
@@ -105,7 +104,6 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
         publishMessage(publishTarget, targetQoS, message, publishedMonitor);
     }
 
-    // TODO: we should probably always use AT_MOST_ONCE since we have no persistence and stuff.
     private MqttQos determineQos(@Nullable final Target target) {
         if (target == null) {
             return MqttQos.AT_MOST_ONCE;
@@ -136,7 +134,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
                     publishedMonitor.exception(message, logMessage);
                 }
             });
-        } catch(final Exception e) {
+        } catch (final Exception e) {
             log().info("Won't publish message, since currently in disconnected state.");
             publishedMonitor.failure(message, "Won't publish message since currently not connected.");
         }

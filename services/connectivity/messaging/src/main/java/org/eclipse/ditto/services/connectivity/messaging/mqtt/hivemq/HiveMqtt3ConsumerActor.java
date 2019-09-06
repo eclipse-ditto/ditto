@@ -99,7 +99,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
     }
 
     private Optional<ExternalMessage> hiveToExternalMessage(final Mqtt3Publish message, final String connectionId) {
-        HashMap<String, String> headers = null;
+        final HashMap<String, String> headers = new HashMap<>();
         try {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
             final ByteBuffer payload = message.getPayload()
@@ -110,8 +110,6 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
                 log.debug("Received MQTT message on topic <{}>: {}", topic,
                         ByteBufferUtils.toUtf8String(payload));
             }
-            headers = new HashMap<>();
-
             headers.put(MQTT_TOPIC_HEADER, topic);
             final ExternalMessage externalMessage = ExternalMessageFactory
                     .newExternalMessageBuilder(headers)
@@ -122,7 +120,6 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
                     .build();
             inboundMonitor.success(externalMessage);
 
-
             return Optional.of(externalMessage);
         } catch (final DittoRuntimeException e) {
             log.info("Failed to handle MQTT message: {}", e.getMessage());
@@ -130,8 +127,6 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
         } catch (final Exception e) {
             log.info("Failed to handle MQTT message: {}", e.getMessage());
             inboundMonitor.exception(headers, e);
-        } finally {
-            // TODO: cleanup LogUtil
         }
         return Optional.empty();
     }
