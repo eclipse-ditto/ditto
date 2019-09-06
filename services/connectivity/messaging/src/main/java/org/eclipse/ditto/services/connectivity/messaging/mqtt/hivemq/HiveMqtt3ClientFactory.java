@@ -39,13 +39,13 @@ public interface HiveMqtt3ClientFactory {
      * @param disconnectedListener the disconnected listener passed to the created client
      * @return the new {@link Mqtt3Client}
      */
-    Mqtt3Client newClient(final Connection connection, final String identifier, final boolean allowReconnect,
-            @Nullable final MqttClientConnectedListener connectedListener,
-            @Nullable final MqttClientDisconnectedListener disconnectedListener);
+    Mqtt3Client newClient(Connection connection, String identifier, boolean allowReconnect,
+            @Nullable MqttClientConnectedListener connectedListener,
+            @Nullable MqttClientDisconnectedListener disconnectedListener);
 
 
     /**
-     * reates a new {@link Mqtt3Client}.
+     * Creates a new {@link Mqtt3Client}.
      *
      * @param connection the connection containing the configuration
      * @param identifier the identifier of the client

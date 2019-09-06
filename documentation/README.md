@@ -22,7 +22,7 @@ Use that if you are on a UNIX system (or have the Ubuntu bash subsystem for Wind
 If you're behind a proxy, you can use the `http_proxy` parameter.
 
 ```bash
-sudo apt-get install build-essential ruby-dev libcurl3
+sudo apt-get install build-essential ruby-dev libcurl3 zlib1g-dev
 sudo gem install [--http-proxy http://localhost:3128] jekyll
 sudo gem install [--http-proxy http://localhost:3128] jekyll-sitemap
 sudo gem install [--http-proxy http://localhost:3128] html-proofer
@@ -32,7 +32,7 @@ Watch all resources and start local server serving the Jekyll content at [http:/
 
 ```bash
 cd src/main/resources
-jekyll serve
+jekyll serve --verbose --unpublished
 ```
 
 Validate that the HTML does not contain dead links, etc.:

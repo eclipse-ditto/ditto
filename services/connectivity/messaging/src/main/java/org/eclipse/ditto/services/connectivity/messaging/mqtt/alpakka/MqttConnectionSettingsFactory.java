@@ -20,8 +20,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.credentials.Credentials;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.AcceptAnyTrustManager;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import akka.stream.alpakka.mqtt.MqttConnectionSettings;
@@ -41,8 +42,12 @@ final class MqttConnectionSettingsFactory {
 
     MqttConnectionSettings createMqttConnectionSettings(final Connection connection, final DittoHeaders dittoHeaders) {
         final String uri = connection.getUri();
+
+        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
+        final String mqttClientId = mqttSpecificConfig.getMqttClientId().orElse(connection.getId());
+
         MqttConnectionSettings connectionSettings = MqttConnectionSettings
-                .create(uri, connection.getId(), new MemoryPersistence());
+                .create(uri, mqttClientId, new MemoryPersistence());
 
         connectionSettings = connectionSettings.withAutomaticReconnect(connection.isFailoverEnabled());
 

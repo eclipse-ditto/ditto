@@ -54,18 +54,15 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
     @Override
     public akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> newSource(final Source mqttSource,
             final int bufferSize) {
-        final String clientId = connectionId() + "-source" + mqttSource.getIndex();
-        final MqttConnectionSettings connectionSettings = settings.withClientId(clientId);
         return akka.stream.alpakka.mqtt.javadsl.MqttSource.atMostOnce(
-                connectionSettings,
+                settings,
                 MqttSubscriptions.create(getSubscriptions(mqttSource)),
                 bufferSize);
     }
 
     @Override
     public Sink<MqttMessage, CompletionStage<Done>> newSink() {
-        final String clientId = connectionId() + "-publisher";
-        return MqttSink.create(settings.withClientId(clientId), MqttQoS.atMostOnce());
+        return MqttSink.create(settings, MqttQoS.atMostOnce());
     }
 
     private static List<Pair<String, MqttQoS>> getSubscriptions(final Source mqttSource) {

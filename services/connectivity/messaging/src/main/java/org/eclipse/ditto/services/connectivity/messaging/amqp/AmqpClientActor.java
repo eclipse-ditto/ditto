@@ -256,7 +256,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             jmsConnection.addConnectionListener(connectionListener);
             jmsSession = c.session;
             // note: start order is important (publisher -> mapping -> consumer actor)
-            startCommandProducer();
+            startPublisherActor();
             startCommandConsumers(c.consumerList, jmsActor);
             notifyConsumersReady();
         } else {
@@ -333,7 +333,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         consumerByNamePrefix.put(namePrefix, child);
     }
 
-    private void startCommandProducer() {
+    private void startPublisherActor() {
         stopPublisherActor();
         final String namePrefix = AmqpPublisherActor.ACTOR_NAME_PREFIX;
         if (jmsSession != null) {
@@ -488,7 +488,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         jmsSession = sessionRecovered.getSession();
 
-        startCommandProducer();
+        startPublisherActor();
         startCommandConsumers(sessionRecovered.getConsumerList(), jmsActor);
 
         connectionLogger.success("Session has been recovered successfully.");

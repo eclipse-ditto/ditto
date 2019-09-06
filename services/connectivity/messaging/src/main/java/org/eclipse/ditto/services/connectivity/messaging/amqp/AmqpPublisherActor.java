@@ -244,7 +244,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         .entrySet()
                         .stream()
                         // skip special jms properties in generic mapping
-                        .filter(h -> !JMS_HEADER_MAPPING.keySet().contains(h.getKey()))
+                        .filter(h -> !JMS_HEADER_MAPPING.containsKey(h.getKey()))
                         .forEach(entry -> {
                             try {
                                 amqpJmsMessageFacade.setApplicationProperty(entry.getKey(), entry.getValue());

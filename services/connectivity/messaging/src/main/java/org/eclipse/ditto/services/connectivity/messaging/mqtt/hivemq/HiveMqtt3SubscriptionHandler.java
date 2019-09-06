@@ -101,13 +101,13 @@ final class HiveMqtt3SubscriptionHandler {
                     .allOf(mqtt3Subscribe.entrySet().stream()
                             .map(e -> {
                                 final Source source = e.getKey();
-                                final Mqtt3Subscribe mqtt3Subscribe = e.getValue();
+                                final Mqtt3Subscribe theMqtt3Subscribe = e.getValue();
                                 final ActorRef consumerActorRef = consumerActors.get(source);
                                 if (consumerActorRef == null) {
                                     failureHandler.accept(noConsumerActorFound(source));
                                     return failedFuture(new IllegalStateException("no consumer"));
                                 } else {
-                                    return subscribe(source, mqtt3Subscribe, consumerActorRef);
+                                    return subscribe(source, theMqtt3Subscribe, consumerActorRef);
                                 }
                             })
                             .toArray(CompletableFuture[]::new))

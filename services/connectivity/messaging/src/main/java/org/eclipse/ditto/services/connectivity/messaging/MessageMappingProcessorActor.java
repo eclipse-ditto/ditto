@@ -371,14 +371,14 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptyList()));
     }
 
-    private void handlePublisherReady(ResourceReady publisherReady) {
+    private void handlePublisherReady(final ResourceReady publisherReady) {
         log.debug("Received publisher reference: {}", publisherReady.getResourceRef());
         publisherReady.getResourceRef().ifPresent(ref -> this.publisherActor = getContext().watch(ref));
         // now that we have a publisher reference we can signal readiness for this mapping actor
         getSender().tell(ResourceReady.mapperReady(), getSelf());
     }
 
-    private void handleTerminated(Terminated terminated) {
+    private void handleTerminated(final Terminated terminated) {
         if (terminated.getActor().equals(publisherActor)) {
             log.debug("Associated publisher actor terminated: {}", terminated.getActor());
             publisherActor = null;

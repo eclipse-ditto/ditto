@@ -110,6 +110,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
                 log.debug("Received MQTT message on topic <{}>: {}", topic,
                         ByteBufferUtils.toUtf8String(payload));
             }
+
             headers.put(MQTT_TOPIC_HEADER, topic);
             final ExternalMessage externalMessage = ExternalMessageFactory
                     .newExternalMessageBuilder(headers)

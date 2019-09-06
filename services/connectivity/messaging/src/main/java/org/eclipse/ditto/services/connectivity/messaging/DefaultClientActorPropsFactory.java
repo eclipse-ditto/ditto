@@ -60,10 +60,10 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
             case AMQP_10:
                 return AmqpClientActor.props(connection, conciergeForwarder);
             case MQTT:
-                if (connectionConfig.getMqttConfig().isExperimental()) {
-                    return HiveMqtt3ClientActor.props(connection, conciergeForwarder);
+                if (connectionConfig.getMqttConfig().isLegacyMode()) {
+                    return MqttClientActor.props(connection, conciergeForwarder);
                 }
-                return MqttClientActor.props(connection, conciergeForwarder);
+                return HiveMqtt3ClientActor.props(connection, conciergeForwarder);
             case KAFKA:
                 return KafkaClientActor.props(connection, conciergeForwarder,
                         DefaultKafkaPublisherActorFactory.getInstance());

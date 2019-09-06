@@ -31,6 +31,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOr
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt3SubscriptionHandler.MqttConsumer;
 
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
@@ -43,8 +44,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
-
-// TODO: allow setting an own clientId (by the user) instead of using the connection id.
 
 /**
  * Actor which handles connection to MQTT 3.1.1 server.
@@ -65,8 +64,11 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         super(connection, connection.getConnectionStatus(), conciergeForwarder);
         this.clientFactory = clientFactory;
 
+        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
+        final String mqttClientId = mqttSpecificConfig.getMqttClientId().orElse(connection.getId());
+
         final ActorRef self = getContext().getSelf();
-        client = clientFactory.newClient(connection, connection.getId(), true,
+        client = clientFactory.newClient(connection, mqttClientId, true,
                 connected -> self.tell(connected, ActorRef.noSender()),
                 disconnected -> self.tell(disconnected, ActorRef.noSender()));
 
@@ -75,8 +77,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                 this::notifyConsumersReady, log);
     }
 
-    @SuppressWarnings("unused")
-        // used by `props` via reflection
+    @SuppressWarnings("unused") // used by `props` via reflection
     HiveMqtt3ClientActor(final Connection connection,
             final ActorRef conciergeForwarder) {
         this(connection, conciergeForwarder, DefaultHiveMqtt3ClientFactory.getInstance());
@@ -122,8 +123,11 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
+
+        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
+        final String mqttClientId = mqttSpecificConfig.getMqttClientId().orElse(connection.getId());
         // attention: do not use reconnect, otherwise the future never returns
-        final Mqtt3Client testClient = clientFactory.newClient(connection, connection.getId(), false);
+        final Mqtt3Client testClient = clientFactory.newClient(connection, mqttClientId, false);
         final CompletableFuture<Status.Status> subscriptionsFuture = new CompletableFuture<>();
         final HiveMqtt3SubscriptionHandler testSubscriptions = new HiveMqtt3SubscriptionHandler(connection, testClient,
                 f -> subscriptionsFuture.completeExceptionally(f.getFailure().cause()),
@@ -253,7 +257,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         return stay().using(currentData);
     }
 
-    private void startHiveMqConsumers(Consumer<MqttConsumer> consumerListener) {
+    private void startHiveMqConsumers(final Consumer<MqttConsumer> consumerListener) {
         connection().getSources().stream()
                 .map(source -> MqttConsumer.of(source,
                         startHiveMqConsumer(isDryRun(), source, getMessageMappingProcessorActor())))

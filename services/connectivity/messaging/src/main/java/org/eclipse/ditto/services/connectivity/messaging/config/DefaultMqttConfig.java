@@ -34,7 +34,7 @@ public final class DefaultMqttConfig implements MqttConfig {
     private final int sourceBufferSize;
 
     private DefaultMqttConfig(final ScopedConfig config) {
-        experimental = config.getBoolean(MqttConfigValue.EXPERIMENTAL.getConfigPath());
+        experimental = config.getBoolean(MqttConfigValue.LEGACY_MODE.getConfigPath());
         sourceBufferSize = config.getInt(MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath());
     }
 
@@ -50,7 +50,7 @@ public final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
-    public boolean isExperimental() {
+    public boolean isLegacyMode() {
         return experimental;
     }
 
