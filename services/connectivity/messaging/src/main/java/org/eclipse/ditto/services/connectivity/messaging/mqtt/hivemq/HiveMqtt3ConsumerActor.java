@@ -105,16 +105,14 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
             final ByteBuffer payload = message.getPayload()
                     .map(ByteBuffer::asReadOnlyBuffer)
                     .orElse(ByteBufferUtils.empty());
+            final String textPayload = ByteBufferUtils.toUtf8String(payload);
             final String topic = message.getTopic().toString();
-            if (log.isDebugEnabled()) {
-                log.debug("Received MQTT message on topic <{}>: {}", topic,
-                        ByteBufferUtils.toUtf8String(payload));
-            }
+            log.debug("Received MQTT message on topic <{}>: {}", topic, textPayload);
 
             headers.put(MQTT_TOPIC_HEADER, topic);
             final ExternalMessage externalMessage = ExternalMessageFactory
                     .newExternalMessageBuilder(headers)
-                    .withBytes(payload)
+                    .withTextAndBytes(textPayload, payload)
                     .withAuthorizationContext(authorizationContext)
                     .withEnforcement(getEnforcementFilter(topic))
                     .withSourceAddress(sourceAddress)

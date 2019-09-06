@@ -25,7 +25,8 @@ import org.mozilla.javascript.typedarrays.NativeArrayBuffer;
 
 public class ScriptedIncomingMappingTest {
 
-    private static final byte[] BYTES = "payload".getBytes();
+    private static final String PAYLOAD = "payload";
+    private static final byte[] BYTES = PAYLOAD.getBytes();
 
     @Test
     public void mapExternalMessage() {
@@ -35,6 +36,21 @@ public class ScriptedIncomingMappingTest {
     @Test
     public void mapExternalMessageFromReadOnlyBuffer() {
         mapExternalMessage(ByteBuffer.wrap(BYTES).asReadOnlyBuffer());
+    }
+
+    @Test
+    public void mapExternalMessageTextAndBytes() {
+        final ExternalMessage externalMessage = ExternalMessageFactory
+                .newExternalMessageBuilder(new HashMap<>())
+                .withTextAndBytes(PAYLOAD, ByteBuffer.wrap(BYTES))
+                .build();
+
+        final NativeObject nativeObject = ScriptedIncomingMapping.mapExternalMessageToNativeObject(externalMessage);
+
+        final String textPayload = (String) nativeObject.get("textPayload");
+        final NativeArrayBuffer bytePayload = (NativeArrayBuffer) nativeObject.get("bytePayload");
+        assertThat(textPayload).isEqualTo(PAYLOAD);
+        assertThat(bytePayload.getBuffer()).isEqualTo(BYTES);
     }
 
     private void mapExternalMessage(final ByteBuffer source) {

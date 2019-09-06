@@ -103,18 +103,15 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     }
 
     private void handleMqttMessage(final MqttMessage message) {
-        HashMap<String, String> headers = null;
+        HashMap<String, String> headers = new HashMap<>();
         try {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
-            if (log.isDebugEnabled()) {
-                log.debug("Received MQTT message on topic <{}>: {}", message.topic(),
-                        message.payload().utf8String());
-            }
-            headers = new HashMap<>();
+            final String textPayload = message.payload().utf8String();
+            log.debug("Received MQTT message on topic <{}>: {}", message.topic(), textPayload);
 
             headers.put(MQTT_TOPIC_HEADER, message.topic());
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                    .withBytes(message.payload().toByteBuffer())
+                    .withTextAndBytes(textPayload, message.payload().toByteBuffer())
                     .withAuthorizationContext(authorizationContext)
                     .withEnforcement(getEnforcementFilter(message.topic()))
                     .withSourceAddress(sourceAddress)

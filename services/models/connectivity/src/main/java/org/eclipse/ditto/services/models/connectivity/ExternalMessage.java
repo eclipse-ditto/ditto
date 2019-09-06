@@ -155,6 +155,7 @@ public interface ExternalMessage {
     enum PayloadType {
         TEXT,
         BYTES,
+        TEXT_AND_BYTES,
         UNKNOWN
     }
 }

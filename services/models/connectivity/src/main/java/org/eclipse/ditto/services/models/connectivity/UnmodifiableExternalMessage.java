@@ -110,12 +110,12 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
 
     @Override
     public boolean isTextMessage() {
-        return PayloadType.TEXT.equals(payloadType);
+        return PayloadType.TEXT.equals(payloadType) || PayloadType.TEXT_AND_BYTES.equals(payloadType);
     }
 
     @Override
     public boolean isBytesMessage() {
-        return PayloadType.BYTES.equals(payloadType);
+        return PayloadType.BYTES.equals(payloadType) || PayloadType.TEXT_AND_BYTES.equals(payloadType);
     }
 
     @Override
