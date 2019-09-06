@@ -20,13 +20,11 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -48,6 +46,7 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttTopic;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
+
 import akka.stream.alpakka.mqtt.MqttQoS;
 
 /**
@@ -60,8 +59,9 @@ public final class MqttValidator extends AbstractProtocolValidator {
     private static final String QOS = "qos";
 
     private static final Collection<String> ACCEPTED_SCHEMES =
-            Collections.unmodifiableList(Arrays.asList("tcp", "ssl", "ws", "wss"));
-    private static final Collection<String> SECURE_SCHEMES = Collections.unmodifiableList(Arrays.asList("ssl", "wss"));
+            Collections.unmodifiableList(Arrays.asList("tcp", "ssl"));
+    private static final Collection<String> SECURE_SCHEMES = Collections.unmodifiableList(
+            Collections.singletonList("ssl"));
 
     private static final String ERROR_DESCRIPTION = "''{0}'' is not a valid value for mqtt enforcement. Valid" +
             " values are: ''{1}''.";

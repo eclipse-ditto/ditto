@@ -1117,11 +1117,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
          */
         return getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
                 .withDispatcher("message-mapping-processor-dispatcher")
-                .props(props), getMessageMappingActorName());
-    }
-
-    protected String getMessageMappingActorName() {
-        return nextChildActorName(MessageMappingProcessorActor.ACTOR_NAME);
+                .props(props), MessageMappingProcessorActor.ACTOR_NAME);
     }
 
     protected boolean isDryRun() {

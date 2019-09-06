@@ -261,9 +261,14 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         enhanceLogUtil(exception);
 
-        final String stackTrace = stackTraceAsString(exception);
-        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
-                exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
+        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
+                exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""));
+
+        if (log.isDebugEnabled()) {
+            final String stackTrace = stackTraceAsString(exception);
+            log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
+                    exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
+        }
 
         handleCommandResponse(errorResponse, exception);
     }

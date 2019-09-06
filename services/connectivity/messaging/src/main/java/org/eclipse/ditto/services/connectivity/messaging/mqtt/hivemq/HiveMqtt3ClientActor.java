@@ -26,7 +26,6 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
-import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
@@ -279,11 +278,6 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     private ActorRef startHiveMqConsumer(final boolean dryRun, final Source source, final ActorRef mappingActor) {
         return startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
                 HiveMqtt3ConsumerActor.props(connectionId(), mappingActor, source, dryRun));
-    }
-
-    @Override
-    protected String getMessageMappingActorName() {
-        return MessageMappingProcessorActor.ACTOR_NAME;
     }
 
     private void stopCommandConsumers(final HiveMqtt3SubscriptionHandler subscriptionHandler) {

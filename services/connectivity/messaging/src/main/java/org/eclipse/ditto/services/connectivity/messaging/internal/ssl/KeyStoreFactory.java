@@ -17,9 +17,7 @@ import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
-import javax.net.ssl.TrustManager;
-
-public class KeyStoreFactory {
+final class KeyStoreFactory {
 
     private final ExceptionMapper exceptionMapper;
 
