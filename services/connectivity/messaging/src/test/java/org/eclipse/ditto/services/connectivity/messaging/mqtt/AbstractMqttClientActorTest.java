@@ -137,6 +137,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
 
             mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
+
+            expectDisconnectCalled();
         }};
     }
 
@@ -151,6 +153,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
 
             // client actor should be stopped after testing
             expectTerminated(mqttClientActor);
+
+            expectDisconnectCalled();
         }};
     }
 
@@ -163,6 +167,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
             final Status.Failure failure = expectMsgClass(Status.Failure.class);
             assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
+
+            expectDisconnectCalled();
         }};
     }
 
@@ -397,4 +403,6 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     @Nullable protected abstract String extractTopic(M message);
 
     protected abstract Class<M> getMessageClass();
+
+    protected abstract void expectDisconnectCalled();
 }

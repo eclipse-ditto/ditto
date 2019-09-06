@@ -21,16 +21,12 @@ import java.util.function.BiFunction;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttClientActorTest;
-import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.alpakka.mqtt.MqttMessage;
-import akka.testkit.javadsl.TestKit;
 import akka.util.ByteString;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -78,5 +74,10 @@ public final class MqttClientActorTest extends AbstractMqttClientActorTest<MqttM
 
         return Props.create(MqttClientActor.class, connection, connection.getConnectionStatus(), conciergeForwarder,
                 factoryCreator);
+    }
+
+    @Override
+    protected void expectDisconnectCalled() {
+        // not required
     }
 }

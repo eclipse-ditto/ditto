@@ -124,10 +124,10 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
         // attention: do not use reconnect, otherwise the future never returns
         final Mqtt3Client testClient = clientFactory.newClient(connection, connection.getId(), false);
-        final CompletableFuture<Status.Status> subscriptionsTest = new CompletableFuture<>();
-        final HiveMqtt3SubscriptionHandler subscriptions = new HiveMqtt3SubscriptionHandler(connection, testClient,
-                f -> subscriptionsTest.completeExceptionally(f.getFailure().cause()),
-                () -> subscriptionsTest.complete(new Status.Success("subscriptions started")), log);
+        final CompletableFuture<Status.Status> subscriptionsFuture = new CompletableFuture<>();
+        final HiveMqtt3SubscriptionHandler testSubscriptions = new HiveMqtt3SubscriptionHandler(connection, testClient,
+                f -> subscriptionsFuture.completeExceptionally(f.getFailure().cause()),
+                () -> subscriptionsFuture.complete(new Status.Success("subscriptions started")), log);
         return testClient
                 .toAsync()
                 .connectWith()
@@ -144,9 +144,9 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                     return CompletableFuture.completedFuture(new Status.Success("publisher started"));
                 })
                 .thenCompose(s -> {
-                    subscriptions.handleConnected();
-                    startHiveMqConsumers(subscriptions::handleMqttConsumer);
-                    return subscriptionsTest;
+                    testSubscriptions.handleConnected();
+                    startHiveMqConsumers(testSubscriptions::handleMqttConsumer);
+                    return subscriptionsFuture;
                 })
                 .exceptionally(cause -> {
                     log.info("Connection test to {} failed: {}", connection.getUri(), cause.getMessage());
@@ -154,9 +154,9 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                 })
                 .whenComplete((s, t) -> {
                     if (t == null) {
-                        log.info("Connecttion test for {} was successful.", connectionId());
+                        log.info("Connection test for {} was successful.", connectionId());
                     }
-                    subscriptions.clearConsumerActors(this::stopChildActor);
+                    stopCommandConsumers(testSubscriptions);
                     stopPublisherActor();
                     safelyDisconnectClient(testClient);
                 });
@@ -214,7 +214,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     @Override
     protected void cleanupResourcesForConnection() {
-        stopCommandConsumers();
+        stopCommandConsumers(subscriptionHandler);
         stopPublisherActor();
         safelyDisconnectClient(client);
     }
@@ -222,18 +222,19 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     /**
      * Call only in case of a failure to make sure the client is closed properly. E.g. when subscribing to a topic
      * failed the connection is already established and must be closed to avoid resource leaks.
-     * @param client the client to disconnect
+     * @param mqtt3Client the client to disconnect
      */
-    private void safelyDisconnectClient(final Mqtt3Client client) {
+    private void safelyDisconnectClient(final Mqtt3Client mqtt3Client) {
         try {
-            disconnectClient(client);
+            log.debug("Disconnecting mqtt client, ignoring any errors.");
+            disconnectClient(mqtt3Client);
         } catch (final Throwable throwable) {
             log.debug("Disconnecting client failed, it was probably already closed.");
         }
     }
 
-    private CompletionStage<Void> disconnectClient(final Mqtt3Client client) {
-        return client.toAsync().disconnect();
+    private CompletionStage<Void> disconnectClient(final Mqtt3Client mqtt3Client) {
+        return mqtt3Client.toAsync().disconnect();
     }
 
     private FSM.State<BaseClientState, BaseClientData> handleClientConnected(
@@ -269,7 +270,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         return MessageMappingProcessorActor.ACTOR_NAME;
     }
 
-    private void stopCommandConsumers() {
+    private void stopCommandConsumers(final HiveMqtt3SubscriptionHandler subscriptionHandler) {
         subscriptionHandler.clearConsumerActors(this::stopChildActor);
     }
 

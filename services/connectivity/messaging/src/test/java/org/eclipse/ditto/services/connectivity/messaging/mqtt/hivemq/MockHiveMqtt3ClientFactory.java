@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 import static org.mockito.Answers.RETURNS_SELF;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
@@ -50,16 +52,13 @@ import akka.actor.ActorRef;
  */
 class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
 
-    private final Mqtt3Client client;
     private Exception connectException = null;
     private final Map<String, List<Mqtt3Publish>> messages = new HashMap<>();
     private ActorRef testProbe;
     private CompletableFuture<Mqtt3SubAck> subscribeFuture =
             CompletableFuture.completedFuture(mock(Mqtt3SubAck.class));
 
-    MockHiveMqtt3ClientFactory(final Mqtt3Client mockClient) {
-        this.client = mockClient;
-    }
+    private final List<Mqtt3Client> clients = new LinkedList<>();
 
     MockHiveMqtt3ClientFactory withException(final Exception connectException) {
         this.connectException = connectException;
@@ -92,10 +91,18 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
         return this;
     }
 
+    void expectDisconnectCalled() {
+        clients.forEach(c -> verify(c.toAsync(), timeout(500)
+                .atLeastOnce() // disconnect may be called multiple times, just be sure connection is closed
+        ).disconnect());
+    }
+
     @Override
     public Mqtt3Client newClient(final Connection connection, final String identifier, final boolean reconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener) {
+
+        final Mqtt3Client client = mock(Mqtt3Client.class);
 
         final Mqtt3AsyncClient async = Mockito.mock(Mqtt3AsyncClient.class);
         when(client.toAsync()).thenReturn(async);
@@ -117,6 +124,10 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
             if (connectedListener != null) {
                 connectedListener.onConnected(mock(Mqtt3ClientConnectedContext.class));
             }
+
+            // remember which clients are connected to verify disconnect later
+            clients.add(client);
+
             return connectFuture;
         });
 
