@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.cleanup;
+package org.eclipse.ditto.services.utils.persistentactors;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;

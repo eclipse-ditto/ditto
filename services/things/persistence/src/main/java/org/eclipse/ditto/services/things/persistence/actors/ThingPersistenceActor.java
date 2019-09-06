@@ -42,10 +42,10 @@ import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoSnapsh
 import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.services.utils.persistentactors.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -290,7 +290,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
                 .build();
 
         getContext().become(receive, true);
-        getContext().getParent().tell(ThingSupervisorActor.ManualReset.INSTANCE, getSelf());
 
         scheduleCheckForThingActivity(thingConfig.getActivityCheckConfig().getInactiveInterval());
         scheduleSnapshot();
@@ -342,7 +341,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
                 .build();
 
         getContext().become(receive, true);
-        getContext().getParent().tell(ThingSupervisorActor.ManualReset.INSTANCE, getSelf());
 
         /* check in the next X minutes and therefore
          * - stay in-memory for a short amount of minutes after deletion

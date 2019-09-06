@@ -22,13 +22,18 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-services-utils-cleanup</artifactId>
-    <name>Eclipse Ditto :: Services :: Utils :: Cleanup Utils</name>
+    <artifactId>ditto-services-utils-persistent-actors</artifactId>
+    <name>Eclipse Ditto :: Services :: Utils :: Persistent Actors</name>
 
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-cleanup</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-base</artifactId>
         </dependency>
 
         <dependency>
@@ -40,6 +45,20 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.version}</artifactId>
         </dependency>
+        <!-- TODO: evaluate akka-typed or remove
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-actor-typed_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster-typed_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-persistence-typed_${scala.version}</artifactId>
+        </dependency>
+        -->
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-persistence_${scala.version}</artifactId>

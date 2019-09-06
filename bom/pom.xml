@@ -126,6 +126,23 @@
                 <artifactId>akka-actor_${scala.version}</artifactId>
                 <version>${akka.version}</version>
             </dependency>
+            <!-- TODO: evaluate akka-typed or remove
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-persistence-typed_${scala.version}</artifactId>
+                <version>${akka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-actor-typed_${scala.version}</artifactId>
+                <version>${akka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-cluster-typed_${scala.version}</artifactId>
+                <version>${akka.version}</version>
+            </dependency>
+            -->
             <dependency>
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-cluster_${scala.version}</artifactId>
@@ -756,7 +773,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-cleanup</artifactId>
+                <artifactId>ditto-services-utils-persistent-actors</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

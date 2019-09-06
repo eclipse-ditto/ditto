@@ -12,91 +12,42 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.policy;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
-import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
-import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
-import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
-import akka.actor.OneForOneStrategy;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
-import akka.actor.SupervisorStrategy;
-import akka.actor.Terminated;
-import akka.cluster.sharding.ShardRegion;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.DeciderBuilder;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Supervisor for {@link PolicyPersistenceActor} which means it will create, start and watch it as child actor.
  * <p>
  * If the child terminates, it will wait for the calculated exponential back-off time and restart it afterwards.
- * The child has to send {@link ManualReset} after it started successfully.
  * Between the termination of the child and the restart, this actor answers to all requests with a {@link
  * PolicyUnavailableException} as fail fast strategy.
  */
-public final class PolicySupervisorActor extends AbstractActor {
+public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<PolicyId> {
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final ActorRef pubSubMediator;
+    private final SnapshotAdapter<Policy> snapshotAdapter;
 
-    private final Props persistenceActorProps;
-    private final PolicyId policyId;
-    private final ExponentialBackOffConfig exponentialBackOffConfig;
-    private final ShutdownBehaviour shutdownBehaviour;
-
-    @Nullable private ActorRef child;
-    private long restartCount;
-
-    private final SupervisorStrategy supervisorStrategy = new OneForOneStrategy(true, DeciderBuilder
-            .match(NullPointerException.class, e -> SupervisorStrategy.restart())
-            .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
-            .matchAny(e -> SupervisorStrategy.escalate())
-            .build());
-
-    private PolicySupervisorActor(final ActorRef pubSubMediator,
-            final SnapshotAdapter<Policy> snapshotAdapter) {
-
-        final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
-        try {
-            final String policyIdString = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
-            policyId = PolicyId.of(policyIdString);
-        } catch (final UnsupportedEncodingException e) {
-            throw new IllegalStateException("Unsupported encoding!", e);
-        }
-        persistenceActorProps = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
-        exponentialBackOffConfig = policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
-        shutdownBehaviour = ShutdownBehaviour.fromId(
-                DefaultNamespacedEntityId.of(policyId), pubSubMediator, getSelf());
-
-        child = null;
-        restartCount = 0L;
+    private PolicySupervisorActor(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter) {
+        this.pubSubMediator = pubSubMediator;
+        this.snapshotAdapter = snapshotAdapter;
     }
 
     /**
@@ -115,174 +66,33 @@ public final class PolicySupervisorActor extends AbstractActor {
         return Props.create(PolicySupervisorActor.class, pubSubMediator, snapshotAdapter);
     }
 
-    private Collection<ReceiveStrategy<?>> initReceiveStrategies() {
-        final Collection<ReceiveStrategy<?>> result = new ArrayList<>(3);
-        result.add(new StartChildStrategy());
-        result.add(new ChildTerminatedStrategy());
-        result.add(new ManualResetStrategy());
-
-        return result;
+    @Override
+    protected PolicyId getEntityId() throws Exception {
+        return PolicyId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
     }
 
     @Override
-    public SupervisorStrategy supervisorStrategy() {
-        return supervisorStrategy;
+    protected Props getPersistenceActorProps(final PolicyId entityId) {
+        return PolicyPersistenceActor.props(entityId, snapshotAdapter, pubSubMediator);
     }
 
     @Override
-    public void preStart() throws Exception {
-        super.preStart();
-        startChild();
+    protected ExponentialBackOffConfig getExponentialBackOffConfig() {
+        final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
+        return policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
     }
 
     @Override
-    public Receive createReceive() {
-        final Collection<ReceiveStrategy<?>> receiveStrategies = initReceiveStrategies();
-        final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder = new StrategyAwareReceiveBuilder();
-        receiveStrategies.forEach(strategyAwareReceiveBuilder::match);
-        strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
-
-        return shutdownBehaviour.createReceive()
-                .matchEquals(Control.PASSIVATE, this::passivate)
-                .build()
-                .orElse(strategyAwareReceiveBuilder.build());
+    protected ShutdownBehaviour getShutdownBehaviour(final PolicyId entityId) {
+        return ShutdownBehaviour.fromId(entityId, pubSubMediator, getSelf());
     }
 
-    private void startChild() {
-        if (null == child) {
-            log.debug("Starting persistence actor for Policy with ID <{}>.", policyId);
-            final ActorRef childRef = getContext().actorOf(persistenceActorProps, "pa");
-            child = getContext().watch(childRef);
-        }
-    }
-
-    private void passivate(final Control passivationTrigger) {
-        getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
-    }
-
-    /**
-     * Message that should be sent to this actor to indicate a working child and reset the exponential backoff
-     * mechanism.
-     */
-    static final class ManualReset {
-
-    }
-
-    /**
-     * This strategy handles the Termination of the child actor by restarting it after an exponential backoff.
-     */
-    @NotThreadSafe
-    private final class ChildTerminatedStrategy extends AbstractReceiveStrategy<Terminated> {
-
-        ChildTerminatedStrategy() {
-            super(Terminated.class, log);
-        }
-
-        @Override
-        public void doApply(final Terminated message) {
-            log.warning("Persistence actor for Policy with ID <{}> terminated abnormally.", policyId);
-            if (message.getAddressTerminated()) {
-                log.error("Persistence actor for Policy with ID <{}> terminated abnormally " +
-                        "because it crashed or because of network failure!", policyId);
-            }
-            child = null;
-            final Duration restartDelay = calculateRestartDelay();
-            getContext().system().scheduler()
-                    .scheduleOnce(new FiniteDuration(restartDelay.toNanos(), TimeUnit.NANOSECONDS), getSelf(),
-                            new StartChild(),
-                            getContext().dispatcher(), null);
-            restartCount += 1;
-        }
-
-        private Duration calculateRestartDelay() {
-            final Duration maxBackOff = exponentialBackOffConfig.getMax();
-            if (restartCount >= 30) { // Duration overflow protection (> 100 years)
-                return maxBackOff;
-            }
-            final Duration minBackOff = exponentialBackOffConfig.getMin();
-            final double rnd =
-                    1.0 + ThreadLocalRandom.current().nextDouble() * exponentialBackOffConfig.getRandomFactor();
-            final double backOff = minBackOff.toNanos() * Math.pow(2, restartCount) * rnd;
-            return Duration.ofNanos(Math.min(maxBackOff.toNanos(), (long) backOff));
-        }
-
-    }
-
-    /**
-     * Message that is sent to the actor by itself to restart the child.
-     */
-    private static final class StartChild {
-
-    }
-
-    /**
-     * This strategy handles a {@link StartChild} message by starting the child actor immediatly.
-     */
-    @NotThreadSafe
-    private final class StartChildStrategy extends AbstractReceiveStrategy<StartChild> {
-
-        StartChildStrategy() {
-            super(StartChild.class, log);
-        }
-
-        @Override
-        public void doApply(final StartChild message) {
-            startChild();
-        }
-
-    }
-
-    /**
-     * This strategy handles a {@link ManualReset} message by resetting the exponential backoff restart count.
-     */
-    @NotThreadSafe
-    private final class ManualResetStrategy extends AbstractReceiveStrategy<ManualReset> {
-
-        ManualResetStrategy() {
-            super(ManualReset.class, log);
-        }
-
-        @Override
-        public void doApply(final ManualReset message) {
-            restartCount = 0;
-        }
-
-    }
-
-    /**
-     * This strategy handles all other messages by forwarding all messages to the child if it is active or by replying
-     * immediately with a {@link PolicyUnavailableException} if the child has terminated (fail fast).
-     */
-    @NotThreadSafe
-    private final class MatchAnyStrategy extends AbstractReceiveStrategy<Object> {
-
-        MatchAnyStrategy() {
-            super(Object.class, log);
-        }
-
-        @Override
-        public void doApply(final Object message) {
-            if (null != child) {
-                if (child.equals(getSender())) {
-                    log.warning("Received unhandled message from child actor '{}': {}", policyId, message);
-                    unhandled(message);
-                } else {
-                    child.forward(message, getContext());
-                }
-            } else {
-                log.warning("Received message during downtime of child actor for Policy with ID <{}>.", policyId);
-                final PolicyUnavailableException.Builder builder = PolicyUnavailableException.newBuilder(policyId);
-                if (message instanceof WithDittoHeaders) {
-                    builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
-                }
-                getSender().tell(builder.build(), getSelf());
-            }
-        }
-
-    }
-
-    enum Control {
-        PASSIVATE
+    @Override
+    protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final PolicyId entityId) {
+        final PolicyId policyId = entityId != null ? entityId : PolicyId.of(DefaultNamespacedEntityId.dummy());
+        return PolicyUnavailableException.newBuilder(policyId);
     }
 
 }

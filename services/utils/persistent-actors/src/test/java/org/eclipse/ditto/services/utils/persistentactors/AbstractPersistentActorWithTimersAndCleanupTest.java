@@ -10,12 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.cleanup;
+package org.eclipse.ditto.services.utils.persistentactors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.utils.cleanup.MockJournalPlugin.FAIL_DELETE_MESSAGE;
-import static org.eclipse.ditto.services.utils.cleanup.MockJournalPlugin.SLOW_DELETE;
-import static org.eclipse.ditto.services.utils.cleanup.MockSnapshotStorePlugin.FAIL_DELETE_SNAPSHOT;
+import static org.eclipse.ditto.services.utils.persistentactors.MockJournalPlugin.FAIL_DELETE_MESSAGE;
+import static org.eclipse.ditto.services.utils.persistentactors.MockJournalPlugin.SLOW_DELETE;
+import static org.eclipse.ditto.services.utils.persistentactors.MockSnapshotStorePlugin.FAIL_DELETE_SNAPSHOT;
 
 import java.time.Duration;
 import java.util.UUID;

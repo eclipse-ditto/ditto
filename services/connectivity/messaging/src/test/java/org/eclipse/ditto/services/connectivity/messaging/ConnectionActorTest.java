@@ -79,7 +79,6 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.sharding.ShardRegion;
 import akka.japi.Creator;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -575,13 +574,12 @@ public final class ConnectionActorTest extends WithMockServers {
 
             // create connection
             connectionActorRef.tell(createConnection, parent.getRef());
-            parent.expectMsgClass(ConnectionSupervisorActor.ManualReset.class); // is sent after "empty" recovery
 
             // expect ConnectionConfigurationInvalidException sent to parent
             final Exception exception = parent.expectMsgClass(ConnectionConfigurationInvalidException.class);
             assertThat(exception).hasMessageContaining("validation failed...");
 
-            parent.expectMsgClass(ShardRegion.Passivate.class);
+            parent.expectMsg(ConnectionSupervisorActor.Control.PASSIVATE);
             parent.send(parent.getLastSender(), PoisonPill.getInstance());
 
             // expect the connection actor is terminated
@@ -609,14 +607,13 @@ public final class ConnectionActorTest extends WithMockServers {
 
             // create connection
             connectionActorRef.tell(createConnection, parent.getRef());
-            parent.expectMsgClass(ConnectionSupervisorActor.ManualReset.class); // is sent after "empty" recovery
 
             // expect ConnectionUnavailableException sent to parent
             final ConnectionUnavailableException exception =
                     parent.expectMsgClass(ConnectionUnavailableException.class);
             assertThat(exception).hasMessageContaining("not valid");
 
-            parent.expectMsgClass(ShardRegion.Passivate.class);
+            parent.expectMsg(ConnectionSupervisorActor.Control.PASSIVATE);
             parent.send(parent.getLastSender(), PoisonPill.getInstance());
 
             // expect the connection actor is terminated

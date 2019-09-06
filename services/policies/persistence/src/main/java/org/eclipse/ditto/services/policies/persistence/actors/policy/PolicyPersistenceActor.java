@@ -57,12 +57,12 @@ import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStr
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.services.utils.persistentactors.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -448,7 +448,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
         strategyAwareReceiveBuilder.matchAny(new MatchAnyAfterInitializeStrategy());
 
         getContext().become(strategyAwareReceiveBuilder.build(), true);
-        getContext().getParent().tell(new PolicySupervisorActor.ManualReset(), getSelf());
         scheduleCheckForPolicyActivity(policyConfig.getActivityCheckConfig().getInactiveInterval());
         scheduleSnapshot();
     }
@@ -502,7 +501,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
         strategyAwareReceiveBuilder.matchAny(new PolicyNotFoundStrategy());
 
         getContext().become(strategyAwareReceiveBuilder.build(), true);
-        getContext().getParent().tell(new PolicySupervisorActor.ManualReset(), getSelf());
 
         /*
          * Check in the next X minutes and therefore

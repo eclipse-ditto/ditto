@@ -73,10 +73,10 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.utils.persistentactors.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -123,14 +123,12 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
-import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
@@ -355,8 +353,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                         stopSelfIfDeletedAfterDelay();
                         // otherwise not - as the connection may just be created!
                     }
-
-                    getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
                 })
                 .matchAny(m -> {
                     if (m == null) {
@@ -598,7 +594,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                                             new PerformTask(
                                                     "subscribe for events and schedule CreateConnectionResponse",
                                                     subscribeForEventsAndScheduleResponse(commandResponse, origin));
-                                    parent.tell(ConnectionSupervisorActor.ManualReset.getInstance(), self);
                                     self.tell(performTask, ActorRef.noSender());
                                 },
                                 error -> {
@@ -628,7 +623,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             final ActorRef origin) {
 
         origin.tell(CreateConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
-        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
     }
 
     private void modifyConnection(final ModifyConnection command) {
@@ -702,7 +696,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                         final PerformTask performTask =
                                 new PerformTask("subscribe for events and schedule ModifyConnectionResponse",
                                         subscribeForEventsAndScheduleResponse(commandResponse, origin));
-                        parent.tell(ConnectionSupervisorActor.ManualReset.getInstance(), self);
                         self.tell(performTask, ActorRef.noSender());
                         this.updateLoggingIfEnabled();
                     },
@@ -1169,8 +1162,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             doSaveSnapshot("connection was deleted");
         }
 
-        final ShardRegion.Passivate passivateMessage = new ShardRegion.Passivate(PoisonPill.getInstance());
-        getContext().getParent().tell(passivateMessage, getSelf());
+        getContext().getParent().tell(ConnectionSupervisorActor.Control.PASSIVATE, getSelf());
     }
 
     private boolean isDeleted(@Nullable final Connection connection) {
