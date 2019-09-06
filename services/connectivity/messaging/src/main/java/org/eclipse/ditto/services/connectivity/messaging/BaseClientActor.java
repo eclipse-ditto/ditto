@@ -1163,7 +1163,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final Status.Status answerToPublish;
         if (status instanceof Status.Failure) {
             final Status.Failure failure = (Status.Failure) status;
-            log.info("test failed: <{}>", failure.cause());
+            log.info("{} failed: <{}>", stateName(), failure.cause());
             if (!(failure.cause() instanceof DittoRuntimeException)) {
                 final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
                         .description(describeEventualCause(failure.cause()))

@@ -130,7 +130,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
                     publishedMonitor.success(message);
                 } else {
                     final String logMessage = MessageFormat.format("Error while publishing message: {0}", throwable.getMessage());
-                    log().warning(logMessage);
+                    log().info(logMessage);
                     publishedMonitor.exception(message, logMessage);
                 }
             });

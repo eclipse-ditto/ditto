@@ -73,8 +73,14 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                 disconnected -> self.tell(disconnected, ActorRef.noSender()));
 
         this.subscriptionHandler = new HiveMqtt3SubscriptionHandler(connection, client,
-                failure -> self.tell(failure, ActorRef.noSender()),
-                this::notifyConsumersReady, log);
+                failure -> {
+                    connectionLogger.failure("Failed to subscribe: {0}", failure.getFailureDescription());
+                    self.tell(failure, ActorRef.noSender());
+                },
+                () -> {
+                    connectionLogger.success("Successfully initialized subscriptions.");
+                    notifyConsumersReady();
+                }, log);
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
@@ -154,10 +160,12 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                 })
                 .exceptionally(cause -> {
                     log.info("Connection test to {} failed: {}", connection.getUri(), cause.getMessage());
+                    connectionLogger.failure("Connection test failed: {0}", cause.getMessage());
                     return new Status.Failure(cause);
                 })
                 .whenComplete((s, t) -> {
                     if (t == null) {
+                        connectionLogger.success("Connection test for was successful.");
                         log.info("Connection test for {} was successful.", connectionId());
                     }
                     stopCommandConsumers(testSubscriptions);
@@ -180,6 +188,8 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                         self.tell(new ImmutableConnectionFailure(origin, throwable, null), origin);
                     } else {
                         // tell self we connected successfully to proceed with connection establishment
+                        connectionLogger.success("Connection to {0} established successfully.",
+                                connection.getHostname());
                         self.tell(new MqttClientConnected(origin), getSelf());
                     }
                 });
@@ -244,7 +254,8 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     private FSM.State<BaseClientState, BaseClientData> handleClientConnected(
             final Mqtt3ClientConnectedContext connected,
             final BaseClientData currentData) {
-        log.info("Successfully connected client for connection <{}>.", connectionId());
+        log.debug("Successfully connected client for connection <{}>.", connectionId());
+        connectionLogger.success("Client connected.");
         subscriptionHandler.handleConnected();
         return stay().using(currentData);
     }
@@ -252,7 +263,8 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     private FSM.State<BaseClientState, BaseClientData> handleClientDisconnected(
             final Mqtt3ClientDisconnectedContext disconnected,
             final BaseClientData currentData) {
-        log.info("Client disconnected <{}>: {}", connectionId(), disconnected.getCause().getMessage());
+        log.debug("Client disconnected <{}>: {}", connectionId(), disconnected.getCause().getMessage());
+        connectionLogger.failure("Client disconnected: {0}", disconnected.getCause().getMessage());
         subscriptionHandler.handleDisconnected();
         return stay().using(currentData);
     }
