@@ -28,6 +28,11 @@ sudo gem install [--http-proxy http://localhost:3128] jekyll-sitemap
 sudo gem install [--http-proxy http://localhost:3128] html-proofer
 ```
 
+If the installation of html-proofer fails, you may need the additional build dependency `zlib`.
+```bash
+sudo apt install zlib1g-dev
+```
+
 Watch all resources and start local server serving the Jekyll content at [http://localhost:4000](http://localhost:4000):
 
 ```bash
