@@ -18,14 +18,17 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link CreateThing} command for an already existing Thing.
  */
 @Immutable
-final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing> {
+final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing, Thing, ThingEvent> {
 
     /**
      * Constructs a new {@code ThingConflictStrategy} object.
@@ -41,7 +44,7 @@ final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing> {
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final CreateThing command) {
         return ResultFactory.newErrorResult(ThingConflictException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())

@@ -18,12 +18,16 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.event.DiagnosticLoggingAdapter;
 
@@ -41,7 +45,7 @@ final class DeleteThingStrategy extends AbstractConditionalHeadersCheckingComman
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final DeleteThing command) {
         final ThingId thingId = context.getThingEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -49,13 +53,15 @@ final class DeleteThingStrategy extends AbstractConditionalHeadersCheckingComman
         LogUtil.enhanceLogWithCorrelationId(log, command);
         log.info("Deleted Thing with ID <{}>.", thingId);
 
-        return ResultFactory.newMutationResult(command,
-                ThingDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders),
-                DeleteThingResponse.of(thingId, dittoHeaders), false,true, this);
+        final ThingEvent event = ThingDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders);
+        final WithDittoHeaders response =
+                appendETagHeaderIfProvided(command, DeleteThingResponse.of(thingId, dittoHeaders), null);
+
+        return ResultFactory.newMutationResult(command, event, response, false, true);
     }
 
     @Override
     public Optional<Thing> determineETagEntity(final DeleteThing command, @Nullable final Thing thing) {
-        return Optional.ofNullable(thing);
+        return Optional.empty();
     }
 }

@@ -12,34 +12,22 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
-
-import akka.event.DiagnosticLoggingAdapter;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
- * This <em>Singleton</em> delegates a {@code Command} to a dedicated strategy - if one is available - to be handled.
+ * The collection of the command strategies of {@code ThingPersistenceActor}.
  */
-@Immutable
-public final class CommandReceiveStrategy extends AbstractCommandStrategy<Command> {
+public final class ThingReceiveStrategy extends AbstractReceiveStrategy<Thing, ThingEvent> {
 
-    private static final CommandReceiveStrategy INSTANCE = new CommandReceiveStrategy();
-
-    private final Map<Class<? extends Command>, CommandStrategy<? extends Command>> strategies;
+    private static final ThingReceiveStrategy INSTANCE = new ThingReceiveStrategy();
 
     /**
      * Constructs a new {@code ThingCommandReceiveStrategy} object.
      */
-    private CommandReceiveStrategy() {
+    private ThingReceiveStrategy() {
         super(Command.class);
-        strategies = new HashMap<>();
         addThingStrategies();
         addPolicyStrategies();
         addAclStrategies();
@@ -48,6 +36,15 @@ public final class CommandReceiveStrategy extends AbstractCommandStrategy<Comman
         addFeatureDefinitionStrategies();
         addFeatureStrategies();
         addSudoStrategies();
+    }
+
+    /**
+     * Returns the <em>singleton</em> instance of {@code CommandReceiveStrategy}.
+     *
+     * @return the instance.
+     */
+    public static AbstractReceiveStrategy getInstance() {
+        return INSTANCE;
     }
 
     private void addThingStrategies() {
@@ -106,65 +103,4 @@ public final class CommandReceiveStrategy extends AbstractCommandStrategy<Comman
     private void addSudoStrategies() {
         addStrategy(new SudoRetrieveThingStrategy());
     }
-
-    private void addStrategy(final CommandStrategy<? extends Command> strategy) {
-        final Class<? extends Command> matchingClass = strategy.getMatchingClass();
-        strategies.put(matchingClass, strategy);
-    }
-
-    /**
-     * Returns the <em>singleton</em> instance of {@code CommandReceiveStrategy}.
-     *
-     * @return the instance.
-     */
-    public static CommandReceiveStrategy getInstance() {
-        return INSTANCE;
-    }
-
-    @Override
-    protected Result unhandled(final Context context, final Thing thing,
-            final long nextRevision, final Command command) {
-        final DiagnosticLoggingAdapter log = context.getLog();
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        log.info("Command of type <{}> cannot be handled by this strategy.", command.getClass().getName());
-
-        return ResultFactory.emptyResult();
-    }
-
-    @Override
-    public boolean isDefined(final Command command) {
-        return strategies.containsKey(command.getClass());
-    }
-
-    @Override
-    public boolean isDefined(final Context context, final Thing thing,
-            final Command command) {
-        return isDefined(command);
-    }
-
-    @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final Command command) {
-        final CommandStrategy<Command> commandStrategy = getAppropriateStrategy(command.getClass());
-
-        final DiagnosticLoggingAdapter log = context.getLog();
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        if (null != commandStrategy) {
-            LogUtil.enhanceLogWithCorrelationId(log, command.getDittoHeaders().getCorrelationId());
-            if (log.isDebugEnabled()) {
-                log.debug("Applying command <{}>: {}", command.getType(), command.toJsonString());
-            }
-            return commandStrategy.apply(context, thing, nextRevision, command);
-        }
-
-        log.info("No strategy found for command <{}>.", command.getType());
-        return Result.empty();
-    }
-
-    @SuppressWarnings("unchecked")
-    @Nullable
-    private CommandStrategy<Command> getAppropriateStrategy(final Class commandClass) {
-        return (CommandStrategy<Command>) strategies.get(commandClass);
-    }
-
 }

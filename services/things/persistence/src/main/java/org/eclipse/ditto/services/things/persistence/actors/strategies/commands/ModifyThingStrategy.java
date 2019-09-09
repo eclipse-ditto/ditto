@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newErrorResult;
+import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
 
 import java.util.Optional;
 
@@ -20,16 +20,20 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
 /**
@@ -47,10 +51,10 @@ final class ModifyThingStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
 
-        final Thing nonNullThing = getThingOrThrow(thing);
+        final Thing nonNullThing = getEntityOrThrow(thing);
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(() -> nonNullThing.toJsonString().length(),
                 command::getDittoHeaders);
@@ -63,8 +67,8 @@ final class ModifyThingStrategy
         return handleModifyExistingWithV2Command(context, nonNullThing, nextRevision, command);
     }
 
-    private Result handleModifyExistingWithV1Command(final Context context, final Thing thing, final long nextRevision,
-            final ModifyThing command) {
+    private Result<ThingEvent> handleModifyExistingWithV1Command(final Context context, final Thing thing,
+            final long nextRevision, final ModifyThing command) {
         if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
             return handleModifyExistingV1WithV1Command(context, thing, nextRevision, command);
         } else {
@@ -72,9 +76,8 @@ final class ModifyThingStrategy
         }
     }
 
-    private Result handleModifyExistingV1WithV1Command(final Context context,
-            final Thing thing, final long nextRevision,
-            final ModifyThing command) {
+    private Result<ThingEvent> handleModifyExistingV1WithV1Command(final Context context,
+            final Thing thing, final long nextRevision, final ModifyThing command) {
         final ThingId thingId = context.getThingEntityId();
 
         // if the ACL was modified together with the Thing, an additional check is necessary
@@ -93,39 +96,49 @@ final class ModifyThingStrategy
                 final Thing newThingWithoutAcl = command.getThing().toBuilder().removeAllPermissions().build();
                 final Thing mergedThing = mergeThingModifications(newThingWithoutAcl, thing, nextRevision);
 
-                final ThingModified thingModified = ThingModified.of(mergedThing, nextRevision, getEventTimestamp(),
-                        dittoHeaders);
-                return ResultFactory.newMutationResult(command, thingModified, ModifyThingResponse.modified(thingId, dittoHeaders), this);
+                final ThingEvent thingModified =
+                        ThingModified.of(mergedThing, nextRevision, getEventTimestamp(), dittoHeaders);
+                final WithDittoHeaders response =
+                        appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, dittoHeaders),
+                                mergedThing);
+                return ResultFactory.newMutationResult(command, thingModified, response);
             } else {
                 context.getLog().error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
                         "Persisting the event nevertheless to not block the user because of an " +
                         "unknown internal state.", thingId);
-                final ThingModified thingModified =
-                        ThingModified.of(command.getThing(), nextRevision, getEventTimestamp(), dittoHeaders);
-                return ResultFactory.newMutationResult(command, thingModified, ModifyThingResponse.modified(thingId, dittoHeaders), this);
+                final Thing modifiedThing = command.getThing().toBuilder().setRevision(nextRevision).build();
+                final ThingEvent thingModified =
+                        ThingModified.of(modifiedThing, nextRevision, getEventTimestamp(), dittoHeaders);
+                final WithDittoHeaders response =
+                        appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, dittoHeaders),
+                                modifiedThing);
+                return ResultFactory.newMutationResult(command, thingModified, response);
             }
         }
     }
 
-    private Result handleModifyExistingV2WithV1Command(final Context context,
+    private Result<ThingEvent> handleModifyExistingV2WithV1Command(final Context context,
             final Thing thing, final long nextRevision,
             final ModifyThing command) {
         final ThingId thingId = context.getThingEntityId();
         // remove any acl information from command and add the current policy Id
-        final Thing thingWithoutAcl = removeACL(copyPolicyId(context, thing, command.getThing()));
-        final ThingModified thingModified =
+        final Thing thingWithoutAcl = removeACL(copyPolicyId(context, thing, command.getThing()), nextRevision);
+        final ThingEvent thingModified =
                 ThingModified.of(thingWithoutAcl, nextRevision, getEventTimestamp(), command.getDittoHeaders());
-        return ResultFactory.newMutationResult(command, thingModified, ModifyThingResponse.modified(thingId, command.getDittoHeaders()),
-                this);
+        final WithDittoHeaders response =
+                appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, command.getDittoHeaders()),
+                        thingWithoutAcl);
+        return ResultFactory.newMutationResult(command, thingModified, response);
     }
 
-    private static Thing removeACL(final Thing thing) {
+    private static Thing removeACL(final Thing thing, final long nextRevision) {
         return thing.toBuilder()
                 .removeAllPermissions()
+                .setRevision(nextRevision)
                 .build();
     }
 
-    private Result handleModifyExistingWithV2Command(final Context context, final Thing thing,
+    private Result<ThingEvent> handleModifyExistingWithV2Command(final Context context, final Thing thing,
             final long nextRevision, final ModifyThing command) {
         if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
             return handleModifyExistingV1WithV2Command(context, thing, nextRevision, command);
@@ -137,21 +150,22 @@ final class ModifyThingStrategy
     /**
      * Handles a {@link ModifyThing} command that was sent via API v2 and targets a Thing with API version V1.
      */
-    private Result handleModifyExistingV1WithV2Command(final Context context,
+    private Result<ThingEvent> handleModifyExistingV1WithV2Command(final Context context,
             final Thing thing, final long nextRevision, final ModifyThing command) {
         if (containsPolicyId(command)) {
             final Thing thingWithoutAcl = thing.toBuilder().removeAllPermissions().build();
             return applyModifyCommand(context, thingWithoutAcl, nextRevision, command);
         } else {
             return newErrorResult(
-                    PolicyIdMissingException.fromThingIdOnUpdate(context.getThingEntityId(), command.getDittoHeaders()));
+                    PolicyIdMissingException.fromThingIdOnUpdate(context.getThingEntityId(),
+                            command.getDittoHeaders()));
         }
     }
 
     /**
      * Handles a {@link ModifyThing} command that was sent via API v2 and targets a Thing with API version V2.
      */
-    private Result handleModifyExistingV2WithV2Command(final Context context,
+    private Result<ThingEvent> handleModifyExistingV2WithV2Command(final Context context,
             final Thing thing, final long nextRevision,
             final ModifyThing command) {
         // ensure the Thing contains a policy ID
@@ -163,16 +177,20 @@ final class ModifyThingStrategy
                 ModifyThing.of(command.getThingEntityId(), thingWithPolicyId, null, command.getDittoHeaders()));
     }
 
-    private Result applyModifyCommand(final Context context, final Thing thing,
+    private Result<ThingEvent> applyModifyCommand(final Context context, final Thing thing,
             final long nextRevision, final ModifyThing command) {
         // make sure that the ThingModified-Event contains all data contained in the resulting existingThing (this is
         // required e. g. for updating the search-index)
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newMutationResult(command,
-                ThingModified.of(mergeThingModifications(command.getThing(), thing, nextRevision),
-                        nextRevision, getEventTimestamp(), dittoHeaders),
-                ModifyThingResponse.modified(context.getThingEntityId(), dittoHeaders), this);
+        final Thing modifiedThing = mergeThingModifications(command.getThing(), thing, nextRevision);
+
+        final ThingEvent event =
+                ThingModified.of(modifiedThing, nextRevision, getEventTimestamp(), dittoHeaders);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                ModifyThingResponse.modified(context.getThingEntityId(), dittoHeaders), modifiedThing);
+
+        return ResultFactory.newMutationResult(command, event, response);
     }
 
     /**
@@ -214,13 +232,13 @@ final class ModifyThingStrategy
     }
 
     @Override
-    protected Result unhandled(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> unhandled(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
         return newErrorResult(new ThingNotAccessibleException(context.getThingEntityId(), command.getDittoHeaders()));
     }
 
     @Override
     public Optional<Thing> determineETagEntity(final ModifyThing thingCommand, @Nullable final Thing thing) {
-        return Optional.of(getThingOrThrow(thing));
+        return Optional.of(getEntityOrThrow(thing));
     }
 }

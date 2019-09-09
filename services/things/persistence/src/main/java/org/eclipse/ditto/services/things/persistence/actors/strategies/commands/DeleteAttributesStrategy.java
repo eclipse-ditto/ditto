@@ -18,12 +18,16 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
 import org.eclipse.ditto.signals.events.things.AttributesDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link DeleteAttributes} command.
@@ -40,32 +44,33 @@ final class DeleteAttributesStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final DeleteAttributes command) {
 
         return extractAttributes(thing)
-                .map(attributes -> getDeleteAttributesResult(context, nextRevision, command))
+                .map(attributes -> getDeleteAttributesResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.attributesNotFound(context.getThingEntityId(), command.getDittoHeaders())));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getAttributes();
+        return getEntityOrThrow(thing).getAttributes();
     }
 
-    private Result getDeleteAttributesResult(final Context context, final long nextRevision,
-            final DeleteAttributes command) {
+    private Result<ThingEvent> getDeleteAttributesResult(final Context context, final long nextRevision,
+            final DeleteAttributes command, @Nullable Thing thing) {
         final ThingId thingId = context.getThingEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                DeleteAttributesResponse.of(thingId, dittoHeaders), thing);
+
         return ResultFactory.newMutationResult(command,
-                AttributesDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders),
-                DeleteAttributesResponse.of(thingId, dittoHeaders), this);
+                AttributesDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders), response);
     }
 
     @Override
-    public Optional<Attributes> determineETagEntity(final DeleteAttributes command,
-            @Nullable final Thing thing) {
-        return extractAttributes(thing);
+    public Optional<Attributes> determineETagEntity(final DeleteAttributes command, @Nullable final Thing thing) {
+        return Optional.empty();
     }
 }

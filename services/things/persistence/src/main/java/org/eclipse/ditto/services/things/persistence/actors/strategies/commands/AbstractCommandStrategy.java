@@ -22,8 +22,10 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -35,7 +37,8 @@ import akka.event.DiagnosticLoggingAdapter;
  * @param <T> type of the handled command.
  */
 @Immutable
-abstract class AbstractCommandStrategy<T extends Command> implements CommandStrategy<T> {
+public abstract class AbstractCommandStrategy<T extends Command, S extends Entity, E>
+        implements CommandStrategy<T, S, E> {
 
     private final Class<T> matchingClass;
 
@@ -50,28 +53,27 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
     }
 
     @Override
-    public Result apply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final T command) {
+    public Result<E> apply(final Context context, @Nullable final S entity, final long nextRevision, final T command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
 
-        if (isDefined(context, thing, command)) {
+        if (isDefined(context, entity, command)) {
             final DiagnosticLoggingAdapter logger = context.getLog();
             LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());
             if (logger.isDebugEnabled()) {
                 logger.debug("Applying command <{}>: {}", command.getType(), command.toJsonString());
             }
-            return doApply(context, thing, nextRevision, command);
+            return doApply(context, entity, nextRevision, command);
         } else {
-            return unhandled(context, thing, nextRevision, command);
+            return unhandled(context, entity, nextRevision, command);
         }
     }
 
-    protected abstract Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final T command);
+    protected abstract Result<E> doApply(final Context context, @Nullable final S entity, final long nextRevision,
+            final T command);
 
-    protected Result unhandled(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final T command) {
+    protected Result<E> unhandled(final Context context, @Nullable final S entity, final long nextRevision,
+            final T command) {
         throw ExceptionFactory.unhandled(command);
     }
 
@@ -86,25 +88,26 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
     }
 
     @Override
-    public boolean isDefined(final Context context, @Nullable final Thing thing, final T command) {
+    public boolean isDefined(final Context context, @Nullable final S entity, final T command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
 
-        return Optional.ofNullable(thing)
-                .flatMap(Thing::getEntityId)
+        return Optional.ofNullable(entity)
+                .flatMap(Entity::getEntityId)
                 .filter(thingId -> Objects.equals(thingId, command.getEntityId()))
                 .isPresent();
     }
 
+    // TODO: check usage
     protected static boolean isThingDeleted(@Nullable final Thing thing) {
         return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
     }
 
-    protected static Thing getThingOrThrow(@Nullable final Thing thing) {
-        if (null != thing) {
-            return thing;
+    protected static <S> S getEntityOrThrow(@Nullable final S entity) {
+        if (null != entity) {
+            return entity;
         }
-        throw new NoSuchElementException("This Context does not have a Thing!");
+        throw new NoSuchElementException("This Context does not have an entity!");
     }
 
     protected static Instant getEventTimestamp() {

@@ -30,18 +30,11 @@ public final class DefaultContext implements CommandStrategy.Context {
 
     private final ThingId thingId;
     private final DiagnosticLoggingAdapter log;
-    private final Runnable becomeCreatedRunnable;
-    private final Runnable becomeDeletedRunnable;
 
-    private DefaultContext(final ThingId theThingId,
-            final DiagnosticLoggingAdapter theLog,
-            final Runnable becomeCreatedRunnable,
-            final Runnable becomeDeletedRunnable) {
+    private DefaultContext(final ThingId theThingId, final DiagnosticLoggingAdapter theLog) {
 
         thingId = checkNotNull(theThingId, "Thing ID");
         log = checkNotNull(theLog, "DiagnosticLoggingAdapter");
-        this.becomeCreatedRunnable = checkNotNull(becomeCreatedRunnable, "becomeCreatedRunnable");
-        this.becomeDeletedRunnable = checkNotNull(becomeDeletedRunnable, "becomeDeletedRunnable");
     }
 
     /**
@@ -49,17 +42,11 @@ public final class DefaultContext implements CommandStrategy.Context {
      *
      * @param thingId the ID of the Thing.
      * @param log the logging adapter to be used.
-     * @param becomeCreatedRunnable the runnable to be called in case a Thing is created.
-     * @param becomeDeletedRunnable the runnable to be called in case a Thing is deleted.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultContext getInstance(final ThingId thingId,
-            final DiagnosticLoggingAdapter log,
-            final Runnable becomeCreatedRunnable,
-            final Runnable becomeDeletedRunnable) {
-
-        return new DefaultContext(thingId, log, becomeCreatedRunnable, becomeDeletedRunnable);
+    public static DefaultContext getInstance(final ThingId thingId, final DiagnosticLoggingAdapter log) {
+        return new DefaultContext(thingId, log);
     }
 
     @Override
@@ -73,16 +60,6 @@ public final class DefaultContext implements CommandStrategy.Context {
     }
 
     @Override
-    public Runnable getBecomeCreatedRunnable() {
-        return becomeCreatedRunnable;
-    }
-
-    @Override
-    public Runnable getBecomeDeletedRunnable() {
-        return becomeDeletedRunnable;
-    }
-
-    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -91,15 +68,12 @@ public final class DefaultContext implements CommandStrategy.Context {
             return false;
         }
         final DefaultContext that = (DefaultContext) o;
-        return Objects.equals(thingId, that.thingId) &&
-                Objects.equals(log, that.log) &&
-                Objects.equals(becomeCreatedRunnable, that.becomeCreatedRunnable) &&
-                Objects.equals(becomeDeletedRunnable, that.becomeDeletedRunnable);
+        return Objects.equals(thingId, that.thingId) && Objects.equals(log, that.log);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, log, becomeCreatedRunnable, becomeDeletedRunnable);
+        return Objects.hash(thingId, log);
     }
 
     @Override
@@ -107,8 +81,6 @@ public final class DefaultContext implements CommandStrategy.Context {
         return getClass().getSimpleName() + " [" +
                 "thingId=" + thingId +
                 ", log=" + log +
-                ", becomeCreatedRunnable=" + becomeCreatedRunnable +
-                ", becomeDeletedRunnable=" + becomeDeletedRunnable +
                 "]";
     }
 

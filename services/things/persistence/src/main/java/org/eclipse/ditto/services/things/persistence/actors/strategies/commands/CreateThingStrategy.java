@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newErrorResult;
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newMutationResult;
+import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
+import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newMutationResult;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
@@ -38,9 +39,11 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link CreateThingStrategy} command.
@@ -77,7 +80,7 @@ public final class CreateThingStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final CreateThing command) {
         final DittoHeaders commandHeaders = command.getDittoHeaders();
 
@@ -111,10 +114,10 @@ public final class CreateThingStrategy
                 .setRevision(nextRevision)
                 .build();
         final ThingCreated thingCreated = ThingCreated.of(newThing, nextRevision, modified, commandHeaders);
-        final CreateThingResponse createThingResponse =
-                CreateThingResponse.of(newThingWithModifiedAndRevision, commandHeaders);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                CreateThingResponse.of(newThingWithModifiedAndRevision, commandHeaders), thing);
 
-        return newMutationResult(command, thingCreated, createThingResponse, true, false, this);
+        return newMutationResult(command, thingCreated, response, true, false);
     }
 
 
@@ -187,8 +190,8 @@ public final class CreateThingStrategy
                 if (!aclValidator.isValid()) {
                     final AclInvalidException aclInvalidException =
                             AclInvalidException.newBuilder(context.getThingEntityId())
-                                .dittoHeaders(headers)
-                                .build();
+                                    .dittoHeaders(headers)
+                                    .build();
                     return newErrorResult(aclInvalidException);
                 }
             } else {
@@ -204,6 +207,6 @@ public final class CreateThingStrategy
 
     @Override
     public Optional<Thing> determineETagEntity(final CreateThing command, @Nullable final Thing thing) {
-        return Optional.ofNullable(thing);
+        return Optional.of(command.getThing());
     }
 }

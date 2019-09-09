@@ -15,22 +15,18 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-
-import java.util.function.BiConsumer;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -48,7 +44,6 @@ import akka.event.DiagnosticLoggingAdapter;
 public abstract class AbstractCommandStrategyTest {
 
     protected static final long NEXT_REVISION = 42L;
-    private static final EventStrategy<ThingEvent> eventHandleStrategy = EventHandleStrategy.getInstance();
 
     protected static final long THING_SIZE_LIMIT_BYTES = Long.parseLong(
             System.getProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
@@ -63,7 +58,7 @@ public abstract class AbstractCommandStrategyTest {
     protected static CommandStrategy.Context getDefaultContext() {
         final Runnable becomeCreatedRunnable = mock(Runnable.class);
         final Runnable becomeDeletedRunnable = mock(Runnable.class);
-        return DefaultContext.getInstance(THING_ID, logger, becomeCreatedRunnable, becomeDeletedRunnable);
+        return DefaultContext.getInstance(THING_ID, logger);
     }
 
     protected static void assertModificationResult(final CommandStrategy underTest,
@@ -83,9 +78,9 @@ public abstract class AbstractCommandStrategyTest {
             final boolean becomeDeleted) {
 
         final CommandStrategy.Context context = getDefaultContext();
-        final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
+        final Result result = applyStrategy(underTest, context, thing, command);
 
-        assertModificationResult(context, result, expectedEventClass, thing, expectedCommandResponse, becomeDeleted);
+        assertModificationResult(context, result, expectedEventClass, expectedCommandResponse, becomeDeleted);
     }
 
     protected static void assertErrorResult(final CommandStrategy underTest,
@@ -93,10 +88,9 @@ public abstract class AbstractCommandStrategyTest {
             final Command command,
             final DittoRuntimeException expectedException) {
 
-        final CommandStrategy.Context context = getDefaultContext();
-        final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
-
-        assertInfoResult(result, expectedException);
+        final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
+        applyStrategy(underTest, getDefaultContext(), thing, command).accept(mock);
+        verify(mock).onError(eq(expectedException));
     }
 
     protected static void assertQueryResult(final CommandStrategy underTest,
@@ -104,99 +98,52 @@ public abstract class AbstractCommandStrategyTest {
             final Command command,
             final CommandResponse expectedCommandResponse) {
 
-        final CommandStrategy.Context context = getDefaultContext();
-        final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
-
-        assertInfoResult(result, expectedCommandResponse);
+        assertInfoResult(applyStrategy(underTest, getDefaultContext(), thing, command), expectedCommandResponse);
     }
 
+
+    @SuppressWarnings("unchecked")
     protected static void assertUnhandledResult(final AbstractCommandStrategy underTest,
             @Nullable final Thing thing,
             final Command command,
-            final WithDittoHeaders expectedResponse) {
+            final DittoRuntimeException expectedResponse) {
 
-        final CommandStrategy.Context context = getDefaultContext();
-        @SuppressWarnings("unchecked") final CommandStrategy.Result result =
-                underTest.unhandled(context, thing, NEXT_REVISION, command);
-
-        assertInfoResult(result, expectedResponse);
+        final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
+        underTest.unhandled(getDefaultContext(), thing, NEXT_REVISION, command).accept(mock);
+        verify(mock).onError(expectedResponse);
     }
 
     private static void assertModificationResult(final CommandStrategy.Context context,
-            final CommandStrategy.Result result,
+            final Result<ThingEvent> result,
             final Class<? extends ThingModifiedEvent> eventClazz,
-            @Nullable final Thing currentThing,
             final WithDittoHeaders expectedResponse,
             final boolean becomeDeleted) {
 
         final ArgumentCaptor<ThingModifiedEvent> event = ArgumentCaptor.forClass(eventClazz);
-        final DummyCommandHandler mock = mock(DummyCommandHandler.class);
 
-        result.apply(context, mock::persist, mock::notify);
+        @SuppressWarnings("unchecked") final ResultVisitor<ThingEvent> mock = mock(ResultVisitor.class);
 
-        @SuppressWarnings("unchecked") final ArgumentCaptor<BiConsumer<ThingModifiedEvent, Thing>> consumer =
-                ArgumentCaptor.forClass(BiConsumer.class);
+        result.accept(mock);
 
-        verify(mock).persist(event.capture(), consumer.capture());
+        verify(mock).onMutation(any(), event.capture(), eq(expectedResponse), anyBoolean(), eq(becomeDeleted));
         assertThat(event.getValue()).isInstanceOf(eventClazz);
-
-        final long newRevision;
-        if (null == currentThing) {
-            newRevision = 0L;
-        } else {
-            newRevision = currentThing.getRevision()
-                    .map(Revision::increment)
-                    .map(Revision::toLong)
-                    .orElse(0L);
-        }
-        final Thing modifiedThing = eventHandleStrategy.handle(event.getValue(), currentThing, newRevision);
-        consumer.getValue().accept(event.getValue(), modifiedThing);
-        verify(mock).notify(expectedResponse);
-        verify(context.getBecomeDeletedRunnable(), becomeDeleted ? times(1) : never()).run();
     }
 
-    private static void assertInfoResult(final CommandStrategy.Result result, final WithDittoHeaders infoResponse) {
-        final CommandStrategy.Context context = getDefaultContext();
-
-        assertInfoResult(context, result, infoResponse, false);
+    private static void assertInfoResult(final Result<ThingEvent> result, final WithDittoHeaders infoResponse) {
+        final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
+        result.accept(mock);
+        verify(mock).onQuery(any(), eq(infoResponse));
     }
 
-    private static void assertInfoResult(final CommandStrategy.Context context,
-            final CommandStrategy.Result result,
-            final WithDittoHeaders infoResponse,
-            final boolean waitForNotification) {
-
-        final DummyCommandHandler mock = mock(DummyCommandHandler.class);
-
-        result.apply(context, mock::persist, mock::notify);
-
-        if (waitForNotification) {
-            verify(mock, timeout(3000)).notify(infoResponse);
-        } else {
-            verify(mock).notify(infoResponse);
-        }
-        verify(mock, never()).persist(any(), any());
-        verify(context.getBecomeDeletedRunnable(), never()).run();
-    }
-
-    static CommandStrategy.Result applyStrategy(final CommandStrategy underTest,
+    @SuppressWarnings("unchecked")
+    private static Result<ThingEvent> applyStrategy(final CommandStrategy underTest,
             final CommandStrategy.Context context,
             final @Nullable Thing thing,
             final Command command) {
 
-        @SuppressWarnings("unchecked") final CommandStrategy.Result result =
-                underTest.apply(context, thing, NEXT_REVISION, command);
-        return result;
+        return underTest.apply(context, thing, NEXT_REVISION, command);
     }
 
-    interface DummyCommandHandler {
-
-        void persist(ThingModifiedEvent event, BiConsumer<ThingModifiedEvent, Thing> handler);
-
-        void notify(WithDittoHeaders response);
-
-        void becomeDeleted();
-
-    }
+    interface Dummy extends ResultVisitor<ThingEvent> {}
 
 }

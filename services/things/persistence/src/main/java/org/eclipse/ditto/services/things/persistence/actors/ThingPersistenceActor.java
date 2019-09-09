@@ -32,27 +32,28 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
 import org.eclipse.ditto.services.things.common.config.ThingConfig;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CreateThingStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.DefaultContext;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ThingReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
 import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoSnapshotAdapter;
-import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractPersistentActorWithTimersAndCleanup;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -69,7 +70,8 @@ import scala.Option;
 /**
  * PersistentActor which "knows" the state of a single {@link Thing}.
  */
-public final class ThingPersistenceActor extends AbstractPersistentActorWithTimersAndCleanup {
+public final class ThingPersistenceActor extends AbstractPersistentActorWithTimersAndCleanup
+        implements ResultVisitor<ThingEvent> {
 
     /**
      * The prefix of the persistenceId for Things.
@@ -86,7 +88,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
      */
     static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
-    private static final CommandReceiveStrategy COMMAND_RECEIVE_STRATEGY = CommandReceiveStrategy.getInstance();
+    private static final AbstractReceiveStrategy COMMAND_RECEIVE_STRATEGY = ThingReceiveStrategy.getInstance();
     private static final CreateThingStrategy CREATE_THING_STRATEGY = CreateThingStrategy.getInstance();
 
     private final DiagnosticLoggingAdapter log;
@@ -100,12 +102,14 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private long confirmedSnapshotRevision;
 
     /**
-     * Context for all {@link CommandReceiveStrategy} strategies - contains references to fields of {@code this}
+     * Context for all {@link org.eclipse.ditto.services.things.persistence.actors.strategies.commands.AbstractReceiveStrategy} strategies - contains references to fields of {@code this}
      * PersistenceActor.
      */
     private final CommandStrategy.Context defaultContext;
 
     private long accessCounter;
+
+    @Nullable
     private Thing thing;
 
     @SuppressWarnings("unused")
@@ -130,7 +134,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
 
         final Runnable becomeCreatedRunnable = this::becomeThingCreatedHandler;
         final Runnable becomeDeletedRunnable = this::becomeThingDeletedHandler;
-        defaultContext = DefaultContext.getInstance(thingId, log, becomeCreatedRunnable, becomeDeletedRunnable);
+        defaultContext = DefaultContext.getInstance(thingId, log);
 
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
@@ -306,7 +310,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
 
     @SuppressWarnings("unchecked")
     private void handleCommand(final Command command, final CommandStrategy commandStrategy) {
-        final CommandStrategy.Result result;
+        final Result result;
         try {
             result = commandStrategy.apply(defaultContext, thing, getNextRevisionNumber(), command);
         } catch (final DittoRuntimeException e) {
@@ -314,13 +318,34 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
             return;
         }
 
-        // Unchecked warning suppressed for `persistAndApplyConsumer`.
-        // It is actually type-safe with the (infinitely-big) type parameter
-        // this.<ThingModifiedEvent<? extends ThingModifiedEvent<? extends ThingModifiedEvent<... ad nauseam ...>>>>
-        final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistAndApplyConsumer =
-                this::persistAndApplyEvent;
+        // TODO migrate all results
+        //result.apply(defaultContext, persistAndApplyConsumer, asyncNotifySender());
+        result.accept(this);
+    }
 
-        result.apply(defaultContext, persistAndApplyConsumer, asyncNotifySender());
+    @Override
+    public void onMutation(final Command command, final ThingEvent event, final WithDittoHeaders response,
+            final boolean becomeCreated, final boolean becomeDeleted) {
+
+        persistAndApplyEvent(event, (persistedEvent, resultingThing) -> {
+            notifySender(response);
+            if (becomeDeleted) {
+                becomeThingDeletedHandler();
+            }
+            if (becomeCreated) {
+                becomeThingCreatedHandler();
+            }
+        });
+    }
+
+    @Override
+    public void onQuery(final Command command, final WithDittoHeaders response) {
+        notifySender(response);
+    }
+
+    @Override
+    public void onError(final DittoRuntimeException error) {
+        notifySender(error);
     }
 
     private long getNextRevisionNumber() {
@@ -351,10 +376,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
         cancelSnapshot();
     }
 
-    private <A extends ThingModifiedEvent<? extends A>> void persistAndApplyEvent(final A event,
-            final BiConsumer<A, Thing> handler) {
+    private void persistAndApplyEvent(final ThingEvent event, final BiConsumer<ThingEvent, Thing> handler) {
 
-        final A modifiedEvent;
+        final ThingEvent modifiedEvent;
         if (null != thing) {
             // set version of event to the version of the thing
             final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
@@ -371,13 +395,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
             persistEvent(modifiedEvent, persistedEvent -> {
                 // after the event was persisted, apply the event on the current actor state
                 applyEvent(persistedEvent);
-
                 handler.accept(persistedEvent, thing);
             });
         }
     }
 
-    private <A extends ThingModifiedEvent> void persistEvent(final A event, final Consumer<A> handler) {
+    private void persistEvent(final ThingEvent event, final Consumer<ThingEvent> handler) {
         LogUtil.enhanceLogWithCorrelationId(log, event.getDittoHeaders().getCorrelationId());
         log.debug("Persisting Event <{}>.", event.getType());
 
@@ -420,7 +443,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
         return getRevisionNumber() - lastSnapshotRevision >= thingConfig.getSnapshotConfig().getThreshold();
     }
 
-    private <A extends ThingModifiedEvent> void applyEvent(final A event) {
+    private void applyEvent(final ThingEvent event) {
         handleThingEvents.onMessage().apply(event);
         notifySubscribers(event);
     }
@@ -444,13 +467,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
 
     private void notifySender(final WithDittoHeaders message) {
         notifySender(getSender(), message);
-    }
-
-    private Consumer<WithDittoHeaders> asyncNotifySender() {
-        accessCounter++;
-        final ActorRef sender = getSender();
-        final ActorRef self = getSelf();
-        return message -> sender.tell(message, self);
     }
 
     private void notifySender(final ActorRef sender, final WithDittoHeaders message) {
@@ -537,7 +553,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
      * This strategy handles any messages for a previous deleted Thing.
      */
     @NotThreadSafe
-    private final class ThingNotFoundStrategy extends AbstractReceiveStrategy<Object> {
+    private final class ThingNotFoundStrategy extends
+            org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy<Object> {
 
         /**
          * Constructs a new {@code ThingNotFoundStrategy} object.
@@ -563,7 +580,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
      * terminates itself if there was no activity since the last check.
      */
     @NotThreadSafe
-    private final class CheckForActivityStrategy extends AbstractReceiveStrategy<CheckForActivity> {
+    private final class CheckForActivityStrategy extends
+            org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy<CheckForActivity> {
 
         /**
          * Constructs a new {@code CheckForActivityStrategy} object.
@@ -613,7 +631,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
      * unknown messages and are marked as unhandled.
      */
     @NotThreadSafe
-    private final class MatchAnyAfterInitializeStrategy extends AbstractReceiveStrategy<Object> {
+    private final class MatchAnyAfterInitializeStrategy extends
+            org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy<Object> {
 
         /**
          * Constructs a new {@code MatchAnyAfterInitializeStrategy} object.
@@ -635,7 +654,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
      * logged as unexpected messages and cause the actor to be stopped.
      */
     @NotThreadSafe
-    private final class MatchAnyDuringInitializeStrategy extends AbstractReceiveStrategy<Object> {
+    private final class MatchAnyDuringInitializeStrategy extends
+            org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy<Object> {
 
         /**
          * Constructs a new {@code MatchAnyDuringInitializeStrategy} object.

@@ -20,12 +20,16 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link DeleteAttribute} command.
@@ -42,36 +46,34 @@ final class DeleteAttributeStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final DeleteAttribute command) {
         final JsonPointer attrPointer = command.getAttributePointer();
 
-        final Optional<Attributes> attrs = getThingOrThrow(thing).getAttributes()
+        final Optional<Attributes> attrs = getEntityOrThrow(thing).getAttributes()
                 .filter(attributes -> attributes.contains(attrPointer));
         return attrs
-                .map(attributes -> getDeleteAttributeResult(context, nextRevision, command))
+                .map(attributes -> getDeleteAttributeResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.attributeNotFound(context.getThingEntityId(), attrPointer,
                                 command.getDittoHeaders())));
     }
 
-    private Result getDeleteAttributeResult(final Context context, final long nextRevision,
-            final DeleteAttribute command) {
+    private Result<ThingEvent> getDeleteAttributeResult(final Context context, final long nextRevision,
+            final DeleteAttribute command, @Nullable final Thing thing) {
         final ThingId thingId = context.getThingEntityId();
         final JsonPointer attrPointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                DeleteAttributeResponse.of(thingId, attrPointer, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command,
-                AttributeDeleted.of(thingId, attrPointer, nextRevision, getEventTimestamp(), dittoHeaders),
-                DeleteAttributeResponse.of(thingId, attrPointer, dittoHeaders), this);
+                AttributeDeleted.of(thingId, attrPointer, nextRevision, getEventTimestamp(), dittoHeaders), response);
     }
 
 
     @Override
     public Optional<JsonValue> determineETagEntity(final DeleteAttribute command, @Nullable final Thing thing) {
-        final JsonPointer attrPointer = command.getAttributePointer();
-
-        return getThingOrThrow(thing).getAttributes()
-                .flatMap(attributes -> attributes.getValue(attrPointer));
+        return Optional.empty();
     }
 }

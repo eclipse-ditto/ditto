@@ -22,6 +22,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
+ * TODO: unify with the command strategies.
+ *
  * This {@link ReceiveStrategy} provides already an implementation of {@link #getMatchingClass()}
  * The behaviour of the "apply function" has to be implemented by subclasses.
  *

@@ -22,8 +22,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link RetrieveAttributes} command.
@@ -40,7 +43,7 @@ final class RetrieveAttributesStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveAttributes command) {
         final ThingId thingId = context.getThingEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -48,12 +51,16 @@ final class RetrieveAttributesStrategy
         return extractAttributes(thing)
                 .map(attributes -> getAttributesJson(attributes, command))
                 .map(attributesJson -> RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders))
-                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
-                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.attributesNotFound(thingId, dittoHeaders)));
+                .<Result<ThingEvent>>map(response ->
+                        ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing))
+                )
+                .orElseGet(() ->
+                        ResultFactory.newErrorResult(ExceptionFactory.attributesNotFound(thingId, dittoHeaders))
+                );
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getAttributes();
+        return getEntityOrThrow(thing).getAttributes();
     }
 
     private static JsonObject getAttributesJson(final Attributes attributes, final RetrieveAttributes command) {

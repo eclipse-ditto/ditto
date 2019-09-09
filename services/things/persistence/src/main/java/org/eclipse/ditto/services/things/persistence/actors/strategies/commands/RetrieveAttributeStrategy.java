@@ -24,8 +24,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute} command.
@@ -42,7 +45,7 @@ final class RetrieveAttributeStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveAttribute command) {
 
         return extractAttributes(thing)
@@ -52,10 +55,10 @@ final class RetrieveAttributeStrategy
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getAttributes();
+        return getEntityOrThrow(thing).getAttributes();
     }
 
-    private Result getAttributeValueResult(final JsonObject attributes, final ThingId thingId,
+    private Result<ThingEvent> getAttributeValueResult(final JsonObject attributes, final ThingId thingId,
             final RetrieveAttribute command, @Nullable final Thing thing) {
 
         final JsonPointer attributePointer = command.getAttributePointer();
@@ -63,7 +66,8 @@ final class RetrieveAttributeStrategy
 
         return attributes.getValue(attributePointer)
                 .map(value -> RetrieveAttributeResponse.of(thingId, attributePointer, value, dittoHeaders))
-                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .<Result<ThingEvent>>map(response ->
+                        ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.attributeNotFound(thingId, attributePointer, dittoHeaders)));
     }

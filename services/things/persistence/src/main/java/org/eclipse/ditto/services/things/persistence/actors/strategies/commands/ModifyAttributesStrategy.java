@@ -18,14 +18,18 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
 import org.eclipse.ditto.signals.events.things.AttributesModified;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link ModifyAttributes} command.
@@ -42,9 +46,9 @@ public final class ModifyAttributesStrategy extends
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyAttributes command) {
-        final Thing nonNullThing = getThingOrThrow(thing);
+        final Thing nonNullThing = getEntityOrThrow(thing);
         ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
             final long lengthWithOutAttributes = nonNullThing.removeAttributes()
                     .toJsonString()
@@ -55,33 +59,40 @@ public final class ModifyAttributesStrategy extends
         }, command::getDittoHeaders);
 
         return nonNullThing.getAttributes()
-                .map(attributes -> getModifyResult(context, nextRevision, command))
-                .orElseGet(() -> getCreateResult(context, nextRevision, command));
+                .map(attributes -> getModifyResult(context, nextRevision, command, thing))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command, thing));
     }
 
-    private Result getModifyResult(final Context context, final long nextRevision,
-            final ModifyAttributes command) {
+    private Result<ThingEvent> getModifyResult(final Context context, final long nextRevision,
+            final ModifyAttributes command, @Nullable final Thing thing) {
         final ThingId thingId = context.getThingEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newMutationResult(command,
+        final ThingEvent event =
                 AttributesModified.of(thingId, command.getAttributes(), nextRevision, getEventTimestamp(),
-                        dittoHeaders), ModifyAttributesResponse.modified(thingId, dittoHeaders), this);
+                        dittoHeaders);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                ModifyAttributesResponse.modified(thingId, dittoHeaders), thing);
+
+        return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result getCreateResult(final Context context, final long nextRevision,
-            final ModifyAttributes command) {
+    private Result<ThingEvent> getCreateResult(final Context context, final long nextRevision,
+            final ModifyAttributes command, @Nullable final Thing thing) {
         final ThingId thingId = context.getThingEntityId();
         final Attributes attributes = command.getAttributes();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newMutationResult(command,
-                AttributesCreated.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders),
-                ModifyAttributesResponse.created(thingId, attributes, dittoHeaders), this);
+        final ThingEvent event =
+                AttributesCreated.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                ModifyAttributesResponse.created(thingId, attributes, dittoHeaders), thing);
+
+        return ResultFactory.newMutationResult(command, event, response);
     }
 
     @Override
     public Optional<Attributes> determineETagEntity(final ModifyAttributes command, @Nullable final Thing thing) {
-        return getThingOrThrow(thing).getAttributes();
+        return Optional.of(command.getAttributes());
     }
 }

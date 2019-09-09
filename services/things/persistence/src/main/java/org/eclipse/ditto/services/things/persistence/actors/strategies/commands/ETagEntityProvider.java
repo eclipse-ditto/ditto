@@ -16,6 +16,9 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -35,4 +38,21 @@ public interface ETagEntityProvider<C extends Command, E> {
      * @return An optional of the eTag header value. Optional can be empty if no eTag header should be added.
      */
     Optional<E> determineETagEntity(final C command, @Nullable final Thing thing);
+
+    default WithDittoHeaders appendETagHeaderIfProvided(final C command,
+            final WithDittoHeaders withDittoHeaders, @Nullable final Thing thing) {
+
+        final Optional<E> eTagEntityOpt = determineETagEntity(command, thing);
+        if (eTagEntityOpt.isPresent()) {
+            final Optional<EntityTag> entityTagOpt = EntityTag.fromEntity(eTagEntityOpt.get());
+            if (entityTagOpt.isPresent()) {
+                final EntityTag entityTag = entityTagOpt.get();
+                final DittoHeaders newDittoHeaders = withDittoHeaders.getDittoHeaders().toBuilder()
+                        .eTag(entityTag)
+                        .build();
+                return withDittoHeaders.setDittoHeaders(newDittoHeaders);
+            }
+        }
+        return withDittoHeaders;
+    }
 }

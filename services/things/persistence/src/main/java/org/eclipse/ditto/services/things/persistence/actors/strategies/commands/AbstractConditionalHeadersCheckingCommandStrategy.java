@@ -18,10 +18,13 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader;
 import org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * Responsible to check conditional (http) headers based on the thing's current eTag value.
@@ -30,10 +33,12 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <E> The type of the addressed entity.
  */
 @Immutable
-public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extends Command<C>, E> extends
-        AbstractCommandStrategy<C> implements ETagEntityProvider<C, E> {
+public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extends Command<C>, E>
+        extends AbstractCommandStrategy<C, Thing, ThingEvent>
+        implements ETagEntityProvider<C, E> {
 
-    private static final ConditionalHeadersValidator VALIDATOR = ThingsConditionalHeadersValidatorProvider.getInstance();
+    private static final ConditionalHeadersValidator VALIDATOR =
+            ThingsConditionalHeadersValidatorProvider.getInstance();
 
     /**
      * Constructs a new {@code AbstractCommandStrategy} object.
@@ -57,7 +62,10 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
      * extending strategy.
      */
     @Override
-    public Result apply(final Context context, @Nullable final Thing thing, final long nextRevision, final C command) {
+    public Result<ThingEvent> apply(final Context context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final C command) {
 
         final EntityTag currentETagValue = determineETagEntity(command, thing)
                 .flatMap(EntityTag::fromEntity)

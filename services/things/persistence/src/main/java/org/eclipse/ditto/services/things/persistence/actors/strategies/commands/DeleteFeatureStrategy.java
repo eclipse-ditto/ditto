@@ -18,12 +18,16 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeature} command.
@@ -39,36 +43,39 @@ final class DeleteFeatureStrategy extends AbstractConditionalHeadersCheckingComm
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final DeleteFeature command) {
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
-                .map(feature -> getDeleteFeatureResult(context, nextRevision, command))
+                .map(feature -> getDeleteFeatureResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingEntityId(), featureId, command.getDittoHeaders())));
+                        ExceptionFactory.featureNotFound(context.getThingEntityId(), featureId,
+                                command.getDittoHeaders())));
     }
 
     private Optional<Feature> extractFeature(final DeleteFeature command, @Nullable final Thing thing) {
         final String featureId = command.getFeatureId();
 
-        return getThingOrThrow(thing).getFeatures()
+        return getEntityOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(featureId));
     }
 
-    private Result getDeleteFeatureResult(final Context context, final long nextRevision,
-            final DeleteFeature command) {
+    private Result<ThingEvent> getDeleteFeatureResult(final Context context, final long nextRevision,
+            final DeleteFeature command, @Nullable final Thing thing) {
         final ThingId thingId = context.getThingEntityId();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final ThingEvent event =
+                FeatureDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(), dittoHeaders);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                DeleteFeatureResponse.of(thingId, featureId, dittoHeaders), thing);
 
-        return ResultFactory.newMutationResult(command,
-                FeatureDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(), dittoHeaders),
-                DeleteFeatureResponse.of(thingId, featureId, dittoHeaders), this);
+        return ResultFactory.newMutationResult(command, event, response);
     }
 
     @Override
     public Optional<Feature> determineETagEntity(final DeleteFeature command, @Nullable final Thing thing) {
-        return extractFeature(command, thing);
+        return Optional.empty();
     }
 }

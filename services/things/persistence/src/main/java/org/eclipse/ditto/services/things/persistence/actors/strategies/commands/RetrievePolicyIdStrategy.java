@@ -19,9 +19,12 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyId;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link RetrievePolicyId} command.
@@ -38,21 +41,22 @@ final class RetrievePolicyIdStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final RetrievePolicyId command) {
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing, final long nextRevision,
+            final RetrievePolicyId command) {
 
         return extractPolicyId(thing)
                 .map(policyId -> RetrievePolicyIdResponse.of(context.getThingEntityId(), policyId,
                         command.getDittoHeaders()))
-                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .<Result<ThingEvent>>map(response ->
+                        ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         PolicyIdNotAccessibleException.newBuilder(context.getThingEntityId())
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build()));
+                                .dittoHeaders(command.getDittoHeaders())
+                                .build()));
     }
 
     private Optional<PolicyId> extractPolicyId(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getPolicyEntityId();
+        return getEntityOrThrow(thing).getPolicyEntityId();
     }
 
     @Override

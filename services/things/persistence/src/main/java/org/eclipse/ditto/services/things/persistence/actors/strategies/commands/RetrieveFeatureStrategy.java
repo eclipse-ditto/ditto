@@ -23,8 +23,11 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeature} command.
@@ -41,7 +44,7 @@ final class RetrieveFeatureStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveFeature command) {
         final ThingId thingId = context.getThingEntityId();
 
@@ -52,10 +55,10 @@ final class RetrieveFeatureStrategy
     }
 
     private Optional<Features> extractFeatures(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getFeatures();
+        return getEntityOrThrow(thing).getFeatures();
     }
 
-    private Result getFeatureResult(final Features features, final ThingId thingId,
+    private Result<ThingEvent> getFeatureResult(final Features features, final ThingId thingId,
             final RetrieveFeature command, @Nullable final Thing thing) {
 
         final String featureId = command.getFeatureId();
@@ -64,7 +67,8 @@ final class RetrieveFeatureStrategy
         return features.getFeature(featureId)
                 .map(feature -> getFeatureJson(feature, command))
                 .map(featureJson -> RetrieveFeatureResponse.of(thingId, featureId, featureJson, dittoHeaders))
-                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .<Result<ThingEvent>>map(response ->
+                        ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(thingId, featureId, dittoHeaders)));
     }
