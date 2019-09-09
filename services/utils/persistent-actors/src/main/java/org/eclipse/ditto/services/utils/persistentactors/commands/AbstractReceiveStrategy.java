@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
+package org.eclipse.ditto.services.utils.persistentactors.commands;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,9 +19,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.Entity;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.event.DiagnosticLoggingAdapter;
@@ -30,9 +30,10 @@ import akka.event.DiagnosticLoggingAdapter;
  * This <em>Singleton</em> delegates a {@code Command} to a dedicated strategy - if one is available - to be handled.
  */
 @Immutable
-public abstract class AbstractReceiveStrategy<S extends Entity, E> extends AbstractCommandStrategy<Command, S, E> {
+public abstract class AbstractReceiveStrategy<S extends Entity, I, E>
+        extends AbstractCommandStrategy<Command, S, I, E> {
 
-    protected final Map<Class<? extends Command>, CommandStrategy<? extends Command, S, E>> strategies =
+    protected final Map<Class<? extends Command>, CommandStrategy<? extends Command, S, I, E>> strategies =
             new HashMap<>();
 
     /**
@@ -47,17 +48,17 @@ public abstract class AbstractReceiveStrategy<S extends Entity, E> extends Abstr
     }
 
     /**
-     * TODO
+     * Add a command strategy. Call in constructor only.
      *
      * @param strategy the strategy.
      */
-    public void addStrategy(final CommandStrategy<? extends Command, S, E> strategy) {
+    protected void addStrategy(final CommandStrategy<? extends Command, S, I, E> strategy) {
         final Class<? extends Command> matchingClass = strategy.getMatchingClass();
         strategies.put(matchingClass, strategy);
     }
 
     @Override
-    protected Result<E> unhandled(final Context context, final S entity, final long nextRevision,
+    public Result<E> unhandled(final Context<I> context, @Nullable final S entity, final long nextRevision,
             final Command command) {
         final DiagnosticLoggingAdapter log = context.getLog();
         LogUtil.enhanceLogWithCorrelationId(log, command);
@@ -72,14 +73,15 @@ public abstract class AbstractReceiveStrategy<S extends Entity, E> extends Abstr
     }
 
     @Override
-    public boolean isDefined(final Context context, @Nullable final S entity, final Command command) {
+    public boolean isDefined(final Context<I> context, @Nullable final S entity, final Command command) {
         return isDefined(command);
     }
 
     @Override
-    protected Result<E> doApply(final Context context, @Nullable final S entity, final long nextRevision,
+    protected Result<E> doApply(final Context<I> context, @Nullable final S entity, final long nextRevision,
             final Command command) {
-        final CommandStrategy<Command, S, E> commandStrategy = getAppropriateStrategy(command.getClass());
+
+        final CommandStrategy<Command, S, I, E> commandStrategy = getAppropriateStrategy(command.getClass());
 
         final DiagnosticLoggingAdapter log = context.getLog();
         LogUtil.enhanceLogWithCorrelationId(log, command);
@@ -91,8 +93,8 @@ public abstract class AbstractReceiveStrategy<S extends Entity, E> extends Abstr
     }
 
     @SuppressWarnings("unchecked")
-    private CommandStrategy<Command, S, E> getAppropriateStrategy(final Class commandClass) {
-        return (CommandStrategy<Command, S, E>) strategies.get(commandClass);
+    private CommandStrategy<Command, S, I, E> getAppropriateStrategy(final Class commandClass) {
+        return (CommandStrategy<Command, S, I, E>) strategies.get(commandClass);
     }
 
 }

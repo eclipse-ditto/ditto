@@ -46,7 +46,7 @@ final class DeleteAttributeStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final DeleteAttribute command) {
         final JsonPointer attrPointer = command.getAttributePointer();
 
@@ -55,13 +55,13 @@ final class DeleteAttributeStrategy
         return attrs
                 .map(attributes -> getDeleteAttributeResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributeNotFound(context.getThingEntityId(), attrPointer,
+                        ExceptionFactory.attributeNotFound(context.getEntityId(), attrPointer,
                                 command.getDittoHeaders())));
     }
 
-    private Result<ThingEvent> getDeleteAttributeResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getDeleteAttributeResult(final Context<ThingId> context, final long nextRevision,
             final DeleteAttribute command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final JsonPointer attrPointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,

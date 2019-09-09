@@ -45,13 +45,13 @@ final class RetrieveAttributeStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveAttribute command) {
 
         return extractAttributes(thing)
-                .map(attributes -> getAttributeValueResult(attributes, context.getThingEntityId(), command, thing))
+                .map(attributes -> getAttributeValueResult(attributes, context.getEntityId(), command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributesNotFound(context.getThingEntityId(), command.getDittoHeaders())));
+                        ExceptionFactory.attributesNotFound(context.getEntityId(), command.getDittoHeaders())));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {

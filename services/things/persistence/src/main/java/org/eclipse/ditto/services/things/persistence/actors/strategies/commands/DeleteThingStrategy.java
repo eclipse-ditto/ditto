@@ -45,9 +45,9 @@ final class DeleteThingStrategy extends AbstractConditionalHeadersCheckingComman
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final DeleteThing command) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final DiagnosticLoggingAdapter log = context.getLog();
         LogUtil.enhanceLogWithCorrelationId(log, command);

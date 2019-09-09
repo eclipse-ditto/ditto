@@ -21,6 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.junit.Before;
@@ -45,10 +47,10 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveExistingAttribute() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonPointer attributePointer = JsonFactory.newPointer("location/latitude");
         final RetrieveAttribute command =
-                RetrieveAttribute.of(context.getThingEntityId(), attributePointer, DittoHeaders.empty());
+                RetrieveAttribute.of(context.getEntityId(), attributePointer, DittoHeaders.empty());
         final RetrieveAttributeResponse expectedResponse =
                 retrieveAttributeResponse(command.getThingEntityId(), command.getAttributePointer(),
                         JsonFactory.newValue(44.673856), command.getDittoHeaders());
@@ -58,9 +60,9 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveAttributeFromThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAttribute command =
-                RetrieveAttribute.of(context.getThingEntityId(), JsonFactory.newPointer("location/latitude"),
+                RetrieveAttribute.of(context.getEntityId(), JsonFactory.newPointer("location/latitude"),
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.attributesNotFound(command.getThingEntityId(), command.getDittoHeaders());
@@ -70,9 +72,9 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveNonExistingAttribute() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAttribute command =
-                RetrieveAttribute.of(context.getThingEntityId(), JsonFactory.newPointer("location/bar"),
+                RetrieveAttribute.of(context.getEntityId(), JsonFactory.newPointer("location/bar"),
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.attributeNotFound(command.getThingEntityId(), command.getAttributePointer(),

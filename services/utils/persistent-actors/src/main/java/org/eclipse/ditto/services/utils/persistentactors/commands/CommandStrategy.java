@@ -10,11 +10,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
+package org.eclipse.ditto.services.utils.persistentactors.commands;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -24,8 +23,11 @@ import akka.event.DiagnosticLoggingAdapter;
  * The CommandStrategy interface.
  *
  * @param <T> type of handled command.
+ * @param <S> type of entities.
+ * @param <I> type of entity IDs.
+ * @param <E> type of events.
  */
-public interface CommandStrategy<T extends Command, S, E> {
+public interface CommandStrategy<T extends Command, S, I, E> {
 
     /**
      * @return the message class to react to.
@@ -41,7 +43,7 @@ public interface CommandStrategy<T extends Command, S, E> {
      * @param command the command.
      * @return the result of the strategy that will be handled in the context of the calling actor.
      */
-    Result<E> apply(Context context, @Nullable S entity, long nextRevision, T command);
+    Result<E> apply(Context<I> context, @Nullable S entity, long nextRevision, T command);
 
     /**
      * Indicates whether this strategy is defined for the specified command and can be applied.
@@ -61,17 +63,17 @@ public interface CommandStrategy<T extends Command, S, E> {
      * @return {@code true} if the strategy is defined for the given command and can be applied.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    boolean isDefined(Context context, final S entity, T command);
+    boolean isDefined(Context<I> context, final S entity, T command);
 
     /**
      * The Context in which a strategy is executed.
      */
-    interface Context {
+    interface Context<I> {
 
         /**
          * @return the thing ID.
          */
-        ThingId getThingEntityId();
+        I getEntityId();
 
         /**
          * @return the log.

@@ -18,6 +18,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturesResponse;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
@@ -43,20 +45,20 @@ public final class DeleteFeaturesStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void successfullyDeleteFeaturesFromThing() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteFeatures command = DeleteFeatures.of(context.getThingEntityId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteFeatures command = DeleteFeatures.of(context.getEntityId(), DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeaturesDeleted.class,
-                DeleteFeaturesResponse.of(context.getThingEntityId(), command.getDittoHeaders()));
+                DeleteFeaturesResponse.of(context.getEntityId(), command.getDittoHeaders()));
     }
 
     @Test
     public void deleteFeaturesFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteFeatures command = DeleteFeatures.of(context.getThingEntityId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteFeatures command = DeleteFeatures.of(context.getEntityId(), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featuresNotFound(context.getThingEntityId(), command.getDittoHeaders());
+                ExceptionFactory.featuresNotFound(context.getEntityId(), command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
     }

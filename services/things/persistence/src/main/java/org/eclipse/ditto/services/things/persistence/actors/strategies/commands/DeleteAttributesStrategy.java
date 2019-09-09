@@ -44,22 +44,22 @@ final class DeleteAttributesStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final DeleteAttributes command) {
 
         return extractAttributes(thing)
                 .map(attributes -> getDeleteAttributesResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributesNotFound(context.getThingEntityId(), command.getDittoHeaders())));
+                        ExceptionFactory.attributesNotFound(context.getEntityId(), command.getDittoHeaders())));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
         return getEntityOrThrow(thing).getAttributes();
     }
 
-    private Result<ThingEvent> getDeleteAttributesResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getDeleteAttributesResult(final Context<ThingId> context, final long nextRevision,
             final DeleteAttributes command, @Nullable Thing thing) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,

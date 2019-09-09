@@ -46,13 +46,13 @@ final class DeleteFeaturePropertyStrategy extends
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final DeleteFeatureProperty command) {
 
         return extractFeature(command, thing)
                 .map(feature -> getDeleteFeaturePropertyResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
+                        ExceptionFactory.featureNotFound(context.getEntityId(), command.getFeatureId(),
                                 command.getDittoHeaders())));
     }
 
@@ -61,18 +61,11 @@ final class DeleteFeaturePropertyStrategy extends
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Optional<JsonValue> extractFeaturePropertyValue(final DeleteFeatureProperty command,
-            final @Nullable Thing thing) {
-        return extractFeature(command, thing)
-                .flatMap(Feature::getProperties)
-                .flatMap(featureProperties -> featureProperties.getValue(command.getPropertyPointer()));
-    }
-
-    private Result<ThingEvent> getDeleteFeaturePropertyResult(final Feature feature, final Context context,
+    private Result<ThingEvent> getDeleteFeaturePropertyResult(final Feature feature, final Context<ThingId> context,
             final long nextRevision, final DeleteFeatureProperty command, @Nullable final Thing thing) {
 
         final JsonPointer propertyPointer = command.getPropertyPointer();
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

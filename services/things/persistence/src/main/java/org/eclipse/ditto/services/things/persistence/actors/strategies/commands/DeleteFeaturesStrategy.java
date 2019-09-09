@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
@@ -42,7 +43,7 @@ final class DeleteFeaturesStrategy extends AbstractConditionalHeadersCheckingCom
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final DeleteFeatures command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -52,7 +53,7 @@ final class DeleteFeaturesStrategy extends AbstractConditionalHeadersCheckingCom
                                 getResponse(context, command, thing))
                 )
                 .orElseGet(() ->
-                        ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(context.getThingEntityId(),
+                        ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(context.getEntityId(),
                                 dittoHeaders)));
     }
 
@@ -60,15 +61,15 @@ final class DeleteFeaturesStrategy extends AbstractConditionalHeadersCheckingCom
         return getEntityOrThrow(thing).getFeatures();
     }
 
-    private static ThingEvent getEventToPersist(final Context context, final long nextRevision,
+    private static ThingEvent getEventToPersist(final Context<ThingId> context, final long nextRevision,
             final DittoHeaders dittoHeaders) {
-        return FeaturesDeleted.of(context.getThingEntityId(), nextRevision, getEventTimestamp(), dittoHeaders);
+        return FeaturesDeleted.of(context.getEntityId(), nextRevision, getEventTimestamp(), dittoHeaders);
     }
 
-    private WithDittoHeaders getResponse(final Context context, final DeleteFeatures command,
+    private WithDittoHeaders getResponse(final Context<ThingId> context, final DeleteFeatures command,
             @Nullable final Thing thing) {
         return appendETagHeaderIfProvided(command,
-                DeleteFeaturesResponse.of(context.getThingEntityId(), command.getDittoHeaders()), thing);
+                DeleteFeaturesResponse.of(context.getEntityId(), command.getDittoHeaders()), thing);
     }
 
     @Override

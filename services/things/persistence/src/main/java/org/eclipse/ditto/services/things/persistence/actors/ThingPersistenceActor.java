@@ -32,8 +32,8 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
 import org.eclipse.ditto.services.things.common.config.ThingConfig;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.AbstractReceiveStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractReceiveStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CreateThingStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.DefaultContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ThingReceiveStrategy;
@@ -102,10 +102,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private long confirmedSnapshotRevision;
 
     /**
-     * Context for all {@link org.eclipse.ditto.services.things.persistence.actors.strategies.commands.AbstractReceiveStrategy} strategies - contains references to fields of {@code this}
+     * Context for all {@link org.eclipse.ditto.services.utils.persistentactors.commands.AbstractReceiveStrategy} strategies - contains references to fields of {@code this}
      * PersistenceActor.
      */
-    private final CommandStrategy.Context defaultContext;
+    private final CommandStrategy.Context<ThingId> defaultContext;
 
     private long accessCounter;
 

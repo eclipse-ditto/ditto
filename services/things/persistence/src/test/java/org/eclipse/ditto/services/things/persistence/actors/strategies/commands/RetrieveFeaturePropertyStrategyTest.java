@@ -23,6 +23,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
 import org.junit.Before;
@@ -47,10 +49,10 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
 
     @Test
     public void getProperty() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonPointer propertyPointer = JsonFactory.newPointer("target_year_1");
         final RetrieveFeatureProperty command =
-                RetrieveFeatureProperty.of(context.getThingEntityId(), FLUX_CAPACITOR_ID, propertyPointer,
+                RetrieveFeatureProperty.of(context.getEntityId(), FLUX_CAPACITOR_ID, propertyPointer,
                         DittoHeaders.empty());
         final RetrieveFeaturePropertyResponse expectedResponse =
                 retrieveFeaturePropertyResponse(command.getThingEntityId(), command.getFeatureId(),
@@ -61,8 +63,8 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
 
     @Test
     public void getPropertyFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveFeatureProperty command = RetrieveFeatureProperty.of(context.getThingEntityId(), FLUX_CAPACITOR_ID,
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final RetrieveFeatureProperty command = RetrieveFeatureProperty.of(context.getEntityId(), FLUX_CAPACITOR_ID,
                 JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
@@ -73,31 +75,32 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
 
     @Test
     public void getPropertyFromFeatureWithoutProperties() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureProperty command =
-                RetrieveFeatureProperty.of(context.getThingEntityId(), FLUX_CAPACITOR_ID,
+                RetrieveFeatureProperty.of(context.getEntityId(), FLUX_CAPACITOR_ID,
                         JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featurePropertiesNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
-        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeProperties()), command, expectedException);
+        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeProperties()), command,
+                expectedException);
     }
 
     @Test
     public void getNonExistentProperty() {
         final JsonPointer propertyPointer = JsonFactory.newPointer("target_year_1");
-        final CommandStrategy.Context context =
+        final CommandStrategy.Context<ThingId> context =
                 getDefaultContext();
         final RetrieveFeatureProperty command =
-                RetrieveFeatureProperty.of(context.getThingEntityId(), FLUX_CAPACITOR_ID, propertyPointer,
+                RetrieveFeatureProperty.of(context.getEntityId(), FLUX_CAPACITOR_ID, propertyPointer,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featurePropertyNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getPropertyPointer(), command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeProperty(propertyPointer)), command,
-                        expectedException);
+                expectedException);
     }
 
 }

@@ -34,8 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link ModifyPolicyId} command.
  */
 @Immutable
-final class ModifyPolicyIdStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyPolicyId, PolicyId> {
+final class ModifyPolicyIdStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyPolicyId, PolicyId> {
 
     /**
      * Constructs a new {@code ModifyPolicyIdStrategy} object.
@@ -45,7 +44,7 @@ final class ModifyPolicyIdStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final ModifyPolicyId command) {
 
         return extractPolicyId(thing)
@@ -57,9 +56,9 @@ final class ModifyPolicyIdStrategy
         return getEntityOrThrow(thing).getPolicyEntityId();
     }
 
-    private Result<ThingEvent> getModifyResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyPolicyId command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final ThingEvent event =
@@ -71,9 +70,9 @@ final class ModifyPolicyIdStrategy
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyPolicyId command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final PolicyId policyId = command.getPolicyEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

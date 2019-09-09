@@ -20,6 +20,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
 import org.eclipse.ditto.signals.events.things.AttributesModified;
@@ -55,24 +57,24 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void modifyAttributesOfThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttributes command =
-                ModifyAttributes.of(context.getThingEntityId(), modifiedAttributes, DittoHeaders.empty());
+                ModifyAttributes.of(context.getEntityId(), modifiedAttributes, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributesCreated.class,
-                modifyAttributesResponse(context.getThingEntityId(), modifiedAttributes, command.getDittoHeaders(), true));
+                modifyAttributesResponse(context.getEntityId(), modifiedAttributes, command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyAttributesOfThingWithAttributes() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttributes command =
-                ModifyAttributes.of(context.getThingEntityId(), modifiedAttributes, DittoHeaders.empty());
+                ModifyAttributes.of(context.getEntityId(), modifiedAttributes, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributesModified.class,
-                modifyAttributesResponse(context.getThingEntityId(), modifiedAttributes, command.getDittoHeaders(), false));
+                modifyAttributesResponse(context.getEntityId(), modifiedAttributes, command.getDittoHeaders(), false));
     }
 
 }

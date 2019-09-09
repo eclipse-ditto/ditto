@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAccessibleException;
@@ -41,16 +42,18 @@ final class RetrievePolicyIdStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing, final long nextRevision,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
             final RetrievePolicyId command) {
 
         return extractPolicyId(thing)
-                .map(policyId -> RetrievePolicyIdResponse.of(context.getThingEntityId(), policyId,
+                .map(policyId -> RetrievePolicyIdResponse.of(context.getEntityId(), policyId,
                         command.getDittoHeaders()))
                 .<Result<ThingEvent>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        PolicyIdNotAccessibleException.newBuilder(context.getThingEntityId())
+                        PolicyIdNotAccessibleException.newBuilder(context.getEntityId())
                                 .dittoHeaders(command.getDittoHeaders())
                                 .build()));
     }

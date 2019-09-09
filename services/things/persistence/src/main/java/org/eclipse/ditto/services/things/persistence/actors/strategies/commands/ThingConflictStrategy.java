@@ -18,6 +18,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
@@ -28,7 +30,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link CreateThing} command for an already existing Thing.
  */
 @Immutable
-final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing, Thing, ThingEvent> {
+final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing, Thing, ThingId, ThingEvent> {
 
     /**
      * Constructs a new {@code ThingConflictStrategy} object.
@@ -38,13 +40,13 @@ final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing, T
     }
 
     @Override
-    public boolean isDefined(final Context context, @Nullable final Thing thing,
+    public boolean isDefined(final Context<ThingId> context, @Nullable final Thing thing,
             final CreateThing command) {
-        return Objects.equals(context.getThingEntityId(), command.getThingEntityId());
+        return Objects.equals(context.getEntityId(), command.getThingEntityId());
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final CreateThing command) {
         return ResultFactory.newErrorResult(ThingConflictException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())

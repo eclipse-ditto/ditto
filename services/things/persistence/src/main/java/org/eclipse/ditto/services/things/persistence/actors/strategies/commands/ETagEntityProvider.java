@@ -39,6 +39,14 @@ public interface ETagEntityProvider<C extends Command, E> {
      */
     Optional<E> determineETagEntity(final C command, @Nullable final Thing thing);
 
+    /**
+     * Append an ETag header if given by the entity.
+     *
+     * @param command the command for whose response the ETag header is to be appended.
+     * @param withDittoHeaders the response for whom the ETag header is to be appended.
+     * @param thing the thing with the next revision number, or null if it is being deleted.
+     * @return response with ETag header appended.
+     */
     default WithDittoHeaders appendETagHeaderIfProvided(final C command,
             final WithDittoHeaders withDittoHeaders, @Nullable final Thing thing) {
 

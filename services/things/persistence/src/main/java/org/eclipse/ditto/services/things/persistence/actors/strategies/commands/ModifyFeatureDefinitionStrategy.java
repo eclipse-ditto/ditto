@@ -46,14 +46,14 @@ final class ModifyFeatureDefinitionStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeatureDefinition command) {
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingEntityId(), featureId,
+                        ExceptionFactory.featureNotFound(context.getEntityId(), featureId,
                                 command.getDittoHeaders())));
     }
 
@@ -62,7 +62,7 @@ final class ModifyFeatureDefinitionStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature, final Context context,
+    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature, final Context<ThingId> context,
             final long nextRevision, final ModifyFeatureDefinition command, @Nullable final Thing thing) {
 
         return feature.getDefinition()
@@ -70,9 +70,9 @@ final class ModifyFeatureDefinitionStrategy
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatureDefinition command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final String featureId = command.getFeatureId();
 
@@ -85,9 +85,9 @@ final class ModifyFeatureDefinitionStrategy
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatureDefinition command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final String featureId = command.getFeatureId();
 

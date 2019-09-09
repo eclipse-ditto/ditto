@@ -47,7 +47,7 @@ final class ModifyAttributeStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final ModifyAttribute command) {
         final Thing nonNullThing = getEntityOrThrow(thing);
 
@@ -66,9 +66,9 @@ final class ModifyAttributeStrategy
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttribute command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final JsonPointer attributePointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -81,9 +81,9 @@ final class ModifyAttributeStrategy
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttribute command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final JsonPointer attributePointer = command.getAttributePointer();
         final JsonValue attributeValue = command.getAttributeValue();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();

@@ -18,11 +18,13 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader;
 import org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader;
+import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -34,7 +36,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extends Command<C>, E>
-        extends AbstractCommandStrategy<C, Thing, ThingEvent>
+        extends AbstractCommandStrategy<C, Thing, ThingId, ThingEvent>
         implements ETagEntityProvider<C, E> {
 
     private static final ConditionalHeadersValidator VALIDATOR =
@@ -62,7 +64,7 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
      * extending strategy.
      */
     @Override
-    public Result<ThingEvent> apply(final Context context,
+    public Result<ThingEvent> apply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final C command) {

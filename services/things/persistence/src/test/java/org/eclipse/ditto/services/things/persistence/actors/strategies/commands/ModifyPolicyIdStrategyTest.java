@@ -20,6 +20,8 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
@@ -45,21 +47,21 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void modifyPolicyIdOnThingWithoutPolicyId() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final ModifyPolicyId command = ModifyPolicyId.of(context.getThingEntityId(), POLICY_ID, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyPolicyId command = ModifyPolicyId.of(context.getEntityId(), POLICY_ID, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V1, command, PolicyIdCreated.class,
-                modifyPolicyIdResponse(context.getThingEntityId(), command.getPolicyEntityId(),
+                modifyPolicyIdResponse(context.getEntityId(), command.getPolicyEntityId(),
                         command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyExistingPolicyId() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final ModifyPolicyId command = ModifyPolicyId.of(context.getThingEntityId(), POLICY_ID, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyPolicyId command = ModifyPolicyId.of(context.getEntityId(), POLICY_ID, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
-                PolicyIdModified.class, modifyPolicyIdResponse(context.getThingEntityId(), command.getPolicyEntityId(),
+                PolicyIdModified.class, modifyPolicyIdResponse(context.getEntityId(), command.getPolicyEntityId(),
                         command.getDittoHeaders(), false));
     }
 

@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
@@ -44,14 +45,16 @@ final class RetrieveFeaturePropertyStrategy extends
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing, final long nextRevision,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
             final RetrieveFeatureProperty command) {
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
                 .map(feature -> getRetrieveFeaturePropertyResult(feature, context, command, thing))
                 .orElseGet(
-                        () -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(context.getThingEntityId(),
+                        () -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(context.getEntityId(),
                                 featureId, command.getDittoHeaders())));
     }
 
@@ -60,18 +63,18 @@ final class RetrieveFeaturePropertyStrategy extends
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getRetrieveFeaturePropertyResult(final Feature feature, final Context context,
+    private Result<ThingEvent> getRetrieveFeaturePropertyResult(final Feature feature, final Context<ThingId> context,
             final RetrieveFeatureProperty command, @Nullable final Thing thing) {
 
         return feature.getProperties()
                 .map(featureProperties -> getRetrieveFeaturePropertyResult(featureProperties, context, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertiesNotFound(context.getThingEntityId(), feature.getId(),
+                        ExceptionFactory.featurePropertiesNotFound(context.getEntityId(), feature.getId(),
                                 command.getDittoHeaders())));
     }
 
     private Result<ThingEvent> getRetrieveFeaturePropertyResult(final JsonObject featureProperties,
-            final Context context,
+            final Context<ThingId> context,
             final RetrieveFeatureProperty command, @Nullable final Thing thing) {
 
         final String featureId = command.getFeatureId();
@@ -79,12 +82,12 @@ final class RetrieveFeaturePropertyStrategy extends
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return featureProperties.getValue(propertyPointer)
-                .map(featureProperty -> RetrieveFeaturePropertyResponse.of(context.getThingEntityId(), featureId,
+                .map(featureProperty -> RetrieveFeaturePropertyResponse.of(context.getEntityId(), featureId,
                         propertyPointer, featureProperty, dittoHeaders))
                 .<Result<ThingEvent>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertyNotFound(context.getThingEntityId(), featureId, propertyPointer,
+                        ExceptionFactory.featurePropertyNotFound(context.getEntityId(), featureId, propertyPointer,
                                 dittoHeaders)));
     }
 

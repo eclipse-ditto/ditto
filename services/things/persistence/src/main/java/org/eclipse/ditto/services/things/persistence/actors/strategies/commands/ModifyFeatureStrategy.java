@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -45,7 +46,7 @@ final class ModifyFeatureStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeature command) {
 
         final Thing nonNullThing = getEntityOrThrow(thing);
@@ -68,7 +69,7 @@ final class ModifyFeatureStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeature command, @Nullable final Thing thing) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -76,13 +77,13 @@ final class ModifyFeatureStrategy
                 FeatureModified.of(command.getThingEntityId(), command.getFeature(), nextRevision, getEventTimestamp(),
                         dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeatureResponse.modified(context.getThingEntityId(), command.getFeatureId(), dittoHeaders),
+                ModifyFeatureResponse.modified(context.getEntityId(), command.getFeatureId(), dittoHeaders),
                 thing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeature command, @Nullable final Thing thing) {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -91,7 +92,7 @@ final class ModifyFeatureStrategy
         final ThingEvent event =
                 FeatureCreated.of(command.getThingEntityId(), feature, nextRevision, getEventTimestamp(), dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeatureResponse.created(context.getThingEntityId(), feature, dittoHeaders), thing);
+                ModifyFeatureResponse.created(context.getEntityId(), feature, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }

@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -71,16 +72,16 @@ public final class CreateThingStrategy
     }
 
     @Override
-    public boolean isDefined(final Context context, @Nullable final Thing thing, final CreateThing command) {
+    public boolean isDefined(final Context<ThingId> context, @Nullable final Thing thing, final CreateThing command) {
         final boolean thingExists = Optional.ofNullable(thing)
                 .map(t -> !t.isDeleted())
                 .orElse(false);
 
-        return !thingExists && Objects.equals(context.getThingEntityId(), command.getEntityId());
+        return !thingExists && Objects.equals(context.getEntityId(), command.getEntityId());
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final CreateThing command) {
         final DittoHeaders commandHeaders = command.getDittoHeaders();
 
@@ -104,7 +105,7 @@ public final class CreateThingStrategy
         // for v2 upwards, set the policy-id to the thing-id if none is specified:
         final boolean isV2Upwards = !JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion());
         if (isV2Upwards && !newThing.getPolicyEntityId().isPresent()) {
-            newThing = newThing.setPolicyId(PolicyId.of(context.getThingEntityId()));
+            newThing = newThing.setPolicyId(PolicyId.of(context.getEntityId()));
         }
 
         final Instant modified = Instant.now();
@@ -121,7 +122,8 @@ public final class CreateThingStrategy
     }
 
 
-    private Thing handleCommandVersion(final Context context, final JsonSchemaVersion version, final Thing thing,
+    private Thing handleCommandVersion(final Context<ThingId> context, final JsonSchemaVersion version,
+            final Thing thing,
             final DittoHeaders dittoHeaders) {
 
         if (JsonSchemaVersion.V_1.equals(version)) {
@@ -132,12 +134,12 @@ public final class CreateThingStrategy
         else {
             //acl is not allowed to be set in v2
             if (thing.getAccessControlList().isPresent()) {
-                throw AclNotAllowedException.newBuilder(context.getThingEntityId()).dittoHeaders(dittoHeaders).build();
+                throw AclNotAllowedException.newBuilder(context.getEntityId()).dittoHeaders(dittoHeaders).build();
             }
 
             // policyId is required for v2
             if (!thing.getPolicyEntityId().isPresent()) {
-                throw PolicyIdMissingException.fromThingIdOnCreate(context.getThingEntityId(), dittoHeaders);
+                throw PolicyIdMissingException.fromThingIdOnCreate(context.getEntityId(), dittoHeaders);
             }
 
             return setLifecycleActive(thing);
@@ -179,7 +181,7 @@ public final class CreateThingStrategy
     }
 
     @Nullable
-    private Result validateThing(final Context context, final JsonSchemaVersion version, final Thing thing,
+    private Result validateThing(final Context<ThingId> context, final JsonSchemaVersion version, final Thing thing,
             final DittoHeaders headers) {
         final Optional<AccessControlList> accessControlList = thing.getAccessControlList();
         if (JsonSchemaVersion.V_1.equals(version)) {
@@ -189,14 +191,14 @@ public final class CreateThingStrategy
                 // before persisting, check if the ACL is valid and reject if not:
                 if (!aclValidator.isValid()) {
                     final AclInvalidException aclInvalidException =
-                            AclInvalidException.newBuilder(context.getThingEntityId())
+                            AclInvalidException.newBuilder(context.getEntityId())
                                     .dittoHeaders(headers)
                                     .build();
                     return newErrorResult(aclInvalidException);
                 }
             } else {
                 final AclInvalidException aclInvalidException =
-                        AclInvalidException.newBuilder(context.getThingEntityId())
+                        AclInvalidException.newBuilder(context.getEntityId())
                                 .dittoHeaders(headers)
                                 .build();
                 return newErrorResult(aclInvalidException);

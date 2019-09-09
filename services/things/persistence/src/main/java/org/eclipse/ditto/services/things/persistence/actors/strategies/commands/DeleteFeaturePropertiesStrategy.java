@@ -45,13 +45,13 @@ final class DeleteFeaturePropertiesStrategy extends
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final DeleteFeatureProperties command) {
 
         return extractFeature(command, thing)
                 .map(feature -> getDeleteFeaturePropertiesResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
+                        ExceptionFactory.featureNotFound(context.getEntityId(), command.getFeatureId(),
                                 command.getDittoHeaders())));
     }
 
@@ -62,11 +62,11 @@ final class DeleteFeaturePropertiesStrategy extends
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getDeleteFeaturePropertiesResult(final Feature feature, final Context context,
+    private Result<ThingEvent> getDeleteFeaturePropertiesResult(final Feature feature, final Context<ThingId> context,
             final long nextRevision, final DeleteFeatureProperties command, @Nullable final Thing thing) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final String featureId = feature.getId();
 
         return feature.getProperties()

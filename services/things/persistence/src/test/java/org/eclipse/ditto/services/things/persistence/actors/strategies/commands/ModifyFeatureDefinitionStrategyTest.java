@@ -22,6 +22,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
@@ -57,24 +59,24 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
 
     @Test
     public void modifyFeatureDefinitionOfThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
-                ModifyFeatureDefinition.of(context.getThingEntityId(), featureId, modifiedFeatureDefinition,
+                ModifyFeatureDefinition.of(context.getEntityId(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getThingEntityId(), featureId, command.getDittoHeaders());
+                ExceptionFactory.featureNotFound(context.getEntityId(), featureId, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
     }
 
     @Test
     public void modifyFeatureDefinitionOfThingWithoutThatFeature() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
-                ModifyFeatureDefinition.of(context.getThingEntityId(), featureId, modifiedFeatureDefinition,
+                ModifyFeatureDefinition.of(context.getEntityId(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getThingEntityId(), featureId, command.getDittoHeaders());
+                ExceptionFactory.featureNotFound(context.getEntityId(), featureId, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeature(featureId), command, expectedException);
     }
@@ -82,27 +84,27 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
     @Test
     public void modifyFeatureDefinitionOfFeatureWithoutDefinition() {
         final Feature featureWithoutDefinition = TestConstants.Feature.FLUX_CAPACITOR.removeDefinition();
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
-                ModifyFeatureDefinition.of(context.getThingEntityId(), featureId, modifiedFeatureDefinition,
+                ModifyFeatureDefinition.of(context.getEntityId(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.setFeature(featureWithoutDefinition), command,
                 FeatureDefinitionCreated.class,
-                modifyFeatureDefinitionResponse(context.getThingEntityId(), featureId, command.getDefinition(),
+                modifyFeatureDefinitionResponse(context.getEntityId(), featureId, command.getDefinition(),
                         command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyExistingFeatureDefinition() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
-                ModifyFeatureDefinition.of(context.getThingEntityId(), featureId, modifiedFeatureDefinition,
+                ModifyFeatureDefinition.of(context.getEntityId(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeatureDefinitionModified.class,
-                modifyFeatureDefinitionResponse(context.getThingEntityId(), featureId, modifiedFeatureDefinition,
+                modifyFeatureDefinitionResponse(context.getEntityId(), featureId, modifiedFeatureDefinition,
                         command.getDittoHeaders(), false));
     }
 

@@ -18,22 +18,22 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * Holds the context required to execute the {@link CommandStrategy}s.
+ * Holds the context required to execute the {@link org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy}s.
  */
 @Immutable
-public final class DefaultContext implements CommandStrategy.Context {
+public final class DefaultContext<I> implements CommandStrategy.Context<I> {
 
-    private final ThingId thingId;
+    private final I thingId;
     private final DiagnosticLoggingAdapter log;
 
-    private DefaultContext(final ThingId theThingId, final DiagnosticLoggingAdapter theLog) {
+    private DefaultContext(final I thingId, final DiagnosticLoggingAdapter theLog) {
 
-        thingId = checkNotNull(theThingId, "Thing ID");
+        this.thingId = checkNotNull(thingId, "Thing ID");
         log = checkNotNull(theLog, "DiagnosticLoggingAdapter");
     }
 
@@ -45,12 +45,12 @@ public final class DefaultContext implements CommandStrategy.Context {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultContext getInstance(final ThingId thingId, final DiagnosticLoggingAdapter log) {
-        return new DefaultContext(thingId, log);
+    public static <I> DefaultContext<I> getInstance(final I thingId, final DiagnosticLoggingAdapter log) {
+        return new DefaultContext<>(thingId, log);
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public I getEntityId() {
         return thingId;
     }
 

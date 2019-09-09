@@ -44,9 +44,9 @@ final class RetrieveFeatureStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveFeature command) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
 
         return extractFeatures(thing)
                 .map(features -> getFeatureResult(features, thingId, command, thing))

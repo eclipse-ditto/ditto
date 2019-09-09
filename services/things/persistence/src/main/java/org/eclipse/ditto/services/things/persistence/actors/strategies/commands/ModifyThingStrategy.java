@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -40,8 +41,7 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  * This strategy handles the {@link ModifyThing} command for an already existing Thing.
  */
 @Immutable
-final class ModifyThingStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyThing, Thing> {
+final class ModifyThingStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyThing, Thing> {
 
     /**
      * Constructs a new {@code ModifyThingStrategy} object.
@@ -51,7 +51,7 @@ final class ModifyThingStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
 
         final Thing nonNullThing = getEntityOrThrow(thing);
@@ -67,7 +67,7 @@ final class ModifyThingStrategy
         return handleModifyExistingWithV2Command(context, nonNullThing, nextRevision, command);
     }
 
-    private Result<ThingEvent> handleModifyExistingWithV1Command(final Context context, final Thing thing,
+    private Result<ThingEvent> handleModifyExistingWithV1Command(final Context<ThingId> context, final Thing thing,
             final long nextRevision, final ModifyThing command) {
         if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
             return handleModifyExistingV1WithV1Command(context, thing, nextRevision, command);
@@ -76,9 +76,9 @@ final class ModifyThingStrategy
         }
     }
 
-    private Result<ThingEvent> handleModifyExistingV1WithV1Command(final Context context,
+    private Result<ThingEvent> handleModifyExistingV1WithV1Command(final Context<ThingId> context,
             final Thing thing, final long nextRevision, final ModifyThing command) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
 
         // if the ACL was modified together with the Thing, an additional check is necessary
         final boolean isCommandAclEmpty = command.getThing()
@@ -117,10 +117,10 @@ final class ModifyThingStrategy
         }
     }
 
-    private Result<ThingEvent> handleModifyExistingV2WithV1Command(final Context context,
+    private Result<ThingEvent> handleModifyExistingV2WithV1Command(final Context<ThingId> context,
             final Thing thing, final long nextRevision,
             final ModifyThing command) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         // remove any acl information from command and add the current policy Id
         final Thing thingWithoutAcl = removeACL(copyPolicyId(context, thing, command.getThing()), nextRevision);
         final ThingEvent thingModified =
@@ -138,7 +138,7 @@ final class ModifyThingStrategy
                 .build();
     }
 
-    private Result<ThingEvent> handleModifyExistingWithV2Command(final Context context, final Thing thing,
+    private Result<ThingEvent> handleModifyExistingWithV2Command(final Context<ThingId> context, final Thing thing,
             final long nextRevision, final ModifyThing command) {
         if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
             return handleModifyExistingV1WithV2Command(context, thing, nextRevision, command);
@@ -150,14 +150,14 @@ final class ModifyThingStrategy
     /**
      * Handles a {@link ModifyThing} command that was sent via API v2 and targets a Thing with API version V1.
      */
-    private Result<ThingEvent> handleModifyExistingV1WithV2Command(final Context context,
+    private Result<ThingEvent> handleModifyExistingV1WithV2Command(final Context<ThingId> context,
             final Thing thing, final long nextRevision, final ModifyThing command) {
         if (containsPolicyId(command)) {
             final Thing thingWithoutAcl = thing.toBuilder().removeAllPermissions().build();
             return applyModifyCommand(context, thingWithoutAcl, nextRevision, command);
         } else {
             return newErrorResult(
-                    PolicyIdMissingException.fromThingIdOnUpdate(context.getThingEntityId(),
+                    PolicyIdMissingException.fromThingIdOnUpdate(context.getEntityId(),
                             command.getDittoHeaders()));
         }
     }
@@ -165,7 +165,7 @@ final class ModifyThingStrategy
     /**
      * Handles a {@link ModifyThing} command that was sent via API v2 and targets a Thing with API version V2.
      */
-    private Result<ThingEvent> handleModifyExistingV2WithV2Command(final Context context,
+    private Result<ThingEvent> handleModifyExistingV2WithV2Command(final Context<ThingId> context,
             final Thing thing, final long nextRevision,
             final ModifyThing command) {
         // ensure the Thing contains a policy ID
@@ -177,7 +177,7 @@ final class ModifyThingStrategy
                 ModifyThing.of(command.getThingEntityId(), thingWithPolicyId, null, command.getDittoHeaders()));
     }
 
-    private Result<ThingEvent> applyModifyCommand(final Context context, final Thing thing,
+    private Result<ThingEvent> applyModifyCommand(final Context<ThingId> context, final Thing thing,
             final long nextRevision, final ModifyThing command) {
         // make sure that the ThingModified-Event contains all data contained in the resulting existingThing (this is
         // required e. g. for updating the search-index)
@@ -188,7 +188,7 @@ final class ModifyThingStrategy
         final ThingEvent event =
                 ThingModified.of(modifiedThing, nextRevision, getEventTimestamp(), dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyThingResponse.modified(context.getThingEntityId(), dittoHeaders), modifiedThing);
+                ModifyThingResponse.modified(context.getEntityId(), dittoHeaders), modifiedThing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }
@@ -220,21 +220,21 @@ final class ModifyThingStrategy
         return command.getThing().getPolicyEntityId().isPresent();
     }
 
-    private static Thing copyPolicyId(final CommandStrategy.Context ctx, final Thing from, final Thing to) {
+    private static Thing copyPolicyId(final CommandStrategy.Context<ThingId> ctx, final Thing from, final Thing to) {
         return to.toBuilder()
                 .setPolicyId(from.getPolicyEntityId().orElseGet(() -> {
                     ctx.getLog()
                             .error("Thing <{}> is schema version 2 and should therefore contain a policyId",
-                                    ctx.getThingEntityId());
+                                    ctx.getEntityId());
                     return null;
                 }))
                 .build();
     }
 
     @Override
-    protected Result<ThingEvent> unhandled(final Context context, @Nullable final Thing thing,
+    public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
-        return newErrorResult(new ThingNotAccessibleException(context.getThingEntityId(), command.getDittoHeaders()));
+        return newErrorResult(new ThingNotAccessibleException(context.getEntityId(), command.getDittoHeaders()));
     }
 
     @Override

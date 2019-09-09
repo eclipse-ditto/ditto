@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -47,7 +48,7 @@ final class ModifyFeaturePropertyStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeatureProperty command) {
         final String featureId = command.getFeatureId();
         final Thing nonNullThing = getEntityOrThrow(thing);
@@ -65,7 +66,7 @@ final class ModifyFeaturePropertyStrategy
         return extractFeature(command, nonNullThing)
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingEntityId(), featureId,
+                        ExceptionFactory.featureNotFound(context.getEntityId(), featureId,
                                 command.getDittoHeaders())));
     }
 
@@ -74,7 +75,7 @@ final class ModifyFeaturePropertyStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature, final Context context,
+    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature, final Context<ThingId> context,
             final long nextRevision, final ModifyFeatureProperty command, @Nullable final Thing thing) {
 
         return feature.getProperties()
@@ -83,7 +84,7 @@ final class ModifyFeaturePropertyStrategy
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatureProperty command, @Nullable final Thing thing) {
         final String featureId = command.getFeatureId();
         final JsonPointer propertyPointer = command.getPropertyPointer();
@@ -92,14 +93,14 @@ final class ModifyFeaturePropertyStrategy
         final ThingEvent event = FeaturePropertyModified.of(command.getThingEntityId(), featureId, propertyPointer,
                 command.getPropertyValue(), nextRevision, getEventTimestamp(), dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeaturePropertyResponse.modified(context.getThingEntityId(), featureId, propertyPointer,
+                ModifyFeaturePropertyResponse.modified(context.getEntityId(), featureId, propertyPointer,
                         dittoHeaders),
                 thing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatureProperty command, @Nullable final Thing thing) {
         final String featureId = command.getFeatureId();
         final JsonPointer propertyPointer = command.getPropertyPointer();
@@ -110,7 +111,7 @@ final class ModifyFeaturePropertyStrategy
                 FeaturePropertyCreated.of(command.getThingEntityId(), featureId, propertyPointer, propertyValue,
                         nextRevision, getEventTimestamp(), dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeaturePropertyResponse.created(context.getThingEntityId(), featureId, propertyPointer,
+                ModifyFeaturePropertyResponse.created(context.getEntityId(), featureId, propertyPointer,
                         propertyValue, dittoHeaders),
                 thing);
 

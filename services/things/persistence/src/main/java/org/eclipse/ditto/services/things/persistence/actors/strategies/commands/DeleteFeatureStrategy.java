@@ -43,14 +43,14 @@ final class DeleteFeatureStrategy extends AbstractConditionalHeadersCheckingComm
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final DeleteFeature command) {
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
                 .map(feature -> getDeleteFeatureResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingEntityId(), featureId,
+                        ExceptionFactory.featureNotFound(context.getEntityId(), featureId,
                                 command.getDittoHeaders())));
     }
 
@@ -61,9 +61,9 @@ final class DeleteFeatureStrategy extends AbstractConditionalHeadersCheckingComm
                 .flatMap(features -> features.getFeature(featureId));
     }
 
-    private Result<ThingEvent> getDeleteFeatureResult(final Context context, final long nextRevision,
+    private Result<ThingEvent> getDeleteFeatureResult(final Context<ThingId> context, final long nextRevision,
             final DeleteFeature command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final ThingEvent event =

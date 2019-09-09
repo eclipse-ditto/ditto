@@ -27,6 +27,8 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
@@ -52,20 +54,21 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void applyStrategyOnThingWithoutAcl() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final AuthorizationSubject authSubject = AUTH_SUBJECT_GRIMES;
-        final DeleteAclEntry command = DeleteAclEntry.of(context.getThingEntityId(), authSubject, DittoHeaders.empty());
+        final DeleteAclEntry command = DeleteAclEntry.of(context.getEntityId(), authSubject, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.aclEntryNotFound(context.getThingEntityId(), authSubject, command.getDittoHeaders());
+                ExceptionFactory.aclEntryNotFound(context.getEntityId(), authSubject, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2, command, expectedException);
     }
 
     @Test
     public void deleteLastAclEntryWithMinRequiredPermissions() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAclEntry command = DeleteAclEntry.of(context.getThingEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
-        final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(context.getThingEntityId(), Optional.of(
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAclEntry command =
+                DeleteAclEntry.of(context.getEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+        final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(context.getEntityId(), Optional.of(
                 MessageFormat.format(
                         "It must contain at least one Authorization Subject with the following permission(s): <{0}>!",
                         Arrays.toString(Permission.values()))),
@@ -76,13 +79,13 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void successfullyDeleteAclEntry() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final AuthorizationSubject authSubject = AUTH_SUBJECT_GRIMES;
-        final DeleteAclEntry command = DeleteAclEntry.of(context.getThingEntityId(), authSubject, DittoHeaders.empty());
+        final DeleteAclEntry command = DeleteAclEntry.of(context.getEntityId(), authSubject, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V1, command,
                 AclEntryDeleted.class,
-                DeleteAclEntryResponse.of(context.getThingEntityId(), authSubject, command.getDittoHeaders()));
+                DeleteAclEntryResponse.of(context.getEntityId(), authSubject, command.getDittoHeaders()));
     }
 
 }

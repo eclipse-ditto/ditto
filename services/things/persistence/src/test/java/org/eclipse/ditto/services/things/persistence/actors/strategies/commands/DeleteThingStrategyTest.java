@@ -17,6 +17,8 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
@@ -42,12 +44,12 @@ public final class DeleteThingStrategyTest extends AbstractCommandStrategyTest {
 
     @Test
     public void successfullyDeleteThing() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteThing command = DeleteThing.of(context.getThingEntityId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteThing command = DeleteThing.of(context.getEntityId(), DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 ThingDeleted.class,
-                DeleteThingResponse.of(context.getThingEntityId(), command.getDittoHeaders()), true);
+                DeleteThingResponse.of(context.getEntityId(), command.getDittoHeaders()), true);
     }
 
 }

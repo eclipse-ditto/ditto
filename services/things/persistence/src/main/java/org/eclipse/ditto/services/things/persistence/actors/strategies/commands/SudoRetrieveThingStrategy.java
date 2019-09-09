@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -44,17 +45,17 @@ final class SudoRetrieveThingStrategy
     }
 
     @Override
-    public boolean isDefined(final Context context, @Nullable final Thing thing,
+    public boolean isDefined(final Context<ThingId> context, @Nullable final Thing thing,
             final SudoRetrieveThing command) {
         final boolean thingExists = Optional.ofNullable(thing)
                 .map(t -> !t.isDeleted())
                 .orElse(false);
 
-        return Objects.equals(context.getThingEntityId(), command.getEntityId()) && thingExists;
+        return Objects.equals(context.getEntityId(), command.getEntityId()) && thingExists;
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final SudoRetrieveThing command) {
 
         final Thing theThing = getEntityOrThrow(thing);
@@ -76,10 +77,10 @@ final class SudoRetrieveThingStrategy
     }
 
     @Override
-    protected Result<ThingEvent> unhandled(final Context context, @Nullable final Thing thing,
+    public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final SudoRetrieveThing command) {
         return ResultFactory.newErrorResult(
-                new ThingNotAccessibleException(context.getThingEntityId(), command.getDittoHeaders()));
+                new ThingNotAccessibleException(context.getEntityId(), command.getDittoHeaders()));
     }
 
     @Override

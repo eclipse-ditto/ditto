@@ -28,7 +28,9 @@ import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
@@ -62,24 +64,24 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void createAclEntryAsThingHasNoAclYet() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final ModifyAclEntry command = ModifyAclEntry.of(context.getThingEntityId(), aclEntry, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyAclEntry command = ModifyAclEntry.of(context.getEntityId(), aclEntry, DittoHeaders.empty());
 
         final Thing thing = THING_V2.toBuilder().removePolicyId().build();
 
         assertModificationResult(underTest, thing, command,
                 AclEntryCreated.class,
-                modifyAclEntryResponse(context.getThingEntityId(), aclEntry, command.getDittoHeaders(), true));
+                modifyAclEntryResponse(context.getEntityId(), aclEntry, command.getDittoHeaders(), true));
     }
 
     @Test
     public void createInvalidAclForThingWithoutAcl() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final AclEntry modifiedAclEntry =
                 ThingsModelFactory.newAclEntry(aclEntry.getAuthorizationSubject(), Permission.WRITE);
-        final ModifyAclEntry command = ModifyAclEntry.of(context.getThingEntityId(), modifiedAclEntry, DittoHeaders.empty());
+        final ModifyAclEntry command = ModifyAclEntry.of(context.getEntityId(), modifiedAclEntry, DittoHeaders.empty());
 
-        final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(context.getThingEntityId(), Optional.of(
+        final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(context.getEntityId(), Optional.of(
                 MessageFormat.format("The Authorization Subject <{0}> must have at least the permission(s): <{1}>!",
                         modifiedAclEntry.getAuthorizationSubject(), Arrays.toString(Permission.values()))),
                 command.getDittoHeaders());
@@ -92,22 +94,22 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
         final AclEntry aclEntryGrimes = TestConstants.Authorization.ACL_ENTRY_GRIMES;
         final AclEntry modifiedAclEntry =
                 ThingsModelFactory.newAclEntry(aclEntryGrimes.getAuthorizationSubject(), Permission.WRITE);
-        final CommandStrategy.Context context = getDefaultContext();
-        final ModifyAclEntry command = ModifyAclEntry.of(context.getThingEntityId(), modifiedAclEntry, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyAclEntry command = ModifyAclEntry.of(context.getEntityId(), modifiedAclEntry, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V1, command,
                 AclEntryModified.class,
-                modifyAclEntryResponse(context.getThingEntityId(), modifiedAclEntry, command.getDittoHeaders(), false));
+                modifyAclEntryResponse(context.getEntityId(), modifiedAclEntry, command.getDittoHeaders(), false));
     }
 
     @Test
     public void modifyExistingAclEntryToProduceInvalidAcl() {
         final AclEntry modifiedAclEntry =
                 ThingsModelFactory.newAclEntry(aclEntry.getAuthorizationSubject(), Permission.READ);
-        final CommandStrategy.Context context = getDefaultContext();
-        final ModifyAclEntry command = ModifyAclEntry.of(context.getThingEntityId(), modifiedAclEntry, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyAclEntry command = ModifyAclEntry.of(context.getEntityId(), modifiedAclEntry, DittoHeaders.empty());
 
-        final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(context.getThingEntityId(), Optional.of(
+        final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(context.getEntityId(), Optional.of(
                 MessageFormat.format(
                         "It must contain at least one Authorization Subject with the following permission(s): <{0}>!",
                         Arrays.toString(Permission.values()))),

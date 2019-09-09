@@ -45,22 +45,22 @@ final class DeleteFeatureDefinitionStrategy extends
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final DeleteFeatureDefinition command) {
 
         return getEntityOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()))
                 .map(feature -> getDeleteFeatureDefinitionResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
+                        ExceptionFactory.featureNotFound(context.getEntityId(), command.getFeatureId(),
                                 command.getDittoHeaders())));
     }
 
-    private Result<ThingEvent> getDeleteFeatureDefinitionResult(final Feature feature, final Context context,
+    private Result<ThingEvent> getDeleteFeatureDefinitionResult(final Feature feature, final Context<ThingId> context,
             final long nextRevision, final DeleteFeatureDefinition command, @Nullable Thing thing) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getEntityId();
         final String featureId = feature.getId();
 
         return feature.getDefinition()
@@ -70,7 +70,7 @@ final class DeleteFeatureDefinitionStrategy extends
                                     dittoHeaders);
                     final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                             DeleteFeatureDefinitionResponse.of(thingId, featureId, dittoHeaders), thing);
-                    return ResultFactory.<ThingEvent>newMutationResult(command, event, response);
+                    return ResultFactory.newMutationResult(command, event, response);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders)));

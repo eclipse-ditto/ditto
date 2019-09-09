@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
@@ -43,7 +44,7 @@ final class RetrieveAclStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveAcl command) {
 
         final JsonObject aclJson = extractAcl(thing)
@@ -51,7 +52,7 @@ final class RetrieveAclStrategy
                 .orElseGet(JsonFactory::newObject);
 
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                RetrieveAclResponse.of(context.getThingEntityId(), aclJson, command.getDittoHeaders()), thing);
+                RetrieveAclResponse.of(context.getEntityId(), aclJson, command.getDittoHeaders()), thing);
 
         return ResultFactory.newQueryResult(command, response);
     }

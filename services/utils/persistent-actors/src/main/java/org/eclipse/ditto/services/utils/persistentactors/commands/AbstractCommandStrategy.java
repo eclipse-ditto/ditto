@@ -10,10 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
+package org.eclipse.ditto.services.utils.persistentactors.commands;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -23,10 +24,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.Entity;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingLifecycle;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.event.DiagnosticLoggingAdapter;
@@ -37,15 +36,15 @@ import akka.event.DiagnosticLoggingAdapter;
  * @param <T> type of the handled command.
  */
 @Immutable
-public abstract class AbstractCommandStrategy<T extends Command, S extends Entity, E>
-        implements CommandStrategy<T, S, E> {
+public abstract class AbstractCommandStrategy<T extends Command, S extends Entity, I, E>
+        implements CommandStrategy<T, S, I, E> {
 
     private final Class<T> matchingClass;
 
     /**
      * Constructs a new {@code AbstractCommandStrategy} object.
      *
-     * @param theMatchingClass the class
+     * @param theMatchingClass the class.
      * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
      */
     protected AbstractCommandStrategy(final Class<T> theMatchingClass) {
@@ -53,7 +52,8 @@ public abstract class AbstractCommandStrategy<T extends Command, S extends Entit
     }
 
     @Override
-    public Result<E> apply(final Context context, @Nullable final S entity, final long nextRevision, final T command) {
+    public Result<E> apply(final Context<I> context, @Nullable final S entity, final long nextRevision,
+            final T command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
 
@@ -69,12 +69,32 @@ public abstract class AbstractCommandStrategy<T extends Command, S extends Entit
         }
     }
 
-    protected abstract Result<E> doApply(final Context context, @Nullable final S entity, final long nextRevision,
+    /**
+     * Execute a command strategy after it is determined applicable.
+     *
+     * @param context context of the persistent actor.
+     * @param entity entity of the persistent actor.
+     * @param nextRevision the next revision to allocate to events.
+     * @param command the incoming command.
+     * @return result of the command strategy.
+     */
+    protected abstract Result<E> doApply(final Context<I> context, @Nullable final S entity, final long nextRevision,
             final T command);
 
-    protected Result<E> unhandled(final Context context, @Nullable final S entity, final long nextRevision,
+    /**
+     * Throw an {@code IllegalArgumentException} for unhandled command.
+     *
+     * @param context context of the persistent actor.
+     * @param entity entity of the persistent actor.
+     * @param nextRevision the next revision.
+     * @param command the unhandled command
+     * @return nothing.
+     * @throws java.lang.IllegalArgumentException always.
+     */
+    public Result<E> unhandled(final Context<I> context, @Nullable final S entity, final long nextRevision,
             final T command) {
-        throw ExceptionFactory.unhandled(command);
+        final String msgPattern = "This Thing Actor did not handle the requested Thing with ID <{0}>!";
+        throw new IllegalArgumentException(MessageFormat.format(msgPattern, command.getEntityId()));
     }
 
     @Override
@@ -88,7 +108,7 @@ public abstract class AbstractCommandStrategy<T extends Command, S extends Entit
     }
 
     @Override
-    public boolean isDefined(final Context context, @Nullable final S entity, final T command) {
+    public boolean isDefined(final Context<I> context, @Nullable final S entity, final T command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
 
@@ -98,11 +118,14 @@ public abstract class AbstractCommandStrategy<T extends Command, S extends Entit
                 .isPresent();
     }
 
-    // TODO: check usage
-    protected static boolean isThingDeleted(@Nullable final Thing thing) {
-        return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
-    }
-
+    /**
+     * Perform a null check on the entity and return it.
+     *
+     * @param entity the entity.
+     * @param <S> type of the entity.
+     * @return the entity if it is not null.
+     * @throws java.util.NoSuchElementException if the entity is null.
+     */
     protected static <S> S getEntityOrThrow(@Nullable final S entity) {
         if (null != entity) {
             return entity;
@@ -110,6 +133,11 @@ public abstract class AbstractCommandStrategy<T extends Command, S extends Entit
         throw new NoSuchElementException("This Context does not have an entity!");
     }
 
+    /**
+     * Get the current timestamp for an event.
+     *
+     * @return the current timestamp.
+     */
     protected static Instant getEventTimestamp() {
         return Instant.now();
     }
