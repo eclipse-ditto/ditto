@@ -209,7 +209,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     private void startPublisherActor(final ConnectionId connectionId, final List<Target> targets,
             final Mqtt3Client client) {
         final Props publisherActorProps =
-                HiveMqtt3PublisherActor.props(connectionId.toString(), targets, client, isDryRun());
+                HiveMqtt3PublisherActor.props(connectionId, targets, client, isDryRun());
         publisherActor = getContext().actorOf(publisherActorProps, HiveMqtt3PublisherActor.NAME);
     }
 

@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
@@ -55,7 +56,8 @@ public class HiveMqtt3PublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return HiveMqtt3PublisherActor.props("theConnection", Collections.emptyList(), mqtt3Client, false);
+        return HiveMqtt3PublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), mqtt3Client,
+                false);
     }
 
     @Override

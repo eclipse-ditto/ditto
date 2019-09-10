@@ -66,7 +66,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
         this.dryRun = dryRun;
     }
 
-    public static Props props(final String connectionId, final List<Target> targets, final Mqtt3Client client,
+    public static Props props(final ConnectionId connectionId, final List<Target> targets, final Mqtt3Client client,
             final boolean dryRun) {
         return Props.create(HiveMqtt3PublisherActor.class, connectionId, targets, client, dryRun);
     }
