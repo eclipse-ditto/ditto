@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link RetrieveThing} command.
  */
 @Immutable
-final class RetrieveThingStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveThing, Thing> {
+final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveThing> {
 
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
@@ -89,7 +89,7 @@ final class RetrieveThingStrategy extends AbstractConditionalHeadersCheckingComm
     }
 
     @Override
-    public Optional<Thing> determineETagEntity(final RetrieveThing command, @Nullable final Thing thing) {
-        return Optional.ofNullable(thing);
+    public Optional<?> determineETagEntity(final RetrieveThing command, @Nullable final Thing entity) {
+        return Optional.ofNullable(entity);
     }
 }

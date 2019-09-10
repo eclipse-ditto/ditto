@@ -33,7 +33,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeature} command.
  */
 @Immutable
-final class DeleteFeatureStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<DeleteFeature, Feature> {
+final class DeleteFeatureStrategy extends AbstractThingCommandStrategy<DeleteFeature> {
 
     /**
      * Constructs a new {@code DeleteFeatureStrategy} object.
@@ -75,7 +75,7 @@ final class DeleteFeatureStrategy extends AbstractConditionalHeadersCheckingComm
     }
 
     @Override
-    public Optional<Feature> determineETagEntity(final DeleteFeature command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final DeleteFeature command, @Nullable final Thing thing) {
         return Optional.empty();
     }
 }

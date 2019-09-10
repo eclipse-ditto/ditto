@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class RetrieveFeatureStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveFeature, Feature> {
+        extends AbstractThingCommandStrategy<RetrieveFeature> {
 
     /**
      * Constructs a new {@code RetrieveFeatureStrategy} object.
@@ -80,7 +80,7 @@ final class RetrieveFeatureStrategy
     }
 
     @Override
-    public Optional<Feature> determineETagEntity(final RetrieveFeature command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final RetrieveFeature command, @Nullable final Thing thing) {
         return extractFeatures(thing)
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }

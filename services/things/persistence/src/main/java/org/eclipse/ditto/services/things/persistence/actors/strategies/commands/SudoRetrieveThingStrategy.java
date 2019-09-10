@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class SudoRetrieveThingStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<SudoRetrieveThing, Thing> {
+        extends AbstractThingCommandStrategy<SudoRetrieveThing> {
 
     /**
      * Constructs a new {@code SudoRetrieveThingStrategy} object.
@@ -84,7 +84,7 @@ final class SudoRetrieveThingStrategy
     }
 
     @Override
-    public Optional<Thing> determineETagEntity(final SudoRetrieveThing command, @Nullable final Thing thing) {
-        return Optional.ofNullable(thing);
+    public Optional<?> determineETagEntity(final SudoRetrieveThing command, @Nullable final Thing entity) {
+        return Optional.ofNullable(entity);
     }
 }

@@ -36,7 +36,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class ModifyFeaturesStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyFeatures, Features> {
+        extends AbstractThingCommandStrategy<ModifyFeatures> {
 
     /**
      * Constructs a new {@code ModifyFeaturesStrategy} object.
@@ -93,7 +93,7 @@ final class ModifyFeaturesStrategy
 
 
     @Override
-    public Optional<Features> determineETagEntity(final ModifyFeatures command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final ModifyFeatures command, @Nullable final Thing thing) {
         return Optional.of(command.getFeatures());
     }
 }

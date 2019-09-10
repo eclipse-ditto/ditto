@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link ModifyAclEntry} command.
  */
 @Immutable
-final class ModifyAclEntryStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyAclEntry, AclEntry> {
+final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAclEntry> {
 
     /**
      * Constructs a new {@code ModifyAclEntryStrategy} object.
@@ -108,7 +108,7 @@ final class ModifyAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
     }
 
     @Override
-    public Optional<AclEntry> determineETagEntity(final ModifyAclEntry command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final ModifyAclEntry command, @Nullable final Thing thing) {
         return Optional.of(command.getAclEntry());
     }
 }

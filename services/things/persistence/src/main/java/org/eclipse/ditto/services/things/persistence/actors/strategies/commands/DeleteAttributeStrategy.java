@@ -18,7 +18,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
@@ -36,7 +35,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class DeleteAttributeStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<DeleteAttribute, JsonValue> {
+        extends AbstractThingCommandStrategy<DeleteAttribute> {
 
     /**
      * Constructs a new {@code DeleteAttributeStrategy} object.
@@ -73,7 +72,7 @@ final class DeleteAttributeStrategy
 
 
     @Override
-    public Optional<JsonValue> determineETagEntity(final DeleteAttribute command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final DeleteAttribute command, @Nullable final Thing thing) {
         return Optional.empty();
     }
 }

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
+package org.eclipse.ditto.services.utils.persistentactors.etags;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -23,16 +23,11 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
-import org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader;
-import org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * Responsible to check conditional (http) headers based on the thing's current eTag value.
@@ -41,65 +36,50 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * @param <E> The type of the addressed entity.
  */
 @Immutable
-public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extends Command<C>, E>
-        extends AbstractCommandStrategy<C, Thing, ThingId, Result<ThingEvent>>
-        implements ETagEntityProvider<C, E> {
+public abstract class AbstractConditionHeaderCheckingCommandStrategy<C extends Command, S extends Entity, I, E>
+        extends AbstractCommandStrategy<C, S, I, Result<E>>
+        implements ETagEntityProvider<C, S> {
 
-    private static final ConditionalHeadersValidator VALIDATOR =
-            ThingsConditionalHeadersValidatorProvider.getInstance();
-
-    /**
-     * Constructs a new {@code AbstractCommandStrategy} object.
-     *
-     * @param theMatchingClass the class
-     * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
-     */
-    protected AbstractConditionalHeadersCheckingCommandStrategy(final Class<C> theMatchingClass) {
+    protected AbstractConditionHeaderCheckingCommandStrategy(final Class<C> theMatchingClass) {
         super(theMatchingClass);
     }
 
+    protected abstract ConditionalHeadersValidator getValidator();
+
     /**
      * Checks conditional headers on the (sub-)entity determined by the given {@code command} and {@code thing}.
-     * Currently supports only {@link IfMatchPreconditionHeader} and {@link IfNoneMatchPreconditionHeader}
+     * Currently supports only {@link org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader} and {@link org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader}
      *
      * @param context the context.
-     * @param thing the thing, may be {@code null}.
-     * @param nextRevision the next revision number of the ThingPersistenceActor.
-     * @param command the command which addresses either the whole thing or a sub-entity
+     * @param entity the entity, may be {@code null}.
+     * @param nextRevision the next revision number of the entity.
+     * @param command the command which addresses either the whole entity or a sub-entity
      * @return Either and error result if a precondition header does not meet the condition or the result of the
      * extending strategy.
      */
     @Override
-    public Result<ThingEvent> apply(final Context<ThingId> context,
-            @Nullable final Thing thing,
-            final long nextRevision,
+    public Result<E> apply(final Context<I> context, @Nullable final S entity, final long nextRevision,
             final C command) {
 
-        final EntityTag currentETagValue = determineETagEntity(command, thing)
+        final EntityTag currentETagValue = determineETagEntity(command, entity)
                 .flatMap(EntityTag::fromEntity)
                 .orElse(null);
 
         context.getLog().debug("Validating conditional headers with currentETagValue <{}> on command <{}>.",
                 currentETagValue, command);
         try {
-            VALIDATOR.checkConditionalHeaders(command, currentETagValue);
+            getValidator().checkConditionalHeaders(command, currentETagValue);
             context.getLog().debug("Validating conditional headers succeeded.");
         } catch (final DittoRuntimeException dre) {
             context.getLog().debug("Validating conditional headers failed with exception <{}>.", dre.getMessage());
             return ResultFactory.newErrorResult(dre);
         }
 
-        return super.apply(context, thing, nextRevision, command);
-    }
-
-
-    @Override
-    public boolean isDefined(final C command) {
-        throw new UnsupportedOperationException("This method is not supported by this implementation.");
+        return super.apply(context, entity, nextRevision, command);
     }
 
     @Override
-    public boolean isDefined(final Context<ThingId> context, @Nullable final Thing entity, final C command) {
+    public boolean isDefined(final Context<I> context, @Nullable final S entity, final C command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
 
@@ -108,5 +88,4 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
                 .filter(thingId -> Objects.equals(thingId, command.getEntityId()))
                 .isPresent();
     }
-
 }

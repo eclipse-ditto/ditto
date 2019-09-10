@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class RetrieveAclStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveAcl, AccessControlList> {
+        extends AbstractThingCommandStrategy<RetrieveAcl> {
 
     /**
      * Constructs a new {@code RetrieveAclStrategy} object.
@@ -63,7 +63,7 @@ final class RetrieveAclStrategy
 
 
     @Override
-    public Optional<AccessControlList> determineETagEntity(final RetrieveAcl command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final RetrieveAcl command, @Nullable final Thing thing) {
         return extractAcl(thing);
     }
 }

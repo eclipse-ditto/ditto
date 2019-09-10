@@ -50,8 +50,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link CreateThingStrategy} command.
  */
 @Immutable
-public final class CreateThingStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<CreateThing, Thing> {
+public final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing> {
 
     private static final CreateThingStrategy INSTANCE = new CreateThingStrategy();
 
@@ -208,7 +207,7 @@ public final class CreateThingStrategy
     }
 
     @Override
-    public Optional<Thing> determineETagEntity(final CreateThing command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final CreateThing command, @Nullable final Thing entity) {
         return Optional.of(command.getThing());
     }
 }

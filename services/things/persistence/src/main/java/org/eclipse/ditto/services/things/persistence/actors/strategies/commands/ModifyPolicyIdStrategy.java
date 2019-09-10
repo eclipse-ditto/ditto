@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link ModifyPolicyId} command.
  */
 @Immutable
-final class ModifyPolicyIdStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyPolicyId, PolicyId> {
+final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPolicyId> {
 
     /**
      * Constructs a new {@code ModifyPolicyIdStrategy} object.
@@ -85,7 +85,7 @@ final class ModifyPolicyIdStrategy extends AbstractConditionalHeadersCheckingCom
     }
 
     @Override
-    public Optional<PolicyId> determineETagEntity(final ModifyPolicyId command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final ModifyPolicyId command, @Nullable final Thing thing) {
         return Optional.of(command.getPolicyEntityId());
     }
 }

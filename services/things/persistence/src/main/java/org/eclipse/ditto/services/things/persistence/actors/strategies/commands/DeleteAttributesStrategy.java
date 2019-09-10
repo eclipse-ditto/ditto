@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class DeleteAttributesStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<DeleteAttributes, Attributes> {
+        extends AbstractThingCommandStrategy<DeleteAttributes> {
 
     /**
      * Constructs a new {@code DeleteAttributesStrategy} object.
@@ -70,7 +70,7 @@ final class DeleteAttributesStrategy
     }
 
     @Override
-    public Optional<Attributes> determineETagEntity(final DeleteAttributes command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final DeleteAttributes command, @Nullable final Thing thing) {
         return Optional.empty();
     }
 }

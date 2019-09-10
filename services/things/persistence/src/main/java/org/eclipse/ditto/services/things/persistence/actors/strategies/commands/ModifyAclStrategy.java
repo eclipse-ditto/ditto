@@ -36,7 +36,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 public final class ModifyAclStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyAcl, AccessControlList> {
+        extends AbstractThingCommandStrategy<ModifyAcl> {
 
     /**
      * Constructs a new {@code ModifyAclStrategy} object.
@@ -68,7 +68,7 @@ public final class ModifyAclStrategy
     }
 
     @Override
-    public Optional<AccessControlList> determineETagEntity(final ModifyAcl command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final ModifyAcl command, @Nullable final Thing thing) {
         return Optional.of(command.getAccessControlList());
     }
 }

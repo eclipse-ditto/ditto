@@ -20,7 +20,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -35,7 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class DeleteFeatureDefinitionStrategy extends
-        AbstractConditionalHeadersCheckingCommandStrategy<DeleteFeatureDefinition, FeatureDefinition> {
+        AbstractThingCommandStrategy<DeleteFeatureDefinition> {
 
     /**
      * Constructs a new {@code DeleteFeatureDefinitionStrategy} object.
@@ -77,7 +76,7 @@ final class DeleteFeatureDefinitionStrategy extends
     }
 
     @Override
-    public Optional<FeatureDefinition> determineETagEntity(final DeleteFeatureDefinition command,
+    public Optional<?> determineETagEntity(final DeleteFeatureDefinition command,
             @Nullable final Thing thing) {
         return Optional.empty();
     }

@@ -55,6 +55,7 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -131,30 +132,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgClass(PolicyNotAccessibleException.class);
             }
         };
-    }
-
-    /**
-     * The PolicyPersistenceActor is created with a Policy ID. Any command it receives which belongs to a Policy with a
-     * different ID should lead to an exception as the command was obviously sent to the wrong PolicyPersistenceActor.
-     */
-    @Test
-    public void tryToCreatePolicyWithDifferentPolicyId() {
-        final PolicyId policyIdOfActor = PolicyId.of("test.ns", "23420815");
-        final Policy policy = createPolicyWithRandomId();
-        final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
-
-        final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, pubSubMediator);
-        final TestActorRef<PolicyPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
-        final PolicyPersistenceActor policyPersistenceActor = underTest.underlyingActor();
-        final PartialFunction<Object, BoxedUnit> receiveCommand = policyPersistenceActor.receiveCommand();
-
-        try {
-            receiveCommand.apply(createPolicyCommand);
-            fail("Expected IllegalArgumentException to be thrown.");
-        } catch (final Exception e) {
-            assertThat(e).isInstanceOf(IllegalArgumentException.class);
-        }
     }
 
     @Test
@@ -1048,7 +1025,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // WHEN: CheckForActivity is sent to a persistence actor of nonexistent policy after startup
                 final ActorRef underTest = actorSystem.actorOf(parentProps);
 
-                final Object checkForActivity = new PolicyPersistenceActor.CheckForActivity(1L, 1L);
+                final Object checkForActivity = AbstractShardedPersistenceActor.checkForActivity(1L);
                 underTest.tell(checkForActivity, getRef());
                 underTest.tell(checkForActivity, getRef());
                 underTest.tell(checkForActivity, getRef());

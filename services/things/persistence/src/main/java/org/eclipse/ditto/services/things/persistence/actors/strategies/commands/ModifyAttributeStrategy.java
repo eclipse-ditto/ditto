@@ -37,7 +37,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class ModifyAttributeStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyAttribute, JsonValue> {
+        extends AbstractThingCommandStrategy<ModifyAttribute> {
 
     /**
      * Constructs a new {@code ModifyAttributeStrategy} object.
@@ -98,7 +98,7 @@ final class ModifyAttributeStrategy
     }
 
     @Override
-    public Optional<JsonValue> determineETagEntity(final ModifyAttribute command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final ModifyAttribute command, @Nullable final Thing thing) {
         return Optional.of(command.getAttributeValue());
     }
 }

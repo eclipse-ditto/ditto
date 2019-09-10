@@ -22,7 +22,6 @@ import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -37,7 +36,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link DeleteAclEntry} command.
  */
 @Immutable
-final class DeleteAclEntryStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<DeleteAclEntry, AclEntry> {
+final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAclEntry> {
 
     /**
      * Constructs a new {@code DeleteAclEntryStrategy} object.
@@ -93,7 +92,7 @@ final class DeleteAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
     }
 
     @Override
-    public Optional<AclEntry> determineETagEntity(final DeleteAclEntry command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final DeleteAclEntry command, @Nullable final Thing thing) {
         return Optional.empty();
     }
 

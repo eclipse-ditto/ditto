@@ -19,7 +19,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -33,7 +32,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class RetrieveFeaturePropertiesStrategy extends
-        AbstractConditionalHeadersCheckingCommandStrategy<RetrieveFeatureProperties, FeatureProperties> {
+        AbstractThingCommandStrategy<RetrieveFeatureProperties> {
 
     /**
      * Constructs a new {@code RetrieveFeaturePropertiesStrategy} object.
@@ -75,7 +74,7 @@ final class RetrieveFeaturePropertiesStrategy extends
     }
 
     @Override
-    public Optional<FeatureProperties> determineETagEntity(final RetrieveFeatureProperties command,
+    public Optional<?> determineETagEntity(final RetrieveFeatureProperties command,
             @Nullable final Thing thing) {
 
         return extractFeature(command, thing)

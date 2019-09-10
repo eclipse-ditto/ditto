@@ -41,7 +41,7 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  * This strategy handles the {@link ModifyThing} command for an already existing Thing.
  */
 @Immutable
-final class ModifyThingStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyThing, Thing> {
+final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing> {
 
     /**
      * Constructs a new {@code ModifyThingStrategy} object.
@@ -238,7 +238,7 @@ final class ModifyThingStrategy extends AbstractConditionalHeadersCheckingComman
     }
 
     @Override
-    public Optional<Thing> determineETagEntity(final ModifyThing thingCommand, @Nullable final Thing thing) {
-        return Optional.of(getEntityOrThrow(thing));
+    public Optional<?> determineETagEntity(final ModifyThing thingCommand, @Nullable final Thing entity) {
+        return Optional.of(getEntityOrThrow(entity));
     }
 }

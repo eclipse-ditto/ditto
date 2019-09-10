@@ -117,13 +117,17 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
 
     protected abstract DittoRuntimeExceptionBuilder newNotAccessibleExceptionBuilder();
 
-    protected abstract void recoveryCompleted(RecoveryCompleted event);
-
     protected abstract void publishEvent(E event);
 
     protected abstract JsonSchemaVersion getEntitySchemaVersion(S entity);
 
-    protected void becomeCreatedOrDeletedHandler() {
+    protected void recoveryCompleted(RecoveryCompleted event) {
+        // override to introduce additional logging and other side effects
+        becomeCreatedOrDeletedHandler();
+    }
+
+    protected final void becomeCreatedOrDeletedHandler() {
+        // accessible for subclasses; not an extension point.
         if (isEntityActive()) {
             becomeCreatedHandler();
         } else {
@@ -434,6 +438,16 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
 
     private void matchAnyAfterInitialization(final Object message) {
         log.warning("Unknown message: {}", message);
+    }
+
+    /**
+     * Create a private {@code CheckForActivity} message for unit tests.
+     *
+     * @param accessCounter the access counter of this message.
+     * @return the check-for-activity message.
+     */
+    public static Object checkForActivity(final long accessCounter) {
+        return new CheckForActivity(accessCounter);
     }
 
     private static final class CheckForActivity {

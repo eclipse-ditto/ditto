@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
+package org.eclipse.ditto.services.utils.persistentactors.etags;
 
 import java.util.Optional;
 
@@ -19,38 +19,37 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
  * Determines an entity for eTag generation based on a command and Thing.
  *
  * @param <C> The type of the handled command.
- * @param <E> The type of the addressed entity.
+ * @param <S> The type of the addressed entity.
  */
-public interface ETagEntityProvider<C extends Command, E> {
+public interface ETagEntityProvider<C extends Command, S> {
 
     /**
      * Determines the value based on which an eTag will be generated.
      *
-     * @param command the thing command.
-     * @param thing The thing, may be {@code null}.
+     * @param command the command.
+     * @param entity The entity, may be {@code null}.
      * @return An optional of the eTag header value. Optional can be empty if no eTag header should be added.
      */
-    Optional<E> determineETagEntity(final C command, @Nullable final Thing thing);
+    Optional<?> determineETagEntity(final C command, @Nullable final S entity);
 
     /**
      * Append an ETag header if given by the entity.
      *
      * @param command the command for whose response the ETag header is to be appended.
      * @param withDittoHeaders the response for whom the ETag header is to be appended.
-     * @param thing the thing with the next revision number, or null if it is being deleted.
+     * @param entity the thing with the next revision number, or null if it is being deleted.
      * @return response with ETag header appended.
      */
     default WithDittoHeaders appendETagHeaderIfProvided(final C command,
-            final WithDittoHeaders withDittoHeaders, @Nullable final Thing thing) {
+            final WithDittoHeaders withDittoHeaders, @Nullable final S entity) {
 
-        final Optional<E> eTagEntityOpt = determineETagEntity(command, thing);
+        final Optional<?> eTagEntityOpt = determineETagEntity(command, entity);
         if (eTagEntityOpt.isPresent()) {
             final Optional<EntityTag> entityTagOpt = EntityTag.fromEntity(eTagEntityOpt.get());
             if (entityTagOpt.isPresent()) {

@@ -19,7 +19,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
@@ -35,7 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class RetrieveAttributeStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveAttribute, JsonValue> {
+        extends AbstractThingCommandStrategy<RetrieveAttribute> {
 
     /**
      * Constructs a new {@code RetrieveAttributeStrategy} object.
@@ -74,7 +73,7 @@ final class RetrieveAttributeStrategy
 
 
     @Override
-    public Optional<JsonValue> determineETagEntity(final RetrieveAttribute command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final RetrieveAttribute command, @Nullable final Thing thing) {
         return extractAttributes(thing)
                 .flatMap(attributes -> attributes.getValue(command.getAttributePointer()));
     }

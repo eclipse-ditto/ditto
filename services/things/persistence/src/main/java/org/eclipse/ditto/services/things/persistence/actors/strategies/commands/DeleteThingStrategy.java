@@ -21,9 +21,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
@@ -35,7 +35,7 @@ import akka.event.DiagnosticLoggingAdapter;
  * This strategy handles the {@link DeleteThing} command.
  */
 @Immutable
-final class DeleteThingStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<DeleteThing, Thing> {
+final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing> {
 
     /**
      * Constructs a new {@code DeleteThingStrategy} object.
@@ -61,7 +61,7 @@ final class DeleteThingStrategy extends AbstractConditionalHeadersCheckingComman
     }
 
     @Override
-    public Optional<Thing> determineETagEntity(final DeleteThing command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final DeleteThing command, @Nullable final Thing entity) {
         return Optional.empty();
     }
 }

@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 final class RetrievePolicyIdStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrievePolicyId, PolicyId> {
+        extends AbstractThingCommandStrategy<RetrievePolicyId> {
 
     /**
      * Constructs a new {@code RetrievePolicyIdStrategy} object.
@@ -63,7 +63,7 @@ final class RetrievePolicyIdStrategy
     }
 
     @Override
-    public Optional<PolicyId> determineETagEntity(final RetrievePolicyId command, @Nullable final Thing thing) {
+    public Optional<?> determineETagEntity(final RetrievePolicyId command, @Nullable final Thing thing) {
         return extractPolicyId(thing);
     }
 }
