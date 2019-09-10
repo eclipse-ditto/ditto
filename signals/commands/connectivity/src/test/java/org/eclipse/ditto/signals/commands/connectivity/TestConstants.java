@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -53,13 +54,14 @@ import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Constants for testing.
  */
 public final class TestConstants {
 
-    public static String ID = "myConnectionId";
+    public static final ConnectionId ID = ConnectionId.of("myConnectionId");
 
     public static String TIMESTAMP = "2019-05-21T11:06:54.210Z";
 
@@ -126,7 +128,7 @@ public final class TestConstants {
                             "    );\n" +
                             "}"));
 
-    public static Connection CONNECTION =
+    public static final Connection CONNECTION =
             ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                     .sources(SOURCES)
                     .targets(TARGETS)
@@ -227,7 +229,7 @@ public final class TestConstants {
         public static String MESSAGE_1 = "Message was successfully mapped.";
         public static String MESSAGE_2 = "Message was successfully published.";
         public static String ADDRESS = "test-topic";
-        public static String THING_ID = "org.eclipse.ditto.connection.logs:loggedThing";
+        public static ThingId THING_ID = ThingId.of("org.eclipse.ditto.connection.logs:loggedThing");
 
         public static LogEntry ENTRY_1 = ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP_1, CATEGORY, TYPE_1, LEVEL, MESSAGE_1, ADDRESS, THING_ID)
                 .build();
@@ -246,7 +248,7 @@ public final class TestConstants {
                     .set(LogEntry.JsonFields.MESSAGE, MESSAGE_1)
                     .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
                     .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
-                    .set(LogEntry.JsonFields.THING_ID, THING_ID)
+                    .set(LogEntry.JsonFields.THING_ID, THING_ID.toString())
                     .build();
             public static final JsonObject ENTRY_2_JSON = JsonFactory.newObjectBuilder()
                     .set(LogEntry.JsonFields.CORRELATION_ID, CORRELATION_ID)
@@ -256,7 +258,7 @@ public final class TestConstants {
                     .set(LogEntry.JsonFields.MESSAGE, MESSAGE_2)
                     .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
                     .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
-                    .set(LogEntry.JsonFields.THING_ID, THING_ID)
+                    .set(LogEntry.JsonFields.THING_ID, THING_ID.toString())
                     .build();
 
             public static final JsonArray ENTRIES_JSON = JsonFactory.newArrayBuilder()

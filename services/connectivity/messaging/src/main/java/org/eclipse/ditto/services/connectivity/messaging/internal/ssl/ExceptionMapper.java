@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
 /**
@@ -45,7 +46,7 @@ final class ExceptionMapper {
      * @return preconfigured builder for fatal errors
      */
     DittoRuntimeExceptionBuilder<ConnectionUnavailableException> fatalError(final String whatHappened) {
-        return ConnectionUnavailableException.newBuilder("unimportant")
+        return ConnectionUnavailableException.newBuilder(ConnectionId.of("unimportant"))
                 .message(String.format("Fatal error: %s.", whatHappened))
                 .description("Please contact the service team.")
                 .dittoHeaders(dittoHeaders);

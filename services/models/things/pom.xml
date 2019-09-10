@@ -22,80 +22,77 @@
     </parent>
 
     <artifactId>ditto-services-models-things</artifactId>
-    <packaging>bundle</packaging>
+    <packaging>jar</packaging>
     <name>Eclipse Ditto :: Services :: Models :: Things</name>
 
     <dependencies>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-model-things</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-model-policies</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-commands-common</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-commands-devops</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-commands-namespaces</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-models-streaming</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-utils-cluster</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-utils-pubsub</artifactId>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Import-Package>
-                            !org.eclipse.ditto.utils.jsr305.annotations,
-                            org.eclipse.ditto.*
-                        </Import-Package>
-                        <Export-Package>
-                            org.eclipse.ditto.services.models.things.*
-                        </Export-Package>
-                    </instructions>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>com.github.siom79.japicmp</groupId>
-                <artifactId>japicmp-maven-plugin</artifactId>
-                <configuration>
-                    <parameter>
-                        <excludes>
-                            <exclude>org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing</exclude>
-                        </excludes>
-                    </parameter>
-                </configuration>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
@@ -105,7 +102,8 @@
                     <execution>
                         <id>produce-json-examples</id>
                         <configuration>
-                            <mainClass>org.eclipse.ditto.services.models.things.CommandAndEventJsonExamplesProducer</mainClass>
+                            <mainClass>org.eclipse.ditto.services.models.things.CommandAndEventJsonExamplesProducer
+                            </mainClass>
                         </configuration>
                     </execution>
                 </executions>

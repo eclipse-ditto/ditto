@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
 /**
@@ -34,7 +35,8 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveHealthResponse.TYPE)
-public final class RetrieveHealthResponse extends AbstractCommandResponse<RetrieveHealthResponse> {
+public final class RetrieveHealthResponse extends AbstractCommandResponse<RetrieveHealthResponse> implements
+        WithIdButActuallyNot {
 
     /**
      * Type of this response.
@@ -95,12 +97,6 @@ public final class RetrieveHealthResponse extends AbstractCommandResponse<Retrie
     @Override
     public RetrieveHealthResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new RetrieveHealthResponse(statusInfo, dittoHeaders);
-    }
-
-    @Override
-    public String getId() {
-        // no ID
-        return "";
     }
 
     @Override

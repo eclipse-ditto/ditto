@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -36,13 +37,13 @@ public class ImmutableTopicPathPlaceholderTest {
     private static final String KNOWN_SUBJECT = "mySubject";
     private static final String KNOWN_SUBJECT2 = "$set.configuration/steps";
 
-    private static final TopicPath KNOWN_TOPIC_PATH = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+    private static final TopicPath KNOWN_TOPIC_PATH = TopicPath.newBuilder(ThingId.of(KNOWN_NAMESPACE, KNOWN_ID))
         .twin().things().commands().modify().build();
 
-    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT1 = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT1 = TopicPath.newBuilder(ThingId.of(KNOWN_NAMESPACE, KNOWN_ID))
         .live().things().messages().subject(KNOWN_SUBJECT).build();
 
-    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT2 = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT2 = TopicPath.newBuilder(ThingId.of(KNOWN_NAMESPACE, KNOWN_ID))
         .live().things().messages().subject(KNOWN_SUBJECT2).build();
 
     private static final ImmutableTopicPathPlaceholder UNDER_TEST = ImmutableTopicPathPlaceholder.INSTANCE;

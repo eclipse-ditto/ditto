@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -70,7 +71,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return KafkaPublisherActor.props("theConnection", Collections.emptyList(), connectionFactory, false);
+        return KafkaPublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), connectionFactory, false);
     }
 
     @Override
@@ -82,11 +83,11 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(message.record().key()).isEqualTo("keyA");
         assertThat(message.record().value()).isEqualTo("payload");
         final List<Header> headers = Arrays.asList(message.record().headers().toArray());
-        shouldContainHeader(headers, "thing_id", TestConstants.Things.THING_ID);
+        shouldContainHeader(headers, "thing_id", TestConstants.Things.THING_ID.toString());
         shouldContainHeader(headers, "suffixed_thing_id", TestConstants.Things.THING_ID + ".some.suffix");
         shouldContainHeader(headers, "prefixed_thing_id", "some.prefix." + TestConstants.Things.THING_ID);
         shouldContainHeader(headers, "eclipse", "ditto");
-        shouldContainHeader(headers, "device_id", TestConstants.Things.THING_ID);
+        shouldContainHeader(headers, "device_id", TestConstants.Things.THING_ID.toString());
     }
 
     @Override

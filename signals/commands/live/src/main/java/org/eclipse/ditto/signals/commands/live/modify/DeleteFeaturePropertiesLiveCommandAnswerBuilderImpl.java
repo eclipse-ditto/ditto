@@ -73,15 +73,15 @@ final class DeleteFeaturePropertiesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public DeleteFeaturePropertiesResponse deleted() {
-            return DeleteFeaturePropertiesResponse.of(command.getThingId(), command.getFeatureId(),
+            return DeleteFeaturePropertiesResponse.of(command.getThingEntityId(), command.getFeatureId(),
                     command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse featurePropertiesNotAccessibleError() {
-            return errorResponse(command.getThingId(),
-                    FeaturePropertiesNotAccessibleException.newBuilder(command.getThingId(),
+            return errorResponse(command.getThingEntityId(),
+                    FeaturePropertiesNotAccessibleException.newBuilder(command.getThingEntityId(),
                             command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
@@ -90,8 +90,8 @@ final class DeleteFeaturePropertiesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse featurePropertiesNotModifiableError() {
-            return errorResponse(command.getThingId(),
-                    FeaturePropertiesNotModifiableException.newBuilder(command.getThingId(),
+            return errorResponse(command.getThingEntityId(),
+                    FeaturePropertiesNotModifiableException.newBuilder(command.getThingEntityId(),
                             command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
@@ -103,7 +103,7 @@ final class DeleteFeaturePropertiesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public FeaturePropertiesDeleted deleted() {
-            return FeaturePropertiesDeleted.of(command.getThingId(), command.getFeatureId(), -1,
+            return FeaturePropertiesDeleted.of(command.getThingEntityId(), command.getFeatureId(), -1,
                     Instant.now(), command.getDittoHeaders());
         }
     }

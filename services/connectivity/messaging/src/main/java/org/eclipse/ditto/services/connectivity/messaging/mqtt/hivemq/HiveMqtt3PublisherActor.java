@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -57,7 +58,8 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
     private final boolean dryRun;
 
     @SuppressWarnings("squid:UnusedPrivateConstructor") // used by akka
-    private HiveMqtt3PublisherActor(final String connectionId, final List<Target> targets, final Mqtt3Client client,
+    private HiveMqtt3PublisherActor(final ConnectionId connectionId, final List<Target> targets,
+            final Mqtt3Client client,
             final boolean dryRun) {
         super(connectionId, targets);
         this.client = checkNotNull(client).toAsync();

@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.things;
 
 import java.time.Instant;
-import java.util.UUID;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -23,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * Builder for instances of {@link Thing} which uses Object Scoping and Method Chaining to provide a convenient usage
@@ -35,8 +35,13 @@ public interface ThingBuilder {
      *
      * @return the ID
      */
+    @Deprecated
     static String generateRandomThingId() {
-        return ":" + UUID.randomUUID();
+        return generateRandomTypedThingId().toString();
+    }
+
+    static ThingId generateRandomTypedThingId() {
+        return ThingId.generateRandom();
     }
 
     /**
@@ -136,8 +141,20 @@ public interface ThingBuilder {
          *
          * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
+         * @deprecated Policy ID of the Thing is now typed. Use {@link #setPolicyId(PolicyId)} instead.
          */
-        FromScratch setPolicyId(@Nullable String policyId);
+        @Deprecated
+        default FromScratch setPolicyId(@Nullable String policyId) {
+            return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
+        }
+
+        /**
+         * Sets the given Policy ID to this builder.
+         *
+         * @param policyId the Policy ID to set.
+         * @return this builder to allow method chaining.
+         */
+        FromScratch setPolicyId(@Nullable PolicyId policyId);
 
         /**
          * Removes the Policy ID from this builder.
@@ -421,8 +438,20 @@ public interface ThingBuilder {
          * @param thingId the Thing ID to be set.
          * @return this builder to allow method chaining.
          * @throws ThingIdInvalidException if {@code thingId} does not comply to the required pattern.
+         * @deprecated thing ID is now typed. Use {@link #setId(ThingId)} instead.
          */
-        FromScratch setId(@Nullable String thingId);
+        @Deprecated
+        default FromScratch setId(@Nullable String thingId) {
+            return setId(ThingId.of(thingId));
+        }
+
+        /**
+         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
+         *
+         * @param thingId the Thing ID to be set.
+         * @return this builder to allow method chaining.
+         */
+        FromScratch setId(@Nullable ThingId thingId);
 
         /**
          * Sets a generated Thing ID to this builder.
@@ -658,8 +687,20 @@ public interface ThingBuilder {
          *
          * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
+         * @deprecated Policy ID of the Thing is now typed. Use {@link #setPolicyId(PolicyId)} instead.
          */
-        FromCopy setPolicyId(@Nullable String policyId);
+        @Deprecated
+        default FromCopy setPolicyId(@Nullable String policyId) {
+            return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
+        }
+
+        /**
+         * Sets the given Policy ID to this builder.
+         *
+         * @param policyId the Policy ID to set.
+         * @return this builder to allow method chaining.
+         */
+        FromCopy setPolicyId(@Nullable PolicyId policyId);
 
         /**
          * Removes the Policy ID from this builder.
@@ -1272,8 +1313,22 @@ public interface ThingBuilder {
          * @return this builder to allow method chaining.
          * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
+         * @deprecated Thing ID is now typed. Use {@link #setId(ThingId)} instead.
          */
+        @Deprecated
         default FromCopy setId(@Nullable final String thingId) {
+            return setId(existingId -> true, thingId);
+        }
+
+        /**
+         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
+         *
+         * @param thingId the Thing ID to be set.
+         * @return this builder to allow method chaining.
+         * @throws ThingIdInvalidException if {@code thingId} does not comply to
+         * the required pattern.
+         */
+        default FromCopy setId(@Nullable final ThingId thingId) {
             return setId(existingId -> true, thingId);
         }
 
@@ -1287,8 +1342,28 @@ public interface ThingBuilder {
          * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
          * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
+         * @deprecated Thing ID is now typed. Use
+         * {@link #setId(java.util.function.Predicate, ThingId)}
+         * instead.
          */
-        FromCopy setId(Predicate<String> existingIdPredicate, @Nullable String thingId);
+        @Deprecated
+        default FromCopy setId(Predicate<String> existingIdPredicate, @Nullable String thingId) {
+            final Predicate<ThingId> thingIdPredicate = thingId1 -> existingIdPredicate.test(thingId1.toString());
+            return setId(thingIdPredicate, ThingId.of(thingId));
+        }
+
+        /**
+         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
+         *
+         * @param existingIdPredicate a predicate to decide whether the given ID is set. The predicate receives
+         * the currently set Thing ID.
+         * @param thingId the Thing ID to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
+         * @throws ThingIdInvalidException if {@code thingId} does not comply to
+         * the required pattern.
+         */
+        FromCopy setId(Predicate<ThingId> existingIdPredicate, @Nullable ThingId thingId);
 
         /**
          * Sets a generated Thing ID to this builder.
@@ -1307,7 +1382,7 @@ public interface ThingBuilder {
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
          */
-        FromCopy setGeneratedId(Predicate<String> existingIdPredicate);
+        FromCopy setGeneratedId(Predicate<ThingId> existingIdPredicate);
 
         /**
          * Creates a new Thing object based on the data which was provided to this builder.

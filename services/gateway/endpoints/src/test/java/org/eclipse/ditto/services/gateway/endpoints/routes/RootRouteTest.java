@@ -88,7 +88,8 @@ public final class RootRouteTest extends EndpointTestBase {
     private static final String UNKNOWN_SEARCH_PATH =
             ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" + JsonSchemaVersion.V_2.toInt() + "/" +
                     ThingSearchRoute.PATH_SEARCH + "/foo";
-    private static final String THINGS_1_PATH_WITH_IDS = THINGS_1_PATH + "?" + ThingsParameter.IDS + "=bumlux";
+    private static final String THINGS_1_PATH_WITH_IDS =
+            THINGS_1_PATH + "?" + ThingsParameter.IDS + "=namespace:bumlux";
     private static final String WS_2_PATH = ROOT_PATH + RootRoute.WS_PATH_PREFIX + "/" + JsonSchemaVersion.V_2.toInt();
 
     private static final String PATH_WITH_INVALID_ENCODING = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +

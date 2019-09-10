@@ -53,7 +53,7 @@ public final class ConnectivityModelFactory {
      * @return the ConnectionBuilder.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionBuilder newConnectionBuilder(final String id,
+    public static ConnectionBuilder newConnectionBuilder(final ConnectionId id,
             final ConnectionType connectionType,
             final ConnectivityStatus connectionStatus,
             final String uri) {

@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
@@ -70,7 +71,7 @@ public final class ThingModifyCommandResponseAdapterTest implements ProtocolAdap
             }
 
             @Override
-            public String getThingId() {
+            public ThingId getThingEntityId() {
                 return TestConstants.THING_ID;
             }
 

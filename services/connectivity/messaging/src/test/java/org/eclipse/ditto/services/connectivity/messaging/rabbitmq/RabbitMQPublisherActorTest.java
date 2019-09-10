@@ -52,7 +52,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return RabbitMQPublisherActor.props("theConnection", Collections.emptyList());
+        return RabbitMQPublisherActor.props(TestConstants.createRandomConnectionId(), Collections.emptyList());
     }
 
     @Override
@@ -72,13 +72,15 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
         Mockito.verify(channel, timeout(1000)).basicPublish(eq("exchange"), eq("outbound"), propertiesCaptor.capture(),
                 bodyCaptor.capture());
 
-        assertThat(propertiesCaptor.getValue().getHeaders().get("thing_id")).isEqualTo(TestConstants.Things.THING_ID);
+        assertThat(propertiesCaptor.getValue().getHeaders().get("thing_id"))
+                .isEqualTo(TestConstants.Things.THING_ID.toString());
         assertThat(propertiesCaptor.getValue().getHeaders().get("suffixed_thing_id")).isEqualTo(
                 TestConstants.Things.THING_ID + ".some.suffix");
         assertThat(propertiesCaptor.getValue().getHeaders().get("prefixed_thing_id")).isEqualTo(
                 "some.prefix." + TestConstants.Things.THING_ID);
         assertThat(propertiesCaptor.getValue().getHeaders().get("eclipse")).isEqualTo("ditto");
-        assertThat(propertiesCaptor.getValue().getHeaders().get("device_id")).isEqualTo(TestConstants.Things.THING_ID);
+        assertThat(propertiesCaptor.getValue().getHeaders().get("device_id"))
+                .isEqualTo(TestConstants.Things.THING_ID.toString());
     }
 
     protected String getOutboundAddress() {

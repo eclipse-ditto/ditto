@@ -54,7 +54,7 @@ public final class BlockNamespaceBehavior {
      */
     public CompletionStage<WithDittoHeaders> block(final WithDittoHeaders signal) {
         if (signal instanceof WithId) {
-            final Optional<String> namespaceOptional = NamespaceReader.fromEntityId(((WithId) signal).getId());
+            final Optional<String> namespaceOptional = NamespaceReader.fromEntityId(((WithId) signal).getEntityId());
             if (namespaceOptional.isPresent()) {
                 final String namespace = namespaceOptional.get();
                 return blockedNamespaces.contains(namespace)

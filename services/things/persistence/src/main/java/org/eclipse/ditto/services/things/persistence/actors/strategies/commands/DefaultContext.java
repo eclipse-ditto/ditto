@@ -18,6 +18,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.things.ThingId;
+
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
@@ -26,12 +28,12 @@ import akka.event.DiagnosticLoggingAdapter;
 @Immutable
 public final class DefaultContext implements CommandStrategy.Context {
 
-    private final String thingId;
+    private final ThingId thingId;
     private final DiagnosticLoggingAdapter log;
     private final Runnable becomeCreatedRunnable;
     private final Runnable becomeDeletedRunnable;
 
-    private DefaultContext(final String theThingId,
+    private DefaultContext(final ThingId theThingId,
             final DiagnosticLoggingAdapter theLog,
             final Runnable becomeCreatedRunnable,
             final Runnable becomeDeletedRunnable) {
@@ -52,7 +54,7 @@ public final class DefaultContext implements CommandStrategy.Context {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultContext getInstance(final String thingId,
+    public static DefaultContext getInstance(final ThingId thingId,
             final DiagnosticLoggingAdapter log,
             final Runnable becomeCreatedRunnable,
             final Runnable becomeDeletedRunnable) {
@@ -61,7 +63,7 @@ public final class DefaultContext implements CommandStrategy.Context {
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 

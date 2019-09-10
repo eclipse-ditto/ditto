@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -490,7 +491,7 @@ public final class WebsocketRoute {
     }
 
     private static boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+        return StreamingType.isLiveSignal(signal);
     }
 
     private static Adaptable jsonifiableToAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
@@ -509,7 +510,7 @@ public final class WebsocketRoute {
                     .build();
             final String nullableThingId = enhancedHeaders.get(MessageHeaderDefinition.THING_ID.getKey());
             final ThingErrorResponse errorResponse = nullableThingId != null
-                    ? ThingErrorResponse.of(nullableThingId, dittoRuntimeException, enhancedHeaders)
+                    ? ThingErrorResponse.of(ThingId.of(nullableThingId), dittoRuntimeException, enhancedHeaders)
                     : ThingErrorResponse.of(dittoRuntimeException, enhancedHeaders);
             adaptable = adapter.toAdaptable(errorResponse, channel);
         } else {

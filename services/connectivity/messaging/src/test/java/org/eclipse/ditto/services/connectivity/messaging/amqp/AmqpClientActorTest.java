@@ -75,6 +75,7 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -83,6 +84,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
@@ -98,6 +100,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -133,7 +136,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
     private static final JMSException JMS_EXCEPTION = new JMSException("FAIL");
     private static final URI DUMMY = URI.create("amqp://test:1234");
-    private static final String CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final ConnectionFailedException SESSION_EXCEPTION =
             ConnectionFailedException.newBuilder(CONNECTION_ID).build();
 
@@ -563,7 +566,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             for (int i = 0; i < consumers; i++) {
                 final Command command = expectMsgClass(Command.class);
-                assertThat(command.getId()).isEqualTo(TestConstants.Things.THING_ID);
+                assertThat((CharSequence) command.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
                 assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
                 commandConsumer.accept(command);
             }
@@ -608,7 +611,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
             final Connection connection,
-            final BiFunction<String, DittoHeaders, CommandResponse> responseSupplier,
+            final BiFunction<ThingId, DittoHeaders, CommandResponse> responseSupplier,
             final String expectedAddress,
             final Predicate<String> messageTextPredicate) throws JMSException {
 
@@ -626,12 +629,12 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final MessageListener messageListener = captor.getValue();
             messageListener.onMessage(mockMessage());
 
-            final Command command = expectMsgClass(Command.class);
-            assertThat(command.getId()).isEqualTo(TestConstants.Things.THING_ID);
+            final ThingCommand command = expectMsgClass(ThingCommand.class);
+            assertThat((CharSequence) command.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
             assertThat(command).isInstanceOf(ModifyThing.class);
 
-            getLastSender().tell(responseSupplier.apply(command.getId(), command.getDittoHeaders()), getRef());
+            getLastSender().tell(responseSupplier.apply(command.getEntityId(), command.getDittoHeaders()), getRef());
 
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
             // verify that the message is published via the producer with the correct destination
@@ -796,7 +799,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         .address(sourceWithUnicodeCharacters)
                         .build();
 
-                final String connectionId = createRandomConnectionId();
+                final ConnectionId connectionId = createRandomConnectionId();
                 final Connection connectionWithSpecialCharacters =
                         TestConstants.createConnection(connectionId, singletonList(source));
 
@@ -842,7 +845,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                     .address(sourceWithUnicodeCharacters)
                     .build();
 
-            final String connectionId = createRandomConnectionId();
+            final ConnectionId connectionId = createRandomConnectionId();
             final Connection connectionWithSpecialCharacters =
                     TestConstants.createConnection(connectionId, singletonList(source));
 

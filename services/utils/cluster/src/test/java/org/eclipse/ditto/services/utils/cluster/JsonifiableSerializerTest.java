@@ -14,14 +14,15 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.UUID;
-
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
@@ -50,7 +51,7 @@ public final class JsonifiableSerializerTest {
             .schemaVersion(JsonSchemaVersion.LATEST)
             .build();
 
-    private static final String THING_ID = "org.eclipse.ditto.test:myThing";
+    private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.test", "myThing");
 
     private static final Thing THING = Thing.newBuilder()
             .setId(THING_ID)
@@ -118,7 +119,7 @@ public final class JsonifiableSerializerTest {
 
     @Test
     public void shardedMessageEnvelopeSerializationWorksAsExpected() {
-        final String id = UUID.randomUUID().toString();
+        final EntityId id = DefaultEntityId.generateRandom();
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final RetrieveThings retrieveThings = RetrieveThings.getBuilder(THING_ID)
                 .dittoHeaders(dittoHeaders)
@@ -133,7 +134,8 @@ public final class JsonifiableSerializerTest {
                 underTestForThingCommands.manifest(shardedMessageEnvelope));
 
         assertThat(deserialized).isInstanceOf(ShardedMessageEnvelope.class);
-        assertThat(((ShardedMessageEnvelope) deserialized).getId()).isEqualTo(shardedMessageEnvelope.getId());
+        assertThat((CharSequence) ((ShardedMessageEnvelope) deserialized).getEntityId())
+                .isEqualTo(shardedMessageEnvelope.getEntityId());
         assertThat(((ShardedMessageEnvelope) deserialized).getType()).isEqualTo(shardedMessageEnvelope.getType());
         assertThat(((ShardedMessageEnvelope) deserialized).getMessage().toString())
                 .isEqualTo(shardedMessageEnvelope.getMessage().toString());

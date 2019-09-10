@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyResource;
 import org.junit.Before;
@@ -40,14 +41,15 @@ public final class PolicyCommandToModifyExceptionRegistryTest {
 
     @Test
     public void mapModifyResourceToResourceNotModifiable() {
-        final ModifyResource modifyResource = ModifyResource.of("ns:policyId", Label.of("myLabel"),
+        final PolicyId policyId = PolicyId.of("ns", "policyId");
+        final ModifyResource modifyResource = ModifyResource.of(policyId, Label.of("myLabel"),
                 Resource.newInstance("thing", "/", EffectedPermissions.newInstance(new HashSet<>(), new HashSet<>())),
                 DittoHeaders.empty());
 
         final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(modifyResource);
-        final DittoRuntimeException expectedException =
-                ResourceNotModifiableException.newBuilder("ns:policyId", "myLabel", "/")
-                        .build();
+        final DittoRuntimeException expectedException = ResourceNotModifiableException
+                .newBuilder(policyId, "myLabel", "/")
+                .build();
 
         assertThat(mappedException).isEqualTo(expectedException);
     }

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.signals.commands.live.modify;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommand;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;

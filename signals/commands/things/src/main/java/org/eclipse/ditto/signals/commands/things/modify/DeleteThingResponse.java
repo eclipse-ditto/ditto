@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -45,9 +46,9 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
      */
     public static final String TYPE = TYPE_PREFIX + DeleteThing.NAME;
 
-    private final String thingId;
+    private final ThingId thingId;
 
-    private DeleteThingResponse(final String thingId, final DittoHeaders dittoHeaders) {
+    private DeleteThingResponse(final ThingId thingId, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
     }
@@ -59,8 +60,24 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeleteThingResponse of(final String thingId, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code DeleteThing} command.
+     *
+     * @param thingId the Thing ID of the deleted Thing.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static DeleteThingResponse of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new DeleteThingResponse(thingId, dittoHeaders);
     }
 
@@ -91,13 +108,15 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
      */
     public static DeleteThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteThingResponse>(TYPE, jsonObject).deserialize(statusCode -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+            final String extractedThingId =
+                    jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             return of(thingId, dittoHeaders);
         });
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -111,7 +130,7 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
     }
 
     @Override

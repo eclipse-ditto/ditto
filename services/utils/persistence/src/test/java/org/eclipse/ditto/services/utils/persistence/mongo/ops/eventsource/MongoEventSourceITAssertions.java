@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
@@ -53,7 +55,7 @@ import akka.testkit.javadsl.TestKit;
  * Tests subclasses of {@link AbstractPersistenceOperationsActor} which provide purging by namespace on a event source
  * persistence.
  */
-public abstract class MongoEventSourceITAssertions {
+public abstract class MongoEventSourceITAssertions<I extends EntityId> {
 
     private static final Duration EXPECT_MESSAGE_TIMEOUT = Duration.ofSeconds(10);
     private static final Random RANDOM = new Random();
@@ -145,7 +147,7 @@ public abstract class MongoEventSourceITAssertions {
      * @param id ID of the entity.
      * @return reference to the entity actor.
      */
-    protected abstract ActorRef startEntityActor(ActorSystem system, ActorRef pubSubMediator, String id);
+    protected abstract ActorRef startEntityActor(ActorSystem system, ActorRef pubSubMediator, I id);
 
     /**
      * Starts the NamespaceOps actor.
@@ -163,7 +165,7 @@ public abstract class MongoEventSourceITAssertions {
      * @param id ID of the entity.
      * @return Command to create it.
      */
-    protected abstract Object getCreateEntityCommand(String id);
+    protected abstract Object getCreateEntityCommand(I id);
 
     /**
      * @return type of responses for successful entity creation.
@@ -186,7 +188,7 @@ public abstract class MongoEventSourceITAssertions {
      * @param id ID of the entity.
      * @return Command to retrieve it.
      */
-    protected abstract Object getRetrieveEntityCommand(final String id);
+    protected abstract Object getRetrieveEntityCommand(final I id);
 
     /**
      * @return resource type of the NamespaceOps actor being tested.
@@ -243,8 +245,8 @@ public abstract class MongoEventSourceITAssertions {
             final String purgedNamespace = "purgedNamespace.x" + RANDOM.nextInt(1_000_000);
             final String survivingNamespace = "survivingNamespace.x" + RANDOM.nextInt(1_000_000);
 
-            final String purgedId = purgedNamespace + ":name";
-            final String survivingId = survivingNamespace + ":name";
+            final I purgedId = toEntityId(DefaultEntityId.of(purgedNamespace + ":name"));
+            final I survivingId = toEntityId(DefaultEntityId.of(survivingNamespace + ":name"));
 
             final ActorRef pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
             final ActorRef actorToPurge = watch(startEntityActor(actorSystem, pubSubMediator, purgedId));
@@ -290,9 +292,12 @@ public abstract class MongoEventSourceITAssertions {
 
             final String namespace = "purgedNamespace.x" + random.nextInt(1000000);
 
-            final String purgedId1 = prependNamespace("purgedId1", namespace, prependNamespace);
-            final String purgedId2 = prependNamespace("purgedId2", namespace, prependNamespace);
-            final String survivingId = prependNamespace("survingId", namespace, prependNamespace);
+            final I purgedId1 =
+                    toEntityId(DefaultEntityId.of(prependNamespace("purgedId1", namespace, prependNamespace)));
+            final I purgedId2 =
+                    toEntityId(DefaultEntityId.of(prependNamespace("purgedId2", namespace, prependNamespace)));
+            final I survivingId =
+                    toEntityId(DefaultEntityId.of(prependNamespace("survingId", namespace, prependNamespace)));
 
             final ActorRef pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
             final ActorRef actorToPurge1 = watch(startEntityActor(actorSystem, pubSubMediator, purgedId1));
@@ -340,6 +345,8 @@ public abstract class MongoEventSourceITAssertions {
             expectMsgClass(getRetrieveEntityResponseClass());
         }};
     }
+
+    protected abstract I toEntityId(final EntityId entityId);
 
     private void expectCreateEntityResponse(final TestKit testKit) {
         testKit.expectMsgClass(EXPECT_MESSAGE_TIMEOUT, getCreateEntityResponseClass());

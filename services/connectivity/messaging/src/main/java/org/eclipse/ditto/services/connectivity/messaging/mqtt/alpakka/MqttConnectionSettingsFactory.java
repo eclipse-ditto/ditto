@@ -44,10 +44,10 @@ final class MqttConnectionSettingsFactory {
         final String uri = connection.getUri();
 
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
-        final String mqttClientId = mqttSpecificConfig.getMqttClientId().orElse(connection.getId());
+        final String mqttClientId = mqttSpecificConfig.getMqttClientId().orElse(connection.getId().toString());
 
-        MqttConnectionSettings connectionSettings = MqttConnectionSettings
-                .create(uri, mqttClientId, new MemoryPersistence());
+        MqttConnectionSettings connectionSettings =
+                MqttConnectionSettings.create(uri, mqttClientId, new MemoryPersistence());
 
         connectionSettings = connectionSettings.withAutomaticReconnect(connection.isFailoverEnabled());
 

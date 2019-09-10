@@ -47,7 +47,7 @@ public final class RetrieveThingLiveCommandAnswerBuilderImplTest {
     /** */
     @Before
     public void setUp() {
-        Mockito.when(commandMock.getThingId()).thenReturn(TestConstants.Thing.THING_ID);
+        Mockito.when(commandMock.getThingEntityId()).thenReturn(TestConstants.Thing.THING_ID);
         Mockito.when(commandMock.getDittoHeaders()).thenReturn(DittoHeaders.empty());
 
         underTest = RetrieveThingLiveCommandAnswerBuilderImpl.newInstance(commandMock);

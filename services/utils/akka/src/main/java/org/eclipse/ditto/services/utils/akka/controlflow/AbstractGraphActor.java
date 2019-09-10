@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -169,7 +170,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                     LogUtil.enhanceLogWithCorrelationId(log, withDittoHeaders);
                     if (withDittoHeaders instanceof WithId) {
                         log.debug("Received <{}> with id <{}>", withDittoHeaders.getClass().getSimpleName(),
-                                ((WithId) withDittoHeaders).getId());
+                                ((WithId) withDittoHeaders).getEntityId());
                     } else {
                         log.debug("Received WithDittoHeaders: <{}>", withDittoHeaders);
                     }
@@ -234,8 +235,8 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                     if (checkForSpecialLane(msg)) {
                         return 0; // 0 is a special "lane" which is required in some special cases
                     } else if (msg instanceof WithId) {
-                        final String id = ((WithId) msg).getId();
-                        if (id.isEmpty()) {
+                        final EntityId id = ((WithId) msg).getEntityId();
+                        if (id.isDummy()) {
                             // e.g. the case for RetrieveThings command - in that case it is important that not all
                             // RetrieveThings message are processed in the same "lane", so use msg hash instead:
                             return (msg.hashCode() % parallelism) + 1;

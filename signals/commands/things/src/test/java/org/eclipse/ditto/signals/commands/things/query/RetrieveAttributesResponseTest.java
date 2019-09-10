@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -36,7 +37,7 @@ public class RetrieveAttributesResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveAttributesResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveAttributesResponse.JSON_ATTRIBUTES, TestConstants.Thing.ATTRIBUTES)
             .build();
 
@@ -44,7 +45,7 @@ public class RetrieveAttributesResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveAttributesResponse.class, areImmutable(),
-                provided(Attributes.class).isAlsoImmutable());
+                provided(Attributes.class, ThingId.class).isAlsoImmutable());
     }
 
 

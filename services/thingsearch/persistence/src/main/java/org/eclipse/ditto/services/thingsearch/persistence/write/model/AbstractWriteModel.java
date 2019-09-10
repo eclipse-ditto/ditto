@@ -64,7 +64,7 @@ public abstract class AbstractWriteModel {
      * @return filter on search index documents.
      */
     public Bson getFilter() {
-        return Filters.and(Filters.eq(FIELD_ID, new BsonString(metadata.getThingId())));
+        return Filters.and(Filters.eq(FIELD_ID, new BsonString(metadata.getThingId().toString())));
     }
 
     @Override

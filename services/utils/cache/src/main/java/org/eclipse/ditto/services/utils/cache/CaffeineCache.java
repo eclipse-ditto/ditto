@@ -25,9 +25,9 @@ import javax.annotation.Nullable;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
-import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Policy;
 
 
 /**
@@ -42,8 +42,8 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
             (k, executor) -> CompletableFuture.completedFuture(null);
     @Nullable
     private final MetricsStatsCounter metricStatsCounter;
-    private AsyncLoadingCache<K, V> asyncLoadingCache;
-    private LoadingCache<K, V> synchronousCacheView;
+    private final AsyncLoadingCache<K, V> asyncLoadingCache;
+    private final LoadingCache<K, V> synchronousCacheView;
 
 
     private CaffeineCache(final Caffeine<? super K, ? super V> caffeine,
@@ -51,16 +51,36 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
             @Nullable final String cacheName) {
 
         if (cacheName != null) {
-            this.metricStatsCounter = MetricsStatsCounter.of(cacheName);
+            this.metricStatsCounter =
+                    MetricsStatsCounter.of(cacheName, this::getMaxCacheSize, this::getCurrentCacheSize);
             caffeine.recordStats(() -> metricStatsCounter);
             this.asyncLoadingCache = caffeine.buildAsync(loader);
             this.synchronousCacheView = asyncLoadingCache.synchronous();
-            metricStatsCounter.configureCache(this.synchronousCacheView);
         } else {
             this.asyncLoadingCache = caffeine.buildAsync(loader);
             this.synchronousCacheView = asyncLoadingCache.synchronous();
             this.metricStatsCounter = null;
         }
+    }
+
+    @SuppressWarnings({"squid:S2583", "ConstantConditions"})
+    private Long getCurrentCacheSize() {
+        if (synchronousCacheView == null) {
+            // This can occur if this method is called by metricStatsCounter before the cache has been initialized.
+            return 0L;
+        }
+
+        return synchronousCacheView.estimatedSize();
+    }
+
+    @SuppressWarnings({"squid:S2583", "ConstantConditions"})
+    private Long getMaxCacheSize() {
+        if (synchronousCacheView == null) {
+            // This can occur if this method is called by metricStatsCounter before the cache has been initialized.
+            return 0L;
+        }
+
+        return synchronousCacheView.policy().eviction().map(Policy.Eviction::getMaximum).orElse(0L);
     }
 
     /**
@@ -78,23 +98,6 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         requireNonNull(asyncLoader);
 
         return new CaffeineCache<>(caffeine, asyncLoader, null);
-    }
-
-    /**
-     * Creates a new instance based on a {@link CacheLoader}.
-     *
-     * @param caffeine a (pre-configured) caffeine instance.
-     * @param loader the algorithm used for loading values.
-     * @param <K> the type of the key.
-     * @param <V> the type of the value.
-     * @return the created instance
-     */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine,
-            final CacheLoader<K, V> loader) {
-        requireNonNull(caffeine);
-        requireNonNull(loader);
-
-        return new CaffeineCache<>(caffeine, loader, null);
     }
 
     /**
@@ -141,25 +144,6 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      */
     public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine,
             final AsyncCacheLoader<K, V> loader,
-            @Nullable final String cacheName) {
-        requireNonNull(caffeine);
-        requireNonNull(loader);
-
-        return new CaffeineCache<>(caffeine, loader, cacheName);
-    }
-
-    /**
-     * Creates a new instance based on a {@link CacheLoader} which may report metrics for cache statistics.
-     *
-     * @param caffeine a (pre-configured) caffeine instance.
-     * @param loader the algorithm used for loading values.
-     * @param cacheName The name of the cache {@code null}. Will be used for metrics.
-     * @param <K> the type of the key.
-     * @param <V> the type of the value.
-     * @return the created instance
-     */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine,
-            final CacheLoader<K, V> loader,
             @Nullable final String cacheName) {
         requireNonNull(caffeine);
         requireNonNull(loader);

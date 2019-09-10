@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -57,16 +57,15 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
             JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
 
-    private RetrieveFeatureDefinition(final String thingId,
+    private RetrieveFeatureDefinition(final ThingId thingId,
             final String featureId,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
-        this.thingId = thingId;
+        this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
     }
 
@@ -78,10 +77,27 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
      * @param dittoHeaders the headers of the command.
      * @return a Command for retrieving the Definition of the specified Feature.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveFeatureDefinition of(final String thingId, final String featureId,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, dittoHeaders);
+    }
+
+    /**
+     * Returns a Command for retrieving a Feature's Definition on a Thing.
+     *
+     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Definition to retrieve.
+     * @param featureId the {@code Feature}'s ID whose Definition to retrieve.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving the Definition of the specified Feature.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     */
+    public static RetrieveFeatureDefinition of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveFeatureDefinition(thingId, featureId, dittoHeaders);
@@ -104,7 +120,7 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
      *     <li>{@link #JSON_FEATURE_ID}.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveFeatureDefinition fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -126,19 +142,20 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
      *     <li>{@link #JSON_FEATURE_ID}.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveFeatureDefinition fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveFeatureDefinition>(TYPE, jsonObject).deserialize(() -> {
             final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
-            return of(extractedThingId, extractedFeatureId, dittoHeaders);
+            return of(thingId, extractedFeatureId, dittoHeaders);
         });
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -158,7 +175,7 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 

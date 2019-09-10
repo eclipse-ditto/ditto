@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -369,7 +370,7 @@ public final class JavaScriptMessageMapperRhinoTest {
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         final ModifyAttribute modifyAttribute =
-                ModifyAttribute.of(MAPPING_INCOMING_NAMESPACE + ":" + MAPPING_INCOMING_ID,
+                ModifyAttribute.of(ThingId.of(MAPPING_INCOMING_NAMESPACE ,  MAPPING_INCOMING_ID),
                         JsonPointer.of("foo"),
                         JsonValue.of(MAPPING_INCOMING_PAYLOAD_STRING),
                         DittoHeaders.newBuilder()
@@ -394,7 +395,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
     @Test
     public void testNoopJavascriptOutgoingMapping() {
-        final String thingId = "org.eclipse.ditto:foo-bar-plain";
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:foo-bar-plain");
         final String correlationId = UUID.randomUUID().toString();
         final Thing newThing = Thing.newBuilder()
                 .setId(thingId)
@@ -428,7 +429,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
     @Test
     public void testDefaultJavascriptOutgoingMapping() {
-        final String thingId = "org.eclipse.ditto:foo-bar-plain";
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:foo-bar-plain");
         final String correlationId = UUID.randomUUID().toString();
         final Thing newThing = Thing.newBuilder()
                 .setId(thingId)
@@ -498,7 +499,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
     @Test
     public void testPlainJavascriptOutgoingMapping() {
-        final String thingId = "org.eclipse.ditto:foo-bar-plain";
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:foo-bar-plain");
         final String correlationId = UUID.randomUUID().toString();
         final Thing newThing = Thing.newBuilder()
                 .setId(thingId)
@@ -541,7 +542,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
     @Test
     public void testEmptyJavascriptOutgoingMapping() {
-        final String thingId = "org.eclipse.ditto:foo-bar-empty";
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:foo-bar-empty");
         final String correlationId = UUID.randomUUID().toString();
         final Thing newThing = Thing.newBuilder()
                 .setId(thingId)
@@ -594,7 +595,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
     @Test
     public void testBinaryJavascriptOutgoingMapping() {
-        final String thingId = "org.eclipse.ditto:foo-bar-binary";
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:foo-bar-binary");
         final String correlationId = UUID.randomUUID().toString();
         final Thing newThing = Thing.newBuilder()
                 .setId(thingId)
@@ -618,7 +619,7 @@ public final class JavaScriptMessageMapperRhinoTest {
             assertThat(rawMessage.isBytesMessage()).isTrue();
             assertThat(rawMessage.getTextPayload()).isEmpty();
             assertThat(rawMessage.getBytePayload()).map(JavaScriptMessageMapperRhinoTest::byteBuffer2String)
-                    .contains(thingId);
+                    .contains(thingId.toString());
         });
     }
 

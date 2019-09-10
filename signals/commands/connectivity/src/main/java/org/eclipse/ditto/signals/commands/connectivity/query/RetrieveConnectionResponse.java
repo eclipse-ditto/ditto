@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -119,8 +120,8 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
     public JsonObject getJsonObject() { return jsonObject; }
 
     @Override
-    public String getConnectionId() {
-        return jsonObject.getValueOrThrow(Connection.JsonFields.ID);
+    public ConnectionId getConnectionEntityId() {
+        return ConnectionId.of(jsonObject.getValueOrThrow(Connection.JsonFields.ID));
     }
 
     @Override

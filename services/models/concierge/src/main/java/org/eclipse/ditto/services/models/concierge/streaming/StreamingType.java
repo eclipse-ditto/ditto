@@ -13,8 +13,12 @@
 package org.eclipse.ditto.services.models.concierge.streaming;
 
 import java.util.Arrays;
+import java.util.Optional;
 
+import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
@@ -55,6 +59,40 @@ public enum StreamingType {
                         () -> new IllegalStateException("Unknown distributedPubSubTopic: " + distributedPubSubTopic));
     }
 
+    /**
+     * Test whether a signal belongs to the live channel.
+     *
+     * @param signal the signal.
+     * @return whether it is a live signal.
+     */
+    public static boolean isLiveSignal(final Signal signal) {
+        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+    }
 
+    /**
+     * Get the approximate streaming type of a signal as far as it can be discerned.
+     *
+     * @param signal the signal.
+     * @return the streaming type most appropriate for the signal.
+     */
+    public static Optional<StreamingType> fromSignal(final Signal signal) {
+        final StreamingType result;
+        if (isLiveSignal(signal)) {
+            if (signal instanceof ThingEvent) {
+                result = LIVE_EVENTS;
+            } else if (signal instanceof MessageCommand) {
+                result = MESSAGES;
+            } else if (signal instanceof ThingCommand) {
+                result = LIVE_COMMANDS;
+            } else {
+                result = null;
+            }
+        } else if (signal instanceof ThingEvent) {
+            result = EVENTS;
+        } else {
+            result = null;
+        }
+        return Optional.ofNullable(result);
+    }
 
 }

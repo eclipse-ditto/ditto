@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -86,7 +87,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
 
     protected static ActorSystem actorSystem;
 
-    protected String connectionId;
+    protected ConnectionId connectionId;
     private String serverHost;
     protected Connection connection;
 
@@ -297,7 +298,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
                             )
                             .build();
 
-            final String connectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId connectionId = TestConstants.createRandomConnectionId();
             final Props props = createClientActorWithMessages(multipleSources, getRef(), mockMessages);
             final ActorRef underTest = actorSystem.actorOf(props);
 

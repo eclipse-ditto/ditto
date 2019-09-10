@@ -119,12 +119,13 @@ public class PolicyPersistenceActorMailbox implements MailboxType,
             // instead of blocking return "too many requests" response if numberOfMessages > capacity
             if (numberOfMessages() > capacity) {
                 log.warning("Number of messages ({}) in the Mailbox of thing with ID '{}' exceeded the max capacity of "
-                                + "{} -> rejecting PolicyModifyCommand '{}'", numberOfMessages(), command.getId(), capacity,
+                                + "{} -> rejecting PolicyModifyCommand '{}'", numberOfMessages(), command.getEntityId(),
+                        capacity,
                         command.getType());
 
                 final PolicyErrorResponse errorResponse =
-                        PolicyErrorResponse.of(command.getId(), PolicyTooManyModifyingRequestsException //
-                                .newBuilder(command.getId()) //
+                        PolicyErrorResponse.of(command.getEntityId(), PolicyTooManyModifyingRequestsException //
+                                .newBuilder(command.getEntityId()) //
                                 .dittoHeaders(command.getDittoHeaders()) //
                                 .build());
                 sender.tell(errorResponse, null);

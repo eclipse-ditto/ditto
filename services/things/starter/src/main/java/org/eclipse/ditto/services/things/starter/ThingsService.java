@@ -64,7 +64,7 @@ public final class ThingsService extends DittoService<ThingsConfig> {
             final ActorMaterializer materializer) {
 
         return ThingsRootActor.props(thingsConfig, pubSubMediator, materializer,
-                ThingPersistenceActorPropsFactory.getInstance(pubSubMediator));
+                DefaultThingPersistenceActorPropsFactory.getInstance());
     }
 
 }

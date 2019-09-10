@@ -171,16 +171,18 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         final ActorRef self = getSelf();
 
         // try to close an existing session first
-        if (recoverSession.getSession().isPresent()) {
+        recoverSession.getSession().ifPresent((session) -> {
             try {
-                recoverSession.getSession().get().close();
-            } catch (JMSException e) {
+                session.close();
+            } catch (final JMSException e) {
                 log.debug("Failed to close previous session, ignore.");
             }
-        }
+        });
 
-        if (recoverSession.getConnection().isPresent()) {
-            final JmsConnection jmsConnection = recoverSession.getConnection().map(c -> (JmsConnection) c).get();
+        final Optional<javax.jms.Connection> connectionOptional = recoverSession.getConnection();
+
+        if (connectionOptional.isPresent()) {
+            final JmsConnection jmsConnection = connectionOptional.map(c -> (JmsConnection) c).get();
             try {
                 log.debug("Creating new JMS session.");
                 final Session session = createSession(jmsConnection);
@@ -189,7 +191,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 final AmqpClientActor.JmsSessionRecovered r =
                         new AmqpClientActor.JmsSessionRecovered(origin, session, consumers);
                 sender.tell(r, self);
-                log.debug("Session of connection <{}> recovered successfully.", connection.getId());
+                log.debug("Session of connection <{}> recovered successfully.", this.connection.getId());
             } catch (final ConnectionFailedException e) {
                 sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
                 log.warning(e.getMessage());

@@ -80,13 +80,14 @@ final class ModifyThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ModifyThingResponse modified() {
-            return ModifyThingResponse.modified(command.getThingId(), command.getDittoHeaders());
+            return ModifyThingResponse.modified(command.getThingEntityId(), command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse thingNotAccessibleError() {
-            return errorResponse(command.getThingId(), ThingNotAccessibleException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    ThingNotAccessibleException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -94,7 +95,8 @@ final class ModifyThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse thingNotModifiableError() {
-            return errorResponse(command.getThingId(), ThingNotModifiableException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    ThingNotModifiableException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }

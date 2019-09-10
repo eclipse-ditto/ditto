@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -82,7 +83,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     private static ActorSystem actorSystem;
     private static ServerSocket mockServer;
 
-    private String connectionId;
+    private ConnectionId connectionId;
     private Connection connection;
 
     @Mock
@@ -232,7 +233,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             }
 
             @Override
-            public Props props(final String connectionId, final List<Target> targets,
+            public Props props(final ConnectionId connectionId, final List<Target> targets,
                     final KafkaConnectionFactory factory, final boolean dryRun) {
                 return MockKafkaPublisherActor.props(ref, status);
             }

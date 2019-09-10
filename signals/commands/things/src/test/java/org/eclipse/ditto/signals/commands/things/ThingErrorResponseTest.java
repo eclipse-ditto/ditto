@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -34,7 +35,7 @@ public final class ThingErrorResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ThingErrorResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NOT_FOUND.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingCommandResponse.JsonFields.PAYLOAD,
                     TestConstants.Thing.THING_NOT_ACCESSIBLE_EXCEPTION.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -44,7 +45,7 @@ public final class ThingErrorResponseTest {
     public void assertImmutability() {
         assertInstancesOf(ThingErrorResponse.class,
                 areImmutable(),
-                provided(DittoRuntimeException.class).isAlsoImmutable());
+                provided(DittoRuntimeException.class, ThingId.class).isAlsoImmutable());
     }
 
 

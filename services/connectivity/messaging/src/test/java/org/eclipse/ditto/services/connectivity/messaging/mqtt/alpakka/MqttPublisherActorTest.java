@@ -24,6 +24,7 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 
 import akka.actor.Props;
 import akka.stream.alpakka.mqtt.MqttMessage;
@@ -46,7 +47,8 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return MqttPublisherActor.props("theConnection", Collections.emptyList(), mqttConnectionFactory, probe.ref(), false);
+        return MqttPublisherActor.props(TestConstants.createRandomConnectionId(), Collections.emptyList(),
+                mqttConnectionFactory, probe.ref(), false);
     }
 
     @Override

@@ -133,7 +133,7 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
             final String namespace = ((WithNamespace) commandResponse).getNamespace().orElse("_");
             topicPathBuilder = ProtocolFactory.newTopicPathBuilderFromNamespace(namespace);
         } else {
-            topicPathBuilder = ProtocolFactory.newTopicPathBuilder(commandResponse.getId());
+            topicPathBuilder = ProtocolFactory.newTopicPathBuilder(commandResponse.getThingEntityId());
         }
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder =

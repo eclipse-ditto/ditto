@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
 /**
@@ -62,7 +63,7 @@ public final class ConnectionUnavailableException extends DittoRuntimeException 
      * @param connectionId the ID of the connection.
      * @return the builder.
      */
-    public static Builder newBuilder(final String connectionId) {
+    public static Builder newBuilder(final ConnectionId connectionId) {
         return new Builder(connectionId);
     }
 
@@ -110,9 +111,9 @@ public final class ConnectionUnavailableException extends DittoRuntimeException 
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String connectionId) {
+        private Builder(final ConnectionId connectionId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, connectionId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(connectionId)));
         }
 
         @Override

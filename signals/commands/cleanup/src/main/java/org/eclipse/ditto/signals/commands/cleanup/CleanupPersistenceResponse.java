@@ -23,6 +23,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -43,9 +45,10 @@ public final class CleanupPersistenceResponse
      */
     public static final String TYPE = TYPE_PREFIX + CleanupPersistence.NAME;
 
-    private final String entityId;
+    private final EntityId entityId;
 
-    private CleanupPersistenceResponse(final String entityId, final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+    private CleanupPersistenceResponse(final EntityId entityId, final HttpStatusCode statusCode,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
         this.entityId = ConditionChecker.checkNotNull(entityId, "entityId");
     }
@@ -57,7 +60,7 @@ public final class CleanupPersistenceResponse
      * @param dittoHeaders the headers of the response.
      * @return a command response for cleanupPersistence.
      */
-    public static CleanupPersistenceResponse success(final String entityId, final DittoHeaders dittoHeaders) {
+    public static CleanupPersistenceResponse success(final EntityId entityId, final DittoHeaders dittoHeaders) {
         return new CleanupPersistenceResponse(entityId, HttpStatusCode.OK, dittoHeaders);
     }
 
@@ -68,29 +71,24 @@ public final class CleanupPersistenceResponse
      * @param dittoHeaders the headers of the response.
      * @return a command response for cleanupPersistence.
      */
-    public static CleanupPersistenceResponse failure(final String entityId, final DittoHeaders dittoHeaders) {
+    public static CleanupPersistenceResponse failure(final EntityId entityId, final DittoHeaders dittoHeaders) {
         return new CleanupPersistenceResponse(entityId, HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders);
     }
 
     @Override
-    public String getEntityId() {
+    public EntityId getEntityId() {
         return entityId;
     }
 
     @Override
     public CleanupPersistenceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new CleanupPersistenceResponse(this.getId(), this.getStatusCode(), dittoHeaders);
+        return new CleanupPersistenceResponse(this.getEntityId(), this.getStatusCode(), dittoHeaders);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set(CleanupCommandResponse.JsonFields.ENTITY_ID, entityId, predicate);
-    }
-
-    @Override
-    public String getId() {
-        return getEntityId();
+        jsonObjectBuilder.set(CleanupCommandResponse.JsonFields.ENTITY_ID, String.valueOf(entityId), predicate);
     }
 
     /**
@@ -106,10 +104,12 @@ public final class CleanupPersistenceResponse
      * format.
      */
     public static CleanupPersistenceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<CleanupPersistenceResponse>(TYPE, jsonObject).deserialize(statusCode ->
-                new CleanupPersistenceResponse(jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_ID),
-                        statusCode,
-                        dittoHeaders)
+        return new CommandResponseJsonDeserializer<CleanupPersistenceResponse>(TYPE, jsonObject).deserialize(
+                statusCode -> {
+                    final String readEntityId = jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_ID);
+                    final EntityId entityId = DefaultEntityId.of(readEntityId);
+                    return new CleanupPersistenceResponse(entityId, statusCode, dittoHeaders);
+                }
         );
     }
 

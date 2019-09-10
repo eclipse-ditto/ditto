@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.base.assertions;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -28,8 +29,8 @@ public class CommandAssert extends AbstractCommandAssert<CommandAssert, Command>
         super(actual, CommandAssert.class);
     }
 
-    public CommandAssert withId(final CharSequence expectedId) {
-        return assertThatEquals(actual.getId(), null != expectedId ? String.valueOf(expectedId) : null, "id");
+    public CommandAssert withId(final EntityId expectedId) {
+        return assertThatEquals(actual.getEntityId(), expectedId, "id");
     }
 
 }

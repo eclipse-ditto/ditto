@@ -16,6 +16,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -40,6 +41,8 @@ import java.util.Optional;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +54,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -73,6 +77,7 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -88,8 +93,11 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.base.Signal;
@@ -114,6 +122,7 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.pattern.Patterns;
 
 public final class TestConstants {
 
@@ -170,11 +179,45 @@ public final class TestConstants {
 
     public static final Instant INSTANT = Instant.now();
 
+    static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
+        return new DittoProtocolSub() {
+            @Override
+            public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
+                    final Collection<String> topics, final ActorRef subscriber) {
+                return CompletableFuture.allOf(types.stream()
+                        .map(type -> {
+                            final Object sub = DistPubSubAccess.subscribe(type.getDistributedPubSubTopic(), subscriber);
+                            return Patterns.ask(pubSubMediator, sub, Duration.ofSeconds(10L)).toCompletableFuture();
+                        })
+                        .toArray(CompletableFuture[]::new));
+            }
+
+            @Override
+            public void removeSubscriber(final ActorRef subscriber) {
+                // do nothing
+            }
+
+            @Override
+            public CompletionStage<Void> updateLiveSubscriptions(final Collection<StreamingType> types,
+                    final Collection<String> topics, final ActorRef subscriber) {
+                // do nothing
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
+                    final Collection<String> topics) {
+                // do nothing
+                return CompletableFuture.completedFuture(null);
+            }
+        };
+    }
+
     public static final class Things {
 
         public static final String NAMESPACE = "ditto";
         public static final String ID = "thing";
-        public static final String THING_ID = NAMESPACE + ":" + ID;
+        public static final ThingId THING_ID = ThingId.of(NAMESPACE, ID);
         public static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
 
     }
@@ -308,22 +351,24 @@ public final class TestConstants {
 
 
         static {
-            when(MONITOR_REGISTRY_MOCK.forInboundConsumed(anyString(), anyString())).thenReturn(
-                    CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundDropped(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundEnforced(anyString(), anyString())).thenReturn(
-                    CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundMapped(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundDispatched(anyString(), anyString())).thenReturn(
-                    CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundFiltered(anyString(), anyString())).thenReturn(
-                    CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundPublished(anyString(), anyString())).thenReturn(
-                    CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseDropped(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseMapped(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponsePublished(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundConsumed(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundDropped(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundEnforced(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundMapped(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundDispatched(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundFiltered(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundPublished(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDropped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseMapped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponsePublished(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
         }
 
     }
@@ -335,7 +380,7 @@ public final class TestConstants {
         private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
                 ConnectivityCounterRegistry.fromConfig(MONITORING_CONFIG.counter());
 
-        public static final String ID = "myConnectionId";
+        public static final ConnectionId ID = ConnectionId.of("myConnectionId");
 
 
         public static final Duration ONE_MINUTE = Duration.ofMinutes(1);
@@ -429,8 +474,8 @@ public final class TestConstants {
         return Stream.of(entries).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    public static String createRandomConnectionId() {
-        return "connection-" + UUID.randomUUID();
+    public static ConnectionId createRandomConnectionId() {
+        return ConnectionId.of("connection-" + UUID.randomUUID());
     }
 
     /**
@@ -495,15 +540,19 @@ public final class TestConstants {
         MOCK_SERVERS.clear();
     }
 
-    public static Connection createConnection(final String connectionId) {
+    public static Connection createConnection() {
+        return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_AUTH_CONTEXT);
+    }
+
+    public static Connection createConnection(final ConnectionId connectionId) {
         return createConnection(connectionId, Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
-    public static Connection createConnection(final String connectionId, final List<Source> sources) {
+    public static Connection createConnection(final ConnectionId connectionId, final List<Source> sources) {
         return createConnection(connectionId, STATUS, sources);
     }
 
-    public static Connection createConnection(final String connectionId, final ConnectivityStatus status,
+    public static Connection createConnection(final ConnectionId connectionId, final ConnectivityStatus status,
             final List<Source> sources) {
 
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
@@ -513,7 +562,7 @@ public final class TestConstants {
                 .build();
     }
 
-    public static Connection createConnection(final String connectionId,
+    public static Connection createConnection(final ConnectionId connectionId,
             final Target... targets) {
 
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUriOfNewMockServer())
@@ -527,22 +576,22 @@ public final class TestConstants {
         return new HashSet<>(asList(array));
     }
 
-    static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
+    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId, final ActorSystem actorSystem,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         return createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder,
                 mockClientActorPropsFactory);
     }
 
-    static ActorRef createConnectionSupervisorActor(final String connectionId,
+    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory clientActorPropsFactory) {
 
-        final Props props = ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarder,
+        final Props props = ConnectionSupervisorActor.props(dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
                 clientActorPropsFactory, null);
 
-        final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId);
+        final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 
         final int maxAttempts = 5;
         final long backOffMs = 1000L;

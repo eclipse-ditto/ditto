@@ -26,8 +26,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
 import org.eclipse.ditto.services.things.common.config.ThingConfig;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandReceiveStrategy;
@@ -41,11 +43,10 @@ import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveS
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
-import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
-import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -89,8 +90,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private static final CreateThingStrategy CREATE_THING_STRATEGY = CreateThingStrategy.getInstance();
 
     private final DiagnosticLoggingAdapter log;
-    private final String thingId;
-    private final ActorRef pubSubMediator;
+    private final ThingId thingId;
+    private final DistributedPub<ThingEvent> distributedPub;
     private final SnapshotAdapter<Thing> snapshotAdapter;
     private final Receive handleThingEvents;
     private final ThingConfig thingConfig;
@@ -107,11 +108,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private long accessCounter;
     private Thing thing;
 
-    ThingPersistenceActor(final String thingId, final ActorRef pubSubMediator,
+    @SuppressWarnings("unused")
+    private ThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub,
             final SnapshotAdapter<Thing> snapshotAdapter) {
 
         this.thingId = thingId;
-        this.pubSubMediator = pubSubMediator;
+        this.distributedPub = distributedPub;
         this.snapshotAdapter = snapshotAdapter;
         log = LogUtil.obtain(this);
         thing = null;
@@ -141,26 +143,25 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
      * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
      *
      * @param thingId the Thing ID this Actor manages.
-     * @param pubSubMediator the PubSub mediator actor.
+     * @param distributedPub the distributed-pub access to publish thing events.
      * @param snapshotAdapter the snapshot adapter.
      * @return the Akka configuration Props object
      */
-    public static Props props(final String thingId, final ActorRef pubSubMediator,
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub,
             final SnapshotAdapter<Thing> snapshotAdapter) {
 
-        return Props.create(ThingPersistenceActor.class,
-                () -> new ThingPersistenceActor(thingId, pubSubMediator, snapshotAdapter));
+        return Props.create(ThingPersistenceActor.class, thingId, distributedPub, snapshotAdapter);
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
      *
      * @param thingId the Thing ID this Actor manages.
-     * @param pubSubMediator the PubSub mediator actor.
+     * @param distributedPub the distributed-pub access to publish thing events.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final String thingId, final ActorRef pubSubMediator) {
-        return props(thingId, pubSubMediator, new ThingMongoSnapshotAdapter());
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub) {
+        return props(thingId, distributedPub, new ThingMongoSnapshotAdapter());
     }
 
     private static Thing enhanceThingWithLifecycle(final Thing thing) {
@@ -439,10 +440,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
 
     private void notifySubscribers(final ThingEvent event) {
         // publish the event in the cluster
-        // publish via cluster pubSub (as we cannot expect that Websocket sessions interested in this event
-        // are running on the same cluster node):
-        pubSubMediator.tell(DistPubSubAccess.publish(ThingEvent.TYPE_PREFIX, event), getSelf());
-        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(ThingEvent.TYPE_PREFIX, event), getSelf());
+        // sender is not given because the persistence actor expects no reply
+        distributedPub.publish(event, ActorRef.noSender());
     }
 
     private void notifySender(final WithDittoHeaders message) {
@@ -500,7 +499,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
 
             final String messageType = getMessageType(message);
             if (isWithThingId(message)) {
-                final String messageThingId = getMessageThingId((WithThingId) message);
+                final ThingId messageThingId = ((WithThingId) message).getThingEntityId();
                 if (isEqualToActorThingId(messageThingId)) {
                     logInfoAboutIncomingMessage(messageType);
                 } else {
@@ -526,12 +525,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
             return message instanceof WithThingId;
         }
 
-        private boolean isEqualToActorThingId(final String messageThingId) {
+        private boolean isEqualToActorThingId(final ThingId messageThingId) {
             return Objects.equals(thingId, messageThingId);
-        }
-
-        private String getMessageThingId(final WithThingId withThingId) {
-            return withThingId.getThingId();
         }
 
         private void logInfoAboutIncomingMessage(final String messageType) {
@@ -608,8 +603,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
             return null != thing && thing.hasLifecycle(ThingLifecycle.DELETED);
         }
 
-        private void shutdown(final String shutdownLogTemplate, final String thingId) {
-            log.debug(shutdownLogTemplate, thingId);
+        private void shutdown(final String shutdownLogTemplate, final ThingId thingId) {
+            log.debug(shutdownLogTemplate, String.valueOf(thingId));
             stopThisActor();
         }
 

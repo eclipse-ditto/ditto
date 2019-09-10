@@ -18,23 +18,32 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.thingsearch.common.config.DefaultUpdaterConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
@@ -53,8 +62,9 @@ public final class ThingsUpdaterTest {
     private static final long KNOWN_REVISION = 7L;
     private static final DittoHeaders KNOWN_HEADERS =
             DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_2).build();
-    private static final String KNOWN_THING_ID = "namespace:aThing";
-    private static final String KNOWN_POLICY_ID = "namespace:aPolicy";
+    private static final ThingId KNOWN_THING_ID = ThingId.of("namespace", "aThing");
+    private static final PolicyId KNOWN_POLICY_ID = PolicyId.of("namespace", "aPolicy");
+    private static final Config TEST_CONFIG = ConfigFactory.load("test");
 
     private ActorSystem actorSystem;
     private TestProbe shardMessageReceiver;
@@ -63,7 +73,7 @@ public final class ThingsUpdaterTest {
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.load("test"));
+        actorSystem = ActorSystem.create("AkkaTestSystem", TEST_CONFIG);
         shardMessageReceiver = TestProbe.apply(actorSystem);
         shardRegionFactory = TestUtils.getMockedShardRegionFactory(
                 original -> actorSystem.actorOf(TestUtils.getForwarderActorProps(original, shardMessageReceiver.ref())),
@@ -71,7 +81,7 @@ public final class ThingsUpdaterTest {
         );
         // create blocked namespaces cache without role and with the default replicator name
         blockedNamespaces =
-                BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem, "replicator", ""), actorSystem);
+                BlockedNamespaces.create(DistributedData.createConfig(actorSystem, "replicator", ""), actorSystem);
     }
 
     @After
@@ -87,7 +97,7 @@ public final class ThingsUpdaterTest {
         new TestKit(actorSystem) {{
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(event, getRef());
-            expectShardedMessage(shardMessageReceiver, event, event.getId());
+            expectShardedMessage(shardMessageReceiver, event, event.getThingEntityId());
         }};
     }
 
@@ -97,13 +107,14 @@ public final class ThingsUpdaterTest {
         new TestKit(actorSystem) {{
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(event, getRef());
-            expectShardedMessage(shardMessageReceiver, event, event.getId());
+            expectShardedMessage(shardMessageReceiver, event, event.getEntityId());
         }};
     }
 
     @Test
     public void policyReferenceTagIsForwarded() {
-        final PolicyReferenceTag message = PolicyReferenceTag.of(KNOWN_THING_ID, PolicyTag.of("a:b", 9L));
+        final PolicyReferenceTag message =
+                PolicyReferenceTag.of(KNOWN_THING_ID, PolicyTag.of(PolicyId.of("a", "b"), 9L));
         new TestKit(actorSystem) {{
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(message, getRef());
@@ -123,11 +134,14 @@ public final class ThingsUpdaterTest {
 
     @Test
     public void blockAndAcknowledgeMessagesByNamespace() throws Exception {
-        final ThingEvent thingEvent = ThingDeleted.of("blocked:thing2", 10L, KNOWN_HEADERS);
-        final ThingTag thingTag = ThingTag.of("blocked:thing3", 11L);
-        final PolicyReferenceTag refTag = PolicyReferenceTag.of("blocked:thing4", PolicyTag.of(KNOWN_POLICY_ID, 12L));
+        final String blockedNamespace = "blocked";
+        final ThingEvent thingEvent = ThingDeleted.of(ThingId.of(blockedNamespace, "thing2"), 10L, KNOWN_HEADERS);
+        final ThingTag thingTag = ThingTag.of(ThingId.of(blockedNamespace, "thing3"), 11L);
+        final PolicyReferenceTag refTag =
+                PolicyReferenceTag.of(DefaultEntityId.of(blockedNamespace + ":thing4"),
+                        PolicyTag.of(KNOWN_POLICY_ID, 12L));
 
-        blockedNamespaces.add("blocked").toCompletableFuture().get();
+        blockedNamespaces.add(blockedNamespace).toCompletableFuture().get();
 
         new TestKit(actorSystem) {{
             final ActorRef underTest = createThingsUpdater();
@@ -148,19 +162,22 @@ public final class ThingsUpdaterTest {
         }};
     }
 
-    private static void expectShardedMessage(final TestProbe probe, final Jsonifiable event, final String id) {
+    private static void expectShardedMessage(final TestProbe probe, final Jsonifiable event, final EntityId id) {
         final ShardedMessageEnvelope envelope = probe.expectMsgClass(ShardedMessageEnvelope.class);
 
         assertThat(envelope.getMessage()).isEqualTo(event.toJson());
-        assertThat(envelope.getId()).isEqualTo(id);
+        assertThat((CharSequence) envelope.getEntityId()).isEqualTo(id);
     }
 
     private ActorRef createThingsUpdater() {
-        final boolean eventProcessingActive = true;
+        // updater not configured in test.conf; using default config with event processing disabled
+        // so that actor does not poll updater shard region for stats
+        final UpdaterConfig config =
+                DefaultUpdaterConfig.of(ConfigFactory.parseString("updater.event-processing-active=false"));
         final ActorRef thingsShardRegion = shardRegionFactory.getThingsShardRegion(NUMBER_OF_SHARDS);
+        final DistributedSub mockDistributedSub = Mockito.mock(DistributedSub.class);
         return actorSystem.actorOf(
-                ThingsUpdater.props(actorSystem.deadLetters(), thingsShardRegion, eventProcessingActive,
-                        blockedNamespaces));
+                ThingsUpdater.props(mockDistributedSub, thingsShardRegion, config, blockedNamespaces));
     }
 
 }

@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -47,7 +48,7 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
     }
 
     @Override
-    public String connectionId() {
+    public EntityId connectionId() {
         return connection.getId();
     }
 

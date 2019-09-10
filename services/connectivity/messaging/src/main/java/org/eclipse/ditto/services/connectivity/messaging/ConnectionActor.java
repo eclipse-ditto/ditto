@@ -18,23 +18,27 @@ import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagi
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -64,11 +68,12 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConn
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
-import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
@@ -175,8 +180,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final String connectionId;
-    private final ActorRef pubSubMediator;
+    private final ConnectionId connectionId;
+    private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef conciergeForwarder;
     private final long snapshotThreshold;
     private final SnapshotAdapter<Connection> snapshotAdapter;
@@ -197,7 +202,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private Set<Topic> uniqueTopics = Collections.emptySet();
 
-    private final Duration flushPendingResponsesTimeout;
     private final Duration clientActorAskTimeout;
 
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
@@ -209,14 +213,14 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     private final Duration loggingEnabledDuration;
 
     @SuppressWarnings("unused")
-    private ConnectionActor(final String connectionId,
-            final ActorRef pubSubMediator,
+    private ConnectionActor(final ConnectionId connectionId,
+            final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator) {
 
         this.connectionId = connectionId;
-        this.pubSubMediator = pubSubMediator;
+        this.dittoProtocolSub = dittoProtocolSub;
         this.conciergeForwarder = conciergeForwarder;
         this.propsFactory = propsFactory;
         final DittoConnectivityCommandValidator dittoCommandValidator =
@@ -239,7 +243,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
         connectionDeletedBehaviour = createConnectionDeletedBehaviour();
 
-        flushPendingResponsesTimeout = connectionConfig.getFlushPendingResponsesTimeout();
         clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
         deletedActorLifetime = connectionConfig.getActivityCheckConfig().getDeletedInterval();
 
@@ -260,20 +263,19 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
      * Creates Akka configuration object for this actor.
      *
      * @param connectionId the connection ID.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param dittoProtocolSub Ditto protocol sub access.
      * @param conciergeForwarder proxy of concierge service.
      * @param propsFactory factory of props of client actors for various protocols.
      * @param commandValidator validator for commands that should throw an exception if a command is invalid.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final String connectionId,
-            final ActorRef pubSubMediator,
+    public static Props props(final ConnectionId connectionId,
+            final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> commandValidator
     ) {
-
-        return Props.create(ConnectionActor.class, connectionId, pubSubMediator, conciergeForwarder, propsFactory,
+        return Props.create(ConnectionActor.class, connectionId, dittoProtocolSub, conciergeForwarder, propsFactory,
                 commandValidator);
     }
 
@@ -417,13 +419,14 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     private Receive createConnectionCreatedBehaviour() {
         return super.createReceive().orElse(ReceiveBuilder.create()
                 .match(TestConnection.class, testConnection ->
-                        getSender().tell(TestConnectionResponse.alreadyCreated(testConnection.getConnectionId(),
+                        getSender().tell(TestConnectionResponse.alreadyCreated(testConnection.getConnectionEntityId(),
                                 testConnection.getDittoHeaders()), getSelf()))
                 .match(CreateConnection.class, createConnection -> {
                     enhanceLogUtil(createConnection);
-                    log.info("Connection <{}> already exists! Responding with conflict.", createConnection.getId());
+                    log.info("Connection <{}> already exists! Responding with conflict.",
+                            createConnection.getConnectionEntityId());
                     final ConnectionConflictException conflictException =
-                            ConnectionConflictException.newBuilder(createConnection.getId())
+                            ConnectionConflictException.newBuilder(createConnection.getConnectionEntityId())
                                     .dittoHeaders(createConnection.getDittoHeaders())
                                     .build();
                     getSender().tell(conflictException, getSelf());
@@ -479,7 +482,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private void handleCommandWhenDeleted(final ConnectivityCommand command) {
         log.debug("Received command for deleted connection, rejecting: {}", command.getType());
-        getSender().tell(ConnectionNotAccessibleException.newBuilder(command.getId())
+        getSender().tell(ConnectionNotAccessibleException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build(), getSelf());
     }
@@ -519,7 +522,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             logDroppedSignal(signal.getType(), "No topics present.");
             return;
         }
-        if (connectionId.equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
+        if (connectionId.toString().equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
             logDroppedSignal(signal.getType(), "Was sent by myself.");
             return;
         }
@@ -554,7 +557,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         } else {
             final PerformTask stopSelfTask = new PerformTask("stop self after test", ConnectionActor::stopSelf);
             askClientActor(command, response -> {
-                origin.tell(TestConnectionResponse.success(command.getConnectionId(), response.toString(),
+                origin.tell(TestConnectionResponse.success(command.getConnectionEntityId(), response.toString(),
                         command.getDittoHeaders()), self);
                 // terminate this actor's supervisor after a connection test again:
                 self.tell(stopSelfTask, ActorRef.noSender());
@@ -726,7 +729,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         checkConnectionNotNull();
 
         final ConnectionOpened connectionOpened =
-                ConnectionOpened.of(command.getConnectionId(), command.getDittoHeaders());
+                ConnectionOpened.of(command.getConnectionEntityId(), command.getDittoHeaders());
         final ActorRef origin = getSender();
         final ActorRef self = getSelf();
 
@@ -753,7 +756,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         checkConnectionNotNull();
 
         final ConnectionClosed connectionClosed =
-                ConnectionClosed.of(command.getConnectionId(), command.getDittoHeaders());
+                ConnectionClosed.of(command.getConnectionEntityId(), command.getDittoHeaders());
         final ActorRef origin = getSender();
         final ActorRef self = getSelf();
 
@@ -788,7 +791,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private void deleteConnection(final DeleteConnection command) {
         final ConnectionDeleted connectionDeleted =
-                ConnectionDeleted.of(command.getConnectionId(), command.getDittoHeaders());
+                ConnectionDeleted.of(command.getConnectionEntityId(), command.getDittoHeaders());
         final ActorRef origin = getSender();
         final ActorRef self = getSelf();
 
@@ -819,7 +822,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     }
 
     private void loggingExpired(final LoggingExpired ccla) {
-        log.debug("Cancelling scheduler checking if logging still active for <{}>", ccla.getConnectionId());
+        log.debug("Cancelling scheduler checking if logging still active for <{}>", ccla.getConnectionEntityId());
         this.loggingDisabled();
     }
 
@@ -907,7 +910,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         if (clientActorRouter != null && connection != null) {
             final ActorRef aggregationActor = getContext().actorOf(
                     AggregateActor.props(clientActorRouter, connection.getClientCount(), responseTimeout,
-                            connection.getId()));
+                            connectionId));
             Patterns.ask(aggregationActor, cmd, clientActorAskTimeout)
                     .whenComplete((response, exception) -> {
                         log.debug("Got response to {}: {}", cmd.getType(),
@@ -1068,13 +1071,11 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         origin.tell(statusResponse, getSelf());
     }
 
-    private void subscribeForEvents() {
+    private CompletionStage<?> subscribeForEvents() {
         checkConnectionNotNull();
         uniqueTopics = getUniqueTopics(connection);
-        forEachPubSubTopicDo(uniqueTopics, pubSubTopic -> {
-            log.debug("Subscribing to pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
-            pubSubMediator.tell(DistPubSubAccess.subscribe(pubSubTopic, getSelf()), getSelf());
-        });
+        log.debug("Subscribing to pub-sub topics <{}> for connection <{}>.", uniqueTopics, connectionId);
+        return dittoProtocolSub.subscribe(toStreamingTypes(uniqueTopics), getTargetAuthSubjects(), getSelf());
     }
 
     private Set<Topic> getUniqueTopics(@Nullable final Connection theConnection) {
@@ -1083,24 +1084,31 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 .collect(Collectors.toSet()) : Collections.emptySet();
     }
 
-    private void unsubscribeFromEvents(final Set<Topic> topics) {
-        forEachPubSubTopicDo(topics, pubSubTopic -> {
-            log.debug("Unsubscribing from pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
-            pubSubMediator.tell(DistPubSubAccess.unsubscribe(pubSubTopic, getSelf()), getSelf());
-        });
+    private Set<String> getTargetAuthSubjects() {
+        if (connection == null || connection.getTargets().isEmpty()) {
+            return Collections.emptySet();
+        } else {
+            return connection.getTargets()
+                    .stream()
+                    .map(Target::getAuthorizationContext)
+                    .map(AuthorizationContext::getAuthorizationSubjectIds)
+                    .flatMap(List::stream)
+                    .collect(Collectors.toSet());
+        }
     }
 
-    private void forEachPubSubTopicDo(final Set<Topic> topics, final Consumer<String> topicConsumer) {
-        topics.stream()
-                .map(Topic::getPubSubTopic)
-                .forEach(topicConsumer);
+    private void unsubscribeFromEvents(final Set<Topic> topics) {
+        if (!topics.isEmpty()) {
+            log.debug("Unsubscribing from pub-sub topics <{}> for connection <{}>.", uniqueTopics, connectionId);
+            dittoProtocolSub.removeSubscriber(getSelf());
+        }
     }
 
     private void handleCommandDuringInitialization(final ConnectivityCommand command) {
         log.debug("Unexpected command during initialization of actor received: {} - "
                         + "Terminating this actor and sending 'ConnectionNotAccessibleException' to requester ...",
                 command.getType());
-        getSender().tell(ConnectionNotAccessibleException.newBuilder(command.getId())
+        getSender().tell(ConnectionNotAccessibleException.newBuilder(command.getConnectionEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build(), getSelf());
     }
@@ -1109,7 +1117,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         persist(event, persistedEvent -> {
             log.debug("Successfully persisted Event <{}>.", persistedEvent.getType());
             consumer.accept(persistedEvent);
-            pubSubMediator.tell(DistPubSubAccess.publish(event.getType(), event), getSelf());
 
             // save a snapshot if there were too many changes since the last snapshot
             if ((lastSequenceNr() - lastSnapshotSequenceNr) >= snapshotThreshold) {
@@ -1199,23 +1206,30 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         confirmedSnapshotSequenceNr = Math.max(confirmedSnapshotSequenceNr, sss.metadata().sequenceNr());
     }
 
-    private void schedulePendingResponse(final ConnectivityCommandResponse response, final ActorRef sender) {
-        getContext().system().scheduler()
-                .scheduleOnce(flushPendingResponsesTimeout,
-                        sender,
-                        response,
-                        getContext().dispatcher(),
-                        getSelf());
+    private static Collection<StreamingType> toStreamingTypes(final Set<Topic> uniqueTopics) {
+        return uniqueTopics.stream()
+                .map(topic -> {
+                    switch (topic) {
+                        case LIVE_EVENTS:
+                            return StreamingType.LIVE_EVENTS;
+                        case LIVE_COMMANDS:
+                            return StreamingType.LIVE_COMMANDS;
+                        case LIVE_MESSAGES:
+                            return StreamingType.MESSAGES;
+                        case TWIN_EVENTS:
+                        default:
+                            return StreamingType.EVENTS;
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
     private static Consumer<ConnectionActor> subscribeForEventsAndScheduleResponse(
-            final ConnectivityCommandResponse response,
-            final ActorRef sender) {
+            final ConnectivityCommandResponse response, final ActorRef sender) {
 
-        return connectionActor -> {
-            connectionActor.subscribeForEvents();
-            connectionActor.schedulePendingResponse(response, sender);
-        };
+        return connectionActor ->
+                connectionActor.subscribeForEvents()
+                        .thenAccept(_void -> sender.tell(response, connectionActor.getSelf()));
     }
 
     /**
@@ -1283,13 +1297,13 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
          * @return the Akka configuration Props object
          */
         static Props props(final ActorRef clientActor, final int expectedResponses, final long timeout,
-                final String connectionId) {
+                final ConnectionId connectionId) {
             return Props.create(AggregateActor.class, clientActor, expectedResponses, timeout, connectionId);
         }
 
         @SuppressWarnings("unused")
         private AggregateActor(final ActorRef clientActor, final int expectedResponses, final long timeout,
-                final String connectionId) {
+                final ConnectionId connectionId) {
             this.clientActor = clientActor;
             this.expectedResponses = expectedResponses;
             this.timeout = timeout;
@@ -1311,18 +1325,22 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                             sendBackAggregatedResults()
                     )
                     .match(Status.Status.class, status -> {
-                        aggregatedStatus.put(getSender().path().address().hostPort(), status);
+                        addStatus(status);
                         respondIfExpectedResponsesReceived();
                     })
-                    .match(Throwable.class, throwable -> {
-                        aggregatedStatus.put(getSender().path().address().hostPort(), new Status.Failure(throwable));
+                    .match(DittoRuntimeException.class, dre -> {
+                        addStatus(new Status.Failure(dre));
                         respondIfExpectedResponsesReceived();
-                    })      
+                    })
                     .matchAny(any -> {
                         log.info("Could not handle non-Status response: {}", any);
                         respondIfExpectedResponsesReceived();
                     })
                     .build();
+        }
+
+        private void addStatus(final Status.Status status) {
+            aggregatedStatus.put(getSender().path().address().hostPort(), status);
         }
 
         private void sendBackAggregatedResults() {

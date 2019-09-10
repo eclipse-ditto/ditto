@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -66,10 +67,10 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
             JsonFactory.newJsonArrayFieldDefinition("payload/thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final List<String> thingIds;
+    private final List<ThingId> thingIds;
     @Nullable private final JsonFieldSelector selectedFields;
 
-    private SudoRetrieveThings(final List<String> thingIds, @Nullable final JsonFieldSelector selectedFields,
+    private SudoRetrieveThings(final List<ThingId> thingIds, @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
@@ -87,7 +88,7 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
      * @return a command for retrieving Things without authorization.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoRetrieveThings of(final List<String> thingIds, final DittoHeaders dittoHeaders) {
+    public static SudoRetrieveThings of(final List<ThingId> thingIds, final DittoHeaders dittoHeaders) {
         return of(thingIds, null, dittoHeaders);
     }
 
@@ -100,7 +101,7 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
      * @return a command for retrieving Things without authorization.
      * @throws NullPointerException if any argument but {@code selectedFields} is {@code null}.
      */
-    public static SudoRetrieveThings of(final List<String> thingIds, @Nullable final JsonFieldSelector selectedFields,
+    public static SudoRetrieveThings of(final List<ThingId> thingIds, @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
 
         return new SudoRetrieveThings(thingIds, selectedFields, dittoHeaders);
@@ -135,10 +136,11 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
      */
     public static SudoRetrieveThings fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
 
-        final List<String> extractedThingIds = jsonObject.getValueOrThrow(JSON_THING_IDS)
+        final List<ThingId> extractedThingIds = jsonObject.getValueOrThrow(JSON_THING_IDS)
                 .stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
+                .map(ThingId::of)
                 .collect(Collectors.toList());
 
         final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(SudoCommand.JsonFields.SELECTED_FIELDS)
@@ -156,7 +158,7 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
      * @return a sorted unmodifiable list containing the IDs of Things to be retrieved by this command (in order how
      * they were requested).
      */
-    public List<String> getThingIds() {
+    public List<ThingId> getThingIds() {
         return thingIds;
     }
 
@@ -176,6 +178,7 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
 
         final JsonArray thingIdsJsonArray = thingIds.stream()
+                .map(String::valueOf)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray());
 

@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * Defines constants for testing.
@@ -122,12 +123,12 @@ public final class TestConstants {
         /**
          * A known Thing ID for testing.
          */
-        public static final String THING_ID = "example.com:testThing";
+        public static final ThingId THING_ID = ThingId.of("example.com", "testThing");
 
         /**
          * A known Policy ID for testing.
          */
-        public static final String POLICY_ID = "example.com:testPolicy";
+        public static final PolicyId POLICY_ID = PolicyId.of("example.com:testPolicy");
 
         /**
          * A known lifecycle of a Thing.

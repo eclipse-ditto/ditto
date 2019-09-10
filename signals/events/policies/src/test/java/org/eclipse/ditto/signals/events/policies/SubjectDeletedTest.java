@@ -21,6 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -36,7 +38,7 @@ public final class SubjectDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, SubjectDeleted.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
-            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(SubjectDeleted.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(SubjectDeleted.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .build();
@@ -56,10 +58,16 @@ public final class SubjectDeletedTest {
                 .verify();
     }
 
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        SubjectDeleted.of((String) null, TestConstants.Policy.LABEL, TestConstants.Policy.SUBJECT_ID,
+                TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        SubjectDeleted.of(null, TestConstants.Policy.LABEL, TestConstants.Policy.SUBJECT_ID,
+        SubjectDeleted.of((PolicyId) null, TestConstants.Policy.LABEL, TestConstants.Policy.SUBJECT_ID,
                 TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -95,7 +103,7 @@ public final class SubjectDeletedTest {
                 SubjectDeleted.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getPolicyId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getPolicyEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getLabel()).isEqualTo(TestConstants.Policy.LABEL);
         assertThat(underTest.getSubjectId()).isEqualTo(TestConstants.Policy.SUBJECT_ID);
     }

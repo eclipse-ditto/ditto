@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -37,14 +38,15 @@ public final class RetrieveAttributeTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveAttribute.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveAttribute.JSON_ATTRIBUTE, KNOWN_JSON_POINTER.toString())
             .build();
 
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveAttribute.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable());
+        assertInstancesOf(RetrieveAttribute.class, areImmutable(),
+                provided(JsonPointer.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -57,8 +59,13 @@ public final class RetrieveAttributeTest {
 
 
     @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        RetrieveAttribute.of((String) null, KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        RetrieveAttribute.of(null, KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveAttribute.of((ThingId) null, KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
@@ -91,7 +98,7 @@ public final class RetrieveAttributeTest {
                 RetrieveAttribute.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getAttributePointer()).isEqualTo(KNOWN_JSON_POINTER);
     }
 

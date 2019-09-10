@@ -24,6 +24,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -49,7 +50,7 @@ public final class PoliciesSnapshotTestHelper<S> {
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-snapshots";
     private static final int WAIT_TIMEOUT = 3;
 
-    private final Function<String, String> domainIdToPersistenceId;
+    private final Function<PolicyId, String> domainIdToPersistenceId;
     private final BiFunction<BsonDocument, Long, S> snapshotToDomainObject;
     private final ActorRef snapshotPlugin;
 
@@ -64,7 +65,7 @@ public final class PoliciesSnapshotTestHelper<S> {
      */
     public PoliciesSnapshotTestHelper(final ActorSystem actorSystem,
             final BiFunction<BsonDocument, Long, S> snapshotToDomainObject,
-            final Function<String, String> domainIdToPersistenceId) {
+            final Function<PolicyId, String> domainIdToPersistenceId) {
         this.snapshotToDomainObject = requireNonNull(snapshotToDomainObject);
         this.domainIdToPersistenceId = requireNonNull(domainIdToPersistenceId);
 
@@ -79,7 +80,7 @@ public final class PoliciesSnapshotTestHelper<S> {
      * @param domainId the domain ID of the snapshot
      * @return an Optional containing the maximum snapshot, if any exists; an empty Optional otherwise
      */
-    public Optional<S> getMaxSnapshot(final String domainId) {
+    public Optional<S> getMaxSnapshot(final PolicyId domainId) {
         requireNonNull(domainId);
 
         final String persistenceId = domainIdToPersistenceId.apply(domainId);
@@ -94,7 +95,7 @@ public final class PoliciesSnapshotTestHelper<S> {
      * @param domainId the domain ID of the snapshots
      * @return the snapshots in ascending orders
      */
-    public List<S> getAllSnapshotsAscending(final String domainId) {
+    public List<S> getAllSnapshotsAscending(final PolicyId domainId) {
         requireNonNull(domainId);
 
         final String persistenceId = domainIdToPersistenceId.apply(domainId);

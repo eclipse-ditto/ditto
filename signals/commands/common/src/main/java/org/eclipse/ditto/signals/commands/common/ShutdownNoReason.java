@@ -40,7 +40,7 @@ final class ShutdownNoReason implements ShutdownReason {
     }
 
     @Override
-    public boolean isRelevantFor(final String value) {
+    public boolean isRelevantFor(final Object value) {
         return false;
     }
 

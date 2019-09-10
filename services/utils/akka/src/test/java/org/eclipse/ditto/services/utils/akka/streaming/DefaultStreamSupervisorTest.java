@@ -28,6 +28,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
@@ -65,9 +67,12 @@ import scala.concurrent.duration.FiniteDuration;
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultStreamSupervisorTest {
 
-    private static final EntityIdWithRevision TAG_1 = new AbstractEntityIdWithRevision("element1", 1L) {};
-    private static final EntityIdWithRevision TAG_2 = new AbstractEntityIdWithRevision("element2", 2L) {};
-    private static final EntityIdWithRevision TAG_3 = new AbstractEntityIdWithRevision("element3", 3L) {};
+    private static final EntityIdWithRevision<EntityId> TAG_1 =
+            new AbstractEntityIdWithRevision<EntityId>(DefaultEntityId.of("element1"), 1L) {};
+    private static final EntityIdWithRevision<EntityId> TAG_2 =
+            new AbstractEntityIdWithRevision<EntityId>(DefaultEntityId.of("element2"), 2L) {};
+    private static final EntityIdWithRevision<EntityId> TAG_3 =
+            new AbstractEntityIdWithRevision<EntityId>(DefaultEntityId.of("element3"), 3L) {};
 
     private static final Duration START_OFFSET = Duration.ofMinutes(2);
 
@@ -141,11 +146,11 @@ public final class DefaultStreamSupervisorTest {
 
             // verify elements arrived at destination
             forwardTo.expectMsg(TAG_1);
-            forwardTo.reply(StreamAck.success(TAG_1.getId()));
+            forwardTo.reply(StreamAck.success(TAG_1.getEntityId().toString()));
             forwardTo.expectMsg(TAG_2);
-            forwardTo.reply(StreamAck.success(TAG_2.getId()));
+            forwardTo.reply(StreamAck.success(TAG_2.getEntityId().toString()));
             forwardTo.expectMsg(TAG_3);
-            forwardTo.reply(StreamAck.success(TAG_3.getId()));
+            forwardTo.reply(StreamAck.success(TAG_3.getEntityId().toString()));
 
             // verify the db has been updated with the queryEnd of the completed stream
             verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).setTimestamp(eq(expectedQueryEnd));

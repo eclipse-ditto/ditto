@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
@@ -67,7 +68,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
             }
 
             @Override
-            public String getThingId() {
+            public ThingId getThingEntityId() {
                 return THING_ID;
             }
 
@@ -85,7 +86,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
             public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
                 return JsonObject.newBuilder()
                         .set(Command.JsonFields.TYPE, getType())
-                        .set("policyId", THING_ID)
+                        .set("policyId", THING_ID.toString())
                         .build();
             }
 

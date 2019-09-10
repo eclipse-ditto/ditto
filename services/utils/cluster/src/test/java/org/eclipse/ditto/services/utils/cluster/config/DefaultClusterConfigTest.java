@@ -16,6 +16,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Arrays;
+
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -62,6 +64,9 @@ public final class DefaultClusterConfigTest {
         softly.assertThat(underTest.getNumberOfShards())
                 .as(ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath())
                 .isEqualTo(ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
+        softly.assertThat(underTest.getClusterStatusRolesBlacklist())
+                .as(ClusterConfig.ClusterConfigValue.CLUSTER_STATUS_ROLES_BLACKLIST.getConfigPath())
+                .isEqualTo(ClusterConfig.ClusterConfigValue.CLUSTER_STATUS_ROLES_BLACKLIST.getDefaultValue());
     }
 
     @Test
@@ -71,6 +76,9 @@ public final class DefaultClusterConfigTest {
         softly.assertThat(underTest.getNumberOfShards())
                 .as(ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath())
                 .isEqualTo(100);
+        softly.assertThat(underTest.getClusterStatusRolesBlacklist())
+                .as(ClusterConfig.ClusterConfigValue.CLUSTER_STATUS_ROLES_BLACKLIST.getConfigPath())
+                .isEqualTo(Arrays.asList("barney", "fred", "wilma"));
     }
 
     @Test
@@ -80,6 +88,9 @@ public final class DefaultClusterConfigTest {
         softly.assertThat(underTest.toString())
                 .contains(underTest.getClass().getSimpleName())
                 .contains("numberOfShards");
+        softly.assertThat(underTest.toString())
+                .contains(underTest.getClass().getSimpleName())
+                .contains("clusterStatusRolesBlacklist");
     }
 
 }

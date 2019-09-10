@@ -131,7 +131,7 @@ public interface ExternalMessageBuilder {
      * @param enforcement enforcement data
      * @return this builder in order to enable method chaining
      */
-    <F extends EnforcementFilter<String>> ExternalMessageBuilder withEnforcement(@Nullable F enforcement);
+    <F extends EnforcementFilter<CharSequence>> ExternalMessageBuilder withEnforcement(@Nullable F enforcement);
 
     /**
      * Associates {@link HeaderMapping} data with the message. Pass {@code null} to disable headerMapping.

@@ -29,12 +29,14 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.events.things.ThingModified;
@@ -46,7 +48,8 @@ import org.junit.Test;
 public class SignalFilterWithFilterTest {
 
     private static final String URI = "amqp://user:pass@host:1111/path";
-    private static final String CONNECTION = "id";
+    private static final ConnectionId CONNECTION_ID = ConnectionId.of("id");
+    private static final ThingId THING_ID = ThingId.of("foo:bar13");
     private static final AuthorizationSubject AUTHORIZED = newAuthSubject("authorized");
     private static final AuthorizationSubject UNAUTHORIZED = newAuthSubject("unauthorized");
     private static final HeaderMapping HEADER_MAPPING = null;
@@ -72,12 +75,12 @@ public class SignalFilterWithFilterTest {
                 newFilteredTopic(TWIN_EVENTS, namespacesC));
 
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
+                .newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
                 .targets(Arrays.asList(targetA, targetB, targetC))
                 .build();
 
         final Thing thing = Thing.newBuilder()
-                .setId("foo:bar13") // WHEN: the namespace of the modifed thing is "foo"
+                .setId(THING_ID) // WHEN: the namespace of the modifed thing is "foo"
                 .setAttribute(JsonPointer.of("test"), JsonValue.of(42))
                 .build();
         final DittoHeaders headers = DittoHeaders.newBuilder().readSubjects(Arrays.asList(AUTHORIZED.getId()))
@@ -112,12 +115,12 @@ public class SignalFilterWithFilterTest {
                 newFilteredTopic(LIVE_EVENTS, allNamespaces, filterC));
 
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
+                .newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
                 .targets(Arrays.asList(targetA, targetB, targetC))
                 .build();
 
         final Thing thing = Thing.newBuilder()
-                .setId("foo:bar13")
+                .setId(THING_ID)
                 .setAttribute(JsonPointer.of("test"), JsonValue.of(42)) // WHEN: the "test" value is 42
                 .build();
         final DittoHeaders headers = DittoHeaders.newBuilder().readSubjects(Arrays.asList(AUTHORIZED.getId()))
@@ -160,12 +163,12 @@ public class SignalFilterWithFilterTest {
                 newFilteredTopic(TWIN_EVENTS, namespacesD, filterD));
 
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
+                .newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
                 .targets(Arrays.asList(targetA, targetB, targetC, targetD))
                 .build();
 
         final Thing thing = Thing.newBuilder()
-                .setId("foo:bar13") // WHEN: the namespace of the modifed thing is "foo"
+                .setId(THING_ID) // WHEN: the namespace of the modifed thing is "foo"
                 .setAttribute(JsonPointer.of("test"), JsonValue.of(42)) // WHEN: the "test" value is 42
                 .build();
         final DittoHeaders headers = DittoHeaders.newBuilder().readSubjects(Arrays.asList(AUTHORIZED.getId()))

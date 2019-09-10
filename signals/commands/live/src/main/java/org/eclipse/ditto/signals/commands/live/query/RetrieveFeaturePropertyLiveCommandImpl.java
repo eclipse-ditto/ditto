@@ -64,7 +64,7 @@ final class RetrieveFeaturePropertyLiveCommandImpl extends AbstractQueryLiveComm
 
     @Override
     public RetrieveFeaturePropertyLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(RetrieveFeatureProperty.of(getThingId(), getFeatureId(), getPropertyPointer(), dittoHeaders));
+        return of(RetrieveFeatureProperty.of(getThingEntityId(), getFeatureId(), getPropertyPointer(), dittoHeaders));
     }
 
     @Nonnull

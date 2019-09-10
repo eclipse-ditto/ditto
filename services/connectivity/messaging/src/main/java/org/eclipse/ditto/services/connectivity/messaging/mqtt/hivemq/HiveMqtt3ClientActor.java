@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
@@ -64,7 +65,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         this.clientFactory = clientFactory;
 
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
-        final String mqttClientId = mqttSpecificConfig.getMqttClientId().orElse(connection.getId());
+        final String mqttClientId = resolveMqttClientId(connection.getId(), mqttSpecificConfig);
 
         final ActorRef self = getContext().getSelf();
         client = clientFactory.newClient(connection, mqttClientId, true,
@@ -80,6 +81,10 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                     connectionLogger.success("Successfully initialized subscriptions.");
                     notifyConsumersReady();
                 }, log);
+    }
+
+    private String resolveMqttClientId(final ConnectionId connectionId, final MqttSpecificConfig mqttSpecificConfig) {
+        return mqttSpecificConfig.getMqttClientId().orElse(connectionId.toString());
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
@@ -130,7 +135,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
 
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
-        final String mqttClientId = mqttSpecificConfig.getMqttClientId().orElse(connection.getId());
+        final String mqttClientId = resolveMqttClientId(connection.getId(), mqttSpecificConfig);
         // attention: do not use reconnect, otherwise the future never returns
         final Mqtt3Client testClient = clientFactory.newClient(connection, mqttClientId, false);
         final CompletableFuture<Status.Status> subscriptionsFuture = new CompletableFuture<>();
@@ -196,14 +201,15 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
-        final String connectionId = connection().getId();
         final List<Target> targets = connection().getTargets();
-        startPublisherActor(connectionId, targets, client);
+        startPublisherActor(connectionId(), targets, client);
         startHiveMqConsumers(subscriptionHandler::handleMqttConsumer);
     }
 
-    private void startPublisherActor(final String connectionId, final List<Target> targets, final Mqtt3Client client) {
-        final Props publisherActorProps = HiveMqtt3PublisherActor.props(connectionId, targets, client, isDryRun());
+    private void startPublisherActor(final ConnectionId connectionId, final List<Target> targets,
+            final Mqtt3Client client) {
+        final Props publisherActorProps =
+                HiveMqtt3PublisherActor.props(connectionId.toString(), targets, client, isDryRun());
         publisherActor = getContext().actorOf(publisherActorProps, HiveMqtt3PublisherActor.NAME);
     }
 

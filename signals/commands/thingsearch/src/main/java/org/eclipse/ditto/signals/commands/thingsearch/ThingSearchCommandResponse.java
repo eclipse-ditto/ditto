@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.thingsearch;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -21,7 +22,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchCommandResponse<T extends ThingSearchCommandResponse> extends CommandResponse<T> {
+public interface ThingSearchCommandResponse<T extends ThingSearchCommandResponse> extends CommandResponse<T>,
+        WithIdButActuallyNot {
 
     /**
      * Type Prefix of Search command responses.
@@ -41,13 +43,4 @@ public interface ThingSearchCommandResponse<T extends ThingSearchCommandResponse
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
-    /**
-     * Search command responses do not have an ID. Thus this implementation always returns an empty string.
-     *
-     * @return an empty string.
-     */
-    @Override
-    default String getId() {
-        return "";
-    }
 }

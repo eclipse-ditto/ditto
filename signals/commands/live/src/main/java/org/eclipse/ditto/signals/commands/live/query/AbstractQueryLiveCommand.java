@@ -18,6 +18,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.live.base.AbstractLiveCommand;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommand;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswerBuilder;
@@ -47,8 +48,8 @@ abstract class AbstractQueryLiveCommand<T extends LiveCommand<T, B> & ThingQuery
     }
 
     @Override
-    public String getThingId() {
-        return thingQueryCommand.getThingId();
+    public ThingId getThingEntityId() {
+        return thingQueryCommand.getThingEntityId();
     }
 
     @Override

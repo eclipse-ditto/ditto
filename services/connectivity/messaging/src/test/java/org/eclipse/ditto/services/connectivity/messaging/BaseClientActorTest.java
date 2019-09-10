@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
@@ -85,7 +86,7 @@ public final class BaseClientActorTest {
     @Test
     public void reconnectsInConnectingStateIfFailureResponseReceived() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
@@ -105,7 +106,7 @@ public final class BaseClientActorTest {
     @Test
     public void handlesCloseConnectionInConnectingState() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
@@ -126,7 +127,7 @@ public final class BaseClientActorTest {
     @Test
     public void handlesOpenConnectionInConnectingState() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
@@ -149,7 +150,7 @@ public final class BaseClientActorTest {
     @Test
     public void handlesCloseConnectionInDisconnectingState() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
@@ -178,7 +179,7 @@ public final class BaseClientActorTest {
     @Test
     public void handlesCloseConnectionInDisconnectedState() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
@@ -211,7 +212,7 @@ public final class BaseClientActorTest {
     @Test
     public void handlesOpenConnectionInConnectedState() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
@@ -235,7 +236,7 @@ public final class BaseClientActorTest {
     @Test
     public void reconnectsInConnectingStateIfNoResponseReceived() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
@@ -256,7 +257,7 @@ public final class BaseClientActorTest {
     @Test
     public void shouldReconnectIfSocketIsClosed() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0])
                             .toBuilder()
@@ -280,7 +281,7 @@ public final class BaseClientActorTest {
     @Test
     public void doesNotReconnectIfConnectionSuccessful() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
@@ -300,7 +301,7 @@ public final class BaseClientActorTest {
     @Test
     public void connectsAutomaticallyAfterActorStart() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId,new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);

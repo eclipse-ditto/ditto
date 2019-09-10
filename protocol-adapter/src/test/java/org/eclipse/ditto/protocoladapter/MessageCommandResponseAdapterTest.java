@@ -210,7 +210,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
             final CharSequence subject,
             final CharSequence contentType) {
 
-        headersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(), TestConstants.THING_ID);
+        headersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(), TestConstants.THING_ID.toString());
         headersBuilder.putHeader(MessageHeaderDefinition.SUBJECT.getKey(), subject);
         headersBuilder.putHeader(MessageHeaderDefinition.DIRECTION.getKey(), messageDirection.name());
         headersBuilder.putHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType);

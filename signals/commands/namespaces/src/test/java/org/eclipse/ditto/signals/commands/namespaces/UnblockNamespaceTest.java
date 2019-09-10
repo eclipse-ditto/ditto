@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.UUID;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -84,6 +85,11 @@ public final class UnblockNamespaceTest {
     @Test
     public void getIdReturnsNamespace() {
         assertThat(underTest.getId()).isEqualTo(underTest.getNamespace());
+    }
+
+    @Test
+    public void getEntityIdReturnsNamespace() {
+        Assertions.assertThat(underTest.getEntityId().toString()).isEqualTo(underTest.getNamespace());
     }
 
     @Test

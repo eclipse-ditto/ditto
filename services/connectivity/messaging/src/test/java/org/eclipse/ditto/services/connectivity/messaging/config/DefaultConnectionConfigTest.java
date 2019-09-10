@@ -70,10 +70,6 @@ public final class DefaultConnectionConfigTest {
                 .as(ConnectionConfig.ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
 
-        softly.assertThat(underTest.getFlushPendingResponsesTimeout())
-                .as(ConnectionConfig.ConnectionConfigValue.FLUSH_PENDING_RESPONSES_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(2L));
-
         softly.assertThat(underTest.getSupervisorConfig())
                 .as("supervisorConfig")
                 .satisfies(supervisorConfig -> softly.assertThat(supervisorConfig.getExponentialBackOffConfig())

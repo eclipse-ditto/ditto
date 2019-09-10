@@ -42,7 +42,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Nullable private final ByteBuffer bytePayload;
     @Nullable private final AuthorizationContext authorizationContext;
     @Nullable private final TopicPath topicPath;
-    @Nullable private final EnforcementFilter<String> enforcementFilter;
+    @Nullable private final EnforcementFilter<CharSequence> enforcementFilter;
     @Nullable private final HeaderMapping headerMapping;
     @Nullable private final String sourceAddress;
 
@@ -56,7 +56,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final ByteBuffer bytePayload,
             @Nullable final AuthorizationContext authorizationContext,
             @Nullable final TopicPath topicPath,
-            @Nullable final EnforcementFilter<String> enforcementFilter,
+            @Nullable final EnforcementFilter<CharSequence> enforcementFilter,
             @Nullable final HeaderMapping headerMapping,
             @Nullable final String sourceAddress,
             final DittoHeaders internalHeaders) {
@@ -154,7 +154,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     }
 
     @Override
-    public Optional<EnforcementFilter<String>> getEnforcementFilter() {
+    public Optional<EnforcementFilter<CharSequence>> getEnforcementFilter() {
         return Optional.ofNullable(enforcementFilter);
     }
 

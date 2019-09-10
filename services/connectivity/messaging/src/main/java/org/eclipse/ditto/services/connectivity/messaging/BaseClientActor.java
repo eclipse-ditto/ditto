@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -143,7 +144,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         checkNotNull(connection, "connection");
 
-        ConnectionLogUtil.enhanceLogWithConnectionId(log, connection.getId());
+        final ConnectionId connectionId = connection.getId();
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
         this.connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -153,16 +155,15 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
-        final BaseClientData startingData =
-                new BaseClientData(connection.getId(), connection, ConnectivityStatus.UNKNOWN, desiredConnectionStatus,
-                        "initialized", Instant.now(), null, null,
-                        new InitializationState(connection.getProcessorPoolSize()));
+        final BaseClientData startingData = new BaseClientData(connectionId, connection,
+                ConnectivityStatus.UNKNOWN, desiredConnectionStatus, "initialized", Instant.now(), null, null,
+                new InitializationState(connection.getProcessorPoolSize()));
 
         clientGauge = DittoMetrics.gauge("connection_client")
-                .tag("id", connection.getId())
+                .tag("id",  connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
         clientConnectingGauge = DittoMetrics.gauge("connecting_client")
-                .tag("id", connection.getId())
+                .tag("id", connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
 
         // stable states
@@ -191,7 +192,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         this.connectionLoggerRegistry.initForConnection(connection);
         this.connectionCounterRegistry.initForConnection(connection);
 
-        this.connectionLogger = this.connectionLoggerRegistry.forConnection(connection.getId());
+        this.connectionLogger = this.connectionLoggerRegistry.forConnection(connectionId);
 
         this.reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
 
@@ -383,7 +384,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * @return the Connection Id
      */
-    protected final String connectionId() {
+    protected final ConnectionId connectionId() {
         return stateData().getConnectionId();
     }
 
@@ -852,7 +853,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionStatus(final RetrieveConnectionStatus command,
             final BaseClientData data) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received RetrieveConnectionStatus message from {}, forwarding to consumers and publishers.",
                 getSender());
 
@@ -881,7 +882,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
             final RetrieveConnectionMetrics command) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
                 .source(getInstanceIdentifier())
@@ -907,7 +908,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> resetConnectionMetrics(final ResetConnectionMetrics command,
             final BaseClientData data) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received ResetConnectionMetrics message, resetting metrics.");
         //  TODO: think about just clearing the counters instead of completely rebuilding them
         connectionCounterRegistry.resetForConnection(data.getConnection());
@@ -919,7 +920,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> enableConnectionLogs(
             final EnableConnectionLogs command) {
 
-        final String connectionId = command.getConnectionId();
+        final ConnectionId connectionId = command.getConnectionEntityId();
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, connectionId);
         log.debug("Received EnableConnectionLogs message, enabling logs.");
 
@@ -931,7 +932,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> checkLoggingActive(
             final CheckConnectionLogsActive command) {
 
-        final String connectionId = command.getConnectionId();
+        final ConnectionId connectionId = command.getConnectionEntityId();
         final Instant timestamp = command.getTimestamp();
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         log.debug("Received checkLoggingActive message, check if Logging for connection <{}> is expired.",
@@ -947,7 +948,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionLogs(final RetrieveConnectionLogs command) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received RetrieveConnectionLogs message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
                 .source(getInstanceIdentifier())
@@ -969,7 +970,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final ResetConnectionLogs command,
             final BaseClientData data) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received ResetConnectionLogs message, resetting logs.");
 
         this.connectionLoggerRegistry.resetForConnection(data.getConnection());
@@ -1037,7 +1038,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private void handleOutboundSignal(final OutboundSignal signal) {
         enhanceLogUtil(signal.getSource());
-        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal, signal.getSource().getId());
+        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal, signal.getSource().getEntityId().toString());
         messageMappingProcessorActor.tell(msg, getSender());
     }
 
@@ -1058,7 +1059,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             connectionLogger.failure(logMessage);
             log.info(logMessage);
-            getSender().tell(dre, getSelf());
             return CompletableFuture.completedFuture(new Status.Failure(dre));
         }
     }

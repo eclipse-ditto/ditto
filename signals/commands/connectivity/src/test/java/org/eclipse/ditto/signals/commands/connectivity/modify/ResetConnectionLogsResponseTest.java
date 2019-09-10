@@ -15,12 +15,14 @@ package org.eclipse.ditto.signals.commands.connectivity.modify;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
@@ -36,7 +38,7 @@ public class ResetConnectionLogsResponseTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, ResetConnectionLogsResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
+            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID.toString())
             .build();
 
     @Test
@@ -48,7 +50,9 @@ public class ResetConnectionLogsResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ResetConnectionLogsResponse.class, areImmutable());
+        assertInstancesOf(ResetConnectionLogsResponse.class,
+                areImmutable(),
+                provided(ConnectionId.class).isAlsoImmutable());
     }
 
     @Test
@@ -77,5 +81,5 @@ public class ResetConnectionLogsResponseTest {
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
-    
+
 }

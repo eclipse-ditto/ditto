@@ -90,7 +90,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     @Override
     public Adaptable constructAdaptable(final MessageCommandResponse command, final TopicPath.Channel channel) {
 
-        return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
+        return MessageAdaptableHelper.adaptableFrom(channel, command.getThingEntityId(), command.toJson(),
                 command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), headerTranslator());
     }
 

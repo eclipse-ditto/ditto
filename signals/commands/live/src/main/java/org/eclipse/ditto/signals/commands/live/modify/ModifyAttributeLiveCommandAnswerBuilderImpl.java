@@ -73,7 +73,7 @@ final class ModifyAttributeLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ModifyAttributeResponse created() {
-            return ModifyAttributeResponse.created(command.getThingId(), command.getAttributePointer(),
+            return ModifyAttributeResponse.created(command.getThingEntityId(), command.getAttributePointer(),
                     command.getAttributeValue(),
                     command.getDittoHeaders());
         }
@@ -81,14 +81,15 @@ final class ModifyAttributeLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ModifyAttributeResponse modified() {
-            return ModifyAttributeResponse.modified(command.getThingId(), command.getAttributePointer(),
+            return ModifyAttributeResponse.modified(command.getThingEntityId(), command.getAttributePointer(),
                     command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse attributeNotAccessibleError() {
-            return errorResponse(command.getThingId(), AttributeNotAccessibleException.newBuilder(command.getThingId(),
+            return errorResponse(command.getThingEntityId(),
+                    AttributeNotAccessibleException.newBuilder(command.getThingEntityId(),
                     command.getAttributePointer())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
@@ -97,7 +98,8 @@ final class ModifyAttributeLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse attributeNotModifiableError() {
-            return errorResponse(command.getThingId(), AttributeNotModifiableException.newBuilder(command.getThingId(),
+            return errorResponse(command.getThingEntityId(),
+                    AttributeNotModifiableException.newBuilder(command.getThingEntityId(),
                     command.getAttributePointer())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
@@ -110,14 +112,14 @@ final class ModifyAttributeLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public AttributeCreated created() {
-            return AttributeCreated.of(command.getThingId(), command.getAttributePointer(),
+            return AttributeCreated.of(command.getThingEntityId(), command.getAttributePointer(),
                     command.getAttributeValue(), -1, Instant.now(), command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public AttributeModified modified() {
-            return AttributeModified.of(command.getThingId(), command.getAttributePointer(),
+            return AttributeModified.of(command.getThingEntityId(), command.getAttributePointer(),
                     command.getAttributeValue(), -1, Instant.now(), command.getDittoHeaders());
         }
     }

@@ -32,6 +32,8 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
@@ -60,10 +62,10 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> {
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private final String entityType;
-    private final List<String> entityIds;
+    private final List<EntityId> entityIds;
 
     private PurgeEntities(final CharSequence entityType,
-            final Iterable<String> entityIds, final DittoHeaders dittoHeaders) {
+            final Iterable<EntityId> entityIds, final DittoHeaders dittoHeaders) {
         super(TYPE, Category.DELETE, dittoHeaders);
 
         checkNotNull(entityType);
@@ -74,7 +76,7 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> {
 
         this.entityType = entityType.toString();
 
-        final List<String> entityIdsList = new ArrayList<>();
+        final List<EntityId> entityIdsList = new ArrayList<>();
         entityIds.forEach(entityIdsList::add);
         this.entityIds = Collections.unmodifiableList(entityIdsList);
     }
@@ -88,7 +90,7 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> {
      * @return the instance.
      */
     public static PurgeEntities of(final CharSequence entityType,
-            final Iterable<String> entityIds, final DittoHeaders dittoHeaders) {
+            final Iterable<EntityId> entityIds, final DittoHeaders dittoHeaders) {
         return new PurgeEntities(entityType, entityIds, dittoHeaders);
     }
 
@@ -102,8 +104,9 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> {
     public static PurgeEntities fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<PurgeEntities>(TYPE, jsonObject).deserialize(() -> {
             final String entityType = jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE);
-            final List<String> entityIds = jsonObject.getValueOrThrow(JsonFields.ENTITY_IDS).stream()
+            final List<EntityId> entityIds = jsonObject.getValueOrThrow(JsonFields.ENTITY_IDS).stream()
                     .map(JsonValue::asString)
+                    .map(DefaultEntityId::of)
                     .collect(Collectors.toList());
 
             return new PurgeEntities(entityType, entityIds, dittoHeaders);
@@ -130,7 +133,7 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> {
      *
      * @return the entity IDs
      */
-    public List<String> getEntityIds() {
+    public List<EntityId> getEntityIds() {
         return entityIds;
     }
 

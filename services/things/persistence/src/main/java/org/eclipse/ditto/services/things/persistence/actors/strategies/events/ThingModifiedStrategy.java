@@ -39,7 +39,7 @@ final class ThingModifiedStrategy extends AbstractEventStrategy<ThingModified> {
         thingBuilder.setLifecycle(ThingLifecycle.ACTIVE);
 
         final Thing thingWithModifications = event.getThing();
-        thingWithModifications.getPolicyId().ifPresent(thingBuilder::setPolicyId);
+        thingWithModifications.getPolicyEntityId().ifPresent(thingBuilder::setPolicyId);
         thingWithModifications.getAccessControlList().ifPresent(thingBuilder::setPermissions);
         thingWithModifications.getAttributes().ifPresent(thingBuilder::setAttributes);
         thingWithModifications.getFeatures().ifPresent(thingBuilder::setFeatures);

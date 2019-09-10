@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions;
@@ -73,7 +74,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
+                final ThingId thingId = thing.getEntityId().orElseThrow(IllegalStateException::new);
 
                 ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -145,7 +146,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
+                final ThingId thingId = thing.getEntityId().orElseThrow(IllegalStateException::new);
 
                 ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -227,7 +228,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
         disableLogging();
         new TestKit(actorSystem) {
             {
-                final ActorRef underTest = createPersistenceActorFor("fail");
+                final ActorRef underTest = createPersistenceActorFor(ThingId.of("fail:fail"));
                 watch(underTest);
                 expectTerminated(underTest);
             }

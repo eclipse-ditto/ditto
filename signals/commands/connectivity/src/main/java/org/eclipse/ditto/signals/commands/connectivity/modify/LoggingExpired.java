@@ -15,7 +15,6 @@ package org.eclipse.ditto.signals.commands.connectivity.modify;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.time.Instant;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -24,15 +23,12 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -55,14 +51,9 @@ public final class LoggingExpired extends AbstractCommand<LoggingExpired>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final String connectionId;
+    private final ConnectionId connectionId;
 
-    private LoggingExpired(final String connectionId) {
-        super(TYPE, DittoHeaders.empty());
-        this.connectionId = connectionId;
-    }
-
-    private LoggingExpired(final String connectionId, final DittoHeaders dittoHeaders) {
+    private LoggingExpired(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionId = connectionId;
     }
@@ -74,9 +65,8 @@ public final class LoggingExpired extends AbstractCommand<LoggingExpired>
      * @return a new instance of the command.
      * @throws java.lang.NullPointerException if any argument is {@code null}.
      */
-    public static LoggingExpired of(final String connectionId) {
-        checkNotNull(connectionId, "Connection ID");
-        return new LoggingExpired(connectionId);
+    public static LoggingExpired of(final ConnectionId connectionId) {
+        return of(connectionId, DittoHeaders.empty());
     }
 
     /**
@@ -86,7 +76,7 @@ public final class LoggingExpired extends AbstractCommand<LoggingExpired>
      * @return a new instance of the command.
      * @throws java.lang.NullPointerException if any argument is {@code null}.
      */
-    public static LoggingExpired of(final String connectionId, final DittoHeaders dittoHeaders) {
+    public static LoggingExpired of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(dittoHeaders, "dittoHeaders");
         return new LoggingExpired(connectionId, dittoHeaders);
@@ -119,28 +109,27 @@ public final class LoggingExpired extends AbstractCommand<LoggingExpired>
         return new CommandJsonDeserializer<LoggingExpired>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId =
                     jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
-            return of(readConnectionId, dittoHeaders);
+            final ConnectionId connectionId = ConnectionId.of(readConnectionId);
+
+            return of(connectionId, dittoHeaders);
         });
     }
 
     public static LoggingExpired fromJson(final JsonObject jsonObject) {
-        return new CommandJsonDeserializer<LoggingExpired>(TYPE, jsonObject).deserialize(() -> {
-            final String readConnectionId =
-                    jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
-            return of(readConnectionId);
-        });
+        return fromJson(jsonObject, DittoHeaders.empty());
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
 
     }
 
     @Override
-    public String getConnectionId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 

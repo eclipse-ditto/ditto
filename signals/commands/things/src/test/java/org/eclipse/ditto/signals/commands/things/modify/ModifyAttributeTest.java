@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
@@ -45,7 +46,7 @@ public final class ModifyAttributeTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyAttribute.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyAttribute.JSON_ATTRIBUTE, KNOWN_JSON_POINTER.toString())
             .set(ModifyAttribute.JSON_ATTRIBUTE_VALUE, KNOWN_ATTRIBUTE)
             .build();
@@ -54,7 +55,7 @@ public final class ModifyAttributeTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyAttribute.class,
                 areImmutable(),
-                provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
+                provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
     }
 
     @Test
@@ -113,7 +114,7 @@ public final class ModifyAttributeTest {
                 ModifyAttribute.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getAttributePointer()).isEqualTo(KNOWN_JSON_POINTER);
         assertThat(underTest.getAttributeValue()).isEqualTo(KNOWN_ATTRIBUTE);
     }
@@ -126,7 +127,7 @@ public final class ModifyAttributeTest {
         }
         sb.append('b');
 
-        assertThatThrownBy(() -> ModifyAttribute.of("foo:bar", JsonPointer.of("foo"),
+        assertThatThrownBy(() -> ModifyAttribute.of(ThingId.of("foo", "bar"), JsonPointer.of("foo"),
                 JsonValue.of(sb.toString()), DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }

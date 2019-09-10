@@ -73,28 +73,30 @@ final class DeleteAttributeLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public DeleteAttributeResponse deleted() {
-            return DeleteAttributeResponse.of(command.getThingId(), command.getAttributePointer(),
+            return DeleteAttributeResponse.of(command.getThingEntityId(), command.getAttributePointer(),
                     command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse attributeNotAccessibleError() {
-            final DittoRuntimeException exception = AttributeNotAccessibleException.newBuilder(command.getThingId(),
-                    command.getAttributePointer())
+            final DittoRuntimeException exception =
+                    AttributeNotAccessibleException.newBuilder(command.getThingEntityId(),
+                            command.getAttributePointer())
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
-            return errorResponse(command.getThingId(), exception);
+            return errorResponse(command.getThingEntityId(), exception);
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse attributeNotModifiableError() {
-            final DittoRuntimeException exception = AttributeNotModifiableException.newBuilder(command.getThingId(),
+            final DittoRuntimeException exception =
+                    AttributeNotModifiableException.newBuilder(command.getThingEntityId(),
                     command.getAttributePointer())
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
-            return errorResponse(command.getThingId(), exception);
+            return errorResponse(command.getThingEntityId(), exception);
         }
     }
 
@@ -104,7 +106,7 @@ final class DeleteAttributeLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public AttributeDeleted deleted() {
-            return AttributeDeleted.of(command.getThingId(), command.getAttributePointer(), -1, Instant.now(),
+            return AttributeDeleted.of(command.getThingEntityId(), command.getAttributePointer(), -1, Instant.now(),
                     command.getDittoHeaders());
         }
     }

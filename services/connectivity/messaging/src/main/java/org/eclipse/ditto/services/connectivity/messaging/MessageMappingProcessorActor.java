@@ -47,6 +47,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.LogCategory;
@@ -62,6 +63,7 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
@@ -89,13 +91,11 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.Terminated;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * This Actor processes incoming {@link Signal}s and dispatches them via {@link DistributedPubSubMediator} to a consumer
- * actor.
+ * This Actor processes incoming {@link Signal}s and dispatches them.
  */
 public final class MessageMappingProcessorActor extends AbstractActor {
 
@@ -109,7 +109,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final Map<String, StartedTimer> timers;
 
     private final MessageMappingProcessor messageMappingProcessor;
-    private final String connectionId;
+    private final ConnectionId connectionId;
     private final ActorRef conciergeForwarder;
     private final LimitsConfig limitsConfig;
 
@@ -130,7 +130,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef conciergeForwarder,
             final MessageMappingProcessor messageMappingProcessor,
-            final String connectionId) {
+            final ConnectionId connectionId) {
 
         this.conciergeForwarder = conciergeForwarder;
         this.messageMappingProcessor = messageMappingProcessor;
@@ -166,7 +166,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      */
     public static Props props(final ActorRef conciergeForwarder,
             final MessageMappingProcessor processor,
-            final String connectionId) {
+            final ConnectionId connectionId) {
 
         return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, processor, connectionId);
     }
@@ -291,8 +291,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .orElseGet(() -> ThingErrorResponse.of(exception, truncatedHeaders));
     }
 
-    private static Optional<String> getThingId(final DittoRuntimeException e) {
-        return Optional.ofNullable(e.getDittoHeaders().get(MessageHeaderDefinition.THING_ID.getKey()));
+    private static Optional<ThingId> getThingId(final DittoRuntimeException e) {
+        return Optional.ofNullable(e.getDittoHeaders().get(MessageHeaderDefinition.THING_ID.getKey())).map(ThingId::of);
     }
 
     private static String stackTraceAsString(final DittoRuntimeException exception) {
@@ -443,17 +443,17 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private Set<ConnectionMonitor> getMonitorsForDroppedSignal(final OutboundSignal outbound,
-            final String connectionId) {
+            final ConnectionId connectionId) {
         return getMonitorsForOutboundSignal(outbound, connectionId, DROPPED, LogType.DROPPED, responseDroppedMonitor);
     }
 
     private Set<ConnectionMonitor> getMonitorsForMappedSignal(final OutboundSignal outbound,
-            final String connectionId) {
+            final ConnectionId connectionId) {
         return getMonitorsForOutboundSignal(outbound, connectionId, MAPPED, LogType.MAPPED, responseMappedMonitor);
     }
 
     private Set<ConnectionMonitor> getMonitorsForOutboundSignal(final OutboundSignal outbound,
-            final String connectionId, final MetricType metricType, final LogType logType,
+            final ConnectionId connectionId, final MetricType metricType, final LogType logType,
             final ConnectionMonitor responseMonitor) {
         if (outbound.getSource() instanceof CommandResponse) {
             return Collections.singleton(responseMonitor);
@@ -495,7 +495,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                         PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, externalMessage.getHeaders()),
                         PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER,
-                                outboundSignal.getSource().getId()),
+                                outboundSignal.getSource().getEntityId()),
                         PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, topicPathOpt.orElse(null))
                 );
 
@@ -556,9 +556,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     static final class AdjustHeaders implements BiFunction<ExternalMessage, DittoHeaders, DittoHeaders> {
 
-        private final String connectionId;
+        private final ConnectionId connectionId;
 
-        private AdjustHeaders(final String connectionId) {
+        private AdjustHeaders(final ConnectionId connectionId) {
             this.connectionId = connectionId;
         }
 
@@ -601,8 +601,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         public void accept(final ExternalMessage externalMessage, final Signal<?> signal) {
             externalMessage.getEnforcementFilter().ifPresent(enforcementFilter -> {
                 log.debug("Connection Signal ID Enforcement enabled - matching Signal ID <{}> with filter: {}",
-                        signal.getId(), enforcementFilter);
-                enforcementFilter.match(signal.getId(), signal.getDittoHeaders());
+                        signal.getEntityId(), enforcementFilter);
+                enforcementFilter.match(signal.getEntityId(), signal.getDittoHeaders());
             });
         }
 
@@ -629,11 +629,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final ExternalMessage externalMessage = inboundExternalMessage.getSource();
             return externalMessage.getHeaderMapping().map(mapping -> {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-                final String thingId = signal.getId();
 
                 final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                         PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, dittoHeaders),
-                        PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, thingId),
+                        PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, signal.getEntityId()),
                         PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER,
                                 inboundExternalMessage.getTopicPath())
                 );

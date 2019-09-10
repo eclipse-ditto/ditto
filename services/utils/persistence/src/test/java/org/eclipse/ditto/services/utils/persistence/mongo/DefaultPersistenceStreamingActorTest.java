@@ -20,6 +20,8 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.UUID;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
@@ -52,7 +54,7 @@ public final class DefaultPersistenceStreamingActorTest {
 
     private static ActorSystem actorSystem;
 
-    private static final String ID = "ns:knownId";
+    private static final EntityId ID = DefaultEntityId.of("ns:knownId");
     private static final long REVISION = 32L;
 
     @BeforeClass
@@ -88,7 +90,7 @@ public final class DefaultPersistenceStreamingActorTest {
     @SuppressWarnings("unchecked")
     public void retrieveNonEmptyStream() {
         new TestKit(actorSystem) {{
-            final Source<PidWithSeqNr, NotUsed> mockedSource = Source.single(new PidWithSeqNr(ID, REVISION));
+            final Source<PidWithSeqNr, NotUsed> mockedSource = Source.single(new PidWithSeqNr(ID.toString(), REVISION));
             final ActorRef underTest = createPersistenceQueriesActor(mockedSource);
             final Command<?> command = createStreamingRequest();
 
@@ -136,16 +138,17 @@ public final class DefaultPersistenceStreamingActorTest {
     }
 
     private static SimpleEntityIdWithRevision mapEntity(final PidWithSeqNr pidWithSeqNr) {
-        return new SimpleEntityIdWithRevision(pidWithSeqNr.getPersistenceId(), pidWithSeqNr.getSequenceNr());
+        return new SimpleEntityIdWithRevision(DefaultEntityId.of(pidWithSeqNr.getPersistenceId()),
+                pidWithSeqNr.getSequenceNr());
     }
 
     private static PidWithSeqNr unmapEntity(final EntityIdWithRevision entityIdWithRevision) {
-        return new PidWithSeqNr(entityIdWithRevision.getId(), entityIdWithRevision.getRevision());
+        return new PidWithSeqNr(entityIdWithRevision.getEntityId().toString(), entityIdWithRevision.getRevision());
     }
 
-    private static final class SimpleEntityIdWithRevision extends AbstractEntityIdWithRevision {
+    private static final class SimpleEntityIdWithRevision extends AbstractEntityIdWithRevision<EntityId> {
 
-        private SimpleEntityIdWithRevision(final String id, final long revision) {
+        private SimpleEntityIdWithRevision(final EntityId id, final long revision) {
             super(id, revision);
         }
     }
