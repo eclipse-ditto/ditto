@@ -17,6 +17,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
@@ -32,7 +33,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * @param <T> the type of the handled ThingEvent.
  */
 @Immutable
-abstract class AbstractEventStrategy<T extends ThingEvent<T>> implements EventStrategy<T> {
+abstract class AbstractEventStrategy<T extends ThingEvent<T>> implements EventStrategy<T, Thing> {
 
     /**
      * Constructs a new {@code AbstractEventStrategy} object.

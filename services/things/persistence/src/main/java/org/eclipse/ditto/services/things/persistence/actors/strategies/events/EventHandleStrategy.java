@@ -12,14 +12,14 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.persistentactors.events.AbstractHandleStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
@@ -51,20 +51,14 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This Singleton strategy handles all {@link org.eclipse.ditto.signals.events.things.ThingEvent}s.
  */
 @Immutable
-public final class EventHandleStrategy implements EventStrategy<ThingEvent> {
+public final class EventHandleStrategy extends AbstractHandleStrategy<ThingEvent, Thing> {
 
     private static final EventHandleStrategy INSTANCE = new EventHandleStrategy();
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(EventHandleStrategy.class);
-
-    private final Map<Class<? extends ThingEvent>, EventStrategy<? extends ThingEvent>> strategies;
 
     /**
      * Returns the <em>singleton</em> {@code EventHandleStrategy} instance.
@@ -79,7 +73,7 @@ public final class EventHandleStrategy implements EventStrategy<ThingEvent> {
      * Constructs a new {@code EventHandleStrategy}.
      */
     private EventHandleStrategy() {
-        strategies = new HashMap<>();
+        final Map<Class<? extends ThingEvent>, EventStrategy<? extends ThingEvent, Thing>> strategies = new HashMap<>();
         addThingStrategies();
         addAclStrategies();
         addAttributesStrategies();
@@ -136,22 +130,4 @@ public final class EventHandleStrategy implements EventStrategy<ThingEvent> {
         addStrategy(PolicyIdCreated.class, new PolicyIdCreatedStrategy());
         addStrategy(PolicyIdModified.class, new PolicyIdModifiedStrategy());
     }
-
-    private <T extends ThingEvent> void addStrategy(final Class<T> cls, final EventStrategy<T> strategy) {
-        strategies.put(cls, strategy);
-    }
-
-    @Override
-    public Thing handle(final ThingEvent event, final Thing thing, final long revision) {
-        checkNotNull(event, "ThingEvent");
-        @SuppressWarnings("unchecked")
-        final EventStrategy<ThingEvent> strategy = (EventStrategy<ThingEvent>) strategies.get(event.getClass());
-        if (null != strategy) {
-            return strategy.handle(event, thing, revision);
-        } else {
-            LOGGER.info("No strategy found for event <{}>.", event.getType());
-            return thing;
-        }
-    }
-
 }

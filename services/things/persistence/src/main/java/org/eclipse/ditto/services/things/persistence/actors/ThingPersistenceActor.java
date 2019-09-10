@@ -38,7 +38,7 @@ import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.DefaultContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ThingReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoSnapshotAdapter;
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -138,7 +138,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
 
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
-                    final EventStrategy<ThingEvent> eventHandleStrategy = EventHandleStrategy.getInstance();
+                    final EventStrategy<ThingEvent, Thing> eventHandleStrategy = EventHandleStrategy.getInstance();
                     thing = eventHandleStrategy.handle(event, thing, getRevisionNumber());
                 }).build();
     }

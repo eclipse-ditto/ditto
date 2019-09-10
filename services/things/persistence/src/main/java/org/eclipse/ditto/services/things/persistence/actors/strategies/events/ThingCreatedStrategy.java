@@ -17,13 +17,14 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
+import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.ThingCreated} event.
  */
 @Immutable
-final class ThingCreatedStrategy implements EventStrategy<ThingCreated> {
+final class ThingCreatedStrategy implements EventStrategy<ThingCreated, Thing> {
 
     @Override
     public Thing handle(final ThingCreated event, final @Nullable Thing thing, final long revision) {
