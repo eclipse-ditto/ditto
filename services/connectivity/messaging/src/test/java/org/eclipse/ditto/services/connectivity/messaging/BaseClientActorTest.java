@@ -229,7 +229,7 @@ public final class BaseClientActorTest {
                     getRef());
             thenExpectConnectClientCalledOnceAfterTimeout(Duration.ofSeconds(1));
 
-            expectMsgClass(ConnectionSignalIllegalException.class);
+            expectMsg(CONNECTED_STATUS);
         }};
     }
 
