@@ -45,7 +45,7 @@ final class RetrieveFeaturesStrategy
     @Override
     protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveFeatures command) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return extractFeatures(thing)

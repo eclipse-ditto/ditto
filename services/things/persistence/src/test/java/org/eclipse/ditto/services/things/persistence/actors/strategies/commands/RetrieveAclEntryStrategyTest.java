@@ -50,7 +50,7 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
     public void retrieveAclEntryFromThingWithoutAcl() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAclEntry command =
-                RetrieveAclEntry.of(context.getEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+                RetrieveAclEntry.of(context.getState(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.aclEntryNotFound(command.getThingEntityId(), command.getAuthorizationSubject(),
                         command.getDittoHeaders());
@@ -62,7 +62,7 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
     public void retrieveAclEntryFromThingWithoutThatAclEntry() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAclEntry command =
-                RetrieveAclEntry.of(context.getEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+                RetrieveAclEntry.of(context.getState(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.aclEntryNotFound(command.getThingEntityId(), command.getAuthorizationSubject(),
                         command.getDittoHeaders());
@@ -74,7 +74,7 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
     public void retrieveExistingAclEntry() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAclEntry command =
-                RetrieveAclEntry.of(context.getEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+                RetrieveAclEntry.of(context.getState(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
         final RetrieveAclEntryResponse expectedResponse =
                 retrieveAclEntryResponse(command.getThingEntityId(), TestConstants.Authorization.ACL_ENTRY_GRIMES,
                         command.getDittoHeaders());

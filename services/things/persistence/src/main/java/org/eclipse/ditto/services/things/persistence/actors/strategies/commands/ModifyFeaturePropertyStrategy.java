@@ -66,7 +66,7 @@ final class ModifyFeaturePropertyStrategy
         return extractFeature(command, nonNullThing)
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getEntityId(), featureId,
+                        ExceptionFactory.featureNotFound(context.getState(), featureId,
                                 command.getDittoHeaders())));
     }
 
@@ -93,7 +93,7 @@ final class ModifyFeaturePropertyStrategy
         final ThingEvent event = FeaturePropertyModified.of(command.getThingEntityId(), featureId, propertyPointer,
                 command.getPropertyValue(), nextRevision, getEventTimestamp(), dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeaturePropertyResponse.modified(context.getEntityId(), featureId, propertyPointer,
+                ModifyFeaturePropertyResponse.modified(context.getState(), featureId, propertyPointer,
                         dittoHeaders),
                 thing);
 
@@ -111,7 +111,7 @@ final class ModifyFeaturePropertyStrategy
                 FeaturePropertyCreated.of(command.getThingEntityId(), featureId, propertyPointer, propertyValue,
                         nextRevision, getEventTimestamp(), dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeaturePropertyResponse.created(context.getEntityId(), featureId, propertyPointer,
+                ModifyFeaturePropertyResponse.created(context.getState(), featureId, propertyPointer,
                         propertyValue, dittoHeaders),
                 thing);
 

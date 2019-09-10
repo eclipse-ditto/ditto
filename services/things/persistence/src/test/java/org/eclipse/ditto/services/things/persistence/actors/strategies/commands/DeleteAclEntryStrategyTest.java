@@ -56,9 +56,9 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
     public void applyStrategyOnThingWithoutAcl() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final AuthorizationSubject authSubject = AUTH_SUBJECT_GRIMES;
-        final DeleteAclEntry command = DeleteAclEntry.of(context.getEntityId(), authSubject, DittoHeaders.empty());
+        final DeleteAclEntry command = DeleteAclEntry.of(context.getState(), authSubject, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.aclEntryNotFound(context.getEntityId(), authSubject, command.getDittoHeaders());
+                ExceptionFactory.aclEntryNotFound(context.getState(), authSubject, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2, command, expectedException);
     }
@@ -67,8 +67,8 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
     public void deleteLastAclEntryWithMinRequiredPermissions() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteAclEntry command =
-                DeleteAclEntry.of(context.getEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
-        final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(context.getEntityId(), Optional.of(
+                DeleteAclEntry.of(context.getState(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+        final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(context.getState(), Optional.of(
                 MessageFormat.format(
                         "It must contain at least one Authorization Subject with the following permission(s): <{0}>!",
                         Arrays.toString(Permission.values()))),
@@ -81,11 +81,11 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
     public void successfullyDeleteAclEntry() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final AuthorizationSubject authSubject = AUTH_SUBJECT_GRIMES;
-        final DeleteAclEntry command = DeleteAclEntry.of(context.getEntityId(), authSubject, DittoHeaders.empty());
+        final DeleteAclEntry command = DeleteAclEntry.of(context.getState(), authSubject, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V1, command,
                 AclEntryDeleted.class,
-                DeleteAclEntryResponse.of(context.getEntityId(), authSubject, command.getDittoHeaders()));
+                DeleteAclEntryResponse.of(context.getState(), authSubject, command.getDittoHeaders()));
     }
 
 }

@@ -78,7 +78,7 @@ final class ModifyThingStrategy extends AbstractConditionalHeadersCheckingComman
 
     private Result<ThingEvent> handleModifyExistingV1WithV1Command(final Context<ThingId> context,
             final Thing thing, final long nextRevision, final ModifyThing command) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
 
         // if the ACL was modified together with the Thing, an additional check is necessary
         final boolean isCommandAclEmpty = command.getThing()
@@ -120,7 +120,7 @@ final class ModifyThingStrategy extends AbstractConditionalHeadersCheckingComman
     private Result<ThingEvent> handleModifyExistingV2WithV1Command(final Context<ThingId> context,
             final Thing thing, final long nextRevision,
             final ModifyThing command) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         // remove any acl information from command and add the current policy Id
         final Thing thingWithoutAcl = removeACL(copyPolicyId(context, thing, command.getThing()), nextRevision);
         final ThingEvent thingModified =
@@ -157,7 +157,7 @@ final class ModifyThingStrategy extends AbstractConditionalHeadersCheckingComman
             return applyModifyCommand(context, thingWithoutAcl, nextRevision, command);
         } else {
             return newErrorResult(
-                    PolicyIdMissingException.fromThingIdOnUpdate(context.getEntityId(),
+                    PolicyIdMissingException.fromThingIdOnUpdate(context.getState(),
                             command.getDittoHeaders()));
         }
     }
@@ -188,7 +188,7 @@ final class ModifyThingStrategy extends AbstractConditionalHeadersCheckingComman
         final ThingEvent event =
                 ThingModified.of(modifiedThing, nextRevision, getEventTimestamp(), dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyThingResponse.modified(context.getEntityId(), dittoHeaders), modifiedThing);
+                ModifyThingResponse.modified(context.getState(), dittoHeaders), modifiedThing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }
@@ -225,7 +225,7 @@ final class ModifyThingStrategy extends AbstractConditionalHeadersCheckingComman
                 .setPolicyId(from.getPolicyEntityId().orElseGet(() -> {
                     ctx.getLog()
                             .error("Thing <{}> is schema version 2 and should therefore contain a policyId",
-                                    ctx.getEntityId());
+                                    ctx.getState());
                     return null;
                 }))
                 .build();
@@ -234,7 +234,7 @@ final class ModifyThingStrategy extends AbstractConditionalHeadersCheckingComman
     @Override
     public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
-        return newErrorResult(new ThingNotAccessibleException(context.getEntityId(), command.getDittoHeaders()));
+        return newErrorResult(new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()));
     }
 
     @Override

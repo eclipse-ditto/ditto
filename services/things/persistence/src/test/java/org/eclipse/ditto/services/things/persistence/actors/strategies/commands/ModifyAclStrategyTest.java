@@ -49,10 +49,10 @@ public final class ModifyAclStrategyTest extends AbstractCommandStrategyTest {
     public void modifyExistingAclEntryToProduceInvalidAcl() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final AccessControlList acl = ThingsModelFactory.newAcl(TestConstants.Authorization.ACL_ENTRY_OLDMAN);
-        final ModifyAcl modifyAcl = ModifyAcl.of(context.getEntityId(), acl, DittoHeaders.empty());
+        final ModifyAcl modifyAcl = ModifyAcl.of(context.getState(), acl, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V1, modifyAcl,
                 AclModified.class,
-                modifyAclResponse(context.getEntityId(), acl, modifyAcl.getDittoHeaders(), false));
+                modifyAclResponse(context.getState(), acl, modifyAcl.getDittoHeaders(), false));
     }
 }

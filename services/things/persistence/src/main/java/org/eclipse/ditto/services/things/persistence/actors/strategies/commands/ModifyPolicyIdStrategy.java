@@ -58,7 +58,7 @@ final class ModifyPolicyIdStrategy extends AbstractConditionalHeadersCheckingCom
 
     private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyPolicyId command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final ThingEvent event =
@@ -72,7 +72,7 @@ final class ModifyPolicyIdStrategy extends AbstractConditionalHeadersCheckingCom
 
     private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyPolicyId command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final PolicyId policyId = command.getPolicyEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

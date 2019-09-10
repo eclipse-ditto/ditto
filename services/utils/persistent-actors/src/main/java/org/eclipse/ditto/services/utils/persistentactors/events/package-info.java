@@ -11,5 +11,8 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+/**
+ * Analogous to "event" handling of Akka Typed Persistence.
+ */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.services.utils.persistentactors.events;

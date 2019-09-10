@@ -60,11 +60,11 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
     public void modifyAttributeOfThingWithoutAttributes() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getEntityId(), attributePointer, attributeValue, DittoHeaders.empty());
+                ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributeCreated.class,
-                modifyAttributeResponse(context.getEntityId(), attributePointer, attributeValue,
+                modifyAttributeResponse(context.getState(), attributePointer, attributeValue,
                         command.getDittoHeaders(), true));
     }
 
@@ -72,11 +72,11 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
     public void modifyAttributeOfThingWithoutThatAttribute() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getEntityId(), attributePointer, attributeValue, DittoHeaders.empty());
+                ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributeCreated.class,
-                modifyAttributeResponse(context.getEntityId(), attributePointer, attributeValue,
+                modifyAttributeResponse(context.getState(), attributePointer, attributeValue,
                         command.getDittoHeaders(), true));
     }
 
@@ -87,12 +87,12 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
 
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getEntityId(), existingAttributePointer, newAttributeValue,
+                ModifyAttribute.of(context.getState(), existingAttributePointer, newAttributeValue,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributeModified.class,
-                modifyAttributeResponse(context.getEntityId(), existingAttributePointer, newAttributeValue,
+                modifyAttributeResponse(context.getState(), existingAttributePointer, newAttributeValue,
                         command.getDittoHeaders(), false));
     }
 

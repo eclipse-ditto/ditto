@@ -51,7 +51,7 @@ final class SudoRetrieveThingStrategy
                 .map(t -> !t.isDeleted())
                 .orElse(false);
 
-        return Objects.equals(context.getEntityId(), command.getEntityId()) && thingExists;
+        return Objects.equals(context.getState(), command.getEntityId()) && thingExists;
     }
 
     @Override
@@ -80,7 +80,7 @@ final class SudoRetrieveThingStrategy
     public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final SudoRetrieveThing command) {
         return ResultFactory.newErrorResult(
-                new ThingNotAccessibleException(context.getEntityId(), command.getDittoHeaders()));
+                new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()));
     }
 
     @Override

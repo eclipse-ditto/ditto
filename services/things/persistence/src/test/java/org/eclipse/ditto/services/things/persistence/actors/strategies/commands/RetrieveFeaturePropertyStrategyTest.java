@@ -52,7 +52,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonPointer propertyPointer = JsonFactory.newPointer("target_year_1");
         final RetrieveFeatureProperty command =
-                RetrieveFeatureProperty.of(context.getEntityId(), FLUX_CAPACITOR_ID, propertyPointer,
+                RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID, propertyPointer,
                         DittoHeaders.empty());
         final RetrieveFeaturePropertyResponse expectedResponse =
                 retrieveFeaturePropertyResponse(command.getThingEntityId(), command.getFeatureId(),
@@ -64,7 +64,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
     @Test
     public void getPropertyFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveFeatureProperty command = RetrieveFeatureProperty.of(context.getEntityId(), FLUX_CAPACITOR_ID,
+        final RetrieveFeatureProperty command = RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID,
                 JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
@@ -77,7 +77,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
     public void getPropertyFromFeatureWithoutProperties() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureProperty command =
-                RetrieveFeatureProperty.of(context.getEntityId(), FLUX_CAPACITOR_ID,
+                RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID,
                         JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featurePropertiesNotFound(command.getThingEntityId(), command.getFeatureId(),
@@ -93,7 +93,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context =
                 getDefaultContext();
         final RetrieveFeatureProperty command =
-                RetrieveFeatureProperty.of(context.getEntityId(), FLUX_CAPACITOR_ID, propertyPointer,
+                RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID, propertyPointer,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featurePropertyNotFound(command.getThingEntityId(), command.getFeatureId(),

@@ -49,7 +49,7 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
     @Test
     public void retrieveFeaturesWithoutSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveFeatures command = RetrieveFeatures.of(context.getEntityId(), DittoHeaders.empty());
+        final RetrieveFeatures command = RetrieveFeatures.of(context.getState(), DittoHeaders.empty());
         final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingEntityId(), FEATURES,
                 FEATURES.toJson(command.getImplementedSchemaVersion()), command.getDittoHeaders());
 
@@ -61,7 +61,7 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
         final RetrieveFeatures command =
-                RetrieveFeatures.of(context.getEntityId(), selectedFields, DittoHeaders.empty());
+                RetrieveFeatures.of(context.getState(), selectedFields, DittoHeaders.empty());
         final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingEntityId(), FEATURES,
                 FEATURES.toJson(command.getImplementedSchemaVersion(), selectedFields), command.getDittoHeaders());
 
@@ -71,7 +71,7 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
     @Test
     public void retrieveFeaturesFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveFeatures command = RetrieveFeatures.of(context.getEntityId(), DittoHeaders.empty());
+        final RetrieveFeatures command = RetrieveFeatures.of(context.getState(), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featuresNotFound(command.getThingEntityId(), command.getDittoHeaders());
 

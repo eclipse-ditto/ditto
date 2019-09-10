@@ -64,7 +64,7 @@ final class ModifyFeaturePropertiesStrategy
         return extractFeature(command, nonNullThing)
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getEntityId(), featureId,
+                        ExceptionFactory.featureNotFound(context.getState(), featureId,
                                 command.getDittoHeaders())));
     }
 
@@ -83,21 +83,21 @@ final class ModifyFeaturePropertiesStrategy
 
     private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatureProperties command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final ThingEvent event = FeaturePropertiesModified.of(thingId, featureId, command.getProperties(), nextRevision,
                 getEventTimestamp(), dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeaturePropertiesResponse.modified(context.getEntityId(), featureId, dittoHeaders), thing);
+                ModifyFeaturePropertiesResponse.modified(context.getState(), featureId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }
 
     private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatureProperties command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
         final FeatureProperties featureProperties = command.getProperties();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();

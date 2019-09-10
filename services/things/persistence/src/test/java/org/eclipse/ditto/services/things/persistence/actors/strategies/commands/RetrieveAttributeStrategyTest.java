@@ -50,7 +50,7 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonPointer attributePointer = JsonFactory.newPointer("location/latitude");
         final RetrieveAttribute command =
-                RetrieveAttribute.of(context.getEntityId(), attributePointer, DittoHeaders.empty());
+                RetrieveAttribute.of(context.getState(), attributePointer, DittoHeaders.empty());
         final RetrieveAttributeResponse expectedResponse =
                 retrieveAttributeResponse(command.getThingEntityId(), command.getAttributePointer(),
                         JsonFactory.newValue(44.673856), command.getDittoHeaders());
@@ -62,7 +62,7 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
     public void retrieveAttributeFromThingWithoutAttributes() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAttribute command =
-                RetrieveAttribute.of(context.getEntityId(), JsonFactory.newPointer("location/latitude"),
+                RetrieveAttribute.of(context.getState(), JsonFactory.newPointer("location/latitude"),
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.attributesNotFound(command.getThingEntityId(), command.getDittoHeaders());
@@ -74,7 +74,7 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
     public void retrieveNonExistingAttribute() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAttribute command =
-                RetrieveAttribute.of(context.getEntityId(), JsonFactory.newPointer("location/bar"),
+                RetrieveAttribute.of(context.getState(), JsonFactory.newPointer("location/bar"),
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.attributeNotFound(command.getThingEntityId(), command.getAttributePointer(),

@@ -74,7 +74,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     @Test
     public void isDefinedIfContextHasThingAndThingIdsAreEqual() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getEntityId(), DittoHeaders.empty());
+        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), DittoHeaders.empty());
 
         final boolean defined = underTest.isDefined(context, THING_V2, command);
 
@@ -87,7 +87,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(JsonSchemaVersion.V_1)
                 .build();
-        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getEntityId(), dittoHeaders);
+        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), dittoHeaders);
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
@@ -100,7 +100,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     public void retrieveThingWithoutSelectedFieldsWithOriginalSchemaVersion() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final SudoRetrieveThing command =
-                SudoRetrieveThing.withOriginalSchemaVersion(context.getEntityId(), DittoHeaders.empty());
+                SudoRetrieveThing.withOriginalSchemaVersion(context.getState(), DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
@@ -117,7 +117,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
                 .schemaVersion(JsonSchemaVersion.V_1)
                 .build();
         final SudoRetrieveThing command =
-                SudoRetrieveThing.of(context.getEntityId(), fieldSelector, dittoHeaders);
+                SudoRetrieveThing.of(context.getState(), fieldSelector, dittoHeaders);
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
@@ -131,7 +131,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
         final SudoRetrieveThing command =
-                SudoRetrieveThing.of(context.getEntityId(), fieldSelector, DittoHeaders.empty());
+                SudoRetrieveThing.of(context.getState(), fieldSelector, DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
@@ -143,9 +143,9 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     @Test
     public void unhandledReturnsThingNotAccessibleException() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getEntityId(), DittoHeaders.empty());
+        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), DittoHeaders.empty());
         final ThingNotAccessibleException expectedException =
-                new ThingNotAccessibleException(context.getEntityId(), command.getDittoHeaders());
+                new ThingNotAccessibleException(context.getState(), command.getDittoHeaders());
 
         assertUnhandledResult(underTest, THING_V2, command, expectedException);
     }

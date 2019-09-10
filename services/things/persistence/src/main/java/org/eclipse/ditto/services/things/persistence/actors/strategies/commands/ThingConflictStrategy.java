@@ -30,7 +30,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link CreateThing} command for an already existing Thing.
  */
 @Immutable
-final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing, Thing, ThingId, ThingEvent> {
+final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing, Thing, ThingId, Result<ThingEvent>> {
 
     /**
      * Constructs a new {@code ThingConflictStrategy} object.
@@ -40,9 +40,14 @@ final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing, T
     }
 
     @Override
+    public boolean isDefined(final CreateThing command) {
+        return false;
+    }
+
+    @Override
     public boolean isDefined(final Context<ThingId> context, @Nullable final Thing thing,
             final CreateThing command) {
-        return Objects.equals(context.getEntityId(), command.getThingEntityId());
+        return Objects.equals(context.getState(), command.getThingEntityId());
     }
 
     @Override

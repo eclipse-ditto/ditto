@@ -54,7 +54,7 @@ final class RetrieveFeaturePropertyStrategy extends
         return extractFeature(command, thing)
                 .map(feature -> getRetrieveFeaturePropertyResult(feature, context, command, thing))
                 .orElseGet(
-                        () -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(context.getEntityId(),
+                        () -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(context.getState(),
                                 featureId, command.getDittoHeaders())));
     }
 
@@ -69,7 +69,7 @@ final class RetrieveFeaturePropertyStrategy extends
         return feature.getProperties()
                 .map(featureProperties -> getRetrieveFeaturePropertyResult(featureProperties, context, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertiesNotFound(context.getEntityId(), feature.getId(),
+                        ExceptionFactory.featurePropertiesNotFound(context.getState(), feature.getId(),
                                 command.getDittoHeaders())));
     }
 
@@ -82,12 +82,12 @@ final class RetrieveFeaturePropertyStrategy extends
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return featureProperties.getValue(propertyPointer)
-                .map(featureProperty -> RetrieveFeaturePropertyResponse.of(context.getEntityId(), featureId,
+                .map(featureProperty -> RetrieveFeaturePropertyResponse.of(context.getState(), featureId,
                         propertyPointer, featureProperty, dittoHeaders))
                 .<Result<ThingEvent>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertyNotFound(context.getEntityId(), featureId, propertyPointer,
+                        ExceptionFactory.featurePropertyNotFound(context.getState(), featureId, propertyPointer,
                                 dittoHeaders)));
     }
 

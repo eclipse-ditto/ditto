@@ -48,20 +48,20 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
     @Test
     public void modifyPolicyIdOnThingWithoutPolicyId() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyPolicyId command = ModifyPolicyId.of(context.getEntityId(), POLICY_ID, DittoHeaders.empty());
+        final ModifyPolicyId command = ModifyPolicyId.of(context.getState(), POLICY_ID, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V1, command, PolicyIdCreated.class,
-                modifyPolicyIdResponse(context.getEntityId(), command.getPolicyEntityId(),
+                modifyPolicyIdResponse(context.getState(), command.getPolicyEntityId(),
                         command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyExistingPolicyId() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyPolicyId command = ModifyPolicyId.of(context.getEntityId(), POLICY_ID, DittoHeaders.empty());
+        final ModifyPolicyId command = ModifyPolicyId.of(context.getState(), POLICY_ID, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
-                PolicyIdModified.class, modifyPolicyIdResponse(context.getEntityId(), command.getPolicyEntityId(),
+                PolicyIdModified.class, modifyPolicyIdResponse(context.getState(), command.getPolicyEntityId(),
                         command.getDittoHeaders(), false));
     }
 

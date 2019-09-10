@@ -52,7 +52,7 @@ final class RetrieveAclStrategy
                 .orElseGet(JsonFactory::newObject);
 
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                RetrieveAclResponse.of(context.getEntityId(), aclJson, command.getDittoHeaders()), thing);
+                RetrieveAclResponse.of(context.getState(), aclJson, command.getDittoHeaders()), thing);
 
         return ResultFactory.newQueryResult(command, response);
     }

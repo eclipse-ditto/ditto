@@ -52,7 +52,7 @@ final class DeleteFeatureDefinitionStrategy extends
                 .flatMap(features -> features.getFeature(command.getFeatureId()))
                 .map(feature -> getDeleteFeatureDefinitionResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getEntityId(), command.getFeatureId(),
+                        ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                                 command.getDittoHeaders())));
     }
 
@@ -60,7 +60,7 @@ final class DeleteFeatureDefinitionStrategy extends
             final long nextRevision, final DeleteFeatureDefinition command, @Nullable Thing thing) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final String featureId = feature.getId();
 
         return feature.getDefinition()

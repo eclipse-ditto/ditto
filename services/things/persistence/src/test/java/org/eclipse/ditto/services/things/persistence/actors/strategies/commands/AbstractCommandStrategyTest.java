@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -84,9 +85,10 @@ public abstract class AbstractCommandStrategyTest {
         assertModificationResult(context, result, expectedEventClass, expectedCommandResponse, becomeDeleted);
     }
 
-    protected static void assertErrorResult(final CommandStrategy underTest,
+    protected static <C> void assertErrorResult(
+            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
             @Nullable final Thing thing,
-            final Command command,
+            final C command,
             final DittoRuntimeException expectedException) {
 
         final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
@@ -94,19 +96,20 @@ public abstract class AbstractCommandStrategyTest {
         verify(mock).onError(eq(expectedException));
     }
 
-    protected static void assertQueryResult(final CommandStrategy underTest,
+    protected static <C> void assertQueryResult(
+            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
             @Nullable final Thing thing,
-            final Command command,
+            final C command,
             final CommandResponse expectedCommandResponse) {
 
         assertInfoResult(applyStrategy(underTest, getDefaultContext(), thing, command), expectedCommandResponse);
     }
 
 
-    @SuppressWarnings("unchecked")
-    protected static void assertUnhandledResult(final AbstractCommandStrategy underTest,
+    protected static <C> void assertUnhandledResult(
+            final AbstractCommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
             @Nullable final Thing thing,
-            final Command command,
+            final C command,
             final DittoRuntimeException expectedResponse) {
 
         final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
@@ -122,7 +125,7 @@ public abstract class AbstractCommandStrategyTest {
 
         final ArgumentCaptor<ThingModifiedEvent> event = ArgumentCaptor.forClass(eventClazz);
 
-        @SuppressWarnings("unchecked") final ResultVisitor<ThingEvent> mock = mock(ResultVisitor.class);
+        final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
 
         result.accept(mock);
 
@@ -136,11 +139,11 @@ public abstract class AbstractCommandStrategyTest {
         verify(mock).onQuery(any(), eq(infoResponse));
     }
 
-    @SuppressWarnings("unchecked")
-    private static Result<ThingEvent> applyStrategy(final CommandStrategy underTest,
+    private static <C> Result<ThingEvent> applyStrategy(
+            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
             final CommandStrategy.Context<ThingId> context,
             final @Nullable Thing thing,
-            final Command command) {
+            final C command) {
 
         return underTest.apply(context, thing, NEXT_REVISION, command);
     }

@@ -46,7 +46,7 @@ final class RetrieveAclEntryStrategy
     @Override
     protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveAclEntry command) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final AuthorizationSubject authorizationSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

@@ -55,7 +55,7 @@ final class DeleteAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
         return extractAcl(thing, command)
                 .map(acl -> getDeleteAclEntryResult(acl, context, nextRevision, command, thing))
                 .orElseGet(
-                        () -> ResultFactory.newErrorResult(ExceptionFactory.aclEntryNotFound(context.getEntityId(),
+                        () -> ResultFactory.newErrorResult(ExceptionFactory.aclEntryNotFound(context.getState(),
                                 authSubject, dittoHeaders)));
     }
 
@@ -69,7 +69,7 @@ final class DeleteAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
     private Result<ThingEvent> getDeleteAclEntryResult(final AccessControlList acl, final Context<ThingId> context,
             final long nextRevision, final DeleteAclEntry command, @Nullable final Thing thing) {
 
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final AuthorizationSubject authSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

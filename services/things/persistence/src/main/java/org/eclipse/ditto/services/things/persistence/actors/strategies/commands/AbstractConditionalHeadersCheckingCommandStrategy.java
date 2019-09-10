@@ -12,9 +12,15 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.util.Objects;
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
@@ -36,7 +42,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extends Command<C>, E>
-        extends AbstractCommandStrategy<C, Thing, ThingId, ThingEvent>
+        extends AbstractCommandStrategy<C, Thing, ThingId, Result<ThingEvent>>
         implements ETagEntityProvider<C, E> {
 
     private static final ConditionalHeadersValidator VALIDATOR =
@@ -86,5 +92,21 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
         return super.apply(context, thing, nextRevision, command);
     }
 
+
+    @Override
+    public boolean isDefined(final C command) {
+        throw new UnsupportedOperationException("This method is not supported by this implementation.");
+    }
+
+    @Override
+    public boolean isDefined(final Context<ThingId> context, @Nullable final Thing entity, final C command) {
+        checkNotNull(context, "Context");
+        checkNotNull(command, "Command");
+
+        return Optional.ofNullable(entity)
+                .flatMap(Entity::getEntityId)
+                .filter(thingId -> Objects.equals(thingId, command.getEntityId()))
+                .isPresent();
+    }
 
 }

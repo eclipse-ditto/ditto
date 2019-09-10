@@ -50,7 +50,7 @@ final class DeleteAttributesStrategy
         return extractAttributes(thing)
                 .map(attributes -> getDeleteAttributesResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributesNotFound(context.getEntityId(), command.getDittoHeaders())));
+                        ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders())));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
@@ -59,7 +59,7 @@ final class DeleteAttributesStrategy
 
     private Result<ThingEvent> getDeleteAttributesResult(final Context<ThingId> context, final long nextRevision,
             final DeleteAttributes command, @Nullable Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,

@@ -49,9 +49,9 @@ final class RetrieveAttributeStrategy
             final long nextRevision, final RetrieveAttribute command) {
 
         return extractAttributes(thing)
-                .map(attributes -> getAttributeValueResult(attributes, context.getEntityId(), command, thing))
+                .map(attributes -> getAttributeValueResult(attributes, context.getState(), command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributesNotFound(context.getEntityId(), command.getDittoHeaders())));
+                        ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders())));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {

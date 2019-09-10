@@ -56,31 +56,31 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void modifyFeatureOnThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyFeature command = ModifyFeature.of(context.getEntityId(), modifiedFeature, DittoHeaders.empty());
+        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeFeatures(), command,
                 FeatureCreated.class,
-                modifyFeatureResponse(context.getEntityId(), command.getFeature(), command.getDittoHeaders(), true));
+                modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyFeatureOnThingWithoutThatFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyFeature command = ModifyFeature.of(context.getEntityId(), modifiedFeature, DittoHeaders.empty());
+        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeFeature(modifiedFeature.getId()), command,
                 FeatureCreated.class,
-                modifyFeatureResponse(context.getEntityId(), command.getFeature(), command.getDittoHeaders(), true));
+                modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyExistingFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyFeature command = ModifyFeature.of(context.getEntityId(), modifiedFeature, DittoHeaders.empty());
+        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeatureModified.class,
-                modifyFeatureResponse(context.getEntityId(), command.getFeature(), command.getDittoHeaders(), false));
+                modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), false));
     }
 
 }

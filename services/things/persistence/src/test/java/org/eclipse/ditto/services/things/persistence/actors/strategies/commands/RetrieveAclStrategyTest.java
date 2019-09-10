@@ -50,7 +50,7 @@ public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
     @Test
     public void resultContainsJsonOfExistingAcl() {
         final Context<ThingId> context = getDefaultContext();
-        final RetrieveAcl command = RetrieveAcl.of(context.getEntityId(), DittoHeaders.empty());
+        final RetrieveAcl command = RetrieveAcl.of(context.getState(), DittoHeaders.empty());
 
         final AccessControlList expectedAcl = THING_V1.getAccessControlList().get();
         final JsonObject expectedAclJson = expectedAcl.toJson(JsonSchemaVersion.V_1);
@@ -65,7 +65,7 @@ public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
     @Test
     public void resultContainsEmptyJsonObject() {
         final Context<ThingId> context = getDefaultContext();
-        final RetrieveAcl command = RetrieveAcl.of(context.getEntityId(), DittoHeaders.empty());
+        final RetrieveAcl command = RetrieveAcl.of(context.getState(), DittoHeaders.empty());
         final RetrieveAclResponse expectedResponse =
                 RetrieveAclResponse.of(command.getThingEntityId(), JsonFactory.newObject(), command.getDittoHeaders());
 

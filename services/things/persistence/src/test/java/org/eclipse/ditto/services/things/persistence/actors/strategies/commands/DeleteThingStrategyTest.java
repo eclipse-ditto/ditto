@@ -45,11 +45,11 @@ public final class DeleteThingStrategyTest extends AbstractCommandStrategyTest {
     @Test
     public void successfullyDeleteThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final DeleteThing command = DeleteThing.of(context.getEntityId(), DittoHeaders.empty());
+        final DeleteThing command = DeleteThing.of(context.getState(), DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 ThingDeleted.class,
-                DeleteThingResponse.of(context.getEntityId(), command.getDittoHeaders()), true);
+                DeleteThingResponse.of(context.getState(), command.getDittoHeaders()), true);
     }
 
 }

@@ -65,7 +65,7 @@ public final class ModifyAttributesStrategy extends
 
     private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttributes command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final ThingEvent event =
@@ -79,7 +79,7 @@ public final class ModifyAttributesStrategy extends
 
     private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttributes command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final Attributes attributes = command.getAttributes();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

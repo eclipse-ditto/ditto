@@ -68,7 +68,7 @@ final class ModifyAttributeStrategy
 
     private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttribute command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final JsonPointer attributePointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -83,7 +83,7 @@ final class ModifyAttributeStrategy
 
     private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttribute command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final JsonPointer attributePointer = command.getAttributePointer();
         final JsonValue attributeValue = command.getAttributeValue();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();

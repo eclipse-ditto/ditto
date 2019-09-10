@@ -55,13 +55,13 @@ final class DeleteAttributeStrategy
         return attrs
                 .map(attributes -> getDeleteAttributeResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributeNotFound(context.getEntityId(), attrPointer,
+                        ExceptionFactory.attributeNotFound(context.getState(), attrPointer,
                                 command.getDittoHeaders())));
     }
 
     private Result<ThingEvent> getDeleteAttributeResult(final Context<ThingId> context, final long nextRevision,
             final DeleteAttribute command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final JsonPointer attrPointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,

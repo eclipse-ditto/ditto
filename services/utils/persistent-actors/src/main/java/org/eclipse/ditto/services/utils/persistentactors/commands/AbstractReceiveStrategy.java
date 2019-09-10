@@ -18,11 +18,8 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.Entity;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.event.DiagnosticLoggingAdapter;
 
@@ -30,11 +27,9 @@ import akka.event.DiagnosticLoggingAdapter;
  * This <em>Singleton</em> delegates a {@code Command} to a dedicated strategy - if one is available - to be handled.
  */
 @Immutable
-public abstract class AbstractReceiveStrategy<S extends Entity, I, E>
-        extends AbstractCommandStrategy<Command, S, I, E> {
+public abstract class AbstractReceiveStrategy<C, S, I, R> extends AbstractCommandStrategy<C, S, I, R> {
 
-    protected final Map<Class<? extends Command>, CommandStrategy<? extends Command, S, I, E>> strategies =
-            new HashMap<>();
+    protected final Map<Class<? extends C>, CommandStrategy<? extends C, S, I, R>> strategies = new HashMap<>();
 
     /**
      * Constructs a new {@code AbstractCommandStrategy} object.
@@ -43,58 +38,63 @@ public abstract class AbstractReceiveStrategy<S extends Entity, I, E>
      * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
      */
     protected AbstractReceiveStrategy(
-            final Class<Command> theMatchingClass) {
+            final Class<C> theMatchingClass) {
         super(theMatchingClass);
     }
+
+    /**
+     * @return the empty result.
+     */
+    protected abstract R getEmptyResult();
 
     /**
      * Add a command strategy. Call in constructor only.
      *
      * @param strategy the strategy.
      */
-    protected void addStrategy(final CommandStrategy<? extends Command, S, I, E> strategy) {
-        final Class<? extends Command> matchingClass = strategy.getMatchingClass();
+    protected void addStrategy(final CommandStrategy<? extends C, S, I, R> strategy) {
+        final Class<? extends C> matchingClass = strategy.getMatchingClass();
         strategies.put(matchingClass, strategy);
     }
 
     @Override
-    public Result<E> unhandled(final Context<I> context, @Nullable final S entity, final long nextRevision,
-            final Command command) {
+    public R unhandled(final Context<I> context, @Nullable final S entity, final long nextRevision, final C command) {
         final DiagnosticLoggingAdapter log = context.getLog();
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        log.info("Command of type <{}> cannot be handled by this strategy.", command.getClass().getName());
-
-        return ResultFactory.emptyResult();
+        if (command instanceof WithDittoHeaders) {
+            LogUtil.enhanceLogWithCorrelationId(log, (WithDittoHeaders) command);
+        }
+        log.info("Command <{}> cannot be handled by this strategy.", command);
+        return getEmptyResult();
     }
 
     @Override
-    public boolean isDefined(final Command command) {
+    public boolean isDefined(final C command) {
         return strategies.containsKey(command.getClass());
     }
 
     @Override
-    public boolean isDefined(final Context<I> context, @Nullable final S entity, final Command command) {
+    public boolean isDefined(final Context<I> context, @Nullable final S entity, final C command) {
         return isDefined(command);
     }
 
     @Override
-    protected Result<E> doApply(final Context<I> context, @Nullable final S entity, final long nextRevision,
-            final Command command) {
+    protected R doApply(final Context<I> context, @Nullable final S entity, final long nextRevision, final C command) {
 
-        final CommandStrategy<Command, S, I, E> commandStrategy = getAppropriateStrategy(command.getClass());
+        final CommandStrategy<C, S, I, R> commandStrategy = getAppropriateStrategy(command.getClass());
 
         final DiagnosticLoggingAdapter log = context.getLog();
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        LogUtil.enhanceLogWithCorrelationId(log, command.getDittoHeaders().getCorrelationId());
+        if (command instanceof WithDittoHeaders) {
+            LogUtil.enhanceLogWithCorrelationId(log, (WithDittoHeaders) command);
+        }
         if (log.isDebugEnabled()) {
-            log.debug("Applying command <{}>: {}", command.getType(), command.toJsonString());
+            log.debug("Applying command <{}>", command);
         }
         return commandStrategy.apply(context, entity, nextRevision, command);
     }
 
     @SuppressWarnings("unchecked")
-    private CommandStrategy<Command, S, I, E> getAppropriateStrategy(final Class commandClass) {
-        return (CommandStrategy<Command, S, I, E>) strategies.get(commandClass);
+    private CommandStrategy<C, S, I, R> getAppropriateStrategy(final Class commandClass) {
+        return (CommandStrategy<C, S, I, R>) strategies.get(commandClass);
     }
 
 }

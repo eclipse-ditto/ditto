@@ -67,21 +67,21 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
     @Test
     public void modifyFeaturesOfThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyFeatures command = ModifyFeatures.of(context.getEntityId(), modifiedFeatures, DittoHeaders.empty());
+        final ModifyFeatures command = ModifyFeatures.of(context.getState(), modifiedFeatures, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeFeatures(), command,
                 FeaturesCreated.class,
-                modifyFeaturesResponse(context.getEntityId(), modifiedFeatures, command.getDittoHeaders(), true));
+                modifyFeaturesResponse(context.getState(), modifiedFeatures, command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyExistingFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyFeatures command = ModifyFeatures.of(context.getEntityId(), modifiedFeatures, DittoHeaders.empty());
+        final ModifyFeatures command = ModifyFeatures.of(context.getState(), modifiedFeatures, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeaturesModified.class,
-                modifyFeaturesResponse(context.getEntityId(), modifiedFeatures, command.getDittoHeaders(), false));
+                modifyFeaturesResponse(context.getState(), modifiedFeatures, command.getDittoHeaders(), false));
     }
 
     @Test

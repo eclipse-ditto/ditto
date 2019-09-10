@@ -14,25 +14,22 @@ package org.eclipse.ditto.services.utils.persistentactors.commands;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.signals.commands.base.Command;
-
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * The CommandStrategy interface.
  *
- * @param <T> type of handled command.
+ * @param <C> type of handled command.
  * @param <S> type of entities.
  * @param <I> type of entity IDs.
- * @param <E> type of events.
+ * @param <R> type of results.
  */
-public interface CommandStrategy<T extends Command, S, I, E> {
+public interface CommandStrategy<C, S, I, R> {
 
     /**
      * @return the message class to react to.
      */
-    Class<T> getMatchingClass();
+    Class<C> getMatchingClass();
 
     /**
      * Applies the strategy to the given command using the given context.
@@ -43,7 +40,7 @@ public interface CommandStrategy<T extends Command, S, I, E> {
      * @param command the command.
      * @return the result of the strategy that will be handled in the context of the calling actor.
      */
-    Result<E> apply(Context<I> context, @Nullable S entity, long nextRevision, T command);
+    R apply(Context<I> context, @Nullable S entity, long nextRevision, C command);
 
     /**
      * Indicates whether this strategy is defined for the specified command and can be applied.
@@ -52,7 +49,7 @@ public interface CommandStrategy<T extends Command, S, I, E> {
      * @return {@code true} if the strategy is defined for the given command and can be applied.
      * @throws NullPointerException if {@code command} is {@code null}.
      */
-    boolean isDefined(T command);
+    boolean isDefined(C command);
 
     /**
      * Indicates whether this strategy is defined for the specified command and context and can be applied.
@@ -63,17 +60,21 @@ public interface CommandStrategy<T extends Command, S, I, E> {
      * @return {@code true} if the strategy is defined for the given command and can be applied.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    boolean isDefined(Context<I> context, final S entity, T command);
+    default boolean isDefined(final Context<I> context, @Nullable final S entity, final C command) {
+        return isDefined(command);
+    }
 
     /**
      * The Context in which a strategy is executed.
+     *
+     * @param <I> type of the state of the context.
      */
     interface Context<I> {
 
         /**
-         * @return the thing ID.
+         * @return the state.
          */
-        I getEntityId();
+        I getState();
 
         /**
          * @return the log.

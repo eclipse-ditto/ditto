@@ -49,7 +49,7 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
     public void retrieveExistingFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeature command =
-                RetrieveFeature.of(context.getEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final RetrieveFeatureResponse expectedResponse =
                 retrieveFeatureResponse(command.getThingEntityId(), FLUX_CAPACITOR, FLUX_CAPACITOR.toJson(),
                         command.getDittoHeaders());
@@ -61,7 +61,7 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
     public void retrieveFeatureFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeature command =
-                RetrieveFeature.of(context.getEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -73,7 +73,7 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
     public void retrieveNonExistingFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeature command =
-                RetrieveFeature.of(context.getEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());

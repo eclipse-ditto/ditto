@@ -50,7 +50,7 @@ final class DeleteFeatureStrategy extends AbstractConditionalHeadersCheckingComm
         return extractFeature(command, thing)
                 .map(feature -> getDeleteFeatureResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getEntityId(), featureId,
+                        ExceptionFactory.featureNotFound(context.getState(), featureId,
                                 command.getDittoHeaders())));
     }
 
@@ -63,7 +63,7 @@ final class DeleteFeatureStrategy extends AbstractConditionalHeadersCheckingComm
 
     private Result<ThingEvent> getDeleteFeatureResult(final Context<ThingId> context, final long nextRevision,
             final DeleteFeature command, @Nullable final Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final ThingEvent event =

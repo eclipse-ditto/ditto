@@ -77,7 +77,7 @@ final class ModifyFeatureStrategy
                 FeatureModified.of(command.getThingEntityId(), command.getFeature(), nextRevision, getEventTimestamp(),
                         dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeatureResponse.modified(context.getEntityId(), command.getFeatureId(), dittoHeaders),
+                ModifyFeatureResponse.modified(context.getState(), command.getFeatureId(), dittoHeaders),
                 thing);
 
         return ResultFactory.newMutationResult(command, event, response);
@@ -92,7 +92,7 @@ final class ModifyFeatureStrategy
         final ThingEvent event =
                 FeatureCreated.of(command.getThingEntityId(), feature, nextRevision, getEventTimestamp(), dittoHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeatureResponse.created(context.getEntityId(), feature, dittoHeaders), thing);
+                ModifyFeatureResponse.created(context.getState(), feature, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }

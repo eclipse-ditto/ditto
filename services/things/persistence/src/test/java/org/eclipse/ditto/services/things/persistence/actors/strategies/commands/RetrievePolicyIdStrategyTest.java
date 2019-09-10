@@ -47,7 +47,7 @@ public final class RetrievePolicyIdStrategyTest extends AbstractCommandStrategyT
     @Test
     public void retrieveExistingPolicyId() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrievePolicyId command = RetrievePolicyId.of(context.getEntityId(), DittoHeaders.empty());
+        final RetrievePolicyId command = RetrievePolicyId.of(context.getState(), DittoHeaders.empty());
         final RetrievePolicyIdResponse expectedResponse =
                 retrievePolicyIdResponse(command.getThingEntityId(), POLICY_ID, DittoHeaders.empty());
 
@@ -57,7 +57,7 @@ public final class RetrievePolicyIdStrategyTest extends AbstractCommandStrategyT
     @Test
     public void retrieveNonExistingPolicyId() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrievePolicyId command = RetrievePolicyId.of(context.getEntityId(), DittoHeaders.empty());
+        final RetrievePolicyId command = RetrievePolicyId.of(context.getState(), DittoHeaders.empty());
         final PolicyIdNotAccessibleException expectedException =
                 PolicyIdNotAccessibleException.newBuilder(command.getThingEntityId())
                         .dittoHeaders(command.getDittoHeaders())

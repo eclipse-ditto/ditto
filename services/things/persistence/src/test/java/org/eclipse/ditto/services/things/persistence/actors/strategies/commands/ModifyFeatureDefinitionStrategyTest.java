@@ -61,10 +61,10 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
     public void modifyFeatureDefinitionOfThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
-                ModifyFeatureDefinition.of(context.getEntityId(), featureId, modifiedFeatureDefinition,
+                ModifyFeatureDefinition.of(context.getState(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getEntityId(), featureId, command.getDittoHeaders());
+                ExceptionFactory.featureNotFound(context.getState(), featureId, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
     }
@@ -73,10 +73,10 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
     public void modifyFeatureDefinitionOfThingWithoutThatFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
-                ModifyFeatureDefinition.of(context.getEntityId(), featureId, modifiedFeatureDefinition,
+                ModifyFeatureDefinition.of(context.getState(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getEntityId(), featureId, command.getDittoHeaders());
+                ExceptionFactory.featureNotFound(context.getState(), featureId, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeature(featureId), command, expectedException);
     }
@@ -86,12 +86,12 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
         final Feature featureWithoutDefinition = TestConstants.Feature.FLUX_CAPACITOR.removeDefinition();
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
-                ModifyFeatureDefinition.of(context.getEntityId(), featureId, modifiedFeatureDefinition,
+                ModifyFeatureDefinition.of(context.getState(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.setFeature(featureWithoutDefinition), command,
                 FeatureDefinitionCreated.class,
-                modifyFeatureDefinitionResponse(context.getEntityId(), featureId, command.getDefinition(),
+                modifyFeatureDefinitionResponse(context.getState(), featureId, command.getDefinition(),
                         command.getDittoHeaders(), true));
     }
 
@@ -99,12 +99,12 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
     public void modifyExistingFeatureDefinition() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
-                ModifyFeatureDefinition.of(context.getEntityId(), featureId, modifiedFeatureDefinition,
+                ModifyFeatureDefinition.of(context.getState(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeatureDefinitionModified.class,
-                modifyFeatureDefinitionResponse(context.getEntityId(), featureId, modifiedFeatureDefinition,
+                modifyFeatureDefinitionResponse(context.getState(), featureId, modifiedFeatureDefinition,
                         command.getDittoHeaders(), false));
     }
 

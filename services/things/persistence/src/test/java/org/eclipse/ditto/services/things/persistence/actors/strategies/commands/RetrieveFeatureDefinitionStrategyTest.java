@@ -50,7 +50,7 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
     public void getDefinition() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final RetrieveFeatureDefinitionResponse expectedResponse =
                 retrieveFeatureDefinitionResponse(command.getThingEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_DEFINITION, command.getDittoHeaders());
@@ -62,7 +62,7 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
     public void getDefinitionFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -74,7 +74,7 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
     public void getNonExistingDefinition() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureDefinitionNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());

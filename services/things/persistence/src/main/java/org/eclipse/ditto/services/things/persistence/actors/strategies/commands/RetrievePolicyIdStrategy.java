@@ -48,12 +48,12 @@ final class RetrievePolicyIdStrategy
             final RetrievePolicyId command) {
 
         return extractPolicyId(thing)
-                .map(policyId -> RetrievePolicyIdResponse.of(context.getEntityId(), policyId,
+                .map(policyId -> RetrievePolicyIdResponse.of(context.getState(), policyId,
                         command.getDittoHeaders()))
                 .<Result<ThingEvent>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        PolicyIdNotAccessibleException.newBuilder(context.getEntityId())
+                        PolicyIdNotAccessibleException.newBuilder(context.getState())
                                 .dittoHeaders(command.getDittoHeaders())
                                 .build()));
     }

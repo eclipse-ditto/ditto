@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
+package org.eclipse.ditto.services.utils.persistentactors.commands;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -18,22 +18,21 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * Holds the context required to execute the {@link org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy}s.
+ * Holds the context required to execute the
+ * {@link org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy}s.
  */
 @Immutable
 public final class DefaultContext<I> implements CommandStrategy.Context<I> {
 
-    private final I thingId;
+    private final I state;
     private final DiagnosticLoggingAdapter log;
 
-    private DefaultContext(final I thingId, final DiagnosticLoggingAdapter theLog) {
+    private DefaultContext(final I state, final DiagnosticLoggingAdapter theLog) {
 
-        this.thingId = checkNotNull(thingId, "Thing ID");
+        this.state = checkNotNull(state, "Thing ID");
         log = checkNotNull(theLog, "DiagnosticLoggingAdapter");
     }
 
@@ -50,8 +49,8 @@ public final class DefaultContext<I> implements CommandStrategy.Context<I> {
     }
 
     @Override
-    public I getEntityId() {
-        return thingId;
+    public I getState() {
+        return state;
     }
 
     @Override
@@ -68,18 +67,18 @@ public final class DefaultContext<I> implements CommandStrategy.Context<I> {
             return false;
         }
         final DefaultContext that = (DefaultContext) o;
-        return Objects.equals(thingId, that.thingId) && Objects.equals(log, that.log);
+        return Objects.equals(state, that.state) && Objects.equals(log, that.log);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, log);
+        return Objects.hash(state, log);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "thingId=" + thingId +
+                "thingId=" + state +
                 ", log=" + log +
                 "]";
     }

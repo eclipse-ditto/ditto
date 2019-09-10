@@ -50,7 +50,7 @@ public final class RetrieveFeaturePropertiesStrategyTest extends AbstractCommand
     public void getProperties() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureProperties command =
-                RetrieveFeatureProperties.of(context.getEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final RetrieveFeaturePropertiesResponse expectedResponse =
                 retrieveFeaturePropertiesResponse(command.getThingEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_PROPERTIES, command.getDittoHeaders());
@@ -62,7 +62,7 @@ public final class RetrieveFeaturePropertiesStrategyTest extends AbstractCommand
     public void getPropertiesFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureProperties command =
-                RetrieveFeatureProperties.of(context.getEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -74,7 +74,7 @@ public final class RetrieveFeaturePropertiesStrategyTest extends AbstractCommand
     public void getNonExistingProperties() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureProperties command =
-                RetrieveFeatureProperties.of(context.getEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featurePropertiesNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());

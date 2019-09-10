@@ -45,7 +45,7 @@ final class RetrieveFeaturePropertiesStrategy extends
     @Override
     protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveFeatureProperties command) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)

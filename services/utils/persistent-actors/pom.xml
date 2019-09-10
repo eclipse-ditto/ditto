@@ -35,6 +35,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-base</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-utils-persistence</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>

@@ -50,7 +50,7 @@ final class RetrieveThingStrategy extends AbstractConditionalHeadersCheckingComm
                 .map(t -> !t.isDeleted())
                 .orElse(false);
 
-        return Objects.equals(context.getEntityId(), command.getEntityId()) && thingExists;
+        return Objects.equals(context.getState(), command.getEntityId()) && thingExists;
     }
 
     @Override
@@ -85,7 +85,7 @@ final class RetrieveThingStrategy extends AbstractConditionalHeadersCheckingComm
     public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
         return ResultFactory.newErrorResult(
-                new ThingNotAccessibleException(context.getEntityId(), command.getDittoHeaders()));
+                new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()));
     }
 
     @Override

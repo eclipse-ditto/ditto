@@ -58,7 +58,7 @@ final class ModifyAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
         final Validator validator = getAclValidator(modifiedAcl);
         if (!validator.isValid()) {
             return ResultFactory.newErrorResult(
-                    ExceptionFactory.aclInvalid(context.getEntityId(), validator.getReason(),
+                    ExceptionFactory.aclInvalid(context.getState(), validator.getReason(),
                             command.getDittoHeaders()));
         }
 
@@ -81,7 +81,7 @@ final class ModifyAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
 
     private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAclEntry command, @Nullable Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final AclEntry aclEntry = command.getAclEntry();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -95,7 +95,7 @@ final class ModifyAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
 
     private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAclEntry command, @Nullable Thing thing) {
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final AclEntry aclEntry = command.getAclEntry();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

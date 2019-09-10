@@ -15,13 +15,15 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractReceiveStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * The collection of the command strategies of {@code ThingPersistenceActor}.
  */
-public final class ThingReceiveStrategy extends AbstractReceiveStrategy<Thing, ThingId, ThingEvent> {
+public final class ThingReceiveStrategy extends AbstractReceiveStrategy<Command, Thing, ThingId, Result<ThingEvent>> {
 
     private static final ThingReceiveStrategy INSTANCE = new ThingReceiveStrategy();
 
@@ -45,7 +47,7 @@ public final class ThingReceiveStrategy extends AbstractReceiveStrategy<Thing, T
      *
      * @return the instance.
      */
-    public static AbstractReceiveStrategy getInstance() {
+    public static ThingReceiveStrategy getInstance() {
         return INSTANCE;
     }
 
@@ -104,5 +106,10 @@ public final class ThingReceiveStrategy extends AbstractReceiveStrategy<Thing, T
 
     private void addSudoStrategies() {
         addStrategy(new SudoRetrieveThingStrategy());
+    }
+
+    @Override
+    protected Result<ThingEvent> getEmptyResult() {
+        return ResultFactory.emptyResult();
     }
 }

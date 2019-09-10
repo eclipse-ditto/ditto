@@ -53,7 +53,7 @@ final class DeleteFeaturesStrategy extends AbstractConditionalHeadersCheckingCom
                                 getResponse(context, command, thing))
                 )
                 .orElseGet(() ->
-                        ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(context.getEntityId(),
+                        ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(context.getState(),
                                 dittoHeaders)));
     }
 
@@ -63,13 +63,13 @@ final class DeleteFeaturesStrategy extends AbstractConditionalHeadersCheckingCom
 
     private static ThingEvent getEventToPersist(final Context<ThingId> context, final long nextRevision,
             final DittoHeaders dittoHeaders) {
-        return FeaturesDeleted.of(context.getEntityId(), nextRevision, getEventTimestamp(), dittoHeaders);
+        return FeaturesDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders);
     }
 
     private WithDittoHeaders getResponse(final Context<ThingId> context, final DeleteFeatures command,
             @Nullable final Thing thing) {
         return appendETagHeaderIfProvided(command,
-                DeleteFeaturesResponse.of(context.getEntityId(), command.getDittoHeaders()), thing);
+                DeleteFeaturesResponse.of(context.getState(), command.getDittoHeaders()), thing);
     }
 
     @Override

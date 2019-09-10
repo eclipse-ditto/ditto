@@ -17,16 +17,9 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
-
-import org.eclipse.ditto.model.base.entity.Entity;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.event.DiagnosticLoggingAdapter;
 
@@ -36,8 +29,7 @@ import akka.event.DiagnosticLoggingAdapter;
  * @param <T> type of the handled command.
  */
 @Immutable
-public abstract class AbstractCommandStrategy<T extends Command, S extends Entity, I, E>
-        implements CommandStrategy<T, S, I, E> {
+public abstract class AbstractCommandStrategy<T, S, I, R> implements CommandStrategy<T, S, I, R> {
 
     private final Class<T> matchingClass;
 
@@ -52,16 +44,15 @@ public abstract class AbstractCommandStrategy<T extends Command, S extends Entit
     }
 
     @Override
-    public Result<E> apply(final Context<I> context, @Nullable final S entity, final long nextRevision,
+    public R apply(final Context<I> context, @Nullable final S entity, final long nextRevision,
             final T command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
 
         if (isDefined(context, entity, command)) {
             final DiagnosticLoggingAdapter logger = context.getLog();
-            LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());
             if (logger.isDebugEnabled()) {
-                logger.debug("Applying command <{}>: {}", command.getType(), command.toJsonString());
+                logger.debug("Applying command <{}>", command);
             }
             return doApply(context, entity, nextRevision, command);
         } else {
@@ -78,7 +69,7 @@ public abstract class AbstractCommandStrategy<T extends Command, S extends Entit
      * @param command the incoming command.
      * @return result of the command strategy.
      */
-    protected abstract Result<E> doApply(final Context<I> context, @Nullable final S entity, final long nextRevision,
+    protected abstract R doApply(final Context<I> context, @Nullable final S entity, final long nextRevision,
             final T command);
 
     /**
@@ -91,31 +82,15 @@ public abstract class AbstractCommandStrategy<T extends Command, S extends Entit
      * @return nothing.
      * @throws java.lang.IllegalArgumentException always.
      */
-    public Result<E> unhandled(final Context<I> context, @Nullable final S entity, final long nextRevision,
+    public R unhandled(final Context<I> context, @Nullable final S entity, final long nextRevision,
             final T command) {
-        final String msgPattern = "This Thing Actor did not handle the requested Thing with ID <{0}>!";
-        throw new IllegalArgumentException(MessageFormat.format(msgPattern, command.getEntityId()));
+        final String msgPattern = "Unhandled: <{0}>!";
+        throw new IllegalArgumentException(MessageFormat.format(msgPattern, command));
     }
 
     @Override
     public Class<T> getMatchingClass() {
         return matchingClass;
-    }
-
-    @Override
-    public boolean isDefined(final T command) {
-        throw new UnsupportedOperationException("This method is not supported by this implementation.");
-    }
-
-    @Override
-    public boolean isDefined(final Context<I> context, @Nullable final S entity, final T command) {
-        checkNotNull(context, "Context");
-        checkNotNull(command, "Command");
-
-        return Optional.ofNullable(entity)
-                .flatMap(Entity::getEntityId)
-                .filter(thingId -> Objects.equals(thingId, command.getEntityId()))
-                .isPresent();
     }
 
     /**

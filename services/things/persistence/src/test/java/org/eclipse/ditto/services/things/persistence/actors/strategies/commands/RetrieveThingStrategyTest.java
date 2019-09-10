@@ -60,7 +60,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void isNotDefinedIfContextHasNoThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getEntityId(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getState(), DittoHeaders.empty());
 
         final boolean defined = underTest.isDefined(context, null, command);
 
@@ -70,7 +70,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void isDefinedIfContextHasThingAndThingIdsAreEqual() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getEntityId(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getState(), DittoHeaders.empty());
 
         final boolean defined = underTest.isDefined(context, THING_V2, command);
 
@@ -80,7 +80,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void retrieveThingFromContextIfCommandHasNoSnapshotRevisionAndNoSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getEntityId(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getState(), DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion());
         final RetrieveThingResponse expectedResponse =
                 retrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty());
@@ -92,7 +92,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     public void retrieveThingFromContextIfCommandHasNoSnapshotRevisionButSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
-        final RetrieveThing command = RetrieveThing.getBuilder(context.getEntityId(), DittoHeaders.empty())
+        final RetrieveThing command = RetrieveThing.getBuilder(context.getState(), DittoHeaders.empty())
                 .withSelectedFields(fieldSelector)
                 .build();
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector);
@@ -105,7 +105,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void unhandledReturnsThingNotAccessibleException() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getEntityId(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getState(), DittoHeaders.empty());
         final ThingNotAccessibleException expectedException =
                 new ThingNotAccessibleException(command.getThingEntityId(), command.getDittoHeaders());
 

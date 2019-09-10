@@ -52,7 +52,7 @@ final class DeleteFeaturePropertyStrategy extends
         return extractFeature(command, thing)
                 .map(feature -> getDeleteFeaturePropertyResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getEntityId(), command.getFeatureId(),
+                        ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                                 command.getDittoHeaders())));
     }
 
@@ -65,7 +65,7 @@ final class DeleteFeaturePropertyStrategy extends
             final long nextRevision, final DeleteFeatureProperty command, @Nullable final Thing thing) {
 
         final JsonPointer propertyPointer = command.getPropertyPointer();
-        final ThingId thingId = context.getEntityId();
+        final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

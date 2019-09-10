@@ -53,6 +53,11 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
         this.log = LogUtil.obtain(this);
     }
 
+    /**
+     * @return the latest and greatest sequence number of a snapshot that was confirmed to be persisted
+     */
+    protected abstract long getLatestSnapshotSequenceNumber();
+
     @Override
     public Receive createReceive() {
         return receiveBuilder()
@@ -164,10 +169,5 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
         deleteSnapshotsResponse = null;
         deleteMessagesResponse = null;
     }
-
-    /**
-     * @return the latest and greatest sequence number of a snapshot that was confirmed to be persisted
-     */
-    protected abstract long getLatestSnapshotSequenceNumber();
 
 }
