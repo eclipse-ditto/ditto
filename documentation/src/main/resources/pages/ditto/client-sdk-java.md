@@ -53,6 +53,7 @@ ProxyConfiguration proxyConfiguration = ProxyConfiguration.newBuilder()
    .proxyHost("localhost")
    .proxyPort(3128)
    .build();
+
 TrustStoreConfiguration trustStoreConfiguration = TrustStoreConfiguration.newBuilder()
    .location(TRUSTSTORE_LOCATION)
    .password(TRUSTSTORE_PASSWORD)
@@ -67,6 +68,7 @@ CommonConfiguration configuration = DittoClientFactory.configurationBuilder()
    .proxyConfiguration(proxyConfiguration)
    .trustStoreConfiguration(trustStoreConfiguration)
    .build();
+
 DittoClient client = DittoClientFactory.newInstance(configuration);
 ```
 
