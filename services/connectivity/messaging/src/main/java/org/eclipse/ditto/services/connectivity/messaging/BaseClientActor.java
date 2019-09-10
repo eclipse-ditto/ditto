@@ -482,6 +482,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState() {
         return matchEvent(OpenConnection.class, BaseClientData.class, this::openConnection)
+                .event(CloseConnection.class, BaseClientData.class, this::connectionAlreadyClosed)
                 .event(TestConnection.class, BaseClientData.class, this::testConnection);
     }
 
@@ -611,8 +612,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private FSM.State<BaseClientState, BaseClientData> connectionAlreadyOpen(final OpenConnection openConnection,
             final BaseClientData data) {
-
         getSender().tell(new Status.Success(CONNECTED), getSelf());
+        return stay();
+    }
+
+
+    private FSM.State<BaseClientState, BaseClientData> connectionAlreadyClosed(final CloseConnection closeConnection,
+            final BaseClientData data) {
+        getSender().tell(new Status.Success(DISCONNECTED), getSelf());
         return stay();
     }
 
@@ -741,7 +748,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.debug("Initialization in progress, current state {}.", currentState.getInitializationState());
             return stay().using(currentState);
         }
-
     }
 
     private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
@@ -1308,10 +1314,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         private static Duration minDuration(final Duration d1, final Duration d2) {
             return isLonger(d1, d2) ? d2 : d1;
-        }
-
-        private static Duration maxDuration(final Duration d1, final Duration d2) {
-            return isLonger(d2, d1) ? d2 : d1;
         }
 
         private static boolean isLonger(final Duration d1, final Duration d2) {

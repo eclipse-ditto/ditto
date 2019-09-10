@@ -653,31 +653,36 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 command.getConnection().toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
 
         persistEvent(ConnectionModified.of(connectionToPersist, command.getDittoHeaders()), persistedEvent -> {
+            // remember topics from previous connection before modification to unsubscribe correctly
+            final Set<Topic> unsubscribeTopics = getUniqueTopics(connection);
+
             restoreConnection(persistedEvent.getConnection());
             getContext().become(connectionCreatedBehaviour);
 
             // if client actor is started: send an artificial CloseConnection command to gracefully disconnect and stop the child actors
             askClientActorIfStarted(CloseConnection.of(connectionId, DittoHeaders.empty()),
                     onSuccess -> {
-                        final PerformTask modifyTask = createModifyConnectionTask(true, command, origin);
+                        final PerformTask modifyTask = createModifyConnectionTask(true, command, origin,
+                                unsubscribeTopics);
                         self.tell(modifyTask, ActorRef.noSender());
                     },
                     error -> handleException("connect-after-modify", origin, error),
                     () -> {
-                        final PerformTask modifyTask = createModifyConnectionTask(false, command, origin);
+                        final PerformTask modifyTask = createModifyConnectionTask(false, command, origin,
+                                unsubscribeTopics);
                         self.tell(modifyTask, ActorRef.noSender());
                     });
         });
     }
 
     private PerformTask createModifyConnectionTask(final boolean stopClientActor, final ModifyConnection command,
-            final ActorRef origin) {
+            final ActorRef origin, final Set<Topic> unsubscribeTopics) {
         final String description = (stopClientActor ? "stop client actor and " : "") + "handle modify connection";
         return new PerformTask(description,
                 connectionActor -> {
                     if (stopClientActor) {
                         log.debug("Connection {} was modified, stopping client actor.", connectionId);
-                        connectionActor.unsubscribeFromEvents();
+                        connectionActor.unsubscribeFromEvents(unsubscribeTopics);
                         connectionActor.stopClientActor();
                     }
                     connectionActor.handleModifyConnection(command, origin);
@@ -765,7 +770,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                                         "unsubscribe from events on connection closed, stop client actor and " +
                                                 "schedule response",
                                         connectionActor -> {
-                                            connectionActor.unsubscribeFromEvents();
+                                            connectionActor.unsubscribeFromEvents(uniqueTopics);
                                             connectionActor.stopClientActor();
                                             origin.tell(closeConnectionResponse, getSelf());
                                         });
@@ -791,7 +796,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             if (connection != null) {
                 restoreConnection(connection.toBuilder().lifecycle(ConnectionLifecycle.DELETED).build());
             }
-            unsubscribeFromEvents();
+            unsubscribeFromEvents(uniqueTopics);
             stopClientActor();
             origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()), self);
             getContext().become(connectionDeletedBehaviour);
@@ -1065,30 +1070,28 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private void subscribeForEvents() {
         checkConnectionNotNull();
-
-        // unsubscribe to previously subscribed topics
-        unsubscribeFromEvents();
-
-        uniqueTopics = connection.getTargets().stream()
-                .flatMap(target -> target.getTopics().stream().map(FilteredTopic::getTopic))
-                .collect(Collectors.toSet());
-
-        forEachPubSubTopicDo(pubSubTopic -> {
+        uniqueTopics = getUniqueTopics(connection);
+        forEachPubSubTopicDo(uniqueTopics, pubSubTopic -> {
             log.debug("Subscribing to pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
             pubSubMediator.tell(DistPubSubAccess.subscribe(pubSubTopic, getSelf()), getSelf());
         });
     }
 
-    private void unsubscribeFromEvents() {
-        forEachPubSubTopicDo(pubSubTopic -> {
+    private Set<Topic> getUniqueTopics(@Nullable final Connection theConnection) {
+        return theConnection != null ? theConnection.getTargets().stream()
+                .flatMap(target -> target.getTopics().stream().map(FilteredTopic::getTopic))
+                .collect(Collectors.toSet()) : Collections.emptySet();
+    }
+
+    private void unsubscribeFromEvents(final Set<Topic> topics) {
+        forEachPubSubTopicDo(topics, pubSubTopic -> {
             log.debug("Unsubscribing from pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
             pubSubMediator.tell(DistPubSubAccess.unsubscribe(pubSubTopic, getSelf()), getSelf());
         });
-        uniqueTopics = Collections.emptySet();
     }
 
-    private void forEachPubSubTopicDo(final Consumer<String> topicConsumer) {
-        uniqueTopics.stream()
+    private void forEachPubSubTopicDo(final Set<Topic> topics, final Consumer<String> topicConsumer) {
+        topics.stream()
                 .map(Topic::getPubSubTopic)
                 .forEach(topicConsumer);
     }
@@ -1311,6 +1314,10 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                         aggregatedStatus.put(getSender().path().address().hostPort(), status);
                         respondIfExpectedResponsesReceived();
                     })
+                    .match(Throwable.class, throwable -> {
+                        aggregatedStatus.put(getSender().path().address().hostPort(), new Status.Failure(throwable));
+                        respondIfExpectedResponsesReceived();
+                    })      
                     .matchAny(any -> {
                         log.info("Could not handle non-Status response: {}", any);
                         respondIfExpectedResponsesReceived();
@@ -1351,7 +1358,5 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 sendBackAggregatedResults();
             }
         }
-
     }
-
 }

@@ -234,6 +234,9 @@ public final class TestConstants {
                         Topic.TWIN_EVENTS);
         private static final Target LIVE_TARGET =
                 newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_EVENTS);
+        public static final Target MESSAGE_TARGET =
+                newTarget("live/message", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
+                        Topic.LIVE_MESSAGES);
         private static final List<Target> TARGETS = asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
 
     }
