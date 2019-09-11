@@ -84,6 +84,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
     private static final String RESTART_MESSAGE_CONSUMER = "restartMessageConsumer";
+    private static final String CREATION_TIME_HEADER = "creation-time";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
@@ -419,6 +420,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         if (jmsCorrelationId != null) {
             headersFromJmsProperties.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), jmsCorrelationId);
         }
+
+        headersFromJmsProperties.put(CREATION_TIME_HEADER, Long.toString(message.getJMSTimestamp()));
 
         return headersFromJmsProperties;
     }

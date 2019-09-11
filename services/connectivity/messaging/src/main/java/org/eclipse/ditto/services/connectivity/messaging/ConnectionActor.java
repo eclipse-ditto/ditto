@@ -1099,7 +1099,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private void unsubscribeFromEvents(final Set<Topic> topics) {
         if (!topics.isEmpty()) {
-            log.debug("Unsubscribing from pub-sub topics <{}> for connection <{}>.", uniqueTopics, connectionId);
+            log.debug("Unsubscribing from pub-sub topics <{}> for connection <{}>.", topics, connectionId);
             dittoProtocolSub.removeSubscriber(getSelf());
         }
     }

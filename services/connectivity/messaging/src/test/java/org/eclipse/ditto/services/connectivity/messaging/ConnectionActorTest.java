@@ -16,16 +16,19 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.asSet;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -38,7 +41,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.Signal;
@@ -71,14 +75,12 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
-import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
-import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 import org.hamcrest.CoreMatchers;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -87,7 +89,6 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ShardRegion;
 import akka.japi.Creator;
 import akka.testkit.TestProbe;
@@ -98,6 +99,12 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class ConnectionActorTest extends WithMockServers {
 
+    private static final Set<String> SUBJECTS =
+            asSet(TestConstants.Authorization.SUBJECT_ID, TestConstants.Authorization.UNAUTHORIZED_SUBJECT_ID);
+    private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS =
+            asSet(StreamingType.EVENTS, StreamingType.LIVE_EVENTS);
+    private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS_AND_MESSAGES = asSet(StreamingType.EVENTS,
+            StreamingType.LIVE_EVENTS, StreamingType.MESSAGES);
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
     private static ActorRef conciergeForwarder;
@@ -123,6 +130,7 @@ public final class ConnectionActorTest extends WithMockServers {
     private RetrieveConnectionResponse retrieveModifiedConnectionResponse;
     private RetrieveConnectionStatusResponse retrieveConnectionStatusOpenResponse;
     private ConnectionNotAccessibleException connectionNotAccessibleException;
+    private DittoProtocolSub dittoProtocolSubMock;
 
     @BeforeClass
     public static void setUp() {
@@ -190,6 +198,8 @@ public final class ConnectionActorTest extends WithMockServers {
                                         "publisher started")))
                         .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
+
+        dittoProtocolSubMock = Mockito.mock(DittoProtocolSub.class);
     }
 
     @Test
@@ -254,10 +264,10 @@ public final class ConnectionActorTest extends WithMockServers {
 
     @Test
     public void manageConnection() {
-        new ConnectionActorTestKit(actorSystem) {{
+        new TestKit(actorSystem) {{
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSub.ref(),
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -405,16 +415,16 @@ public final class ConnectionActorTest extends WithMockServers {
 
     @Test
     public void modifyConnectionClosesAndRestartsClientActor() {
-        new ConnectionActorTestKit(actorSystem) {{
+        new TestKit(actorSystem) {{
             final TestProbe mockClientProbe = TestProbe.apply(actorSystem);
             final TestProbe commandSender = TestProbe.apply(actorSystem);
             final AtomicReference<Connection> latestConnection = new AtomicReference<>();
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSub.ref(),
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                             conciergeForwarder, (connection, concierge) -> {
                                 latestConnection.set(connection);
                                 return MockClientActor.props(mockClientProbe.ref());
-                            });
+                            }, TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock));
 
             // create connection
             underTest.tell(createConnection, commandSender.ref());
@@ -423,17 +433,15 @@ public final class ConnectionActorTest extends WithMockServers {
 
             final ActorRef clientActor = watch(mockClientProbe.sender());
 
-            expectConnectionEvent(pubSub, ConnectionCreated.class);
-            expectSubscribe(pubSub, Topic.TWIN_EVENTS, Topic.LIVE_EVENTS);
+            expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
 
             // modify connection
             underTest.tell(modifyConnection, commandSender.ref());
             // modify triggers a CloseConnection
             mockClientProbe.expectMsg(CloseConnection.of(connectionId, DittoHeaders.empty()));
 
-            expectConnectionEvent(pubSub, ConnectionModified.class);
             // unsubscribe is called for topics of unmodified connection
-            expectUnsubscribe(pubSub, Topic.TWIN_EVENTS, Topic.LIVE_EVENTS);
+            expectRemoveSubscriber();
             expectTerminated(clientActor);
 
             // and sends an open connection (if desired state is open)
@@ -442,7 +450,7 @@ public final class ConnectionActorTest extends WithMockServers {
             commandSender.expectMsg(modifyConnectionResponse);
 
             // modified connection contains an additional target for messages
-            expectSubscribe(pubSub, Topic.TWIN_EVENTS, Topic.LIVE_EVENTS, Topic.LIVE_MESSAGES);
+            expectSubscribe(TWIN_AND_LIVE_EVENTS_AND_MESSAGES, SUBJECTS);
 
             Awaitility.await().untilAtomic(latestConnection, CoreMatchers.is(modifyConnection.getConnection()));
         }};
@@ -483,25 +491,23 @@ public final class ConnectionActorTest extends WithMockServers {
 
     @Test
     public void recoverModifiedConnection() {
-        new ConnectionActorTestKit(actorSystem) {{
+        new TestKit(actorSystem) {{
 
-            ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSub.ref(),
-                    conciergeForwarder);
+            ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
+                    conciergeForwarder, TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock));
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
             expectMsg(createConnectionResponse);
 
-            expectConnectionEvent(pubSub, ConnectionCreated.class);
-            expectSubscribe(pubSub, Topic.TWIN_EVENTS, Topic.LIVE_EVENTS);
+            expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
 
             // modify connection
             underTest.tell(modifyConnection, getRef());
             expectMsg(modifyConnectionResponse);
 
-            expectConnectionEvent(pubSub, ConnectionModified.class);
-            expectUnsubscribe(pubSub, Topic.TWIN_EVENTS, Topic.LIVE_EVENTS);
+            expectRemoveSubscriber();
 
             // stop actor
             getSystem().stop(underTest);
@@ -511,7 +517,7 @@ public final class ConnectionActorTest extends WithMockServers {
             underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                     conciergeForwarder);
 
-            expectSubscribe(pubSub, Topic.TWIN_EVENTS, Topic.LIVE_EVENTS, Topic.LIVE_MESSAGES);
+            expectSubscribe(TWIN_AND_LIVE_EVENTS_AND_MESSAGES, SUBJECTS);
 
             // retrieve connection status
             underTest.tell(retrieveConnection, getRef());
@@ -967,36 +973,14 @@ public final class ConnectionActorTest extends WithMockServers {
         }
     }
 
-    private void expectSubscribe(final TestProbe pubSub, final Topic... topics) {
-        expectPubSubMsg(() -> pubSub.expectMsgClass(DistributedPubSubMediator.Subscribe.class).topic(), topics);
+    private void expectSubscribe(final Set<StreamingType> streamingTypes, final Set<String> subjects) {
+        verify(dittoProtocolSubMock, timeout(500)).subscribe(
+                argThat(argument -> streamingTypes.equals(new HashSet<>(argument))),
+                eq(subjects),
+                any(ActorRef.class));
     }
 
-    private void expectUnsubscribe(final TestProbe pubSub, final Topic... topics) {
-        expectPubSubMsg(() -> pubSub.expectMsgClass(DistributedPubSubMediator.Unsubscribe.class).topic(), topics);
-    }
-
-    private void expectPubSubMsg(final Supplier<String> receivedTopic, final Topic... topics) {
-        final List<String> expected = Stream.of(topics).map(Topic::getPubSubTopic).collect(Collectors.toList());
-        for (int i = 0; i < topics.length; i++) {
-            expected.remove(receivedTopic.get());
-        }
-        assertThat(expected).isEmpty();
-    }
-
-    private void expectConnectionEvent(final TestProbe pubSub,
-            final Class<? extends ConnectivityEvent> expectedEventClass) {
-        final DistributedPubSubMediator.Publish publish =
-                pubSub.expectMsgClass(DistributedPubSubMediator.Publish.class);
-        assertThat(publish.msg()).isInstanceOf(expectedEventClass);
-    }
-
-    static class ConnectionActorTestKit extends TestKit {
-
-        final TestProbe pubSub;
-
-        ConnectionActorTestKit(final ActorSystem system) {
-            super(system);
-            pubSub = new TestProbe(system, "pubSubMediator");
-        }
+    private void expectRemoveSubscriber() {
+        verify(dittoProtocolSubMock, timeout(500)).removeSubscriber(any(ActorRef.class));
     }
 }
