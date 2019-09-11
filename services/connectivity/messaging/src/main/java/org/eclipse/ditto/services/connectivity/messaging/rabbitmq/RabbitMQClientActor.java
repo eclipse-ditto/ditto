@@ -24,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -207,12 +206,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void cleanupResourcesForConnection() {
         log.debug("cleaning up");
         stopCommandConsumers();
-        stopCommandPublisher();
+        stopPublisherActor();
         if (rmqConnectionActor != null) {
             stopChildActor(rmqConnectionActor);
             rmqConnectionActor = null;
         }
-        stopPublisherActor();
     }
 
     private static Optional<ConnectionFactory> tryToCreateConnectionFactory(
@@ -320,17 +318,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private ActorRef startRmqPublisherActor() {
-        return StreamSupport.stream(getContext().getChildren().spliterator(), false)
-                .filter(child -> child.path().name().startsWith(RabbitMQPublisherActor.ACTOR_NAME))
-                .findFirst()
-                .orElseGet(() -> {
-                    final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptyList());
-                    return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
-                });
-    }
-
-    private void stopCommandPublisher() {
-        stopChildActor(RabbitMQPublisherActor.ACTOR_NAME);
+        stopPublisherActor();
+        final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptyList());
+        return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
     }
 
     private void stopCommandConsumers() {
