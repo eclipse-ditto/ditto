@@ -30,30 +30,26 @@ az group create --name $resourcegroup_name --location "westeurope"
 
 With the next command we will use the provided [Azure Resource Manager (ARM)](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-overview) templates to setup the AKS cluster. This might take a while. So maybe time to try out this meditation thing :smile:
 
-Note: Add `cosmosDB=true` to the `az group deployment create` call in case you want to opt for the Azure Cosmos DB persistence (see below).
+Note: Add `cosmosDB=true` to the `az group deployment create` call in case you want to opt for the Azure Cosmos DB persistence (see below). AKS cluster name, IP address name for the load balancer as well as virtual network name can be provided as parameter to the template as well.
 
 ```bash
 unique_solution_prefix=myprefix
 az group deployment create --name DittoBasicInfrastructure --resource-group $resourcegroup_name --template-file arm/dittoInfrastructureDeployment.json --parameters uniqueSolutionPrefix=$unique_solution_prefix servicePrincipalObjectId=$object_id_principal servicePrincipalClientId=$app_id_principal servicePrincipalClientSecret=$password_principal
 ```
 
-The output of the command will provide you with the name of your AKS cluster as well as the created Vnet which should be `YOUR_PREFIXdittoaks` and `YOUR_PREFIXdittovnet`.
-
-Note: AKS cluster name, IP address name for the load balancer as well as virtual network name can be provided as parameter to the template as well.
-
-Optional: retrieve created static public IP address for the load balancer:
+Now retrieve secrets and configs from the deployment:
 
 ```bash
-ip_address_name=$unique_solution_prefix
-ip_address_name+="dittopip"
-ip_address=`az network public-ip show --resource-group $resourcegroup_name --name $ip_address_name --query ipAddress --output tsv`
+aks_cluster_name=`az group deployment show --name DittoBasicInfrastructure --resource-group $resourcegroup_name --query properties.outputs.aksClusterName.value -o tsv`
+ip_address=`az group deployment show --name DittoBasicInfrastructure --resource-group $resourcegroup_name --query properties.outputs.publicIPAddress.value -o tsv`
+cosmos_mongodb_primary_master_key=`az group deployment show --name DittoBasicInfrastructure --resource-group $resourcegroup_name --query properties.outputs.cosmosPrimaryMasterKey.value -o tsv`
+cosmos_account_name=`az group deployment show --name DittoBasicInfrastructure --resource-group $resourcegroup_name --query properties.outputs.cosmosAccountName.value -o tsv`
+public_fqdn=`az group deployment show --name DittoBasicInfrastructure --resource-group $resourcegroup_name --query properties.outputs.publicIPFQDN.value -o tsv`
 ```
 
 Now you can set your cluster in `kubectl`.
 
 ```bash
-aks_cluster_name=$unique_solution_prefix
-aks_cluster_name+="dittoaks"
 az aks get-credentials --resource-group $resourcegroup_name --name $aks_cluster_name
 ```
 
@@ -113,14 +109,6 @@ Disclaimer: as of now Cosmos DB's API for MongoDB is supported by Ditto only for
 
 Note: the provided template did create an individual database per service (if you added `cosmosDB=true`). By default the template provides 400 [Request Units (RU)](https://docs.microsoft.com/en-us/azure/cosmos-db/request-units) for all collections of `Policies`, `Concierge`, `Things` and `Connectivity` and 800 for the Things journal collection. You can override by parameter as well as update RUs later at runtime.
 
-Next we can retrieve the CosmosDB credentials:
-
-```bash
-cosmos_account_name=$unique_solution_prefix
-cosmos_account_name+="dittocosmos"
-cosmos_mongodb_primary_master_key=`az cosmosdb keys list --name $cosmos_account_name --resource-group $resourcegroup_name --output tsv|cut  -f1|head -1`
-```
-
 Now install Ditto with Cosmos DB as persistence and Ditto search disabled.
 
 ```bash
@@ -128,3 +116,9 @@ helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set searc
 ```
 
 Have fun with Eclipse Ditto on Microsoft Azure!
+
+A quick first test (which will return "down" in CosmosDB case as search does not support it):
+
+```bash
+curl -u ditto:ditto http://$public_fqdn:8080/health
+```
