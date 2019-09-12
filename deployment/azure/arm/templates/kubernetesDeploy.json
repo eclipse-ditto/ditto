@@ -4,7 +4,7 @@
   "parameters": {
     "kubernetesVersion": {
       "type": "string",
-      "defaultValue": "1.13.5",
+      "defaultValue": "1.14.5",
       "metadata": {
         "description": "Kubernetes version."
       }
@@ -270,6 +270,10 @@
     },
     "ipAddress": {
       "value": "[reference(variables('publicIPRef'), '2017-11-01').ipAddress]",
+      "type": "string"
+    },
+    "ipFQDN": {
+      "value": "[reference(variables('publicIPRef'), '2017-11-01').dnsSettings.fqdn]",
       "type": "string"
     }
   }

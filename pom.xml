@@ -850,6 +850,18 @@
                     <value>true</value>
                 </property>
             </activation>
+            <distributionManagement>
+                <repository>
+                    <id>repo.eclipse.org</id>
+                    <name>Project Repository - Releases</name>
+                    <url>https://repo.eclipse.org/content/repositories/ditto-releases/</url>
+                </repository>
+                <snapshotRepository>
+                    <id>repo.eclipse.org</id>
+                    <name>Project Repository - Snapshots</name>
+                    <url>https://repo.eclipse.org/content/repositories/ditto-snapshots/</url>
+                </snapshotRepository>
+            </distributionManagement>
         </profile>
 
         <profile>
