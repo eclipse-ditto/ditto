@@ -17,14 +17,12 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -38,6 +36,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
+import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -133,35 +132,34 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
                 .failoverEnabled(true)
                 .specificConfig(specificConfig)
                 .build();
-        when(publisherActorFactory.getActorName()).thenReturn("actorName");
     }
 
     @Test
     public void testConnect() {
         new TestKit(actorSystem) {{
-            final MockKafkaPublisher mockKafkaPublisher = provideMockKafkaPublisher(actorSystem);
-            final Props props = getKafkaClientActorProps(getRef());
+            final TestProbe probe = new TestProbe(getSystem());
+            final Props props = getKafkaClientActorProps(probe.ref());
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            mockKafkaPublisher.expectPublisherStarted(kafkaClientActor);
             expectMsg(CONNECTED_SUCCESS);
 
             kafkaClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
-            mockKafkaPublisher.expectPublisherStopped();
+
+            expectPublisherReceivedShutdownSignal(probe);
         }};
     }
 
     @Test
     public void testPublishToTopic() {
         new TestKit(actorSystem) {{
-            final MockKafkaPublisher mockKafkaPublisher = provideMockKafkaPublisher(actorSystem);
-            final Props props = getKafkaClientActorProps(getRef());
+
+            final TestProbe probe = new TestProbe(getSystem());
+            final Props props = getKafkaClientActorProps(probe.ref());
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            mockKafkaPublisher.expectPublisherStarted(kafkaClientActor);
             expectMsg(CONNECTED_SUCCESS);
 
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singleton(""));
@@ -174,24 +172,24 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             when(mappedSignal.getSource()).thenReturn(thingModifiedEvent);
             kafkaClientActor.tell(mappedSignal, getRef());
 
-            final OutboundSignal.WithExternalMessage message = mockKafkaPublisher.expectMessage();
+            final OutboundSignal.WithExternalMessage message =
+                    probe.expectMsgClass(OutboundSignal.WithExternalMessage.class);
             assertThat(message.getExternalMessage().getTextPayload()).contains(expectedJson);
 
             kafkaClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
-            mockKafkaPublisher.expectPublisherStopped();
+
+            expectPublisherReceivedShutdownSignal(probe);
         }};
     }
 
     @Test
     public void testTestConnection() {
         new TestKit(actorSystem) {{
-            final MockKafkaPublisher mockKafkaPublisher = provideMockKafkaPublisher(actorSystem);
             final Props props = getKafkaClientActorProps(getRef());
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
-            mockKafkaPublisher.expectPublisherStarted(kafkaClientActor);
             expectMsg(new Status.Success("successfully connected + initialized mapper"));
         }};
     }
@@ -199,12 +197,11 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testTestConnectionFails() {
         new TestKit(actorSystem) {{
-            final MockKafkaPublisher mockKafkaPublisher = provideMockKafkaPublisher(actorSystem);
-            final Props props = getKafkaClientActorProps(getRef());
+            final Props props = getKafkaClientActorProps(getRef(),
+                    new Status.Failure(new IllegalStateException("just for testing")));
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
-            mockKafkaPublisher.expectPublisherStartedButConnectionFailed(kafkaClientActor);
             expectMsgClass(Status.Failure.class);
         }};
     }
@@ -212,12 +209,10 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testRetrieveConnectionMetrics() {
         new TestKit(actorSystem) {{
-            final MockKafkaPublisher mockKafkaPublisher = provideMockKafkaPublisher(actorSystem);
             final Props props = getKafkaClientActorProps(getRef());
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
-            mockKafkaPublisher.expectPublisherStarted(kafkaClientActor);
             expectMsg(CONNECTED_SUCCESS);
 
             kafkaClientActor.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
@@ -226,22 +221,29 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
         }};
     }
 
-    private Props getKafkaClientActorProps(final ActorRef conciergeForwarder) {
-        return KafkaClientActor.props(connection, conciergeForwarder, publisherActorFactory);
+    private Props getKafkaClientActorProps(final ActorRef ref) {
+        return getKafkaClientActorProps(ref, new Status.Success(Done.done()));
+    }
+
+    private Props getKafkaClientActorProps(final ActorRef ref, final Status.Status status) {
+        return KafkaClientActor.props(connection, ref, new KafkaPublisherActorFactory() {
+            @Override
+            public String getActorName() {
+                return "testPublisherActor";
+            }
+
+            @Override
+            public Props props(final ConnectionId connectionId, final List<Target> targets,
+                    final KafkaConnectionFactory factory, final boolean dryRun) {
+                return MockKafkaPublisherActor.props(ref, status);
+            }
+        });
     }
 
     private static Map<String, String> specificConfigWithBootstrapServers(final String... hostAndPort) {
         final Map<String, String> specificConfig = new HashMap<>();
         specificConfig.put("bootstrapServers", String.join(",", hostAndPort));
         return specificConfig;
-    }
-
-    private MockKafkaPublisher provideMockKafkaPublisher(final ActorSystem actorSystem) {
-        final MockKafkaPublisher mockKafkaPublisher = new MockKafkaPublisher(actorSystem);
-        when(publisherActorFactory.props(any(ConnectionId.class), anyList(), any(KafkaConnectionFactory.class),
-                any(ActorRef.class), anyBoolean()))
-                .thenReturn(mockKafkaPublisher.publisherActorProps());
-        return mockKafkaPublisher;
     }
 
     @Override
@@ -259,70 +261,27 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
         return actorSystem;
     }
 
-    private static final class MockKafkaPublisher {
+    private void expectPublisherReceivedShutdownSignal(final TestProbe probe) {
+        probe.expectMsg(KafkaPublisherActor.GracefulStop.INSTANCE);
+    }
 
-        private final TestProbe testProbe;
+    private static final class MockKafkaPublisherActor extends AbstractActor {
 
-        MockKafkaPublisher(final ActorSystem actorSystem) {
-            testProbe = TestProbe.apply(actorSystem);
+        private final ActorRef target;
+
+        private MockKafkaPublisherActor(final ActorRef target, final Status.Status status) {
+            this.target = target;
+            getContext().getParent().tell(ResourceReady.publisherReady(getSelf()), getSelf());
+            getContext().getParent().tell(status, getSelf());
         }
 
-        Props publisherActorProps() {
-            return Props.create(MockKafkaPublisherActor.class, testProbe.ref());
+        static Props props(final ActorRef target, final Status.Status status) {
+            return Props.create(MockKafkaPublisherActor.class, target, status);
         }
 
-        void expectPublisherStarted(final ActorRef kafkaClientActor) {
-            final ActorRef kafkaPublisherActor = testProbe.expectMsgClass(ReportActorRef.class).getActorRef();
-            kafkaClientActor.tell(new Status.Success(Done.done()), kafkaPublisherActor);
-        }
-
-        void expectPublisherStartedButConnectionFailed(final ActorRef kafkaClientActor) {
-            final ActorRef kafkaPublisherActor = testProbe.expectMsgClass(ReportActorRef.class).getActorRef();
-            kafkaClientActor.tell(new Status.Failure(new IllegalStateException("just for testing")),
-                    kafkaPublisherActor);
-        }
-
-        void expectPublisherStopped() {
-            testProbe.expectMsg(KafkaPublisherActor.GracefulStop.INSTANCE);
-        }
-
-        private OutboundSignal.WithExternalMessage expectMessage() {
-            return testProbe.expectMsgClass(OutboundSignal.WithExternalMessage.class);
-        }
-
-        private static class ReportActorRef {
-
-            private final ActorRef actorRef;
-
-            ReportActorRef(final ActorRef actorRef) {
-                this.actorRef = actorRef;
-            }
-
-            ActorRef getActorRef() {
-                return actorRef;
-            }
-
-        }
-
-        private static final class MockKafkaPublisherActor extends AbstractActor {
-
-            private final ActorRef testProbe;
-
-            private MockKafkaPublisherActor(final ActorRef testProbe) {
-                this.testProbe = testProbe;
-
-                this.testProbe.tell(new ReportActorRef(getSelf()), getSelf());
-            }
-
-            public static Props props(final ActorRef testProbe) {
-                return Props.create(MockKafkaPublisherActor.class, testProbe);
-            }
-
-            @Override
-            public Receive createReceive() {
-                return receiveBuilder().matchAny(any -> testProbe.forward(any, getContext())).build();
-            }
-
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder().matchAny(any -> target.forward(any, getContext())).build();
         }
 
     }

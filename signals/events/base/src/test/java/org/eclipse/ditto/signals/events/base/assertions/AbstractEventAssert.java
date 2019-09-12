@@ -71,7 +71,7 @@ public abstract class AbstractEventAssert<S extends AbstractJsonifiableAssert<S,
     public S hasId(final EntityId expectedId) {
         isNotNull();
         final EntityId actualId = actual.getEntityId();
-        Assertions.assertThat((CharSequence) actualId)
+        Assertions.assertThat(actualId.toString())
                 .overridingErrorMessage("Expected Event to have ID\n<%s> but it had\n<%s>", expectedId, actualId)
                 .isEqualTo(expectedId.toString());
         return myself;

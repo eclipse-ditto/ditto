@@ -148,7 +148,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
                             .getProperties()
             );
 
-            final ActorRef processor = setupActor(getRef(), getRef(), mappingContext);
+            final ActorRef processor = setupActor(getRef(), mappingContext);
 
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())
@@ -189,7 +189,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     @Test
     public void createWithDefaultMapperOnly() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = setupActor(getTestActor(), getTestActor(), null);
+            final ActorRef underTest = setupActor(getTestActor(), null);
             final ExternalMessage in =
                     ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("").build();
             final ConsistentHashingRouter.ConsistentHashableEnvelope msg =
@@ -198,13 +198,12 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         }};
     }
 
-    private ActorRef setupActor(final ActorRef publisherActor, final ActorRef conciergeForwarderActor,
+    private ActorRef setupActor(final ActorRef conciergeForwarderActor,
             final MappingContext mappingContext) {
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(publisherActor, conciergeForwarderActor, mappingProcessor,
-                        CONNECTION_ID);
+                MessageMappingProcessorActor.props(conciergeForwarderActor, mappingProcessor, CONNECTION_ID);
 
         final Resizer resizer = new DefaultResizer(2, 2);
 
@@ -220,7 +219,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         new TestKit(actorSystem) {{
 
             final ActorRef testActor = getTestActor();
-            final ActorRef processor = setupActor(testActor, testActor, null);
+            final ActorRef processor = setupActor(testActor, null);
 
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())

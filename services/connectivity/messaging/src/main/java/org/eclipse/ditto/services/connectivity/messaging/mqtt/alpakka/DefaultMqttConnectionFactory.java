@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.mqtt;
+package org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
 
 import akka.Done;
 import akka.japi.Pair;
@@ -54,18 +55,15 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
     @Override
     public akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> newSource(final Source mqttSource,
             final int bufferSize) {
-        final String clientId = connectionId() + "-source" + mqttSource.getIndex();
-        final MqttConnectionSettings connectionSettings = settings.withClientId(clientId);
         return akka.stream.alpakka.mqtt.javadsl.MqttSource.atMostOnce(
-                connectionSettings,
+                settings,
                 MqttSubscriptions.create(getSubscriptions(mqttSource)),
                 bufferSize);
     }
 
     @Override
     public Sink<MqttMessage, CompletionStage<Done>> newSink() {
-        final String clientId = connectionId() + "-publisher";
-        return MqttSink.create(settings.withClientId(clientId), MqttQoS.atMostOnce());
+        return MqttSink.create(settings, MqttQoS.atMostOnce());
     }
 
     private static List<Pair<String, MqttQoS>> getSubscriptions(final Source mqttSource) {

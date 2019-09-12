@@ -39,6 +39,7 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
 
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("amqp", "amqps"));
+    private static final Collection<String> SECURE_SCHEMES = Collections.singletonList("amqps");
 
     /**
      * Create a new {@code RabbitMQConnectionSpec}.
@@ -75,7 +76,7 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
 
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
-        validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "AMQP 0.9.1");
+        validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES,"AMQP 0.9.1");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
     }

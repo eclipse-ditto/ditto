@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,9 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.mqtt;
+package org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka;
 
-import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttClientActor.ConsumerStreamMessage.STREAM_ACK;
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka.MqttClientActor.ConsumerStreamMessage.STREAM_ACK;
 
 import java.util.HashMap;
 import java.util.Objects;
@@ -37,7 +37,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.routing.ConsistentHashingRouter;
 import akka.stream.alpakka.mqtt.MqttMessage;
 
 /**
@@ -105,26 +104,22 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     }
 
     private void handleMqttMessage(final MqttMessage message) {
-        HashMap<String, String> headers = null;
+        HashMap<String, String> headers = new HashMap<>();
         try {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
-            if (log.isDebugEnabled()) {
-                log.debug("Received MQTT message on topic <{}>: {}", message.topic(),
-                        message.payload().utf8String());
-            }
-            headers = new HashMap<>();
+            final String textPayload = message.payload().utf8String();
+            log.debug("Received MQTT message on topic <{}>: {}", message.topic(), textPayload);
 
             headers.put(MQTT_TOPIC_HEADER, message.topic());
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                    .withBytes(message.payload().toByteBuffer())
+                    .withTextAndBytes(textPayload, message.payload().toByteBuffer())
                     .withAuthorizationContext(authorizationContext)
                     .withEnforcement(getEnforcementFilter(message.topic()))
                     .withSourceAddress(sourceAddress)
                     .build();
             inboundMonitor.success(externalMessage);
 
-            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, message.topic());
-            messageMappingProcessor.tell(msg, getSelf());
+            forwardToMappingActor(externalMessage, message.topic());
             replyStreamAck();
         } catch (final DittoRuntimeException e) {
             log.info("Failed to handle MQTT message: {}", e.getMessage());

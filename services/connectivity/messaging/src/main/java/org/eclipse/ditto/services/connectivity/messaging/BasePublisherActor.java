@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
+import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
@@ -99,6 +100,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(this.connectionId);
         connectionLogger =
                 ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(this.connectionId);
+    }
+
+    @Override
+    public void preStart() {
+        getContext().getParent().tell(ResourceReady.publisherReady(getSelf()), getSelf());
     }
 
     private static String getInstanceIdentifier() {
@@ -291,5 +297,4 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     .build();
         }).orElseGet(messageBuilder::build);
     }
-
 }

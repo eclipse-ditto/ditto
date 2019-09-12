@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,11 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.internal;
+package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.TrustManager;
@@ -29,13 +30,14 @@ import sun.security.util.HostnameChecker;
 final class DittoTrustManager implements X509TrustManager {
 
     private static final HostnameChecker HOSTNAME_CHECKER = HostnameChecker.getInstance(HostnameChecker.TYPE_TLS);
+    private static final Pattern IPV6_URI_PATTERN = Pattern.compile("^\\[[A-Fa-f0-9.:\\s]++]$");
 
     private final X509TrustManager delegate;
     private final String hostnameOrIp;
 
     private DittoTrustManager(final X509TrustManager delegate, final String hostnameOrIp) {
         this.delegate = delegate;
-        this.hostnameOrIp = hostnameOrIp;
+        this.hostnameOrIp = stripIpv6Brackets(hostnameOrIp);
     }
 
     /**
@@ -90,5 +92,14 @@ final class DittoTrustManager implements X509TrustManager {
 
     private boolean isServerCertificateInTrustStore(final X509Certificate serverCertificate) {
         return Arrays.asList(delegate.getAcceptedIssuers()).contains(serverCertificate);
+    }
+
+    @Nullable
+    private static String stripIpv6Brackets(@Nullable final String hostnameOrIp) {
+        if (hostnameOrIp != null && IPV6_URI_PATTERN.matcher(hostnameOrIp).matches()) {
+            return hostnameOrIp.substring(1, hostnameOrIp.length() - 1);
+        } else {
+            return hostnameOrIp;
+        }
     }
 }

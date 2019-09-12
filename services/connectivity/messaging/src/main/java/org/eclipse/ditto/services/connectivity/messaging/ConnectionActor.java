@@ -465,6 +465,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                         createConnection -> validateAndForward(createConnection, this::createConnection))
                 .match(ConnectivityCommand.class, this::handleCommandWhenDeleted)
                 .match(Signal.class, this::ignoreBroadcastSignalWhenDeleted)
+                .match(DistributedPubSubMediator.SubscribeAck.class, this::handleSubscribeAck)
+                .match(DistributedPubSubMediator.UnsubscribeAck.class, this::handleUnsubscribeAck)
                 .matchEquals(STOP_SELF_IF_DELETED, msg -> stopSelf())
                 .match(SaveSnapshotSuccess.class, this::handleSnapshotSuccess)
                 .matchAny(m -> {
@@ -505,25 +507,25 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
         enhanceLogUtil(signal);
         if (clientActorRouter == null) {
-            log.debug("Signal dropped: Client actor not ready.");
+            logDroppedSignal(signal.getType(), "Client actor not ready.");
             return;
         }
         if (connection == null || signalFilter == null) {
-            log.debug("Signal dropped: No Connection or signalFilter configuration available.");
+            logDroppedSignal(signal.getType(), "No Connection or signalFilter configuration available.");
             return;
         }
         if (uniqueTopics.isEmpty()) {
-            log.debug("Signal dropped: No topics present.");
+            logDroppedSignal(signal.getType(), "No topics present.");
             return;
         }
         if (connectionId.toString().equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
-            log.debug("Signal dropped: was sent by myself.");
+            logDroppedSignal(signal.getType(), "Was sent by myself.");
             return;
         }
 
         final List<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
         if (subscribedAndAuthorizedTargets.isEmpty()) {
-            log.debug("Signal dropped: No subscribed and authorized targets present");
+            logDroppedSignal(signal.getType(), "No subscribed and authorized targets present");
             return;
         }
 
@@ -532,6 +534,10 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
         final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
         clientActorRouter.tell(outbound, getSender());
+    }
+
+    private void logDroppedSignal(final String type, final String reason) {
+        log.debug("Signal ({}) dropped: {}", type, reason);
     }
 
     private void testConnection(final TestConnection command) {
@@ -644,31 +650,36 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 command.getConnection().toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
 
         persistEvent(ConnectionModified.of(connectionToPersist, command.getDittoHeaders()), persistedEvent -> {
+            // remember topics from previous connection before modification to unsubscribe correctly
+            final Set<Topic> unsubscribeTopics = getUniqueTopics(connection);
+
             restoreConnection(persistedEvent.getConnection());
             getContext().become(connectionCreatedBehaviour);
 
             // if client actor is started: send an artificial CloseConnection command to gracefully disconnect and stop the child actors
             askClientActorIfStarted(CloseConnection.of(connectionId, DittoHeaders.empty()),
                     onSuccess -> {
-                        final PerformTask modifyTask = createModifyConnectionTask(true, command, origin);
+                        final PerformTask modifyTask = createModifyConnectionTask(true, command, origin,
+                                unsubscribeTopics);
                         self.tell(modifyTask, ActorRef.noSender());
                     },
                     error -> handleException("connect-after-modify", origin, error),
                     () -> {
-                        final PerformTask modifyTask = createModifyConnectionTask(false, command, origin);
+                        final PerformTask modifyTask = createModifyConnectionTask(false, command, origin,
+                                unsubscribeTopics);
                         self.tell(modifyTask, ActorRef.noSender());
                     });
         });
     }
 
     private PerformTask createModifyConnectionTask(final boolean stopClientActor, final ModifyConnection command,
-            final ActorRef origin) {
+            final ActorRef origin, final Set<Topic> unsubscribeTopics) {
         final String description = (stopClientActor ? "stop client actor and " : "") + "handle modify connection";
         return new PerformTask(description,
                 connectionActor -> {
                     if (stopClientActor) {
                         log.debug("Connection {} was modified, stopping client actor.", connectionId);
-                        connectionActor.unsubscribeFromEvents();
+                        connectionActor.unsubscribeFromEvents(unsubscribeTopics);
                         connectionActor.stopClientActor();
                     }
                     connectionActor.handleModifyConnection(command, origin);
@@ -755,7 +766,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                                         "unsubscribe from events on connection closed, stop client actor and " +
                                                 "schedule response",
                                         connectionActor -> {
-                                            connectionActor.unsubscribeFromEvents();
+                                            connectionActor.unsubscribeFromEvents(uniqueTopics);
                                             connectionActor.stopClientActor();
                                             origin.tell(closeConnectionResponse, getSelf());
                                         });
@@ -781,7 +792,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             if (connection != null) {
                 restoreConnection(connection.toBuilder().lifecycle(ConnectionLifecycle.DELETED).build());
             }
-            unsubscribeFromEvents();
+            unsubscribeFromEvents(uniqueTopics);
             stopClientActor();
             origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()), self);
             getContext().become(connectionDeletedBehaviour);
@@ -891,7 +902,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         // wrap in Broadcast message because these management messages must be delivered to each client actor
         if (clientActorRouter != null && connection != null) {
             final ActorRef aggregationActor = getContext().actorOf(
-                    AggregateActor.props(clientActorRouter, connection.getClientCount(), responseTimeout));
+                    AggregateActor.props(clientActorRouter, connection.getClientCount(), responseTimeout,
+                            connectionId));
             Patterns.ask(aggregationActor, cmd, clientActorAskTimeout)
                     .whenComplete((response, exception) -> {
                         log.debug("Got response to {}: {}", cmd.getType(),
@@ -1054,16 +1066,15 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private CompletionStage<?> subscribeForEvents() {
         checkConnectionNotNull();
-
-        // unsubscribe to previously subscribed topics
-        unsubscribeFromEvents();
-
-        uniqueTopics = connection.getTargets().stream()
-                .flatMap(target -> target.getTopics().stream().map(FilteredTopic::getTopic))
-                .collect(Collectors.toSet());
-
+        uniqueTopics = getUniqueTopics(connection);
         log.debug("Subscribing to pub-sub topics <{}> for connection <{}>.", uniqueTopics, connectionId);
         return dittoProtocolSub.subscribe(toStreamingTypes(uniqueTopics), getTargetAuthSubjects(), getSelf());
+    }
+
+    private Set<Topic> getUniqueTopics(@Nullable final Connection theConnection) {
+        return theConnection != null ? theConnection.getTargets().stream()
+                .flatMap(target -> target.getTopics().stream().map(FilteredTopic::getTopic))
+                .collect(Collectors.toSet()) : Collections.emptySet();
     }
 
     private Set<String> getTargetAuthSubjects() {
@@ -1079,11 +1090,10 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         }
     }
 
-    private void unsubscribeFromEvents() {
-        log.debug("Unsubscribing from pub-sub topics <{}> for connection <{}>.", uniqueTopics, connectionId);
-        if (!uniqueTopics.isEmpty()) {
+    private void unsubscribeFromEvents(final Set<Topic> topics) {
+        if (!topics.isEmpty()) {
+            log.debug("Unsubscribing from pub-sub topics <{}> for connection <{}>.", topics, connectionId);
             dittoProtocolSub.removeSubscriber(getSelf());
-            uniqueTopics = Collections.emptySet();
         }
     }
 
@@ -1268,23 +1278,29 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
         private int responseCount = 0;
         @Nullable private ActorRef origin;
-        @Nullable private DittoHeaders originHeaders;
 
         /**
          * Creates Akka configuration object for this actor.
          *
+         * @param clientActor the client actor router
+         * @param expectedResponses the number of expected responses
+         * @param timeout the timeout in milliseconds
+         * @param connectionId the connection id
          * @return the Akka configuration Props object
          */
-        static Props props(final ActorRef clientActor, final int expectedResponses, final long timeout) {
-            return Props.create(AggregateActor.class, clientActor, expectedResponses, timeout);
+        static Props props(final ActorRef clientActor, final int expectedResponses, final long timeout,
+                final ConnectionId connectionId) {
+            return Props.create(AggregateActor.class, clientActor, expectedResponses, timeout, connectionId);
         }
 
         @SuppressWarnings("unused")
-        private AggregateActor(final ActorRef clientActor, final int expectedResponses, final long timeout) {
+        private AggregateActor(final ActorRef clientActor, final int expectedResponses, final long timeout,
+                final ConnectionId connectionId) {
             this.clientActor = clientActor;
             this.expectedResponses = expectedResponses;
             this.timeout = timeout;
             aggregatedStatus = new HashMap<>();
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         }
 
         @Override
@@ -1292,7 +1308,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             return ReceiveBuilder.create()
                     .match(Command.class, command -> {
                         clientActor.tell(new Broadcast(command), getSelf());
-                        originHeaders = command.getDittoHeaders();
                         origin = getSender();
 
                         getContext().setReceiveTimeout(Duration.ofMillis(timeout / 2));
@@ -1301,19 +1316,17 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                             // send back (partially) gathered responses
                             sendBackAggregatedResults()
                     )
+                    .match(Status.Status.class, status -> {
+                        addStatus(status);
+                        respondIfExpectedResponsesReceived();
+                    })
+                    .match(DittoRuntimeException.class, dre -> {
+                        addStatus(new Status.Failure(dre));
+                        respondIfExpectedResponsesReceived();
+                    })
                     .matchAny(any -> {
-                        if (any instanceof Status.Status) {
-                            addStatus((Status.Status) any);
-                        } else if (any instanceof DittoRuntimeException) {
-                            addStatus(new Status.Failure((DittoRuntimeException) any));
-                        } else {
-                            log.error("Could not handle non-Status response: {}", any);
-                        }
-                        responseCount++;
-                        if (expectedResponses == responseCount) {
-                            // send back all gathered responses
-                            sendBackAggregatedResults();
-                        }
+                        log.info("Could not handle non-Status response: {}", any);
+                        respondIfExpectedResponsesReceived();
                     })
                     .build();
         }
@@ -1323,25 +1336,37 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         }
 
         private void sendBackAggregatedResults() {
-            if (origin != null && originHeaders != null && !aggregatedStatus.isEmpty()) {
-                log.debug("Aggregated statuses: {}", aggregatedStatus);
-                final Optional<Status.Status> failure = aggregatedStatus.values().stream()
-                        .filter(status -> status instanceof Status.Failure)
-                        .findFirst();
-                if (failure.isPresent()) {
-                    origin.tell(failure.get(), getSelf());
+            if (origin != null) {
+                if (!aggregatedStatus.isEmpty()) {
+                    log.debug("Aggregated statuses: {}", aggregatedStatus);
+                    final Optional<Status.Status> failure = aggregatedStatus.values().stream()
+                            .filter(status -> status instanceof Status.Failure)
+                            .findFirst();
+                    if (failure.isPresent()) {
+                        origin.tell(failure.get(), getSelf());
+                    } else {
+                        final String aggregatedStatusStr = aggregatedStatus.entrySet().stream()
+                                .map(Object::toString)
+                                .collect(Collectors.joining(","));
+                        origin.tell(new Status.Success(aggregatedStatusStr), getSelf());
+                    }
                 } else {
-                    final String aggregatedStatusStr = aggregatedStatus.entrySet().stream()
-                            .map(Object::toString)
-                            .collect(Collectors.joining(","));
-                    origin.tell(new Status.Success(aggregatedStatusStr), getSelf());
+                    // no status response received, most likely a timeout
+                    log.info("Waiting for status responses timed out.");
+                    origin.tell(new RuntimeException("Waiting for status responses timed out."), getSelf());
                 }
             } else {
-                log.warning("No origin was present or results were empty in order to send back aggregated results to");
+                log.info("No origin was present to send back aggregated results.");
             }
             getContext().stop(getSelf());
         }
 
+        private void respondIfExpectedResponsesReceived() {
+            responseCount++;
+            if (expectedResponses == responseCount) {
+                // send back all gathered responses
+                sendBackAggregatedResults();
+            }
+        }
     }
-
 }

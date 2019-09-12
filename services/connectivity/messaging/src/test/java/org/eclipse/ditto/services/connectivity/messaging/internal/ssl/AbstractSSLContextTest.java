@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.internal;
+package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -22,22 +22,24 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.concurrent.CompletableFuture;
 
+import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLServerSocket;
 
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.AcceptAnyTrustManager;
+import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator}.
+ * Tests {@link SSLContextCreator}.
  * <p>
  * Certificates used by this test expires on 01 January 2100. Please regenerate certificates
- * according to {@link org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates}.
+ * according to {@link Certificates}.
  * </p>
  */
-public final class SSLContextCreatorTest {
+public abstract class AbstractSSLContextTest {
 
     private static final ClientCertificateCredentials SERVER_CREDENTIALS = ClientCertificateCredentials.newBuilder()
             .clientKey(Certificates.SERVER_KEY)
@@ -61,12 +63,17 @@ public final class SSLContextCreatorTest {
                     .clientCertificate(Certificates.SERVER_WITH_ALT_NAMES_CRT)
                     .build();
 
+    abstract SSLContext createSSLContext(@Nullable final String trustedCertificates,
+            final String hostname,
+            final Credentials credentials) throws Exception;
+
+    abstract SSLContext createAcceptAnySSLContext() throws Exception;
+
     @Test
     public void distrustServerSignedByUntrustedCA() {
         assertThatExceptionOfType(SSLHandshakeException.class).isThrownBy(() -> {
             try (final ServerSocket serverSocket = startServer(false)) {
-                try (final Socket underTest = SSLContextCreator.of(null, null, null)
-                        .withoutClientCertificate()
+                try (final Socket underTest = createSSLContext(null, null, null)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -76,13 +83,13 @@ public final class SSLContextCreatorTest {
         });
     }
 
+
     @Test
     public void distrustUnsignedServerHostname() {
         final String unsignedHostname = "unsigned.hostname";
         assertThatExceptionOfType(SSLHandshakeException.class).isThrownBy(() -> {
             try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES);
-                    final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, unsignedHostname)
-                            .withoutClientCertificate()
+                    final Socket underTest =  createSSLContext(Certificates.CA_CRT, unsignedHostname, null)
                             .getSocketFactory()
                             .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -96,13 +103,12 @@ public final class SSLContextCreatorTest {
         final String unsignedIPv6 = "[::126]";
         final String unsignedIPv4 = "192.168.34.12";
         try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES)) {
-            try (final Socket underTestV6 = SSLContextCreator.of(Certificates.CA_CRT, null, unsignedIPv6)
-                    .withoutClientCertificate()
+            try (final Socket underTestV6 = createSSLContext(Certificates.CA_CRT, unsignedIPv6, null)
                     .getSocketFactory()
                     .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort());
 
-                    final Socket underTestV4 = SSLContextCreator.of(Certificates.CA_CRT, null, unsignedIPv4)
-                            .withoutClientCertificate()
+                    final Socket underTestV4 =
+                            createSSLContext(Certificates.CA_CRT, unsignedIPv4, null)
                             .getSocketFactory()
                             .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -121,8 +127,7 @@ public final class SSLContextCreatorTest {
         final String unsignedIPv6 = "[::126]";
         final String serverCert = Certificates.SERVER_WITH_ALT_NAMES_CRT;
         try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES)) {
-            try (final Socket underTest = SSLContextCreator.of(serverCert, null, unsignedHostname)
-                    .withoutClientCertificate()
+            try (final Socket underTest = createSSLContext(serverCert, unsignedHostname, null)
                     .getSocketFactory()
                     .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -130,8 +135,7 @@ public final class SSLContextCreatorTest {
                 assertThat(underTest.getInputStream().read()).isEqualTo(29);
             }
 
-            try (final Socket underTest = SSLContextCreator.of(serverCert, null, unsignedIPv6)
-                    .withoutClientCertificate()
+            try (final Socket underTest = createSSLContext(serverCert, unsignedIPv6, null)
                     .getSocketFactory()
                     .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -145,8 +149,7 @@ public final class SSLContextCreatorTest {
     public void trustSignedServerDNSName() throws Exception {
         final String signedAltName = "example.com";
         try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES);
-                final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, signedAltName)
-                        .withoutClientCertificate()
+                final Socket underTest = createSSLContext(Certificates.CA_CRT, signedAltName, null)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -162,8 +165,7 @@ public final class SSLContextCreatorTest {
         // include a DNS-ID, SRV-ID, URI-ID, or any application-specific identifier types supported by the client.
         final String signedCommonName = "server.alt";
         try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES);
-                final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, signedCommonName)
-                        .withoutClientCertificate()
+                final Socket underTest = createSSLContext(Certificates.CA_CRT, signedCommonName, null)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -177,16 +179,14 @@ public final class SSLContextCreatorTest {
         final String signedIPv6 = "[100::1319:8a2e:370:7348]";
         final String signedIPv4 = "127.128.129.130";
         try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES)) {
-            try (final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, signedIPv6)
-                    .withoutClientCertificate()
+            try (final Socket underTest = createSSLContext(Certificates.CA_CRT, signedIPv6, null)
                     .getSocketFactory()
                     .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
                 underTest.getOutputStream().write(58);
                 assertThat(underTest.getInputStream().read()).isEqualTo(58);
             }
-            try (final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, signedIPv4)
-                    .withoutClientCertificate()
+            try (final Socket underTest = createSSLContext(Certificates.CA_CRT, signedIPv4, null)
                     .getSocketFactory()
                     .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -199,14 +199,13 @@ public final class SSLContextCreatorTest {
     @Test
     public void distrustSelfSignedClient() {
         try (final ServerSocket serverSocket = startServer(true);
-                final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, null)
-                        .clientCertificate(SELF_SIGNED_CLIENT_CREDENTIALS)
+                final Socket underTest = createSSLContext(Certificates.CA_CRT, null, SELF_SIGNED_CLIENT_CREDENTIALS)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
             underTest.getOutputStream().write(234);
         } catch (SSLHandshakeException | SocketException expected) {
-          // one of these is expected. should only be SSLHandshakeException, but JDK has a bug
+            // one of these is expected. should only be SSLHandshakeException, but JDK has a bug
         } catch (final Exception e) {
             e.printStackTrace();
             Assert.fail("Got different exception than expected");
@@ -216,8 +215,7 @@ public final class SSLContextCreatorTest {
     @Test
     public void trustSignedClient() throws Exception {
         try (final ServerSocket serverSocket = startServer(true);
-                final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, null)
-                        .clientCertificate(CLIENT_CREDENTIALS)
+                final Socket underTest = createSSLContext(Certificates.CA_CRT, null, CLIENT_CREDENTIALS)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -229,8 +227,7 @@ public final class SSLContextCreatorTest {
     @Test
     public void trustEverybodyWithAcceptAnyTrustManager() throws Exception {
         try (final ServerSocket serverSocket = startServer(false);
-                final Socket underTest = SSLContextCreator.withTrustManager(new AcceptAnyTrustManager(), null)
-                        .withoutClientCertificate()
+                final Socket underTest = createAcceptAnySSLContext()
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 

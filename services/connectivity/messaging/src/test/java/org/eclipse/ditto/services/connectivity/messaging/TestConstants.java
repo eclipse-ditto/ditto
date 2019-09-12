@@ -46,8 +46,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -108,6 +111,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -121,6 +126,7 @@ import akka.actor.Props;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.Patterns;
+import akka.testkit.TestProbe;
 
 public final class TestConstants {
 
@@ -178,10 +184,16 @@ public final class TestConstants {
     public static final Instant INSTANT = Instant.now();
 
     static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
+        return dummyDittoProtocolSub(pubSubMediator, null);
+    }
+
+    static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator,
+            @Nullable final DittoProtocolSub delegate) {
         return new DittoProtocolSub() {
             @Override
             public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
+                doDelegate(d -> d.subscribe(types, topics, subscriber));
                 return CompletableFuture.allOf(types.stream()
                         .map(type -> {
                             final Object sub = DistPubSubAccess.subscribe(type.getDistributedPubSubTopic(), subscriber);
@@ -192,21 +204,27 @@ public final class TestConstants {
 
             @Override
             public void removeSubscriber(final ActorRef subscriber) {
-                // do nothing
+                doDelegate(d -> d.removeSubscriber(subscriber));
             }
 
             @Override
             public CompletionStage<Void> updateLiveSubscriptions(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
-                // do nothing
+                doDelegate(d -> d.updateLiveSubscriptions(types, topics, subscriber));
                 return CompletableFuture.completedFuture(null);
             }
 
             @Override
             public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
                     final Collection<String> topics) {
-                // do nothing
+                doDelegate(d -> d.removeTwinSubscriber(subscriber, topics));
                 return CompletableFuture.completedFuture(null);
+            }
+
+            private void doDelegate(final Consumer<DittoProtocolSub> c) {
+                if (delegate != null) {
+                    c.accept(delegate);
+                }
             }
         };
     }
@@ -224,7 +242,7 @@ public final class TestConstants {
 
         static final String SUBJECT_ID = "some:subject";
         static final String SOURCE_SUBJECT_ID = "source:subject";
-        private static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
+        static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
         public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
                 AuthorizationSubject.newInstance(SUBJECT_ID));
         public static final AuthorizationContext SOURCE_SPECIFIC_CONTEXT = AuthorizationContext.newInstance(
@@ -275,6 +293,9 @@ public final class TestConstants {
                         Topic.TWIN_EVENTS);
         private static final Target LIVE_TARGET =
                 newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_EVENTS);
+        public static final Target MESSAGE_TARGET =
+                newTarget("live/message", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
+                        Topic.LIVE_MESSAGES);
         private static final List<Target> TARGETS = asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
 
     }
@@ -360,10 +381,12 @@ public final class TestConstants {
                     .thenReturn(CONNECTION_MONITOR_MOCK);
             when(MONITOR_REGISTRY_MOCK.forOutboundPublished(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(any(ConnectionId.class))).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
             when(MONITOR_REGISTRY_MOCK.forResponseDropped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
             when(MONITOR_REGISTRY_MOCK.forResponseMapped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponsePublished(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponsePublished(any(ConnectionId.class))).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
         }
 
     }
@@ -571,10 +594,12 @@ public final class TestConstants {
         return new HashSet<>(asList(array));
     }
 
-    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId, final ActorSystem actorSystem,
-            final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
-        return createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder,
-                mockClientActorPropsFactory);
+    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+            final ActorSystem actorSystem,
+            final ActorRef conciergeForwarder,
+            final DittoProtocolSub dittoProtocolSub) {
+        return createConnectionSupervisorActor(connectionId, actorSystem, conciergeForwarder,
+                mockClientActorPropsFactory, dittoProtocolSub, TestProbe.apply(actorSystem).ref());
     }
 
     static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
@@ -582,8 +607,26 @@ public final class TestConstants {
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory clientActorPropsFactory) {
+        return createConnectionSupervisorActor(connectionId, actorSystem, conciergeForwarder,
+                clientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
+    }
 
-        final Props props = ConnectionSupervisorActor.props(dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
+    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+            final ActorSystem actorSystem,
+            final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder) {
+
+        return createConnectionSupervisorActor(connectionId, actorSystem, conciergeForwarder,
+                mockClientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
+    }
+
+    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+            final ActorSystem actorSystem,
+            final ActorRef conciergeForwarder,
+            final ClientActorPropsFactory clientActorPropsFactory,
+            final DittoProtocolSub dittoProtocolSub,
+            final ActorRef pubSubMediator) {
+        final Props props = ConnectionSupervisorActor.props(dittoProtocolSub, conciergeForwarder,
                 clientActorPropsFactory, null, pubSubMediator);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
@@ -690,6 +733,26 @@ public final class TestConstants {
                     .build();
         }
 
+    }
+
+    public static final class FreePort {
+
+        private static final Logger LOGGER = LoggerFactory.getLogger(FreePort.class);
+
+        private final int port;
+
+        public FreePort() {
+            try (final ServerSocket socket = new ServerSocket(0)) {
+                port = socket.getLocalPort();
+            } catch (final IOException e) {
+                LOGGER.info("Failed to find local port: " + e.getMessage());
+                throw new IllegalStateException(e);
+            }
+        }
+
+        public int getPort() {
+            return port;
+        }
     }
 
 }

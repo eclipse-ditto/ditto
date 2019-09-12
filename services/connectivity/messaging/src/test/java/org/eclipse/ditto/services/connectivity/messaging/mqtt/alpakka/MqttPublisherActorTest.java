@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.mqtt;
+package org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -26,7 +26,6 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.javadsl.Sink;
@@ -44,11 +43,6 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest {
         this.probe = probe;
         mqttConnectionFactory = mock(MqttConnectionFactory.class);
         when(mqttConnectionFactory.newSink()).thenReturn(Sink.foreach(received::add));
-    }
-
-    @Override
-    protected void publisherCreated(final ActorRef publisherActor) {
-        //
     }
 
     @Override

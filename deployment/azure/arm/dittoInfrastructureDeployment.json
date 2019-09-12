@@ -213,6 +213,10 @@
             "type": "string",
             "value": "[variables('cosmosAccountName')]"
         },
+        "cosmosPrimaryMasterKey": {
+            "type": "string",
+            "value": "[reference('dittoCosmosDBDeployment', '2018-05-01').outputs.primaryMasterKey.value]"
+        },
         "vnetName": {
             "type": "string",
             "value": "[variables('vnetName')]"
@@ -220,6 +224,14 @@
         "publicIPAddressName": {
             "type": "string",
             "value": "[variables('publicIPAddressName')]"
+        },
+        "publicIPAddress": {
+            "type": "string",
+            "value": "[reference('dittoKubernetesDeployment').outputs.ipAddress.value]"
+        },
+        "publicIPFQDN": {
+            "type": "string",
+            "value": "[reference('dittoKubernetesDeployment').outputs.ipFQDN.value]"
         }
     }
 }

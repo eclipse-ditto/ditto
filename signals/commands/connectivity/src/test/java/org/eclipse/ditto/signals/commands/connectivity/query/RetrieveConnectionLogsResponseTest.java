@@ -138,8 +138,6 @@ public class RetrieveConnectionLogsResponseTest {
                         ENABLED_UNTIL,
                         EMPTY_HEADERS).toJson();
 
-        System.out.println(actual);
-
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
 

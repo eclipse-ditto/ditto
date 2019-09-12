@@ -239,6 +239,18 @@ entries:
       url: /connectivity-tls-certificates.html
       output: web
 
+  - title: Client SDK
+    output: web
+    folderitems:
+    - title: Overview
+      url: /client-sdk-overview.html
+      output: web
+    - title: Java
+      url: /client-sdk-java.html
+      output: web
+    - title: JavaScript
+      url: /client-sdk-javascript.html
+      output: web
 
   - title: Ditto Protocol
     output: web

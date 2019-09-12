@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.mqtt;
+package org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka;
 
 import java.util.Optional;
 
@@ -20,7 +20,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.credentials.Credentials;
-import org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.AcceptAnyTrustManager;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import akka.stream.alpakka.mqtt.MqttConnectionSettings;
@@ -40,8 +42,12 @@ final class MqttConnectionSettingsFactory {
 
     MqttConnectionSettings createMqttConnectionSettings(final Connection connection, final DittoHeaders dittoHeaders) {
         final String uri = connection.getUri();
-        MqttConnectionSettings connectionSettings = MqttConnectionSettings
-                .create(uri, connection.getId().toString(), new MemoryPersistence());
+
+        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
+        final String mqttClientId = mqttSpecificConfig.getMqttClientId().orElse(connection.getId().toString());
+
+        MqttConnectionSettings connectionSettings =
+                MqttConnectionSettings.create(uri, mqttClientId, new MemoryPersistence());
 
         connectionSettings = connectionSettings.withAutomaticReconnect(connection.isFailoverEnabled());
 
