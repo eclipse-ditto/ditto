@@ -207,6 +207,27 @@ public final class ConnectivityRootActor extends AbstractActor {
      * @param materializer the materializer for the akka actor system.
      * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
      * concierge service
+     * @param commandValidator custom command validator for connectivity commands
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final ConnectivityConfig connectivityConfig,
+            final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
+            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
+            final ConnectivityCommandInterceptor commandValidator) {
+
+        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator, materializer,
+                conciergeForwarderSignalTransformer, commandValidator);
+    }
+
+    /**
+     * Creates Akka configuration object Props for this ConnectivityRootActor.
+     *
+     * @param connectivityConfig the configuration of the Connectivity service.
+     * @param pubSubMediator the PubSub mediator Actor.
+     * @param materializer the materializer for the akka actor system.
+     * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
+     * concierge service
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectivityConfig connectivityConfig,
