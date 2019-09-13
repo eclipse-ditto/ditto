@@ -39,10 +39,9 @@ public final class ModifyConnectionResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, ModifyConnectionResponse.TYPE)
-            .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.CREATED.toInt())
+            .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
             .set(ConnectivityModifyCommandResponse.JsonFields.JSON_CONNECTION_ID,
                     TestConstants.CONNECTION.getId().toString())
-            .set(ModifyConnectionResponse.JSON_CONNECTION, TestConstants.CONNECTION.toJson())
             .build();
 
     @Test
