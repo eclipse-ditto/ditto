@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,22 +20,16 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Au
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.io.StreamCorruptedException;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -64,10 +57,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.ExternalResource;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,18 +65,15 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import akka.util.ByteString;
 
-@RunWith(MockitoJUnitRunner.class)
-public final class MqttClientActorTest extends AbstractBaseClientActorTest {
+public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientActorTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MqttClientActorTest.class);
-
-    private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
-    private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMqttClientActorTest.class);
+    protected static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
+    protected static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
+    private static final TestConstants.FreePort freePort = new TestConstants.FreePort();
     private static final Target TARGET = newTarget("target", AUTHORIZATION_CONTEXT, null, 1, Topic.TWIN_EVENTS);
     private static final String SOURCE_ADDRESS = "source";
     private static final Source MQTT_SOURCE = ConnectivityModelFactory
@@ -98,15 +85,14 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
             .qos(1)
             .build();
 
-    @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
-    private static final FreePort freePort = new FreePort();
+    protected static ActorSystem actorSystem;
+
+    protected ConnectionId connectionId;
+    private String serverHost;
+    protected Connection connection;
 
     @ClassRule
     public static final MqttServerRule mqttServer = new MqttServerRule(freePort.getPort());
-
-    private ConnectionId connectionId;
-    private String serverHost;
-    private Connection connection;
 
     @BeforeClass
     public static void setUp() {
@@ -131,10 +117,20 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 .build();
     }
 
+    @Override
+    protected Connection getConnection() {
+        return connection;
+    }
+
+    @Override
+    protected ActorSystem getActorSystem() {
+        return actorSystem;
+    }
+
     @Test
     public void testConnect() {
         new TestKit(actorSystem) {{
-            final Props props = mqttClientActor(connection, getRef(), MockMqttConnectionFactory.with(getRef()));
+            final Props props = createClientActor(getRef());
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -142,6 +138,74 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
             mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
+
+            expectDisconnectCalled();
+        }};
+    }
+
+    @Test
+    public void testTestConnection() {
+        new TestKit(actorSystem) {{
+            final Props props = createClientActor(getRef());
+            final ActorRef mqttClientActor = watch(actorSystem.actorOf(props));
+
+            mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+            expectMsg(new Status.Success("successfully connected + initialized mapper"));
+
+            // client actor should be stopped after testing
+            expectTerminated(mqttClientActor);
+
+            expectDisconnectCalled();
+        }};
+    }
+
+    @Test
+    public void testTestConnectionFails() {
+        new TestKit(actorSystem) {{
+            final Props props = createFailingClientActor(getRef());
+            final ActorRef mqttClientActor = actorSystem.actorOf(props);
+
+            mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+            final Status.Failure failure = expectMsgClass(Status.Failure.class);
+            assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
+
+            expectDisconnectCalled();
+        }};
+    }
+
+    @Test
+    public void testRetrieveConnectionMetrics() {
+        new TestKit(actorSystem) {{
+            final Source mqttSource = ConnectivityModelFactory.newSourceBuilder()
+                    .authorizationContext(AUTHORIZATION_CONTEXT)
+                    .index(2)
+                    .consumerCount(1)
+                    .address("topic1")
+                    .address("topic2")
+                    .qos(1)
+                    .build();
+
+            final Connection connectionWithAdditionalSources = connection.toBuilder()
+                    .sources(singletonList(mqttSource)).build();
+            final String modifyThing = TestConstants.modifyThing();
+
+            final Props props = createClientActorWithMessages(connectionWithAdditionalSources, getRef(),
+                    singletonList(mqttMessage(SOURCE_ADDRESS, modifyThing)));
+            final ActorRef underTest = actorSystem.actorOf(props);
+
+            final TestProbe controlProbe = TestProbe.apply(actorSystem);
+            underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), controlProbe.ref());
+            LOGGER.info("Waiting for connected...");
+            controlProbe.expectMsg(CONNECTED_SUCCESS);
+
+            expectMsgClass(ModifyThing.class);
+
+            underTest.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
+
+            final RetrieveConnectionMetricsResponse metricsResponse =
+                    expectMsgClass(RetrieveConnectionMetricsResponse.class);
+
+            LOGGER.info("metrics: {}", metricsResponse);
         }};
     }
 
@@ -162,7 +226,8 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                         serverHost)
                         .sources(singletonList(mqttSource))
                         .build();
-        testConsumeModifyThing(connectionWithEnforcement, "eclipse/ditto/thing").expectMsgClass(ModifyThing.class);
+        testConsumeModifyThing(connectionWithEnforcement, "eclipse/ditto/thing")
+                .expectMsgClass(ModifyThing.class);
     }
 
     @Test
@@ -181,19 +246,17 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                         .sources(singletonList(mqttSource))
                         .build();
 
-        final MqttMessage message = testConsumeModifyThing(connectionWithEnforcement, "eclipse/invalid/address")
-                .expectMsgClass(MqttMessage.class);
+        final M message = testConsumeModifyThing(connectionWithEnforcement, "eclipse/invalid/address")
+                .expectMsgClass(getMessageClass());
 
-        final String payload = new String(message.payload().toByteBuffer().array(), UTF_8);
-
-        assertThat(payload).contains(ConnectionSignalIdEnforcementFailedException.ERROR_CODE);
+        assertThat(extractPayload(message)).contains(ConnectionSignalIdEnforcementFailedException.ERROR_CODE);
     }
 
     private TestKit testConsumeModifyThing(final Connection connection, final String publishTopic) {
         return new TestKit(actorSystem) {{
             final TestProbe controlProbe = TestProbe.apply(actorSystem);
-            final Props props = mqttClientActor(connection, getRef(),
-                    MockMqttConnectionFactory.with(getRef(), mqttMessage(publishTopic, TestConstants.modifyThing())));
+            final Props props = createClientActorWithMessages(connection, getRef(),
+                    singletonList(mqttMessage(publishTopic, TestConstants.modifyThing())));
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
@@ -201,32 +264,15 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         }};
     }
 
-    @Test
-    public void testReconnectAndConsumeFromTopic() {
-        new TestKit(actorSystem) {{
-            final TestProbe controlProbe = TestProbe.apply(actorSystem);
-            final Props props = mqttClientActor(connection, getRef(),
-                    MockMqttConnectionFactory.with(getRef(), mqttMessage(SOURCE_ADDRESS, TestConstants.modifyThing())));
-            final ActorRef mqttClientActor = actorSystem.actorOf(props);
-
-            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
-            controlProbe.expectMsg(CONNECTED_SUCCESS);
-
-            // ModifyThing automatically published by mock connection
-            expectMsgClass(ModifyThing.class);
-
-            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
-            controlProbe.expectMsg(DISCONNECTED_SUCCESS);
-
-            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
-            controlProbe.expectMsg(CONNECTED_SUCCESS);
-
-            // ModifyThing automatically published by mock connection
-            expectMsgClass(ModifyThing.class);
-
-            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
-            controlProbe.expectMsg(DISCONNECTED_SUCCESS);
-        }};
+    private static Source newFilteredMqttSource(final String filter, final String... sources) {
+        return ConnectivityModelFactory.newSourceBuilder()
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .index(1)
+                .consumerCount(1)
+                .addresses(TestConstants.asSet(sources))
+                .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(filter))
+                .qos(1)
+                .build();
     }
 
     @Test
@@ -237,10 +283,10 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
             final List<String> irrelevantTopics = Arrays.asList("irrelevant", "topics");
             final String[] subscriptions =
                     new String[]{"A1", "A1", "A1", "B1", "B1", "B2", "B2", "C1", "C2", "C3"};
-            final MqttMessage[] mockMessages =
+            final List<M> mockMessages =
                     Stream.concat(irrelevantTopics.stream(), Arrays.stream(subscriptions))
                             .map(topic -> mqttMessage(topic, TestConstants.modifyThing()))
-                            .toArray(MqttMessage[]::new);
+                            .collect(Collectors.toList());
 
             final Connection multipleSources =
                     ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
@@ -253,8 +299,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                             .build();
 
             final ConnectionId connectionId = TestConstants.createRandomConnectionId();
-            final Props props = mqttClientActor(multipleSources, getRef(),
-                    MockMqttConnectionFactory.with(getRef(), mockMessages));
+            final Props props = createClientActorWithMessages(multipleSources, getRef(), mockMessages);
             final ActorRef underTest = actorSystem.actorOf(props);
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
@@ -285,22 +330,42 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 .build();
     }
 
-    private static Source newFilteredMqttSource(final String filter, final String... sources) {
-        return ConnectivityModelFactory.newSourceBuilder()
-                .authorizationContext(AUTHORIZATION_CONTEXT)
-                .index(1)
-                .consumerCount(1)
-                .addresses(TestConstants.asSet(sources))
-                .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(filter))
-                .qos(1)
-                .build();
+    @Test
+    public void testReconnectAndConsumeFromTopic() throws InterruptedException {
+        new TestKit(actorSystem) {{
+            final TestProbe controlProbe = TestProbe.apply(actorSystem);
+            final Props props =
+                    createClientActorWithMessages(connection, getRef(), singletonList(mqttMessage(SOURCE_ADDRESS,
+                            TestConstants.modifyThing())));
+            final ActorRef mqttClientActor = actorSystem.actorOf(props);
+
+            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(CONNECTED_SUCCESS);
+
+            // ModifyThing automatically published by mock connection
+            expectMsgClass(ModifyThing.class);
+
+            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(DISCONNECTED_SUCCESS);
+
+            Thread.sleep(2000);
+
+            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(CONNECTED_SUCCESS);
+
+            // ModifyThing automatically published by mock connection
+            expectMsgClass(ModifyThing.class);
+
+            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(DISCONNECTED_SUCCESS);
+        }};
     }
 
     @Test
     public void testPublishToTopic() {
         new TestKit(actorSystem) {{
             final TestProbe controlProbe = TestProbe.apply(actorSystem);
-            final Props props = mqttClientActor(connection, getRef(), MockMqttConnectionFactory.with(getRef()));
+            final Props props = createClientActor(getRef());
             final ActorRef underTest = actorSystem.actorOf(props);
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
@@ -316,167 +381,29 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
             when(mappedSignal.getSource()).thenReturn(thingModifiedEvent);
             underTest.tell(mappedSignal, getRef());
 
-            final MqttMessage receivedMessage = expectMsgClass(MqttMessage.class);
-            LOGGER.info("Got thing modified message at topic {}", receivedMessage.topic());
+            final M receivedMessage = expectMsgClass(getMessageClass());
+            assertThat(extractTopic(receivedMessage)).isEqualTo(TARGET.getAddress());
+            assertThat(extractPayload(receivedMessage)).isEqualTo(expectedJson);
 
             underTest.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
             controlProbe.expectMsg(DISCONNECTED_SUCCESS);
-
-            assertThat(receivedMessage.topic()).isEqualTo(TARGET.getAddress());
-            assertThat(receivedMessage.payload()).isEqualTo(ByteString.fromString(expectedJson));
         }};
     }
 
-    @Test
-    public void testTestConnection() {
-        new TestKit(actorSystem) {{
-            final Props props = mqttClientActor(connection, getRef(), MockMqttConnectionFactory.with(getRef()));
-            final ActorRef mqttClientActor = actorSystem.actorOf(props);
 
-            mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
-            expectMsg(new Status.Success("successfully connected + initialized mapper"));
-        }};
-    }
+    protected abstract Props createFailingClientActor(final ActorRef testProbe);
 
-    @Test
-    public void testTestConnectionFails() {
-        new TestKit(actorSystem) {{
-            final Props props = mqttClientActor(connection, getRef(),
-                    MockMqttConnectionFactory.withError(getRef(), new StreamCorruptedException("Psalms 38:5")));
-            final ActorRef mqttClientActor = actorSystem.actorOf(props);
+    protected abstract Props createClientActorWithMessages(
+            final Connection connection, final ActorRef testProbe,
+            final List<M> messages);
 
-            mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
-            final Status.Failure failure = expectMsgClass(Status.Failure.class);
-            assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
-        }};
-    }
+    protected abstract M mqttMessage(final String topic, final String payload);
 
-    @Test
-    public void testRetrieveConnectionMetrics() {
-        new TestKit(actorSystem) {
-            {
-                final Source mqttSource = ConnectivityModelFactory.newSourceBuilder()
-                        .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .index(2)
-                        .consumerCount(1)
-                        .address("topic1")
-                        .address("topic2")
-                        .qos(1)
-                        .build();
+    @Nullable protected abstract String extractPayload(M message);
 
-                final Connection connectionWithAdditionalSources = connection.toBuilder()
-                        .sources(singletonList(mqttSource)).build();
-                final String modifyThing = TestConstants.modifyThing();
+    @Nullable protected abstract String extractTopic(M message);
 
-                final Props props = mqttClientActor(connectionWithAdditionalSources, getRef(),
-                        MockMqttConnectionFactory.with(getRef(), mqttMessage(SOURCE_ADDRESS, modifyThing)));
-                final ActorRef underTest = actorSystem.actorOf(props);
+    protected abstract Class<M> getMessageClass();
 
-                final TestProbe controlProbe = TestProbe.apply(actorSystem);
-                underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), controlProbe.ref());
-                controlProbe.expectMsg(CONNECTED_SUCCESS);
-
-                expectMsgClass(ModifyThing.class);
-
-                underTest.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
-
-                final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
-                        expectMsgClass(RetrieveConnectionMetricsResponse.class);
-            }
-        };
-    }
-
-    private static Props mqttClientActor(final Connection connection, final ActorRef conciergeForwarder,
-            final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> factoryCreator) {
-
-        return Props.create(MqttClientActor.class, connection, connection.getConnectionStatus(), conciergeForwarder,
-                factoryCreator);
-    }
-
-    private static MqttMessage mqttMessage(final String topic, final String payload) {
-        return MqttMessage.create(topic, ByteString.fromArray(payload.getBytes(UTF_8)));
-    }
-
-    @Override
-    protected Connection getConnection() {
-        return connection;
-    }
-
-    @Override
-    protected Props createClientActor(final ActorRef conciergeForwarder) {
-        return mqttClientActor(getConnection(), conciergeForwarder, MockMqttConnectionFactory.with(conciergeForwarder));
-    }
-
-    @Override
-    protected ActorSystem getActorSystem() {
-        return actorSystem;
-    }
-
-    private static final class FreePort {
-
-        private final int port;
-
-        private FreePort() {
-            try (final ServerSocket socket = new ServerSocket(0)) {
-                port = socket.getLocalPort();
-            } catch (final IOException e) {
-                LOGGER.info("Failed to find local port: " + e.getMessage());
-                throw new IllegalStateException(e);
-            }
-        }
-
-        private int getPort() {
-            return port;
-        }
-    }
-
-    /**
-     * Fools the fast-failing mechanism of BaseClientActor so that MqttClientActor can be tested.
-     * BaseClientActor does not attempt to connect if the host address of the connection URI is not reachable.
-     */
-    private static final class MqttServerRule extends ExternalResource {
-
-        private final int port;
-
-        @Nullable
-        private ServerSocket serverSocket;
-
-        private MqttServerRule(final int port) {
-            LOGGER.info("Starting server at port {}", port);
-            this.port = port;
-        }
-
-        @Override
-        protected void before() throws Exception {
-            serverSocket = new ServerSocket(port);
-            // start server that closes accepted socket immediately
-            // so that failure is not triggered by connection failure shortcut
-            CompletableFuture.runAsync(() -> {
-                while (true) {
-                    try (final Socket socket = serverSocket.accept()) {
-                        LOGGER.info("Incoming connection to port {} accepted at port {} ",
-                                serverSocket.getLocalPort(),
-                                socket.getPort());
-                    } catch (final IOException e) {
-                        // server socket closed, quitting.
-                        break;
-                    }
-                }
-            });
-        }
-
-        @Override
-        protected void after() {
-            try {
-                if (serverSocket != null) {
-                    // should complete future exceptionally via IOException in dispatcher thread
-                    serverSocket.close();
-                }
-            } catch (final IOException e) {
-                // don't care; next test uses a new port.
-            }
-        }
-
-    }
-
+    protected abstract void expectDisconnectCalled();
 }

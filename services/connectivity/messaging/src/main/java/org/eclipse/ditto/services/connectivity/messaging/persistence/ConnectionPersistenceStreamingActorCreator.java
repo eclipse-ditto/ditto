@@ -23,7 +23,7 @@ import akka.actor.Props;
 
 
 /**
- * Creates an actor which streams information about persisted policies.
+ * Creates an actor which streams information about persisted connections.
  */
 public final class ConnectionPersistenceStreamingActorCreator {
 

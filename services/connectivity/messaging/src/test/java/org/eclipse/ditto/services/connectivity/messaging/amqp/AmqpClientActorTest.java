@@ -25,7 +25,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -311,7 +310,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), aggregator.ref());
             final ResourceStatus resourceStatus = aggregator.expectMsgClass(ResourceStatus.class);
-            System.out.println(resourceStatus);
 
             final JmsConnectionListener connectionListener = checkNotNull(listenerArgumentCaptor.getValue());
 
@@ -335,10 +333,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     private static Boolean awaitStatusInStatusResponse(final TestProbe aggregator,
             final ConnectivityStatus expectedStatus) {
-
-        final ResourceStatus status = aggregator.expectMsgClass(ResourceStatus.class);
-        System.out.println("waiting for " + expectedStatus + ", received: " + status);
-        return expectedStatus.equals(status.getStatus());
+        return expectedStatus.equals(aggregator.expectMsgClass(ResourceStatus.class).getStatus());
     }
 
     @Test
@@ -451,7 +446,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
-
 
     @Test
     public void testConnectionRestoredExpectRecreateSession() throws JMSException {

@@ -89,6 +89,26 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder withBytes(@Nullable ByteBuffer bytes);
 
     /**
+     * Sets the passed {@code text} and {@code bytes} to the builder and also changing the
+     * {@link ExternalMessage.PayloadType PayloadType} to {@code TEXT_AND_BYTES}.
+     *
+     * @param text the text payload to set
+     * @param bytes the bytes payload to set
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withTextAndBytes(@Nullable String text, @Nullable byte[] bytes);
+
+    /**
+     * Sets the passed {@code text} and {@code bytes} to the builder and also changing the
+     * {@link ExternalMessage.PayloadType PayloadType} to {@code TEXT_AND_BYTES}.
+     *
+     * @param text the text payload to set
+     * @param bytes the bytes payload to set
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withTextAndBytes(@Nullable String text, @Nullable ByteBuffer bytes);
+
+    /**
      * Associates an {@link AuthorizationContext} with the message.
      *
      * @param authorizationContext the {@link AuthorizationContext} assigned to the message

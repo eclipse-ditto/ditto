@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,11 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.mqtt;
+package org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka;
 
-import java.util.Arrays;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -39,7 +40,7 @@ import akka.stream.javadsl.Sink;
  */
 final class MockMqttConnectionFactory implements MqttConnectionFactory {
 
-    static final String COMPLETION_MESSAGE = "MockMqttSink completed.";
+    private static final String COMPLETION_MESSAGE = "MockMqttSink completed.";
 
     private final Connection connection;
     private final Collection<MqttMessage> messages;
@@ -57,11 +58,17 @@ final class MockMqttConnectionFactory implements MqttConnectionFactory {
         this.error = error;
     }
 
-    static BiFunction<Connection, DittoHeaders, MqttConnectionFactory> with(final ActorRef testProbe,
-            final MqttMessage... messages) {
+    static BiFunction<Connection, DittoHeaders, MqttConnectionFactory> with(final ActorRef testProbe) {
 
         return (connection, headers) ->
-                new MockMqttConnectionFactory(connection, Arrays.asList(messages), testProbe, null);
+                new MockMqttConnectionFactory(connection, Collections.emptyList(), testProbe, null);
+    }
+
+    static BiFunction<Connection, DittoHeaders, MqttConnectionFactory> with(final ActorRef testProbe,
+            final List<MqttMessage> messages) {
+
+        return (connection, headers) ->
+                new MockMqttConnectionFactory(connection, messages, testProbe, null);
     }
 
     static BiFunction<Connection, DittoHeaders, MqttConnectionFactory> withError(final ActorRef testProbe,
@@ -82,6 +89,7 @@ final class MockMqttConnectionFactory implements MqttConnectionFactory {
             return akka.stream.javadsl.Source.<MqttMessage>failed(error).mapMaterializedValue(this::failedFuture);
         } else {
             return akka.stream.javadsl.Source.from(messages)
+                    .initialDelay(Duration.ofSeconds(1))
                     .filter(MockMqttConnectionFactory.topicMatches(mqttSource.getAddresses()))
                     .mapMaterializedValue(whatever -> CompletableFuture.completedFuture(Done.getInstance()));
         }

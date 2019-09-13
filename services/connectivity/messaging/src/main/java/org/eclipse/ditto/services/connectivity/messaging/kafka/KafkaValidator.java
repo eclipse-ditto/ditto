@@ -50,6 +50,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
 
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("tcp", "ssl"));
+    private static final Collection<String> SECURE_SCHEMES = Collections.singletonList("ssl");
 
     private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS = Collections.unmodifiableList(
             Arrays.asList(KafkaAuthenticationSpecificConfig.getInstance(),
@@ -71,7 +72,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
 
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
-        validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "Kafka 2.1.1");
+        validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "Kafka 2.1.1");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
         validateSpecificConfigs(connection, dittoHeaders);

@@ -67,6 +67,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -89,6 +90,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.Terminated;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -104,7 +106,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ActorRef publisherActor;
     private final Map<String, StartedTimer> timers;
 
     private final MessageMappingProcessor messageMappingProcessor;
@@ -124,13 +125,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitor responseMappedMonitor;
 
+    @Nullable private ActorRef publisherActor;
+
     @SuppressWarnings("unused")
-    private MessageMappingProcessorActor(final ActorRef publisherActor,
-            final ActorRef conciergeForwarder,
+    private MessageMappingProcessorActor(final ActorRef conciergeForwarder,
             final MessageMappingProcessor messageMappingProcessor,
             final ConnectionId connectionId) {
 
-        this.publisherActor = publisherActor;
         this.conciergeForwarder = conciergeForwarder;
         this.messageMappingProcessor = messageMappingProcessor;
         this.connectionId = connectionId;
@@ -158,19 +159,16 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param publisherActor actor that handles/publishes outgoing messages.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection ID.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef publisherActor,
-            final ActorRef conciergeForwarder,
+    public static Props props(final ActorRef conciergeForwarder,
             final MessageMappingProcessor processor,
             final ConnectionId connectionId) {
 
-        return Props.create(MessageMappingProcessorActor.class, publisherActor, conciergeForwarder, processor,
-                connectionId);
+        return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, processor, connectionId);
     }
 
     @Override
@@ -180,9 +178,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .match(CommandResponse.class, this::handleCommandResponse)
                 .match(OutboundSignal.class, this::handleOutboundSignal)
                 .match(Signal.class, this::handleSignal)
+                .match(ResourceReady.class, ResourceReady::isPublisher, this::handlePublisherReady)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()))
+                .match(Terminated.class, this::handleTerminated)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -261,9 +261,14 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         enhanceLogUtil(exception);
 
-        final String stackTrace = stackTraceAsString(exception);
-        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
-                exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
+        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
+                exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""));
+
+        if (log.isDebugEnabled()) {
+            final String stackTrace = stackTraceAsString(exception);
+            log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
+                    exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
+        }
 
         handleCommandResponse(errorResponse, exception);
     }
@@ -344,11 +349,19 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .map(externalMessage -> replaceTargetAddressPlaceholders.apply(outbound, externalMessage));
 
         if (mappedOutboundSignal.isPresent()) {
-            publisherActor.forward(mappedOutboundSignal.get(), getContext());
+            forwardToPublisherActor(mappedOutboundSignal.get());
         } else {
             log.debug("Message mapping returned null, message is dropped.");
             getMonitorsForDroppedSignal(outbound, connectionId)
                     .forEach(monitor -> monitor.success(outbound.getSource()));
+        }
+    }
+
+    private void forwardToPublisherActor(final OutboundSignal.WithExternalMessage mappedOutboundSignal) {
+        if (publisherActor != null) {
+            publisherActor.forward(mappedOutboundSignal, getContext());
+        } else {
+            log.info("Publisher actor not available, dropping message.");
         }
     }
 
@@ -361,6 +374,20 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         // map to outbound signal without authorized target (responses and errors are only sent to its origin)
         log.debug("Handling raw signal: {}", signal);
         handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptyList()));
+    }
+
+    private void handlePublisherReady(final ResourceReady publisherReady) {
+        log.debug("Received publisher reference: {}", publisherReady.getResourceRef());
+        publisherReady.getResourceRef().ifPresent(ref -> this.publisherActor = getContext().watch(ref));
+        // now that we have a publisher reference we can signal readiness for this mapping actor
+        getSender().tell(ResourceReady.mapperReady(), getSelf());
+    }
+
+    private void handleTerminated(final Terminated terminated) {
+        if (terminated.getActor().equals(publisherActor)) {
+            log.debug("Associated publisher actor terminated: {}", terminated.getActor());
+            publisherActor = null;
+        }
     }
 
     private Optional<ExternalMessage> mapToExternalMessage(final OutboundSignal outbound) {

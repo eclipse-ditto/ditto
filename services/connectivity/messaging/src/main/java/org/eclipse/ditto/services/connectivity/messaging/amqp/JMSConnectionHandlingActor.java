@@ -72,7 +72,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private final ExceptionListener exceptionListener;
     private final JmsConnectionFactory jmsConnectionFactory;
 
-    @Nullable Session currentSession = null;
+    @Nullable private Session currentSession = null;
 
     @SuppressWarnings("unused")
     private JMSConnectionHandlingActor(final Connection connection, final ExceptionListener exceptionListener,
@@ -380,6 +380,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
          *
          * @return the value.
          * @throws JMSException if the supplier throws a {@link JMSException}.
+         * @throws NamingException if the identifier of connection could not be found in the Context.
          */
         T get() throws JMSException, NamingException;
     }
