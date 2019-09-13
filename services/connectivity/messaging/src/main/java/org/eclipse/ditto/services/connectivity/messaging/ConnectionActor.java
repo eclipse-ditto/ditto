@@ -232,6 +232,23 @@ public final class ConnectionActor
                 commandValidator);
     }
 
+    static Optional<DittoRuntimeException> validate(final CommandStrategy.Context<ConnectionState> context,
+            final ConnectivityCommand command) {
+
+        try {
+            context.getState().getValidator().accept(command);
+            return Optional.empty();
+        } catch (final Exception error) {
+            final DittoRuntimeException dre =
+                    toDittoRuntimeException(error, context.getState().id(), command.getDittoHeaders());
+            context.getLog().info("Operation <{}> failed due to <{}>", command, dre);
+            context.getState()
+                    .getConnectionLogger()
+                    .failure("Operation {0} failed due to {1}", command.getType(), dre.getMessage());
+            return Optional.of(dre);
+        }
+    }
+
     @Override
     public String persistenceId() {
         return PERSISTENCE_ID_PREFIX + entityId;
@@ -354,6 +371,13 @@ public final class ConnectionActor
         }
     }
 
+    /**
+     * Carry out the actions in a staged command. Synchronous actions are performed immediately followed by recursion
+     * onto the next action. Asynchronous action are scheduled with the sending of the next staged command at the end.
+     * Failures abort all asynchronous actions except OPEN_CONNECTION_IGNORE_ERRORS.
+     *
+     * @param command the staged command.
+     */
     private void interpretStagedCommand(final StagedCommand command) {
         if (!command.hasNext()) {
             // execution complete
@@ -857,6 +881,30 @@ public final class ConnectionActor
 
     }
 
+    private static <T> CompletionStage<T> failedFuture(final Throwable cause) {
+        final CompletableFuture<T> future = new CompletableFuture<>();
+        future.completeExceptionally(cause);
+        return future;
+    }
+
+    private static Throwable getRootCause(final Throwable error) {
+        return error instanceof CompletionException ? getRootCause(error.getCause()) : error;
+    }
+
+    private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,
+            final DittoHeaders headers) {
+        final Throwable cause = getRootCause(error);
+        if (cause instanceof DittoRuntimeException) {
+            return (DittoRuntimeException) cause;
+        } else {
+            return ConnectionFailedException.newBuilder(id)
+                    .description(cause.getMessage())
+                    .cause(cause)
+                    .dittoHeaders(headers)
+                    .build();
+        }
+    }
+
     /**
      * Local helper-actor which is started for aggregating several Status sent back by potentially several {@code
      * clientActors} (behind a cluster Router running on different cluster nodes).
@@ -962,48 +1010,6 @@ public final class ConnectionActor
                 // send back all gathered responses
                 sendBackAggregatedResults();
             }
-        }
-    }
-
-
-    private static <T> CompletionStage<T> failedFuture(final Throwable cause) {
-        final CompletableFuture<T> future = new CompletableFuture<>();
-        future.completeExceptionally(cause);
-        return future;
-    }
-
-    private static Throwable getRootCause(final Throwable error) {
-        return error instanceof CompletionException ? getRootCause(error.getCause()) : error;
-    }
-
-    private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,
-            final DittoHeaders headers) {
-        final Throwable cause = getRootCause(error);
-        if (cause instanceof DittoRuntimeException) {
-            return (DittoRuntimeException) cause;
-        } else {
-            return ConnectionFailedException.newBuilder(id)
-                    .description(cause.getMessage())
-                    .cause(cause)
-                    .dittoHeaders(headers)
-                    .build();
-        }
-    }
-
-    static Optional<DittoRuntimeException> validate(final CommandStrategy.Context<ConnectionState> context,
-            final ConnectivityCommand command) {
-
-        try {
-            context.getState().getValidator().accept(command);
-            return Optional.empty();
-        } catch (final Exception error) {
-            final DittoRuntimeException dre =
-                    toDittoRuntimeException(error, context.getState().id(), command.getDittoHeaders());
-            context.getLog().info("Operation <{}> failed due to <{}>", command, dre);
-            context.getState()
-                    .getConnectionLogger()
-                    .failure("Operation {0} failed due to {1}", command.getType(), dre.getMessage());
-            return Optional.of(dre);
         }
     }
 }

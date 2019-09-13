@@ -19,7 +19,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
 /**
- * Everything needed by strategies.
+ * Everything needed by connection strategies from the state of a connection actor.
  */
 public final class ConnectionState {
 
@@ -34,7 +34,14 @@ public final class ConnectionState {
         this.validator = validator;
     }
 
-    // TODO
+    /**
+     * Create a connection state.
+     *
+     * @param connectionId the connection ID.
+     * @param connectionLogger the logger for public consumption.
+     * @param validator the current command validator.
+     * @return the connection state.
+     */
     public static ConnectionState of(
             final ConnectionId connectionId,
             final ConnectionLogger connectionLogger,

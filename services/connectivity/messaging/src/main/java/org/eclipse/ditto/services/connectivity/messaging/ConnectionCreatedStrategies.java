@@ -83,7 +83,9 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
-// TODO
+/**
+ * Strategies to handle signals as an existing connection.
+ */
 public class ConnectionCreatedStrategies
         extends AbstractReceiveStrategy<Signal, Connection, ConnectionState, Result<ConnectivityEvent>> {
 
@@ -93,7 +95,9 @@ public class ConnectionCreatedStrategies
         super(Signal.class);
     }
 
-    // TODO
+    /**
+     * @return the unique instance of this class.
+     */
     public static ConnectionCreatedStrategies getInstance() {
         return CREATED_STRATEGIES;
     }

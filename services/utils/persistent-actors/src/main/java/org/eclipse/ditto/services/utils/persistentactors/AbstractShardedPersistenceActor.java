@@ -46,12 +46,16 @@ import akka.persistence.SnapshotOffer;
 import scala.Option;
 
 /**
- * PersistentActor which "knows" the state of a single entity.
+ * PersistentActor which "knows" the state of a single entity supervised by a sharded
+ * {@code AbstractPersistenceSupervisor}.
  */
 public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K, E extends Event>
         extends AbstractPersistentActorWithTimersAndCleanup
         implements ResultVisitor<E> {
 
+    /**
+     * Logger of the actor.
+     */
     protected final DiagnosticLoggingAdapter log;
 
     private final SnapshotAdapter<S> snapshotAdapter;
@@ -60,14 +64,26 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
     private long lastSnapshotRevision;
     private long confirmedSnapshotRevision;
 
+    /**
+     * The current entity, or null if it was never created.
+     */
     @Nullable
     protected S entity;
+
+    /**
+     * The entity ID.
+     */
     protected final I entityId;
 
     private long accessCounter = 0L;
 
+    /**
+     * Instantiate the actor.
+     *
+     * @param entityId the entity ID.
+     * @param snapshotAdapter the entity's snapshot adapter.
+     */
     protected AbstractShardedPersistenceActor(final I entityId, final SnapshotAdapter<S> snapshotAdapter) {
-
         this.entityId = entityId;
         this.snapshotAdapter = snapshotAdapter;
         log = LogUtil.obtain(this);
@@ -92,34 +108,81 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
     @Override
     public abstract String snapshotPluginId();
 
+    /**
+     * @return class of the events persisted by this actor.
+     */
     protected abstract Class<E> getEventClass();
 
+    /**
+     * @return the context for handling commands based on the actor's current state.
+     */
     protected abstract CommandStrategy.Context<K> getStrategyContext();
 
+    /**
+     * @return strategies to handle commands when the entity exists.
+     */
     protected abstract CommandStrategy<C, S, K, Result<E>> getCreatedStrategy();
 
+    /**
+     * @return strategies to handle commands when the entity does not exist.
+     */
     protected abstract CommandStrategy<? extends C, S, K, Result<E>> getDeletedStrategy();
 
+    /**
+     * @return strategies to modify the entity by events.
+     */
     protected abstract EventStrategy<E, S> getEventStrategy();
 
+    /**
+     * @return configuration for activity check.
+     */
     protected abstract ActivityCheckConfig getActivityCheckConfig();
 
+    /**
+     * @return configuration for automatic snapshotting.
+     */
     protected abstract SnapshotConfig getSnapshotConfig();
 
+    /**
+     * Check if the entity exists and is deleted. This is a sufficient condition to make a snapshot before stopping.
+     *
+     * @return whether the entity exists as deleted.
+     */
     protected abstract boolean entityExistsAsDeleted();
 
+    /**
+     * @return An exception builder to respond to unexpected commands addressed to a nonexistent entity.
+     */
     protected abstract DittoRuntimeExceptionBuilder newNotAccessibleExceptionBuilder();
 
+    /**
+     * Publish an event.
+     *
+     * @param event the event.
+     */
     protected abstract void publishEvent(E event);
 
+    /**
+     * Get the implemented schema version of an entity.
+     *
+     * @param entity the entity.
+     * @return its schema version according to content.
+     */
     protected abstract JsonSchemaVersion getEntitySchemaVersion(S entity);
 
+    /**
+     * Callback at the end of recovery. Overridable in subclasses.
+     *
+     * @param event the event that recovery completed.
+     */
     protected void recoveryCompleted(RecoveryCompleted event) {
         // override to introduce additional logging and other side effects
         becomeCreatedOrDeletedHandler();
     }
 
-    // TODO
+    /**
+     * Apply the created or deleted behavior according to the current state of the entity.
+     */
     protected final void becomeCreatedOrDeletedHandler() {
         // accessible for subclasses; not an extension point.
         if (isEntityActive()) {
@@ -129,7 +192,9 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
         }
     }
 
-    // TODO
+    /**
+     * @return the current revision number for event handling.
+     */
     protected long getRevisionNumber() {
         return lastSequenceNr();
     }
@@ -203,7 +268,64 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
     }
 
     /**
-     * TODO overridable; thread-safe
+     * Persist an event, modify actor state by the event strategy, then invoke the handler.
+     *
+     * @param event the event to persist and apply.
+     * @param handler what happens afterwards.
+     */
+    protected void persistAndApplyEvent(final E event, final BiConsumer<E, S> handler) {
+
+        final E modifiedEvent;
+        if (null != entity) {
+            // set version of event to the version of the thing
+            final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
+                    .schemaVersion(getEntitySchemaVersion(entity))
+                    .build();
+            modifiedEvent = (E) event.setDittoHeaders(newHeaders);
+        } else {
+            modifiedEvent = event;
+        }
+
+        if (modifiedEvent.getDittoHeaders().isDryRun()) {
+            handler.accept(modifiedEvent, entity);
+        } else {
+            persistEvent(modifiedEvent, persistedEvent -> {
+                // after the event was persisted, apply the event on the current actor state
+                applyEvent(persistedEvent);
+                handler.accept(persistedEvent, entity);
+            });
+        }
+    }
+
+    /**
+     * Check for activity. Shutdown actor if it is lacking.
+     *
+     * @param message the check-for-activity message.
+     */
+    protected void checkForActivity(final CheckForActivity message) {
+        if (entityExistsAsDeleted() && lastSnapshotRevision < getRevisionNumber()) {
+            // take a snapshot after a period of inactivity if:
+            // - thing is deleted,
+            // - the latest snapshot is out of date or is still ongoing.
+            takeSnapshot("the thing is deleted and has no up-to-date snapshot");
+            scheduleCheckForActivity(getActivityCheckConfig().getDeletedInterval());
+        } else if (accessCounter > message.accessCounter) {
+            // if the Thing was accessed in any way since the last check
+            scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
+        } else {
+            // safe to shutdown after a period of inactivity if:
+            // - thing is active (and taking regular snapshots of itself), or
+            // - thing is deleted and the latest snapshot is up to date
+            if (isEntityActive()) {
+                shutdown("Entity <{}> was not accessed in a while. Shutting Actor down ...", entityId);
+            } else {
+                shutdown("Entity <{}> was deleted recently. Shutting Actor down ...", entityId);
+            }
+        }
+    }
+
+    /**
+     * Request parent to shutdown this actor gracefully in a thread-safe manner.
      */
     protected void passivate() {
         getContext().getParent().tell(AbstractPersistenceSupervisor.Control.PASSIVATE, getSelf());
@@ -288,63 +410,6 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
     @Override
     public void onError(final DittoRuntimeException error) {
         notifySender(error);
-    }
-
-    /**
-     * Persist an event, modify actor state by the event strategy, then invoke the handler.
-     *
-     * @param event the event to persist and apply.
-     * @param handler what happens afterwards.
-     */
-    protected void persistAndApplyEvent(final E event, final BiConsumer<E, S> handler) {
-
-        final E modifiedEvent;
-        if (null != entity) {
-            // set version of event to the version of the thing
-            final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
-                    .schemaVersion(getEntitySchemaVersion(entity))
-                    .build();
-            modifiedEvent = (E) event.setDittoHeaders(newHeaders);
-        } else {
-            modifiedEvent = event;
-        }
-
-        if (modifiedEvent.getDittoHeaders().isDryRun()) {
-            handler.accept(modifiedEvent, entity);
-        } else {
-            persistEvent(modifiedEvent, persistedEvent -> {
-                // after the event was persisted, apply the event on the current actor state
-                applyEvent(persistedEvent);
-                handler.accept(persistedEvent, entity);
-            });
-        }
-    }
-
-    /**
-     * Check for activity. Shutdown actor if it is lacking.
-     *
-     * @param message the check-for-activity message.
-     */
-    protected void checkForActivity(final CheckForActivity message) {
-        if (entityExistsAsDeleted() && lastSnapshotRevision < getRevisionNumber()) {
-            // take a snapshot after a period of inactivity if:
-            // - thing is deleted,
-            // - the latest snapshot is out of date or is still ongoing.
-            takeSnapshot("the thing is deleted and has no up-to-date snapshot");
-            scheduleCheckForActivity(getActivityCheckConfig().getDeletedInterval());
-        } else if (accessCounter > message.accessCounter) {
-            // if the Thing was accessed in any way since the last check
-            scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
-        } else {
-            // safe to shutdown after a period of inactivity if:
-            // - thing is active (and taking regular snapshots of itself), or
-            // - thing is deleted and the latest snapshot is up to date
-            if (isEntityActive()) {
-                shutdown("Entity <{}> was not accessed in a while. Shutting Actor down ...", entityId);
-            } else {
-                shutdown("Entity <{}> was deleted recently. Shutting Actor down ...", entityId);
-            }
-        }
     }
 
     private long getNextRevisionNumber() {

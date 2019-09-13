@@ -38,6 +38,9 @@ import akka.actor.ActorRef;
 /**
  * Non-serializable local-only command for multi-stage processing by
  * {@link org.eclipse.ditto.services.connectivity.messaging.ConnectionActor}.
+ * <p>
+ * It contains a sequence of actions. Some actions are asynchronous. The connection actor can thus schedule the next
+ * action as a staged command to self after an asynchronous action. Synchronous actions can be executed right away.
  */
 public final class StagedCommand implements ConnectivityCommand<StagedCommand>, Iterator<StagedCommand> {
 
@@ -79,41 +82,57 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
         return new StagedCommand(command, event, response, ActorRef.noSender(), actions);
     }
 
-    // TODO
+    /**
+     * Create a staged command for forwarding a signal.
+     *
+     * @param signal the signal to forward; it is at the response position.
+     * @return the staged command.
+     */
     public static StagedCommand forwardSignal(final Signal signal) {
         final ConnectivityCommand dummyCommand = dummyCommand();
         final ConnectivityEvent dummyEvent = dummyEvent();
-        final WithDittoHeaders dummyResponse = signal;
-        return new StagedCommand(dummyCommand, dummyEvent, dummyResponse, ActorRef.noSender(),
+        return new StagedCommand(dummyCommand, dummyEvent, signal, ActorRef.noSender(),
                 Collections.singleton(ConnectionAction.FORWARD_SIGNAL));
     }
 
-    // TODO
+    /**
+     * @return a dummy placeholder command.
+     */
     public static ConnectivityCommand dummyCommand() {
         return DUMMY_COMMAND;
     }
 
-    // TODO
+    /**
+     * @return a dummy placeholder event.
+     */
     public static ConnectivityEvent dummyEvent() {
         return DUMMY_EVENT;
     }
 
-    // TODO
+    /**
+     * @return the wrapped command.
+     */
     public ConnectivityCommand getCommand() {
         return command;
     }
 
-    // TODO
+    /**
+     * @return the event to persist, apply or publish.
+     */
     public ConnectivityEvent getEvent() {
         return event;
     }
 
-    // TODO
+    /**
+     * @return the response to send to the original sender, or the signal to forward to client actors.
+     */
     public WithDittoHeaders getResponse() {
         return response;
     }
 
-    // TODO
+    /**
+     * @return the original sender of a command that created this staged  command.
+     */
     public ActorRef getSender() {
         return sender;
     }

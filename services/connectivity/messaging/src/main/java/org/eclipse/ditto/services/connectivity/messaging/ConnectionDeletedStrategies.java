@@ -52,7 +52,9 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResp
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
-// TODO
+/**
+ * Strategies to handle signals as a nonexistent connection.
+ */
 public class ConnectionDeletedStrategies
         extends AbstractReceiveStrategy<Signal, Connection, ConnectionState, Result<ConnectivityEvent>> {
 
@@ -62,7 +64,9 @@ public class ConnectionDeletedStrategies
         super(Signal.class);
     }
 
-    // TODO
+    /**
+     * @return the unique instance of this class.
+     */
     public static ConnectionDeletedStrategies getInstance() {
         return DELETED_STRATEGIES;
     }

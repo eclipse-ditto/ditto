@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 /**
- * TODO
+ * Strategies to modify a connection by events.
  */
 public final class ConnectionEventStrategies extends AbstractHandleStrategy<ConnectivityEvent, Connection> {
 
@@ -43,7 +43,9 @@ public final class ConnectionEventStrategies extends AbstractHandleStrategy<Conn
         addStrategy(ConnectionDeleted.class, new ConnectionDeletedStrategy());
     }
 
-    // TODO
+    /**
+     * @return the unique instance of this class.
+     */
     public static ConnectionEventStrategies getInstance() {
         return INSTANCE;
     }
