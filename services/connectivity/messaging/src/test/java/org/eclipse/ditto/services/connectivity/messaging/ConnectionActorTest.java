@@ -443,7 +443,7 @@ public final class ConnectionActorTest extends WithMockServers {
             mockClientProbe.expectMsg(CloseConnection.of(connectionId, DittoHeaders.empty()));
 
             // unsubscribe is called for topics of unmodified connection
-            expectRemoveSubscriber();
+            expectRemoveSubscriber(1);
             expectTerminated(clientActor);
 
             // and sends an open connection (if desired state is open)
@@ -503,13 +503,14 @@ public final class ConnectionActorTest extends WithMockServers {
             underTest.tell(createConnection, getRef());
             expectMsg(createConnectionResponse);
 
+            expectRemoveSubscriber(1);
             expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
 
             // modify connection
             underTest.tell(modifyConnection, getRef());
             expectMsg(modifyConnectionResponse);
 
-            expectRemoveSubscriber();
+            expectRemoveSubscriber(2);
 
             // stop actor
             getSystem().stop(underTest);
@@ -616,11 +617,7 @@ public final class ConnectionActorTest extends WithMockServers {
             final Exception exception = parent.expectMsgClass(ConnectionConfigurationInvalidException.class);
             assertThat(exception).hasMessageContaining("validation failed...");
 
-            parent.expectMsg(ConnectionSupervisorActor.Control.PASSIVATE);
-            parent.send(parent.getLastSender(), PoisonPill.getInstance());
-
-            // expect the connection actor is terminated
-            expectTerminated(connectionActorRef);
+            // connection actor will stop after activity check.
         }};
     }
 
@@ -650,11 +647,7 @@ public final class ConnectionActorTest extends WithMockServers {
                     parent.expectMsgClass(ConnectionUnavailableException.class);
             assertThat(exception).hasMessageContaining("not valid");
 
-            parent.expectMsg(ConnectionSupervisorActor.Control.PASSIVATE);
-            parent.send(parent.getLastSender(), PoisonPill.getInstance());
-
-            // expect the connection actor is terminated
-            expectTerminated(connectionActorRef);
+            // do not expect passivation; it only happens for graceful shutdown.
         }};
     }
 
@@ -980,7 +973,7 @@ public final class ConnectionActorTest extends WithMockServers {
                 any(ActorRef.class));
     }
 
-    private void expectRemoveSubscriber() {
-        verify(dittoProtocolSubMock, timeout(500)).removeSubscriber(any(ActorRef.class));
+    private void expectRemoveSubscriber(int howManyTimes) {
+        verify(dittoProtocolSubMock, timeout(500).times(howManyTimes)).removeSubscriber(any(ActorRef.class));
     }
 }

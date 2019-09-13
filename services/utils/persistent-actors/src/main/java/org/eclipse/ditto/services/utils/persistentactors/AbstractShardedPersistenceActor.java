@@ -119,6 +119,7 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
         becomeCreatedOrDeletedHandler();
     }
 
+    // TODO
     protected final void becomeCreatedOrDeletedHandler() {
         // accessible for subclasses; not an extension point.
         if (isEntityActive()) {
@@ -128,7 +129,8 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
         }
     }
 
-    private long getRevisionNumber() {
+    // TODO
+    protected long getRevisionNumber() {
         return lastSequenceNr();
     }
 

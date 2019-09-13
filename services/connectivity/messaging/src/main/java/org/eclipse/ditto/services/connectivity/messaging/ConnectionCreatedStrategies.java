@@ -23,6 +23,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.persistence.stag
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.RETRIEVE_CONNECTION_METRICS;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.RETRIEVE_CONNECTION_STATUS;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
+import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.STOP_CLIENT_ACTORS;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.TELL_CLIENT_ACTORS_IF_STARTED;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
 import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
@@ -98,6 +99,7 @@ public class ConnectionCreatedStrategies
 
     private static ConnectionCreatedStrategies newCreatedStrategies() {
         final ConnectionCreatedStrategies strategies = new ConnectionCreatedStrategies();
+        strategies.addStrategy(new StagedCommandStrategy());
         strategies.addStrategy(new TestConnectionConflictStrategy());
         strategies.addStrategy(new ConnectionConflictStrategy());
         strategies.addStrategy(new ModifyConnectionStrategy());
@@ -116,6 +118,12 @@ public class ConnectionCreatedStrategies
     }
 
     @Override
+    public boolean isDefined(final Signal command) {
+        // always defined so as to forward signals.
+        return true;
+    }
+
+    @Override
     public Result<ConnectivityEvent> unhandled(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
@@ -131,7 +139,7 @@ public class ConnectionCreatedStrategies
         return ResultFactory.emptyResult();
     }
 
-    private abstract static class AbstractStrategy<C>
+    abstract static class AbstractStrategy<C>
             extends AbstractCommandStrategy<C, Connection, ConnectionState, Result<ConnectivityEvent>> {
 
         AbstractStrategy(final Class<C> theMatchingClass) {
@@ -191,6 +199,18 @@ public class ConnectionCreatedStrategies
         }
     }
 
+    static final class StagedCommandStrategy extends AbstractStrategy<StagedCommand> {
+
+        StagedCommandStrategy() {
+            super(StagedCommand.class);
+        }
+
+        @Override
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
+                @Nullable final Connection entity, final long nextRevision, final StagedCommand command) {
+            return ResultFactory.newMutationResult(command, command.getEvent(), command.getResponse());
+        }
+    }
 
     private static final class TestConnectionConflictStrategy extends AbstractStrategy<TestConnection> {
 
@@ -248,11 +268,11 @@ public class ConnectionCreatedStrategies
             } else if (isNextConnectionOpen || isCurrentConnectionOpen) {
                 final Collection<ConnectionAction> actions;
                 if (isNextConnectionOpen) {
-                    actions = Arrays.asList(PERSIST_AND_APPLY_EVENT, CLOSE_CONNECTION, OPEN_CONNECTION,
-                            UPDATE_SUBSCRIPTIONS, SEND_RESPONSE);
+                    actions = Arrays.asList(PERSIST_AND_APPLY_EVENT, CLOSE_CONNECTION, STOP_CLIENT_ACTORS,
+                            OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE);
                 } else {
                     actions = Arrays.asList(PERSIST_AND_APPLY_EVENT, UPDATE_SUBSCRIPTIONS, CLOSE_CONNECTION,
-                            SEND_RESPONSE);
+                            STOP_CLIENT_ACTORS, SEND_RESPONSE);
                 }
                 return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
             } else {
@@ -292,7 +312,8 @@ public class ConnectionCreatedStrategies
             final WithDittoHeaders response =
                     CloseConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
             final Collection<ConnectionAction> actions =
-                    Arrays.asList(PERSIST_AND_APPLY_EVENT, UPDATE_SUBSCRIPTIONS, CLOSE_CONNECTION, SEND_RESPONSE);
+                    Arrays.asList(PERSIST_AND_APPLY_EVENT, UPDATE_SUBSCRIPTIONS, CLOSE_CONNECTION, STOP_CLIENT_ACTORS,
+                            SEND_RESPONSE);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
         }
     }
@@ -309,8 +330,10 @@ public class ConnectionCreatedStrategies
             final ConnectivityEvent event = ConnectionDeleted.of(context.getState().id(), command.getDittoHeaders());
             final WithDittoHeaders response =
                     DeleteConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
+            // Not closing the connection asynchronously; rely on client actors to cleanup all resources when stopped.
             final Collection<ConnectionAction> actions =
-                    Arrays.asList(PERSIST_AND_APPLY_EVENT, CLOSE_CONNECTION, SEND_RESPONSE, BECOME_DELETED);
+                    Arrays.asList(PERSIST_AND_APPLY_EVENT, STOP_CLIENT_ACTORS, SEND_RESPONSE, DISABLE_LOGGING,
+                            BECOME_DELETED);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
         }
     }

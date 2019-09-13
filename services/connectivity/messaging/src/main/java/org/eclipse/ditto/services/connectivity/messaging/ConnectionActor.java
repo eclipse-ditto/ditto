@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
 import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
 import java.text.MessageFormat;
@@ -74,6 +75,8 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnect
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
@@ -87,11 +90,14 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogsResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.ConnectivityQueryCommand;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogsResponse;
@@ -111,6 +117,7 @@ import akka.cluster.routing.ClusterRouterPoolSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
+import akka.persistence.RecoveryCompleted;
 import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
 
@@ -156,13 +163,13 @@ public final class ConnectionActor
     private Instant connectionClosedAt = Instant.now();
 
     @Nullable private ActorRef clientActorRouter;
-    @Nullable private SignalFilter signalFilter = null;
 
     private final Duration clientActorAskTimeout;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
 
     private final Duration checkLoggingActiveInterval;
 
+    @Nullable private SignalFilter signalFilter = null;
     @Nullable private Instant loggingEnabledUntil;
     private final Duration loggingEnabledDuration;
     private final ConnectionConfig config;
@@ -303,7 +310,6 @@ public final class ConnectionActor
     @Override
     public void postStop() {
         log.info("stopped connection <{}>", entityId);
-        this.loggingDisabled();
         super.postStop();
     }
 
@@ -320,10 +326,22 @@ public final class ConnectionActor
     }
 
     @Override
+    protected void recoveryCompleted(RecoveryCompleted event) {
+        if (entity != null && !entity.getLifecycle().isPresent()) {
+            entity = entity.toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
+        }
+        if (isDesiredStateOpen()) {
+            log.debug("Opening connection <{}> after recovery.", entityId);
+            restoreOpenConnection();
+        }
+        becomeCreatedOrDeletedHandler();
+    }
+
+    @Override
     public void onMutation(final Command command, final ConnectivityEvent event, final WithDittoHeaders response,
             final boolean becomeCreated, final boolean becomeDeleted) {
         if (command instanceof StagedCommand) {
-            interpretStagedCommand((StagedCommand) command);
+            interpretStagedCommand(((StagedCommand) command).withSenderUnlessDefined(getSender()));
         } else {
             super.onMutation(command, event, response, becomeCreated, becomeDeleted);
         }
@@ -346,18 +364,179 @@ public final class ConnectionActor
         }
         switch (command.nextAction()) {
             case TEST_CONNECTION:
-                // TODO
+                testConnection(command.next());
+                break;
+            case APPLY_EVENT:
+                entity = getEventStrategy().handle(command.getEvent(), entity, getRevisionNumber());
+                interpretStagedCommand(command.next());
+                break;
+            case SEND_RESPONSE:
+                command.getSender().tell(command.getResponse(), getSelf());
+                interpretStagedCommand(command.next());
+                break;
+            case PASSIVATE:
+                // This actor will stop. Subsequent actions are ignored.
+                passivate();
+                break;
+            case OPEN_CONNECTION:
+                openConnection(command.next(), false);
+                break;
+            case OPEN_CONNECTION_IGNORE_ERRORS:
+                openConnection(command.next(), true);
+                break;
+            case CLOSE_CONNECTION:
+                closeConnection(command.next());
+                break;
+            case STOP_CLIENT_ACTORS:
+                stopClientActors();
+                interpretStagedCommand(command.next());
+                break;
+            case PERSIST_AND_APPLY_EVENT:
+                persistAndApplyEvent(command.getEvent(), (event, connection) -> interpretStagedCommand(command.next()));
+                break;
+            case BECOME_CREATED:
+                becomeCreatedHandler();
+                interpretStagedCommand(command.next());
+                break;
+            case BECOME_DELETED:
+                becomeDeletedHandler();
+                interpretStagedCommand(command.next());
+                break;
+            case UPDATE_SUBSCRIPTIONS:
+                prepareForSignalForwarding(command.next());
+                break;
+            case TELL_CLIENT_ACTORS_IF_STARTED:
+                tellClientActorsIfStarted(command.getCommand(), getSelf());
+                interpretStagedCommand(command.next());
+                break;
+            case RETRIEVE_CONNECTION_LOGS:
+                retrieveConnectionLogs((RetrieveConnectionLogs) command.getCommand(), command.getSender());
+                interpretStagedCommand(command.next());
+                break;
+            case RETRIEVE_CONNECTION_STATUS:
+                retrieveConnectionStatus((RetrieveConnectionStatus) command.getCommand(), command.getSender());
+                interpretStagedCommand(command.next());
+                break;
+            case RETRIEVE_CONNECTION_METRICS:
+                retrieveConnectionMetrics((RetrieveConnectionMetrics) command.getCommand(), command.getSender());
+                interpretStagedCommand(command.next());
+                break;
+            case ENABLE_LOGGING:
+                loggingEnabled();
+                interpretStagedCommand(command.next());
+                break;
+            case DISABLE_LOGGING:
+                loggingDisabled();
+                interpretStagedCommand(command.next());
+                break;
+            case FORWARD_SIGNAL:
+                handleSignal((Signal) command.getResponse());
+                interpretStagedCommand(command.next());
+                break;
             default:
+                log.error("Failed to handle staged command: <{}>", command);
         }
     }
 
-    private void restoreConnection(@Nullable final Connection theConnection) {
-        entity = theConnection;
-        if (theConnection != null) {
-            signalFilter = new SignalFilter(theConnection, connectionMonitorRegistry);
+    private void handleSignal(final Signal signal) {
+        // Do not flush pending responses - pub/sub may not be ready on all nodes
+
+        enhanceLogUtil(signal);
+        if (clientActorRouter == null) {
+            logDroppedSignal(signal.getType(), "Client actor not ready.");
+            return;
+        }
+        if (entity == null || signalFilter == null) {
+            logDroppedSignal(signal.getType(), "No Connection or signalFilter configuration available.");
+            return;
+        }
+        if (entityId.toString().equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
+            logDroppedSignal(signal.getType(), "Was sent by myself.");
+            return;
+        }
+
+        final List<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
+        if (subscribedAndAuthorizedTargets.isEmpty()) {
+            logDroppedSignal(signal.getType(), "No subscribed and authorized targets present");
+            return;
+        }
+
+        log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(),
+                subscribedAndAuthorizedTargets);
+
+        final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
+        clientActorRouter.tell(outbound, getSender());
+    }
+
+    private void prepareForSignalForwarding(final StagedCommand command) {
+        if (entity != null) {
+            signalFilter = new SignalFilter(entity, connectionMonitorRegistry);
+        }
+
+        // remove previous subscriptions.
+        // with high probability, unnecessary changes won't propagate to other cluster nodes.
+        dittoProtocolSub.removeSubscriber(getSelf());
+
+        if (isDesiredStateOpen()) {
+            startEnabledLoggingChecker();
+            updateLoggingIfEnabled();
+            dittoProtocolSub.subscribe(toStreamingTypes(getUniqueTopics(entity)), getTargetAuthSubjects(), getSelf())
+                    .thenAccept(done -> getSelf().tell(command, ActorRef.noSender()));
+        } else {
+            interpretStagedCommand(command);
         }
     }
 
+    private void testConnection(final StagedCommand command) {
+        final ActorRef origin = command.getSender();
+        final ActorRef self = getSelf();
+
+        if (clientActorRouter != null) {
+            // client actor is already running, so either another TestConnection command is currently executed or the
+            // connection has been created in the meantime. In either case reject the new TestConnection command to
+            // prevent strange behavior.
+            origin.tell(TestConnectionResponse.alreadyCreated(entityId, command.getDittoHeaders()), self);
+        } else {
+            askClientActor(command.getCommand())
+                    .thenAccept(response -> {
+                        self.tell(
+                                command.withResponse(TestConnectionResponse.success(command.getConnectionEntityId(),
+                                        response.toString(), command.getDittoHeaders())),
+                                ActorRef.noSender());
+                    })
+                    .exceptionally(error -> {
+                        self.tell(
+                                command.withResponse(
+                                        toDittoRuntimeException(error, entityId, command.getDittoHeaders())),
+                                ActorRef.noSender());
+                        return null;
+                    });
+        }
+    }
+
+    private void openConnection(final StagedCommand command, final boolean ignoreErrors) {
+        final OpenConnection openConnection = OpenConnection.of(entityId, command.getDittoHeaders());
+        final Consumer<Object> successConsumer = response -> getSelf().tell(command, ActorRef.noSender());
+        askClientActor(openConnection)
+                .thenAccept(successConsumer)
+                .exceptionally(error -> {
+                    if (ignoreErrors) {
+                        successConsumer.accept(error);
+                        return null;
+                    } else {
+                        return handleException("open-connection", command.getSender(), error);
+                    }
+                });
+    }
+
+    private void closeConnection(final StagedCommand command) {
+        final CloseConnection closeConnection = CloseConnection.of(entityId, command.getDittoHeaders());
+        askClientActorIfStarted(closeConnection)
+                .thenAccept(response -> getSelf().tell(command, ActorRef.noSender()))
+                .exceptionally(error -> handleException("disconnect", command.getSender(), error));
+    }
+
+    // TODO: see if this is needed anywhere else
     private void enhanceLogUtil(final WithDittoHeaders<?> createConnection) {
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, createConnection, entityId);
     }
@@ -382,12 +561,12 @@ public final class ConnectionActor
         origin.tell(CreateConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
     }
 
-    private void retrieveConnectionLogs(final RetrieveConnectionLogs command) {
+    private void retrieveConnectionLogs(final RetrieveConnectionLogs command, final ActorRef sender) {
         this.updateLoggingIfEnabled();
         broadcastCommandWithDifferentSender(command,
                 (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
-                        existingConnection, getSender(), command.getDittoHeaders(), timeout),
-                () -> respondWithEmptyLogs(command, this.getSender()));
+                        existingConnection, sender, command.getDittoHeaders(), timeout),
+                () -> respondWithEmptyLogs(command, sender));
     }
 
     private boolean isLoggingEnabled() {
@@ -396,8 +575,8 @@ public final class ConnectionActor
 
     private void loggingEnabled() {
         // start check logging scheduler
-        this.startEnabledLoggingChecker();
-        this.loggingEnabledUntil = Instant.now().plus(this.loggingEnabledDuration);
+        startEnabledLoggingChecker();
+        loggingEnabledUntil = Instant.now().plus(this.loggingEnabledDuration);
     }
 
     private void updateLoggingIfEnabled() {
@@ -417,10 +596,6 @@ public final class ConnectionActor
     }
 
     private void startEnabledLoggingChecker() {
-        this.startEnabledLoggingChecker(this.checkLoggingActiveInterval);
-    }
-
-    private void startEnabledLoggingChecker(final Duration initialDelay) {
         timers().startPeriodicTimer(CheckLoggingActive.INSTANCE, CheckLoggingActive.INSTANCE,
                 checkLoggingActiveInterval);
     }
@@ -487,15 +662,11 @@ public final class ConnectionActor
     /*
      * NOT thread-safe.
      */
-    private void askClientActorIfStarted(final Command<?> cmd, final Consumer<Object> onSuccess,
-            final Consumer<Throwable> onError, final Runnable onClientActorNotStarted) {
+    private CompletionStage<Object> askClientActorIfStarted(final Command<?> cmd) {
         if (clientActorRouter != null && entity != null) {
-            askClientActor(cmd).thenAccept(onSuccess).exceptionally(e -> {
-                onError.accept(e);
-                return null;
-            });
+            return askClientActor(cmd);
         } else {
-            onClientActorNotStarted.run();
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -562,14 +733,14 @@ public final class ConnectionActor
     }
 
 
-    private void retrieveConnectionStatus(final RetrieveConnectionStatus command) {
+    private void retrieveConnectionStatus(final RetrieveConnectionStatus command, final ActorRef sender) {
         checkNotNull(entity, "Connection");
         // timeout before sending the (partial) response
         final Duration timeout =
                 Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
-        final Props props = RetrieveConnectionStatusAggregatorActor.props(entity, getSender(),
+        final Props props = RetrieveConnectionStatusAggregatorActor.props(entity, sender,
                 command.getDittoHeaders(), timeout);
-        forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, this.getSender()));
+        forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, sender));
     }
 
     private static long extractTimeoutFromCommand(final DittoHeaders headers) {
@@ -578,11 +749,11 @@ public final class ConnectionActor
                 .orElse(DEFAULT_RETRIEVE_STATUS_TIMEOUT);
     }
 
-    private void retrieveConnectionMetrics(final RetrieveConnectionMetrics command) {
+    private void retrieveConnectionMetrics(final RetrieveConnectionMetrics command, final ActorRef sender) {
         broadcastCommandWithDifferentSender(command,
                 (existingConnection, timeout) -> RetrieveConnectionMetricsAggregatorActor.props(
-                        existingConnection, getSender(), command.getDittoHeaders(), timeout),
-                () -> respondWithEmptyMetrics(command, this.getSender()));
+                        existingConnection, sender, command.getDittoHeaders(), timeout),
+                () -> respondWithEmptyMetrics(command, sender));
     }
 
     private void respondWithEmptyMetrics(final RetrieveConnectionMetrics command, final ActorRef origin) {
@@ -654,7 +825,7 @@ public final class ConnectionActor
         }
     }
 
-    private void stopClientActor() {
+    private void stopClientActors() {
         if (clientActorRouter != null) {
             connectionClosedAt = Instant.now();
             log.debug("Stopping the client actor.");
@@ -676,6 +847,13 @@ public final class ConnectionActor
         return entity != null &&
                 !entity.hasLifecycle(ConnectionLifecycle.DELETED) &&
                 entity.getConnectionStatus() == ConnectivityStatus.OPEN;
+    }
+
+    private void restoreOpenConnection() {
+        final OpenConnection connect = OpenConnection.of(entityId, DittoHeaders.empty());
+        final StagedCommand stagedCommand = StagedCommand.of(connect, StagedCommand.dummyEvent(), connect,
+                Collections.singletonList(UPDATE_SUBSCRIPTIONS));
+        openConnection(stagedCommand, false);
     }
 
     private static Collection<StreamingType> toStreamingTypes(final Set<Topic> uniqueTopics) {
@@ -827,6 +1005,20 @@ public final class ConnectionActor
         return error instanceof CompletionException ? getRootCause(error.getCause()) : error;
     }
 
+    private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,
+            final DittoHeaders headers) {
+        final Throwable cause = getRootCause(error);
+        if (cause instanceof DittoRuntimeException) {
+            return (DittoRuntimeException) cause;
+        } else {
+            return ConnectionFailedException.newBuilder(id)
+                    .description(cause.getMessage())
+                    .cause(cause)
+                    .dittoHeaders(headers)
+                    .build();
+        }
+    }
+
     static Optional<DittoRuntimeException> validate(final CommandStrategy.Context<ConnectionState> context,
             final ConnectivityCommand command) {
 
@@ -834,16 +1026,8 @@ public final class ConnectionActor
             context.getState().getValidator().accept(command);
             return Optional.empty();
         } catch (final Exception error) {
-            final Throwable cause = getRootCause(error);
-            final DittoRuntimeException dre;
-            if (cause instanceof DittoRuntimeException) {
-                dre = (DittoRuntimeException) cause;
-            } else {
-                dre = ConnectionFailedException.newBuilder(context.getState().id())
-                        .description(cause.getMessage())
-                        .cause(cause)
-                        .build();
-            }
+            final DittoRuntimeException dre =
+                    toDittoRuntimeException(error, context.getState().id(), command.getDittoHeaders());
             context.getLog().info("Operation <{}> failed due to <{}>", command, dre);
             context.getState()
                     .getConnectionLogger()

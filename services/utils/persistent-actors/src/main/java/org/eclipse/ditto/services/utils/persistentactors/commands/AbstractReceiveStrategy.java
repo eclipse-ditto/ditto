@@ -82,16 +82,22 @@ public abstract class AbstractReceiveStrategy<C, S, I, R> extends AbstractComman
 
         final CommandStrategy<C, S, I, R> commandStrategy = getAppropriateStrategy(command.getClass());
 
-        final DiagnosticLoggingAdapter log = context.getLog();
-        if (command instanceof WithDittoHeaders) {
-            LogUtil.enhanceLogWithCorrelationId(log, (WithDittoHeaders) command);
+        if (commandStrategy != null) {
+            final DiagnosticLoggingAdapter log = context.getLog();
+            if (command instanceof WithDittoHeaders) {
+                LogUtil.enhanceLogWithCorrelationId(log, (WithDittoHeaders) command);
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("Applying command <{}>", command);
+            }
+            return commandStrategy.apply(context, entity, nextRevision, command);
+        } else {
+            // this may happen when subclasses override the "isDefined" condition.
+            return unhandled(context, entity, nextRevision, command);
         }
-        if (log.isDebugEnabled()) {
-            log.debug("Applying command <{}>", command);
-        }
-        return commandStrategy.apply(context, entity, nextRevision, command);
     }
 
+    @Nullable
     private CommandStrategy<C, S, I, R> getAppropriateStrategy(final Class commandClass) {
         return (CommandStrategy<C, S, I, R>) strategies.get(commandClass);
     }

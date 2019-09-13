@@ -99,7 +99,7 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
     }
 
     // TODO
-    private ConnectivityCommand getCommand() {
+    public ConnectivityCommand getCommand() {
         return command;
     }
 

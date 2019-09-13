@@ -23,6 +23,26 @@ public enum ConnectionAction {
     TEST_CONNECTION,
 
     /**
+     * Apply an event without persisting it.
+     */
+    APPLY_EVENT,
+
+    /**
+     * Send the response to the original sender.
+     */
+    SEND_RESPONSE,
+
+    /**
+     * Ask parent to stop self.
+     */
+    PASSIVATE,
+
+    /**
+     * Tell client actors to open the connection but do not abort on error.
+     */
+    OPEN_CONNECTION_IGNORE_ERRORS,
+
+    /**
      * Tell client actors to open the connection.
      */
     OPEN_CONNECTION,
@@ -33,19 +53,14 @@ public enum ConnectionAction {
     CLOSE_CONNECTION,
 
     /**
-     * Apply an event without persisting it.
+     * Stop client actors.
      */
-    APPLY_EVENT,
+    STOP_CLIENT_ACTORS,
 
     /**
      * Write an event into the journal.
      */
     PERSIST_AND_APPLY_EVENT,
-
-    /**
-     * Send the response to the original sender.
-     */
-    SEND_RESPONSE,
 
     /**
      * Become created.
@@ -56,11 +71,6 @@ public enum ConnectionAction {
      * Become deleted.
      */
     BECOME_DELETED,
-
-    /**
-     * Ask parent to stop self.
-     */
-    PASSIVATE,
 
     /**
      * Update pubsub topics.

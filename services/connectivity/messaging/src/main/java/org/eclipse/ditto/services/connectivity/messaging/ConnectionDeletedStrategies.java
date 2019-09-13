@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.connectivity.ConnectionLifecycle.ACTIVE;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.APPLY_EVENT;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.BECOME_CREATED;
-import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.OPEN_CONNECTION;
+import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.OPEN_CONNECTION_IGNORE_ERRORS;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.PASSIVATE;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.PERSIST_AND_APPLY_EVENT;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
@@ -38,7 +38,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
@@ -69,6 +69,7 @@ public class ConnectionDeletedStrategies
 
     private static ConnectionDeletedStrategies newDeletedStrategies() {
         final ConnectionDeletedStrategies strategies = new ConnectionDeletedStrategies();
+        strategies.addStrategy(new ConnectionCreatedStrategies.StagedCommandStrategy());
         strategies.addStrategy(new TestConnectionStrategy());
         strategies.addStrategy(new CreateConnectionStrategy());
         return strategies;
@@ -97,20 +98,8 @@ public class ConnectionDeletedStrategies
         return ResultFactory.emptyResult();
     }
 
-    private abstract static class AbstractStrategy<C>
-            extends AbstractCommandStrategy<C, Connection, ConnectionState, Result<ConnectivityEvent>> {
-
-        AbstractStrategy(final Class<C> theMatchingClass) {
-            super(theMatchingClass);
-        }
-
-        @Override
-        public boolean isDefined(final C command) {
-            return true;
-        }
-    }
-
-    private static final class TestConnectionStrategy extends AbstractStrategy<TestConnection> {
+    private static final class TestConnectionStrategy extends
+            ConnectionCreatedStrategies.AbstractStrategy<TestConnection> {
 
         private TestConnectionStrategy() {
             super(TestConnection.class);
@@ -122,7 +111,7 @@ public class ConnectionDeletedStrategies
             final Optional<DittoRuntimeException> validationError = ConnectionActor.validate(context, command);
             if (validationError.isPresent()) {
                 return newErrorResult(validationError.get());
-            } else if (entity != null) {
+            } else if (entity == null) {
                 final Connection connection = command.getConnection();
                 final ConnectivityEvent event = ConnectionCreated.of(connection, command.getDittoHeaders());
                 final Collection<ConnectionAction> actions =
@@ -136,7 +125,8 @@ public class ConnectionDeletedStrategies
         }
     }
 
-    private static final class CreateConnectionStrategy extends AbstractStrategy<CreateConnection> {
+    private static final class CreateConnectionStrategy extends
+            ConnectionCreatedStrategies.AbstractStrategy<CreateConnection> {
 
         private CreateConnectionStrategy() {
             super(CreateConnection.class);
@@ -145,6 +135,9 @@ public class ConnectionDeletedStrategies
         @Override
         protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection entity, final long nextRevision, final CreateConnection command) {
+            // TODO: see if enhancing log is needed anywhere else
+            ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(context.getLog(), command,
+                    context.getState().id());
             final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
             final ConnectivityEvent event =
                     ConnectionCreated.of(connection, getEventTimestamp(), command.getDittoHeaders());
@@ -155,7 +148,8 @@ public class ConnectionDeletedStrategies
                 return newErrorResult(validationError.get());
             } else if (connection.getConnectionStatus() == ConnectivityStatus.OPEN) {
                 final Collection<ConnectionAction> actions = Arrays.asList(
-                        PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE, BECOME_CREATED);
+                        PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION_IGNORE_ERRORS, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE,
+                        BECOME_CREATED);
                 return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
             } else {
                 return newMutationResult(command, event, response, true, false);
