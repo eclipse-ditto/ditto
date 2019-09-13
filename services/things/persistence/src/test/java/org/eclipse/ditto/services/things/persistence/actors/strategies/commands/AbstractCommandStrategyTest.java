@@ -82,7 +82,7 @@ public abstract class AbstractCommandStrategyTest {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final Result result = applyStrategy(underTest, context, thing, command);
 
-        assertModificationResult(context, result, expectedEventClass, expectedCommandResponse, becomeDeleted);
+        assertModificationResult(result, expectedEventClass, expectedCommandResponse, becomeDeleted);
     }
 
     protected static <C> void assertErrorResult(
@@ -114,11 +114,10 @@ public abstract class AbstractCommandStrategyTest {
 
         final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
         underTest.unhandled(getDefaultContext(), thing, NEXT_REVISION, command).accept(mock);
-        verify(mock).onError(expectedResponse);
+        verify(mock).onError(eq(expectedResponse));
     }
 
-    private static void assertModificationResult(final CommandStrategy.Context<ThingId> context,
-            final Result<ThingEvent> result,
+    private static void assertModificationResult(final Result<ThingEvent> result,
             final Class<? extends ThingModifiedEvent> eventClazz,
             final WithDittoHeaders expectedResponse,
             final boolean becomeDeleted) {

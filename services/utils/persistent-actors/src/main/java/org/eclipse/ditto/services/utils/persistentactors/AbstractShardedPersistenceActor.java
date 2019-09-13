@@ -32,6 +32,7 @@ import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
 
@@ -48,7 +49,7 @@ import scala.Option;
 /**
  * PersistentActor which "knows" the state of a single entity.
  */
-public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E extends Event>
+public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, E extends Event>
         extends AbstractPersistentActorWithTimersAndCleanup
         implements ResultVisitor<E> {
 
@@ -85,9 +86,8 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
         defaultContext = DefaultContext.getInstance(entityId, log);
 
         handleEvents = ReceiveBuilder.create()
-                .match(getEventClass(), event -> {
-                    entity = getEventStrategy().handle(event, entity, getRevisionNumber());
-                }).build();
+                .match(getEventClass(), event -> entity = getEventStrategy().handle(event, entity, getRevisionNumber()))
+                .build();
 
         handleCleanups = super.createReceive();
     }
@@ -103,9 +103,9 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
 
     protected abstract Class<E> getEventClass();
 
-    protected abstract CommandStrategy<C, S, I, Result<E>> getCommandStrategy();
+    protected abstract CommandStrategy<C, S, I, Result<E>> getCreatedStrategy();
 
-    protected abstract CommandStrategy<? extends C, S, I, Result<E>> getCreateStrategy();
+    protected abstract CommandStrategy<? extends C, S, I, Result<E>> getDeletedStrategy();
 
     protected abstract EventStrategy<E, S> getEventStrategy();
 
@@ -133,12 +133,6 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
         } else {
             becomeDeletedHandler();
         }
-    }
-
-    @Override
-    public void preStart() throws Exception {
-        super.preStart();
-        scheduleCheckForThingActivity(getActivityCheckConfig().getInactiveInterval());
     }
 
     private long getRevisionNumber() {
@@ -185,7 +179,7 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
      * be activated. In return the strategy for the CreateThing command is not needed anymore.
      */
     protected void becomeCreatedHandler() {
-        final CommandStrategy<C, S, I, Result<E>> commandStrategy = getCommandStrategy();
+        final CommandStrategy<C, S, I, Result<E>> commandStrategy = getCreatedStrategy();
 
         final Receive receive = handleCleanups.orElse(ReceiveBuilder.create()
                 .match(commandStrategy.getMatchingClass(), commandStrategy::isDefined, this::handleByCommandStrategy)
@@ -213,8 +207,15 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
         cancelSnapshot();
     }
 
+    /**
+     * TODO overridable; thread-safe
+     */
+    protected void passivate() {
+        getContext().getParent().tell(AbstractPersistenceSupervisor.Control.PASSIVATE, getSelf());
+    }
+
     private Receive createDeletedBehavior() {
-        final CommandStrategy<? extends C, S, I, Result<E>> createStrategy = getCreateStrategy();
+        final CommandStrategy<? extends C, S, I, Result<E>> createStrategy = getDeletedStrategy();
         return handleCleanups.orElse(handleByStrategyReceiveBuilder(createStrategy)
                 .match(CheckForActivity.class, this::checkForActivity)
                 .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
@@ -225,8 +226,12 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
     }
 
     private void scheduleCheckForThingActivity(final Duration interval) {
-        log.debug("Scheduling for Activity Check in <{}> seconds.", interval);
-        timers().startSingleTimer("activityCheck", new CheckForActivity(accessCounter), interval);
+        if (interval.isNegative() || interval.isZero()) {
+            log.debug("Activity check is disabled: <{}>", interval);
+        } else {
+            log.debug("Scheduling for Activity Check in <{}> seconds.", interval);
+            timers().startSingleTimer("activityCheck", new CheckForActivity(accessCounter), interval);
+        }
     }
 
     private void scheduleSnapshot() {
@@ -239,7 +244,7 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
     }
 
     private void handleByCommandStrategy(final C command) {
-        handleByStrategy(command, getCommandStrategy());
+        handleByStrategy(command, getCreatedStrategy());
     }
 
     private <T> ReceiveBuilder handleByStrategyReceiveBuilder(final CommandStrategy<T, S, I, Result<E>> strategy) {
@@ -248,6 +253,7 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
     }
 
     private <T> void handleByStrategy(final T command, final CommandStrategy<T, S, I, Result<E>> strategy) {
+        log.debug("Handling by strategy: <{}>", command);
         accessCounter++;
         final Result<E> result;
         try {
@@ -284,11 +290,13 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
         notifySender(error);
     }
 
-    private long getNextRevisionNumber() {
-        return getRevisionNumber() + 1;
-    }
-
-    private void persistAndApplyEvent(final E event, final BiConsumer<E, S> handler) {
+    /**
+     * Persist an event, modify actor state by the event strategy, then invoke the handler.
+     *
+     * @param event the event to persist and apply.
+     * @param handler what happens afterwards.
+     */
+    protected void persistAndApplyEvent(final E event, final BiConsumer<E, S> handler) {
 
         final E modifiedEvent;
         if (null != entity) {
@@ -310,6 +318,10 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
                 handler.accept(persistedEvent, entity);
             });
         }
+    }
+
+    private long getNextRevisionNumber() {
+        return getRevisionNumber() + 1;
     }
 
     private void persistEvent(final E event, final Consumer<E> handler) {
@@ -425,11 +437,6 @@ public abstract class AbstractShardedPersistenceActor<C extends Command, S, I, E
     private void shutdown(final String shutdownLogTemplate, final I entityId) {
         log.debug(shutdownLogTemplate, String.valueOf(entityId));
         passivate();
-    }
-
-    private void passivate() {
-        // make this method protected if a subclass needs to override it.
-        getContext().getParent().tell(AbstractPersistenceSupervisor.Control.PASSIVATE, getSelf());
     }
 
     private boolean isEntityActive() {

@@ -29,7 +29,7 @@ import akka.event.DiagnosticLoggingAdapter;
 @Immutable
 public abstract class AbstractReceiveStrategy<C, S, I, R> extends AbstractCommandStrategy<C, S, I, R> {
 
-    protected final Map<Class<? extends C>, CommandStrategy<? extends C, S, I, R>> strategies = new HashMap<>();
+    protected final Map<Class<? extends C>, CommandStrategy<? extends C, S, I, R>> strategies;
 
     /**
      * Constructs a new {@code AbstractCommandStrategy} object.
@@ -37,9 +37,9 @@ public abstract class AbstractReceiveStrategy<C, S, I, R> extends AbstractComman
      * @param theMatchingClass the class
      * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
      */
-    protected AbstractReceiveStrategy(
-            final Class<C> theMatchingClass) {
+    protected AbstractReceiveStrategy(final Class<C> theMatchingClass) {
         super(theMatchingClass);
+        strategies = new HashMap<>();
     }
 
     /**
@@ -92,7 +92,6 @@ public abstract class AbstractReceiveStrategy<C, S, I, R> extends AbstractComman
         return commandStrategy.apply(context, entity, nextRevision, command);
     }
 
-    @SuppressWarnings("unchecked")
     private CommandStrategy<C, S, I, R> getAppropriateStrategy(final Class commandClass) {
         return (CommandStrategy<C, S, I, R>) strategies.get(commandClass);
     }

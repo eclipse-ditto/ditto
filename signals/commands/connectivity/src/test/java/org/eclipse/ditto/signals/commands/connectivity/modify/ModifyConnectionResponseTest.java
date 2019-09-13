@@ -13,7 +13,6 @@
 package org.eclipse.ditto.signals.commands.connectivity.modify;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -61,17 +60,9 @@ public final class ModifyConnectionResponseTest {
     }
 
     @Test
-    public void createInstanceWithNullConnection() {
-        assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ModifyConnectionResponse.created(null, DittoHeaders.empty()))
-                .withMessage("The %s must not be null!", "Connection")
-                .withNoCause();
-    }
-
-    @Test
     public void fromJsonReturnsExpected() {
         final ModifyConnectionResponse expected =
-                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty());
+                ModifyConnectionResponse.of(TestConstants.CONNECTION.getId(), DittoHeaders.empty());
 
         final ModifyConnectionResponse actual =
                 ModifyConnectionResponse.fromJson(KNOWN_JSON, DittoHeaders.empty());
@@ -82,7 +73,7 @@ public final class ModifyConnectionResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty()).toJson();
+                ModifyConnectionResponse.of(TestConstants.CONNECTION.getId(), DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
@@ -92,7 +83,7 @@ public final class ModifyConnectionResponseTest {
         final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
 
         final ModifyConnectionResponse underTest =
-                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty());
+                ModifyConnectionResponse.of(TestConstants.CONNECTION.getId(), DittoHeaders.empty());
 
         DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

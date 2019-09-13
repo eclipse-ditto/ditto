@@ -162,7 +162,7 @@ public final class ConnectionActorTest extends WithMockServers {
         deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
         createConnectionResponse = CreateConnectionResponse.of(connection, DittoHeaders.empty());
         createClosedConnectionResponse = CreateConnectionResponse.of(closedConnection, DittoHeaders.empty());
-        modifyConnectionResponse = ModifyConnectionResponse.modified(connectionId, DittoHeaders.empty());
+        modifyConnectionResponse = ModifyConnectionResponse.of(connectionId, DittoHeaders.empty());
         openConnection = OpenConnection.of(connectionId, DittoHeaders.empty());
         closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
         testConnection = TestConnection.of(connection, DittoHeaders.empty());

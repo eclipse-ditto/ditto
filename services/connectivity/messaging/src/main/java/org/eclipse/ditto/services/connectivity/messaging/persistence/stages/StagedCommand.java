@@ -1,0 +1,227 @@
+/*
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.services.connectivity.messaging.persistence.stages;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.function.Predicate;
+
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
+import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
+
+import akka.actor.ActorRef;
+
+/**
+ * Non-serializable local-only command for multi-stage processing by
+ * {@link org.eclipse.ditto.services.connectivity.messaging.ConnectionActor}.
+ */
+public final class StagedCommand implements ConnectivityCommand<StagedCommand>, Iterator<StagedCommand> {
+
+    private static final ConnectivityCommand DUMMY_COMMAND =
+            CloseConnection.of(ConnectionId.dummy(), DittoHeaders.empty());
+
+    private static final ConnectivityEvent DUMMY_EVENT =
+            ConnectionClosed.of(ConnectionId.dummy(), DittoHeaders.empty());
+
+    private final ConnectivityCommand command;
+    private final ConnectivityEvent event;
+    private final WithDittoHeaders response;
+    private final ActorRef sender;
+    private final Collection<ConnectionAction> actions;
+
+    private StagedCommand(final ConnectivityCommand command,
+            final ConnectivityEvent event,
+            final WithDittoHeaders response,
+            final ActorRef sender,
+            final Collection<ConnectionAction> actions) {
+        this.command = command;
+        this.event = event;
+        this.response = response;
+        this.sender = sender;
+        this.actions = actions;
+    }
+
+    /**
+     * Create a staged command.
+     *
+     * @param command the original command.
+     * @param event the event to persist.
+     * @param response the response to send.
+     * @param actions remaining actions.
+     * @return the staged command.
+     */
+    public static StagedCommand of(final ConnectivityCommand command, final ConnectivityEvent event,
+            final WithDittoHeaders response, final Collection<ConnectionAction> actions) {
+        return new StagedCommand(command, event, response, ActorRef.noSender(), actions);
+    }
+
+    // TODO
+    public static StagedCommand forwardSignal(final Signal signal) {
+        final ConnectivityCommand dummyCommand = dummyCommand();
+        final ConnectivityEvent dummyEvent = dummyEvent();
+        final WithDittoHeaders dummyResponse = signal;
+        return new StagedCommand(dummyCommand, dummyEvent, dummyResponse, ActorRef.noSender(),
+                Collections.singleton(ConnectionAction.FORWARD_SIGNAL));
+    }
+
+    // TODO
+    public static ConnectivityCommand dummyCommand() {
+        return DUMMY_COMMAND;
+    }
+
+    // TODO
+    public static ConnectivityEvent dummyEvent() {
+        return DUMMY_EVENT;
+    }
+
+    // TODO
+    private ConnectivityCommand getCommand() {
+        return command;
+    }
+
+    // TODO
+    public ConnectivityEvent getEvent() {
+        return event;
+    }
+
+    // TODO
+    public WithDittoHeaders getResponse() {
+        return response;
+    }
+
+    // TODO
+    public ActorRef getSender() {
+        return sender;
+    }
+
+    /**
+     * Enhance this command with a sender unless this command has a sender already.
+     *
+     * @param newSender the new sender.
+     * @return either an enhanced command or this command.
+     */
+    public StagedCommand withSenderUnlessDefined(final ActorRef newSender) {
+        if (Objects.equals(ActorRef.noSender(), sender)) {
+            return new StagedCommand(command, event, response, newSender, actions);
+        } else {
+            return this;
+        }
+    }
+
+    /**
+     * Return a copy of this command with a new response.
+     *
+     * @param response the response.
+     * @return the copy.
+     */
+    public StagedCommand withResponse(final WithDittoHeaders response) {
+        return new StagedCommand(command, event, response, sender, actions);
+    }
+
+    @Override
+    public ConnectionId getConnectionEntityId() {
+        return command.getConnectionEntityId();
+    }
+
+    @Override
+    public Category getCategory() {
+        return command.getCategory();
+    }
+
+    @Override
+    public DittoHeaders getDittoHeaders() {
+        return command.getDittoHeaders();
+    }
+
+    @Override
+    public StagedCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new StagedCommand(command.setDittoHeaders(dittoHeaders), event, response, sender, actions);
+    }
+
+    @Override
+    public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
+        return command.toJson(schemaVersion, predicate);
+    }
+
+    @Override
+    public String getManifest() {
+        return command.getManifest();
+    }
+
+    @Override
+    public String getType() {
+        return command.getType();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(command, event, response, sender, actions);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (o instanceof StagedCommand) {
+            final StagedCommand that = (StagedCommand) o;
+            return Arrays.asList(command, event, response, sender, actions)
+                    .equals(Arrays.asList(that.command, that.event, that.response, that.sender, that.actions));
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s[command=%s,event=%s,response=%s,sender=%s,actions=%s]",
+                getClass().getSimpleName(), command, event, response, sender, actions);
+    }
+
+    @Override
+    public boolean hasNext() {
+        return !actions.isEmpty();
+    }
+
+    @Override
+    public StagedCommand next() {
+        final Queue<ConnectionAction> queue = getActionsAsQueue();
+        queue.poll();
+        return new StagedCommand(command, event, response, sender, queue);
+    }
+
+    /**
+     * Get the next action.
+     *
+     * @return the next action.
+     * @throws java.util.NoSuchElementException unless {@code this.hasNext()}.
+     */
+    public ConnectionAction nextAction() {
+        return actions.iterator().next();
+    }
+
+    private Queue<ConnectionAction> getActionsAsQueue() {
+        return new LinkedList<>(actions);
+    }
+}

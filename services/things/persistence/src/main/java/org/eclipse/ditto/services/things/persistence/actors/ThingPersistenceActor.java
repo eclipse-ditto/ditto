@@ -30,9 +30,7 @@ import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -124,12 +122,12 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    protected CommandStrategy<Command, Thing, ThingId, Result<ThingEvent>> getCommandStrategy() {
+    protected ThingReceiveStrategy getCreatedStrategy() {
         return ThingReceiveStrategy.getInstance();
     }
 
     @Override
-    protected CommandStrategy<? extends Command, Thing, ThingId, Result<ThingEvent>> getCreateStrategy() {
+    protected CreateThingStrategy getDeletedStrategy() {
         return CreateThingStrategy.getInstance();
     }
 

@@ -122,12 +122,12 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    protected CommandStrategy<Command, Policy, PolicyId, Result<PolicyEvent>> getCommandStrategy() {
+    protected PolicyCommandStrategies getCreatedStrategy() {
         return PolicyCommandStrategies.getInstance();
     }
 
     @Override
-    protected CommandStrategy<? extends Command, Policy, PolicyId, Result<PolicyEvent>> getCreateStrategy() {
+    protected CommandStrategy<? extends Command, Policy, PolicyId, Result<PolicyEvent>> getDeletedStrategy() {
         return PolicyCommandStrategies.getCreatePolicyStrategy();
     }
 
