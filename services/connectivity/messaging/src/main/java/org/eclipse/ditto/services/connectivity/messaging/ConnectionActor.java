@@ -91,12 +91,8 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
-import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.ConnectivityQueryCommand;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
@@ -327,6 +323,7 @@ public final class ConnectionActor
 
     @Override
     protected void recoveryCompleted(RecoveryCompleted event) {
+        log.info("Connection <{}> was recovered: {}", entityId, entity);
         if (entity != null && !entity.getLifecycle().isPresent()) {
             entity = entity.toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
         }
@@ -498,12 +495,10 @@ public final class ConnectionActor
             origin.tell(TestConnectionResponse.alreadyCreated(entityId, command.getDittoHeaders()), self);
         } else {
             askClientActor(command.getCommand())
-                    .thenAccept(response -> {
-                        self.tell(
-                                command.withResponse(TestConnectionResponse.success(command.getConnectionEntityId(),
-                                        response.toString(), command.getDittoHeaders())),
-                                ActorRef.noSender());
-                    })
+                    .thenAccept(response -> self.tell(
+                            command.withResponse(TestConnectionResponse.success(command.getConnectionEntityId(),
+                                    response.toString(), command.getDittoHeaders())),
+                            ActorRef.noSender()))
                     .exceptionally(error -> {
                         self.tell(
                                 command.withResponse(
@@ -521,6 +516,8 @@ public final class ConnectionActor
                 .thenAccept(successConsumer)
                 .exceptionally(error -> {
                     if (ignoreErrors) {
+                        // log the exception and proceed
+                        handleException("open-connection", command.getSender(), error, false);
                         successConsumer.accept(error);
                         return null;
                     } else {
@@ -536,7 +533,6 @@ public final class ConnectionActor
                 .exceptionally(error -> handleException("disconnect", command.getSender(), error));
     }
 
-    // TODO: see if this is needed anywhere else
     private void enhanceLogUtil(final WithDittoHeaders<?> createConnection) {
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, createConnection, entityId);
     }
@@ -544,21 +540,6 @@ public final class ConnectionActor
 
     private void logDroppedSignal(final String type, final String reason) {
         log.debug("Signal ({}) dropped: {}", type, reason);
-    }
-
-
-    private Connection setLifecycleActive(final Connection connection) {
-        if (connection.hasLifecycle(ConnectionLifecycle.ACTIVE)) {
-            return connection;
-        } else {
-            return connection.toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
-        }
-    }
-
-    private void respondWithCreateConnectionResponse(final Connection connection, final CreateConnection command,
-            final ActorRef origin) {
-
-        origin.tell(CreateConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
     }
 
     private void retrieveConnectionLogs(final RetrieveConnectionLogs command, final ActorRef sender) {
@@ -570,7 +551,7 @@ public final class ConnectionActor
     }
 
     private boolean isLoggingEnabled() {
-        return this.loggingEnabledUntil != null && Instant.now().isBefore(this.loggingEnabledUntil);
+        return loggingEnabledUntil != null && Instant.now().isBefore(loggingEnabledUntil);
     }
 
     private void loggingEnabled() {
@@ -580,15 +561,15 @@ public final class ConnectionActor
     }
 
     private void updateLoggingIfEnabled() {
-        if (this.isLoggingEnabled()) {
-            this.loggingEnabledUntil = Instant.now().plus(this.loggingEnabledDuration);
+        if (isLoggingEnabled()) {
+            loggingEnabledUntil = Instant.now().plus(loggingEnabledDuration);
             tellClientActorsIfStarted(EnableConnectionLogs.of(entityId, DittoHeaders.empty()), ActorRef.noSender());
         }
     }
 
     private void loggingDisabled() {
-        this.loggingEnabledUntil = null;
-        this.cancelEnabledLoggingChecker();
+        loggingEnabledUntil = null;
+        cancelEnabledLoggingChecker();
     }
 
     private void cancelEnabledLoggingChecker() {
@@ -610,11 +591,6 @@ public final class ConnectionActor
                 command.getDittoHeaders()
         );
         origin.tell(logsResponse, getSelf());
-    }
-
-    private void resetConnectionLogs(final ResetConnectionLogs command) {
-        tellClientActorsIfStarted(command, ActorRef.noSender());
-        getSender().tell(ResetConnectionLogsResponse.of(entityId, command.getDittoHeaders()), getSelf());
     }
 
     /*
@@ -702,13 +678,12 @@ public final class ConnectionActor
     /*
      * Thread-safe because Actor.getSelf() is thread-safe.
      */
-    private Void handleException(final String action, final ActorRef origin, final Throwable exception) {
-        handleException(action, origin, exception, true);
-        return null;
+    private Void handleException(final String action, @Nullable final ActorRef origin, final Throwable exception) {
+        return handleException(action, origin, exception, true);
     }
 
     private Void handleException(final String action,
-            final ActorRef origin,
+            @Nullable final ActorRef origin,
             final Throwable error,
             final boolean sendExceptionResponse) {
 
@@ -723,7 +698,7 @@ public final class ConnectionActor
                     .build();
         }
 
-        if (sendExceptionResponse) {
+        if (sendExceptionResponse && origin != null) {
             origin.tell(dre, getSelf());
         }
         connectionLogger.failure("Operation {0} failed due to {1}", action, dre.getMessage());
@@ -837,10 +812,6 @@ public final class ConnectionActor
     private void stopChildActor(final ActorRef actor) {
         log.debug("Stopping child actor <{}>.", actor.path());
         getContext().stop(actor);
-    }
-
-    private boolean isDeleted(@Nullable final Connection connection) {
-        return connection == null || connection.hasLifecycle(ConnectionLifecycle.DELETED);
     }
 
     private boolean isDesiredStateOpen() {

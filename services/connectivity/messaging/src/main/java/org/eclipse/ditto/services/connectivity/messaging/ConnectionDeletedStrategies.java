@@ -94,6 +94,12 @@ public class ConnectionDeletedStrategies
     }
 
     @Override
+    public boolean isDefined(final Signal command) {
+        // always defined so as to log ignored signals on debug level.
+        return true;
+    }
+
+    @Override
     protected Result<ConnectivityEvent> getEmptyResult() {
         return ResultFactory.emptyResult();
     }
@@ -135,7 +141,6 @@ public class ConnectionDeletedStrategies
         @Override
         protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection entity, final long nextRevision, final CreateConnection command) {
-            // TODO: see if enhancing log is needed anywhere else
             ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(context.getLog(), command,
                     context.getState().id());
             final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
@@ -147,6 +152,8 @@ public class ConnectionDeletedStrategies
             if (validationError.isPresent()) {
                 return newErrorResult(validationError.get());
             } else if (connection.getConnectionStatus() == ConnectivityStatus.OPEN) {
+                context.getLog().debug("Connection <{}> has status <{}> and will therefore be opened.",
+                        connection.getId(), connection.getConnectionStatus());
                 final Collection<ConnectionAction> actions = Arrays.asList(
                         PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION_IGNORE_ERRORS, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE,
                         BECOME_CREATED);

@@ -41,6 +41,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
@@ -254,6 +255,15 @@ public class ConnectionCreatedStrategies
         protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection entity, final long nextRevision, final ModifyConnection command) {
             final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
+            if (entity != null && entity.getConnectionType() != connection.getConnectionType()) {
+                return ResultFactory.newErrorResult(
+                        ConnectionConfigurationInvalidException
+                                .newBuilder("ConnectionType <" + connection.getConnectionType().getName() +
+                                        "> of existing connection <" + context.getState().id() + "> cannot be changed!")
+                                .dittoHeaders(command.getDittoHeaders())
+                                .build()
+                );
+            }
             final ConnectivityEvent event =
                     ConnectionModified.of(connection, getEventTimestamp(), command.getDittoHeaders());
             final WithDittoHeaders response =
@@ -268,9 +278,11 @@ public class ConnectionCreatedStrategies
             } else if (isNextConnectionOpen || isCurrentConnectionOpen) {
                 final Collection<ConnectionAction> actions;
                 if (isNextConnectionOpen) {
+                    context.getLog().debug("Desired connection state is OPEN");
                     actions = Arrays.asList(PERSIST_AND_APPLY_EVENT, CLOSE_CONNECTION, STOP_CLIENT_ACTORS,
                             OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE);
                 } else {
+                    context.getLog().debug("Desired connection state is not OPEN");
                     actions = Arrays.asList(PERSIST_AND_APPLY_EVENT, UPDATE_SUBSCRIPTIONS, CLOSE_CONNECTION,
                             STOP_CLIENT_ACTORS, SEND_RESPONSE);
                 }

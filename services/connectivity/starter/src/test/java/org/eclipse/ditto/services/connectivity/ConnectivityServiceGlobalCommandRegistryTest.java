@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity;
 
+import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
@@ -57,5 +58,10 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
                 RetrieveHealth.class,
                 PurgeEntities.class
         );
+    }
+
+    @Override
+    protected boolean isExcluded(final Class<?> clazz) {
+        return clazz == StagedCommand.class;
     }
 }
