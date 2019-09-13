@@ -28,7 +28,6 @@ import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
@@ -49,7 +48,7 @@ import scala.Option;
 /**
  * PersistentActor which "knows" the state of a single entity.
  */
-public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, E extends Event>
+public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K, E extends Event>
         extends AbstractPersistentActorWithTimersAndCleanup
         implements ResultVisitor<E> {
 
@@ -60,12 +59,6 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, E 
     private final Receive handleCleanups;
     private long lastSnapshotRevision;
     private long confirmedSnapshotRevision;
-
-    /**
-     * Context for all {@link org.eclipse.ditto.services.utils.persistentactors.commands.AbstractReceiveStrategy} strategies - contains references to fields of {@code this}
-     * PersistenceActor.
-     */
-    private final CommandStrategy.Context<I> defaultContext;
 
     @Nullable
     protected S entity;
@@ -82,8 +75,6 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, E 
 
         lastSnapshotRevision = 0L;
         confirmedSnapshotRevision = 0L;
-
-        defaultContext = DefaultContext.getInstance(entityId, log);
 
         handleEvents = ReceiveBuilder.create()
                 .match(getEventClass(), event -> entity = getEventStrategy().handle(event, entity, getRevisionNumber()))
@@ -103,9 +94,11 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, E 
 
     protected abstract Class<E> getEventClass();
 
-    protected abstract CommandStrategy<C, S, I, Result<E>> getCreatedStrategy();
+    protected abstract CommandStrategy.Context<K> getStrategyContext();
 
-    protected abstract CommandStrategy<? extends C, S, I, Result<E>> getDeletedStrategy();
+    protected abstract CommandStrategy<C, S, K, Result<E>> getCreatedStrategy();
+
+    protected abstract CommandStrategy<? extends C, S, K, Result<E>> getDeletedStrategy();
 
     protected abstract EventStrategy<E, S> getEventStrategy();
 
@@ -179,7 +172,7 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, E 
      * be activated. In return the strategy for the CreateThing command is not needed anymore.
      */
     protected void becomeCreatedHandler() {
-        final CommandStrategy<C, S, I, Result<E>> commandStrategy = getCreatedStrategy();
+        final CommandStrategy<C, S, K, Result<E>> commandStrategy = getCreatedStrategy();
 
         final Receive receive = handleCleanups.orElse(ReceiveBuilder.create()
                 .match(commandStrategy.getMatchingClass(), commandStrategy::isDefined, this::handleByCommandStrategy)
@@ -215,8 +208,8 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, E 
     }
 
     private Receive createDeletedBehavior() {
-        final CommandStrategy<? extends C, S, I, Result<E>> createStrategy = getDeletedStrategy();
-        return handleCleanups.orElse(handleByStrategyReceiveBuilder(createStrategy)
+        final CommandStrategy<? extends C, S, K, Result<E>> deleteStrategy = getDeletedStrategy();
+        return handleCleanups.orElse(handleByStrategyReceiveBuilder(deleteStrategy)
                 .match(CheckForActivity.class, this::checkForActivity)
                 .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
                 .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
@@ -247,17 +240,17 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, E 
         handleByStrategy(command, getCreatedStrategy());
     }
 
-    private <T> ReceiveBuilder handleByStrategyReceiveBuilder(final CommandStrategy<T, S, I, Result<E>> strategy) {
+    private <T> ReceiveBuilder handleByStrategyReceiveBuilder(final CommandStrategy<T, S, K, Result<E>> strategy) {
         return ReceiveBuilder.create()
                 .match(strategy.getMatchingClass(), command -> handleByStrategy(command, strategy));
     }
 
-    private <T> void handleByStrategy(final T command, final CommandStrategy<T, S, I, Result<E>> strategy) {
+    private <T> void handleByStrategy(final T command, final CommandStrategy<T, S, K, Result<E>> strategy) {
         log.debug("Handling by strategy: <{}>", command);
         accessCounter++;
         final Result<E> result;
         try {
-            result = strategy.apply(defaultContext, entity, getNextRevisionNumber(), command);
+            result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), command);
         } catch (final DittoRuntimeException e) {
             getSender().tell(e, getSelf());
             return;

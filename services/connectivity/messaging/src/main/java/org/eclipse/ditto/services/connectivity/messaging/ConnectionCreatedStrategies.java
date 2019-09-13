@@ -39,9 +39,9 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractReceiveStrategy;
@@ -82,7 +82,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 // TODO
 public class ConnectionCreatedStrategies
-        extends AbstractReceiveStrategy<Signal, Connection, ConnectionId, Result<ConnectivityEvent>> {
+        extends AbstractReceiveStrategy<Signal, Connection, ConnectionState, Result<ConnectivityEvent>> {
 
     private static final ConnectionCreatedStrategies CREATED_STRATEGIES = newCreatedStrategies();
 
@@ -115,7 +115,7 @@ public class ConnectionCreatedStrategies
     }
 
     @Override
-    public Result<ConnectivityEvent> unhandled(final Context<ConnectionId> context,
+    public Result<ConnectivityEvent> unhandled(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
             final Signal signal) {
@@ -131,7 +131,7 @@ public class ConnectionCreatedStrategies
     }
 
     private abstract static class AbstractStrategy<C>
-            extends AbstractCommandStrategy<C, Connection, ConnectionId, Result<ConnectivityEvent>> {
+            extends AbstractCommandStrategy<C, Connection, ConnectionState, Result<ConnectivityEvent>> {
 
         AbstractStrategy(final Class<C> theMatchingClass) {
             super(theMatchingClass);
@@ -142,9 +142,9 @@ public class ConnectionCreatedStrategies
             return true;
         }
 
-        ConnectionNotAccessibleException notAccessible(final Context<ConnectionId> context,
+        ConnectionNotAccessibleException notAccessible(final Context<ConnectionState> context,
                 final WithDittoHeaders command) {
-            return ConnectionNotAccessibleException.newBuilder(context.getState())
+            return ConnectionNotAccessibleException.newBuilder(context.getState().id())
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
         }
@@ -160,7 +160,7 @@ public class ConnectionCreatedStrategies
         abstract ConnectionAction getAction();
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection connection, final long nextRevision, final C command) {
             final ConnectivityEvent event = StagedCommand.dummyEvent();
             final Collection<ConnectionAction> actions = Collections.singletonList(getAction());
@@ -176,12 +176,12 @@ public class ConnectionCreatedStrategies
             super(theMatchingClass);
         }
 
-        abstract WithDittoHeaders getResponse(final ConnectionId connectionId, final DittoHeaders headers);
+        abstract WithDittoHeaders getResponse(final ConnectionState connectionId, final DittoHeaders headers);
 
         abstract Collection<ConnectionAction> getActions();
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection connection, final long nextRevision, final C command) {
             final ConnectivityEvent event = StagedCommand.dummyEvent();
             final WithDittoHeaders response = getResponse(context.getState(), command.getDittoHeaders());
@@ -198,10 +198,10 @@ public class ConnectionCreatedStrategies
         }
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection entity, final long nextRevision, final TestConnection command) {
             return newQueryResult(command,
-                    TestConnectionResponse.alreadyCreated(context.getState(), command.getDittoHeaders()));
+                    TestConnectionResponse.alreadyCreated(context.getState().id(), command.getDittoHeaders()));
         }
     }
 
@@ -212,11 +212,11 @@ public class ConnectionCreatedStrategies
         }
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection entity, final long nextRevision, final CreateConnection command) {
-            context.getLog().info("Connection <{}> already exists! Responding with conflict.", context.getState());
+            context.getLog().info("Connection <{}> already exists! Responding with conflict.", context.getState().id());
             final ConnectionConflictException conflictException =
-                    ConnectionConflictException.newBuilder(context.getState())
+                    ConnectionConflictException.newBuilder(context.getState().id())
                             .dittoHeaders(command.getDittoHeaders())
                             .build();
             return newErrorResult(conflictException);
@@ -230,13 +230,13 @@ public class ConnectionCreatedStrategies
         }
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection entity, final long nextRevision, final ModifyConnection command) {
             final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
             final ConnectivityEvent event =
                     ConnectionModified.of(connection, getEventTimestamp(), command.getDittoHeaders());
             final WithDittoHeaders response =
-                    ModifyConnectionResponse.of(context.getState(), command.getDittoHeaders());
+                    ModifyConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
             final boolean isCurrentConnectionOpen = Optional.ofNullable(entity)
                     .map(c -> c.getConnectionStatus() == ConnectivityStatus.OPEN)
                     .orElse(false);
@@ -264,10 +264,11 @@ public class ConnectionCreatedStrategies
         }
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection connection, final long nextRevision, final OpenConnection command) {
-            final ConnectivityEvent event = ConnectionOpened.of(context.getState(), command.getDittoHeaders());
-            final WithDittoHeaders response = OpenConnectionResponse.of(context.getState(), command.getDittoHeaders());
+            final ConnectivityEvent event = ConnectionOpened.of(context.getState().id(), command.getDittoHeaders());
+            final WithDittoHeaders response =
+                    OpenConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
             final Collection<ConnectionAction> actions =
                     Arrays.asList(PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
@@ -281,10 +282,11 @@ public class ConnectionCreatedStrategies
         }
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection connection, final long nextRevision, final CloseConnection command) {
-            final ConnectivityEvent event = ConnectionClosed.of(context.getState(), command.getDittoHeaders());
-            final WithDittoHeaders response = CloseConnectionResponse.of(context.getState(), command.getDittoHeaders());
+            final ConnectivityEvent event = ConnectionClosed.of(context.getState().id(), command.getDittoHeaders());
+            final WithDittoHeaders response =
+                    CloseConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
             final Collection<ConnectionAction> actions =
                     Arrays.asList(PERSIST_AND_APPLY_EVENT, UPDATE_SUBSCRIPTIONS, CLOSE_CONNECTION, SEND_RESPONSE);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
@@ -298,11 +300,11 @@ public class ConnectionCreatedStrategies
         }
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection connection, final long nextRevision, final DeleteConnection command) {
-            final ConnectivityEvent event = ConnectionDeleted.of(context.getState(), command.getDittoHeaders());
+            final ConnectivityEvent event = ConnectionDeleted.of(context.getState().id(), command.getDittoHeaders());
             final WithDittoHeaders response =
-                    DeleteConnectionResponse.of(context.getState(), command.getDittoHeaders());
+                    DeleteConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
             final Collection<ConnectionAction> actions =
                     Arrays.asList(PERSIST_AND_APPLY_EVENT, CLOSE_CONNECTION, SEND_RESPONSE, BECOME_DELETED);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
@@ -317,8 +319,8 @@ public class ConnectionCreatedStrategies
         }
 
         @Override
-        WithDittoHeaders getResponse(final ConnectionId connectionId, final DittoHeaders headers) {
-            return ResetConnectionMetricsResponse.of(connectionId, headers);
+        WithDittoHeaders getResponse(final ConnectionState state, final DittoHeaders headers) {
+            return ResetConnectionMetricsResponse.of(state.id(), headers);
         }
 
         @Override
@@ -334,8 +336,8 @@ public class ConnectionCreatedStrategies
         }
 
         @Override
-        WithDittoHeaders getResponse(final ConnectionId connectionId, final DittoHeaders headers) {
-            return EnableConnectionLogsResponse.of(connectionId, headers);
+        WithDittoHeaders getResponse(final ConnectionState state, final DittoHeaders headers) {
+            return EnableConnectionLogsResponse.of(state.id(), headers);
         }
 
         @Override
@@ -364,8 +366,8 @@ public class ConnectionCreatedStrategies
         }
 
         @Override
-        WithDittoHeaders getResponse(final ConnectionId connectionId, final DittoHeaders headers) {
-            return ResetConnectionLogsResponse.of(connectionId, headers);
+        WithDittoHeaders getResponse(final ConnectionState state, final DittoHeaders headers) {
+            return ResetConnectionLogsResponse.of(state.id(), headers);
         }
 
         @Override
@@ -381,7 +383,7 @@ public class ConnectionCreatedStrategies
         }
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection entity, final long nextRevision, final RetrieveConnection command) {
             if (entity != null) {
                 return ResultFactory.newQueryResult(command,

@@ -27,6 +27,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckCo
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -42,7 +43,7 @@ import akka.cluster.sharding.ClusterSharding;
  * PersistentActor which "knows" the state of a single {@link Policy}.
  */
 public final class PolicyPersistenceActor
-        extends AbstractShardedPersistenceActor<Command, Policy, PolicyId, PolicyEvent> {
+        extends AbstractShardedPersistenceActor<Command, Policy, PolicyId, PolicyId, PolicyEvent> {
 
     /**
      * The prefix of the persistenceId for Policies.
@@ -119,6 +120,11 @@ public final class PolicyPersistenceActor
     @Override
     protected Class<PolicyEvent> getEventClass() {
         return PolicyEvent.class;
+    }
+
+    @Override
+    protected CommandStrategy.Context<PolicyId> getStrategyContext() {
+        return DefaultContext.getInstance(entityId, log);
     }
 
     @Override

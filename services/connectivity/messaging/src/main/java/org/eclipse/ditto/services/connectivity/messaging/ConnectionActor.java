@@ -65,6 +65,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.Retr
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConnectivityCommandInterceptor;
@@ -79,6 +80,7 @@ import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -117,7 +119,7 @@ import akka.routing.RoundRobinPool;
  * remote server is delegated to a child actor that uses a specific client (AMQP 1.0 or 0.9.1).
  */
 public final class ConnectionActor
-        extends AbstractShardedPersistenceActor<Signal, Connection, ConnectionId, ConnectivityEvent> {
+        extends AbstractShardedPersistenceActor<Signal, Connection, ConnectionId, ConnectionState, ConnectivityEvent> {
 
     /**
      * Prefix to prepend to the connection ID to construct the persistence ID.
@@ -269,6 +271,11 @@ public final class ConnectionActor
     @Override
     protected Class<ConnectivityEvent> getEventClass() {
         return ConnectivityEvent.class;
+    }
+
+    @Override
+    protected CommandStrategy.Context<ConnectionState> getStrategyContext() {
+        return DefaultContext.getInstance(ConnectionState.of(entityId, connectionLogger, commandValidator), log);
     }
 
     @Override

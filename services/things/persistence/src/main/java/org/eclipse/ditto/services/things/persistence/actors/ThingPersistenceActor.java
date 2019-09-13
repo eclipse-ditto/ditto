@@ -30,6 +30,8 @@ import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -44,7 +46,7 @@ import akka.persistence.RecoveryCompleted;
  * PersistentActor which "knows" the state of a single {@link Thing}.
  */
 public final class ThingPersistenceActor
-        extends AbstractShardedPersistenceActor<Command, Thing, ThingId, ThingEvent> {
+        extends AbstractShardedPersistenceActor<Command, Thing, ThingId, ThingId, ThingEvent> {
 
     /**
      * The prefix of the persistenceId for Things.
@@ -119,6 +121,11 @@ public final class ThingPersistenceActor
     @Override
     protected Class<ThingEvent> getEventClass() {
         return ThingEvent.class;
+    }
+
+    @Override
+    protected CommandStrategy.Context<ThingId> getStrategyContext() {
+        return DefaultContext.getInstance(entityId, log);
     }
 
     @Override

@@ -31,9 +31,9 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractReceiveStrategy;
@@ -51,7 +51,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 // TODO
 public class ConnectionDeletedStrategies
-        extends AbstractReceiveStrategy<Signal, Connection, ConnectionId, Result<ConnectivityEvent>> {
+        extends AbstractReceiveStrategy<Signal, Connection, ConnectionState, Result<ConnectivityEvent>> {
 
     private static final ConnectionDeletedStrategies DELETED_STRATEGIES = newDeletedStrategies();
 
@@ -72,7 +72,7 @@ public class ConnectionDeletedStrategies
     }
 
     @Override
-    public Result<ConnectivityEvent> unhandled(final Context<ConnectionId> context,
+    public Result<ConnectivityEvent> unhandled(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
             final Signal signal) {
@@ -80,7 +80,7 @@ public class ConnectionDeletedStrategies
         if (signal instanceof ConnectivityCommand) {
             final ConnectivityCommand command = (ConnectivityCommand) signal;
             context.getLog().warning("Received command for deleted connection, rejecting: <{}>", command);
-            return ResultFactory.newErrorResult(ConnectionNotAccessibleException.newBuilder(context.getState())
+            return ResultFactory.newErrorResult(ConnectionNotAccessibleException.newBuilder(context.getState().id())
                     .dittoHeaders(signal.getDittoHeaders())
                     .build());
         } else {
@@ -95,7 +95,7 @@ public class ConnectionDeletedStrategies
     }
 
     private abstract static class AbstractStrategy<C>
-            extends AbstractCommandStrategy<C, Connection, ConnectionId, Result<ConnectivityEvent>> {
+            extends AbstractCommandStrategy<C, Connection, ConnectionState, Result<ConnectivityEvent>> {
 
         AbstractStrategy(final Class<C> theMatchingClass) {
             super(theMatchingClass);
@@ -114,7 +114,7 @@ public class ConnectionDeletedStrategies
         }
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection entity, final long nextRevision, final TestConnection command) {
             if (entity != null) {
                 final Connection connection = command.getConnection();
@@ -125,7 +125,7 @@ public class ConnectionDeletedStrategies
                 return newMutationResult(stagedCommand, event, command);
             } else {
                 return newQueryResult(command,
-                        TestConnectionResponse.alreadyCreated(context.getState(), command.getDittoHeaders()));
+                        TestConnectionResponse.alreadyCreated(context.getState().id(), command.getDittoHeaders()));
             }
         }
     }
@@ -137,7 +137,7 @@ public class ConnectionDeletedStrategies
         }
 
         @Override
-        protected Result<ConnectivityEvent> doApply(final Context<ConnectionId> context,
+        protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection entity, final long nextRevision, final CreateConnection command) {
             final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
             final ConnectivityEvent event =
