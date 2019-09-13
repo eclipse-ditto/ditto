@@ -185,7 +185,7 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
 
         getContext().become(receive);
 
-        scheduleCheckForThingActivity(getActivityCheckConfig().getInactiveInterval());
+        scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
         scheduleSnapshot();
     }
 
@@ -196,7 +196,7 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
          * - stay in-memory for a short amount of minutes after deletion
          * - get a Snapshot when removed from memory
          */
-        scheduleCheckForThingActivity(getActivityCheckConfig().getDeletedInterval());
+        scheduleCheckForActivity(getActivityCheckConfig().getDeletedInterval());
         cancelSnapshot();
     }
 
@@ -218,7 +218,12 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
                 .build());
     }
 
-    private void scheduleCheckForThingActivity(final Duration interval) {
+    /**
+     * Schedule the next check for activity.
+     *
+     * @param interval when to check again.
+     */
+    protected void scheduleCheckForActivity(final Duration interval) {
         if (interval.isNegative() || interval.isZero()) {
             log.debug("Activity check is disabled: <{}>", interval);
         } else {
@@ -310,6 +315,33 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
                 applyEvent(persistedEvent);
                 handler.accept(persistedEvent, entity);
             });
+        }
+    }
+
+    /**
+     * Check for activity. Shutdown actor if it is lacking.
+     *
+     * @param message the check-for-activity message.
+     */
+    protected void checkForActivity(final CheckForActivity message) {
+        if (entityExistsAsDeleted() && lastSnapshotRevision < getRevisionNumber()) {
+            // take a snapshot after a period of inactivity if:
+            // - thing is deleted,
+            // - the latest snapshot is out of date or is still ongoing.
+            takeSnapshot("the thing is deleted and has no up-to-date snapshot");
+            scheduleCheckForActivity(getActivityCheckConfig().getDeletedInterval());
+        } else if (accessCounter > message.accessCounter) {
+            // if the Thing was accessed in any way since the last check
+            scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
+        } else {
+            // safe to shutdown after a period of inactivity if:
+            // - thing is active (and taking regular snapshots of itself), or
+            // - thing is deleted and the latest snapshot is up to date
+            if (isEntityActive()) {
+                shutdown("Entity <{}> was not accessed in a while. Shutting Actor down ...", entityId);
+            } else {
+                shutdown("Entity <{}> was deleted recently. Shutting Actor down ...", entityId);
+            }
         }
     }
 
@@ -405,28 +437,6 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
         notifySender(builder.build());
     }
 
-    private void checkForActivity(final CheckForActivity message) {
-        if (entityExistsAsDeleted() && lastSnapshotRevision < getRevisionNumber()) {
-            // take a snapshot after a period of inactivity if:
-            // - thing is deleted,
-            // - the latest snapshot is out of date or is still ongoing.
-            takeSnapshot("the thing is deleted and has no up-to-date snapshot");
-            scheduleCheckForThingActivity(getActivityCheckConfig().getDeletedInterval());
-        } else if (accessCounter > message.accessCounter) {
-            // if the Thing was accessed in any way since the last check
-            scheduleCheckForThingActivity(getActivityCheckConfig().getInactiveInterval());
-        } else {
-            // safe to shutdown after a period of inactivity if:
-            // - thing is active (and taking regular snapshots of itself), or
-            // - thing is deleted and the latest snapshot is up to date
-            if (isEntityActive()) {
-                shutdown("Entity <{}> was not accessed in a while. Shutting Actor down ...", entityId);
-            } else {
-                shutdown("Entity <{}> was deleted recently. Shutting Actor down ...", entityId);
-            }
-        }
-    }
-
     private void shutdown(final String shutdownLogTemplate, final I entityId) {
         log.debug(shutdownLogTemplate, String.valueOf(entityId));
         passivate();
@@ -450,12 +460,22 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
         return new CheckForActivity(accessCounter);
     }
 
-    private static final class CheckForActivity {
+    /**
+     * Check if any command is processed.
+     */
+    protected static final class CheckForActivity {
 
         private final long accessCounter;
 
         private CheckForActivity(final long accessCounter) {
             this.accessCounter = accessCounter;
+        }
+
+        /**
+         * @return Access counter at the previous activity check.
+         */
+        public long getAccessCounter() {
+            return accessCounter;
         }
     }
 

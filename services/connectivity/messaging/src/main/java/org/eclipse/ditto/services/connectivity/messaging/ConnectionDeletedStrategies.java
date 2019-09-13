@@ -21,14 +21,17 @@ import static org.eclipse.ditto.services.connectivity.messaging.persistence.stag
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.TEST_CONNECTION;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
+import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
 import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newMutationResult;
 import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newQueryResult;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -116,7 +119,10 @@ public class ConnectionDeletedStrategies
         @Override
         protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
                 @Nullable final Connection entity, final long nextRevision, final TestConnection command) {
-            if (entity != null) {
+            final Optional<DittoRuntimeException> validationError = ConnectionActor.validate(context, command);
+            if (validationError.isPresent()) {
+                return newErrorResult(validationError.get());
+            } else if (entity != null) {
                 final Connection connection = command.getConnection();
                 final ConnectivityEvent event = ConnectionCreated.of(connection, command.getDittoHeaders());
                 final Collection<ConnectionAction> actions =
@@ -144,7 +150,10 @@ public class ConnectionDeletedStrategies
                     ConnectionCreated.of(connection, getEventTimestamp(), command.getDittoHeaders());
             final WithDittoHeaders response =
                     CreateConnectionResponse.of(connection, command.getDittoHeaders());
-            if (connection.getConnectionStatus() == ConnectivityStatus.OPEN) {
+            final Optional<DittoRuntimeException> validationError = ConnectionActor.validate(context, command);
+            if (validationError.isPresent()) {
+                return newErrorResult(validationError.get());
+            } else if (connection.getConnectionStatus() == ConnectivityStatus.OPEN) {
                 final Collection<ConnectionAction> actions = Arrays.asList(
                         PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE, BECOME_CREATED);
                 return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);

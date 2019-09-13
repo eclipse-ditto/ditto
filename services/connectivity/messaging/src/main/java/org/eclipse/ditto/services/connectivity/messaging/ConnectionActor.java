@@ -229,30 +229,6 @@ public final class ConnectionActor
                 commandValidator);
     }
 
-    // TODO
-    public static Optional<DittoRuntimeException> validate(
-            final CommandStrategy.Context<ConnectionId> context,
-            final ConnectivityCommand command,
-            final Consumer<ConnectivityCommand<?>> commandValidator) {
-
-        try {
-            commandValidator.accept(command);
-            return Optional.empty();
-        } catch (final Exception error) {
-            final Throwable cause = getRootCause(error);
-            final DittoRuntimeException dre;
-            if (cause instanceof DittoRuntimeException) {
-                dre = (DittoRuntimeException) cause;
-            } else {
-                dre = ConnectionFailedException.newBuilder(context.getState())
-                        .description(cause.getMessage())
-                        .cause(cause)
-                        .build();
-            }
-            return Optional.of(dre);
-        }
-    }
-
     @Override
     public String persistenceId() {
         return PERSISTENCE_ID_PREFIX + entityId;
@@ -340,11 +316,7 @@ public final class ConnectionActor
      */
     @Override
     protected long staleEventsKeptAfterCleanup() {
-        final boolean isDesiredStateOpen =
-                entity != null &&
-                        !entity.hasLifecycle(ConnectionLifecycle.DELETED) &&
-                        entity.getConnectionStatus() == ConnectivityStatus.OPEN;
-        return isDesiredStateOpen ? 1 : 0;
+        return isDesiredStateOpen() ? 1 : 0;
     }
 
     @Override
@@ -354,6 +326,16 @@ public final class ConnectionActor
             interpretStagedCommand((StagedCommand) command);
         } else {
             super.onMutation(command, event, response, becomeCreated, becomeDeleted);
+        }
+    }
+
+    @Override
+    protected void checkForActivity(final CheckForActivity trigger) {
+        if (isDesiredStateOpen()) {
+            // stay in memory forever if desired state is open. check again later in case connection becomes closed.
+            scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
+        } else {
+            super.checkForActivity(trigger);
         }
     }
 
@@ -690,14 +672,11 @@ public final class ConnectionActor
         return connection == null || connection.hasLifecycle(ConnectionLifecycle.DELETED);
     }
 
-    private void validate(final ConnectivityCommand command) {
-        try {
-            commandValidator.accept(command);
-        } catch (final Exception e) {
-            handleException(command.getType(), getSender(), e);
-        }
+    private boolean isDesiredStateOpen() {
+        return entity != null &&
+                !entity.hasLifecycle(ConnectionLifecycle.DELETED) &&
+                entity.getConnectionStatus() == ConnectivityStatus.OPEN;
     }
-
 
     private static Collection<StreamingType> toStreamingTypes(final Set<Topic> uniqueTopics) {
         return uniqueTopics.stream()
@@ -846,5 +825,30 @@ public final class ConnectionActor
 
     private static Throwable getRootCause(final Throwable error) {
         return error instanceof CompletionException ? getRootCause(error.getCause()) : error;
+    }
+
+    static Optional<DittoRuntimeException> validate(final CommandStrategy.Context<ConnectionState> context,
+            final ConnectivityCommand command) {
+
+        try {
+            context.getState().getValidator().accept(command);
+            return Optional.empty();
+        } catch (final Exception error) {
+            final Throwable cause = getRootCause(error);
+            final DittoRuntimeException dre;
+            if (cause instanceof DittoRuntimeException) {
+                dre = (DittoRuntimeException) cause;
+            } else {
+                dre = ConnectionFailedException.newBuilder(context.getState().id())
+                        .description(cause.getMessage())
+                        .cause(cause)
+                        .build();
+            }
+            context.getLog().info("Operation <{}> failed due to <{}>", command, dre);
+            context.getState()
+                    .getConnectionLogger()
+                    .failure("Operation {0} failed due to {1}", command.getType(), dre.getMessage());
+            return Optional.of(dre);
+        }
     }
 }
