@@ -262,13 +262,15 @@ public final class PolicyCommandStrategies
             final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicyWithLifecycle);
             if (validator.isValid()) {
                 final Instant timestamp = getEventTimestamp();
-                final Policy newPolicyWithTimestamp =
-                        newPolicyWithLifecycle.toBuilder().setModified(timestamp).build();
+                final Policy newPolicyWithTimestampAndRevision = newPolicyWithLifecycle.toBuilder()
+                        .setModified(timestamp)
+                        .setRevision(nextRevision)
+                        .build();
                 final PolicyCreated policyCreated =
                         PolicyCreated.of(newPolicyWithLifecycle, nextRevision, timestamp, dittoHeaders);
                 final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                        CreatePolicyResponse.of(context.getState(), newPolicyWithTimestamp, dittoHeaders),
-                        entity);
+                        CreatePolicyResponse.of(context.getState(), newPolicyWithTimestampAndRevision, dittoHeaders),
+                        newPolicyWithTimestampAndRevision);
                 context.getLog().debug("Created new Policy with ID <{}>.", context.getState());
                 return ResultFactory.newMutationResult(command, policyCreated, response, true, false);
             } else {
@@ -279,7 +281,7 @@ public final class PolicyCommandStrategies
 
         @Override
         public Optional<?> determineETagEntity(final CreatePolicy command, @Nullable final Policy entity) {
-            return Optional.of(command.getPolicy());
+            return Optional.ofNullable(entity);
         }
 
         @Override

@@ -115,11 +115,11 @@ public final class CreateThingStrategy extends AbstractThingCommandStrategy<Crea
                 .build();
         final ThingCreated thingCreated = ThingCreated.of(newThing, nextRevision, modified, commandHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                CreateThingResponse.of(newThingWithModifiedAndRevision, commandHeaders), thing);
+                CreateThingResponse.of(newThingWithModifiedAndRevision, commandHeaders),
+                newThingWithModifiedAndRevision);
 
         return newMutationResult(command, thingCreated, response, true, false);
     }
-
 
     private Thing handleCommandVersion(final Context<ThingId> context, final JsonSchemaVersion version,
             final Thing thing,
@@ -208,6 +208,6 @@ public final class CreateThingStrategy extends AbstractThingCommandStrategy<Crea
 
     @Override
     public Optional<?> determineETagEntity(final CreateThing command, @Nullable final Thing entity) {
-        return Optional.of(command.getThing());
+        return Optional.ofNullable(entity);
     }
 }
