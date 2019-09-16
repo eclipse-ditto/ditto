@@ -35,8 +35,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link ModifyAttributes} command.
  */
 @Immutable
-public final class ModifyAttributesStrategy extends
-        AbstractThingCommandStrategy<ModifyAttributes> {
+public final class ModifyAttributesStrategy extends AbstractThingCommandStrategy<ModifyAttributes> {
 
     /**
      * Constructs a new {@code ModifyAttributesStrategy} object.
@@ -92,7 +91,12 @@ public final class ModifyAttributesStrategy extends
     }
 
     @Override
-    public Optional<?> determineETagEntity(final ModifyAttributes command, @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final ModifyAttributes command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(Thing::getAttributes);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final ModifyAttributes command, @Nullable final Thing newEntity) {
         return Optional.of(command.getAttributes());
     }
 }

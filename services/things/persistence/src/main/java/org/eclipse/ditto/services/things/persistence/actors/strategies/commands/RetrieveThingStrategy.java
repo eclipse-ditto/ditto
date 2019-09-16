@@ -89,7 +89,12 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
     }
 
     @Override
-    public Optional<?> determineETagEntity(final RetrieveThing command, @Nullable final Thing entity) {
-        return Optional.ofNullable(entity);
+    public Optional<?> previousETagEntity(final RetrieveThing command, @Nullable final Thing previousEntity) {
+        return nextETagEntity(command, previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final RetrieveThing command, @Nullable final Thing newEntity) {
+        return Optional.ofNullable(newEntity);
     }
 }

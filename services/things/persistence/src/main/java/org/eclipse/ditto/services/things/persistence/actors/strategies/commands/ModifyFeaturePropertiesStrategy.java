@@ -36,8 +36,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties} command.
  */
 @Immutable
-final class ModifyFeaturePropertiesStrategy
-        extends AbstractThingCommandStrategy<ModifyFeatureProperties> {
+final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperties> {
 
     /**
      * Constructs a new {@code ModifyFeaturePropertiesStrategy} object.
@@ -68,8 +67,9 @@ final class ModifyFeaturePropertiesStrategy
                                 command.getDittoHeaders())));
     }
 
-    private Optional<Feature> extractFeature(final ModifyFeatureProperties command, final Thing thing) {
-        return thing.getFeatures()
+    private Optional<Feature> extractFeature(final ModifyFeatureProperties command, @Nullable final Thing thing) {
+        return Optional.ofNullable(thing)
+                .flatMap(Thing::getFeatures)
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
@@ -112,8 +112,13 @@ final class ModifyFeaturePropertiesStrategy
 
 
     @Override
-    public Optional<?> determineETagEntity(final ModifyFeatureProperties command,
-            @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final ModifyFeatureProperties command, @Nullable final Thing previousEntity) {
+        return extractFeature(command, previousEntity).flatMap(Feature::getProperties);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final ModifyFeatureProperties command,
+            @Nullable final Thing newEntity) {
         return Optional.of(command.getProperties());
     }
 }

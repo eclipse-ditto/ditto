@@ -31,8 +31,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link RetrievePolicyId} command.
  */
 @Immutable
-final class RetrievePolicyIdStrategy
-        extends AbstractThingCommandStrategy<RetrievePolicyId> {
+final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<RetrievePolicyId> {
 
     /**
      * Constructs a new {@code RetrievePolicyIdStrategy} object.
@@ -63,7 +62,12 @@ final class RetrievePolicyIdStrategy
     }
 
     @Override
-    public Optional<?> determineETagEntity(final RetrievePolicyId command, @Nullable final Thing thing) {
-        return extractPolicyId(thing);
+    public Optional<?> previousETagEntity(final RetrievePolicyId command, @Nullable final Thing previousEntity) {
+        return nextETagEntity(command, previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final RetrievePolicyId command, @Nullable final Thing newEntity) {
+        return extractPolicyId(newEntity);
     }
 }

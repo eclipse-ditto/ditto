@@ -30,13 +30,22 @@ import org.eclipse.ditto.signals.commands.base.Command;
 public interface ETagEntityProvider<C extends Command, S> {
 
     /**
-     * Determines the value based on which an eTag will be generated.
+     * Determines the value based on which the matching eTag will be determined before a command.
      *
      * @param command the command.
-     * @param entity The entity, may be {@code null}.
-     * @return An optional of the eTag header value. Optional can be empty if no eTag header should be added.
+     * @param previousEntity The entity, may be {@code null}.
+     * @return An optional of an entity against which the etag header should be matched.
      */
-    Optional<?> determineETagEntity(final C command, @Nullable final S entity);
+    Optional<?> previousETagEntity(final C command, @Nullable final S previousEntity);
+
+    /**
+     * Determines the value based on which an eTag will be generated after a modify command.
+     *
+     * @param command the command.
+     * @param newEntity The entity, may be {@code null}.
+     * @return An optional of the entity from which the etag header should be generated.
+     */
+    Optional<?> nextETagEntity(final C command, @Nullable final S newEntity);
 
     /**
      * Append an ETag header if given by the entity.
@@ -49,7 +58,7 @@ public interface ETagEntityProvider<C extends Command, S> {
     default WithDittoHeaders appendETagHeaderIfProvided(final C command,
             final WithDittoHeaders withDittoHeaders, @Nullable final S entity) {
 
-        final Optional<?> eTagEntityOpt = determineETagEntity(command, entity);
+        final Optional<?> eTagEntityOpt = nextETagEntity(command, entity);
         if (eTagEntityOpt.isPresent()) {
             final Optional<EntityTag> entityTagOpt = EntityTag.fromEntity(eTagEntityOpt.get());
             if (entityTagOpt.isPresent()) {

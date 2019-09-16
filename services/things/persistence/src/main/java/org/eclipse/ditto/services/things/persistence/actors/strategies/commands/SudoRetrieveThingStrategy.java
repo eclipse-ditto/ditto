@@ -34,8 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link SudoRetrieveThing} command.
  */
 @Immutable
-final class SudoRetrieveThingStrategy
-        extends AbstractThingCommandStrategy<SudoRetrieveThing> {
+final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoRetrieveThing> {
 
     /**
      * Constructs a new {@code SudoRetrieveThingStrategy} object.
@@ -84,7 +83,12 @@ final class SudoRetrieveThingStrategy
     }
 
     @Override
-    public Optional<?> determineETagEntity(final SudoRetrieveThing command, @Nullable final Thing entity) {
-        return Optional.ofNullable(entity);
+    public Optional<?> previousETagEntity(final SudoRetrieveThing command, @Nullable final Thing previousEntity) {
+        return nextETagEntity(command, previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final SudoRetrieveThing command, @Nullable final Thing newEntity) {
+        return Optional.ofNullable(newEntity);
     }
 }

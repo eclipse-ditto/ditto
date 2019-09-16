@@ -235,6 +235,18 @@ public final class PolicyCommandStrategies
         }
     }
 
+    private abstract static class AbstractQueryStrategy<C extends Command> extends AbstractStrategy<C> {
+
+        AbstractQueryStrategy(final Class<C> theMatchingClass) {
+            super(theMatchingClass);
+        }
+
+        @Override
+        public Optional<?> previousETagEntity(final C command, @Nullable Policy policy) {
+            return nextETagEntity(command, policy);
+        }
+    }
+
     /**
      * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy} command for a
      * new Policy.
@@ -280,8 +292,13 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final CreatePolicy command, @Nullable final Policy entity) {
-            return Optional.ofNullable(entity);
+        public Optional<?> previousETagEntity(final CreatePolicy command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity);
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final CreatePolicy command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity);
         }
 
         @Override
@@ -309,8 +326,13 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final CreatePolicy command, @Nullable final Policy entity) {
-            return Optional.ofNullable(entity);
+        public Optional<?> previousETagEntity(final CreatePolicy command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity);
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final CreatePolicy command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity);
         }
     }
 
@@ -352,15 +374,20 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final ModifyPolicy command, @Nullable final Policy entity) {
-            return Optional.ofNullable(entity);
+        public Optional<?> previousETagEntity(final ModifyPolicy command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity);
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final ModifyPolicy command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity);
         }
     }
 
     /**
      * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy} command.
      */
-    private static final class RetrievePolicyStrategy extends AbstractStrategy<RetrievePolicy> {
+    private static final class RetrievePolicyStrategy extends AbstractQueryStrategy<RetrievePolicy> {
 
         private RetrievePolicyStrategy() {
             super(RetrievePolicy.class);
@@ -378,8 +405,8 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final RetrievePolicy command, @Nullable final Policy entity) {
-            return Optional.ofNullable(entity);
+        public Optional<?> nextETagEntity(final RetrievePolicy command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity);
         }
     }
 
@@ -405,7 +432,12 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final DeletePolicy command, @Nullable final Policy entity) {
+        public Optional<?> previousETagEntity(final DeletePolicy command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity);
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final DeletePolicy command, @Nullable final Policy newEntity) {
             return Optional.empty();
         }
     }
@@ -447,7 +479,13 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final ModifyPolicyEntries command, @Nullable final Policy entity) {
+        public Optional<?> previousETagEntity(final ModifyPolicyEntries command,
+                @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity).map(Policy::getEntriesSet);
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final ModifyPolicyEntries command, @Nullable final Policy newEntity) {
             return Optional.of(command.getPolicyEntries());
         }
     }
@@ -510,7 +548,12 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final ModifyPolicyEntry command, @Nullable final Policy entity) {
+        public Optional<?> previousETagEntity(final ModifyPolicyEntry command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity).flatMap(p -> p.getEntryFor(command.getPolicyEntry().getLabel()));
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final ModifyPolicyEntry command, @Nullable final Policy newEntity) {
             return Optional.of(command.getPolicyEntry());
         }
     }
@@ -552,7 +595,12 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final DeletePolicyEntry command, @Nullable final Policy entity) {
+        public Optional<?> previousETagEntity(final DeletePolicyEntry command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity).flatMap(p -> p.getEntryFor(command.getLabel()));
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final DeletePolicyEntry command, @Nullable final Policy newEntity) {
             return Optional.empty();
         }
     }
@@ -560,7 +608,7 @@ public final class PolicyCommandStrategies
     /**
      * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntries}.
      */
-    private static final class RetrievePolicyEntriesStrategy extends AbstractStrategy<RetrievePolicyEntries> {
+    private static final class RetrievePolicyEntriesStrategy extends AbstractQueryStrategy<RetrievePolicyEntries> {
 
         private RetrievePolicyEntriesStrategy() {
             super(RetrievePolicyEntries.class);
@@ -581,15 +629,15 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final RetrievePolicyEntries command, @Nullable final Policy entity) {
-            return Optional.ofNullable(entity).map(Policy::getEntriesSet);
+        public Optional<?> nextETagEntity(final RetrievePolicyEntries command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity).map(Policy::getEntriesSet);
         }
     }
 
     /**
      * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntry} command.
      */
-    private static final class RetrievePolicyEntryStrategy extends AbstractStrategy<RetrievePolicyEntry> {
+    private static final class RetrievePolicyEntryStrategy extends AbstractQueryStrategy<RetrievePolicyEntry> {
 
         private RetrievePolicyEntryStrategy() {
             super(RetrievePolicyEntry.class);
@@ -613,8 +661,8 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final RetrievePolicyEntry command, @Nullable final Policy entity) {
-            return Optional.ofNullable(entity).flatMap(p -> p.getEntryFor(command.getLabel()));
+        public Optional<?> nextETagEntity(final RetrievePolicyEntry command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity).flatMap(p -> p.getEntryFor(command.getLabel()));
         }
     }
 
@@ -660,7 +708,14 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final ModifySubjects command, @Nullable final Policy entity) {
+        public Optional<?> previousETagEntity(final ModifySubjects command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getSubjects);
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final ModifySubjects command, @Nullable final Policy newEntity) {
             return Optional.of(command.getSubjects());
         }
     }
@@ -668,7 +723,7 @@ public final class PolicyCommandStrategies
     /**
      * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjects} command.
      */
-    private static final class RetrieveSubjectsStrategy extends AbstractStrategy<RetrieveSubjects> {
+    private static final class RetrieveSubjectsStrategy extends AbstractQueryStrategy<RetrieveSubjects> {
 
         private RetrieveSubjectsStrategy() {
             super(RetrieveSubjects.class);
@@ -693,8 +748,8 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final RetrieveSubjects command, @Nullable final Policy entity) {
-            return Optional.ofNullable(entity)
+        public Optional<?> nextETagEntity(final RetrieveSubjects command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity)
                     .flatMap(p -> p.getEntryFor(command.getLabel()))
                     .map(PolicyEntry::getSubjects);
         }
@@ -748,7 +803,14 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final ModifySubject command, @Nullable final Policy entity) {
+        public Optional<?> previousETagEntity(final ModifySubject command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .flatMap(entry -> entry.getSubjects().getSubject(command.getSubject().getId()));
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final ModifySubject command, @Nullable final Policy newEntity) {
             return Optional.of(command.getSubject());
         }
     }
@@ -798,7 +860,14 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final DeleteSubject command, @Nullable final Policy entity) {
+        public Optional<?> previousETagEntity(final DeleteSubject command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .flatMap(entry -> entry.getSubjects().getSubject(command.getSubjectId()));
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final DeleteSubject command, @Nullable final Policy newEntity) {
             return Optional.empty();
         }
     }
@@ -806,7 +875,7 @@ public final class PolicyCommandStrategies
     /**
      * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject} command.
      */
-    private static final class RetrieveSubjectStrategy extends AbstractStrategy<RetrieveSubject> {
+    private static final class RetrieveSubjectStrategy extends AbstractQueryStrategy<RetrieveSubject> {
 
         private RetrieveSubjectStrategy() {
             super(RetrieveSubject.class);
@@ -840,8 +909,8 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final RetrieveSubject command, @Nullable final Policy policy) {
-            return Optional.ofNullable(policy)
+        public Optional<?> nextETagEntity(final RetrieveSubject command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity)
                     .flatMap(p -> p.getEntryFor(command.getLabel()))
                     .map(PolicyEntry::getSubjects)
                     .flatMap(s -> s.getSubject(command.getSubjectId()));
@@ -905,7 +974,14 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final ModifyResources command, @Nullable final Policy entity) {
+        public Optional<?> previousETagEntity(final ModifyResources command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getResources);
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final ModifyResources command, @Nullable final Policy newEntity) {
             return Optional.of(command.getResources());
         }
     }
@@ -913,7 +989,7 @@ public final class PolicyCommandStrategies
     /**
      * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.query.RetrieveResources} command.
      */
-    private static final class RetrieveResourcesStrategy extends AbstractStrategy<RetrieveResources> {
+    private static final class RetrieveResourcesStrategy extends AbstractQueryStrategy<RetrieveResources> {
 
         private RetrieveResourcesStrategy() {
             super(RetrieveResources.class);
@@ -937,8 +1013,8 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final RetrieveResources command, @Nullable final Policy entity) {
-            return Optional.ofNullable(entity)
+        public Optional<?> nextETagEntity(final RetrieveResources command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity)
                     .flatMap(p -> p.getEntryFor(command.getLabel()))
                     .map(PolicyEntry::getResources);
         }
@@ -996,7 +1072,15 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final ModifyResource command, @Nullable final Policy entity) {
+        public Optional<?> previousETagEntity(final ModifyResource command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getResources)
+                    .flatMap(r -> r.getResource(command.getResource().getResourceKey()));
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final ModifyResource command, @Nullable final Policy newEntity) {
             return Optional.of(command.getResource());
         }
     }
@@ -1047,7 +1131,14 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final DeleteResource command, @Nullable final Policy entity) {
+        public Optional<?> previousETagEntity(final DeleteResource command, @Nullable final Policy previousEntity) {
+            return Optional.ofNullable(previousEntity)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .flatMap(entry -> entry.getResources().getResource(command.getResourceKey()));
+        }
+
+        @Override
+        public Optional<?> nextETagEntity(final DeleteResource command, @Nullable final Policy newEntity) {
             return Optional.empty();
         }
     }
@@ -1055,7 +1146,7 @@ public final class PolicyCommandStrategies
     /**
      * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.query.RetrieveResource} command.
      */
-    private static final class RetrieveResourceStrategy extends AbstractStrategy<RetrieveResource> {
+    private static final class RetrieveResourceStrategy extends AbstractQueryStrategy<RetrieveResource> {
 
         private RetrieveResourceStrategy() {
             super(RetrieveResource.class);
@@ -1090,8 +1181,8 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final RetrieveResource command, @Nullable final Policy entity) {
-            return Optional.ofNullable(entity)
+        public Optional<?> nextETagEntity(final RetrieveResource command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity)
                     .flatMap(p -> p.getEntryFor(command.getLabel()))
                     .map(PolicyEntry::getResources)
                     .flatMap(r -> r.getResource(command.getResourceKey()));
@@ -1101,7 +1192,7 @@ public final class PolicyCommandStrategies
     /**
      * This strategy handles the {@link org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy} command w/o valid authorization context.
      */
-    private static final class SudoRetrievePolicyStrategy extends AbstractStrategy<SudoRetrievePolicy> {
+    private static final class SudoRetrievePolicyStrategy extends AbstractQueryStrategy<SudoRetrievePolicy> {
 
         private SudoRetrievePolicyStrategy() {
             super(SudoRetrievePolicy.class);
@@ -1116,8 +1207,8 @@ public final class PolicyCommandStrategies
         }
 
         @Override
-        public Optional<?> determineETagEntity(final SudoRetrievePolicy command, @Nullable final Policy entity) {
-            return Optional.ofNullable(entity);
+        public Optional<?> nextETagEntity(final SudoRetrievePolicy command, @Nullable final Policy newEntity) {
+            return Optional.ofNullable(newEntity);
         }
     }
 }

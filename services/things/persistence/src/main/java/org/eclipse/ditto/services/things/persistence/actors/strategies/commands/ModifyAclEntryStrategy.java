@@ -108,7 +108,14 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
     }
 
     @Override
-    public Optional<?> determineETagEntity(final ModifyAclEntry command, @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final ModifyAclEntry command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity)
+                .flatMap(Thing::getAccessControlList)
+                .flatMap(acl -> acl.getEntryFor(command.getAclEntry().getAuthorizationSubject()));
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final ModifyAclEntry command, @Nullable final Thing newEntity) {
         return Optional.of(command.getAclEntry());
     }
 }

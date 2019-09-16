@@ -33,8 +33,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link RetrieveAclEntry} command.
  */
 @Immutable
-final class RetrieveAclEntryStrategy
-        extends AbstractThingCommandStrategy<RetrieveAclEntry> {
+final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<RetrieveAclEntry> {
 
     /**
      * Constructs a new {@code RetrieveAclEntryStrategy} object.
@@ -67,7 +66,12 @@ final class RetrieveAclEntryStrategy
 
 
     @Override
-    public Optional<?> determineETagEntity(final RetrieveAclEntry command, @Nullable final Thing thing) {
-        return extractAclEntry(command, thing);
+    public Optional<?> previousETagEntity(final RetrieveAclEntry command, @Nullable final Thing previousEntity) {
+        return nextETagEntity(command, previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final RetrieveAclEntry command, @Nullable final Thing newEntity) {
+        return extractAclEntry(command, newEntity);
     }
 }

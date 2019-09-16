@@ -238,7 +238,12 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
     }
 
     @Override
-    public Optional<?> determineETagEntity(final ModifyThing thingCommand, @Nullable final Thing entity) {
-        return Optional.of(getEntityOrThrow(entity));
+    public Optional<?> previousETagEntity(final ModifyThing command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final ModifyThing thingCommand, @Nullable final Thing newEntity) {
+        return Optional.of(getEntityOrThrow(newEntity));
     }
 }

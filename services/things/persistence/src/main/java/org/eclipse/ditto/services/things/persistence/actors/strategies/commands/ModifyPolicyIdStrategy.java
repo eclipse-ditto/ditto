@@ -85,7 +85,12 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
     }
 
     @Override
-    public Optional<?> determineETagEntity(final ModifyPolicyId command, @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final ModifyPolicyId command, @Nullable final Thing previousEntity) {
+        return extractPolicyId(previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final ModifyPolicyId command, @Nullable final Thing newEntity) {
         return Optional.of(command.getPolicyEntityId());
     }
 }

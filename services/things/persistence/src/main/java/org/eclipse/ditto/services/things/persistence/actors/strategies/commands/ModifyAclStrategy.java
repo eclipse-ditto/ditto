@@ -35,8 +35,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link ModifyAcl} command.
  */
 @Immutable
-public final class ModifyAclStrategy
-        extends AbstractThingCommandStrategy<ModifyAcl> {
+public final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
 
     /**
      * Constructs a new {@code ModifyAclStrategy} object.
@@ -68,7 +67,12 @@ public final class ModifyAclStrategy
     }
 
     @Override
-    public Optional<?> determineETagEntity(final ModifyAcl command, @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final ModifyAcl command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).map(Thing::getAccessControlList);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final ModifyAcl command, @Nullable final Thing newEntity) {
         return Optional.of(command.getAccessControlList());
     }
 }

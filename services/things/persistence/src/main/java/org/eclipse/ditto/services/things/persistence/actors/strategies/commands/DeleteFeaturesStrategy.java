@@ -73,7 +73,12 @@ final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFe
     }
 
     @Override
-    public Optional<?> determineETagEntity(final DeleteFeatures command, @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final DeleteFeatures command, @Nullable final Thing previousEntity) {
+        return extractFeatures(previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final DeleteFeatures command, @Nullable final Thing newEntity) {
         return Optional.empty();
     }
 }

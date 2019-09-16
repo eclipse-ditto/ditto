@@ -33,8 +33,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeature} command.
  */
 @Immutable
-final class RetrieveFeatureStrategy
-        extends AbstractThingCommandStrategy<RetrieveFeature> {
+final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<RetrieveFeature> {
 
     /**
      * Constructs a new {@code RetrieveFeatureStrategy} object.
@@ -80,8 +79,13 @@ final class RetrieveFeatureStrategy
     }
 
     @Override
-    public Optional<?> determineETagEntity(final RetrieveFeature command, @Nullable final Thing thing) {
-        return extractFeatures(thing)
+    public Optional<?> previousETagEntity(final RetrieveFeature command, @Nullable final Thing previousEntity) {
+        return nextETagEntity(command, previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final RetrieveFeature command, @Nullable final Thing newEntity) {
+        return extractFeatures(newEntity)
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 }

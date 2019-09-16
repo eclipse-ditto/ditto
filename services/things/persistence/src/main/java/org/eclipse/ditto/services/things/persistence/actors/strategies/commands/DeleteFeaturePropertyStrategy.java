@@ -83,7 +83,13 @@ final class DeleteFeaturePropertyStrategy extends
     }
 
     @Override
-    public Optional<?> determineETagEntity(final DeleteFeatureProperty command, @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final DeleteFeatureProperty command, @Nullable final Thing previousEntity) {
+        return extractFeature(command, previousEntity).flatMap(Feature::getProperties)
+                .flatMap(properties -> properties.getValue(command.getPropertyPointer()));
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final DeleteFeatureProperty command, @Nullable final Thing newEntity) {
         return Optional.empty();
     }
 }

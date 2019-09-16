@@ -61,7 +61,7 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<C extends C
     public Result<E> apply(final Context<I> context, @Nullable final S entity, final long nextRevision,
             final C command) {
 
-        final EntityTag currentETagValue = determineETagEntity(command, entity)
+        final EntityTag currentETagValue = previousETagEntity(command, entity)
                 .flatMap(EntityTag::fromEntity)
                 .orElse(null);
 

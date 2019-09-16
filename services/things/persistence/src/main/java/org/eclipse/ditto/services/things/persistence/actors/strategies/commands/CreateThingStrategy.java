@@ -207,7 +207,12 @@ public final class CreateThingStrategy extends AbstractThingCommandStrategy<Crea
     }
 
     @Override
-    public Optional<?> determineETagEntity(final CreateThing command, @Nullable final Thing entity) {
-        return Optional.ofNullable(entity);
+    public Optional<?> previousETagEntity(final CreateThing command, @Nullable final Thing previousEntity) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final CreateThing command, @Nullable final Thing newEntity) {
+        return Optional.ofNullable(newEntity);
     }
 }

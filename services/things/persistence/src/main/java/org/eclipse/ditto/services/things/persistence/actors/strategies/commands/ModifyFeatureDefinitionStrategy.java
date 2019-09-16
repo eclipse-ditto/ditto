@@ -34,8 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition} command.
  */
 @Immutable
-final class ModifyFeatureDefinitionStrategy
-        extends AbstractThingCommandStrategy<ModifyFeatureDefinition> {
+final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy<ModifyFeatureDefinition> {
 
     /**
      * Constructs a new {@code ModifyFeatureDefinitionStrategy} object.
@@ -100,8 +99,13 @@ final class ModifyFeatureDefinitionStrategy
     }
 
     @Override
-    public Optional<?> determineETagEntity(final ModifyFeatureDefinition command,
-            @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final ModifyFeatureDefinition command, @Nullable final Thing previousEntity) {
+        return extractFeature(command, previousEntity).flatMap(Feature::getDefinition);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final ModifyFeatureDefinition command,
+            @Nullable final Thing newEntity) {
         return Optional.of(command.getDefinition());
     }
 }

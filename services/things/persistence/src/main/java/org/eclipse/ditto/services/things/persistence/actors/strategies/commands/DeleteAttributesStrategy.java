@@ -70,7 +70,12 @@ final class DeleteAttributesStrategy
     }
 
     @Override
-    public Optional<?> determineETagEntity(final DeleteAttributes command, @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final DeleteAttributes command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(Thing::getAttributes);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final DeleteAttributes command, @Nullable final Thing newEntity) {
         return Optional.empty();
     }
 }

@@ -61,7 +61,12 @@ final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing
     }
 
     @Override
-    public Optional<?> determineETagEntity(final DeleteThing command, @Nullable final Thing entity) {
+    public Optional<?> previousETagEntity(final DeleteThing command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final DeleteThing command, @Nullable final Thing newEntity) {
         return Optional.empty();
     }
 }

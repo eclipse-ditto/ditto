@@ -92,7 +92,16 @@ final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAc
     }
 
     @Override
-    public Optional<?> determineETagEntity(final DeleteAclEntry command, @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final DeleteAclEntry command, @Nullable final Thing previousEntity) {
+        final AuthorizationSubject authSubject = command.getAuthorizationSubject();
+
+        return Optional.ofNullable(previousEntity)
+                .flatMap(Thing::getAccessControlList)
+                .flatMap(acl -> acl.getEntryFor(authSubject));
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final DeleteAclEntry command, @Nullable final Thing newEntity) {
         return Optional.empty();
     }
 
