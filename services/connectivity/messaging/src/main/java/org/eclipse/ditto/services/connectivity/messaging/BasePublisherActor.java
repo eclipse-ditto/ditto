@@ -79,8 +79,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     protected final ConnectionLogger connectionLogger;
     protected final ConnectionMonitor responsePublishedMonitor;
+    protected final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
-    private final ConnectionMonitor responseDroppedMonitor;
 
     protected BasePublisherActor(final ConnectionId connectionId, final List<Target> targets) {
         this.connectionId = checkNotNull(connectionId, "connectionId");

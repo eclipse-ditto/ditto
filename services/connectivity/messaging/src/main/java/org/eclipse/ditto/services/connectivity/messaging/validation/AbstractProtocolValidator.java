@@ -20,6 +20,8 @@ import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -31,6 +33,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 
 /**
  * Protocol-specific specification for {@link org.eclipse.ditto.model.connectivity.Connection} objects.
@@ -49,9 +52,11 @@ public abstract class AbstractProtocolValidator {
      *
      * @param connection the connection to check for errors.
      * @param dittoHeaders headers of the command that triggered the connection validation.
+     * @param config configuration for all connections.
      * @throws DittoRuntimeException if the connection has errors.
      */
-    public abstract void validate(final Connection connection, final DittoHeaders dittoHeaders);
+    public abstract void validate(final Connection connection, final DittoHeaders dittoHeaders,
+            final @Nullable ConnectionConfig config);
 
     /**
      * Check whether the URI scheme of the connection belongs to an accepted scheme.

@@ -55,6 +55,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushValidator;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
@@ -147,7 +148,8 @@ public final class ConnectionActor
             RabbitMQValidator.newInstance(),
             AmqpValidator.newInstance(),
             MqttValidator.newInstance(),
-            KafkaValidator.getInstance());
+            KafkaValidator.getInstance(),
+            HttpPushValidator.newInstance());
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -182,8 +184,14 @@ public final class ConnectionActor
         this.dittoProtocolSub = dittoProtocolSub;
         this.conciergeForwarder = conciergeForwarder;
         this.propsFactory = propsFactory;
+
+        final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
+        config = connectivityConfig.getConnectionConfig();
+
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR);
+                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR, config);
 
         if (customCommandValidator != null) {
             commandValidator =
@@ -191,11 +199,6 @@ public final class ConnectionActor
         } else {
             commandValidator = dittoCommandValidator;
         }
-
-        final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
-        config = connectivityConfig.getConnectionConfig();
 
         clientActorAskTimeout = config.getClientActorAskTimeout();
 

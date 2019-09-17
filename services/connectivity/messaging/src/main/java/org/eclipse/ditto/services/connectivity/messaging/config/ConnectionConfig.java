@@ -65,6 +65,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     KafkaConfig getKafkaConfig();
 
     /**
+     * Returns the configuration for connection type http-push.
+     *
+     * @returna the config.
+     */
+    HttpPushConfig getHttpPushConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionConfig}.
      */

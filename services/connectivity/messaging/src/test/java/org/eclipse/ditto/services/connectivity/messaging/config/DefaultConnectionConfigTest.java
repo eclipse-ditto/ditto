@@ -21,6 +21,7 @@ import java.time.Duration;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultSnapshotConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -51,9 +52,10 @@ public final class DefaultConnectionConfigTest {
         assertInstancesOf(DefaultConnectionConfig.class,
                 areImmutable(),
                 provided(DefaultSupervisorConfig.class).isAlsoImmutable(),
-                provided(SnapshotConfig.class).isAlsoImmutable(),
-                provided(MqttConfig.class).isAlsoImmutable(),
-                provided(DefaultKafkaConfig.class).isAlsoImmutable());
+                provided(DefaultSnapshotConfig.class).isAlsoImmutable(),
+                provided(DefaultMqttConfig.class).isAlsoImmutable(),
+                provided(DefaultKafkaConfig.class).isAlsoImmutable(),
+                provided(DefaultHttpPushConfig.class).isAlsoImmutable());
     }
 
     @Test
@@ -95,13 +97,24 @@ public final class DefaultConnectionConfigTest {
 
         softly.assertThat(underTest.getMqttConfig())
                 .as("mqttConfig")
-                .satisfies(mqttConfig ->  {
+                .satisfies(mqttConfig -> {
                     softly.assertThat(mqttConfig.getSourceBufferSize())
                             .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
                             .isEqualTo(7);
                     softly.assertThat(mqttConfig.isLegacyMode())
                             .as(MqttConfig.MqttConfigValue.LEGACY_MODE.getConfigPath())
                             .isEqualTo(true);
+                });
+
+        softly.assertThat(underTest.getHttpPushConfig())
+                .as("httpPushConfig")
+                .satisfies(httpPushConfig -> {
+                    softly.assertThat(httpPushConfig.getMaxParallelism())
+                            .as(HttpPushConfig.ConfigValue.MAX_PARALLELISM.getConfigPath())
+                            .isEqualTo(8);
+                    softly.assertThat(httpPushConfig.getMaxQueueSize())
+                            .as(HttpPushConfig.ConfigValue.MAX_QUEUE_SIZE.getConfigPath())
+                            .isEqualTo(9);
                 });
     }
 

@@ -68,11 +68,11 @@ public final class RabbitMQValidatorTest {
 
     @Test
     public void testValidTargetAddress() {
-        UNDER_TEST.validate(connectionWithTarget("ditto/rabbit"), DittoHeaders.empty());
-        UNDER_TEST.validate(connectionWithTarget("ditto"), DittoHeaders.empty());
-        UNDER_TEST.validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty());
-        UNDER_TEST.validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty());
-        UNDER_TEST.validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty());
+        UNDER_TEST.validate(connectionWithTarget("ditto/rabbit"), DittoHeaders.empty(), null);
+        UNDER_TEST.validate(connectionWithTarget("ditto"), DittoHeaders.empty(), null);
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty(), null);
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty(), null);
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty(), null);
     }
 
     @Test

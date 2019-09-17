@@ -58,7 +58,7 @@ public class ConnectionValidatorTest {
     public void acceptValidConnection() {
         final Connection connection = createConnection(CONNECTION_ID);
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
-        underTest.validate(connection, DittoHeaders.empty());
+        underTest.validate(connection, DittoHeaders.empty(), null);
     }
 
     @Test
@@ -76,7 +76,7 @@ public class ConnectionValidatorTest {
 
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
     }
 
     @Test
@@ -95,7 +95,7 @@ public class ConnectionValidatorTest {
 
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
     }
 
     @Test
@@ -112,7 +112,7 @@ public class ConnectionValidatorTest {
 
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
     }
 
     @Test
@@ -122,7 +122,7 @@ public class ConnectionValidatorTest {
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
     }
 
     @Test
@@ -136,7 +136,7 @@ public class ConnectionValidatorTest {
                 .trustedCertificates(trustedCertificates)
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
-        underTest.validate(connection, DittoHeaders.empty());
+        underTest.validate(connection, DittoHeaders.empty(), null);
     }
 
     @Test
@@ -149,7 +149,7 @@ public class ConnectionValidatorTest {
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
     }
 
     @Test
@@ -162,7 +162,7 @@ public class ConnectionValidatorTest {
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
 
     }
 
@@ -175,7 +175,7 @@ public class ConnectionValidatorTest {
                         .build())
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
-        underTest.validate(connection, DittoHeaders.empty());
+        underTest.validate(connection, DittoHeaders.empty(), null);
     }
 
 }

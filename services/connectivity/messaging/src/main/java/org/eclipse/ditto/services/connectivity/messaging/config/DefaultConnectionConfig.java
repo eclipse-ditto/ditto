@@ -41,6 +41,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final Amqp10Config amqp10Config;
     private final MqttConfig mqttConfig;
     private final KafkaConfig kafkaConfig;
+    private final HttpPushConfig httpPushConfig;
     private final ActivityCheckConfig activityCheckConfig;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
@@ -50,6 +51,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         amqp10Config = DefaultAmqp10Config.of(config);
         mqttConfig = DefaultMqttConfig.of(config);
         kafkaConfig = DefaultKafkaConfig.of(config);
+        httpPushConfig = DefaultHttpPushConfig.of(config);
         activityCheckConfig = DefaultActivityCheckConfig.of(config);
     }
 
@@ -96,6 +98,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public HttpPushConfig getHttpPushConfig() {
+        return httpPushConfig;
+    }
+
+    @Override
     public ActivityCheckConfig getActivityCheckConfig() {
         return activityCheckConfig;
     }
@@ -115,13 +122,14 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(amqp10Config, that.amqp10Config) &&
                 Objects.equals(mqttConfig, that.mqttConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
-                Objects.equals(kafkaConfig, that.kafkaConfig);
+                Objects.equals(kafkaConfig, that.kafkaConfig) &&
+                Objects.equals(httpPushConfig, that.httpPushConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, supervisorConfig, snapshotConfig, amqp10Config, mqttConfig,
-                kafkaConfig, activityCheckConfig);
+                kafkaConfig, activityCheckConfig, httpPushConfig);
     }
 
     @Override
@@ -133,6 +141,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", amqp10Config=" + amqp10Config +
                 ", mqttConfig=" + mqttConfig +
                 ", kafkaConfig=" + kafkaConfig +
+                ", httpPushConfig=" + httpPushConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
                 "]";
     }

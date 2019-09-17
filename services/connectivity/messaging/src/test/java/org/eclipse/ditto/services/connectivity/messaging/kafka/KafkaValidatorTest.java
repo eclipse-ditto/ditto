@@ -72,11 +72,11 @@ public final class KafkaValidatorTest {
     @Test
     public void testValidTargetAddress() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
-        underTest.validate(getConnectionWithTarget("events"), emptyDittoHeaders);
-        underTest.validate(getConnectionWithTarget("ditto/{{thing:id}}"), emptyDittoHeaders);
-        underTest.validate(getConnectionWithTarget("{{thing:namespace}}/{{thing:name}}"), emptyDittoHeaders);
-        underTest.validate(getConnectionWithTarget("events#{{topic:full}}"), emptyDittoHeaders);
-        underTest.validate(getConnectionWithTarget("ditto/{{header:x}}"), emptyDittoHeaders);
+        underTest.validate(getConnectionWithTarget("events"), emptyDittoHeaders, null);
+        underTest.validate(getConnectionWithTarget("ditto/{{thing:id}}"), emptyDittoHeaders, null);
+        underTest.validate(getConnectionWithTarget("{{thing:namespace}}/{{thing:name}}"), emptyDittoHeaders, null);
+        underTest.validate(getConnectionWithTarget("events#{{topic:full}}"), emptyDittoHeaders, null);
+        underTest.validate(getConnectionWithTarget("ditto/{{header:x}}"), emptyDittoHeaders, null);
     }
 
     @Test
@@ -92,9 +92,9 @@ public final class KafkaValidatorTest {
     @Test
     public void testValidBootstrapServers() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
-        underTest.validate(getConnectionWithBootstrapServers("foo:123"), emptyDittoHeaders);
-        underTest.validate(getConnectionWithBootstrapServers("foo:123,bar:456"), emptyDittoHeaders);
-        underTest.validate(getConnectionWithBootstrapServers("foo:123, bar:456 , baz:789"), emptyDittoHeaders);
+        underTest.validate(getConnectionWithBootstrapServers("foo:123"), emptyDittoHeaders, null);
+        underTest.validate(getConnectionWithBootstrapServers("foo:123,bar:456"), emptyDittoHeaders, null);
+        underTest.validate(getConnectionWithBootstrapServers("foo:123, bar:456 , baz:789"), emptyDittoHeaders, null);
     }
 
     @Test
@@ -128,7 +128,7 @@ public final class KafkaValidatorTest {
 
     private void verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
     }
 
 }

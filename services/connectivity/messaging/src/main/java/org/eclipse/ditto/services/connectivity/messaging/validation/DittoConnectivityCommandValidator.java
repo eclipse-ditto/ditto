@@ -12,8 +12,11 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
@@ -30,13 +33,16 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
     private final ClientActorPropsFactory propsFactory;
     private final ActorRef conciergeForwarder;
     private final ConnectionValidator connectionValidator;
+    @Nullable private final ConnectionConfig connectionConfig;
 
     public DittoConnectivityCommandValidator(
             final ClientActorPropsFactory propsFactory, final ActorRef conciergeForwarder,
-            final ConnectionValidator connectionValidator) {
+            final ConnectionValidator connectionValidator,
+            @Nullable final ConnectionConfig connectionConfig) {
         this.propsFactory = propsFactory;
         this.conciergeForwarder = conciergeForwarder;
         this.connectionValidator = connectionValidator;
+        this.connectionConfig = connectionConfig;
     }
 
     @Override
@@ -47,7 +53,7 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
             case ModifyConnection.TYPE:
                 final Connection connection = getConnectionFromCommand(command);
                 if (connection != null) {
-                    connectionValidator.validate(connection, command.getDittoHeaders());
+                    connectionValidator.validate(connection, command.getDittoHeaders(), connectionConfig);
                     propsFactory.getActorPropsForType(connection, conciergeForwarder);
                 } else {
                     // should never happen
