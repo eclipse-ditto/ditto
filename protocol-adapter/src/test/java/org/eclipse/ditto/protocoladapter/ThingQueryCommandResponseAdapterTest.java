@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_1;
 import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
@@ -30,6 +29,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
@@ -49,7 +49,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link ThingQueryCommandResponseAdapter}.
  */
-public final class ThingQueryCommandResponseAdapterTest {
+public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapterTest {
 
     private ThingQueryCommandResponseAdapter underTest;
 
@@ -68,7 +68,7 @@ public final class ThingQueryCommandResponseAdapterTest {
             }
 
             @Override
-            public String getThingId() {
+            public ThingId getThingEntityId() {
                 return THING_ID;
             }
 
@@ -86,7 +86,7 @@ public final class ThingQueryCommandResponseAdapterTest {
             public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
                 return JsonObject.newBuilder()
                         .set(Command.JsonFields.TYPE, getType())
-                        .set("policyId", THING_ID)
+                        .set("policyId", THING_ID.toString())
                         .build();
             }
 
@@ -141,7 +141,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -167,7 +167,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveThing);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -205,7 +205,7 @@ public final class ThingQueryCommandResponseAdapterTest {
 
         final Adaptable actual = underTest.toAdaptable(retrieveThingsResponse);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -230,7 +230,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -256,7 +256,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 RetrieveAclResponse.of(THING_ID, TestConstants.ACL, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAcl);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -281,7 +281,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -308,7 +308,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAclEntry);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -333,7 +333,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -360,7 +360,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAttributes);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -386,7 +386,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -413,7 +413,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAttribute);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -438,7 +438,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -465,7 +465,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatures);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -490,7 +490,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -517,7 +517,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeature);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -543,7 +543,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -570,7 +570,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureDefinition);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -596,7 +596,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -623,7 +623,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperties);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -650,7 +650,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -678,16 +678,14 @@ public final class ThingQueryCommandResponseAdapterTest {
                         TestConstants.FEATURE_PROPERTY_VALUE, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperty);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveThingsResponseFromAdaptable() {
         retrieveThingsResponseFromAdaptable(TestConstants.NAMESPACE);
     }
 
-    /** */
     @Test
     public void retrieveThingsResponseWithWildcardNamespaceFromAdaptable() {
         retrieveThingsResponseFromAdaptable(null);
@@ -718,7 +716,7 @@ public final class ThingQueryCommandResponseAdapterTest {
 
         System.out.println(actual.toJsonString());
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
 }

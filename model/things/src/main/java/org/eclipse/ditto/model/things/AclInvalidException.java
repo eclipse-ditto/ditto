@@ -63,7 +63,7 @@ public final class AclInvalidException extends DittoRuntimeException implements 
      * @param thingId the identifier of the Thing.
      * @return the builder.
      */
-    public static Builder newBuilder(@Nullable final String thingId) {
+    public static Builder newBuilder(@Nullable final ThingId thingId) {
         return new Builder(thingId);
     }
 
@@ -114,9 +114,9 @@ public final class AclInvalidException extends DittoRuntimeException implements 
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(@Nullable final String thingId) {
+        private Builder(@Nullable final ThingId thingId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)));
         }
 
         @Override

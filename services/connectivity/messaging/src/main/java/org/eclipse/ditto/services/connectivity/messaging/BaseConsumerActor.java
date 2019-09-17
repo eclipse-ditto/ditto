@@ -19,6 +19,7 @@ import java.time.Instant;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
@@ -40,16 +42,17 @@ import akka.actor.ActorRef;
 public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     protected final String sourceAddress;
-    protected final ActorRef messageMappingProcessor;
     protected final AuthorizationContext authorizationContext;
-    @Nullable protected final HeaderMapping headerMapping;
     protected final ConnectionMonitor inboundMonitor;
-    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
-    protected final String connectionId;
+    protected final ConnectionId connectionId;
 
+    @Nullable protected final HeaderMapping headerMapping;
     @Nullable protected ResourceStatus resourceStatus;
 
-    protected BaseConsumerActor(final String connectionId, final String sourceAddress,
+    private final ActorRef messageMappingProcessor;
+    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
+
+    protected BaseConsumerActor(final ConnectionId connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
             @Nullable final HeaderMapping headerMapping) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
@@ -57,8 +60,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
         this.headerMapping = headerMapping;
-        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
+        resetResourceStatus();
 
         final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -66,6 +68,16 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
         this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connectionId, sourceAddress);
+    }
+
+    protected void forwardToMappingActor(final Object message, final String hashKey) {
+        final Object envelope = new ConsistentHashingRouter.ConsistentHashableEnvelope(message, hashKey);
+        messageMappingProcessor.forward(envelope, getContext());
+    }
+
+    protected void resetResourceStatus() {
+        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
+                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
     }
 
     protected ResourceStatus getCurrentSourceStatus() {

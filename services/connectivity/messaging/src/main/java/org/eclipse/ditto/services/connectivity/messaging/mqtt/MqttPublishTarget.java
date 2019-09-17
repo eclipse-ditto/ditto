@@ -24,11 +24,11 @@ import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
  * An MQTT target.
  */
 @Immutable
-final class MqttPublishTarget implements PublishTarget {
+public final class MqttPublishTarget implements PublishTarget {
 
     private final String topic;
 
-    static MqttPublishTarget of(final String topic) {
+    public static MqttPublishTarget of(final String topic) {
         return new MqttPublishTarget(topic);
     }
 
@@ -36,7 +36,7 @@ final class MqttPublishTarget implements PublishTarget {
         this.topic = ConditionChecker.argumentNotEmpty(topic, "topic");
     }
 
-    String getTopic() {
+    public String getTopic() {
         return topic;
     }
 

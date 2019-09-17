@@ -39,7 +39,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private ByteBuffer bytePayload;
     @Nullable private AuthorizationContext authorizationContext;
     @Nullable private TopicPath topicPath;
-    @Nullable private EnforcementFilter<String> enforcementFilter;
+    @Nullable private EnforcementFilter<CharSequence> enforcementFilter;
     @Nullable private HeaderMapping headerMapping;
     @Nullable private String sourceAddress;
     private DittoHeaders internalHeaders = DittoHeaders.empty();
@@ -124,6 +124,26 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
+    public ExternalMessageBuilder withTextAndBytes(@Nullable final String text, @Nullable final byte[] bytes) {
+        this.payloadType = ExternalMessage.PayloadType.TEXT_AND_BYTES;
+        this.textPayload = text;
+        if (Objects.isNull(bytes)) {
+            this.bytePayload = null;
+        } else {
+            this.bytePayload = ByteBuffer.wrap(bytes);
+        }
+        return this;
+    }
+
+    @Override
+    public ExternalMessageBuilder withTextAndBytes(@Nullable final String text, @Nullable final ByteBuffer bytes) {
+        this.payloadType = ExternalMessage.PayloadType.TEXT_AND_BYTES;
+        this.textPayload = text;
+        this.bytePayload = bytes;
+        return this;
+    }
+
+    @Override
     public ExternalMessageBuilder withAuthorizationContext(final AuthorizationContext authorizationContext) {
         this.authorizationContext = authorizationContext;
         return this;
@@ -136,7 +156,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
-    public <F extends EnforcementFilter<String>> ExternalMessageBuilder withEnforcement(
+    public <F extends EnforcementFilter<CharSequence>> ExternalMessageBuilder withEnforcement(
             @Nullable final F enforcementFilter) {
         this.enforcementFilter = enforcementFilter;
         return this;

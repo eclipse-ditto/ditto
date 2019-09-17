@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -38,10 +39,12 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
@@ -165,9 +168,8 @@ public class SseThingsRoute extends AbstractRoute {
                                                 createSseRoute(dittoHeaders,
                                                         calculateSelectedFields(
                                                                 fieldsString).orElse(null),
-                                                        idsString.map(ids -> ids.split(","))
-                                                                .map(Arrays::asList)
-                                                                .orElse(Collections.emptyList()),
+                                                        idsString.map(this::splitThingIdString)
+                                                                .orElseGet(Collections::emptyList),
                                                         namespacesString.map(str -> str.split(","))
                                                                 .map(Arrays::asList)
                                                                 .orElse(Collections.emptyList()),
@@ -176,6 +178,12 @@ public class SseThingsRoute extends AbstractRoute {
                                 )
                 )
         );
+    }
+
+    private List<ThingId> splitThingIdString(final String thingIdString) {
+        return Arrays.stream(thingIdString.split(","))
+                .map(ThingId::of)
+                .collect(Collectors.toList());
     }
 
     @SuppressWarnings("squid:CommentedOutCodeLine")
@@ -188,7 +196,7 @@ public class SseThingsRoute extends AbstractRoute {
        */
     private Route createSseRoute(final DittoHeaders dittoHeaders,
             final JsonFieldSelector fieldSelector,
-            final List<String> targetThingIds,
+            final List<ThingId> targetThingIds,
             final List<String> namespaces,
             @Nullable final String filterString) {
 
@@ -200,7 +208,7 @@ public class SseThingsRoute extends AbstractRoute {
     private Route createSseRoute(final HttpRequest request,
             final DittoHeaders dittoHeaders,
             final JsonFieldSelector fieldSelector,
-            final List<String> targetThingIds,
+            final List<ThingId> targetThingIds,
             final List<String> namespaces,
             @Nullable final String filterString) {
 
@@ -211,8 +219,7 @@ public class SseThingsRoute extends AbstractRoute {
 
         final Counter messageCounter = DittoMetrics.counter("streaming_messages")
                         .tag("type", "sse")
-                        .tag("direction", "out")
-                        .tag("session", connectionCorrelationId);
+                        .tag("direction", "out");
 
         if (filterString != null) {
             // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
@@ -234,7 +241,8 @@ public class SseThingsRoute extends AbstractRoute {
                         .filter(jsonifiable -> jsonifiable instanceof ThingEvent)
                         .map(jsonifiable -> ((ThingEvent) jsonifiable))
                         .filter(thingEvent -> targetThingIds.isEmpty() ||
-                                targetThingIds.contains(thingEvent.getThingId()) // only Events of the target thingIds
+                                        targetThingIds.contains(thingEvent.getThingEntityId())
+                                // only Events of the target thingIds
                         )
                         .filter(thingEvent -> namespaces.isEmpty() || namespaces.contains(namespaceFromId(thingEvent)))
                         .map(ThingEventToThingConverter::thingEventToThing)
@@ -258,8 +266,8 @@ public class SseThingsRoute extends AbstractRoute {
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());
     }
 
-    private static String namespaceFromId(final WithId withId) {
-        return withId.getId().split(":", 2)[0];
+    private static String namespaceFromId(final ThingEvent thingEvent) {
+        return thingEvent.getEntityId().getNamespace();
     }
 
     private static final class AcceptHeaderExtractor extends JavaPartialFunction<HttpHeader, Accept> {

@@ -69,7 +69,7 @@ final class RetrieveThingsLiveCommandAnswerBuilderImpl
         public RetrieveThingsResponse retrieved(final List<Thing> things, final Predicate<JsonField> predicate) {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-            String namespace = command.getNamespace().orElse(null);
+            final String namespace = command.getNamespace().orElse(null);
 
             final Function<JsonFieldSelector, RetrieveThingsResponse> fieldSelectorToResponse =
                     fieldSelector -> RetrieveThingsResponse.of(things, fieldSelector, predicate, namespace, dittoHeaders);

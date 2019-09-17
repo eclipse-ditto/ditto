@@ -14,12 +14,17 @@ package org.eclipse.ditto.signals.commands.connectivity.modify;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
@@ -35,7 +40,7 @@ public final class DeleteConnectionResponseTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, DeleteConnectionResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
-            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
+            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID.toString())
             .build();
 
     @Test
@@ -47,7 +52,9 @@ public final class DeleteConnectionResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DeleteConnectionResponse.class, areImmutable());
+        assertInstancesOf(DeleteConnectionResponse.class,
+                areImmutable(),
+                provided(ConnectionId.class).isAlsoImmutable());
     }
 
     @Test
@@ -77,4 +84,13 @@ public final class DeleteConnectionResponseTest {
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
 
+    @Test
+    public void getResourcePathReturnsExpected() {
+        final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
+
+        final DeleteConnectionResponse underTest =
+                DeleteConnectionResponse.of(TestConstants.ID, DittoHeaders.empty());
+
+        DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
+    }
 }

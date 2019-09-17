@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -66,6 +67,8 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(DittoPublicKeyProvider.class);
 
     private static final long JWK_REQUEST_TIMEOUT_MILLISECONDS = 5000;
+    private static final String OPENID_CONNECT_DISCOVERY_PATH = "/.well-known/openid-configuration";
+    private static final JsonFieldDefinition<String> JSON_JWKS_URI = JsonFieldDefinition.ofString("jwks_uri");
 
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
     private final HttpClientFacade httpClient;
@@ -129,22 +132,27 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 jwtSubjectIssuersConfig.getConfigItem(issuer)
                         .orElseThrow(() -> GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
 
-        final String jwkResource = subjectIssuerConfig.getJwkResource();
+        final String discoveryEndpoint = getDiscoveryEndpoint(subjectIssuerConfig.getIssuer());
         final CompletableFuture<HttpResponse> responseFuture =
-                CompletableFuture.supplyAsync(() -> getPublicKeysFromJwkResource(jwkResource));
+                CompletableFuture.supplyAsync(() -> getPublicKeysFromDiscoveryEndpoint(discoveryEndpoint));
         final CompletableFuture<JsonArray> publicKeysFuture =
                 responseFuture.thenCompose(this::mapResponseToJsonArray);
-        return publicKeysFuture.thenApply(publicKeysArray -> mapToPublicKey(publicKeysArray, keyId, jwkResource))
+        return publicKeysFuture.thenApply(publicKeysArray -> mapToPublicKey(publicKeysArray, keyId, discoveryEndpoint))
                 .toCompletableFuture();
     }
 
+    private String getDiscoveryEndpoint(final String issuer) {
+        final String iss;
+        if (issuer.endsWith("/")) {
+            iss = issuer.substring(0, issuer.length() - 1);
+        } else {
+            iss = issuer;
+        }
+        return iss + OPENID_CONNECT_DISCOVERY_PATH;
+    }
+
     private CompletableFuture<JsonArray> mapResponseToJsonArray(final HttpResponse response) {
-        final CompletionStage<JsonObject> body =
-                response.entity().getDataBytes().fold(ByteString.empty(), ByteString::concat)
-                        .map(ByteString::utf8String)
-                        .map(JsonFactory::readFrom)
-                        .map(JsonValue::asObject)
-                        .runWith(Sink.head(), httpClient.getActorMaterializer());
+        final CompletionStage<JsonObject> body = mapResponseToJsonObject(response);
 
         final JsonPointer keysPointer = JsonPointer.of("keys");
 
@@ -156,21 +164,34 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 });
     }
 
-    private HttpResponse getPublicKeysFromJwkResource(final String resource) {
-        LOGGER.debug("Loading public keys from resource <{}>.", resource);
+    private HttpResponse getPublicKeysFromDiscoveryEndpoint(final String discoveryEndpoint) {
+        LOGGER.debug("Loading public keys from discovery endpoint <{}>.", discoveryEndpoint);
 
         final HttpResponse response;
         try {
-            response = httpClient.createSingleHttpRequest(HttpRequest.GET(resource)).toCompletableFuture()
+            response = httpClient.createSingleHttpRequest(HttpRequest.GET(discoveryEndpoint))
+                    .thenCompose(this::mapResponseToJsonObject)
+                    .thenApply(jsonObject -> jsonObject.getValueOrThrow(JSON_JWKS_URI))
+                    .thenCompose(jwksUri -> httpClient.createSingleHttpRequest(HttpRequest.GET(jwksUri)))
+                    .toCompletableFuture()
                     .get(JWK_REQUEST_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
         } catch (final ExecutionException | InterruptedException | TimeoutException e) {
-            throw new IllegalStateException(MessageFormat.format("Got Exception from JwkResource provider at " +
-                    "resource <{0}>.", resource), e);
+            throw new IllegalStateException(
+                    MessageFormat.format("Got Exception from discovery endpoint <{0}>.", discoveryEndpoint), e);
         }
         return response;
     }
 
-    private static PublicKey mapToPublicKey(final JsonArray publicKeys, final String keyId, final String resource) {
+    private CompletionStage<JsonObject> mapResponseToJsonObject(final HttpResponse response) {
+        return response.entity().getDataBytes().fold(ByteString.empty(), ByteString::concat)
+                .map(ByteString::utf8String)
+                .map(JsonFactory::readFrom)
+                .map(JsonValue::asObject)
+                .runWith(Sink.head(), httpClient.getActorMaterializer());
+    }
+
+    private static PublicKey mapToPublicKey(final JsonArray publicKeys, final String keyId,
+            final String discoveryEndpoint) {
         LOGGER.debug("Trying to find key with id <{}> in json array <{}>.", keyId, publicKeys);
 
         for (final JsonValue jsonValue : publicKeys) {
@@ -187,7 +208,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 }
             } catch (final NoSuchAlgorithmException | InvalidKeySpecException e) {
                 throw new IllegalStateException(MessageFormat.format("Got invalid key from JwkResource provider " +
-                        "at resource <{0}>.", resource), e);
+                        "at discovery endpoint <{0}>.", discoveryEndpoint), e);
             }
         }
 

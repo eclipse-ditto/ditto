@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.policies.TestConstants;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
@@ -38,7 +39,7 @@ public final class SudoRetrievePolicyResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder() //
             .set(SudoCommandResponse.JsonFields.TYPE, SudoRetrievePolicyResponse.TYPE) //
             .set(SudoCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt()) //
-            .set(SudoCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID) //
+            .set(SudoCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString()) //
             .set(SudoRetrievePolicyResponse.JSON_POLICY,
                     TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial())) //
             .build();
@@ -49,7 +50,7 @@ public final class SudoRetrievePolicyResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoRetrievePolicyResponse.class, areImmutable(),
-                provided(JsonObject.class).isAlsoImmutable());
+                provided(JsonObject.class, PolicyId.class).isAlsoImmutable());
     }
 
     /** */

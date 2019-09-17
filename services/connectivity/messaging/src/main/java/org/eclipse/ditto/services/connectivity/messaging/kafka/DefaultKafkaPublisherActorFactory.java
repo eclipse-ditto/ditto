@@ -17,9 +17,9 @@ import java.util.List;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 
-import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -56,13 +56,12 @@ public final class DefaultKafkaPublisherActorFactory implements KafkaPublisherAc
     }
 
     @Override
-    public Props props(final String connectionId,
+    public Props props(final ConnectionId connectionId,
             final List<Target> targets,
             final KafkaConnectionFactory factory,
-            final ActorRef kafkaClientActor,
             final boolean dryRun) {
 
-        return KafkaPublisherActor.props(connectionId, targets, factory, kafkaClientActor, dryRun);
+        return KafkaPublisherActor.props(connectionId, targets, factory, dryRun);
     }
 
 }

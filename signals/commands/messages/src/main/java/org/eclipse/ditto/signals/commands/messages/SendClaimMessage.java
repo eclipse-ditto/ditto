@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
@@ -39,13 +40,32 @@ public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendCla
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private SendClaimMessage(final String thingId, final Message<T> message, final DittoHeaders dittoHeaders) {
+    private SendClaimMessage(final ThingId thingId, final Message<T> message, final DittoHeaders dittoHeaders) {
         super(TYPE, thingId, message, dittoHeaders);
     }
 
     @Override
     public SendClaimMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), getMessage(), dittoHeaders);
+        return of(getThingEntityId(), getMessage(), dittoHeaders);
+    }
+
+    /**
+     * Creates a new instance of {@link SendClaimMessage}.
+     *
+     * @param thingId the ID of the Thing to send the message to
+     * @param message the message to send to the Thing
+     * @param dittoHeaders the DittoHeaders of this message.
+     * @param <T> the type of the message's payload.
+     * @return new instance of {@link SendClaimMessage}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.messages.Message, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static <T> SendClaimMessage<T> of(final String thingId, final Message<T> message,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), message, dittoHeaders);
     }
 
     /**
@@ -58,7 +78,7 @@ public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendCla
      * @return new instance of {@link SendClaimMessage}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <T> SendClaimMessage<T> of(final String thingId, final Message<T> message,
+    public static <T> SendClaimMessage<T> of(final ThingId thingId, final Message<T> message,
             final DittoHeaders dittoHeaders) {
         return new SendClaimMessage<>(thingId, message, dittoHeaders);
     }
@@ -90,7 +110,8 @@ public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendCla
      */
     public static <T> SendClaimMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<SendClaimMessage<T>>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final Message<T> message = deserializeMessageFromJson(jsonObject);
 
             return of(thingId, message, dittoHeaders);

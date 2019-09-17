@@ -47,9 +47,9 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
     @Test
     public void retrieveAttributesWithoutSelectedFields() {
         final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveAttributes command = RetrieveAttributes.of(context.getThingId(), DittoHeaders.empty());
+        final RetrieveAttributes command = RetrieveAttributes.of(context.getThingEntityId(), DittoHeaders.empty());
         final RetrieveAttributesResponse expectedResponse =
-                retrieveAttributesResponse(context.getThingId(), ATTRIBUTES,
+                retrieveAttributesResponse(context.getThingEntityId(), ATTRIBUTES,
                         ATTRIBUTES.toJson(command.getImplementedSchemaVersion()), DittoHeaders.empty());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -60,9 +60,9 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
         final CommandStrategy.Context context = getDefaultContext();
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
         final RetrieveAttributes command =
-                RetrieveAttributes.of(context.getThingId(), selectedFields, DittoHeaders.empty());
+                RetrieveAttributes.of(context.getThingEntityId(), selectedFields, DittoHeaders.empty());
         final RetrieveAttributesResponse expectedResponse =
-                retrieveAttributesResponse(context.getThingId(), ATTRIBUTES,
+                retrieveAttributesResponse(context.getThingEntityId(), ATTRIBUTES,
                     ATTRIBUTES.toJson(command.getImplementedSchemaVersion(), selectedFields), DittoHeaders.empty());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -71,9 +71,9 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
     @Test
     public void retrieveAttributesFromThingWithoutAttributes() {
         final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveAttributes command = RetrieveAttributes.of(context.getThingId(), DittoHeaders.empty());
+        final RetrieveAttributes command = RetrieveAttributes.of(context.getThingEntityId(), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributesNotFound(context.getThingId(), DittoHeaders.empty());
+                ExceptionFactory.attributesNotFound(context.getThingEntityId(), DittoHeaders.empty());
 
         assertErrorResult(underTest, THING_V2.removeAttributes(), command, expectedException);
     }

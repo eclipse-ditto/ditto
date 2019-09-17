@@ -24,6 +24,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
+import org.eclipse.ditto.model.things.ThingId;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -49,7 +50,7 @@ public final class ThingsSnapshotTestHelper<S> {
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
     private static final int WAIT_TIMEOUT = 3;
 
-    private final Function<String, String> domainIdToPersistenceId;
+    private final Function<ThingId, String> domainIdToPersistenceId;
     private final BiFunction<BsonDocument, Long, S> snapshotToDomainObject;
     private final ActorRef snapshotPlugin;
 
@@ -64,7 +65,7 @@ public final class ThingsSnapshotTestHelper<S> {
      */
     public ThingsSnapshotTestHelper(final ActorSystem actorSystem,
             final BiFunction<BsonDocument, Long, S> snapshotToDomainObject,
-            final Function<String, String> domainIdToPersistenceId) {
+            final Function<ThingId, String> domainIdToPersistenceId) {
         this.snapshotToDomainObject = requireNonNull(snapshotToDomainObject);
         this.domainIdToPersistenceId = requireNonNull(domainIdToPersistenceId);
 
@@ -79,7 +80,7 @@ public final class ThingsSnapshotTestHelper<S> {
      * @param domainId the domain ID of the snapshot
      * @return an Optional containing the maximum snapshot, if any exists; an empty Optional otherwise
      */
-    public Optional<S> getMaxSnapshot(final String domainId) {
+    public Optional<S> getMaxSnapshot(final ThingId domainId) {
         requireNonNull(domainId);
 
         final String persistenceId = domainIdToPersistenceId.apply(domainId);
@@ -94,7 +95,7 @@ public final class ThingsSnapshotTestHelper<S> {
      * @param domainId the domain ID of the snapshots
      * @return the snapshots in ascending orders
      */
-    public List<S> getAllSnapshotsAscending(final String domainId) {
+    public List<S> getAllSnapshotsAscending(final ThingId domainId) {
         requireNonNull(domainId);
 
         final String persistenceId = domainIdToPersistenceId.apply(domainId);
@@ -122,8 +123,8 @@ public final class ThingsSnapshotTestHelper<S> {
         SelectedSnapshot lastSnapshotData = maxSnapshotData;
         while (lastSnapshotData != null) {
             final SelectedSnapshot previousSnapshotData =
-                    getMaxSnapshotData(lastSnapshotData.metadata().persistenceId(),
-                            lastSnapshotData.metadata().timestamp() - 1);
+                    getMaxSnapshotDataBySequenceNumber(lastSnapshotData.metadata().persistenceId(),
+                            lastSnapshotData.metadata().sequenceNr() - 1);
             if (previousSnapshotData != null) {
                 allSnapshotData.add(previousSnapshotData);
             }
@@ -133,10 +134,11 @@ public final class ThingsSnapshotTestHelper<S> {
         return allSnapshotData;
     }
 
-    private SelectedSnapshot getMaxSnapshotData(final String persistenceId, final long maxTimestamp) {
-        final SnapshotProtocol.LoadSnapshot loadSnapshot =
-                new SnapshotProtocol.LoadSnapshot(persistenceId,
-                        SnapshotSelectionCriteria.create(Long.MAX_VALUE, maxTimestamp), Long.MAX_VALUE);
+    private SelectedSnapshot getMaxSnapshotDataBySequenceNumber(final String persistenceId,
+            final long maxSequenceNumber) {
+        final SnapshotSelectionCriteria criteria = SnapshotSelectionCriteria.create(maxSequenceNumber, Long.MAX_VALUE);
+        final SnapshotProtocol.LoadSnapshot loadSnapshot = new SnapshotProtocol.LoadSnapshot(persistenceId, criteria,
+                maxSequenceNumber);
 
         return convertScalaOpt(
                 waitForFuture(
@@ -148,7 +150,7 @@ public final class ThingsSnapshotTestHelper<S> {
     }
 
     private SelectedSnapshot getMaxSnapshotData(final String persistenceId) {
-        return getMaxSnapshotData(persistenceId, Long.MAX_VALUE);
+        return getMaxSnapshotDataBySequenceNumber(persistenceId, Long.MAX_VALUE);
     }
 
     private <T> T convertScalaOpt(final Option<T> opt, final T defaultValue) {

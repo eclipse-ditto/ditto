@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -217,8 +217,8 @@ public abstract class AbstractEnforcement<T extends Signal> {
     /**
      * @return the entity ID.
      */
-    protected EntityId entityId() {
-        return context.getEntityId();
+    protected EntityIdWithResourceType entityId() {
+        return context.getEntityIdWithResourceType();
     }
 
     /**
@@ -287,7 +287,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
 
     /**
      * Inserts the passed {@code message} and {@code receiver} into the current {@link Contextual} {@link #context}
-     * providing a function which shall be invoked prior to sending the {@code message} to the {@code reveiver}.
+     * providing a function which shall be invoked prior to sending the {@code message} to the {@code receiver}.
      *
      * @param message the message to insert into the current context.
      * @param receiver the ActorRef of the receiver which should get the message.
@@ -306,8 +306,8 @@ public abstract class AbstractEnforcement<T extends Signal> {
      *
      * @return the adjusted context.
      */
-    protected <S extends WithDittoHeaders> Contextual<S> withoutReceiver() {
-        return context.<S>withMessage(null).withReceiver(null);
+    protected <S extends WithDittoHeaders> Contextual<S> withoutReceiver(final S message) {
+        return context.withMessage(message).withReceiver(null);
     }
 
     /**

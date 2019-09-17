@@ -43,7 +43,7 @@ final class ModifySubjectsSubstitutionStrategy extends AbstractTypedSubstitution
         if (existingSubjects.equals(substitutedSubjects)) {
             return modifySubjects;
         } else {
-            return ModifySubjects.of(modifySubjects.getId(), modifySubjects.getLabel(), substitutedSubjects,
+            return ModifySubjects.of(modifySubjects.getEntityId(), modifySubjects.getLabel(), substitutedSubjects,
                     dittoHeaders);
         }
     }

@@ -257,16 +257,29 @@
             "metadata": {
                 "description": "Name of the Mongo DB test collections."
             }
+        },
+        "virtualNetworkName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of an existing VNET that will contain this AKS deployment."
+            }
+        },
+        "virtualNetworkResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the existing VNET resource group"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Subnet name that will contain the AKS nodes."
+            }
         }
-
-
-
-
-
-
     },
     "variables": {
         "accountName": "[toLower(parameters('accountName'))]",
+        "vnetSubnetId": "[resourceId(parameters('virtualNetworkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('virtualNetworkName'),parameters('subnetName'))]",
         "consistencyPolicy": {
             "Eventual": {
                 "defaultConsistencyLevel": "Eventual"
@@ -296,7 +309,13 @@
             "properties": {
                 "consistencyPolicy": "[variables('consistencyPolicy')[parameters('defaultConsistencyLevel')]]",
                 "databaseAccountOfferType": "Standard",
-                "enableMultipleWriteLocations": "[parameters('multipleWriteLocations')]"
+                "enableMultipleWriteLocations": "[parameters('multipleWriteLocations')]",
+                "isVirtualNetworkFilterEnabled": true,
+
+                "virtualNetworkRules": [{
+                    "id": "[variables('vnetSubnetID')]",
+                    "ignoreMissingVNetServiceEndpoint": false
+                }]
             }
         },
         {
@@ -605,5 +624,11 @@
                 }
             }
         }
-    ]
+    ],
+    "outputs": {
+        "primaryMasterKey": {
+            "type": "string",
+            "value": "[listKeys(variables('accountName'), '2016-03-31').primaryMasterKey]"
+        }
+    }
 }

@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * A mutable builder with a fluent API for an immutable {@link Thing}. This builder is initialised with the properties
@@ -52,9 +53,9 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         checkNotNull(thing, "Thing");
 
         final ImmutableThingFromCopyBuilder result = new ImmutableThingFromCopyBuilder();
-        thing.getId().ifPresent(result::setId);
+        thing.getEntityId().ifPresent(result::setId);
         thing.getAccessControlList().ifPresent(result::setPermissions);
-        thing.getPolicyId().ifPresent(result::setPolicyId);
+        thing.getPolicyEntityId().ifPresent(result::setPolicyId);
         thing.getAttributes().ifPresent(result::setAttributes);
         thing.getFeatures().ifPresent(result::setFeatures);
         thing.getLifecycle().ifPresent(result::setLifecycle);
@@ -79,7 +80,9 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
         final ImmutableThingFromCopyBuilder result = new ImmutableThingFromCopyBuilder();
 
-        jsonObject.getValue(Thing.JsonFields.ID).ifPresent(result::setId);
+        jsonObject.getValue(Thing.JsonFields.ID)
+                .map(ThingId::of)
+                .ifPresent(result::setId);
 
         jsonObject.getValue(Thing.JsonFields.ACL)
                 .map(ThingsModelFactory::newAcl)
@@ -253,7 +256,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setPolicyId(@Nullable final String policyId) {
+    public FromCopy setPolicyId(@Nullable final PolicyId policyId) {
         fromScratchBuilder.setPolicyId(policyId);
         return this;
     }
@@ -646,8 +649,13 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         return this;
     }
 
+    public FromCopy setId(@Nullable final ThingId thingId) {
+        fromScratchBuilder.setId(thingId);
+        return this;
+    }
+
     @Override
-    public FromCopy setId(final Predicate<String> existingIdPredicate, @Nullable final String thingId) {
+    public FromCopy setId(final Predicate<ThingId> existingIdPredicate, @Nullable final ThingId thingId) {
         if (existingIdPredicate.test(fromScratchBuilder.id)) {
             setId(thingId);
         }
@@ -661,7 +669,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setGeneratedId(final Predicate<String> existingIdPredicate) {
+    public FromCopy setGeneratedId(final Predicate<ThingId> existingIdPredicate) {
         if (existingIdPredicate.test(fromScratchBuilder.id)) {
             setGeneratedId();
         }

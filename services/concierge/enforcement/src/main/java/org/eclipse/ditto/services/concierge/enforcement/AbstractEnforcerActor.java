@@ -23,9 +23,10 @@ import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerBuilder;
@@ -37,7 +38,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
@@ -57,11 +57,11 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     private final EnforcementConfig enforcementConfig;
 
     @Nullable
-    private final Cache<EntityId, Entry<EntityId>> thingIdCache;
+    private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
     @Nullable
-    private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
+    private final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache;
     @Nullable
-    private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
+    private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
 
 
     /**
@@ -75,9 +75,9 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
      */
     protected AbstractEnforcerActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
-            @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
-            @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
+            @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
+            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
+            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
         super();
 
@@ -95,19 +95,19 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
         // register for sending messages via pub/sub to this enforcer
         // used for receiving cache invalidations from brother concierge nodes
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
     }
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(InvalidateCacheEntry.class, invalidateCacheEntry -> {
             log.debug("received <{}>", invalidateCacheEntry);
-            final EntityId entityId = invalidateCacheEntry.getEntityId();
+            final EntityIdWithResourceType entityId = invalidateCacheEntry.getEntityId();
             invalidateCaches(entityId);
         });
     }
 
-    private void invalidateCaches(final EntityId entityId) {
+    private void invalidateCaches(final EntityIdWithResourceType entityId) {
         if (thingIdCache != null) {
             final boolean invalidated = thingIdCache.invalidate(entityId);
             log.debug("thingId cache for entity id <{}> was invalidated: {}", entityId, invalidated);
@@ -156,11 +156,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Override
     protected int getParallelism() {
         return enforcementConfig.getParallelism();
-    }
-
-    @Override
-    protected int getMaxNamespacesSubstreams() {
-        return enforcementConfig.getMaxNamespacesSubstreams();
     }
 
     @Override

@@ -54,6 +54,8 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -148,8 +150,31 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     protected Config determineRawConfig() {
         final Config loadedConfig = RawConfigSupplier.of(serviceName).get();
 
-        logger.debug("Using config <{}>", loadedConfig.root().render(ConfigRenderOptions.concise()));
+        if (logger.isDebugEnabled()) {
+            logger.debug("Using config <{}>", loadedConfig.root().render(ConfigRenderOptions.concise()));
+        }
         return loadedConfig;
+    }
+
+    private Config appendDittoInfo(final Config config) {
+        final String instanceId = InstanceIdentifierSupplier.getInstance().get();
+
+        final ConfigValue service = ConfigFactory.empty()
+                .withValue("name", ConfigValueFactory.fromAnyRef(serviceName))
+                .withValue("instance-id", ConfigValueFactory.fromAnyRef(instanceId))
+                .root();
+
+        final ConfigValue vmArgs =
+                ConfigValueFactory.fromIterable(ManagementFactory.getRuntimeMXBean().getInputArguments());
+
+        final ConfigValue env = ConfigValueFactory.fromMap(System.getenv());
+
+        return config.withValue("ditto.info",
+                ConfigFactory.empty()
+                        .withValue("service", service)
+                        .withValue("vm-args", vmArgs)
+                        .withValue("env", env)
+                        .root());
     }
 
     private static ScopedConfig tryToGetDittoConfigOrEmpty(final Config rawConfig) {
@@ -191,11 +216,12 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * May be overridden to <em>completely</em> change the way how this service is started.
      * <em>Note: If this method is overridden, no other method of this class will be called automatically.</em>
      * </p>
+     *
      * @return the created ActorSystem during startup
      */
     protected ActorSystem doStart() {
         logRuntimeParameters();
-        final Config actorSystemConfig = appendAkkaPersistenceMongoUriToRawConfig();
+        final Config actorSystemConfig = appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig());
         configureMongoDbSuffixBuilder();
         startKamon();
         final ActorSystem actorSystem = createActorSystem(actorSystemConfig);
@@ -211,7 +237,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         final String configPath = "akka.contrib.persistence.mongodb.mongo.mongouri";
         final MongoDbConfig mongoDbConfig = ((WithMongoDbConfig) serviceSpecificConfig).getMongoDbConfig();
         final String mongoDbUri = mongoDbConfig.getMongoDbUri();
-        return ConfigFactory.parseMap(Collections.singletonMap(configPath, mongoDbUri)).withFallback(rawConfig);
+        return rawConfig.withValue(configPath, ConfigValueFactory.fromAnyRef(mongoDbUri));
     }
 
     private boolean isServiceWithMongoDbConfig() {

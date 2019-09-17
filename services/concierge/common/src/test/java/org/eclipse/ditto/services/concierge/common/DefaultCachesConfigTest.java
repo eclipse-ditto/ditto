@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.common;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -46,9 +45,7 @@ public final class DefaultCachesConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultCachesConfig.class,
-                areImmutable(),
-                provided(CachesConfig.class).isAlsoImmutable());
+        assertInstancesOf(DefaultCachesConfig.class, areImmutable());
     }
 
     @Test

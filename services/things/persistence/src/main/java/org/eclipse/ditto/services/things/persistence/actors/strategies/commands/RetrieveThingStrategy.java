@@ -14,25 +14,17 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
-
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * This strategy handles the {@link RetrieveThing} command.
@@ -55,59 +47,20 @@ final class RetrieveThingStrategy
                 .map(t -> !t.isDeleted())
                 .orElse(false);
 
-        return Objects.equals(context.getThingId(), command.getId()) && thingExists;
+        return Objects.equals(context.getThingEntityId(), command.getEntityId()) && thingExists;
     }
 
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
 
-        return command.getSnapshotRevision()
-                .map(snapshotRevision -> getRetrieveThingFromSnapshotterResult(snapshotRevision, context, command))
-                .orElseGet(() -> ResultFactory.newQueryResult(command, thing, getRetrieveThingResponse(thing, command),
-                        this));
-    }
-
-    private static Result getRetrieveThingFromSnapshotterResult(final long snapshotRevision, final Context context,
-            final RetrieveThing command) {
-
-        return tryToLoadThingSnapshot(snapshotRevision, context, command);
-    }
-
-    private static Result tryToLoadThingSnapshot(final long snapshotRevision, final Context context,
-            final RetrieveThing command) {
-
-        final CompletionStage<WithDittoHeaders> futureResponse =
-                loadThingSnapshot(context.getThingSnapshotter(), snapshotRevision, command).handle((message, error) -> {
-                    if (error != null) {
-                        final DiagnosticLoggingAdapter log = context.getLog();
-                        LogUtil.enhanceLogWithCorrelationId(log, command);
-                        log.error(error, "Failed to retrieve thing with ID <{}>", context.getThingId());
-                    }
-                    return message != null
-                            ? message
-                            : getThingUnavailableException(command);
-                });
-        return ResultFactory.newFutureResult(futureResponse);
-    }
-
-    private static CompletionStage<WithDittoHeaders> loadThingSnapshot(
-            final ThingSnapshotter<?, ?> snapshotter,
-            final long snapshotRevision,
-            final RetrieveThing command) {
-
-        final CompletionStage<Optional<Thing>> completionStage = snapshotter.loadSnapshot(snapshotRevision);
-        final CompletableFuture<Optional<Thing>> completableFuture = completionStage.toCompletableFuture();
-
-        return completableFuture.thenApply(thingOpt ->
-                thingOpt.map(thing -> getRetrieveThingResponse(thing, command))
-                        .orElseGet(() -> notAccessible(command)));
+        return ResultFactory.newQueryResult(command, thing, getRetrieveThingResponse(thing, command), this);
     }
 
     private static WithDittoHeaders getRetrieveThingResponse(@Nullable final Thing thing,
             final ThingQueryCommand<RetrieveThing> command) {
         if (thing != null) {
-            return RetrieveThingResponse.of(command.getThingId(), getThingJson(thing, command),
+            return RetrieveThingResponse.of(command.getThingEntityId(), getThingJson(thing, command),
                     command.getDittoHeaders());
         } else {
             return notAccessible(command);
@@ -120,22 +73,15 @@ final class RetrieveThingStrategy
                 .orElseGet(() -> thing.toJson(command.getImplementedSchemaVersion()));
     }
 
-    private static DittoRuntimeException getThingUnavailableException(final RetrieveThing command) {
-        // reset command headers so that correlation-id etc. is preserved
-        return ThingUnavailableException.newBuilder(command.getThingId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build();
-    }
-
     private static ThingNotAccessibleException notAccessible(final ThingQueryCommand<?> command) {
-        return new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders());
+        return new ThingNotAccessibleException(command.getThingEntityId(), command.getDittoHeaders());
     }
 
     @Override
     protected Result unhandled(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
         return ResultFactory.newErrorResult(
-                new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
+                new ThingNotAccessibleException(context.getThingEntityId(), command.getDittoHeaders()));
     }
 
     @Override

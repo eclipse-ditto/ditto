@@ -32,6 +32,7 @@ import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyPersi
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
@@ -39,9 +40,11 @@ import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
@@ -57,7 +60,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
@@ -147,8 +149,8 @@ public final class PoliciesRootActor extends AbstractActor {
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
                 PoliciesPersistenceStreamingActorCreator.props(tagsConfig.getStreamingCacheSize()));
 
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
         final ClusterConfig clusterConfig = policiesConfig.getClusterConfig();
         final ActorRef policiesShardRegion = ClusterSharding.get(actorSystem)
@@ -170,8 +172,16 @@ public final class PoliciesRootActor extends AbstractActor {
         }
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
+        final MetricsReporterConfig metricsReporterConfig =
+                healthCheckConfig.getPersistenceConfig().getMetricsReporterConfig();
         final Props healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                MongoHealthChecker.props());
+                MongoHealthChecker.props(),
+                MongoMetricsReporter.props(
+                        metricsReporterConfig.getResolution(),
+                        metricsReporterConfig.getHistory(),
+                        pubSubMediator
+                )
+        );
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 

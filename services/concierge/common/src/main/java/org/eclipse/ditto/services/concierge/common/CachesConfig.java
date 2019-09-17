@@ -60,7 +60,7 @@ public interface CachesConfig {
         private final String path;
         private final Object defaultValue;
 
-        private CachesConfigValue(final String thePath, final Object theDefaultValue) {
+        CachesConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

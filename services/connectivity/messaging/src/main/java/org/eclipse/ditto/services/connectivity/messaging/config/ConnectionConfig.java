@@ -18,23 +18,13 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.supervision.WithSupervisorConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.WithActivityCheckConfig;
 
 /**
  * Provides configuration settings for Connectivity service's connection behaviour.
  */
 @Immutable
-public interface ConnectionConfig extends WithSupervisorConfig {
-
-    /**
-     * Returns the delay between subscribing to Akka pub/sub and responding to the command that triggered the
-     * subscription.
-     * The delay gives Akka pub/sub a chance to reach consensus in the cluster before clients start expecting
-     * messages and events.
-     * The default value is {@code 5s}.
-     *
-     * @return the timeout.
-     */
-    Duration getFlushPendingResponsesTimeout();
+public interface ConnectionConfig extends WithSupervisorConfig, WithActivityCheckConfig {
 
     /**
      * Returns the amount of time for how long the connection actor waits for response from client actors.

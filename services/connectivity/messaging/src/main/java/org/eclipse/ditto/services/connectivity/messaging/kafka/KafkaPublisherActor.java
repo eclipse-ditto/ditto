@@ -28,11 +28,12 @@ import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -61,7 +62,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ActorRef kafkaClientActor;
     private final KafkaConnectionFactory connectionFactory;
     private final boolean dryRun;
 
@@ -69,14 +69,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private ActorRef sourceActor;
 
     @SuppressWarnings("unused")
-    private KafkaPublisherActor(final String connectionId,
+    private KafkaPublisherActor(final ConnectionId connectionId,
             final List<Target> targets,
             final KafkaConnectionFactory factory,
-            final ActorRef kafkaClientActor,
             final boolean dryRun) {
 
         super(connectionId, targets);
-        this.kafkaClientActor = kafkaClientActor;
         this.dryRun = dryRun;
         connectionFactory = factory;
 
@@ -90,17 +88,15 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param connectionId the connectionId this publisher belongs to.
      * @param targets the targets to publish to.
      * @param factory the factory to create Kafka connections with.
-     * @param kafkaClientActor the ActorRef to the Kafka Client Actor
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId,
+    static Props props(final ConnectionId connectionId,
             final List<Target> targets,
             final KafkaConnectionFactory factory,
-            final ActorRef kafkaClientActor,
             final boolean dryRun) {
 
-        return Props.create(KafkaPublisherActor.class, connectionId, targets, factory, kafkaClientActor, dryRun);
+        return Props.create(KafkaPublisherActor.class, connectionId, targets, factory, dryRun);
     }
 
     private static Sink<ProducerMessage.Results<String, String, PassThrough>, CompletionStage<Done>> publishSuccessSink() {
@@ -271,7 +267,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     private void reportInitialConnectionState() {
         logWithConnectionId().info("Publisher ready");
-        kafkaClientActor.tell(new Status.Success(Done.done()), getSelf());
+        getContext().getParent().tell(new Status.Success(Done.done()), getSelf());
     }
 
     @Override

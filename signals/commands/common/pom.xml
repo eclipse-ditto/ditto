@@ -63,6 +63,24 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <excludes>
+                            <!-- getId() is still available but implemented in WithIdButActuallyNot interface -->
+                            <exclude>org.eclipse.ditto.signals.commands.common.CommonCommand#getId()</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.common.CommonCommandResponse#getId()</exclude>
+
+                            <!-- getEntityId() has been added on purpose -->
+                            <exclude>org.eclipse.ditto.signals.commands.common.CommonCommand#getEntityId()</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.common.CommonCommandResponse#getEntityId()</exclude>
+
+                            <exclude>
+                                <!-- this method was added on purpose -->
+                                org.eclipse.ditto.signals.commands.common.ShutdownReason#isRelevantFor(java.lang.Object)
+                            </exclude>
+                        </excludes>
+                    </parameter>
+                </configuration>
             </plugin>
 
             <plugin>

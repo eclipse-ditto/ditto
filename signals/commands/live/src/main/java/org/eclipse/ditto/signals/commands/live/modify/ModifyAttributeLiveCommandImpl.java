@@ -69,7 +69,7 @@ final class ModifyAttributeLiveCommandImpl extends AbstractModifyLiveCommand<Mod
 
     @Override
     public ModifyAttributeLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ModifyAttributeLiveCommandImpl(ModifyAttribute.of(getThingId(), getAttributePointer(),
+        return new ModifyAttributeLiveCommandImpl(ModifyAttribute.of(getThingEntityId(), getAttributePointer(),
                 getAttributeValue(), dittoHeaders));
     }
 

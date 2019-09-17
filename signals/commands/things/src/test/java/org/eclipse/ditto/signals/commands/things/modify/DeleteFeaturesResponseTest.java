@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public final class DeleteFeaturesResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, DeleteFeaturesResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .build();
 
 
@@ -45,7 +46,7 @@ public final class DeleteFeaturesResponseTest {
     public void assertImmutability() {
         assertInstancesOf(DeleteFeaturesResponse.class,
                 areImmutable(),
-                provided(Features.class).isAlsoImmutable());
+                provided(Features.class, ThingId.class).isAlsoImmutable());
     }
 
 

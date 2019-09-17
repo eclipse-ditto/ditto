@@ -19,6 +19,7 @@ import java.util.List;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 
 /**
  * A factory for getting instances of {@link ShutdownReason}.
@@ -44,21 +45,21 @@ public final class ShutdownReasonFactory {
     public static ShutdownReason fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "reason JSON object");
 
-        final ShutdownReasonType type = getType(jsonObject.getValueOrThrow(ShutdownReason.JsonFields.TYPE));
+        final ShutdownReasonType type = getReasonType(jsonObject);
 
         if (ShutdownReasonType.Known.PURGE_NAMESPACE.equals(type)) {
             return PurgeNamespaceReason.fromJson(jsonObject);
         } else if (ShutdownReasonType.Known.PURGE_ENTITIES.equals(type)) {
             return PurgeEntitiesReason.fromJson(jsonObject);
+        } else {
+            return ShutdownNoReason.INSTANCE;
         }
-
-        throw new IllegalArgumentException(String.format("Unknown shutdown reason type: <%s>.", type.toString()));
     }
 
-    private static ShutdownReasonType getType(final CharSequence typeName) {
+    private static ShutdownReasonType getReasonType(final JsonObject shutdownReasonJson) {
+        final String typeName = shutdownReasonJson.getValue(ShutdownReason.JsonFields.TYPE).orElse("");
         return ShutdownReasonType.Known.forTypeName(typeName).orElseGet(() -> ShutdownReasonType.Unknown.of(typeName));
     }
-
 
     /**
      * Returns an instance of {@code ShutdownReason} for indicating the purging of a namespace.
@@ -80,7 +81,7 @@ public final class ShutdownReasonFactory {
      * @throws NullPointerException if {@code entityIds} is {@code null}.
      * @throws IllegalArgumentException if {@code entityIds} is empty.
      */
-    public static ShutdownReason getPurgeEntitiesReason(final List<String> entityIds) {
+    public static ShutdownReason getPurgeEntitiesReason(final List<EntityId> entityIds) {
         return PurgeEntitiesReason.of(entityIds);
     }
 

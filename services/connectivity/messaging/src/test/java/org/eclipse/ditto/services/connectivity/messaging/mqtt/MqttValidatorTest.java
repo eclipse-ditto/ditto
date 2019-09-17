@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -25,7 +25,9 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -37,6 +39,8 @@ import org.junit.Test;
  * Tests {@link MqttValidator}.
  */
 public final class MqttValidatorTest {
+
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
 
     @Test
     public void testImmutability() {
@@ -60,6 +64,37 @@ public final class MqttValidatorTest {
     }
 
     @Test
+    public void testInvalidClientCount() {
+        final Connection connectionWithInvalidClientCount =
+                connectionWithSource("valid").toBuilder().clientCount(2).build();
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithInvalidClientCount);
+    }
+
+    @Test
+    public void testInvalidConsumerCount() {
+        final Source sourceWithInvalidConsumerCount =
+                ConnectivityModelFactory.newSourceBuilder()
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .address("ditto")
+                        .qos(1)
+                        .consumerCount(2)
+                        .build();
+        final Connection connectionWithInvalidConsumerCount =
+                connectionWithSource(sourceWithInvalidConsumerCount).toBuilder().clientCount(2).build();
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithInvalidConsumerCount);
+    }
+
+    @Test
+    public void testInsecureProtocolAndCertificates() {
+        final Connection connectionWithInsecureProtocolAndTrustedCertificates =
+                connectionWithSource("eclipse").toBuilder().trustedCertificates("123").build();
+
+        Assertions.assertThatExceptionOfType(ConnectionUriInvalidException.class)
+                .isThrownBy(() -> MqttValidator.newInstance()
+                        .validate(connectionWithInsecureProtocolAndTrustedCertificates, DittoHeaders.empty()));
+    }
+
+    @Test
     public void testValidTargetAddress() {
         MqttValidator.newInstance().validate(connectionWithTarget("ditto/mqtt/topic"), DittoHeaders.empty());
         MqttValidator.newInstance().validate(connectionWithTarget("ditto"), DittoHeaders.empty());
@@ -78,7 +113,7 @@ public final class MqttValidatorTest {
     @Test
     public void testInvalidHeaderMapping() {
 
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .sources(singletonList(ConnectivityModelFactory.newSourceBuilder()
                         .headerMapping(TestConstants.HEADER_MAPPING)
@@ -91,7 +126,7 @@ public final class MqttValidatorTest {
 
     @Test
     public void testWithDefaultSource() {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .sources(TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT)
                 .build();
@@ -133,7 +168,7 @@ public final class MqttValidatorTest {
     }
 
     private void testInvalidSourceTopicFilters(final Source... sources) {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .sources(Arrays.asList(sources))
                 .build();
@@ -150,14 +185,18 @@ public final class MqttValidatorTest {
                         .qos(1)
                         .build();
 
-        return ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
+        return connectionWithSource(mqttSource);
+    }
+
+    private Connection connectionWithSource(final Source mqttSource) {
+        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .sources(singletonList(mqttSource))
                 .build();
     }
 
     private Connection connectionWithTarget(final String target) {
-        return ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
+        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .targets(singletonList(
                         ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))

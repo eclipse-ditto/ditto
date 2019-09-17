@@ -70,10 +70,6 @@ public final class DefaultConnectionConfigTest {
                 .as(ConnectionConfig.ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
 
-        softly.assertThat(underTest.getFlushPendingResponsesTimeout())
-                .as(ConnectionConfig.ConnectionConfigValue.FLUSH_PENDING_RESPONSES_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(2L));
-
         softly.assertThat(underTest.getSupervisorConfig())
                 .as("supervisorConfig")
                 .satisfies(supervisorConfig -> softly.assertThat(supervisorConfig.getExponentialBackOffConfig())
@@ -98,9 +94,14 @@ public final class DefaultConnectionConfigTest {
 
         softly.assertThat(underTest.getMqttConfig())
                 .as("mqttConfig")
-                .satisfies(mqttConfig -> softly.assertThat(mqttConfig.getSourceBufferSize())
-                        .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
-                        .isEqualTo(7));
+                .satisfies(mqttConfig ->  {
+                    softly.assertThat(mqttConfig.getSourceBufferSize())
+                            .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
+                            .isEqualTo(7);
+                    softly.assertThat(mqttConfig.isLegacyMode())
+                            .as(MqttConfig.MqttConfigValue.LEGACY_MODE.getConfigPath())
+                            .isEqualTo(true);
+                });
     }
 
 }

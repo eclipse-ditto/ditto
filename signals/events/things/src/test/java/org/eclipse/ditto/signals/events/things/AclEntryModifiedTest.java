@@ -24,6 +24,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AclEntry;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -38,7 +40,7 @@ public final class AclEntryModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.ID, AclEntryModified.NAME)
             .set(Event.JsonFields.REVISION, 2L)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(AclEntryModified.JSON_ACL_ENTRY,
                     TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -61,9 +63,15 @@ public final class AclEntryModifiedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        AclEntryModified.of((String) null, TestConstants.Authorization.ACL_ENTRY_OLDMAN, TestConstants.Thing.REVISION_NUMBER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        AclEntryModified.of(null, TestConstants.Authorization.ACL_ENTRY_OLDMAN, TestConstants.Thing.REVISION_NUMBER,
+        AclEntryModified.of((ThingId) null, TestConstants.Authorization.ACL_ENTRY_OLDMAN, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 

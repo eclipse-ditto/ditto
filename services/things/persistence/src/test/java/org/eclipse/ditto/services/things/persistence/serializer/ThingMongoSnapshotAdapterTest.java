@@ -19,6 +19,7 @@ import org.bson.BsonString;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,39 +43,12 @@ public final class ThingMongoSnapshotAdapterTest {
     }
 
     @Test
-    public void toSnapshotStoreReturnsExpected() {
-        final SnapshotTag snapshotTag = SnapshotTag.PROTECTED;
-
-        final ThingWithSnapshotTag thingWithSnapshotTag =
-                ThingWithSnapshotTag.newInstance(TestConstants.Thing.THING_V1, snapshotTag);
-
-        final Object rawSnapshotEntity = underTest.toSnapshotStore(thingWithSnapshotTag);
-
+    public void toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected() {
+        final Thing thing = TestConstants.Thing.THING_V1;
+        final Object rawSnapshotEntity = underTest.toSnapshotStore(thing);
         assertThat(rawSnapshotEntity).isInstanceOf(BsonDocument.class);
-
         final BsonDocument dbObject = (BsonDocument) rawSnapshotEntity;
-
-        assertThat(dbObject.getString(ThingMongoSnapshotAdapter.TAG_JSON_KEY).getValue())
-                .isEqualTo(snapshotTag.toString());
+        final Thing restoredThing = underTest.fromSnapshotStore(new SnapshotOffer(SNAPSHOT_METADATA, dbObject));
+        assertThat(restoredThing).isEqualTo(thing);
     }
-
-    @Test
-    public void restoreThingFromSnapshotOfferReturnsExpected() {
-        final SnapshotTag snapshotTag = SnapshotTag.PROTECTED;
-
-        final ThingWithSnapshotTag thingWithSnapshotTag =
-                ThingWithSnapshotTag.newInstance(TestConstants.Thing.THING_V1, snapshotTag);
-        final JsonObject json = thingWithSnapshotTag.toJson(thingWithSnapshotTag.getImplementedSchemaVersion(),
-                FieldType.regularOrSpecial());
-        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
-        final BsonDocument snapshotEntity = dittoBsonJson.parse(json);
-        snapshotEntity.put(ThingMongoSnapshotAdapter.TAG_JSON_KEY, new BsonString(snapshotTag.toString()));
-
-        final SnapshotOffer snapshotOffer = new SnapshotOffer(SNAPSHOT_METADATA, snapshotEntity);
-
-        final ThingWithSnapshotTag restoredThingWithSnapshotTag = underTest.fromSnapshotStore(snapshotOffer);
-
-        assertThat(restoredThingWithSnapshotTag).isEqualTo(thingWithSnapshotTag);
-    }
-
 }

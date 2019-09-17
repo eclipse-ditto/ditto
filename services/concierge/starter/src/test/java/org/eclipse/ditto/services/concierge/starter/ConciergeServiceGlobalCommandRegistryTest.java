@@ -16,8 +16,10 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
@@ -50,6 +52,8 @@ public final class ConciergeServiceGlobalCommandRegistryTest extends GlobalComma
                 PurgeNamespace.class,
                 RetrieveResource.class,
                 DeleteSubject.class,
+                CleanupPersistence.class,
+                RetrieveHealth.class,
                 PurgeEntities.class
         );
     }

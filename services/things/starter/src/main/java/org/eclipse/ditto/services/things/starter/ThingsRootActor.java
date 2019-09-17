@@ -23,14 +23,16 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
+import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.common.config.ThingsConfig;
+import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActorPropsFactory;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceOperationsActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
@@ -38,10 +40,14 @@ import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.Done;
 import akka.actor.AbstractActor;
@@ -55,7 +61,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
@@ -144,16 +149,21 @@ public final class ThingsRootActor extends AbstractActor {
     private ThingsRootActor(final ThingsConfig thingsConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+            final ThingPersistenceActorPropsFactory propsFactory) {
 
         final ActorSystem actorSystem = getContext().system();
 
         final ClusterConfig clusterConfig = thingsConfig.getClusterConfig();
+        final ShardRegionExtractor shardRegionExtractor =
+                ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem);
+        final ThingEventPubSubFactory pubSubFactory = ThingEventPubSubFactory.of(getContext(), shardRegionExtractor);
+        final DistributedPub<ThingEvent> distributedPub = pubSubFactory.startDistributedPub();
+
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)
                 .start(ThingsMessagingConstants.SHARD_REGION,
-                        getThingSupervisorActorProps(pubSubMediator, thingSnapshotterCreate),
+                        getThingSupervisorActorProps(pubSubMediator, distributedPub, propsFactory),
                         ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE),
-                        ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
+                        shardRegionExtractor);
 
         startChildActor(ThingPersistenceOperationsActor.ACTOR_NAME,
                 ThingPersistenceOperationsActor.props(pubSubMediator, thingsConfig.getMongoDbConfig(),
@@ -170,15 +180,24 @@ public final class ThingsRootActor extends AbstractActor {
         }
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
+        final MetricsReporterConfig metricsReporterConfig =
+                healthCheckConfig.getPersistenceConfig().getMetricsReporterConfig();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+                        MongoHealthChecker.props(),
+                        MongoMetricsReporter.props(
+                                metricsReporterConfig.getResolution(),
+                                metricsReporterConfig.getHistory(),
+                                pubSubMediator
+                        )
+                ));
 
         final TagsConfig tagsConfig = thingsConfig.getTagsConfig();
         final ActorRef persistenceStreamingActor = startChildActor(ThingsPersistenceStreamingActorCreator.ACTOR_NAME,
                 ThingsPersistenceStreamingActorCreator.props(tagsConfig.getStreamingCacheSize()));
 
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
         final HttpConfig httpConfig = thingsConfig.getHttpConfig();
         String hostname = httpConfig.getHostname();
@@ -213,14 +232,16 @@ public final class ThingsRootActor extends AbstractActor {
      * @param thingsConfig the configuration settings of the Things service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the Akka actor system.
+     * @param propsFactory factory of Props of thing-persistence-actor.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ThingsConfig thingsConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+            final ThingPersistenceActorPropsFactory propsFactory) {
 
-        return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, materializer, thingSnapshotterCreate);
+        // Beware: ThingPersistenceActorPropsFactory is not serializable.
+        return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, materializer, propsFactory);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
@@ -262,11 +283,12 @@ public final class ThingsRootActor extends AbstractActor {
                 serverBinding.localAddress().getPort());
     }
 
-    private static Props getThingSupervisorActorProps(final ActorRef pubSubMediator,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+    private static Props getThingSupervisorActorProps(
+            final ActorRef pubSubMediator,
+            final DistributedPub<ThingEvent> distributedPub,
+            final ThingPersistenceActorPropsFactory propsFactory) {
 
-        return ThingSupervisorActor.props(pubSubMediator,
-                ThingPersistenceActorPropsFactory.getInstance(pubSubMediator, thingSnapshotterCreate));
+        return ThingSupervisorActor.props(pubSubMediator, distributedPub, propsFactory);
     }
 
 }

@@ -60,7 +60,7 @@ public class ModifyPolicyEntrySubstitutionStrategyTest extends AbstractSubstitut
 
         final PolicyEntry expectedPolicyEntryReplaced = PolicyEntry.newInstance(LABEL,
                 Subjects.newInstance(Subject.newInstance(SUBJECT_ID, SubjectType.GENERATED)), RESOURCES);
-        final ModifyPolicyEntry expectedCommandReplaced = ModifyPolicyEntry.of(commandWithPlaceholders.getId(),
+        final ModifyPolicyEntry expectedCommandReplaced = ModifyPolicyEntry.of(commandWithPlaceholders.getEntityId(),
                 expectedPolicyEntryReplaced, DITTO_HEADERS);
         assertThat(response).isEqualTo(expectedCommandReplaced);
     }

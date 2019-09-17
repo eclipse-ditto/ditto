@@ -18,18 +18,23 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.createRandomConnectionId;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -38,6 +43,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -64,10 +70,12 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.assertj.core.api.ThrowableAssert;
 import org.awaitility.Awaitility;
+import org.awaitility.Duration;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -76,6 +84,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
@@ -83,19 +92,21 @@ import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
+import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -106,29 +117,30 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.pattern.AskTimeoutException;
+import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
-@RunWith(MockitoJUnitRunner.class)
+// TODO: investigate whether unnecessary stubbing is avoidable
+@RunWith(MockitoJUnitRunner.Silent.class)
 public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AmqpClientActorTest.class);
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
     private static final JMSException JMS_EXCEPTION = new JMSException("FAIL");
     private static final URI DUMMY = URI.create("amqp://test:1234");
-    private static final String CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final ConnectionFailedException SESSION_EXCEPTION =
             ConnectionFailedException.newBuilder(CONNECTION_ID).build();
 
-    @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
+    private static ActorSystem actorSystem;
     private static Connection connection;
     private final ConnectivityStatus connectionStatus = ConnectivityStatus.OPEN;
 
@@ -139,7 +151,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private final JmsSession mockSession = Mockito.mock(JmsSession.class);
     @Mock
     private final JmsMessageConsumer mockConsumer = Mockito.mock(JmsMessageConsumer.class);
-    private MessageProducer mockProducer;
+
+    private final List<MessageProducer> mockProducers = new LinkedList<>();
 
     private ArgumentCaptor<JmsConnectionListener> listenerArgumentCaptor;
 
@@ -162,35 +175,29 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     @Before
     public void init() throws JMSException {
-        mockProducer = Mockito.mock(MessageProducer.class);
-
         when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
-
         listenerArgumentCaptor = ArgumentCaptor.forClass(JmsConnectionListener.class);
         doNothing().when(mockConnection).addConnectionListener(listenerArgumentCaptor.capture());
-
-        when(mockSession.createConsumer(any(JmsQueue.class))).thenReturn(mockConsumer);
-        prepareCreateProducer(mockSession, mockProducer);
+        prepareSession(mockSession, mockConsumer);
     }
 
-    private void prepareCreateProducer(final Session mockSession, final MessageProducer mockProducer)
-            throws JMSException {
+    private void prepareSession(final Session mockSession, final JmsMessageConsumer mockConsumer) throws JMSException {
+        when(mockSession.createConsumer(any(JmsQueue.class))).thenReturn(mockConsumer);
         when(mockSession.createProducer(any(Destination.class))).thenAnswer(
                 (Answer<MessageProducer>) destinationInv -> {
-                    final Destination destination = destinationInv.getArgument(0);
-
-                    when(mockSession.createTextMessage(anyString())).thenAnswer((Answer<JmsMessage>) textMsgInv -> {
-                        final String textMsg = textMsgInv.getArgument(0);
-                        final AmqpJmsTextMessageFacade facade = new AmqpJmsTextMessageFacade();
-                        facade.initialize(Mockito.mock(AmqpConnection.class));
-                        final JmsTextMessage jmsTextMessage = new JmsTextMessage(facade);
-                        jmsTextMessage.setText(textMsg);
-                        jmsTextMessage.setJMSDestination(destination);
-                        return jmsTextMessage;
-                    });
-
-                    return mockProducer;
+                    final MessageProducer messageProducer = mock(MessageProducer.class);
+                    when(messageProducer.getDestination()).thenReturn(destinationInv.getArgument(0));
+                    mockProducers.add(messageProducer);
+                    return messageProducer;
                 });
+        when(mockSession.createTextMessage(anyString())).thenAnswer((Answer<JmsMessage>) textMsgInv -> {
+            final String textMsg = textMsgInv.getArgument(0);
+            final AmqpJmsTextMessageFacade facade = new AmqpJmsTextMessageFacade();
+            facade.initialize(Mockito.mock(AmqpConnection.class));
+            final JmsTextMessage jmsTextMessage = new JmsTextMessage(facade);
+            jmsTextMessage.setText(textMsg);
+            return jmsTextMessage;
+        });
     }
 
     @Test
@@ -287,7 +294,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         }};
     }
 
-
     @Test
     public void testReconnectAndVerifyConnectionStatus() {
         new TestKit(actorSystem) {{
@@ -304,7 +310,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), aggregator.ref());
             final ResourceStatus resourceStatus = aggregator.expectMsgClass(ResourceStatus.class);
-            System.out.println(resourceStatus);
 
             final JmsConnectionListener connectionListener = checkNotNull(listenerArgumentCaptor.getValue());
 
@@ -328,10 +333,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     private static Boolean awaitStatusInStatusResponse(final TestProbe aggregator,
             final ConnectivityStatus expectedStatus) {
-
-        final ResourceStatus status = aggregator.expectMsgClass(ResourceStatus.class);
-        System.out.println("waiting for " + expectedStatus + ", received: " + status);
-        return expectedStatus.equals(status.getStatus());
+        return expectedStatus.equals(aggregator.expectMsgClass(ResourceStatus.class).getStatus());
     }
 
     @Test
@@ -364,7 +366,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsgClass(ConnectionSignalIllegalException.class);
+            expectMsg(CONNECTED_SUCCESS);
 
             // no reconnect happens
             Mockito.verify(mockConnection, Mockito.times(1)).start();
@@ -445,23 +447,18 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         }};
     }
 
-
     @Test
     public void testConnectionRestoredExpectRecreateSession() throws JMSException {
-        final String expectedAddress = "target";
-        final Target target = ConnectivityModelFactory.newTarget(expectedAddress, Authorization.AUTHORIZATION_CONTEXT,
-                null, null, Topic.TWIN_EVENTS);
-        final MessageProducer recoveredProducer = Mockito.mock(MessageProducer.class);
-        final MessageConsumer recoveredConsumer = Mockito.mock(MessageConsumer.class);
+
+        final Target target = TestConstants.Targets.TWIN_TARGET;
+        final JmsMessageConsumer recoveredConsumer = Mockito.mock(JmsMessageConsumer.class);
         final JmsSession newSession = Mockito.mock(JmsSession.class, withSettings().name("recoveredSession"));
 
-        // existing session was closed
-        when(mockSession.isClosed()).thenReturn(true);
+        when(mockSession.isClosed()).thenReturn(true); // existing session was closed
         when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE))
                 .thenReturn(mockSession) // initial session
                 .thenReturn(newSession); // recovered session
-        when(newSession.createConsumer(any(JmsQueue.class))).thenReturn(recoveredConsumer);
-        prepareCreateProducer(newSession, recoveredProducer);
+        prepareSession(newSession, recoveredConsumer);
 
         new TestKit(actorSystem) {{
             final Props props =
@@ -478,7 +475,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final JmsConnectionListener jmsConnectionListener = captor.getValue();
 
             // verify everything is setup correctly by publishing an event
-            sendThingEventAndExpectPublish(amqpClientActor, target, mockProducer);
+            sendThingEventAndExpectPublish(amqpClientActor, target, () -> getProducerForAddress(target.getAddress()));
             // verify message is consumed and forwarded to concierge
             consumeMockMessage(mockConsumer);
             expectMsgClass(Command.class);
@@ -488,10 +485,10 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             verify(mockConnection, timeout(2000).times(2)).createSession(Session.CLIENT_ACKNOWLEDGE);
 
             // close is called on old session
-            verify(mockSession, times(2)).close();
+            verify(mockSession, timeout(2000).times(2)).close();
 
             // verify publishing an event works with new session/producer
-            sendThingEventAndExpectPublish(amqpClientActor, target, recoveredProducer);
+            sendThingEventAndExpectPublish(amqpClientActor, target, () -> getProducerForAddress(target.getAddress()));
 
             // verify message is consumed with newly created consumer
             consumeMockMessage(recoveredConsumer);
@@ -569,7 +566,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             for (int i = 0; i < consumers; i++) {
                 final Command command = expectMsgClass(Command.class);
-                assertThat(command.getId()).isEqualTo(TestConstants.Things.THING_ID);
+                assertThat((CharSequence) command.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
                 assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
                 commandConsumer.accept(command);
             }
@@ -614,7 +611,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
             final Connection connection,
-            final BiFunction<String, DittoHeaders, CommandResponse> responseSupplier,
+            final BiFunction<ThingId, DittoHeaders, CommandResponse> responseSupplier,
             final String expectedAddress,
             final Predicate<String> messageTextPredicate) throws JMSException {
 
@@ -632,19 +629,20 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final MessageListener messageListener = captor.getValue();
             messageListener.onMessage(mockMessage());
 
-            final Command command = expectMsgClass(Command.class);
-            assertThat(command.getId()).isEqualTo(TestConstants.Things.THING_ID);
+            final ThingCommand command = expectMsgClass(ThingCommand.class);
+            assertThat((CharSequence) command.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
             assertThat(command).isInstanceOf(ModifyThing.class);
 
-            getLastSender().tell(responseSupplier.apply(command.getId(), command.getDittoHeaders()), getRef());
+            getLastSender().tell(responseSupplier.apply(command.getEntityId(), command.getDittoHeaders()), getRef());
 
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
-            verify(mockProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
+            // verify that the message is published via the producer with the correct destination
+            final MessageProducer messageProducer = getProducerForAddress(expectedAddress);
+            verify(messageProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
 
             final Message message = messageCaptor.getValue();
             assertThat(message).isNotNull();
-            assertThat(message.getJMSDestination()).isEqualTo(new JmsQueue(expectedAddress));
             assertThat(messageTextPredicate).accepts(message.getBody(String.class));
         }};
     }
@@ -681,20 +679,17 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             amqpClientActor.tell(outboundSignal, getRef());
 
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
-            verify(mockProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
+            final MessageProducer messageProducer = getProducerForAddress(expectedAddress);
+            verify(messageProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
 
             final Message message = messageCaptor.getValue();
             assertThat(message).isNotNull();
-            assertThat(message.getJMSDestination()).isEqualTo(new JmsQueue(expectedAddress));
         }};
     }
 
     @Test
     public void testReceiveThingEventAndExpectForwardToJMSProducer() throws JMSException {
-        final String expectedAddress = "target";
-        final Target target = ConnectivityModelFactory.newTarget(expectedAddress, Authorization.AUTHORIZATION_CONTEXT,
-                null, null, Topic.TWIN_EVENTS);
-
+        final Target target = TestConstants.Targets.TWIN_TARGET;
         new TestKit(actorSystem) {{
             final Props props = AmqpClientActor.propsForTests(connection, connectionStatus, getRef(),
                     (ac, el) -> mockConnection);
@@ -703,8 +698,86 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            sendThingEventAndExpectPublish(amqpClientActor, target, AmqpClientActorTest.this.mockProducer);
+            sendThingEventAndExpectPublish(amqpClientActor, target, () -> getProducerForAddress(target.getAddress()));
         }};
+    }
+
+    @Test
+    public void testConsumerClosedWhenConnected() throws JMSException {
+        new TestKit(actorSystem) {{
+            final Props props = AmqpClientActor.propsForTests(singleConsumerConnection(), connectionStatus, getRef(),
+                    (ac, el) -> mockConnection);
+            final TestActorRef<AmqpClientActor> amqpClientActorRef = TestActorRef.apply(props, actorSystem);
+            final AmqpClientActor amqpClientActor = amqpClientActorRef.underlyingActor();
+
+            amqpClientActorRef.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTED_SUCCESS);
+
+            // GIVEN: JMS session can create another consumer
+            final MessageConsumer mockConsumer2 = Mockito.mock(JmsMessageConsumer.class);
+            when(mockSession.createConsumer(any())).thenReturn(mockConsumer2);
+
+            // WHEN: consumer closed by remote end
+            final Throwable error = new IllegalStateException("Forcibly detached");
+            amqpClientActor.connectionListener.onConsumerClosed(mockConsumer, error);
+
+            // THEN: another consumer is created
+            verify(mockSession, atLeastOnce()).createConsumer(any());
+            final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
+            verify(mockConsumer2, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
+            final MessageListener messageListener = captor.getValue();
+
+            // THEN: the recreated consumer is working
+            messageListener.onMessage(mockMessage());
+            expectMsgClass(Command.class);
+        }};
+    }
+
+    @Test
+    public void testConsumerRecreationFailureWhenConnected() throws JMSException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        try {
+            new TestKit(actorSystem) {{
+                final Props props =
+                        AmqpClientActor.propsForTests(singleConsumerConnection(), connectionStatus, getRef(),
+                                (ac, el) -> mockConnection);
+                final TestActorRef<AmqpClientActor> amqpClientActorRef = TestActorRef.apply(props, actorSystem);
+                final AmqpClientActor amqpClientActor = amqpClientActorRef.underlyingActor();
+
+                amqpClientActorRef.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+                expectMsg(CONNECTED_SUCCESS);
+
+                // GIVEN: JMS session fails, but the JMS connection can create a new functional session
+                final Session mockSession2 = Mockito.mock(Session.class);
+                final MessageConsumer mockConsumer2 = Mockito.mock(JmsMessageConsumer.class);
+                when(mockSession.createConsumer(any())).thenAnswer(invocation ->
+                        waitForLatchAndReturn(latch, mockConsumer));
+                when(mockConnection.createSession(anyInt())).thenReturn(mockSession2);
+                when(mockSession2.createConsumer(any())).thenReturn(mockConsumer2);
+
+                // WHEN: consumer is closed and cannot be recreated
+                final ActorRef amqpConsumerActor = amqpClientActor.context().children().toStream()
+                        .find(child -> child.path().name().startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX))
+                        .get();
+                final Throwable error = new IllegalStateException("Forcibly detached");
+                final Status.Failure failure = new Status.Failure(new AskTimeoutException("Consumer creation timeout"));
+                amqpClientActor.connectionListener.onConsumerClosed(mockConsumer, error);
+                verify(mockSession, atLeastOnce()).createConsumer(any());
+                amqpConsumerActor.tell(failure, amqpConsumerActor);
+
+                // THEN: connection gets restarted
+                verify(mockConnection).createSession(anyInt());
+                final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
+                verify(mockConsumer2, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
+                final MessageListener messageListener = captor.getValue();
+
+                // THEN: recreated connection is working
+                messageListener.onMessage(mockMessage());
+                expectMsgClass(Command.class);
+            }};
+        } finally {
+            latch.countDown();
+        }
     }
 
     @Test
@@ -726,7 +799,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         .address(sourceWithUnicodeCharacters)
                         .build();
 
-                final String connectionId = createRandomConnectionId();
+                final ConnectionId connectionId = createRandomConnectionId();
                 final Connection connectionWithSpecialCharacters =
                         TestConstants.createConnection(connectionId, singletonList(source));
 
@@ -772,7 +845,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                     .address(sourceWithUnicodeCharacters)
                     .build();
 
-            final String connectionId = createRandomConnectionId();
+            final ConnectionId connectionId = createRandomConnectionId();
             final Connection connectionWithSpecialCharacters =
                     TestConstants.createConnection(connectionId, singletonList(source));
 
@@ -797,24 +870,23 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     @Test
     public void testTestConnectionFailsOnTimeout() throws JMSException {
-        new TestKit(actorSystem) {{
-            when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenAnswer(
-                    (Answer<Session>) invocationOnMock -> {
-                        try {
-                            Thread.sleep(15000);
-                        } catch (final InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                        return mockSession;
-                    });
-            final Props props =
-                    AmqpClientActor.propsForTests(connection, connectionStatus, getRef(),
-                            (ac, el) -> mockConnection);
-            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+        final CountDownLatch latch = new CountDownLatch(1);
+        try {
+            new TestKit(actorSystem) {{
+                when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE))
+                        .thenAnswer(invocationOnMock -> waitForLatchAndReturn(latch, mockSession));
+                final Props props =
+                        AmqpClientActor.propsForTests(connection, connectionStatus, getRef(),
+                                (ac, el) -> mockConnection);
+                final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
-            expectMsgClass(java.time.Duration.ofSeconds(11), Status.Failure.class);
-        }};
+                amqpClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+                amqpClientActor.tell(FSM.StateTimeout$.MODULE$, amqpClientActor);
+                expectMsgClass(Status.Failure.class);
+            }};
+        } finally {
+            latch.countDown();
+        }
     }
 
     private static Message mockMessage() throws JMSException {
@@ -845,7 +917,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     @Override
     protected Props createClientActor(final ActorRef conciergeForwarder) {
-        return AmqpClientActor.propsForTests(connection, connectionStatus, conciergeForwarder, (ac, el) -> mockConnection);
+        return AmqpClientActor.propsForTests(connection, connectionStatus, conciergeForwarder,
+                (ac, el) -> mockConnection);
     }
 
     @Override
@@ -860,23 +933,70 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     private void sendThingEventAndExpectPublish(final ActorRef amqpClientActor, final Target target,
-            final MessageProducer mockProducer) throws JMSException {
+            final Supplier<MessageProducer> messageProducerSupplier)
+            throws JMSException {
         final String uuid = UUID.randomUUID().toString();
-        final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""),
-                Attributes.newBuilder().set("uuid", uuid).build());
+        final ThingModifiedEvent thingModifiedEvent =
+                TestConstants.thingModified(singletonList(""), Attributes.newBuilder().set("uuid", uuid).build())
+                        .setDittoHeaders(DittoHeaders.newBuilder().putHeader("reply-to", target.getAddress()).build());
         final OutboundSignal outboundSignal =
                 OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(target));
         amqpClientActor.tell(outboundSignal, ActorRef.noSender());
+
         final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
-        verify(mockProducer, timeout(2000).times(1)).send(messageCaptor.capture(), any(CompletionListener.class));
+        final MessageProducer messageProducer = messageProducerSupplier.get();
+        verify(messageProducer, timeout(2000).times(1))
+                .send(messageCaptor.capture(), any(CompletionListener.class));
 
         final Message message = messageCaptor.getValue();
         assertThat(message).isNotNull();
-        assertThat(message.getJMSDestination()).isEqualTo(new JmsQueue(target.getAddress()));
         assertThat(message.getBody(String.class)).contains(uuid);
         assertThat(message.getBody(String.class)).contains(
                 TestConstants.Things.NAMESPACE + "/" + TestConstants.Things.ID + "/" +
                         TopicPath.Group.THINGS.getName() + "/" + TopicPath.Channel.TWIN.getName() + "/" +
                         TopicPath.Criterion.EVENTS.getName() + "/" + TopicPath.Action.MODIFIED.getName());
+    }
+
+    /**
+     * @return the producer for the given address created in the current session
+     */
+    private MessageProducer getProducerForAddress(final String address) {
+        // it may take some time until the producers have been created
+        return Awaitility.await()
+                .atMost(Duration.TWO_SECONDS)
+                .pollInterval(Duration.TWO_HUNDRED_MILLISECONDS)
+                .until(() -> mockProducers.stream()
+                        .filter(p -> address.equals(wrapThrowable(() -> p.getDestination()).toString()))
+                        // we only want the latest producer (required to test session recovery)
+                        .reduce((first, second) -> second)
+                        .orElse(null), Matchers.notNullValue());
+    }
+
+    /**
+     * Wraps {@link Throwable} in {@link RuntimeException}.
+     */
+    private <T> T wrapThrowable(Retry.ThrowingSupplier<T> supplier) {
+        try {
+            return supplier.get();
+        } catch (final Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
+
+    private Connection singleConsumerConnection() {
+        final Source defaultSource = connection.getSources().get(0);
+        return connection.toBuilder()
+                .clientCount(1)
+                .setSources(Collections.singletonList(
+                        ConnectivityModelFactory.newSourceBuilder()
+                                .address(defaultSource.getAddresses().iterator().next())
+                                .authorizationContext(defaultSource.getAuthorizationContext())
+                                .consumerCount(1)
+                                .enforcement(defaultSource.getEnforcement().orElse(null))
+                                .headerMapping(defaultSource.getHeaderMapping().orElse(null))
+                                .index(0)
+                                .build()
+                ))
+                .build();
     }
 }

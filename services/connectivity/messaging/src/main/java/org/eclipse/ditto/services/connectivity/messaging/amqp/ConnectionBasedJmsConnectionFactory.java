@@ -37,7 +37,7 @@ import javax.naming.NamingException;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -82,7 +82,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
         final Context ctx = createContext(connection);
         final org.apache.qpid.jms.JmsConnectionFactory cf =
-                (org.apache.qpid.jms.JmsConnectionFactory) ctx.lookup(connection.getId());
+                (org.apache.qpid.jms.JmsConnectionFactory) ctx.lookup(connection.getId().toString());
 
         if (isSecuredConnection(connection) && connection.isValidateCertificates()) {
             cf.setSslContext(SSLContextCreator.fromConnection(connection, null).withoutClientCertificate());
@@ -103,7 +103,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     }
 
     public static String buildAmqpConnectionUriFromConnection(final Connection connection) {
-        final String id = connection.getId();
+        final String id = connection.getId().toString();
         final String username = connection.getUsername().orElse(null);
         final String password = connection.getPassword().orElse(null);
         final String protocol = connection.getProtocol();

@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
 /**
@@ -59,7 +60,7 @@ public class ConnectionTimeoutException extends DittoRuntimeException implements
      * @param connectionId the ID of the connection.
      * @return the builder.
      */
-    public static ConnectionTimeoutException.Builder newBuilder(final String connectionId, final String operation) {
+    public static ConnectionTimeoutException.Builder newBuilder(final ConnectionId connectionId, final String operation) {
         return new ConnectionTimeoutException.Builder(connectionId, operation);
     }
 
@@ -107,9 +108,9 @@ public class ConnectionTimeoutException extends DittoRuntimeException implements
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String connectionId, final String operation) {
+        private Builder(final ConnectionId connectionId, final String operation) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, operation, connectionId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, operation, String.valueOf(connectionId)));
         }
 
         @Override

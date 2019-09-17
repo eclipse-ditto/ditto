@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
 
@@ -29,6 +28,7 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
@@ -184,11 +184,11 @@ public abstract class AbstractThingSearchPersistenceITBase {
                 .join();
     }
 
-    protected ResultList<String> findAll(final Query query) {
+    protected ResultList<ThingId> findAll(final Query query) {
         return findAll(query, KNOWN_SUBJECTS);
     }
 
-    protected ResultList<String> findAll(final Query query, final List<String> subjectIds) {
+    protected ResultList<ThingId> findAll(final Query query, final List<String> subjectIds) {
         return readPersistence.findAll(query, subjectIds)
                 .runWith(Sink.head(), actorMaterializer)
                 .toCompletableFuture()

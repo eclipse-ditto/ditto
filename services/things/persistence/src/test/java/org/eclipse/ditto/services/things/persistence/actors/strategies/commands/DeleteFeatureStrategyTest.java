@@ -53,19 +53,19 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void successfullyDeleteFeatureFromThing() {
         final CommandStrategy.Context context = getDefaultContext();
-        final DeleteFeature command = DeleteFeature.of(context.getThingId(), featureId, DittoHeaders.empty());
+        final DeleteFeature command = DeleteFeature.of(context.getThingEntityId(), featureId, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeatureDeleted.class,
-                DeleteFeatureResponse.of(context.getThingId(), command.getFeatureId(), command.getDittoHeaders()));
+                DeleteFeatureResponse.of(context.getThingEntityId(), command.getFeatureId(), command.getDittoHeaders()));
     }
 
     @Test
     public void deleteFeatureFromThingWithoutFeatures() {
         final CommandStrategy.Context context = getDefaultContext();
-        final DeleteFeature command = DeleteFeature.of(context.getThingId(), featureId, DittoHeaders.empty());
+        final DeleteFeature command = DeleteFeature.of(context.getThingEntityId(), featureId, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
@@ -74,9 +74,9 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void deleteFeatureFromThingWithoutThatFeature() {
         final CommandStrategy.Context context = getDefaultContext();
-        final DeleteFeature command = DeleteFeature.of(context.getThingId(), "myFeature", DittoHeaders.empty());
+        final DeleteFeature command = DeleteFeature.of(context.getThingEntityId(), "myFeature", DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2, command, expectedException);

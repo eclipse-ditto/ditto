@@ -28,6 +28,7 @@
     <modules>
         <module>aggregator</module>
         <module>akka</module>
+        <module>pubsub</module>
         <module>cache</module>
         <module>cache-loaders</module>
         <module>cluster</module>
@@ -43,6 +44,7 @@
         <module>test</module>
         <module>tracing</module>
         <module>metrics</module>
+        <module>cleanup</module>
     </modules>
 
 </project>

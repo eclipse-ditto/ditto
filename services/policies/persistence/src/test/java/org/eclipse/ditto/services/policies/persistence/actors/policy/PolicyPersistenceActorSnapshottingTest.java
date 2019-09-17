@@ -31,9 +31,10 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.PolicyRevision;
-import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoEventAdapter;
+import org.eclipse.ditto.services.policies.persistence.serializer.DefaultPolicyMongoEventAdapter;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.policies.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesJournalTestHelper;
@@ -55,7 +56,6 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyCreated;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -79,7 +79,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     private static final String SNAPSHOT_THRESHOLD = POLICY_SNAPSHOT_PREFIX + "threshold";
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
 
-    private PolicyMongoEventAdapter eventAdapter;
+    private DefaultPolicyMongoEventAdapter eventAdapter;
     private PoliciesJournalTestHelper<Event> journalTestHelper;
     private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
     private Map<Class<? extends Command>, BiFunction<Command, Long, Event>> commandToEventMapperRegistry;
@@ -87,14 +87,13 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     @Override
     protected void setup(final Config customConfig) {
         super.setup(customConfig);
-        eventAdapter = new PolicyMongoEventAdapter((ExtendedActorSystem) actorSystem);
+        eventAdapter = new DefaultPolicyMongoEventAdapter((ExtendedActorSystem) actorSystem);
 
         journalTestHelper = new PoliciesJournalTestHelper<>(actorSystem, this::convertJournalEntryToEvent,
                 PolicyPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
         snapshotTestHelper = new PoliciesSnapshotTestHelper<>(actorSystem,
                 PolicyPersistenceActorSnapshottingTest::convertSnapshotDataToPolicy,
                 PolicyPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
-
 
         commandToEventMapperRegistry = new HashMap<>();
         commandToEventMapperRegistry.put(CreatePolicy.class, (command, revision) -> {
@@ -107,7 +106,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         });
         commandToEventMapperRegistry.put(DeletePolicy.class, (command, revision) -> {
             final DeletePolicy deleteCommand = (DeletePolicy) command;
-            return PolicyDeleted.of(deleteCommand.getId(), revision, DittoHeaders.empty());
+            return PolicyDeleted.of(deleteCommand.getEntityId(), revision, DittoHeaders.empty());
         });
     }
 
@@ -115,7 +114,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         return ((Event) eventAdapter.fromJournal(dbObject, null).events().head()).setRevision(sequenceNumber);
     }
 
-    private static String convertDomainIdToPersistenceId(final String domainId) {
+    private static String convertDomainIdToPersistenceId(final PolicyId domainId) {
         return PolicyPersistenceActor.PERSISTENCE_ID_PREFIX + domainId;
     }
 
@@ -142,7 +141,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
 
                 ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -169,7 +168,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertSnapshots(policyId, Collections.singletonList(expectedDeletedSnapshot));
                 final Event expectedDeletedEvent = toEvent(deletePolicy, 2);
                 // created-event has been deleted due to snapshot
-                assertJournal(policyId, Collections.singletonList(expectedDeletedEvent));
+                assertJournal(policyId, Arrays.asList(expectedCreatedEvent, expectedDeletedEvent));
 
                 // restart actor to recover policy state: make sure that the snapshot of deleted policy exists and can
                 // be restored
@@ -192,7 +191,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                         reCreatePolicyResponse.getPolicyCreated().orElseThrow(NoSuchElementException::new), policy, 3);
 
                 final Event expectedReCreatedEvent = toEvent(createPolicy, 3);
-                assertJournal(policyId, Arrays.asList(expectedDeletedEvent, expectedReCreatedEvent));
+                assertJournal(policyId,
+                        Arrays.asList(expectedCreatedEvent, expectedDeletedEvent, expectedReCreatedEvent));
                 assertSnapshots(policyId, Collections.singletonList(expectedDeletedSnapshot));
 
                 // retrieve the re-created policy
@@ -215,7 +215,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
 
                 ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -230,7 +230,9 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertJournal(policyId, Collections.singletonList(expectedCreatedEvent));
                 assertSnapshotsEmpty(policyId);
 
-                final Policy policyForModify = PoliciesModelFactory.newPolicyBuilder(policy).build();
+                final Policy policyForModify = PoliciesModelFactory.newPolicyBuilder(policy)
+                        .remove(ANOTHER_POLICY_ENTRY)
+                        .build();
                 final ModifyPolicy modifyPolicy = ModifyPolicy.of(policyId, policyForModify, dittoHeadersV2);
                 underTest.tell(modifyPolicy, getRef());
 
@@ -238,17 +240,16 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertThat(modifyPolicyResponse.getStatusCode()).isEqualTo(HttpStatusCode.NO_CONTENT);
 
                 final Event expectedModifiedEvent = toEvent(modifyPolicy, 2);
-                // created-event has been deleted due to snapshot
-                assertJournal(policyId, Collections.singletonList(expectedModifiedEvent));
+                // snapshot created
+                assertJournal(policyId, Arrays.asList(expectedCreatedEvent, expectedModifiedEvent));
                 assertSnapshots(policyId, Collections.singletonList(policyForModify));
 
                 // Make sure that the actor has the correct revision no of 2
                 final RetrievePolicy retrievePolicy = RetrievePolicy.of(policyId, dittoHeadersV2);
                 underTest.tell(retrievePolicy, getRef());
 
-                final RetrievePolicyResponse retrievePolicyResponse = expectMsgClass(RetrievePolicyResponse
-                        .class);
-                assertPolicyInResponse(retrievePolicyResponse.getPolicy(), policy, 2);
+                final RetrievePolicyResponse retrievePolicyResponse = expectMsgClass(RetrievePolicyResponse.class);
+                assertPolicyInResponse(retrievePolicyResponse.getPolicy(), policyForModify, 2);
 
                 // restart actor to recover policy state: make sure that the revision is still 2 (will be loaded from
                 // snapshot)
@@ -259,9 +260,9 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
                 underTest.tell(retrievePolicy, getRef());
 
-                final RetrievePolicyResponse retrievePolicyAfterRestartResponse = expectMsgClass(RetrievePolicyResponse
-                        .class);
-                assertPolicyInResponse(retrievePolicyAfterRestartResponse.getPolicy(), policy, 2);
+                final RetrievePolicyResponse retrievePolicyAfterRestartResponse =
+                        expectMsgClass(RetrievePolicyResponse.class);
+                assertPolicyInResponse(retrievePolicyAfterRestartResponse.getPolicy(), policyForModify, 2);
             }
         };
     }
@@ -281,7 +282,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -304,24 +305,21 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 // snapshot has been created
                 assertSnapshots(policyId, Collections.singletonList(createdPolicy));
 
-                final Policy policyForModify = PoliciesModelFactory.newPolicyBuilder(policy).build();
+                final Policy policyForModify =
+                        PoliciesModelFactory.newPolicyBuilder(policy).remove(ANOTHER_POLICY_ENTRY).build();
                 final ModifyPolicy modifyPolicy = ModifyPolicy.of(policyId, policyForModify, dittoHeadersV2);
                 underTest.tell(modifyPolicy, getRef());
 
                 final ModifyPolicyResponse modifyPolicyResponse1 = expectMsgClass(ModifyPolicyResponse.class);
                 assertThat(modifyPolicyResponse1.getStatusCode()).isEqualTo(HttpStatusCode.NO_CONTENT);
 
-                final Event expectedModifiedEvent1 = toEvent(modifyPolicy, 2);
-                assertJournal(policyId, Arrays.asList(expectedCreatedEvent, expectedModifiedEvent1));
-                // snapshot has not yet been made, because the snapshot-interval has not yet passed
-                assertSnapshots(policyId, Collections.singletonList(createdPolicy));
-
                 // wait again until snapshot-interval has passed
                 waitFor(snapshotIntervalSecs);
-                // because snapshot has been created, the "old" created-event has been deleted
-                assertJournal(policyId, Collections.singletonList(expectedModifiedEvent1));
-                // snapshot has been created and old snapshot has been deleted
-                assertSnapshots(policyId, Collections.singletonList(createdPolicy));
+
+                // snapshot has been created
+                final Event expectedModifiedEvent1 = toEvent(modifyPolicy, 2);
+                assertJournal(policyId, Arrays.asList(expectedCreatedEvent, expectedModifiedEvent1));
+                assertSnapshots(policyId, Arrays.asList(createdPolicy, policyForModify));
             }
         };
     }
@@ -336,7 +334,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -360,7 +358,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertThat(modifyPolicyResponse1.getStatusCode()).isEqualTo(HttpStatusCode.NO_CONTENT);
 
                 final Event expectedModifiedEvent1 = toEvent(modifyPolicy, 2);
-                assertJournal(policyId, Collections.singletonList(expectedModifiedEvent1));
+                assertJournal(policyId, Arrays.asList(expectedCreatedEvent, expectedModifiedEvent1));
                 assertSnapshots(policyId, Collections.singletonList(policyForModify));
 
                 // wait until snapshot-interval has passed
@@ -371,30 +369,11 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         };
     }
 
-    // TODO Fix test
-    @Ignore
-    @Test
-    public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
-        final Config customConfig = testConfig
-                .withValue(SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-                .withValue(SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(-1));
-        setup(customConfig);
-
-        disableLogging();
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createPersistenceActorFor("fail");
-                watch(underTest);
-                expectTerminated(underTest);
-            }
-        };
-    }
-
-    private void assertSnapshotsEmpty(final String policyId) {
+    private void assertSnapshotsEmpty(final PolicyId policyId) {
         assertSnapshots(policyId, Collections.emptyList());
     }
 
-    private void assertJournal(final String policyId, final List<Event> expectedEvents) {
+    private void assertJournal(final PolicyId policyId, final List<Event> expectedEvents) {
         retryOnAssertionError(() -> {
             final List<Event> actualEvents = journalTestHelper.getAllEvents(policyId);
 
@@ -426,7 +405,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         assertThat(actualPolicy.getModified()).isEmpty(); // is not required in journal entry
     }
 
-    private ActorRef createPersistenceActorFor(final String policyId) {
+    private ActorRef createPersistenceActorFor(final PolicyId policyId) {
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
         final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         return actorSystem.actorOf(props);
@@ -442,7 +421,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         return commandToEventFunction.apply(command, revision);
     }
 
-    private void assertSnapshots(final String policyId, final List<Policy> expectedSnapshots) {
+    private void assertSnapshots(final PolicyId policyId, final List<Policy> expectedSnapshots) {
         retryOnAssertionError(() -> {
             final List<Policy> snapshots = snapshotTestHelper.getAllSnapshotsAscending(policyId);
             Assertions.assertListWithIndexInfo(snapshots,
@@ -461,7 +440,6 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         assertEqualJson(actualPolicy, PoliciesModelFactory.newPolicyBuilder(expectedPolicy)
                 .setRevision(expectedRevision)
                 .build());
-        //assertThat(actualPolicy.getModified()).isPresent(); // we cannot check exact timestamp
     }
 
     private static void assertEqualJson(final Policy actualPolicy, final Policy expectedPolicy) {

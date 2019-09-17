@@ -24,7 +24,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -79,7 +81,7 @@ public final class CreateThingTest {
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setLifecycle(TestConstants.Thing.LIFECYCLE)
                 .setPolicyId(TestConstants.Thing.POLICY_ID)
-                .setId("test.ns:foo-bar")
+                .setId(ThingId.of("test.ns", "foo-bar"))
                 .build();
 
         final CreateThing createThing =
@@ -116,7 +118,7 @@ public final class CreateThingTest {
                 .set("a", sb.toString())
                 .build();
         final Thing thing = Thing.newBuilder()
-                .setId("foo:bar")
+                .setId(ThingId.of("foo", "bar"))
                 .setAttributes(largeAttributes)
                 .build();
 
@@ -146,8 +148,20 @@ public final class CreateThingTest {
     }
 
     @Test
+    public void initializeWithCopiedPolicyAndWithInitialPolicyNullAndPolicyIdNullString() {
+        final Thing thing = TestConstants.Thing.THING.setPolicyId((String) null);
+        final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
+        final CreateThing createThing =
+                CreateThing.of(thing, null, thingReference, TestConstants.EMPTY_DITTO_HEADERS);
+
+        softly.assertThat(createThing.getInitialPolicy()).isNotPresent();
+        softly.assertThat(createThing.getPolicyIdOrPlaceholder()).isPresent();
+        softly.assertThat(createThing.getPolicyIdOrPlaceholder()).contains(thingReference);
+    }
+
+    @Test
     public void initializeWithCopiedPolicyAndWithInitialPolicyNullAndPolicyIdNull() {
-        final Thing thing = TestConstants.Thing.THING.setPolicyId(null);
+        final Thing thing = TestConstants.Thing.THING.setPolicyId((PolicyId) null);
         final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
         final CreateThing createThing =
                 CreateThing.of(thing, null, thingReference, TestConstants.EMPTY_DITTO_HEADERS);

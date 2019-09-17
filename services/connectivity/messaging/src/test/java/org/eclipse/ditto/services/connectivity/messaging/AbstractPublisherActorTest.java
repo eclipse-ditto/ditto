@@ -44,7 +44,7 @@ import akka.testkit.javadsl.TestKit;
 
 public abstract class AbstractPublisherActorTest {
 
-    private static final Config CONFIG = ConfigFactory.load("test");
+    protected static final Config CONFIG = ConfigFactory.load("test");
     protected static ActorSystem actorSystem;
 
     @Rule
@@ -72,12 +72,11 @@ public abstract class AbstractPublisherActorTest {
             setupMocks(probe);
             final OutboundSignal outboundSignal = mock(OutboundSignal.class);
             final Signal source = mock(Signal.class);
-            when(source.getId()).thenReturn(TestConstants.Things.THING_ID);
+            when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
             when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
             when(outboundSignal.getSource()).thenReturn(source);
             final Target target = createTestTarget();
             when(outboundSignal.getTargets()).thenReturn(Collections.singletonList(decorateTarget(target)));
-
 
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
             final ExternalMessage externalMessage =
@@ -86,33 +85,37 @@ public abstract class AbstractPublisherActorTest {
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
 
             final Props props = getPublisherActorProps();
-            final ActorRef publisherActor = actorSystem.actorOf(props);
+            final ActorRef publisherActor = childActorOf(props);
 
-            publisherCreated(publisherActor);
+            publisherCreated(this, publisherActor);
 
             publisherActor.tell(mappedOutboundSignal, getRef());
 
             verifyPublishedMessage();
         }};
 
-        
 
     }
-        
+
     protected Target createTestTarget() {
         return ConnectivityModelFactory.newTargetBuilder()
-            .address(getOutboundAddress())
-            .originalAddress(getOutboundAddress())
-            .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-            .headerMapping(TestConstants.HEADER_MAPPING)
-            .topics(Topic.TWIN_EVENTS)
-            .build();
+                .address(getOutboundAddress())
+                .originalAddress(getOutboundAddress())
+                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(TestConstants.HEADER_MAPPING)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
     }
 
     protected abstract String getOutboundAddress();
+
     protected abstract void setupMocks(final TestProbe probe) throws Exception;
+
     protected abstract Props getPublisherActorProps();
-    protected abstract void publisherCreated(ActorRef publisherActor);
+
+    protected void publisherCreated(final TestKit kit, final ActorRef publisherActor) {
+        // do nothing by default
+    }
 
     protected abstract Target decorateTarget(Target target);
 

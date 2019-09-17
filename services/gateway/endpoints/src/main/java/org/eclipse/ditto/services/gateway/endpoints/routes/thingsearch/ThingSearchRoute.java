@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch;
 
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.path;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.FIELDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.FILTER;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.NAMESPACES;
@@ -79,7 +75,7 @@ public final class ThingSearchRoute extends AbstractRoute {
         return Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_SEARCH), () ->
                 Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_THINGS),
                         () -> // /search/things
-                                Directives.route(
+                                concat(
                                         // /search/things/count
                                         path(PATH_COUNT, () -> countThings(ctx, dittoHeaders)),
                                         // /search/things
@@ -122,14 +118,14 @@ public final class ThingSearchRoute extends AbstractRoute {
                         dittoHeaders))));
     }
 
-    private static Route thingSearchParameterOptional(
+    private Route thingSearchParameterOptional(
             final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
 
         return thingSearchParameterOptionalImpl(ThingSearchParameter.values(),
                 new EnumMap<>(ThingSearchParameter.class), inner);
     }
 
-    private static Route thingSearchParameterOptionalImpl(final ThingSearchParameter[] values,
+    private Route thingSearchParameterOptionalImpl(final ThingSearchParameter[] values,
             final EnumMap<ThingSearchParameter, Optional<String>> accumulator,
             final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
 

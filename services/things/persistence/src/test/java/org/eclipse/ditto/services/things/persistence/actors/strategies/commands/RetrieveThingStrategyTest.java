@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -54,7 +55,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void isNotDefinedForDeviantThingIds() {
         final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of("org.example:myThing", DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(ThingId.of("org.example","myThing"), DittoHeaders.empty());
 
         final boolean defined = underTest.isDefined(context, THING_V2, command);
 
@@ -64,7 +65,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void isNotDefinedIfContextHasNoThing() {
         final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getThingId(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getThingEntityId(), DittoHeaders.empty());
 
         final boolean defined = underTest.isDefined(context, null, command);
 
@@ -74,7 +75,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void isDefinedIfContextHasThingAndThingIdsAreEqual() {
         final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getThingId(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getThingEntityId(), DittoHeaders.empty());
 
         final boolean defined = underTest.isDefined(context, THING_V2, command);
 
@@ -84,7 +85,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void retrieveThingFromContextIfCommandHasNoSnapshotRevisionAndNoSelectedFields() {
         final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getThingId(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getThingEntityId(), DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion());
         final RetrieveThingResponse expectedResponse =
                 retrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty());
@@ -96,7 +97,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     public void retrieveThingFromContextIfCommandHasNoSnapshotRevisionButSelectedFields() {
         final CommandStrategy.Context context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
-        final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
+        final RetrieveThing command = RetrieveThing.getBuilder(context.getThingEntityId(), DittoHeaders.empty())
                 .withSelectedFields(fieldSelector)
                 .build();
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector);
@@ -107,85 +108,11 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     }
 
     @Test
-    public void retrieveThingFromSnapshotterWithoutSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final long snapshotRevision = 1337L;
-        final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
-                .withSnapshotRevision(snapshotRevision)
-                .build();
-        Mockito.when(thingSnapshotter.loadSnapshot(snapshotRevision))
-                .thenReturn(CompletableFuture.completedFuture(Optional.of(THING_V2)));
-        final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion());
-        // NOTE: ETags are not supported for snapshots
-        final RetrieveThingResponse expectedResponse =
-                RetrieveThingResponse.of(context.getThingId(), expectedThingJson, DittoHeaders.empty());
-
-        assertFutureResult(underTest, THING_V2, command, expectedResponse);
-    }
-
-    @Test
-    public void retrieveThingFromSnapshotterWithSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final long snapshotRevision = 1337L;
-        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
-        final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
-                .withSnapshotRevision(snapshotRevision)
-                .withSelectedFields(fieldSelector)
-                .build();
-        Mockito.when(thingSnapshotter.loadSnapshot(snapshotRevision))
-                .thenReturn(CompletableFuture.completedFuture(Optional.of(THING_V2)));
-        final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector);
-        // NOTE: ETags are not supported for snapshots
-        final RetrieveThingResponse expectedResponse =
-                RetrieveThingResponse.of(context.getThingId(), expectedThingJson, DittoHeaders.empty());
-
-        assertFutureResult(underTest, THING_V2, command, expectedResponse);
-    }
-
-    @Test
-    public void retrieveNonExistentThingFromSnapshotter() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final long snapshotRevision = 1337L;
-        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
-        final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
-                .withSnapshotRevision(snapshotRevision)
-                .withSelectedFields(fieldSelector)
-                .build();
-        Mockito.when(thingSnapshotter.loadSnapshot(snapshotRevision))
-                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
-        final ThingNotAccessibleException expectedException =
-                new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders());
-
-        assertFutureResult(underTest, THING_V2, command, expectedException);
-    }
-
-    @Test
-    public void retrieveThingWithException() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final long snapshotRevision = 1337L;
-        final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
-                .withSnapshotRevision(snapshotRevision)
-                .build();
-
-        final CompletableFuture<Optional<Thing>> completableFuture = new CompletableFuture<>();
-        completableFuture.completeExceptionally(new IllegalArgumentException());
-
-        Mockito.when(thingSnapshotter.loadSnapshot(snapshotRevision)).thenReturn(completableFuture);
-
-        final ThingUnavailableException expectedException = ThingUnavailableException
-                .newBuilder(command.getThingId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build();
-
-        assertFutureResult(underTest, THING_V2, command, expectedException);
-    }
-
-    @Test
     public void unhandledReturnsThingNotAccessibleException() {
         final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getThingId(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getThingEntityId(), DittoHeaders.empty());
         final ThingNotAccessibleException expectedException =
-                new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders());
+                new ThingNotAccessibleException(command.getThingEntityId(), command.getDittoHeaders());
 
         assertUnhandledResult(underTest, THING_V2, command, expectedException);
     }

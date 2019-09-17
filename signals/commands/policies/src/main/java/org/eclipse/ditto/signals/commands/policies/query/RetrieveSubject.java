@@ -31,8 +31,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.SubjectId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -60,17 +60,16 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
     static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
             JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final SubjectId subjectId;
 
-    private RetrieveSubject(final String policyId,
+    private RetrieveSubject(final PolicyId policyId,
             final Label label,
             final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
-        this.policyId = policyId;
+        this.policyId = checkNotNull(policyId, "policy ID");
         this.label = checkNotNull(label, "Label");
         this.subjectId = checkNotNull(subjectId, "Subject identifier");
     }
@@ -85,8 +84,31 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
      * @return a Command for retrieving the Subject with the {@code policyId}, {@code label} and {@code subjectId} which
      * is readable from the passed authorization context.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveSubject of(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subjectId, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for retrieving the Subject with the given Policy ID, Label and Subject ID.
+     *
+     * @param policyId the ID of the Policy for which to retrieve the Subject for.
+     * @param label the specified label of the Policy entry for which to retrieve the Subject for.
+     * @param subjectId the ID of the Subject to retrieve.
+     * @param dittoHeaders the optional command headers of the request.
+     * @return a Command for retrieving the Subject with the {@code policyId}, {@code label} and {@code subjectId} which
+     * is readable from the passed authorization context.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveSubject of(final PolicyId policyId,
             final Label label,
             final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
@@ -123,7 +145,8 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
      */
     public static RetrieveSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveSubject>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final String subjectIdValue = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
             final SubjectId extractedSubjectId = SubjectId.newInstance(subjectIdValue);
@@ -156,7 +179,7 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
      * @return the identifier of the Policy for which to retrieve the Subject for.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -171,7 +194,7 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
     }

@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.junit.Test;
 
@@ -32,7 +33,7 @@ public final class ImmutableInfoProviderTest {
         final String correlationId = "theCorrelation";
         final Map<String, String> headers = DittoHeaders.newBuilder().putHeader("foo", "bar").build();
         final Instant timestamp = Instant.now().minusSeconds(138);
-        final String thingId = "the:thing";
+        final ThingId thingId = ThingId.of("the:thing");
         final String payload = "{\"138\":\"ditto\"}";
 
         final ConnectionMonitor.InfoProvider info = new ImmutableInfoProvider(correlationId, timestamp,

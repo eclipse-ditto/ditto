@@ -12,12 +12,12 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -26,8 +26,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
 import org.eclipse.ditto.services.things.common.config.ThingConfig;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandReceiveStrategy;
@@ -36,14 +38,15 @@ import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.DefaultContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
-import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoSnapshotAdapter;
 import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -52,23 +55,21 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 import akka.actor.ActorRef;
-import akka.actor.Cancellable;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
-import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.RecoveryTimedOut;
+import akka.persistence.SaveSnapshotFailure;
+import akka.persistence.SaveSnapshotSuccess;
 import akka.persistence.SnapshotOffer;
 import scala.Option;
-import scala.concurrent.duration.Duration;
 
 /**
  * PersistentActor which "knows" the state of a single {@link Thing}.
  */
-public final class ThingPersistenceActor extends AbstractPersistentActor implements ThingPersistenceActorInterface {
+public final class ThingPersistenceActor extends AbstractPersistentActorWithTimersAndCleanup {
 
     /**
      * The prefix of the persistenceId for Things.
@@ -89,12 +90,14 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private static final CreateThingStrategy CREATE_THING_STRATEGY = CreateThingStrategy.getInstance();
 
     private final DiagnosticLoggingAdapter log;
-    private final String thingId;
-    private final ActorRef pubSubMediator;
-    private final ThingSnapshotter<?, ?> thingSnapshotter;
+    private final ThingId thingId;
+    private final DistributedPub<ThingEvent> distributedPub;
+    private final SnapshotAdapter<Thing> snapshotAdapter;
+    private final Receive handleThingEvents;
     private final ThingConfig thingConfig;
     private final boolean logIncomingMessages;
-    private final Receive handleThingEvents;
+    private long lastSnapshotRevision;
+    private long confirmedSnapshotRevision;
 
     /**
      * Context for all {@link CommandReceiveStrategy} strategies - contains references to fields of {@code this}
@@ -103,76 +106,62 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private final CommandStrategy.Context defaultContext;
 
     private long accessCounter;
-    private Cancellable activityChecker;
     private Thing thing;
 
-    ThingPersistenceActor(final String thingId,
-            final ActorRef pubSubMediator,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+    @SuppressWarnings("unused")
+    private ThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub,
+            final SnapshotAdapter<Thing> snapshotAdapter) {
 
         this.thingId = thingId;
-        this.pubSubMediator = pubSubMediator;
+        this.distributedPub = distributedPub;
+        this.snapshotAdapter = snapshotAdapter;
+        log = LogUtil.obtain(this);
+        thing = null;
+        accessCounter = 0L;
+
         final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
-        this.thingConfig = thingsConfig.getThingConfig();
-        this.logIncomingMessages = thingsConfig.isLogIncomingMessages();
+        thingConfig = thingsConfig.getThingConfig();
+        logIncomingMessages = thingsConfig.isLogIncomingMessages();
 
-        log = LogUtil.obtain(this);
-
-        // Snapshotting
-        thingSnapshotter = getSnapshotter(thingSnapshotterCreate);
+        lastSnapshotRevision = 0L;
+        confirmedSnapshotRevision = 0L;
 
         final Runnable becomeCreatedRunnable = this::becomeThingCreatedHandler;
         final Runnable becomeDeletedRunnable = this::becomeThingDeletedHandler;
-        defaultContext =
-                DefaultContext.getInstance(thingId, log, thingSnapshotter, becomeCreatedRunnable,
-                        becomeDeletedRunnable);
+        defaultContext = DefaultContext.getInstance(thingId, log, becomeCreatedRunnable, becomeDeletedRunnable);
 
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
                     final EventStrategy<ThingEvent> eventHandleStrategy = EventHandleStrategy.getInstance();
                     thing = eventHandleStrategy.handle(event, thing, getRevisionNumber());
                 }).build();
-
-        accessCounter = 0L;
-        activityChecker = null;
-        thing = null;
-    }
-
-    private ThingSnapshotter<?, ?> getSnapshotter(final ThingSnapshotter.Create snapshotterCreate) {
-        final SnapshotConfig snapshotConfig = thingConfig.getSnapshotConfig();
-        return snapshotterCreate.apply(this, pubSubMediator, snapshotConfig.isDeleteOldSnapshot(),
-                snapshotConfig.isDeleteOldEvents(), log, snapshotConfig.getInterval());
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
      *
      * @param thingId the Thing ID this Actor manages.
-     * @param pubSubMediator the PubSub mediator actor.
-     * @param thingSnapshotterCreate creator of {@code ThingSnapshotter} objects.
-     * @return the Akka configuration Props object.
+     * @param distributedPub the distributed-pub access to publish thing events.
+     * @param snapshotAdapter the snapshot adapter.
+     * @return the Akka configuration Props object
      */
-    public static Props props(final String thingId,
-            final ActorRef pubSubMediator,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub,
+            final SnapshotAdapter<Thing> snapshotAdapter) {
 
-        return Props.create(ThingPersistenceActor.class, thingId, pubSubMediator, thingSnapshotterCreate);
+        return Props.create(ThingPersistenceActor.class, thingId, distributedPub, snapshotAdapter);
     }
 
     /**
-     * Creates a default Akka configuration object {@link Props} for this ThingPersistenceActor using sudo commands
-     * for external snapshot requests.
+     * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
      *
      * @param thingId the Thing ID this Actor manages.
-     * @param pubSubMediator the PubSub mediator actor.
+     * @param distributedPub the distributed-pub access to publish thing events.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String thingId, final ActorRef pubSubMediator) {
-
-        return Props.create(ThingPersistenceActor.class, thingId, pubSubMediator,
-                (ThingSnapshotter.Create) DittoThingSnapshotter::getInstance);
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub) {
+        return props(thingId, distributedPub, new ThingMongoSnapshotAdapter());
     }
 
     private static Thing enhanceThingWithLifecycle(final Thing thing) {
@@ -184,16 +173,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return thingBuilder.build();
     }
 
-    @Nonnull
-    @Override
-    public Thing getThing() {
-        return thing;
-    }
-
-    @Nonnull
-    @Override
-    public String getThingId() {
-        return thingId;
+    private void scheduleCheckForThingActivity(final java.time.Duration interval) {
+        log.debug("Scheduling for Activity Check in <{}> seconds.", interval);
+        final Object message = new CheckForActivity(getRevisionNumber(), accessCounter);
+        timers().startSingleTimer("activityCheck", message, interval);
     }
 
     private long getRevisionNumber() {
@@ -219,10 +202,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     public void postStop() {
         log.debug("Stopping PersistenceActor for Thing with ID <{}>.", thingId);
         super.postStop();
-        thingSnapshotter.postStop();
-        if (null != activityChecker) {
-            activityChecker.cancel();
-        }
     }
 
     @Override
@@ -260,11 +239,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     public Receive createReceiveRecover() {
         // defines how state is updated during recovery
         return handleThingEvents.orElse(ReceiveBuilder.create()
-
                 // # Snapshot handling
                 .match(SnapshotOffer.class, ss -> {
                     log.debug("Got SnapshotOffer: {}", ss);
-                    thing = thingSnapshotter.recoverThingFromSnapshotOffer(ss);
+                    recoverFromSnapshotOffer(ss);
                 })
 
                 // # Recovery timeout
@@ -305,7 +283,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .match(Command.class, COMMAND_RECEIVE_STRATEGY::isDefined, commandHandler);
 
         final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder, log)
-                .matchEach(thingSnapshotter.strategies())
+                .withReceiveFromSuperClass(super.createReceive())
+                .matchEach(getTakeSnapshotStrategies())
                 .match(new CheckForActivityStrategy())
                 .matchAny(new MatchAnyAfterInitializeStrategy())
                 .build();
@@ -313,9 +292,17 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         getContext().become(receive, true);
         getContext().getParent().tell(ThingSupervisorActor.ManualReset.INSTANCE, getSelf());
 
-        final ActivityCheckConfig activityCheckConfig = thingConfig.getActivityCheckConfig();
-        scheduleCheckForThingActivity(activityCheckConfig.getInactiveInterval());
-        thingSnapshotter.startMaintenanceSnapshots();
+        scheduleCheckForThingActivity(thingConfig.getActivityCheckConfig().getInactiveInterval());
+        scheduleSnapshot();
+    }
+
+    private void scheduleSnapshot() {
+        final Duration snapshotInterval = thingConfig.getSnapshotConfig().getInterval();
+        timers().startPeriodicTimer("takeSnapshot", new TakeSnapshot(), snapshotInterval);
+    }
+
+    private void cancelSnapshot() {
+        timers().cancel("takeSnapshot");
     }
 
     @SuppressWarnings("unchecked")
@@ -347,7 +334,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .match(CreateThing.class, CREATE_THING_STRATEGY::isDefined, commandHandler);
 
         final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder, log)
-                .matchEach(thingSnapshotter.strategies())
+                .withReceiveFromSuperClass(super.createReceive())
+                .matchEach(getTakeSnapshotStrategies())
                 .match(new CheckForActivityStrategy())
                 .matchAny(new ThingNotFoundStrategy())
                 .setPeekConsumer(getIncomingMessagesLoggerOrNull())
@@ -362,21 +350,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          */
         final ActivityCheckConfig activityCheckConfig = thingConfig.getActivityCheckConfig();
         scheduleCheckForThingActivity(activityCheckConfig.getDeletedInterval());
-        thingSnapshotter.stopMaintenanceSnapshots();
-    }
-
-    private void scheduleCheckForThingActivity(final java.time.Duration interval) {
-        log.debug("Scheduling for Activity Check in <{}> seconds.", interval);
-        // if there is a previous activity checker, cancel it
-        if (null != activityChecker) {
-            activityChecker.cancel();
-        }
-        // send a message to ourselves:
-        activityChecker = getContext()
-                .system()
-                .scheduler()
-                .scheduleOnce(Duration.apply(interval.getSeconds(), TimeUnit.SECONDS), getSelf(),
-                        new CheckForActivity(getRevisionNumber(), accessCounter), getContext().dispatcher(), null);
+        cancelSnapshot();
     }
 
     private <A extends ThingModifiedEvent<? extends A>> void persistAndApplyEvent(final A event,
@@ -421,19 +395,31 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             // save a snapshot if there were too many changes since the last snapshot
             if (snapshotThresholdPassed()) {
-                thingSnapshotter.takeSnapshotInternal();
+                takeSnapshot("snapshot threshold is reached");
             }
         });
     }
 
-    private boolean snapshotThresholdPassed() {
-        final SnapshotConfig snapshotConfig = thingConfig.getSnapshotConfig();
-        final long snapshotThreshold = snapshotConfig.getThreshold();
-        if (thingSnapshotter.getLatestSnapshotSequenceNr() > 0) {
-            return getRevisionNumber() - thingSnapshotter.getLatestSnapshotSequenceNr() > snapshotThreshold;
+    private void takeSnapshot(final String reason) {
+        final long revision = getRevisionNumber();
+        if (thing != null && lastSnapshotRevision != revision) {
+            log.info("Taking snapshot for Thing with ID <{}> and sequence number <{}> because {}.", thingId, revision,
+                    reason);
+
+            final Object snapshotSubject = snapshotAdapter.toSnapshotStore(thing);
+            saveSnapshot(snapshotSubject);
+
+            lastSnapshotRevision = revision;
+        } else if (lastSnapshotRevision == revision) {
+            log.debug("Not taking duplicate snapshot for thing <{}> with revision <{}> even if {}.", thing, revision,
+                    reason);
+        } else {
+            log.debug("Not taking snapshot for nonexistent thing <{}> even if {}.", thingId, reason);
         }
-        // there is no snapshot; count the sequence numbers from 0.
-        return getRevisionNumber() + 1 > snapshotThreshold;
+    }
+
+    private boolean snapshotThresholdPassed() {
+        return getRevisionNumber() - lastSnapshotRevision >= thingConfig.getSnapshotConfig().getThreshold();
     }
 
     private <A extends ThingModifiedEvent> void applyEvent(final A event) {
@@ -448,16 +434,14 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return null != thing && thing.hasLifecycle(ThingLifecycle.ACTIVE);
     }
 
-    @Override
-    public boolean isThingDeleted() {
+    private boolean isThingDeleted() {
         return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
     }
 
     private void notifySubscribers(final ThingEvent event) {
         // publish the event in the cluster
-        // publish via cluster pubSub (as we cannot expect that Websocket sessions interested in this event
-        // are running on the same cluster node):
-        pubSubMediator.tell(new DistributedPubSubMediator.Publish(ThingEvent.TYPE_PREFIX, event, true), getSelf());
+        // sender is not given because the persistence actor expects no reply
+        distributedPub.publish(event, ActorRef.noSender());
     }
 
     private void notifySender(final WithDittoHeaders message) {
@@ -481,6 +465,27 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         getContext().getParent().tell(ThingSupervisorActor.Control.PASSIVATE, getSelf());
     }
 
+    private Iterable<ReceiveStrategy<?>> getTakeSnapshotStrategies() {
+        return Arrays.asList(
+                ReceiveStrategy.simple(TakeSnapshot.class, t -> takeSnapshot("snapshot interval has passed")),
+                ReceiveStrategy.simple(SaveSnapshotSuccess.class, s -> {
+                    log.info("Got {}", s);
+                    confirmedSnapshotRevision = s.metadata().sequenceNr();
+                }),
+                ReceiveStrategy.simple(SaveSnapshotFailure.class, s -> log.error("Got {}", s, s.cause()))
+        );
+    }
+
+    private void recoverFromSnapshotOffer(final SnapshotOffer snapshotOffer) {
+        thing = snapshotAdapter.fromSnapshotStore(snapshotOffer);
+        lastSnapshotRevision = confirmedSnapshotRevision = snapshotOffer.metadata().sequenceNr();
+    }
+
+    @Override
+    protected long getLatestSnapshotSequenceNumber() {
+        return confirmedSnapshotRevision;
+    }
+
     /**
      * This consumer logs the correlation ID, the thing ID as well as the type of any incoming message.
      */
@@ -494,7 +499,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             final String messageType = getMessageType(message);
             if (isWithThingId(message)) {
-                final String messageThingId = getMessageThingId((WithThingId) message);
+                final ThingId messageThingId = ((WithThingId) message).getThingEntityId();
                 if (isEqualToActorThingId(messageThingId)) {
                     logInfoAboutIncomingMessage(messageType);
                 } else {
@@ -520,12 +525,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             return message instanceof WithThingId;
         }
 
-        private boolean isEqualToActorThingId(final String messageThingId) {
+        private boolean isEqualToActorThingId(final ThingId messageThingId) {
             return Objects.equals(thingId, messageThingId);
-        }
-
-        private String getMessageThingId(final WithThingId withThingId) {
-            return withThingId.getThingId();
         }
 
         private void logInfoAboutIncomingMessage(final String messageType) {
@@ -575,11 +576,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         protected void doApply(final CheckForActivity message) {
-            if (thingExistsAsDeleted() && !thingSnapshotter.lastSnapshotCompletedAndUpToDate()) {
+            if (thingExistsAsDeleted() && lastSnapshotRevision < getRevisionNumber()) {
                 // take a snapshot after a period of inactivity if:
                 // - thing is deleted,
                 // - the latest snapshot is out of date or is still ongoing.
-                thingSnapshotter.takeSnapshotInternal();
+                takeSnapshot("the thing is deleted and has no up-to-date snapshot");
                 final ActivityCheckConfig activityCheckConfig = thingConfig.getActivityCheckConfig();
                 scheduleCheckForThingActivity(activityCheckConfig.getDeletedInterval());
             } else if (accessCounter > message.getCurrentAccessCounter()) {
@@ -602,8 +603,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             return null != thing && thing.hasLifecycle(ThingLifecycle.DELETED);
         }
 
-        private void shutdown(final String shutdownLogTemplate, final String thingId) {
-            log.debug(shutdownLogTemplate, thingId);
+        private void shutdown(final String shutdownLogTemplate, final ThingId thingId) {
+            log.debug(shutdownLogTemplate, String.valueOf(thingId));
             stopThisActor();
         }
 
@@ -660,5 +661,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
     }
+
+    private static final class TakeSnapshot {}
 
 }

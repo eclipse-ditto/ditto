@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Resources;
@@ -60,7 +61,7 @@ import akka.testkit.TestProbe;
  */
 public abstract class PersistenceActorTestBase {
 
-    protected static final String POLICY_ID = "org.eclipse.ditto:myPolicy";
+    protected static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto", "myPolicy");
     protected static final PolicyLifecycle POLICY_LIFECYCLE = PolicyLifecycle.ACTIVE;
     protected static final JsonPointer POLICY_RESOURCE_PATH = JsonPointer.empty();
     protected static final Resource POLICY_RESOURCE_ALL =
@@ -85,7 +86,7 @@ public abstract class PersistenceActorTestBase {
 
     private static final PolicyEntry POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_ALL);
-    private static final PolicyEntry ANOTHER_POLICY_ENTRY =
+    protected static final PolicyEntry ANOTHER_POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(ANOTHER_POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_READ);
     private static final long POLICY_REVISION = 0;
 
@@ -121,12 +122,12 @@ public abstract class PersistenceActorTestBase {
 
     protected static Policy createPolicyWithRandomId() {
         final Random rnd = new Random();
-        final String policyId = POLICY_ID + rnd.nextInt();
-        return createPolicyWithId(policyId);
+        final String policyName = POLICY_ID.getName() + rnd.nextInt();
+        return createPolicyWithId(policyName);
     }
 
-    protected static Policy createPolicyWithId(final String policyId) {
-        return PoliciesModelFactory.newPolicyBuilder("test.ns:" + policyId)
+    protected static Policy createPolicyWithId(final String policyName) {
+        return PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test.ns", policyName))
                 .setLifecycle(POLICY_LIFECYCLE)
                 .set(POLICY_ENTRY)
                 .set(ANOTHER_POLICY_ENTRY)

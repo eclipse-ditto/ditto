@@ -63,7 +63,7 @@ final class PurgeNamespaceReason implements ShutdownReason {
     }
 
     @Override
-    public boolean isRelevantFor(final String value) {
+    public boolean isRelevantFor(final Object value) {
         return namespaceToPurge.equals(value);
     }
 

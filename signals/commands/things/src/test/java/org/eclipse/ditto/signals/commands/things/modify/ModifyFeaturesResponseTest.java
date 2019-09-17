@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public final class ModifyFeaturesResponseTest {
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyFeaturesResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.CREATED.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeaturesResponse.JSON_FEATURES,
                     TestConstants.Feature.FEATURES.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -45,7 +46,7 @@ public final class ModifyFeaturesResponseTest {
     private static final JsonObject KNOWN_JSON_UPDATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyFeaturesResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeaturesResponse.JSON_FEATURES,
                     ThingsModelFactory.nullFeatures().toJson(FieldType.regularOrSpecial()))
             .build();
@@ -55,7 +56,7 @@ public final class ModifyFeaturesResponseTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyFeaturesResponse.class,
                 areImmutable(),
-                provided(Features.class).isAlsoImmutable());
+                provided(Features.class, ThingId.class).isAlsoImmutable());
     }
 
 

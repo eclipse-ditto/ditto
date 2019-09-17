@@ -99,6 +99,7 @@ The "DevOps commands" API allows Ditto operators to make changes to a running in
 The following DevOps commands are supported:
 
 * Dynamically retrieve and change log levels
+* Dynamically retrieve service configuration
 * Piggyback commands
 
 
@@ -203,6 +204,100 @@ instances of gateway-service to `DEBUG`:
 }
 ```
 
+### Dynamically retrieve configurations
+
+Runtime configurations of services are available for the Ditto operator at
+`/devops/config/` with optional restrictions by service name, instance ID and configuration path.
+The entire runtime configuration of a service may be dozens of kilobytes big. If it exceeds the cluster message size
+of 250 kB, then it can only be read piece by piece via the `path` query parameter.
+
+#### Retrieve all service configurations
+
+Retrieve the configuration at the path `ditto.info` thus:
+
+`GET /devops/config?path=ditto.info`
+
+It is recommended to not omit the query parameter `path`. Otherwise the full configurations of all services are
+aggregated in the response, which can become megabytes big.
+
+The path `ditto.info` points to information on service name, service instance index, JVM arguments and environment
+variables. Response example:
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "common.responses:retrieveConfig",
+      "status": 200,
+      "config": {
+        "env": {
+          "PATH": "/usr/games:/usr/local/games"
+        },
+        "service": {
+          "instance-index": "1",
+          "service-name": "gateway"
+        },
+        "vm-args": [
+          "-Dfile.encoding=UTF-8"
+        ]
+      }
+    },
+    "?1": {
+      "type": "common.responses:retrieveConfig",
+      "status": 200,
+      "config": {
+        "env": {
+          "CONNECTIVITY_FLUSH_PENDING_RESPONSES_TIMEOUT": "3d"
+        },
+        "service": {
+          "instance-index": "1",
+          "service-name": "connectivity"
+        },
+        "vm-args": [
+          "-Dditto.connectivity.connection.snapshot.threshold=2"
+        ]
+      }
+    }
+  }
+}
+```
+
+#### Retrieve the configuration of a service instance
+
+Retrieving the configuration of a specific service instance is much faster
+because the response is not aggregated from an unknown number of respondents
+over the duration given in the query parameter `timeout`.
+
+To retrieve `ditto` configuration from Gateway instance `1`:
+
+`GET /devops/config/gateway/1?path=ditto`
+
+Response example:
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "common.responses:retrieveConfig",
+      "status": 200,
+      "config": {
+        "cluster": {
+          "number-of-shards": 20
+        },
+        "gateway": {
+          "authentication": {
+            "devops": {
+              "password": "foobar",
+              "securestatus": false
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
 ### Piggyback commands
 
 You can use a DevOps command to send a command to another actor in the cluster.
@@ -230,6 +325,251 @@ Example:
 
 Piggybacks are used to configure Dittos connectivity service. More information on this can be found in
 the [Manage Connections](connectivity-manage-connections.html) section.
+
+#### Managing background cleanup
+
+Ditto deletes unnecessary events and snapshots in the background according to database load.
+[Concierge](architecture-services-concierge.html) has a cluster-singleton coordinating the background cleanup process.
+The cluster singleton responds to piggyback-commands to query its state and configuration, modify the configuration,
+and restart the background cleanup process.
+
+Each command is sent to the actor selection `/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy` on _one_
+Concierge instance, typically `INSTANCE_INDEX=1` in a docker-based installation:
+
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+
+
+##### Query background cleanup coordinator state
+
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "status.commands:retrieveHealth"
+  }
+}
+```
+
+The response has the following details:
+
+- `events`: State transitions of the actor. The top entry is the current state of the actor.
+- `credit-decisions`: Decisions on how many cleanup actions were permitted, when, and why.
+- `actions`: Log of cleanup actions, their round-trip times, and whether they were successful.
+
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "status.responses:retrieveHealth",
+      "status": 200,
+      "statusInfo": {
+        "status": "UP",
+        "details": [
+          {
+            "INFO": {
+              "events": [
+                { "2019-06-24T13:42:29.878Z": "Stream terminated. Result=<Done> Error=<null>" },
+                { "2019-06-24T13:42:19.474Z": "WOKE_UP" }
+              ],
+              "credit-decisions": [
+                { "2019-06-24T13:42:29.609Z": "100: maxTimeNanos=0 is below threshold=20000000" },
+                { "2019-06-24T13:42:25.232Z": "0: maxTimeNanos=47358000 is above threshold=20000000" }
+              ],
+              "actions": [
+                { "2019-06-24T13:42:28.801Z": "200 start=2019-06-24T13:42:28.755Z <thing:ditto:thing1>" }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+##### Query background cleanup coordinator configuration
+
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "common.commands:retrieveConfig"
+  }
+}
+```
+
+Response example:
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "common.responses:retrieveConfig",
+      "status": 200,
+      "config": {
+        "cleanup-timeout": "30s",
+        "credit-decision": {
+          "credit-per-batch": 100,
+          "interval": "10s",
+          "metric-report-timeout": "10s",
+          "timer-threshold": "20ms"
+        },
+        "keep": {
+          "actions": 120,
+          "credit-decisions": 30,
+          "events": 15
+        },
+        "parallelism": 1,
+        "persistence-ids": {
+          "burst": 25,
+          "stream-idle-timeout": "10m",
+          "stream-request-timeout": "10s"
+        },
+        "quiet-period": "5m"
+      }
+    }
+  }
+}
+```
+
+##### Modify background cleanup coordinator configuration
+
+Send a piggyback command of type `common.commands:modifyConfig` to change the configuration of the background cleanup
+coordinator. All subsequent cleanup processes will use the new configuration. Any ongoing cleanup is not affected.
+Configurations absent in the payload of the piggyback command remain unchanged.
+
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "common.commands:modifyConfig",
+    "config": {
+      "quiet-period": "240d"
+    }
+  }
+}
+```
+
+The response contains the effective configuration of the background cleanup coordinator. If the configuration in the
+piggyback command contains any error, then an error is logged and the actor's configuration is unchanged.
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "common.responses:modifyConfig",
+      "status": 200,
+      "config": {
+        "cleanup-timeout": "30s",
+        "credit-decision": {
+          "credit-per-batch": 100,
+          "interval": "10s",
+          "metric-report-timeout": "10s",
+          "timer-threshold": "20ms"
+        },
+        "keep": {
+          "actions": 120,
+          "credit-decisions": 30,
+          "events": 15
+        },
+        "parallelism": 1,
+        "persistence-ids": {
+          "burst": 25,
+          "stream-idle-timeout": "10m",
+          "stream-request-timeout": "10s"
+        },
+        "quiet-period": "240d"
+      }
+    }
+  }
+}
+```
+
+
+##### Shutdown background cleanup coordinator
+
+Send a piggyback command of type `common.commands:shutdown` to stop the background cleanup process.
+The next process is scheduled after the `quiet-period` duration in the coordinator's configuration.
+
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "common.commands:shutdown"
+  }
+}
+```
+
+Response example:
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "common.responses:shutdown",
+      "status": 200,
+      "message": "Restarting stream in <PT5760H30M5S>."
+    }
+  }
+}
+```
+
+##### Cleanup events and snapshots of an entity
+
+Send a cleanup command by piggyback to the entity's service and shard region to trigger removal of stale events and
+snapshots manually. Here is an example for things. Change the service name and shard region name accordingly for
+policies and connections. Typically in a docker based environment, use `INSTANCE_INDEX=1`.
+
+
+`POST /devops/piggygack/things/<INSTANCE_INDEX>?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/system/sharding/thing",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "cleanup.commands:cleanupPersistence",
+    "entityId": "ditto:thing1"
+  }
+}
+```
+
+Response example:
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "cleanup.responses:cleanupPersistence",
+      "status": 200,
+      "entityId": "thing:ditto:thing1"
+    }
+  }
+}
+```
 
 #### Erasing data within a namespace
 

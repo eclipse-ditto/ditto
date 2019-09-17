@@ -47,7 +47,7 @@ final class DeleteFeaturesStrategy extends AbstractConditionalHeadersCheckingCom
         return extractFeatures(thing)
                 .map(features -> ResultFactory.newMutationResult(command, getEventToPersist(context, nextRevision, dittoHeaders),
                         getResponse(context, dittoHeaders), this))
-                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(context.getThingId(),
+                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(context.getThingEntityId(),
                         dittoHeaders)));
     }
 
@@ -57,11 +57,11 @@ final class DeleteFeaturesStrategy extends AbstractConditionalHeadersCheckingCom
 
     private static ThingModifiedEvent getEventToPersist(final Context context, final long nextRevision,
             final DittoHeaders dittoHeaders) {
-        return FeaturesDeleted.of(context.getThingId(), nextRevision, getEventTimestamp(), dittoHeaders);
+        return FeaturesDeleted.of(context.getThingEntityId(), nextRevision, getEventTimestamp(), dittoHeaders);
     }
 
     private static ThingModifyCommandResponse getResponse(final Context context, final DittoHeaders dittoHeaders) {
-        return DeleteFeaturesResponse.of(context.getThingId(), dittoHeaders);
+        return DeleteFeaturesResponse.of(context.getThingEntityId(), dittoHeaders);
     }
 
     @Override

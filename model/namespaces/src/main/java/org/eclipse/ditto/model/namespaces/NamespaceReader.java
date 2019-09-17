@@ -14,6 +14,9 @@ package org.eclipse.ditto.model.namespaces;
 
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
+
 /**
  * A reader which provides functionality to parse namespaces.
  */
@@ -31,10 +34,34 @@ public final class NamespaceReader {
      * @param id the identifier.
      * @return the optional namespace or an empty optional if a namespace can't be read.
      */
+    public static Optional<String> fromEntityId(final EntityId id) {
+        if (id instanceof NamespacedEntityId) {
+           return fromEntityId((NamespacedEntityId) id);
+        }
+
+        return fromEntityId(id.toString());
+    }
+
+    /**
+     * Reads the namespace from the identifier of an entity.
+     *
+     * @param id the identifier.
+     * @return the optional namespace or an empty optional if a namespace can't be read.
+     */
     public static Optional<String> fromEntityId(final String id) {
         final int i = id.indexOf(NAMESPACE_SEPARATOR);
         return i >= 0
                 ? Optional.of(id.substring(0, i))
                 : Optional.empty();
+    }
+
+    /**
+     * Reads the namespace from the identifier of an entity.
+     *
+     * @param id the identifier.
+     * @return the optional namespace or an empty optional if a namespace can't be read.
+     */
+    public static Optional<String> fromEntityId(final NamespacedEntityId id) {
+        return Optional.of(id.getNamespace());
     }
 }

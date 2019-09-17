@@ -16,8 +16,10 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
@@ -103,12 +105,12 @@ public class ConciergeForwarderActor extends AbstractActor {
         final Signal<?> transformedSignal = signalTransformer.apply(signal);
 
         LogUtil.enhanceLogWithCorrelationId(log, signal);
-        final String signalId = transformedSignal.getId();
+        final EntityId signalId = transformedSignal.getEntityId();
         final String signalType = transformedSignal.getType();
-        if (signalId.isEmpty()) {
-            log.info("Sending signal without ID and type <{}> to concierge-dispatcherActor", signalType);
-            log.debug("Sending signal without ID and type <{}> to concierge-dispatcherActor: <{}>", signalType,
-                    transformedSignal);
+        if (signalId.isDummy()) {
+            log.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor", signalType);
+            log.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
+                    signalType, transformedSignal);
             final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
             log.debug("Forwarding message to concierge-dispatcherActor via pub/sub: <{}>.", msg);
             pubSubMediator.forward(msg, ctx);
@@ -121,7 +123,7 @@ public class ConciergeForwarderActor extends AbstractActor {
     }
 
     private static DistributedPubSubMediator.Send wrapForPubSub(final Signal<?> signal) {
-        return new DistributedPubSubMediator.Send(DISPATCHER_ACTOR_PATH, signal);
+        return DistPubSubAccess.send(DISPATCHER_ACTOR_PATH, signal);
     }
 
 }

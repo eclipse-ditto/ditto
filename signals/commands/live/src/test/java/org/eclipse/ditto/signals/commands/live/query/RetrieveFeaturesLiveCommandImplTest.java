@@ -90,7 +90,7 @@ public final class RetrieveFeaturesLiveCommandImplTest {
         assertThat(underTest)
                 .withType(retrieveFeaturesTwinCommand.getType())
                 .withDittoHeaders(retrieveFeaturesTwinCommand.getDittoHeaders())
-                .withId(retrieveFeaturesTwinCommand.getThingId())
+                .withId(retrieveFeaturesTwinCommand.getThingEntityId())
                 .withManifest(retrieveFeaturesTwinCommand.getManifest())
                 .withResourcePath(retrieveFeaturesTwinCommand.getResourcePath());
     }

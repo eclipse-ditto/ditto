@@ -91,8 +91,8 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
         checkNotNull(command, "Command");
 
         return Optional.ofNullable(thing)
-                .flatMap(Thing::getId)
-                .filter(thingId -> Objects.equals(thingId, command.getId()))
+                .flatMap(Thing::getEntityId)
+                .filter(thingId -> Objects.equals(thingId, command.getEntityId()))
                 .isPresent();
     }
 

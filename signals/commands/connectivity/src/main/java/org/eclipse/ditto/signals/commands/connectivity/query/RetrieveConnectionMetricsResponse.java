@@ -15,27 +15,32 @@ package org.eclipse.ditto.signals.commands.connectivity.query;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 
@@ -53,52 +58,29 @@ public final class RetrieveConnectionMetricsResponse
      */
     public static final String TYPE = ConnectivityCommandResponse.TYPE_PREFIX + RetrieveConnectionMetrics.NAME;
 
-    private final String connectionId;
-    private final boolean containsFailures; // derived from connectionMetrics
-    private final ConnectionMetrics connectionMetrics;
-    private final SourceMetrics sourceMetrics;
-    private final TargetMetrics targetMetrics;
+    private final ConnectionId connectionId;
+    private final JsonObject jsonObject;
 
-    private RetrieveConnectionMetricsResponse(final String connectionId, final ConnectionMetrics connectionMetrics,
-            final SourceMetrics sourceMetrics, final TargetMetrics targetMetrics, final DittoHeaders dittoHeaders) {
+    private RetrieveConnectionMetricsResponse(final ConnectionId connectionId, final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
 
-        this.connectionId = connectionId;
-        containsFailures = calculateWhetherContainsFailures(connectionMetrics);
-        this.connectionMetrics = connectionMetrics;
-        this.sourceMetrics = sourceMetrics;
-        this.targetMetrics = targetMetrics;
-    }
-
-    private static boolean calculateWhetherContainsFailures(final ConnectionMetrics connectionMetrics) {
-        final boolean inboundContainsFailure = connectionMetrics.getInboundMetrics().getMeasurements()
-                .stream()
-                .filter(measurement -> !measurement.isSuccess())
-                .anyMatch(measurement -> measurement.getCounts().entrySet().stream().anyMatch(e -> e.getValue() > 0));
-        final boolean outboundContainsFailure = connectionMetrics.getOutboundMetrics().getMeasurements()
-                .stream()
-                .filter(measurement -> !measurement.isSuccess())
-                .anyMatch(measurement -> measurement.getCounts().entrySet().stream().anyMatch(e -> e.getValue() > 0));
-        return inboundContainsFailure || outboundContainsFailure;
+        this.connectionId = checkNotNull(connectionId, "Connection ID");
+        this.jsonObject = jsonObject;
     }
 
     /**
      * Returns a new instance of {@code RetrieveConnectionMetricsResponse}.
      *
      * @param connectionId the identifier of the connection.
-     * @param connectionMetrics the retrieved connection metrics.
+     * @param jsonObject the connection metrics jsonObject.
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveConnectionMetricsResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionMetricsResponse of(final String connectionId,
-            final ConnectionMetrics connectionMetrics, final SourceMetrics sourceMetrics,
-            final TargetMetrics targetMetrics, final DittoHeaders dittoHeaders) {
-        checkNotNull(connectionId, "Connection ID");
-        checkNotNull(connectionMetrics, "Connection Status");
-
-        return new RetrieveConnectionMetricsResponse(connectionId, connectionMetrics, sourceMetrics,
-                targetMetrics, dittoHeaders);
+    public static RetrieveConnectionMetricsResponse of(final ConnectionId connectionId, final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+        return new RetrieveConnectionMetricsResponse(connectionId, jsonObject, dittoHeaders);
     }
 
     /**
@@ -133,23 +115,14 @@ public final class RetrieveConnectionMetricsResponse
                 statusCode -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final ConnectionMetrics readConnectionMetrics = ConnectivityModelFactory.connectionMetricsFromJson(
-                            jsonObject.getValueOrThrow(JsonFields.CONNECTION_METRICS));
-                    final SourceMetrics readSourceMetrics = ConnectivityModelFactory.sourceMetricsFromJson(
-                            jsonObject.getValueOrThrow(JsonFields.SOURCE_METRICS));
-                    final TargetMetrics readTargetMetrics = ConnectivityModelFactory.targetMetricsFromJson(
-                            jsonObject.getValueOrThrow(JsonFields.TARGET_METRICS));
+                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
-                    return of(readConnectionId, readConnectionMetrics, readSourceMetrics, readTargetMetrics,
-                            dittoHeaders);
+                    return of(connectionId, jsonObject, dittoHeaders);
                 });
     }
 
-    /**
-     * @return whether the ConnectionMetrics contain any failures.
-     */
-    public boolean isContainsFailures() {
-        return containsFailures;
+    public Optional<Boolean> getContainsFailure() {
+        return jsonObject.getValue(JsonFields.CONTAINS_FAILURES);
     }
 
     /**
@@ -158,7 +131,8 @@ public final class RetrieveConnectionMetricsResponse
      * @return the ConnectionMetrics.
      */
     public ConnectionMetrics getConnectionMetrics() {
-        return connectionMetrics;
+        return ConnectivityModelFactory.connectionMetricsFromJson(
+                jsonObject.getValue(JsonFields.CONNECTION_METRICS).orElse(JsonObject.empty()));
     }
 
     /**
@@ -167,7 +141,8 @@ public final class RetrieveConnectionMetricsResponse
      * @return the SourceMetrics.
      */
     public SourceMetrics getSourceMetrics() {
-        return sourceMetrics;
+        return ConnectivityModelFactory.sourceMetricsFromJson(
+                jsonObject.getValue(JsonFields.SOURCE_METRICS).orElse(JsonObject.empty()));
     }
 
     /**
@@ -176,40 +151,43 @@ public final class RetrieveConnectionMetricsResponse
      * @return the TargetMetrics.
      */
     public TargetMetrics getTargetMetrics() {
-        return targetMetrics;
+        return ConnectivityModelFactory.targetMetricsFromJson(
+                jsonObject.getValue(JsonFields.TARGET_METRICS).orElse(JsonObject.empty()));
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
-        jsonObjectBuilder.set(JsonFields.CONTAINS_FAILURES, containsFailures, predicate);
-        jsonObjectBuilder.set(JsonFields.CONNECTION_METRICS, connectionMetrics.toJson(), predicate);
-        jsonObjectBuilder.set(JsonFields.SOURCE_METRICS, sourceMetrics.toJson(), predicate);
-        jsonObjectBuilder.set(JsonFields.TARGET_METRICS, targetMetrics.toJson(), predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
+
+        jsonObjectBuilder.setAll(jsonObject);
     }
 
     @Override
-    public String getConnectionId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        appendPayload(jsonObjectBuilder, schemaVersion, field -> true);
-        return jsonObjectBuilder.build();
+        return jsonObject;
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/metrics");
     }
 
     @Override
     public RetrieveConnectionMetricsResponse setEntity(final JsonValue entity) {
-        return fromJson(entity.asObject(), getDittoHeaders());
+        return of(connectionId, entity.asObject(), getDittoHeaders());
     }
 
     @Override
     public RetrieveConnectionMetricsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connectionId, connectionMetrics, sourceMetrics, targetMetrics, dittoHeaders);
+        return of(connectionId, jsonObject, dittoHeaders);
     }
 
     @Override
@@ -217,33 +195,36 @@ public final class RetrieveConnectionMetricsResponse
         return (other instanceof RetrieveConnectionMetricsResponse);
     }
 
+    public static Builder getBuilder(final ConnectionId connectionId, final DittoHeaders dittoHeaders){
+        return new Builder(connectionId, dittoHeaders);
+    }
+
     @Override
-    public boolean equals(@Nullable final Object o) {
-        if (this == o) {return true;}
-        if (o == null || getClass() != o.getClass()) {return false;}
-        if (!super.equals(o)) {return false;}
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final RetrieveConnectionMetricsResponse that = (RetrieveConnectionMetricsResponse) o;
-        return Objects.equals(connectionId, that.connectionId) &&
-                Objects.equals(containsFailures, that.containsFailures) &&
-                Objects.equals(connectionMetrics, that.connectionMetrics) &&
-                Objects.equals(sourceMetrics, that.sourceMetrics) &&
-                Objects.equals(targetMetrics, that.targetMetrics);
+        return connectionId.equals(that.connectionId) &&
+                jsonObject.equals(that.jsonObject);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId, containsFailures, connectionMetrics, sourceMetrics, targetMetrics);
+        return Objects.hash(super.hashCode(), connectionId, jsonObject);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                super.toString() +
-                ", connectionId=" + connectionId +
-                ", containsFailures=" + containsFailures +
-                ", connectionMetrics=" + connectionMetrics +
-                ", sourceMetrics=" + sourceMetrics +
-                ", targetMetrics=" + targetMetrics +
+                " connectionId=" + connectionId +
+                ", jsonObject=" + jsonObject +
                 "]";
     }
 
@@ -268,6 +249,77 @@ public final class RetrieveConnectionMetricsResponse
         static final JsonFieldDefinition<JsonObject> TARGET_METRICS =
                 JsonFactory.newJsonObjectFieldDefinition("targetMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+    }
+
+    /**
+     * Builder for {@code RetrieveConnectionMetricsResponse}.
+     */
+    @NotThreadSafe
+    public static final class Builder {
+
+        private final ConnectionId connectionId;
+        private final DittoHeaders dittoHeaders;
+        private boolean containsFailures; // derived from connectionMetrics
+        private ConnectionMetrics connectionMetrics;
+        private SourceMetrics sourceMetrics;
+        private TargetMetrics targetMetrics;
+
+
+        private Builder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+            this.connectionId = checkNotNull(connectionId, "Connection ID");
+            this.dittoHeaders = checkNotNull(dittoHeaders, "Ditto Headers");
+        }
+
+        public Builder connectionMetrics(final ConnectionMetrics connectionMetrics) {
+            this.connectionMetrics = connectionMetrics;
+            return this;
+        }
+
+        public Builder sourceMetrics(final SourceMetrics sourceMetrics) {
+            this.sourceMetrics = sourceMetrics;
+            return this;
+        }
+
+        public Builder targetMetrics(final TargetMetrics targetMetrics) {
+            this.targetMetrics = targetMetrics;
+            return this;
+        }
+
+        public RetrieveConnectionMetricsResponse build() {
+            final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+            jsonObjectBuilder.set(CommandResponse.JsonFields.TYPE, TYPE);
+            jsonObjectBuilder.set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt());
+            jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId));
+
+            if (connectionMetrics != null) {
+                containsFailures = calculateWhetherContainsFailures(connectionMetrics);
+                jsonObjectBuilder.set(JsonFields.CONNECTION_METRICS, connectionMetrics.toJson());
+                jsonObjectBuilder.set(JsonFields.CONTAINS_FAILURES, containsFailures);
+            }
+
+            if (sourceMetrics != null) {
+                jsonObjectBuilder.set(JsonFields.SOURCE_METRICS, sourceMetrics.toJson());
+            }
+
+            if (targetMetrics != null) {
+                jsonObjectBuilder.set(JsonFields.TARGET_METRICS, targetMetrics.toJson());
+            }
+
+            return new RetrieveConnectionMetricsResponse(connectionId, jsonObjectBuilder.build(), dittoHeaders);
+        }
+
+        private static boolean calculateWhetherContainsFailures(final ConnectionMetrics connectionMetrics) {
+            final boolean inboundContainsFailure = connectionMetrics.getInboundMetrics().getMeasurements()
+                    .stream()
+                    .filter(measurement -> !measurement.isSuccess())
+                    .anyMatch(measurement -> measurement.getCounts().entrySet().stream().anyMatch(e -> e.getValue() > 0));
+            final boolean outboundContainsFailure = connectionMetrics.getOutboundMetrics().getMeasurements()
+                    .stream()
+                    .filter(measurement -> !measurement.isSuccess())
+                    .anyMatch(measurement -> measurement.getCounts().entrySet().stream().anyMatch(e -> e.getValue() > 0));
+            return inboundContainsFailure || outboundContainsFailure;
+        }
+
     }
 
 }

@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -40,6 +42,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
@@ -61,58 +64,29 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveConnectionStatus.NAME;
 
-    private final String connectionId;
-    private final ConnectivityStatus connectionStatus;
-    private final ConnectivityStatus liveStatus;
-    @Nullable private final Instant connectedSince;
-    private final List<ResourceStatus> clientStatus;
-    private final List<ResourceStatus> sourceStatus;
-    private final List<ResourceStatus> targetStatus;
+    private final ConnectionId connectionId;
+    private final JsonObject jsonObject;
 
-    private RetrieveConnectionStatusResponse(final String connectionId,
-            final ConnectivityStatus connectionStatus,
-            final ConnectivityStatus liveStatus,
-            @Nullable final Instant connectedSince,
-            final List<ResourceStatus> clientStatus,
-            final List<ResourceStatus> sourceStatus,
-            final List<ResourceStatus> targetStatus,
+    private RetrieveConnectionStatusResponse(final ConnectionId connectionId,
+            final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
-        this.connectionId = connectionId;
-        this.connectionStatus = connectionStatus;
-        this.liveStatus = liveStatus;
-        this.connectedSince = connectedSince;
-        this.clientStatus = Collections.unmodifiableList(new ArrayList<>(clientStatus));
-        this.sourceStatus = Collections.unmodifiableList(new ArrayList<>(sourceStatus));
-        this.targetStatus = Collections.unmodifiableList(new ArrayList<>(targetStatus));
+        this.connectionId = checkNotNull(connectionId, "Connection ID");
+        this.jsonObject = jsonObject;
     }
 
     /**
      * Returns a new instance of {@code RetrieveConnectionStatusResponse}.
      *
      * @param connectionId the identifier of the connection.
-     * @param connectionStatus the retrieved connection status.
-     * @param liveStatus the live connection status.
-     * @param connectedSince the Instant since when the earliest client of the connection was connected.
-     * @param sourceStatus the retrieved source status.
-     * @param targetStatus the retrieved target status.
-     * @param dittoHeaders the headers of the request.
+     * @param jsonObject the retrieved connection status jsonObject.
      * @return a new RetrieveConnectionStatusResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionStatusResponse of(final String connectionId,
-            final ConnectivityStatus connectionStatus,
-            final ConnectivityStatus liveStatus,
-            @Nullable final Instant connectedSince,
-            final List<ResourceStatus> clientStatus,
-            final List<ResourceStatus> sourceStatus,
-            final List<ResourceStatus> targetStatus,
+    public static RetrieveConnectionStatusResponse of(final ConnectionId connectionId,
+            final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        checkNotNull(connectionId, "Connection ID");
-        checkNotNull(connectionStatus, "Connection Status");
-        checkNotNull(liveStatus, "Live Connection Status");
-        return new RetrieveConnectionStatusResponse(connectionId, connectionStatus, liveStatus,
-                connectedSince, clientStatus, sourceStatus, targetStatus, dittoHeaders);
+        return new RetrieveConnectionStatusResponse(connectionId, jsonObject, dittoHeaders);
     }
 
     /**
@@ -126,7 +100,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @return a new RetrieveConnectionStatusResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionStatusResponse closedResponse(final String connectionId,
+    public static RetrieveConnectionStatusResponse closedResponse(final ConnectionId connectionId,
             final String address,
             final Instant connectionClosedAt,
             final ConnectivityStatus clientStatus,
@@ -136,10 +110,15 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         checkNotNull(connectionClosedAt, "connectionClosedAt");
         final ResourceStatus resourceStatus =
                 ConnectivityModelFactory.newClientStatus(address, clientStatus, statusDetails, connectionClosedAt);
-        return new RetrieveConnectionStatusResponse(connectionId, clientStatus, clientStatus, null,
-                Collections.singletonList(resourceStatus),
-                Collections.emptyList(),
-                Collections.emptyList(), dittoHeaders);
+
+        return getBuilder(connectionId, dittoHeaders)
+                .connectionStatus(clientStatus)
+                .liveStatus(clientStatus)
+                .connectedSince(null)
+                .clientStatus(Collections.singletonList(resourceStatus))
+                .sourceStatus(Collections.emptyList())
+                .targetStatus(Collections.emptyList())
+                .build();
     }
 
     /**
@@ -173,33 +152,13 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 statusCode -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final ConnectivityStatus readConnectionStatus =
-                            ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS))
-                                    .orElse(ConnectivityStatus.UNKNOWN);
-                    final ConnectivityStatus readLiveStatus =
-                            ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.LIVE_STATUS))
-                                    .orElse(ConnectivityStatus.UNKNOWN);
-                    final String connSinceStr = jsonObject.getValue(JsonFields.CONNECTED_SINCE).orElse(null);
-                    final Instant readConnectedSince = connSinceStr != null ? Instant.parse(connSinceStr) : null;
+                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
-                    final List<ResourceStatus> readClientStatus =
-                            readAddressStatus(jsonObject.getValueOrThrow(JsonFields.CLIENT_STATUS));
-
-                    final List<ResourceStatus> readSourceStatus =
-                            readAddressStatus(jsonObject.getValueOrThrow(JsonFields.SOURCE_STATUS));
-
-                    final List<ResourceStatus> readTargetStatus =
-                            readAddressStatus(jsonObject.getValueOrThrow(JsonFields.TARGET_STATUS));
-
-                    return of(readConnectionId, readConnectionStatus, readLiveStatus, readConnectedSince,
-                            readClientStatus,
-                            readSourceStatus,
-                            readTargetStatus, dittoHeaders);
+                    return of(connectionId, jsonObject, dittoHeaders);
                 });
     }
 
-    private static List<ResourceStatus> readAddressStatus(
-            final JsonArray jsonArray) {
+    private static List<ResourceStatus> readAddressStatus(final JsonArray jsonArray) {
         return jsonArray.stream()
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
@@ -211,154 +170,89 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @return the current ConnectionStatus of the related {@link Connection}.
      */
     public ConnectivityStatus getConnectionStatus() {
-        return connectionStatus;
+        return ConnectivityStatus.forName(jsonObject.getValue(JsonFields.CONNECTION_STATUS).orElse("UNKNOWN"))
+                .orElse(ConnectivityStatus.UNKNOWN);
     }
 
     /**
      * @return the current live ConnectionStatus of the related {@link Connection}.
      */
     public ConnectivityStatus getLiveStatus() {
-        return liveStatus;
+        return ConnectivityStatus.forName(jsonObject.getValue(JsonFields.LIVE_STATUS).orElse("UNKNOWN"))
+                .orElse(ConnectivityStatus.UNKNOWN);
     }
 
     /**
      * @return the Instant since when the earliest client of the connection was connected.
      */
     public Optional<Instant> getConnectedSince() {
-        return Optional.ofNullable(connectedSince);
+        final String connSinceStr = jsonObject.getValue(JsonFields.CONNECTED_SINCE).orElse(null);
+        return Optional.ofNullable(connSinceStr != null ? Instant.parse(connSinceStr) : null);
     }
 
     /**
      * @return in which state the client handling the {@link Connection} currently is.
      */
     public List<ResourceStatus> getClientStatus() {
-        return clientStatus;
+        return readAddressStatus(jsonObject.getValue(JsonFields.CLIENT_STATUS).orElse(JsonArray.empty()));
     }
 
     /**
      * @return the source {@link ResourceStatus}.
      */
     public List<ResourceStatus> getSourceStatus() {
-        return sourceStatus;
+        return readAddressStatus(jsonObject.getValue(JsonFields.SOURCE_STATUS).orElse(JsonArray.empty()));
     }
 
     /**
      * @return the target {@link ResourceStatus}.
      */
     public List<ResourceStatus> getTargetStatus() {
-        return targetStatus;
-    }
-
-    /**
-     * Builds a new instance of RetrieveConnectionStatusResponse based on {@code this} instance with the passed {@code
-     * liveStatus} as live ConnectionStatus.
-     *
-     * @param liveStatus the live ConnectionStatus.
-     * @return the new RetrieveConnectionStatusResponse.
-     */
-    public RetrieveConnectionStatusResponse withLiveStatus(final ConnectivityStatus liveStatus) {
-        return of(connectionId, connectionStatus, liveStatus, connectedSince,
-                clientStatus,
-                sourceStatus, targetStatus, getDittoHeaders());
-    }
-    /**
-     * Builds a new instance of RetrieveConnectionStatusResponse based on {@code this} instance with the passed {@code
-     * connectedSince}.
-     *
-     * @param connectedSince the "connected since" value.
-     * @return the new RetrieveConnectionStatusResponse.
-     */
-    public RetrieveConnectionStatusResponse withConnectedSince(@Nullable final Instant connectedSince) {
-        return of(connectionId, connectionStatus, liveStatus, connectedSince,
-                clientStatus, sourceStatus, targetStatus, getDittoHeaders());
-    }
-
-    /**
-     * Builds a new instance of RetrieveConnectionStatusResponse based on {@code this} instance with the passed {@code
-     * resourceStatus} as address status.
-     *
-     * @param resourceStatus the ResourceStatus.
-     * @return the new RetrieveConnectionStatusResponse.
-     */
-    public RetrieveConnectionStatusResponse withAddressStatus(final ResourceStatus resourceStatus) {
-        final List<ResourceStatus> newClientStatus;
-        final List<ResourceStatus> newSourceStatus;
-        final List<ResourceStatus> newTargetStatus;
-        switch (resourceStatus.getResourceType()) {
-            case SOURCE:
-                newClientStatus = this.getClientStatus();
-                newSourceStatus = addToList(this.getSourceStatus(), resourceStatus);
-                newTargetStatus = this.getTargetStatus();
-                break;
-            case TARGET:
-                newClientStatus = this.getClientStatus();
-                newSourceStatus = this.getSourceStatus();
-                newTargetStatus = addToList(this.getTargetStatus(), resourceStatus);
-                break;
-            case CLIENT:
-                newClientStatus = addToList(this.getClientStatus(), resourceStatus);
-                newSourceStatus = this.getSourceStatus();
-                newTargetStatus = this.getTargetStatus();
-                break;
-            default:
-                newClientStatus = this.getClientStatus();
-                newSourceStatus = this.getSourceStatus();
-                newTargetStatus = this.getTargetStatus();
-                break;
-        }
-        return of(connectionId, connectionStatus, liveStatus, connectedSince,
-                newClientStatus, newSourceStatus, newTargetStatus, getDittoHeaders());
-    }
-
-    private List<ResourceStatus> addToList(List<ResourceStatus> existing,
-            final ResourceStatus resourceStatus) {
-        final List<ResourceStatus> list = new ArrayList<>(existing);
-        list.add(resourceStatus);
-        return list;
+        return readAddressStatus(jsonObject.getValue(JsonFields.TARGET_STATUS).orElse(JsonArray.empty()));
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
-        jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.getName(), predicate);
-        jsonObjectBuilder.set(JsonFields.LIVE_STATUS, liveStatus.getName(), predicate);
-        jsonObjectBuilder.set(JsonFields.CONNECTED_SINCE, connectedSince != null ? connectedSince.toString() : null,
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
                 predicate);
 
-        jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, clientStatus.stream()
-                .map(source -> source.toJson(schemaVersion, thePredicate))
-                .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-        jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, sourceStatus.stream()
-                .map(source -> source.toJson(schemaVersion, thePredicate))
-                .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-        jsonObjectBuilder.set(JsonFields.TARGET_STATUS, targetStatus.stream()
-                .map(source -> source.toJson(schemaVersion, thePredicate))
-                .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
+        jsonObjectBuilder.setAll(jsonObject);
     }
 
     @Override
-    public String getConnectionId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 
     @Override
     public RetrieveConnectionStatusResponse setEntity(final JsonValue entity) {
-        return fromJson(entity.asObject(), getDittoHeaders());
+        final JsonObject jsonEntity = entity.asObject();
+        final String readConnectionId =
+                jsonEntity.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
+        final ConnectionId connectionId = ConnectionId.of(readConnectionId);
+
+        return of(connectionId, jsonEntity, getDittoHeaders());
     }
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        appendPayload(jsonObjectBuilder, schemaVersion, field -> true);
-        return jsonObjectBuilder.build();
+        return jsonObject;
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/status");
     }
 
     @Override
     public RetrieveConnectionStatusResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connectionId, connectionStatus, liveStatus, connectedSince,
-                clientStatus, sourceStatus, targetStatus, dittoHeaders);
+        return of(connectionId, jsonObject, dittoHeaders);
+    }
+
+    public static Builder getBuilder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+        return new Builder(connectionId, dittoHeaders);
     }
 
     @Override
@@ -378,31 +272,19 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             return false;
         }
         final RetrieveConnectionStatusResponse that = (RetrieveConnectionStatusResponse) o;
-        return connectionId.equals(that.connectionId) &&
-                connectionStatus == that.connectionStatus &&
-                liveStatus == that.liveStatus &&
-                Objects.equals(connectedSince, that.connectedSince) &&
-                Objects.equals(clientStatus, that.clientStatus) &&
-                Objects.equals(sourceStatus, that.sourceStatus) &&
-                Objects.equals(targetStatus, that.targetStatus);
+        return connectionId.equals(that.connectionId) && jsonObject.equals(that.jsonObject);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId, connectionStatus, liveStatus, connectedSince,
-                clientStatus, sourceStatus, targetStatus);
+        return Objects.hash(super.hashCode(), connectionId, jsonObject);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "connectionId=" + connectionId +
-                ", connectionStatus=" + connectionStatus +
-                ", liveStatus=" + liveStatus +
-                ", connectedSince=" + connectedSince +
-                ", clientStatus=" + clientStatus +
-                ", sourceStatus=" + sourceStatus +
-                ", targetStatus=" + targetStatus +
+                " connectionId=" + connectionId +
+                ", jsonObject=" + jsonObject +
                 "]";
     }
 
@@ -433,6 +315,136 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         public static final JsonFieldDefinition<JsonArray> TARGET_STATUS =
                 JsonFactory.newJsonArrayFieldDefinition("targetStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+    }
+
+    /**
+     * Builder for {@code RetrieveConnectionStatusResponse}.
+     */
+    @NotThreadSafe
+    public static final class Builder {
+
+        private final ConnectionId connectionId;
+        private final DittoHeaders dittoHeaders;
+        private ConnectivityStatus connectionStatus;
+        private ConnectivityStatus liveStatus;
+        @Nullable private Instant connectedSince;
+        private List<ResourceStatus> clientStatus;
+        private List<ResourceStatus> sourceStatus;
+        private List<ResourceStatus> targetStatus;
+
+        private Builder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+            this.connectionId = connectionId;
+            this.dittoHeaders = dittoHeaders;
+        }
+
+        public Builder connectionStatus(final ConnectivityStatus connectionStatus) {
+            this.connectionStatus = checkNotNull(connectionStatus, "Connection Status");
+            return this;
+        }
+
+        public Builder liveStatus(final ConnectivityStatus liveStatus) {
+            this.liveStatus = checkNotNull(liveStatus, "Live Connection Status");
+            return this;
+        }
+
+        public Builder connectedSince(@Nullable final Instant connectedSince) {
+            this.connectedSince = connectedSince;
+            return this;
+        }
+
+        public Builder clientStatus(final List<ResourceStatus> clientStatus) {
+            this.clientStatus = clientStatus;
+            return this;
+        }
+
+        public Builder sourceStatus(final List<ResourceStatus> sourceStatus) {
+            this.sourceStatus = sourceStatus;
+            return this;
+        }
+
+        public Builder targetStatus(final List<ResourceStatus> targetStatus) {
+            this.targetStatus = targetStatus;
+            return this;
+        }
+
+        public Builder withAddressStatus(final ResourceStatus resourceStatus) {
+            final List<ResourceStatus> newClientStatus;
+            final List<ResourceStatus> newSourceStatus;
+            final List<ResourceStatus> newTargetStatus;
+            switch (resourceStatus.getResourceType()) {
+                case SOURCE:
+                    newClientStatus = this.clientStatus;
+                    newSourceStatus = addToList(this.sourceStatus, resourceStatus);
+                    newTargetStatus = this.targetStatus;
+                    break;
+                case TARGET:
+                    newClientStatus = this.clientStatus;
+                    newSourceStatus = this.sourceStatus;
+                    newTargetStatus = addToList(this.targetStatus, resourceStatus);
+                    break;
+                case CLIENT:
+                    newClientStatus = addToList(this.clientStatus, resourceStatus);
+                    newSourceStatus = this.sourceStatus;
+                    newTargetStatus = this.targetStatus;
+                    break;
+                default:
+                    newClientStatus = this.clientStatus;
+                    newSourceStatus = this.sourceStatus;
+                    newTargetStatus = this.targetStatus;
+                    break;
+            }
+            this.clientStatus = newClientStatus;
+            this.sourceStatus = newSourceStatus;
+            this.targetStatus = newTargetStatus;
+            return this;
+        }
+
+        private List<ResourceStatus> addToList(List<ResourceStatus> existing,
+                final ResourceStatus resourceStatus) {
+            final List<ResourceStatus> list = new ArrayList<>(existing);
+            list.add(resourceStatus);
+            return list;
+        }
+
+        public RetrieveConnectionStatusResponse build() {
+            final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+            jsonObjectBuilder.set(CommandResponse.JsonFields.TYPE, TYPE);
+            jsonObjectBuilder.set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt());
+            jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID,
+                    String.valueOf(connectionId));
+
+            if (connectionStatus != null) {
+                jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.toString());
+            }
+
+            if (liveStatus != null) {
+                jsonObjectBuilder.set(JsonFields.LIVE_STATUS, liveStatus.toString());
+            }
+
+            if (connectedSince != null) {
+                jsonObjectBuilder.set(JsonFields.CONNECTED_SINCE, connectedSince.toString());
+            }
+
+            if (clientStatus != null) {
+                jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, clientStatus.stream()
+                        .map(ResourceStatus::toJson)
+                        .collect(JsonCollectors.valuesToArray()));
+            }
+
+            if (sourceStatus != null) {
+                jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, sourceStatus.stream()
+                        .map(ResourceStatus::toJson)
+                        .collect(JsonCollectors.valuesToArray()));
+            }
+
+            if (targetStatus != null) {
+                jsonObjectBuilder.set(JsonFields.TARGET_STATUS, targetStatus.stream()
+                        .map(ResourceStatus::toJson)
+                        .collect(JsonCollectors.valuesToArray()));
+            }
+
+            return new RetrieveConnectionStatusResponse(connectionId, jsonObjectBuilder.build(), dittoHeaders);
+        }
     }
 
 }

@@ -37,12 +37,14 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -63,13 +65,13 @@ public final class RetrieveConnectionLogsResponse
      */
     public static final String TYPE = ConnectivityCommandResponse.TYPE_PREFIX + RetrieveConnectionLogs.NAME;
 
-    private final String connectionId;
+    private final ConnectionId connectionId;
     private final Collection<LogEntry> connectionLogs;
 
     @Nullable private final Instant enabledSince;
     @Nullable private final Instant enabledUntil;
 
-    private RetrieveConnectionLogsResponse(final String connectionId, final Collection<LogEntry> connectionLogs,
+    private RetrieveConnectionLogsResponse(final ConnectionId connectionId, final Collection<LogEntry> connectionLogs,
             @Nullable final Instant enabledSince, @Nullable final Instant enabledUntil,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
@@ -92,7 +94,7 @@ public final class RetrieveConnectionLogsResponse
      * @throws NullPointerException if {@code connectionId}, {@code connectionLogs} or {@code dittoHeaders} are {@code
      * null}.
      */
-    public static RetrieveConnectionLogsResponse of(final String connectionId,
+    public static RetrieveConnectionLogsResponse of(final ConnectionId connectionId,
             final Collection<LogEntry> connectionLogs, @Nullable final Instant enabledSince,
             @Nullable final Instant enabledUntil, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
@@ -120,7 +122,7 @@ public final class RetrieveConnectionLogsResponse
         mergedEntries.addAll(first.getConnectionLogs());
         mergedEntries.addAll(second.getConnectionLogs());
 
-        return of(first.getConnectionId(),
+        return of(first.getConnectionEntityId(),
                 mergedEntries,
                 first.getEnabledSince().orElse(null),
                 first.getEnabledUntil().orElse(null),
@@ -156,16 +158,19 @@ public final class RetrieveConnectionLogsResponse
     public static RetrieveConnectionLogsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveConnectionLogsResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
-                    final String readConnectionId =
-                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final List<LogEntry> readConnectionLogs = parseConnectionLogs(jsonObject);
-                    final Instant readEnabledSince = parseInstantOrNull(jsonObject, JsonFields.ENABLED_SINCE);
-                    final Instant readEnabledUntil = parseInstantOrNull(jsonObject, JsonFields.ENABLED_UNTIL);
+                statusCode -> getRetrieveConnectionLogsResponse(jsonObject, dittoHeaders));
+    }
 
-                    return of(readConnectionId, readConnectionLogs, readEnabledSince, readEnabledUntil,
-                            dittoHeaders);
-                });
+    private static RetrieveConnectionLogsResponse getRetrieveConnectionLogsResponse(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+        final String readConnectionId =
+                jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
+        final ConnectionId connectionId = ConnectionId.of(readConnectionId);
+        final List<LogEntry> readConnectionLogs = parseConnectionLogs(jsonObject);
+        final Instant readEnabledSince = parseInstantOrNull(jsonObject, JsonFields.ENABLED_SINCE);
+        final Instant readEnabledUntil = parseInstantOrNull(jsonObject, JsonFields.ENABLED_UNTIL);
+
+        return of(connectionId, readConnectionLogs, readEnabledSince, readEnabledUntil, dittoHeaders);
     }
 
     /**
@@ -176,8 +181,9 @@ public final class RetrieveConnectionLogsResponse
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contains a non-null field under {@code
      * fieldDefinition} that is not in ISO-8601 format.
      */
-    private static @Nullable
-    Instant parseInstantOrNull(final JsonObject jsonObject, final JsonFieldDefinition<String> fieldDefinition) {
+    @Nullable
+    private static Instant parseInstantOrNull(final JsonObject jsonObject,
+            final JsonFieldDefinition<String> fieldDefinition) {
         return jsonObject.getValue(fieldDefinition)
                 .map(field -> RetrieveConnectionLogsResponse.tryToParseInstant(field, fieldDefinition))
                 .orElse(null);
@@ -235,7 +241,8 @@ public final class RetrieveConnectionLogsResponse
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
 
         jsonObjectBuilder.set(JsonFields.CONNECTION_LOGS, connectionLogs.stream()
                 .map(logEntry -> logEntry.toJson(schemaVersion, thePredicate))
@@ -247,7 +254,7 @@ public final class RetrieveConnectionLogsResponse
     }
 
     @Override
-    public String getConnectionId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 
@@ -259,8 +266,13 @@ public final class RetrieveConnectionLogsResponse
     }
 
     @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/logs");
+    }
+
+    @Override
     public RetrieveConnectionLogsResponse setEntity(final JsonValue entity) {
-        return fromJson(entity.asObject(), getDittoHeaders());
+        return getRetrieveConnectionLogsResponse(entity.asObject(), getDittoHeaders());
     }
 
     @Override
@@ -270,7 +282,7 @@ public final class RetrieveConnectionLogsResponse
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveConnectionLogsResponse);
+        return other instanceof RetrieveConnectionLogsResponse;
     }
 
     @Override

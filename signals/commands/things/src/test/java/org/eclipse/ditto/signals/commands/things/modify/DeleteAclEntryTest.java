@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -35,7 +36,7 @@ public final class DeleteAclEntryTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.ID, DeleteAclEntry.NAME)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(DeleteAclEntry.JSON_AUTHORIZATION_SUBJECT, TestConstants.Authorization.AUTH_SUBJECT_GRIMES.getId())
             .build();
 
@@ -43,7 +44,7 @@ public final class DeleteAclEntryTest {
     public void assertImmutability() {
         assertInstancesOf(DeleteAclEntry.class,
                 areImmutable(),
-                provided(AuthorizationSubject.class).isAlsoImmutable());
+                provided(AuthorizationSubject.class, ThingId.class).isAlsoImmutable());
     }
 
     @Test
@@ -73,7 +74,7 @@ public final class DeleteAclEntryTest {
                 DeleteAclEntry.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getAuthorizationSubject()).isEqualTo(TestConstants.Authorization.AUTH_SUBJECT_GRIMES);
     }
 

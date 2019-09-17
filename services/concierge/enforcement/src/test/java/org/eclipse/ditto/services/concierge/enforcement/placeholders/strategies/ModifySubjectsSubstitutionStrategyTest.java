@@ -61,7 +61,7 @@ public class ModifySubjectsSubstitutionStrategyTest extends AbstractSubstitution
         final Subjects expectedSubjectsReplaced =
                 Subjects.newInstance(Subject.newInstance(SUBJECT_ID + ":a", SubjectType.GENERATED),
                         Subject.newInstance(SUBJECT_ID + ":b", SubjectType.GENERATED));
-        final ModifySubjects expectedCommandReplaced = ModifySubjects.of(commandWithPlaceholders.getId(),
+        final ModifySubjects expectedCommandReplaced = ModifySubjects.of(commandWithPlaceholders.getEntityId(),
                 commandWithPlaceholders.getLabel(), expectedSubjectsReplaced,
                 DITTO_HEADERS);
         assertThat(response).isEqualTo(expectedCommandReplaced);

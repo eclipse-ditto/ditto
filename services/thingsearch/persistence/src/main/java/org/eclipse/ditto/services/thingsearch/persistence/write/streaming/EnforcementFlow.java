@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -25,8 +26,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.thingsearch.common.config.StreamCacheConfig;
@@ -37,7 +40,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -64,14 +67,14 @@ final class EnforcementFlow {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ActorRef thingsShardRegion;
-    private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
+    private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
     private final Duration thingsTimeout;
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
     private final boolean deleteEvent;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
-            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
             final Duration thingsTimeout,
             final Duration cacheRetryDelay,
             final int maxArraySize,
@@ -103,9 +106,9 @@ final class EnforcementFlow {
         final Duration askTimeout = updaterStreamConfig.getAskTimeout();
         final StreamCacheConfig streamCacheConfig = updaterStreamConfig.getCacheConfig();
 
-        final AsyncCacheLoader<EntityId, Entry<Enforcer>> policyEnforcerCacheLoader =
+        final AsyncCacheLoader<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
-        final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
+        final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
                         EnforcementFlow.class.getCanonicalName() + ".cache", cacheDispatcher);
 
@@ -119,10 +122,11 @@ final class EnforcementFlow {
      * @param parallelism how many SudoRetrieveThing commands to send in parallel.
      * @return the flow.
      */
-    public Flow<Map<String, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(final int parallelism) {
-        return Flow.<Map<String, Metadata>>create().map(changeMap -> {
+    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(final int parallelism) {
+        return Flow.<Map<ThingId, Metadata>>create().map(changeMap -> {
             log.info("Updating search index of <{}> things", changeMap.size());
-            return sudoRetrieveThingJsons(parallelism, changeMap.keySet()).flatMapConcat(responseMap ->
+            final Set<ThingId> thingIds = changeMap.keySet();
+            return sudoRetrieveThingJsons(parallelism, thingIds).flatMapConcat(responseMap ->
                     Source.fromIterator(changeMap.values()::iterator).flatMapMerge(parallelism, metadataRef ->
                             computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId())))
             );
@@ -130,12 +134,12 @@ final class EnforcementFlow {
 
     }
 
-    private Source<Map<String, SudoRetrieveThingResponse>, NotUsed> sudoRetrieveThingJsons(
-            final int parallelism, final Collection<String> thingIds) {
+    private Source<Map<ThingId, SudoRetrieveThingResponse>, NotUsed> sudoRetrieveThingJsons(
+            final int parallelism, final Collection<ThingId> thingIds) {
 
         return Source.fromIterator(thingIds::iterator)
                 .flatMapMerge(parallelism, this::sudoRetrieveThing)
-                .<Map<String, SudoRetrieveThingResponse>>fold(new HashMap<>(), (map, response) -> {
+                .<Map<ThingId, SudoRetrieveThingResponse>>fold(new HashMap<>(), (map, response) -> {
                     map.put(getThingId(response), response);
                     return map;
                 })
@@ -145,32 +149,27 @@ final class EnforcementFlow {
                 });
     }
 
-    private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final String thingId) {
-        if (!thingId.isEmpty()) {
-            final SudoRetrieveThing command =
-                    SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty());
-            final CompletionStage<Source<SudoRetrieveThingResponse, NotUsed>> responseFuture =
-                    // using default thread-pool for asking Things shard region
-                    Patterns.ask(thingsShardRegion, command, thingsTimeout)
-                            .handle((response, error) -> {
-                                if (response instanceof SudoRetrieveThingResponse) {
-                                    return Source.single((SudoRetrieveThingResponse) response);
-                                } else {
-                                    if (error != null) {
-                                        log.error("Failed " + command, error);
-                                    } else if (!(response instanceof ThingNotAccessibleException)) {
-                                        log.error("Unexpected response for <{}>: <{}>", command, response);
-                                    }
-                                    return Source.empty();
+    private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final ThingId thingId) {
+        final SudoRetrieveThing command =
+                SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty());
+        final CompletionStage<Source<SudoRetrieveThingResponse, NotUsed>> responseFuture =
+                // using default thread-pool for asking Things shard region
+                Patterns.ask(thingsShardRegion, command, thingsTimeout)
+                        .handle((response, error) -> {
+                            if (response instanceof SudoRetrieveThingResponse) {
+                                return Source.single((SudoRetrieveThingResponse) response);
+                            } else {
+                                if (error != null) {
+                                    log.error("Failed " + command, error);
+                                } else if (!(response instanceof ThingNotAccessibleException)) {
+                                    log.error("Unexpected response for <{}>: <{}>", command, response);
                                 }
-                            });
+                                return Source.empty();
+                            }
+                        });
 
-            return Source.fromSourceCompletionStage(responseFuture)
-                    .viaMat(Flow.create(), Keep.none());
-        } else {
-            // do not send any message for empty metadata (created only under rare race condition).
-            return Source.empty();
-        }
+        return Source.fromSourceCompletionStage(responseFuture)
+                .viaMat(Flow.create(), Keep.none());
     }
 
     private Source<AbstractWriteModel, NotUsed> computeWriteModel(final Metadata metadata,
@@ -209,13 +208,14 @@ final class EnforcementFlow {
             return Source.single(Entry.permanent(AclEnforcer.of(ThingsModelFactory.newAcl(acl.get()))));
         } else {
             return thing.getValue(Thing.JsonFields.POLICY_ID)
+                    .map(PolicyId::of)
                     .map(policyId -> readCachedEnforcer(metadata, getPolicyEntityId(policyId), 0))
                     .orElse(ENFORCER_NONEXISTENT);
         }
     }
 
-    private Source<Entry<Enforcer>, NotUsed> readCachedEnforcer(final Metadata metadata, final EntityId policyId,
-            final int iteration) {
+    private Source<Entry<Enforcer>, NotUsed> readCachedEnforcer(final Metadata metadata,
+            final EntityIdWithResourceType policyId, final int iteration) {
 
         final Source<Entry<Enforcer>, ?> lazySource = Source.lazily(() -> {
             final CompletionStage<Source<Entry<Enforcer>, NotUsed>> enforcerFuture = policyEnforcerCache.get(policyId)
@@ -241,8 +241,8 @@ final class EnforcementFlow {
         return lazySource.viaMat(Flow.create(), Keep.none());
     }
 
-    private static EntityId getPolicyEntityId(final String policyId) {
-        return EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
+    private static EntityIdWithResourceType getPolicyEntityId(final PolicyId policyId) {
+        return EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId);
     }
 
     /**
@@ -252,8 +252,9 @@ final class EnforcementFlow {
      * @param response the SudoRetrieveThingResponse.
      * @return the extracted Thing ID.
      */
-    private static String getThingId(final SudoRetrieveThingResponse response) {
-        return response.getEntity().asObject().getValueOrThrow(Thing.JsonFields.ID);
+    private static ThingId getThingId(final SudoRetrieveThingResponse response) {
+        final String thingId = response.getEntity().asObject().getValueOrThrow(Thing.JsonFields.ID);
+        return ThingId.of(thingId);
     }
 
     /**

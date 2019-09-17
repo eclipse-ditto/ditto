@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.events.base.assertions.AbstractEventAssert;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
@@ -41,17 +42,17 @@ public class ThingModifiedEventAssert extends AbstractEventAssert<ThingModifiedE
         return hasType(expectedType);
     }
 
-    public ThingModifiedEventAssert hasThingId(final CharSequence expectedThingId) {
+    public ThingModifiedEventAssert hasThingId(final ThingId expectedThingId) {
         isNotNull();
-        final String actualThingId = actual.getThingId();
-        Assertions.assertThat(actualThingId)
+        final ThingId actualThingId = actual.getThingEntityId();
+        Assertions.assertThat(actualThingId.toString())
                 .overridingErrorMessage("Expected ThingModifiedEvent to have Thing ID\n<%s> but it had\n<%s>",
                         expectedThingId, actualThingId)
                 .isEqualTo(expectedThingId.toString());
         return this;
     }
 
-    public ThingModifiedEventAssert withThingId(final CharSequence expectedThingId) {
+    public ThingModifiedEventAssert withThingId(final ThingId expectedThingId) {
         return hasThingId(expectedThingId);
     }
 

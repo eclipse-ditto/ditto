@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.models.thingsearch.commands.sudo;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -21,7 +22,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchSudoCommand<T extends ThingSearchSudoCommand> extends Command<T> {
+public interface ThingSearchSudoCommand<T extends ThingSearchSudoCommand> extends Command<T>, WithIdButActuallyNot {
 
     /**
      * Type Prefix of Sudo commands.
@@ -52,13 +53,4 @@ public interface ThingSearchSudoCommand<T extends ThingSearchSudoCommand> extend
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
-    /**
-     * Sudo commands do not have an ID. Thus this implementation always returns an empty string.
-     *
-     * @return an empty string.
-     */
-    @Override
-    default String getId() {
-        return "";
-    }
 }

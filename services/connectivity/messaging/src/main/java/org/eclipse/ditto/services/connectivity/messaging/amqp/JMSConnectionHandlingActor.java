@@ -32,7 +32,6 @@ import javax.naming.NamingException;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
-import org.apache.qpid.jms.JmsSession;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
@@ -43,6 +42,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 
@@ -64,13 +64,15 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     /**
      * Config key of the dispatcher for this actor.
      */
-    public static final String DISPATCHER_NAME = "jms-connection-handling-dispatcher";
+    private static final String DISPATCHER_NAME = "jms-connection-handling-dispatcher";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Connection connection;
     private final ExceptionListener exceptionListener;
     private final JmsConnectionFactory jmsConnectionFactory;
+
+    @Nullable private Session currentSession = null;
 
     @SuppressWarnings("unused")
     private JMSConnectionHandlingActor(final Connection connection, final ExceptionListener exceptionListener,
@@ -118,7 +120,31 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 .match(AmqpClientActor.JmsRecoverSession.class, this::handleRecoverSession)
                 .match(AmqpClientActor.JmsCloseSession.class, this::handleCloseSession)
                 .match(AmqpClientActor.JmsDisconnect.class, this::handleDisconnect)
+                .match(AmqpConsumerActor.CreateMessageConsumer.class, this::createMessageConsumer)
                 .build();
+    }
+
+    private void createMessageConsumer(final AmqpConsumerActor.CreateMessageConsumer command) {
+        final Throwable error;
+        if (currentSession != null) {
+            // create required consumer
+            final ConsumerData consumerData = command.getConsumerData();
+            final ConsumerData newConsumerData =
+                    createJmsConsumer(currentSession, new HashMap<>(), consumerData.getSource(),
+                            consumerData.getAddress(), consumerData.getAddressWithIndex());
+            if (newConsumerData != null) {
+                final Object response = command.toResponse(newConsumerData.getMessageConsumer());
+                getSender().tell(response, getSelf());
+                error = null;
+            } else {
+                error = new IllegalStateException("Failed to create message consumer");
+            }
+        } else {
+            error = new IllegalStateException("No session");
+        }
+        if (error != null) {
+            getSender().tell(new Status.Failure(error), getSelf());
+        }
     }
 
     private void handleCloseSession(final AmqpClientActor.JmsCloseSession closeSession) {
@@ -129,6 +155,9 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 session.close();
                 return null;
             });
+            if (Objects.equals(session, currentSession)) {
+                currentSession = null;
+            }
         } catch (final Exception e) {
             log.debug("Closing session failed: {}", e.getMessage());
         }
@@ -142,24 +171,27 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         final ActorRef self = getSelf();
 
         // try to close an existing session first
-        if (recoverSession.getSession().isPresent()) {
+        recoverSession.getSession().ifPresent((session) -> {
             try {
-                recoverSession.getSession().get().close();
-            } catch (JMSException e) {
+                session.close();
+            } catch (final JMSException e) {
                 log.debug("Failed to close previous session, ignore.");
             }
-        }
+        });
 
-        if (recoverSession.getConnection().isPresent()) {
-            final JmsConnection jmsConnection = recoverSession.getConnection().map(c -> (JmsConnection)c).get();
+        final Optional<javax.jms.Connection> connectionOptional = recoverSession.getConnection();
+
+        if (connectionOptional.isPresent()) {
+            final JmsConnection jmsConnection = connectionOptional.map(c -> (JmsConnection) c).get();
             try {
                 log.debug("Creating new JMS session.");
                 final Session session = createSession(jmsConnection);
                 log.debug("Creating consumers for new session.");
                 final List<ConsumerData> consumers = createConsumers(session);
-                final AmqpClientActor.JmsSessionRecovered r = new AmqpClientActor.JmsSessionRecovered(origin, session, consumers);
+                final AmqpClientActor.JmsSessionRecovered r =
+                        new AmqpClientActor.JmsSessionRecovered(origin, session, consumers);
                 sender.tell(r, self);
-                log.debug("Session of connection <{}> recovered successfully.", connection.getId());
+                log.debug("Session of connection <{}> recovered successfully.", this.connection.getId());
             } catch (final ConnectionFailedException e) {
                 sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
                 log.warning(e.getMessage());
@@ -169,8 +201,8 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             }
         } else {
             log.info("Recovering session failed, no connection available.");
-            sender.tell(new ImmutableConnectionFailure(origin,null,
-                            "Session recovery failed, no connection available."), self);
+            sender.tell(new ImmutableConnectionFailure(origin, null,
+                    "Session recovery failed, no connection available."), self);
         }
     }
 
@@ -223,8 +255,10 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     private Session createSession(final JmsConnection jmsConnection) {
-        return safelyExecuteJmsOperation(jmsConnection, "create session",
+        final Session session = safelyExecuteJmsOperation(jmsConnection, "create session",
                 () -> (jmsConnection.createSession(Session.CLIENT_ACKNOWLEDGE)));
+        currentSession = session;
+        return session;
     }
 
     private <T> T safelyExecuteJmsOperation(@Nullable final JmsConnection jmsConnection,
@@ -275,7 +309,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         final MessageConsumer messageConsumer;
         try {
             messageConsumer = session.createConsumer(destination);
-            return new ConsumerData(source, sourceAddress, addressWithIndex, messageConsumer);
+            return ConsumerData.of(source, sourceAddress, addressWithIndex, messageConsumer);
         } catch (final JMSException jmsException) {
             failedSources.put(addressWithIndex, jmsException);
             return null;
@@ -346,6 +380,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
          *
          * @return the value.
          * @throws JMSException if the supplier throws a {@link JMSException}.
+         * @throws NamingException if the identifier of connection could not be found in the Context.
          */
         T get() throws JMSException, NamingException;
     }

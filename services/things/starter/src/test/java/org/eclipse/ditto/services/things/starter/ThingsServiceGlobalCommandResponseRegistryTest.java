@@ -13,7 +13,10 @@
 package org.eclipse.ditto.services.things.starter;
 
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
+import org.eclipse.ditto.signals.commands.common.RetrieveConfigResponse;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
@@ -27,8 +30,9 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 
 public final class ThingsServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
-    public ThingsServiceGlobalCommandResponseRegistryTest () {
-        super(SudoRetrieveThingResponse.class,
+    public ThingsServiceGlobalCommandResponseRegistryTest() {
+        super(
+                SudoRetrieveThingResponse.class,
                 RetrieveFeatureResponse.class,
                 ModifyFeaturePropertyResponse.class,
                 SendClaimMessageResponse.class,
@@ -38,7 +42,11 @@ public final class ThingsServiceGlobalCommandResponseRegistryTest extends Global
                 ThingErrorResponse.class,
                 PolicyErrorResponse.class,
                 RetrieveLoggerConfigResponse.class,
-                PurgeEntitiesResponse.class);
+                CleanupPersistenceResponse.class,
+                RetrieveConfigResponse.class,
+                RetrieveHealthResponse.class,
+                PurgeEntitiesResponse.class
+        );
     }
 
 }

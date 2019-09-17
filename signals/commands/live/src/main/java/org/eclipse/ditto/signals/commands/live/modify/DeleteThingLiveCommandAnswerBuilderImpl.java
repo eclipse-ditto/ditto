@@ -71,13 +71,14 @@ final class DeleteThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public DeleteThingResponse deleted() {
-            return DeleteThingResponse.of(command.getThingId(), command.getDittoHeaders());
+            return DeleteThingResponse.of(command.getThingEntityId(), command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse thingNotAccessibleError() {
-            return errorResponse(command.getThingId(), ThingNotAccessibleException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    ThingNotAccessibleException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -85,7 +86,8 @@ final class DeleteThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse thingNotDeletableError() {
-            return errorResponse(command.getThingId(), ThingNotDeletableException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    ThingNotDeletableException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -97,7 +99,7 @@ final class DeleteThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingDeleted deleted() {
-            return ThingDeleted.of(command.getThingId(), -1, Instant.now(), command.getDittoHeaders());
+            return ThingDeleted.of(command.getThingEntityId(), -1, Instant.now(), command.getDittoHeaders());
         }
     }
 

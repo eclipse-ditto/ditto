@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public final class RetrieveFeatureResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeatureResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveFeaturePropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(RetrieveFeatureResponse.JSON_FEATURE, TestConstants.Feature.FLUX_CAPACITOR.toJson())
             .build();
@@ -46,7 +47,8 @@ public final class RetrieveFeatureResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveFeatureResponse.class, areImmutable(), provided(Feature.class).isAlsoImmutable());
+        assertInstancesOf(RetrieveFeatureResponse.class, areImmutable(),
+                provided(Feature.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -90,7 +92,7 @@ public final class RetrieveFeatureResponseTest {
         final JsonObject inputJson = JsonFactory.newObjectBuilder()
                 .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeatureResponse.TYPE)
                 .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-                .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+                .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
                 .set(RetrieveFeaturePropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
                 .set(RetrieveFeatureResponse.JSON_FEATURE, JsonFactory.nullObject())
                 .build();

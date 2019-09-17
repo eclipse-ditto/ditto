@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.policies.modify;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,6 +23,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -38,7 +40,7 @@ public final class DeletePolicyTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, DeletePolicy.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
@@ -46,7 +48,7 @@ public final class DeletePolicyTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DeletePolicy.class, areImmutable());
+        assertInstancesOf(DeletePolicy.class, areImmutable(), provided(PolicyId.class).areAlsoImmutable());
     }
 
 
@@ -60,15 +62,18 @@ public final class DeletePolicyTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        DeletePolicy.of(null, EMPTY_DITTO_HEADERS);
+        DeletePolicy.of((PolicyId) null, EMPTY_DITTO_HEADERS);
     }
 
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        DeletePolicy.of((String) null, EMPTY_DITTO_HEADERS);
+    }
 
     @Test
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> DeletePolicy.of("undefined", EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                .isThrownBy(() -> DeletePolicy.of("undefined", EMPTY_DITTO_HEADERS));
     }
 
 
@@ -87,7 +92,7 @@ public final class DeletePolicyTest {
         final DeletePolicy underTest = DeletePolicy.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
     }
 
 }

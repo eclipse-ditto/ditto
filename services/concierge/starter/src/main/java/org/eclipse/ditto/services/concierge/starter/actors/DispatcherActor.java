@@ -30,6 +30,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
@@ -37,7 +38,6 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
@@ -106,11 +106,6 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     @Override
     protected int getParallelism() {
         return enforcementConfig.getParallelism();
-    }
-
-    @Override
-    protected int getMaxNamespacesSubstreams() {
-        return enforcementConfig.getMaxNamespacesSubstreams();
     }
 
     @Override
@@ -191,7 +186,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
 
     private static Sink<ImmutableDispatch, ?> searchActorSink(final ActorRef pubSubMediator) {
         return Sink.foreach(dispatch -> pubSubMediator.tell(
-                new DistributedPubSubMediator.Send(SEARCH_ACTOR_PATH, dispatch.getMessage()),
+                DistPubSubAccess.send(SEARCH_ACTOR_PATH, dispatch.getMessage()),
                 dispatch.getSender()));
     }
 
@@ -234,7 +229,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * @param pubSubMediator Akka PubSub mediator.
      */
     private static void putSelfToPubSubMediator(final ActorRef self, final ActorRef pubSubMediator) {
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(self), self);
+        pubSubMediator.tell(DistPubSubAccess.put(self), self);
     }
 
     /**

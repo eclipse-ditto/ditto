@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
 
@@ -26,10 +28,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ShardedMessageEnvelopeTest {
 
-    private static final String THING_ID = "org.eclipse.ditto.test:thingId";
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
 
-    private static final String MESSAGE_ID = THING_ID;
+    private static final EntityId MESSAGE_ID = DefaultEntityId.of("org.eclipse.ditto.test:thingId");
     private static final String TYPE = "message-type";
     private static final JsonObject MESSAGE = JsonFactory.newObjectBuilder().set("hello", "world").build();
 
@@ -37,7 +38,7 @@ public final class ShardedMessageEnvelopeTest {
             ShardedMessageEnvelope.of(MESSAGE_ID, TYPE, MESSAGE, DITTO_HEADERS);
 
     private static final JsonObject SHARDED_MESSAGE_ENVELOPE_JSON = JsonObject.newBuilder() //
-            .set(ShardedMessageEnvelope.JSON_ID, MESSAGE_ID) //
+            .set(ShardedMessageEnvelope.JSON_ID, String.valueOf(MESSAGE_ID)) //
             .set(ShardedMessageEnvelope.JSON_TYPE, TYPE) //
             .set(ShardedMessageEnvelope.JSON_MESSAGE, MESSAGE) //
             .set(ShardedMessageEnvelope.JSON_DITTO_HEADERS, DITTO_HEADERS.toJson()) //

@@ -52,36 +52,38 @@ public final class PolicyCommandToAccessExceptionRegistry
     private static PolicyCommandToAccessExceptionRegistry createInstance() {
         final Map<String, Function<PolicyCommand, DittoRuntimeException>> mappingStrategies = new HashMap<>();
 
-        mappingStrategies.put(RetrievePolicy.TYPE, command -> PolicyNotAccessibleException.newBuilder(command.getId())
+        mappingStrategies.put(RetrievePolicy.TYPE,
+                command -> PolicyNotAccessibleException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
         mappingStrategies.put(RetrievePolicyEntries.TYPE,
-                command -> PolicyNotAccessibleException.newBuilder(command.getId())
+                command -> PolicyNotAccessibleException.newBuilder(command.getEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(RetrievePolicyEntry.TYPE,
-                command -> PolicyEntryNotAccessibleException.newBuilder(command.getId(),
+                command -> PolicyEntryNotAccessibleException.newBuilder(command.getEntityId(),
                         ((RetrievePolicyEntry) command).getLabel())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(RetrieveResource.TYPE,
-                command -> ResourceNotAccessibleException.newBuilder(command.getId(),
+                command -> ResourceNotAccessibleException.newBuilder(command.getEntityId(),
                         ((RetrievePolicyEntry) command).getLabel(),
                         command.getResourcePath().toString())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(RetrieveResources.TYPE,
-                command -> ResourcesNotAccessibleException.newBuilder(command.getId(),
+                command -> ResourcesNotAccessibleException.newBuilder(command.getEntityId(),
                         ((RetrievePolicyEntry) command).getLabel())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
-        mappingStrategies.put(RetrieveSubject.TYPE, command -> SubjectNotAccessibleException.newBuilder(command.getId(),
+        mappingStrategies.put(RetrieveSubject.TYPE,
+                command -> SubjectNotAccessibleException.newBuilder(command.getEntityId(),
                 ((RetrieveSubject) command).getLabel(),
                 ((RetrieveSubject) command).getSubjectId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
         mappingStrategies.put(RetrieveSubjects.TYPE,
-                command -> SubjectsNotAccessibleException.newBuilder(command.getId(),
+                command -> SubjectsNotAccessibleException.newBuilder(command.getEntityId(),
                         ((RetrieveSubjects) command).getLabel())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());

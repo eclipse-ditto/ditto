@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.models.thingsearch.commands.sudo;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
 
@@ -24,7 +25,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  * @param <T> the type of the implementing class.
  */
 public interface ThingSearchSudoCommandResponse<T extends ThingSearchSudoCommandResponse> extends CommandResponse<T>,
-        WithEntity<T> {
+        WithEntity<T>, WithIdButActuallyNot {
 
     /**
      * Type Prefix of Sudo commands.
@@ -40,16 +41,6 @@ public interface ThingSearchSudoCommandResponse<T extends ThingSearchSudoCommand
     @Override
     default String getResourceType() {
         return ThingSearchSudoCommand.RESOURCE_TYPE;
-    }
-
-    /**
-     * Sudo commands do not have an ID. Thus this implementation always returns an empty string.
-     *
-     * @return an empty string.
-     */
-    @Override
-    default String getId() {
-        return "";
     }
 
     @Override

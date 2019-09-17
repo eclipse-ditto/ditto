@@ -36,7 +36,7 @@ public final class DefaultKafkaPublisherActorFactoryTest {
 
     @Test
     public void testProps() {
-        assertThat(underTest.props(null, null, null, null, false)).isNotNull();
+        assertThat(underTest.props(null, null, null, false)).isNotNull();
     }
 
 }

@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpda
 import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamSupervisor;
 import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -72,7 +73,7 @@ final class PoliciesStreamSupervisorCreator {
     private static DistributedPubSubMediator.Send mapStreamTriggerCommand(
             final SudoStreamModifiedEntities sudoStreamModifiedEntities) {
 
-        return new DistributedPubSubMediator.Send(PoliciesMessagingConstants.POLICIES_STREAM_PROVIDER_ACTOR_PATH,
+        return DistPubSubAccess.send(PoliciesMessagingConstants.POLICIES_STREAM_PROVIDER_ACTOR_PATH,
                 sudoStreamModifiedEntities,
                 true);
     }

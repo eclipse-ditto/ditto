@@ -131,7 +131,7 @@ public interface ExternalMessage {
     /**
      * @return the required data to apply the enforcement (if enforcement is enabled), empty otherwise
      */
-    Optional<EnforcementFilter<String>> getEnforcementFilter();
+    Optional<EnforcementFilter<CharSequence>> getEnforcementFilter();
 
     /**
      * @return the optional header mapping
@@ -155,6 +155,7 @@ public interface ExternalMessage {
     enum PayloadType {
         TEXT,
         BYTES,
+        TEXT_AND_BYTES,
         UNKNOWN
     }
 }

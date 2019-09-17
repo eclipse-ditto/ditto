@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -52,8 +53,13 @@ final class PurgeEntitiesReason implements ShutdownReason {
      * @throws NullPointerException if {@code namespace} is {@code null}.
      * @throws IllegalArgumentException if {@code namespace} is empty.
      */
-    public static PurgeEntitiesReason of(final List<String> entityIdsToPurge) {
-        return new PurgeEntitiesReason(argumentNotEmpty(entityIdsToPurge, "namespace"));
+    public static PurgeEntitiesReason of(final List<EntityId> entityIdsToPurge) {
+        final List<String> stringEntityIdsToPurge = argumentNotEmpty(entityIdsToPurge, "entities to purge")
+                .stream()
+                .map(String::valueOf)
+                .collect(Collectors.toList());
+
+        return new PurgeEntitiesReason(stringEntityIdsToPurge);
     }
 
     static PurgeEntitiesReason fromJson(final JsonObject jsonObject) {
@@ -70,8 +76,11 @@ final class PurgeEntitiesReason implements ShutdownReason {
     }
 
     @Override
-    public boolean isRelevantFor(final String value) {
-        return entityIdsToPurge.contains(value);
+    public boolean isRelevantFor(final Object value) {
+        if (value instanceof CharSequence) {
+            return entityIdsToPurge.contains(value.toString());
+        }
+        return false;
     }
 
     @Override

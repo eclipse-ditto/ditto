@@ -25,6 +25,9 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
+/**
+ * A StatusDetailMessage contains a {@link Level} (INFO, WARN or ERROR) associated with a {@code message}.
+ */
 public final class StatusDetailMessage implements Jsonifiable<JsonObject> {
 
     public enum Level {

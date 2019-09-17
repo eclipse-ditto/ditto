@@ -17,6 +17,12 @@ echo "| Group ID  | Artifact ID  | Version  | CQ  |"
 echo "|---|---|---|---|"
 cat compile.txt|cut -d':' -f1,2,4|sed -e 's/:/|/g'|while read i; do echo "|$i| []() |";done
 echo ""
+echo "## Eclipse CQs - Runtime"
+echo ""
+echo "| Group ID  | Artifact ID  | Version  | CQ  |"
+echo "|---|---|---|---|"
+cat runtime.txt|cut -d':' -f1,2,4|sed -e 's/:/|/g'|while read i; do echo "|$i| []() |";done
+echo ""
 echo "## Works-With dependencies"
 echo ""
 echo "| Group ID  | Artifact ID  | Version  | CQ |"

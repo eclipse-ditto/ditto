@@ -38,7 +38,7 @@ public final class PolicyModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyModified.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
-            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyModified.JSON_POLICY, TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial()))
             .build();
 

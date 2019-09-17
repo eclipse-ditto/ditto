@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.things.starter;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
 import org.eclipse.ditto.services.things.common.config.ThingsConfig;
-import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +63,8 @@ public final class ThingsService extends DittoService<ThingsConfig> {
     protected Props getMainRootActorProps(final ThingsConfig thingsConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return ThingsRootActor.props(thingsConfig, pubSubMediator, materializer, DittoThingSnapshotter::getInstance);
+        return ThingsRootActor.props(thingsConfig, pubSubMediator, materializer,
+                DefaultThingPersistenceActorPropsFactory.getInstance());
     }
 
 }

@@ -13,7 +13,6 @@
 package org.eclipse.ditto.signals.commands.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,9 +21,10 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -34,7 +34,10 @@ import org.junit.Test;
 public final class ShutdownReasonFactoryTest {
 
     private static final String NAMESPACE = "com.example.test";
-    private static final List<String> ENTITY_IDS_TO_PURGE = Arrays.asList("x:y", "a:b", "f:oo");
+    private static final List<EntityId> ENTITY_IDS_TO_PURGE = Arrays.asList(
+            DefaultEntityId.of("x:y"),
+            DefaultEntityId.of("a:b"),
+            DefaultEntityId.of("f:oo"));
 
     private static JsonObject purgeNamespaceReasonJson;
     private static JsonObject purgeEntitiesReasonJson;
@@ -70,26 +73,22 @@ public final class ShutdownReasonFactoryTest {
     }
 
     @Test
-    public void fromJsonWithoutTypeFails() {
+    public void fromJsonWithoutType() {
         final JsonObject jsonObject = purgeNamespaceReasonJson.toBuilder()
                 .remove(ShutdownReason.JsonFields.TYPE)
                 .build();
 
-        assertThatExceptionOfType(JsonMissingFieldException.class)
-                .isThrownBy(() -> ShutdownReasonFactory.fromJson(jsonObject))
-                .withMessageContaining(ShutdownReason.JsonFields.TYPE.getPointer().toString())
-                .withNoCause();
+
+        assertThat(ShutdownReasonFactory.fromJson(jsonObject)).isEqualTo(ShutdownNoReason.INSTANCE);
     }
 
     @Test
-    public void fromJsonWithUnknownTypeFails() {
+    public void fromJsonWithUnknownType() {
         final JsonObject shutdownReasonWithUnknownType = purgeEntitiesReasonJson.toBuilder()
                 .set(ShutdownReason.JsonFields.TYPE, "fooBar")
                 .build();
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> ShutdownReasonFactory.fromJson(shutdownReasonWithUnknownType))
-                .withMessage("Unknown shutdown reason type: <fooBar>.");
+        assertThat(ShutdownReasonFactory.fromJson(shutdownReasonWithUnknownType)).isEqualTo(ShutdownNoReason.INSTANCE);
     }
 
 }

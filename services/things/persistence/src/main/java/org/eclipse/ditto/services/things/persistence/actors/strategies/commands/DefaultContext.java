@@ -18,7 +18,7 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.model.things.ThingId;
 
 import akka.event.DiagnosticLoggingAdapter;
 
@@ -28,21 +28,18 @@ import akka.event.DiagnosticLoggingAdapter;
 @Immutable
 public final class DefaultContext implements CommandStrategy.Context {
 
-    private final String thingId;
+    private final ThingId thingId;
     private final DiagnosticLoggingAdapter log;
-    private final ThingSnapshotter<?, ?> thingSnapshotter;
     private final Runnable becomeCreatedRunnable;
     private final Runnable becomeDeletedRunnable;
 
-    private DefaultContext(final String theThingId,
+    private DefaultContext(final ThingId theThingId,
             final DiagnosticLoggingAdapter theLog,
-            final ThingSnapshotter<?, ?> theThingSnapshotter,
             final Runnable becomeCreatedRunnable,
             final Runnable becomeDeletedRunnable) {
 
         thingId = checkNotNull(theThingId, "Thing ID");
         log = checkNotNull(theLog, "DiagnosticLoggingAdapter");
-        thingSnapshotter = checkNotNull(theThingSnapshotter, "ThingSnapshotter");
         this.becomeCreatedRunnable = checkNotNull(becomeCreatedRunnable, "becomeCreatedRunnable");
         this.becomeDeletedRunnable = checkNotNull(becomeDeletedRunnable, "becomeDeletedRunnable");
     }
@@ -52,35 +49,27 @@ public final class DefaultContext implements CommandStrategy.Context {
      *
      * @param thingId the ID of the Thing.
      * @param log the logging adapter to be used.
-     * @param thingSnapshotter the snapshotter to be used.
      * @param becomeCreatedRunnable the runnable to be called in case a Thing is created.
      * @param becomeDeletedRunnable the runnable to be called in case a Thing is deleted.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultContext getInstance(final String thingId,
+    public static DefaultContext getInstance(final ThingId thingId,
             final DiagnosticLoggingAdapter log,
-            final ThingSnapshotter<?, ?> thingSnapshotter,
             final Runnable becomeCreatedRunnable,
             final Runnable becomeDeletedRunnable) {
 
-        return new DefaultContext(thingId, log, thingSnapshotter, becomeCreatedRunnable, becomeDeletedRunnable
-        );
+        return new DefaultContext(thingId, log, becomeCreatedRunnable, becomeDeletedRunnable);
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
     @Override
     public DiagnosticLoggingAdapter getLog() {
         return log;
-    }
-
-    @Override
-    public ThingSnapshotter<?, ?> getThingSnapshotter() {
-        return thingSnapshotter;
     }
 
     @Override
@@ -104,14 +93,13 @@ public final class DefaultContext implements CommandStrategy.Context {
         final DefaultContext that = (DefaultContext) o;
         return Objects.equals(thingId, that.thingId) &&
                 Objects.equals(log, that.log) &&
-                Objects.equals(thingSnapshotter, that.thingSnapshotter) &&
                 Objects.equals(becomeCreatedRunnable, that.becomeCreatedRunnable) &&
                 Objects.equals(becomeDeletedRunnable, that.becomeDeletedRunnable);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, log, thingSnapshotter, becomeCreatedRunnable, becomeDeletedRunnable);
+        return Objects.hash(thingId, log, becomeCreatedRunnable, becomeDeletedRunnable);
     }
 
     @Override
@@ -119,7 +107,6 @@ public final class DefaultContext implements CommandStrategy.Context {
         return getClass().getSimpleName() + " [" +
                 "thingId=" + thingId +
                 ", log=" + log +
-                ", thingSnapshotter=" + thingSnapshotter +
                 ", becomeCreatedRunnable=" + becomeCreatedRunnable +
                 ", becomeDeletedRunnable=" + becomeDeletedRunnable +
                 "]";

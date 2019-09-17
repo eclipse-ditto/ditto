@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
 
@@ -41,7 +42,7 @@ public final class RetrieveFeatureDefinitionStrategy extends
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveFeatureDefinition command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
@@ -55,7 +56,7 @@ public final class RetrieveFeatureDefinitionStrategy extends
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result getFeatureDefinition(final Feature feature, final String thingId,
+    private Result getFeatureDefinition(final Feature feature, final ThingId thingId,
             final RetrieveFeatureDefinition command, @Nullable final Thing thing) {
 
         final String featureId = feature.getId();

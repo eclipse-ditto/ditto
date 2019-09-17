@@ -42,7 +42,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Nullable private final ByteBuffer bytePayload;
     @Nullable private final AuthorizationContext authorizationContext;
     @Nullable private final TopicPath topicPath;
-    @Nullable private final EnforcementFilter<String> enforcementFilter;
+    @Nullable private final EnforcementFilter<CharSequence> enforcementFilter;
     @Nullable private final HeaderMapping headerMapping;
     @Nullable private final String sourceAddress;
 
@@ -56,7 +56,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final ByteBuffer bytePayload,
             @Nullable final AuthorizationContext authorizationContext,
             @Nullable final TopicPath topicPath,
-            @Nullable final EnforcementFilter<String> enforcementFilter,
+            @Nullable final EnforcementFilter<CharSequence> enforcementFilter,
             @Nullable final HeaderMapping headerMapping,
             @Nullable final String sourceAddress,
             final DittoHeaders internalHeaders) {
@@ -110,12 +110,12 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
 
     @Override
     public boolean isTextMessage() {
-        return PayloadType.TEXT.equals(payloadType);
+        return PayloadType.TEXT.equals(payloadType) || PayloadType.TEXT_AND_BYTES.equals(payloadType);
     }
 
     @Override
     public boolean isBytesMessage() {
-        return PayloadType.BYTES.equals(payloadType);
+        return PayloadType.BYTES.equals(payloadType) || PayloadType.TEXT_AND_BYTES.equals(payloadType);
     }
 
     @Override
@@ -154,7 +154,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     }
 
     @Override
-    public Optional<EnforcementFilter<String>> getEnforcementFilter() {
+    public Optional<EnforcementFilter<CharSequence>> getEnforcementFilter() {
         return Optional.ofNullable(enforcementFilter);
     }
 
@@ -216,7 +216,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +
-                (bytePayload == null ? "null" : ("<binary> (size :" + bytePayload.array().length + ")")) + "'" +
+                (bytePayload == null ? "null" : ("<binary> (" + bytePayload.remaining() + "bytes)")) + "'" +
                 ", internalHeaders=" + internalHeaders +
                 "]";
     }

@@ -15,9 +15,11 @@ package org.eclipse.ditto.services.policies.persistence.actors.policies;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyPersistenceOperationsActor;
@@ -43,7 +45,7 @@ import akka.actor.Props;
  * Tests {@link PolicyPersistenceOperationsActor}.
  */
 @AllValuesAreNonnullByDefault
-public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceITAssertions {
+public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceITAssertions<PolicyId> {
 
     @Test
     public void purgeNamespaceWithoutSuffix() {
@@ -76,7 +78,12 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     }
 
     @Override
-    protected Object getCreateEntityCommand(final String id) {
+    protected PolicyId toEntityId(final EntityId entityId) {
+        return PolicyId.of(entityId);
+    }
+
+    @Override
+    protected Object getCreateEntityCommand(final PolicyId id) {
         final Policy policy = Policy.newBuilder(id)
                 .forLabel("DUMMY")
                 .setSubject("ditto:random-subject", SubjectType.GENERATED)
@@ -92,7 +99,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     }
 
     @Override
-    protected Object getRetrieveEntityCommand(final String id) {
+    protected Object getRetrieveEntityCommand(final PolicyId id) {
         return RetrievePolicy.of(id, DittoHeaders.empty());
     }
 
@@ -116,10 +123,10 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     }
 
     @Override
-    protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final String id) {
+    protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final PolicyId id) {
         final Props props = PolicySupervisorActor.props(pubSubMediator, new PolicyMongoSnapshotAdapter());
 
-        return system.actorOf(props, id);
+        return system.actorOf(props, id.toString());
     }
 
 }

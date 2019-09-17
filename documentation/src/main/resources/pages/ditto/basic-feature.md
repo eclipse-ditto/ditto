@@ -17,7 +17,7 @@ and do not exist without this Thing.
 Within a Thing each Feature is identified by a unique string - the so called Feature ID.
 A Feature ID often needs to be set in the path of a HTTP request. Due to this fact we strongly recommend to use a
 restricted set of characters (e.g. those for
-[Uniform Resource Identifiers (URI)](https://www.ietf.org/rfc/rfc2396.txt)).
+[Uniform Resource Identifiers (URI)](https://www.ietf.org/rfc/rfc3986.txt)).
 
 ### Feature properties
 

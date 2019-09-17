@@ -26,6 +26,7 @@ import org.assertj.core.api.ThrowableAssert;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -34,7 +35,6 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.junit.AfterClass;
@@ -65,7 +65,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     private static final IllegalArgumentException CUSTOM_EXCEPTION =
             new IllegalArgumentException("custom error message");
 
-    private static final String CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final ConnectivityStatus CONNECTION_STATUS = ConnectivityStatus.OPEN;
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
@@ -99,7 +99,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
 
     @Test
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
+        final Connection connection =
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_091,
                 ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
                 .targets(Collections.singletonList(ConnectivityModelFactory.newTarget("exchangeOnly",
                         TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, null, Topic.TWIN_EVENTS)))
@@ -153,7 +154,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testConnectionWithoutPublisherHandling() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connectionWithoutTargets =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props =
@@ -176,14 +177,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
             final Props props = createClientActor(getRef());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
-            rabbitClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
-
-            rabbitClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(DISCONNECTED_SUCCESS);
-
-            // reconnect many times
-            for (int i = 0; i < 10; ++i) {
+            // reconnect a few times
+            for (int i = 0; i < 3; ++i) {
                 rabbitClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
                 expectMsg(CONNECTED_SUCCESS);
 
@@ -216,7 +211,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             rabbitClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsgClass(ConnectionSignalIllegalException.class);
+            expectMsg(CONNECTED_SUCCESS);
 
             // a publisher and a consumer channel should be created
             verify(mockConnection, Mockito.times(2)).createChannel();

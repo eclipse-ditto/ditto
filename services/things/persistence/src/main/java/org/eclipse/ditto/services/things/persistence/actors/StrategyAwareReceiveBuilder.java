@@ -43,6 +43,7 @@ final class StrategyAwareReceiveBuilder {
     private final Map<Class<?>, ReceiveStrategy> strategies;
     @Nullable private PartialFunction<Object, Object> peekStep;
     @Nullable private ReceiveStrategy<Object> matchAny;
+    @Nullable private AbstractActor.Receive superReceive;
 
     /**
      * Constructs a new {@code StrategyAwareReceiveBuilder} object.
@@ -57,6 +58,7 @@ final class StrategyAwareReceiveBuilder {
         strategies = new HashMap<>();
         peekStep = null;
         matchAny = null;
+        superReceive = null;
     }
 
     /**
@@ -138,7 +140,8 @@ final class StrategyAwareReceiveBuilder {
         if (matchAny != null) {
             delegationTarget.matchAny(matchAny::apply);
         }
-        return applyPeekStepIfSet(delegationTarget.build());
+        final AbstractActor.Receive receive = delegationTarget.build();
+        return applyPeekStepIfSet(superReceive != null ? superReceive.orElse(receive) : receive);
     }
 
     private AbstractActor.Receive applyPeekStepIfSet(final AbstractActor.Receive receive) {
@@ -149,4 +152,8 @@ final class StrategyAwareReceiveBuilder {
         return receive;
     }
 
+    public StrategyAwareReceiveBuilder withReceiveFromSuperClass(final AbstractActor.Receive superReceive) {
+        this.superReceive = checkNotNull(superReceive, "superReceive");
+        return this;
+    }
 }

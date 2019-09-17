@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Immutable implementation of {@code MessageHeaders}.
@@ -68,9 +69,11 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     }
 
     @Override
-    public String getThingId() {
-        final HeaderDefinition definition = MessageHeaderDefinition.THING_ID;
-        return getStringForDefinition(definition).orElseThrow(() -> newIllegalStateException(definition));
+    public ThingId getThingEntityId() {
+        final String thingId = getStringForDefinition(MessageHeaderDefinition.THING_ID)
+                .orElseThrow(() -> newIllegalStateException(MessageHeaderDefinition.THING_ID));
+
+        return ThingId.of(thingId);
     }
 
     @Override

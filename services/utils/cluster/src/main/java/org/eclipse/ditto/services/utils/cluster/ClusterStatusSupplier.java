@@ -21,6 +21,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.cluster.config.DefaultClusterConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterRoleStatus;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 
@@ -34,6 +37,7 @@ import akka.cluster.Member;
 public final class ClusterStatusSupplier implements Supplier<ClusterStatus> {
 
     private final Cluster cluster;
+    private final ClusterConfig clusterConfig;
 
     /**
      * Creates a new {@code ClusterStatusSupplier} instance with the given {@code cluster} to get the state from.
@@ -42,13 +46,17 @@ public final class ClusterStatusSupplier implements Supplier<ClusterStatus> {
      */
     public ClusterStatusSupplier(final Cluster cluster) {
         this.cluster = cluster;
+        clusterConfig = DefaultClusterConfig.of(DefaultScopedConfig.dittoScoped(cluster.system().settings().config()));
     }
 
     @Override
     public ClusterStatus get() {
         final Function<Member, String> mapMemberToString = member -> member.address().toString();
 
-        final Set<String> allRoles = cluster.state().getAllRoles();
+        final Set<String> allRoles = cluster.state().getAllRoles()
+                .stream()
+                .filter(role -> !clusterConfig.getClusterStatusRolesBlacklist().contains(role))
+                .collect(Collectors.toSet());
         final Set<Member> unreachable = cluster.state().getUnreachable();
         final Set<Member> all =
                 StreamSupport.stream(cluster.state().getMembers().spliterator(), false).collect(Collectors.toSet());
@@ -62,9 +70,17 @@ public final class ClusterStatusSupplier implements Supplier<ClusterStatus> {
             if (all.stream().anyMatch(filterRole)) {
                 roles.add(ClusterRoleStatus.of(
                         role,
-                        reachable.stream().filter(filterRole).map(mapMemberToString).collect(Collectors.toSet()),
-                        unreachable.stream().filter(filterRole).map(mapMemberToString).collect(Collectors.toSet()),
-                        Optional.ofNullable(cluster.state().getRoleLeader(role)).map(Address::toString).orElse(null)
+                        reachable.stream()
+                                .filter(filterRole)
+                                .map(mapMemberToString)
+                                .collect(Collectors.toSet()),
+                        unreachable.stream()
+                                .filter(filterRole)
+                                .map(mapMemberToString)
+                                .collect(Collectors.toSet()),
+                        Optional.ofNullable(cluster.state().getRoleLeader(role))
+                                .map(Address::toString)
+                                .orElse(null)
                 ));
             }
         });

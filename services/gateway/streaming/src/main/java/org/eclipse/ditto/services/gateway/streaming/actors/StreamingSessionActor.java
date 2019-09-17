@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -51,7 +53,6 @@ import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
@@ -61,18 +62,11 @@ import scala.concurrent.duration.FiniteDuration;
  */
 final class StreamingSessionActor extends AbstractActor {
 
-    /**
-     * The max. timeout in milliseconds how long to wait until sending an "acknowledge" message back to the client. If
-     * too small, we might miss some events which the client expects once the "ack" message is received as the messages
-     * via distributed pub/sub are not yet received.
-     */
-    private static final int MAX_SUBSCRIBE_TIMEOUT_MS = 5000;
-
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
     private final String connectionCorrelationId;
     private final String type;
-    private final ActorRef pubSubMediator;
+    private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef eventAndResponsePublisher;
     private final Set<StreamingType> outstandingSubscriptionAcks;
 
@@ -82,12 +76,13 @@ final class StreamingSessionActor extends AbstractActor {
 
     @SuppressWarnings("unused")
     private StreamingSessionActor(final String connectionCorrelationId, final String type,
-            final ActorRef pubSubMediator, final ActorRef eventAndResponsePublisher) {
+            final DittoProtocolSub dittoProtocolSub, final ActorRef eventAndResponsePublisher) {
         this.connectionCorrelationId = connectionCorrelationId;
         this.type = type;
-        this.pubSubMediator = pubSubMediator;
+        this.dittoProtocolSub = dittoProtocolSub;
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         outstandingSubscriptionAcks = new HashSet<>();
+        authorizationSubjects = Collections.emptyList();
         namespacesForStreamingTypes = new EnumMap<>(StreamingType.class);
         eventFilterCriteriaForStreamingTypes = new EnumMap<>(StreamingType.class);
 
@@ -97,15 +92,15 @@ final class StreamingSessionActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this StreamingSessionActor.
      *
-     * @param pubSubMediator the PubSub mediator actor
+     * @param dittoProtocolSub manager of subscriptions.
      * @param eventAndResponsePublisher the {@link EventAndResponsePublisher} actor.
      * @return the Akka configuration Props object.
      */
     static Props props(final String connectionCorrelationId, final String type,
-            final ActorRef pubSubMediator, final ActorRef eventAndResponsePublisher) {
+            final DittoProtocolSub dittoProtocolSub, final ActorRef eventAndResponsePublisher) {
 
-        return Props.create(StreamingSessionActor.class, connectionCorrelationId, type, pubSubMediator,
-                        eventAndResponsePublisher);
+        return Props.create(StreamingSessionActor.class, connectionCorrelationId, type, dittoProtocolSub,
+                eventAndResponsePublisher);
     }
 
     @Override
@@ -160,10 +155,11 @@ final class StreamingSessionActor extends AbstractActor {
 
                     outstandingSubscriptionAcks.add(startStreaming.getStreamingType());
                     // In Cluster: Subscribe
-                    pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(
-                            startStreaming.getStreamingType().getDistributedPubSubTopic(),
-                            connectionCorrelationId,
-                            getSelf()), getSelf());
+                    final AcknowledgeSubscription subscribeAck =
+                            new AcknowledgeSubscription(startStreaming.getStreamingType());
+                    final Collection<StreamingType> currentStreamingTypes = namespacesForStreamingTypes.keySet();
+                    dittoProtocolSub.subscribe(currentStreamingTypes, authorizationSubjects, getSelf())
+                            .thenAccept(ack -> getSelf().tell(subscribeAck, getSelf()));
                 })
                 .match(StopStreaming.class, stopStreaming -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
@@ -174,42 +170,17 @@ final class StreamingSessionActor extends AbstractActor {
                     eventFilterCriteriaForStreamingTypes.remove(stopStreaming.getStreamingType());
 
                     // In Cluster: Unsubscribe
-                    pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(
-                            stopStreaming.getStreamingType().getDistributedPubSubTopic(),
-                            connectionCorrelationId, getSelf()), getSelf());
-                })
-                .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-                    final String topic = subscribeAck.subscribe().topic();
-                    final StreamingType streamingType = StreamingType.fromTopic(topic);
-                    final ActorRef self = getSelf();
-                    /* send the StreamingAck with a little delay, as the akka doc states:
-                     * The acknowledgment means that the subscription is registered, but it can still take some time
-                     * until it is replicated to other nodes.
-                     */
-                    getContext().getSystem().scheduler()
-                            .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
-                                    self,
-                                    new AcknowledgeSubscription(streamingType),
-                                    getContext().getSystem().dispatcher(),
-                                    self);
-                })
-                .match(DistributedPubSubMediator.UnsubscribeAck.class, unsubscribeAck -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-                    final String topic = unsubscribeAck.unsubscribe().topic();
-                    final StreamingType streamingType = StreamingType.fromTopic(topic);
-
-                    final ActorRef self = getSelf();
-                    /* send the StreamingAck with a little delay, as the akka doc states:
-                     * The acknowledgment means that the subscription is registered, but it can still take some time
-                     * until it is replicated to other nodes.
-                     */
-                    getContext().getSystem().scheduler()
-                            .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
-                                    self,
-                                    new AcknowledgeUnsubscription(streamingType),
-                                    getContext().getSystem().dispatcher(),
-                                    self);
+                    final AcknowledgeUnsubscription unsubscribeAck =
+                            new AcknowledgeUnsubscription(stopStreaming.getStreamingType());
+                    final Collection<StreamingType> currentStreamingTypes = namespacesForStreamingTypes.keySet();
+                    if (stopStreaming.getStreamingType() != StreamingType.EVENTS) {
+                        dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes, authorizationSubjects,
+                                getSelf())
+                                .thenAccept(ack -> getSelf().tell(unsubscribeAck, getSelf()));
+                    } else {
+                        dittoProtocolSub.removeTwinSubscriber(getSelf(), authorizationSubjects)
+                                .thenAccept(ack -> getSelf().tell(unsubscribeAck, getSelf()));
+                    }
                 })
                 .match(AcknowledgeSubscription.class, msg ->
                         acknowledgeSubscription(msg.getStreamingType(), getSelf()))
@@ -221,11 +192,7 @@ final class StreamingSessionActor extends AbstractActor {
                     // In Cluster: Unsubscribe from ThingEvents:
                     logger.info("<{}> connection was closed, unsubscribing from Streams in Cluster..", type);
 
-                    Arrays.stream(StreamingType.values())
-                            .map(StreamingType::getDistributedPubSubTopic)
-                            .forEach(topic ->
-                                    pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(topic,
-                                            connectionCorrelationId, getSelf()), getSelf()));
+                    dittoProtocolSub.removeSubscriber(getSelf());
 
                     getContext().getSystem()
                             .scheduler()
@@ -292,7 +259,7 @@ final class StreamingSessionActor extends AbstractActor {
     }
 
     private static String namespaceFromId(final WithId withId) {
-        return withId.getId().split(":", 2)[0];
+        return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
     }
 
     /**

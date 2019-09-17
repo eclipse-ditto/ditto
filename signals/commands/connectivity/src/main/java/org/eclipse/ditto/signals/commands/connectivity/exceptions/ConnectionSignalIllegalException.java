@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.connectivity.exceptions;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.time.Duration;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
 /**
@@ -65,7 +67,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
      * @param connectionId the ID of the connection.
      * @return the builder.
      */
-    public static Builder newBuilder(final String connectionId) {
+    public static Builder newBuilder(final ConnectionId connectionId) {
         return new Builder().connectionId(connectionId);
     }
 
@@ -95,7 +97,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionSignalIllegalException> {
 
-        private String connectionId = "UNKNOWN";
+        private ConnectionId connectionId = ConnectionId.of("UNKNOWN");
 
         private Builder() {
             this.description(DEFAULT_DESCRIPTION);
@@ -107,7 +109,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
          * @param connectionId the connection ID.
          * @return this builder.
          */
-        public Builder connectionId(final String connectionId) {
+        public Builder connectionId(final ConnectionId connectionId) {
             this.connectionId = connectionId;
             return this;
         }
@@ -120,7 +122,19 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
          * @return this builder.
          */
         public Builder operationName(final String operationName) {
-            message(MessageFormat.format(OPERATING_MESSAGE_TEMPLATE, connectionId, operationName));
+            message(MessageFormat.format(OPERATING_MESSAGE_TEMPLATE, String.valueOf(connectionId), operationName));
+            return this;
+        }
+
+        /**
+         * Set description to after how many seconds the user should attempt the command again.
+         *
+         * @param timeoutInSeconds timeout of the current connection operation in seconds.
+         * @return this builder.
+         */
+        public Builder timeout(final long timeoutInSeconds) {
+            final String timeoutUnit = timeoutInSeconds == 1 ? "second" : "seconds";
+            description(MessageFormat.format(OPERATING_DESCRIPTION_TEMPLATE, timeoutInSeconds, timeoutUnit));
             return this;
         }
 
@@ -130,11 +144,10 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
          * @param timeout timeout of the current connection operation in seconds.
          * @return this builder.
          */
-        public Builder timeout(final int timeout) {
-            final String timeoutUnit = timeout == 1 ? "second" : "seconds";
-            description(MessageFormat.format(OPERATING_DESCRIPTION_TEMPLATE, timeout, timeoutUnit));
-            return this;
+        public Builder timeout(final Duration timeout) {
+            return timeout(timeout.getSeconds());
         }
+
 
         /**
          * Set message to about a signal arriving when the connection state does not handle it.

@@ -24,7 +24,7 @@ import org.bson.Document;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
-import org.eclipse.ditto.services.utils.health.mongo.RetrieveMongoStatusResponse;
+import org.eclipse.ditto.services.utils.health.mongo.CurrentMongoStatus;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 
 import com.mongodb.ReadPreference;
@@ -92,22 +92,22 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
     @Override
     protected Receive matchCustomMessages() {
         return ReceiveBuilder.create()
-                .match(RetrieveMongoStatusResponse.class, this::applyMongoStatus)
+                .match(CurrentMongoStatus.class, this::applyMongoStatus)
                 .build();
     }
 
     @Override
     protected void triggerHealthRetrieval() {
         generateStatusResponse().thenAccept(errorOpt -> {
-            final RetrieveMongoStatusResponse response;
+            final CurrentMongoStatus mongoStatus;
             if (errorOpt.isPresent()) {
                 final Throwable error = errorOpt.get();
-                response = new RetrieveMongoStatusResponse(false,
+                mongoStatus = new CurrentMongoStatus(false,
                         error.getClass().getCanonicalName() + ": " + error.getMessage());
             } else {
-                response = new RetrieveMongoStatusResponse(true);
+                mongoStatus = new CurrentMongoStatus(true);
             }
-            getSelf().tell(response, ActorRef.noSender());
+            getSelf().tell(mongoStatus, ActorRef.noSender());
         });
     }
 
@@ -135,10 +135,10 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
                 });
     }
 
-    private void applyMongoStatus(final RetrieveMongoStatusResponse statusResponse) {
+    private void applyMongoStatus(final CurrentMongoStatus status) {
         final StatusInfo persistenceStatus = StatusInfo.fromStatus(
-                statusResponse.isAlive() ? StatusInfo.Status.UP : StatusInfo.Status.DOWN,
-                statusResponse.getDescription().orElse(null));
+                status.isAlive() ? StatusInfo.Status.UP : StatusInfo.Status.DOWN,
+                status.getDescription().orElse(null));
         updateHealth(persistenceStatus);
     }
 

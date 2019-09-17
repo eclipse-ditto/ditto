@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
@@ -98,18 +98,22 @@ public interface CommandStrategy<T extends Command> {
 
         /**
          * @return the thing ID.
+         * @deprecated Thing ID is now typed. Use {@link #getThingEntityId()} instead.
          */
-        String getThingId();
+        @Deprecated
+        default String getThingId() {
+            return String.valueOf(getThingEntityId());
+        }
+
+        /**
+         * @return the thing ID.
+         */
+        ThingId getThingEntityId();
 
         /**
          * @return the log.
          */
         DiagnosticLoggingAdapter getLog();
-
-        /**
-         * @return the thing snapshotter.
-         */
-        ThingSnapshotter getThingSnapshotter();
 
         /**
          * @return the runnable to be called in case a Thing is created.

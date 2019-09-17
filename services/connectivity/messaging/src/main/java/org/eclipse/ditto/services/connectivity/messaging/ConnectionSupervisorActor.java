@@ -25,10 +25,12 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
@@ -59,7 +61,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final String connectionId;
+    private final ConnectionId connectionId;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final Props persistenceActorProps;
 
@@ -76,13 +78,14 @@ public final class ConnectionSupervisorActor extends AbstractActor {
             .build());
 
     @SuppressWarnings("unused")
-    private ConnectionSupervisorActor(final ActorRef pubSubMediator,
+    private ConnectionSupervisorActor(final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
         try {
-            connectionId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
+            connectionId =
+                    ConnectionId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }
@@ -93,7 +96,8 @@ public final class ConnectionSupervisorActor extends AbstractActor {
         exponentialBackOffConfig = connectionConfig.getSupervisorConfig().getExponentialBackOffConfig();
 
         persistenceActorProps =
-                ConnectionActor.props(connectionId, pubSubMediator, conciergeForwarder, propsFactory, commandValidator);
+                ConnectionActor.props(connectionId, dittoProtocolSub, conciergeForwarder, propsFactory,
+                        commandValidator);
     }
 
     /**
@@ -103,18 +107,18 @@ public final class ConnectionSupervisorActor extends AbstractActor {
      * stops it for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
-     * @param pubSubMediator the PubSub mediator actor.
+     * @param dittoProtocolSub Ditto protocol sub access.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param propsFactory the {@link ClientActorPropsFactory}
      * @param commandValidator a custom command validator for connectivity commands
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final ActorRef pubSubMediator,
+    public static Props props(final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
-        return Props.create(ConnectionSupervisorActor.class, pubSubMediator, conciergeForwarder, propsFactory,
+        return Props.create(ConnectionSupervisorActor.class, dittoProtocolSub, conciergeForwarder, propsFactory,
                 commandValidator);
     }
 

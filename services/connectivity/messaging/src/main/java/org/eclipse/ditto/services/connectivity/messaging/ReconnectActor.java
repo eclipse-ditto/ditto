@@ -17,12 +17,16 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
@@ -30,7 +34,6 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
@@ -68,13 +71,31 @@ public final class ReconnectActor extends AbstractActor {
 
         this.connectionShardRegion = connectionShardRegion;
         this.currentPersistenceIdsSourceSupplier = currentPersistenceIdsSourceSupplier;
+        reconnectConfig = getReconnectConfig(getContext());
+        materializer = ActorMaterializer.create(getContext());
+    }
 
-        final ActorSystem system = getContext().getSystem();
-        
-        reconnectConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(system.settings().config())
-        ).getReconnectConfig();
-        materializer = ActorMaterializer.create(system);
+    @SuppressWarnings("unused")
+    private ReconnectActor(final ActorRef connectionShardRegion, final MongoReadJournal readJournal) {
+        this.connectionShardRegion = connectionShardRegion;
+        reconnectConfig = getReconnectConfig(getContext());
+        materializer = ActorMaterializer.create(getContext());
+
+        currentPersistenceIdsSourceSupplier =
+                () -> readJournal.getJournalPids(reconnectConfig.getReadJournalBatchSize(),
+                        reconnectConfig.getInterval(), materializer);
+    }
+
+    /**
+     * Creates Akka configuration object Props for this Actor.
+     *
+     * @param connectionShardRegion the shard region of connections.
+     * @param readJournal readJournal to extract current PIDs from.
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final ActorRef connectionShardRegion, final MongoReadJournal readJournal) {
+
+        return Props.create(ReconnectActor.class, connectionShardRegion, readJournal);
     }
 
     /**
@@ -84,7 +105,7 @@ public final class ReconnectActor extends AbstractActor {
      * @param currentPersistenceIdsSourceSupplier supplier of persistence id sources
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef connectionShardRegion,
+    static Props props(final ActorRef connectionShardRegion,
             final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier) {
 
         return Props.create(ReconnectActor.class, connectionShardRegion, currentPersistenceIdsSourceSupplier);
@@ -133,7 +154,7 @@ public final class ReconnectActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(RetrieveConnectionStatusResponse.class,
                         command -> log.debug("Retrieved connection status response for connection <{}> with status: {}",
-                                command.getConnectionId(), command.getConnectionStatus()))
+                                command.getConnectionEntityId(), command.getConnectionStatus()))
                 .match(ConnectionNotAccessibleException.class,
                         exception -> log.debug("Received ConnectionNotAccessibleException for connection <{}> " +
                                         "(most likely, the connection was deleted): {}",
@@ -187,7 +208,8 @@ public final class ReconnectActor extends AbstractActor {
         // OpenConnection would set desired state to OPEN even for deleted connections.
 
         if (persistenceId.startsWith(ConnectionActor.PERSISTENCE_ID_PREFIX)) {
-            final String connectionId = persistenceId.substring(ConnectionActor.PERSISTENCE_ID_PREFIX.length());
+            final ConnectionId connectionId =
+                    ConnectionId.of(persistenceId.substring(ConnectionActor.PERSISTENCE_ID_PREFIX.length()));
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .correlationId(toCorrelationId(connectionId))
                     .build();
@@ -198,14 +220,21 @@ public final class ReconnectActor extends AbstractActor {
         }
     }
 
-    static String toCorrelationId(final String connectionId) {
+    static String toCorrelationId(final ConnectionId connectionId) {
         return CORRELATION_ID_PREFIX + connectionId;
     }
 
-    static Optional<String> toConnectionId(final String correlationId) {
-        return correlationId.startsWith(CORRELATION_ID_PREFIX)
-                ? Optional.of(correlationId.replace(CORRELATION_ID_PREFIX, ""))
-                : Optional.empty();
+    static Optional<ConnectionId> toConnectionId(final String correlationId) {
+        if (correlationId.startsWith(CORRELATION_ID_PREFIX)) {
+            return Optional.of(correlationId.replace(CORRELATION_ID_PREFIX, ""))
+                    .map(ConnectionId::of);
+        }
+        return Optional.empty();
+    }
+
+    private static ReconnectConfig getReconnectConfig(final ActorContext context) {
+        return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(context.system().settings().config()))
+                .getReconnectConfig();
     }
 
     enum ReconnectMessages {

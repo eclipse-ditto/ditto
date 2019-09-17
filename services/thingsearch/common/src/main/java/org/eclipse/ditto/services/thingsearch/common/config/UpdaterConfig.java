@@ -40,12 +40,12 @@ public interface UpdaterConfig {
     int getMaxBulkSize();
 
     /**
-     * Returns the interval which defines how long a thing updater is considered active.
-     * If not active, the corresponding actor can be stopped.
+     * Returns how often things-updater polls local sharding state and how often the new-event-forwarder polls
+     * cluster state.
      *
-     * @return the interval.
+     * @return the poll interval.
      */
-    Duration getActivityCheckInterval();
+    Duration getShardingStatePollInterval();
 
     /**
      * Indicates whether event processing should be active.
@@ -85,10 +85,10 @@ public interface UpdaterConfig {
         MAX_BULK_SIZE("max-bulk-size", Integer.MAX_VALUE),
 
         /**
-         * Determines the interval which defines how long a thing updater is considered active.
-         * If not active, the corresponding actor can be stopped.
+         * How often sharding state is polled. The intervening events are lost after shard rebalancing
+         * and require background sync to be accounted for.
          */
-        ACTIVITY_CHECK_INTERVAL("activity-check-interval", Duration.ofMinutes(1L)),
+        SHARDING_STATE_POLL_INTERVAL("sharding-state-poll-interval", Duration.ofSeconds(10L)),
 
         /**
          * Determines whether event processing should be active.

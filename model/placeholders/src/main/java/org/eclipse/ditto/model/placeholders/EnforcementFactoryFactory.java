@@ -29,8 +29,8 @@ public final class EnforcementFactoryFactory {
      * @param <I> the type from which the input values are resolved
      * @return the new {@link EnforcementFactoryFactory}
      */
-    public static <I> EnforcementFilterFactory<I, String> newEnforcementFilterFactory(final Enforcement enforcement,
-            final Placeholder<I> inputFilter, final Placeholder<String> filterPlaceholderResolver) {
+    private static <I> EnforcementFilterFactory<I, CharSequence > newEnforcementFilterFactory(final Enforcement enforcement,
+            final Placeholder<I> inputFilter, final Placeholder<CharSequence> filterPlaceholderResolver) {
         return new ImmutableEnforcementFilterFactory<>(enforcement, inputFilter, filterPlaceholderResolver);
     }
 
@@ -38,13 +38,13 @@ public final class EnforcementFactoryFactory {
      * Creates new instance of {@link EnforcementFilterFactory} that is preconfigured with a {@link ThingPlaceholder}
      * for the filters.
      *
-     * @param <O> the type from which the input values are resolved
+     * @param <I> the type from which the input values are resolved
      * @param enforcement the enforcement options
      * @param inputFilter the input filter that is applied to resolve input value
      * @return the new {@link EnforcementFactoryFactory} used to match the input
      */
-    public static <O> EnforcementFilterFactory<O, String> newEnforcementFilterFactory(final Enforcement enforcement,
-            final Placeholder<O> inputFilter) {
+    public static <I> EnforcementFilterFactory<I, CharSequence> newEnforcementFilterFactory(final Enforcement enforcement,
+            final Placeholder<I> inputFilter) {
         return newEnforcementFilterFactory(enforcement, inputFilter, PlaceholderFactory.newThingPlaceholder());
     }
 

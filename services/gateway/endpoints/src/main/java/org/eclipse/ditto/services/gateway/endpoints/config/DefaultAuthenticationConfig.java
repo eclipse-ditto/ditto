@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.config;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
@@ -33,11 +34,13 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
     private final boolean dummyAuthEnabled;
     private final HttpProxyConfig httpProxyConfig;
     private final DevOpsConfig devOpsConfig;
+    private final OAuthConfig oAuthConfig;
 
     private DefaultAuthenticationConfig(final ScopedConfig scopedConfig) {
         dummyAuthEnabled = scopedConfig.getBoolean(AuthenticationConfigValue.DUMMY_AUTH_ENABLED.getConfigPath());
         httpProxyConfig = DefaultHttpProxyConfig.of(scopedConfig);
         devOpsConfig = DefaultDevOpsConfig.of(scopedConfig);
+        oAuthConfig = DefaultOAuthConfig.of(scopedConfig);
     }
 
     /**
@@ -67,6 +70,11 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
         return httpProxyConfig;
     }
 
+    @Override
+    public OAuthConfig getOAuthConfig() {
+        return oAuthConfig;
+    }
+
     /**
      * @return always {@value CONFIG_PATH}.
      */
@@ -76,30 +84,28 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final DefaultAuthenticationConfig that = (DefaultAuthenticationConfig) o;
         return dummyAuthEnabled == that.dummyAuthEnabled &&
-                httpProxyConfig.equals(that.httpProxyConfig) &&
-                devOpsConfig.equals(that.devOpsConfig);
+                Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
+                Objects.equals(devOpsConfig, that.devOpsConfig) &&
+                Objects.equals(oAuthConfig, that.oAuthConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(dummyAuthEnabled, httpProxyConfig, devOpsConfig);
+        return Objects.hash(dummyAuthEnabled, httpProxyConfig, devOpsConfig, oAuthConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "dummyAuthEnabled=" + dummyAuthEnabled +
+                ", dummyAuthEnabled=" + dummyAuthEnabled +
                 ", httpProxyConfig=" + httpProxyConfig +
                 ", devOpsConfig=" + devOpsConfig +
+                ", oAuthConfig=" + oAuthConfig +
                 "]";
     }
 

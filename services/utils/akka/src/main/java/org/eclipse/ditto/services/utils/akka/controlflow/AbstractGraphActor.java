@@ -14,9 +14,12 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 
@@ -28,8 +31,10 @@ import akka.japi.function.Function;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.ActorMaterializerSettings;
+import akka.stream.Attributes;
 import akka.stream.FlowShape;
 import akka.stream.OverflowStrategy;
+import akka.stream.QueueOfferResult;
 import akka.stream.Supervision;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
@@ -55,6 +60,21 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
     public static final String DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE = "ditto-internal-special-enforcement-lane";
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
+    private final Counter receiveCounter = DittoMetrics.counter("graph_actor_receive")
+            .tag("class", getClass().getSimpleName());
+
+    private final Counter enqueueSuccessCounter = DittoMetrics.counter("graph_actor_enqueue_success")
+            .tag("class", getClass().getSimpleName());
+
+    private final Counter enqueueDroppedCounter = DittoMetrics.counter("graph_actor_enqueue_dropped")
+            .tag("class", getClass().getSimpleName());
+
+    private final Counter enqueueFailureCounter = DittoMetrics.counter("graph_actor_enqueue_failure")
+            .tag("class", getClass().getSimpleName());
+
+    private final Counter dequeueCounter = DittoMetrics.counter("graph_actor_dequeue")
+            .tag("class", getClass().getSimpleName());
 
     protected AbstractGraphActor() {
         // no-op
@@ -90,8 +110,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
     protected abstract Sink<T, ?> processedMessageSink();
 
     /**
-     * @return the buffer size used for the Source queue. After this limit is reached, the mailbox of this
-     * actor will rise and buffer messages as part of the backpressure strategy.
+     * @return the buffer size used for the Source queue.
      */
     protected abstract int getBufferSize();
 
@@ -101,50 +120,44 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      */
     protected abstract int getParallelism();
 
-    /**
-     * @return the maximum of supported namespaces to start substreams for. Choose a high value as if the actual amount
-     * of substreams gets bigger than this maximum value, the whole enforcement stream will fail. But don't set too high
-     * as substreams require memory!
-     */
-    protected abstract int getMaxNamespacesSubstreams();
-
     @Override
     public Receive createReceive() {
 
+        final String graphActorClassName = getClass().getSimpleName();
         final ActorSystem actorSystem = getContext().getSystem();
         final ActorMaterializerSettings materializerSettings = ActorMaterializerSettings.create(actorSystem)
                 .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc -> {
                             if (exc instanceof DittoRuntimeException) {
                                 LogUtil.enhanceLogWithCorrelationId(log, (DittoRuntimeException) exc);
-                                log.warning("DittoRuntimeException during materialization of AbstractGraphActor: [{}] {}",
-                                        exc.getClass().getSimpleName(), exc.getMessage());
+                                log.warning("DittoRuntimeException in stream of {}: [{}] {}",
+                                        graphActorClassName, exc.getClass().getSimpleName(), exc.getMessage());
                             } else {
-                                log.error(exc, "Exception during materialization of of AbstractGraphActor: {}",
-                                        exc.getMessage());
+                                log.error(exc, "Exception in stream of {}: {}",
+                                        graphActorClassName, exc.getMessage());
                             }
                             return Supervision.resume(); // in any case, resume!
                         }
                 );
         final ActorMaterializer materializer = ActorMaterializer.create(materializerSettings, getContext());
 
-        final SourceQueueWithComplete<T> sourceQueue =
-                Source.<T>queue(getBufferSize(), OverflowStrategy.backpressure())
-                        // first: create substreams by namespace of the messages
-                        .groupBy(getMaxNamespacesSubstreams(), msg -> {
-                            if (msg instanceof WithId) {
-                                final String id = ((WithId) msg).getId();
-                                final int firstColon = id.indexOf(':');
-                                if (firstColon >= 0) {
-                                    return id.substring(0, firstColon);
-                                }
-                            }
-                            return "";
-                        })
-                        .via(Flow.fromFunction(this::beforeProcessMessage))
-                        // second: partition by the message's ID in order to maintain order per ID
-                        .via(partitionById(processMessageFlow(), getParallelism()))
-                        .to(processedMessageSink())
-                        .run(materializer);
+        // log stream completion and failure at level ERROR because the stream is supposed to survive forever.
+        final Attributes streamLogLevels =
+                Attributes.logLevels(Attributes.logLevelDebug(), Attributes.logLevelError(),
+                        Attributes.logLevelError());
+
+        final SourceQueueWithComplete<T> sourceQueue = Source.<T>queue(getBufferSize(), OverflowStrategy.dropNew())
+                .map(this::incrementDequeueCounter)
+                .log("graph-actor-stream-1-dequeued", log)
+                .withAttributes(streamLogLevels)
+                .via(Flow.fromFunction(this::beforeProcessMessage))
+                .log("graph-actor-stream-2-preprocessed", log)
+                .withAttributes(streamLogLevels)
+                // partition by the message's ID in order to maintain order per ID
+                .via(partitionById(processMessageFlow(), getParallelism()))
+                .log("graph-actor-stream-3-partitioned", log)
+                .withAttributes(streamLogLevels)
+                .to(processedMessageSink())
+                .run(materializer);
 
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
         preEnhancement(receiveBuilder);
@@ -157,14 +170,12 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                     LogUtil.enhanceLogWithCorrelationId(log, withDittoHeaders);
                     if (withDittoHeaders instanceof WithId) {
                         log.debug("Received <{}> with id <{}>", withDittoHeaders.getClass().getSimpleName(),
-                                ((WithId) withDittoHeaders).getId());
+                                ((WithId) withDittoHeaders).getEntityId());
                     } else {
                         log.debug("Received WithDittoHeaders: <{}>", withDittoHeaders);
                     }
-                    sourceQueue.offer(mapMessage(withDittoHeaders))
-                            .toCompletableFuture()
-                            .join(); // blocks the Actor from processing new messages
-                    // used intentionally in combination with OverflowStrategy.backpressure()
+                    incrementReceiveCounter();
+                    sourceQueue.offer(mapMessage(withDittoHeaders)).handle(this::incrementEnqueueCounters);
                 })
                 .match(Throwable.class, unknownThrowable -> {
                     log.warning("Received unknown Throwable: <{}>", unknownThrowable);
@@ -176,6 +187,31 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                 })
                 .matchAny(message -> log.warning("Received unknown message: <{}>", message))
                 .build();
+    }
+
+    private void incrementReceiveCounter() {
+        receiveCounter.increment();
+    }
+
+    private Void incrementEnqueueCounters(final QueueOfferResult result, final Throwable error) {
+        if  (QueueOfferResult.enqueued().equals(result)) {
+            enqueueSuccessCounter.increment();
+        } else if (QueueOfferResult.dropped().equals(result)) {
+            enqueueDroppedCounter.increment();
+        } else if (result instanceof QueueOfferResult.Failure) {
+            final QueueOfferResult.Failure failure = (QueueOfferResult.Failure) result;
+            log.error(failure.cause(), "enqueue failed");
+            enqueueFailureCounter.increment();
+        } else {
+            log.error(error, "enqueue failed without acknowledgement");
+            enqueueFailureCounter.increment();
+        }
+        return null;
+    }
+
+    private <E> E incrementDequeueCounter(final E element) {
+        dequeueCounter.increment();
+        return element;
     }
 
     /**
@@ -199,8 +235,8 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                     if (checkForSpecialLane(msg)) {
                         return 0; // 0 is a special "lane" which is required in some special cases
                     } else if (msg instanceof WithId) {
-                        final String id = ((WithId) msg).getId();
-                        if (id.isEmpty()) {
+                        final EntityId id = ((WithId) msg).getEntityId();
+                        if (id.isDummy()) {
                             // e.g. the case for RetrieveThings command - in that case it is important that not all
                             // RetrieveThings message are processed in the same "lane", so use msg hash instead:
                             return (msg.hashCode() % parallelism) + 1;
@@ -235,8 +271,8 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      */
     private static <T> boolean checkForSpecialLane(final T msg) {
         return msg instanceof WithDittoHeaders && Optional.ofNullable(((WithDittoHeaders) msg).getDittoHeaders()
-                        .get(DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE))
-                        .isPresent();
+                .get(DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE))
+                .isPresent();
     }
 
     /**
