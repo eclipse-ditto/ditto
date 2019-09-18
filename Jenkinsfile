@@ -29,8 +29,7 @@ node {
               jdk: 'JDK8',
               mavenLocalRepo: theMvnRepo) {
 
-        sh "mvn -f java/pom.xml --batch-mode --errors sonar:sonar -Dsonar.branch.name=${theBranch} " +
-                " -Drevision=${theVersion}"
+        sh "mvn --batch-mode --errors sonar:sonar -Dsonar.branch.name=${theBranch} -Drevision=${theVersion}"
       }
     }
   }
