@@ -21,4 +21,17 @@ node {
               " -Drevision=${theVersion}"
     }
   }
+
+  stage('SonarQube analysis') {
+    withSonarQubeEnv("${env.SONAR_QUBE_ENV}") {
+      withMaven(
+              maven: 'maven-3.6.0',
+              jdk: 'JDK8',
+              mavenLocalRepo: theMvnRepo) {
+
+        sh "mvn -f java/pom.xml --batch-mode --errors sonar:sonar -Dsonar.branch.name=${theBranch} " +
+                " -Drevision=${theVersion}"
+      }
+    }
+  }
 }
