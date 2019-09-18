@@ -1,6 +1,6 @@
 ---
 title: "Connecting Eclipse Ditto to Eclipse Hono"
-published: true
+published: false
 permalink: 2018-05-02-connecting-ditto-hono.html
 layout: post
 author: thomas_jaeckle
