@@ -13,9 +13,9 @@ Install `@eclipse-ditto/ditto-javascript-client-dom` for the DOM (browser) imple
 the API and build your own client implementation.
 
 More information can be found in the descriptions of the subpackages:
-* [@eclipse-ditto/ditto-javascript-client-api](https://github.com/eclipse/ditto-clients/tree/master/javascript/lib/lib/api/README.md)
-* [@eclipse-ditto/ditto-javascript-client-dom](https://github.com/eclipse/ditto-clients/tree/master/javascript/lib/lib/dom/README.md) 
-* [@eclipse-ditto/ditto-javascript-client-node](https://github.com/eclipse/ditto-clients/tree/master/javascript/lib/lib/node/README.md)
+* [@eclipse-ditto/ditto-javascript-client-api](https://github.com/eclipse/ditto-clients/blob/master/javascript/lib/api/README.md)
+* [@eclipse-ditto/ditto-javascript-client-dom](https://github.com/eclipse/ditto-clients/blob/master/javascript/lib/dom/README.md) 
+* [@eclipse-ditto/ditto-javascript-client-node](https://github.com/eclipse/ditto-clients/blob/master/javascript/lib/node/README.md)
 
 ## Compatibility with [Eclipse Ditto](https://github.com/eclipse/ditto)
 
