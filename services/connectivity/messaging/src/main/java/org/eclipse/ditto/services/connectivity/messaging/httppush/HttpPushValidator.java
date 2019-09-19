@@ -43,10 +43,10 @@ import akka.http.javadsl.model.HttpMethods;
  */
 public final class HttpPushValidator extends AbstractProtocolValidator {
 
-    private static final Collection<String> ACCEPTED_SCHEMES =
-            Collections.unmodifiableList(Arrays.asList("http", "https"));
-
-    private static final Collection<String> SECURE_SCHEMES = Collections.singletonList("https");
+    private static final String HTTPS = "https";
+    private static final String HTTP = "http";
+    private static final Collection<String> ACCEPTED_SCHEMES = Collections.unmodifiableList(Arrays.asList(HTTP, HTTPS));
+    private static final Collection<String> SECURE_SCHEMES = Collections.singletonList(HTTPS);
 
     private static final Collection<HttpMethod> SUPPORTED_METHODS =
             Collections.unmodifiableList(Arrays.asList(HttpMethods.PUT, HttpMethods.PATCH, HttpMethods.POST));
@@ -143,5 +143,9 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
                         .build();
             }
         }
+    }
+
+    static boolean isSecureScheme(final String scheme) {
+        return HTTPS.equals(scheme);
     }
 }

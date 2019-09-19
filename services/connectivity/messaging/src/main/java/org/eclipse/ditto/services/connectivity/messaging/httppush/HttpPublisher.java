@@ -31,6 +31,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
@@ -51,9 +52,10 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final HttpPushFactory factory;
+    private final HttpPushConfig config;
     private final boolean dryRun;
 
-    private final SourceQueue<Pair<HttpRequest, HttpRequest>> sourceQueue;
+    private final SourceQueue<Pair<HttpRequest, ExternalMessage>> sourceQueue;
 
     private HttpPublisher(final ConnectionId connectionId, final List<Target> targets,
             final HttpPushFactory factory, final boolean dryRun) {
@@ -62,15 +64,21 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
         this.dryRun = dryRun;
 
         final ActorSystem system = getContext().getSystem();
-        final HttpPushConfig config =
-                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
-                        .getConnectionConfig()
-                        .getHttpPushConfig();
+        config = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
+                .getConnectionConfig()
+                .getHttpPushConfig();
 
-        sourceQueue = Source.<Pair<HttpRequest, ExternalMessage>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
-                .viaMat(factory.createFlow(system, log), Keep.left())
-                .toMat(Sink.foreach(this::processResponse), Keep.left())
-                .run(ActorMaterializer.create(getContext()));
+        sourceQueue =
+                Source.<Pair<HttpRequest, ExternalMessage>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
+                        .viaMat(factory.createFlow(system, log), Keep.left())
+                        .toMat(Sink.foreach(this::processResponse), Keep.left())
+                        .run(ActorMaterializer.create(getContext()));
+    }
+
+    static Props props(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory,
+            final boolean isDryRun) {
+
+        return Props.create(HttpPublisher.class, connectionId, targets, factory, isDryRun);
     }
 
     @Override
@@ -99,7 +107,7 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
 
         final HttpRequest request = createRequest(publishTarget, message);
-        sourceQueue.offer(Pair.create(request, request)).handle(handleQueueOfferResult(message));
+        sourceQueue.offer(Pair.create(request, message)).handle(handleQueueOfferResult(message));
     }
 
     @Override
@@ -137,7 +145,9 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
             }
             if (error != null || queueOfferResult == QueueOfferResult.dropped()) {
                 log.debug("HTTP request dropped due to full queue");
-                responseDroppedMonitor.success(message);
+                responseDroppedMonitor.failure(message,
+                        "Message dropped because the number of ongoing requests exceeded {0}.",
+                        config.getMaxQueueSize());
             }
             return null;
         };
@@ -145,6 +155,20 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
 
     // Async callback. Must be thread-safe.
     private void processResponse(final Pair<Try<HttpResponse>, ExternalMessage> responseWithMessage) {
-        // TODO
+        final Try<HttpResponse> tryResponse = responseWithMessage.first();
+        final ExternalMessage message = responseWithMessage.second();
+        if (tryResponse.isFailure()) {
+            final Throwable error = tryResponse.toEither().left().get();
+            log.debug("Failed to send message <{}> due to <{}>", message, error);
+            responsePublishedMonitor.failure(message, "Failed to send HTTP request.");
+        } else {
+            final HttpResponse response = tryResponse.toEither().right().get();
+            log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
+            if (response.status().isSuccess()) {
+                responsePublishedMonitor.success(message);
+            } else {
+                responsePublishedMonitor.failure(message, "Server responded with status {0}.", response.status());
+            }
+        }
     }
 }
