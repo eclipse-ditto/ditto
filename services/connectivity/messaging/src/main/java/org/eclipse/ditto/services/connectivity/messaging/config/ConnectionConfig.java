@@ -67,7 +67,7 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     /**
      * Returns the configuration for connection type http-push.
      *
-     * @returna the config.
+     * @return the config.
      */
     HttpPushConfig getHttpPushConfig();
 

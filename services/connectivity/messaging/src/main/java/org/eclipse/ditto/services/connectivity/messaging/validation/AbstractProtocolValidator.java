@@ -64,6 +64,7 @@ public abstract class AbstractProtocolValidator {
      * @param connection the connection to check.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      * @param acceptedSchemes valid URI schemes for the connection type.
+     * @param secureSchemes subset of valid URI schemes that supports traffic encryption.
      * @param protocolName protocol name of the connection type.
      * @throws DittoRuntimeException if the URI scheme is not accepted.
      */
