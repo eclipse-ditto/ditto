@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -26,13 +27,14 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivit
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.http.javadsl.model.HttpEntities;
+import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -53,15 +55,12 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
 
     private final HttpPushFactory factory;
     private final HttpPushConfig config;
-    private final boolean dryRun;
 
     private final SourceQueue<Pair<HttpRequest, ExternalMessage>> sourceQueue;
 
-    private HttpPublisher(final ConnectionId connectionId, final List<Target> targets,
-            final HttpPushFactory factory, final boolean dryRun) {
+    private HttpPublisher(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
         super(connectionId, targets);
         this.factory = factory;
-        this.dryRun = dryRun;
 
         final ActorSystem system = getContext().getSystem();
         config = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
@@ -75,16 +74,13 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
                         .run(ActorMaterializer.create(getContext()));
     }
 
-    static Props props(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory,
-            final boolean isDryRun) {
-
-        return Props.create(HttpPublisher.class, connectionId, targets, factory, isDryRun);
+    static Props props(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
+        return Props.create(HttpPublisher.class, connectionId, targets, factory);
     }
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
-                outbound -> log().info("Message dropped in dry run mode: {}", outbound));
+        // noop
     }
 
     @Override
@@ -115,20 +111,21 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
         return log;
     }
 
-    private boolean isDryRun() {
-        return dryRun;
-    }
-
     private HttpRequest createRequest(final HttpPublishTarget publishTarget, final ExternalMessage message) {
         final HttpRequest requestWithoutEntity = factory.newRequest(publishTarget).addHeaders(getHttpHeaders(message));
-        if (message.isTextMessage()) {
-            return requestWithoutEntity.withEntity(message.getTextPayload().orElse(""));
+        final Optional<akka.http.javadsl.model.headers.ContentType> contentTypeHeader =
+                requestWithoutEntity.getHeader(akka.http.javadsl.model.headers.ContentType.class);
+        if (contentTypeHeader.isPresent()) {
+            final akka.http.javadsl.model.headers.ContentType header = contentTypeHeader.get();
+            final HttpEntity.Strict httpEntity = HttpEntities.create(header.contentType(), getPayloadAsBytes(message));
+            return requestWithoutEntity.removeHeader(header.name()).withEntity(httpEntity);
+        } else if (message.isTextMessage()) {
+            return requestWithoutEntity.withEntity(getTextPayload(message));
         } else {
-            return requestWithoutEntity.withEntity(message.getBytePayload().map(ByteBuffer::array).orElse(new byte[0]));
+            return requestWithoutEntity.withEntity(getBytePayload(message));
         }
     }
 
-    // TODO: add only mapped headers
     private Iterable<HttpHeader> getHttpHeaders(final ExternalMessage message) {
         return message.getHeaders()
                 .entrySet()
@@ -170,5 +167,19 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
                 responsePublishedMonitor.failure(message, "Server responded with status {0}.", response.status());
             }
         }
+    }
+
+    private static byte[] getPayloadAsBytes(final ExternalMessage message) {
+        return message.isTextMessage()
+                ? getTextPayload(message).getBytes()
+                : getBytePayload(message);
+    }
+
+    private static String getTextPayload(final ExternalMessage message) {
+        return message.getTextPayload().orElse("");
+    }
+
+    private static byte[] getBytePayload(final ExternalMessage message) {
+        return message.getBytePayload().map(ByteBuffer::array).orElse(new byte[0]);
     }
 }

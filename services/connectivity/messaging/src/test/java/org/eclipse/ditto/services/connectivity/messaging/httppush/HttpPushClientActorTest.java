@@ -1,0 +1,197 @@
+/*
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.services.connectivity.messaging.httppush;
+
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.TWIN;
+
+import java.util.Collections;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
+import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
+import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
+import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import akka.NotUsed;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
+import akka.actor.Status;
+import akka.http.javadsl.ConnectHttp;
+import akka.http.javadsl.Http;
+import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpMethods;
+import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.StatusCodes;
+import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Flow;
+import akka.testkit.javadsl.TestKit;
+
+/**
+ * Tests {@link org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushClientActor}.
+ */
+public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
+
+    private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
+
+    private static final Target TARGET = ConnectivityModelFactory.newTargetBuilder()
+            .address("target/address")
+            .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+            .headerMapping(ConnectivityModelFactory.newHeaderMapping(
+                    Collections.singletonMap("content-type", "application/json")
+            ))
+            .topics(Topic.TWIN_EVENTS, Topic.values())
+            .build();
+
+    private ActorSystem actorSystem;
+    private ActorMaterializer mat;
+    private Connection connection;
+    private BlockingQueue<HttpRequest> requestQueue;
+    private BlockingQueue<HttpResponse> responseQueue;
+
+    @Before
+    public void createActorSystem() {
+        actorSystem = ActorSystem.create(getClass().getSimpleName(), TestConstants.CONFIG);
+        mat = ActorMaterializer.create(actorSystem);
+        requestQueue = new LinkedBlockingQueue<>();
+        responseQueue = new LinkedBlockingQueue<>();
+        final Flow<HttpRequest, HttpResponse, NotUsed> handler =
+                Flow.fromFunction(request -> {
+                    requestQueue.offer(request);
+                    return responseQueue.take();
+                });
+        final ServerBinding binding =
+                Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), mat)
+                        .toCompletableFuture()
+                        .join();
+        connection = ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
+                ConnectionType.HTTP_PUSH,
+                ConnectivityStatus.OPEN,
+                "http://127.0.0.1:" + binding.localAddress().getPort())
+                .targets(singletonList(TARGET))
+                .build();
+    }
+
+    @After
+    public void stopActorSystem() {
+        if (actorSystem != null) {
+            TestKit.shutdownActorSystem(actorSystem);
+        }
+    }
+
+    @Override
+    protected Connection getConnection() {
+        return connection;
+    }
+
+    @Override
+    protected Props createClientActor(final ActorRef conciergeForwarder) {
+        return HttpPushClientActor.props(connection);
+    }
+
+    @Override
+    protected ActorSystem getActorSystem() {
+        return actorSystem;
+    }
+
+    @Test
+    public void testConnect() {
+        new TestKit(actorSystem) {{
+            final Props props = createClientActor(getRef());
+            final ActorRef underTest = actorSystem.actorOf(props);
+
+            underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
+            expectMsg(new Status.Success(BaseClientState.CONNECTED));
+
+            underTest.tell(CloseConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
+            expectMsg(new Status.Success(BaseClientState.DISCONNECTED));
+        }};
+    }
+
+    @Test
+    public void testTestConnection() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
+            underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+            expectMsg(new Status.Success("successfully connected + initialized mapper"));
+            expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void publishTwinEvent() throws Exception {
+        new TestKit(actorSystem) {{
+            // GIVEN: local HTTP connection is connected
+            final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef()));
+            underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
+            expectMsg(new Status.Success(BaseClientState.CONNECTED));
+
+            // WHEN: a thing event is sent to a target with header mapping content-type=application/json
+            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""))
+                    .setDittoHeaders(DittoHeaders.newBuilder()
+                            .correlationId("internal-correlation-id")
+                            .build());
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(TARGET));
+            underTest.tell(outboundSignal, getRef());
+
+            // THEN: a POST-request is forwarded to the path defined in the target
+            final HttpRequest thingModifiedRequest = requestQueue.take();
+            responseQueue.offer(HttpResponse.create().withStatus(StatusCodes.OK));
+            assertThat(thingModifiedRequest.method()).isEqualTo(HttpMethods.POST);
+            assertThat(thingModifiedRequest.getUri().getPathString()).isEqualTo("/target/address");
+
+            // THEN: only headers in the header mapping are retained
+            assertThat(thingModifiedRequest.entity().getContentType()).isEqualTo(ContentTypes.APPLICATION_JSON);
+            // TODO: do not forward headers not defined in the header mapping
+            // assertThat(thingModifiedRequest.getHeader("correlation-id")).isEmpty();
+
+            // THEN: the payload is the JSON string of the event as a Ditto protocol message
+            assertThat(thingModifiedRequest.entity()
+                    .toStrict(60_000, mat)
+                    .toCompletableFuture()
+                    .join()
+                    .getData()
+                    .utf8String()).isEqualTo(toJsonString(ADAPTER.toAdaptable(thingModifiedEvent, TWIN)));
+        }};
+    }
+
+    private static String toJsonString(final Adaptable adaptable) {
+        return ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
+    }
+
+}

@@ -18,6 +18,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.DefaultKafkaPublisherActorFactory;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka.MqttClientActor;
@@ -67,6 +68,8 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
             case KAFKA:
                 return KafkaClientActor.props(connection, conciergeForwarder,
                         DefaultKafkaPublisherActorFactory.getInstance());
+            case HTTP_PUSH:
+                return HttpPushClientActor.props(connection);
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");
         }

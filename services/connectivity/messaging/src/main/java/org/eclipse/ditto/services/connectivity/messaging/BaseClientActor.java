@@ -140,7 +140,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected BaseClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder) {
+            @Nullable final ActorRef conciergeForwarder) {
 
         checkNotNull(connection, "connection");
 
@@ -151,7 +151,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
         this.clientConfig = this.connectivityConfig.getClientConfig();
-        this.conciergeForwarder = conciergeForwarder;
+        this.conciergeForwarder =
+                Optional.ofNullable(conciergeForwarder).orElse(getContext().getSystem().deadLetters());
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
@@ -160,7 +161,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 new InitializationState(connection.getProcessorPoolSize()));
 
         clientGauge = DittoMetrics.gauge("connection_client")
-                .tag("id",  connectionId.toString())
+                .tag("id", connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
         clientConnectingGauge = DittoMetrics.gauge("connecting_client")
                 .tag("id", connectionId.toString())
@@ -1038,7 +1039,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private void handleOutboundSignal(final OutboundSignal signal) {
         enhanceLogUtil(signal.getSource());
-        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal, signal.getSource().getEntityId().toString());
+        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal,
+                signal.getSource().getEntityId().toString());
         messageMappingProcessorActor.tell(msg, getSender());
     }
 
@@ -1155,6 +1157,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected void notifyConsumersReady() {
         getSelf().tell(ResourceReady.consumersReady(), getSelf());
     }
+
     /**
      * Add meaningful message to status for reporting.
      *

@@ -58,8 +58,7 @@ public class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return HttpPublisher.props(TestConstants.createRandomConnectionId(), Collections.emptyList(), httpPushFactory,
-                false);
+        return HttpPublisher.props(TestConstants.createRandomConnectionId(), Collections.emptyList(), httpPushFactory);
     }
 
     @Override

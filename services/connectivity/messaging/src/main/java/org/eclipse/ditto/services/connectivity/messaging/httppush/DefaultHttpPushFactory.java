@@ -79,18 +79,23 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
             final LoggingAdapter log) {
 
         final Http http = Http.get(system);
-        final ConnectionPoolSettings poolSettings =
-                disambiguateByConnectionId(system, connectionId).withMaxConnections(parallelism);
+        final ConnectionPoolSettings poolSettings = getConnectionPoolSettings(system);
         if (HttpPushValidator.isSecureScheme(baseUri.getScheme())) {
-            final HttpsConnectionContext customHttpsContext =
-                    ConnectionContext.https(sslContextCreator.withoutClientCertificate());
             final ConnectHttp connectHttpsWithCustomSSLContext =
-                    ConnectHttp.toHostHttps(baseUri).withCustomHttpsContext(customHttpsContext);
+                    ConnectHttp.toHostHttps(baseUri).withCustomHttpsContext(getHttpsConnectionContext());
             return http.cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
         } else {
             // no SSL, hence no need for SSLContextCreator
             return http.cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
         }
+    }
+
+    private ConnectionPoolSettings getConnectionPoolSettings(final ActorSystem system) {
+        return disambiguateByConnectionId(system, connectionId).withMaxConnections(parallelism);
+    }
+
+    private HttpsConnectionContext getHttpsConnectionContext() {
+        return ConnectionContext.https(sslContextCreator.withoutClientCertificate());
     }
 
     private static ConnectionPoolSettings disambiguateByConnectionId(final ActorSystem system, final ConnectionId id) {

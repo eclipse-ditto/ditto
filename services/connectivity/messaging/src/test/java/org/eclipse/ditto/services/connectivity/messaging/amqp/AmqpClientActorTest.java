@@ -258,13 +258,13 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), aggregator.ref());
-            final ResourceStatus resourceStatus1 = aggregator.expectMsgClass(ResourceStatus.class);
+            aggregator.expectMsgClass(ResourceStatus.class);
 
             amqpClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), aggregator.ref());
-            final ResourceStatus resourceStatus2 = aggregator.expectMsgClass(ResourceStatus.class);
+            aggregator.expectMsgClass(ResourceStatus.class);
         }};
     }
 

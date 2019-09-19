@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
+import org.eclipse.ditto.model.connectivity.Connection;
+
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.HttpRequest;
@@ -53,4 +55,15 @@ public interface HttpPushFactory {
      * @return flow from request-correlationId pairs to response-correlationId pairs.
      */
     <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(ActorSystem system, LoggingAdapter log);
+
+    /**
+     * Create an HTTP-push-factory from a valid HTTP-push connection
+     * with undefined behavior if the connection is not valid.
+     *
+     * @param connection the connection.
+     * @return the HTTP-push-factory.
+     */
+    static HttpPushFactory of(final Connection connection) {
+        return DefaultHttpPushFactory.of(connection);
+    }
 }
