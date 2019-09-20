@@ -18,9 +18,14 @@ import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.TWIN;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import javax.net.ssl.SSLContext;
+
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -28,6 +33,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -35,6 +41,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -52,12 +59,15 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.http.javadsl.ConnectHttp;
+import akka.http.javadsl.ConnectionContext;
 import akka.http.javadsl.Http;
+import akka.http.javadsl.HttpsConnectionContext;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
@@ -81,6 +91,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     private ActorSystem actorSystem;
     private ActorMaterializer mat;
+    private Flow<HttpRequest, HttpResponse, NotUsed> handler;
     private ServerBinding binding;
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
@@ -92,20 +103,15 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
         mat = ActorMaterializer.create(actorSystem);
         requestQueue = new LinkedBlockingQueue<>();
         responseQueue = new LinkedBlockingQueue<>();
-        final Flow<HttpRequest, HttpResponse, NotUsed> handler =
-                Flow.fromFunction(request -> {
-                    requestQueue.offer(request);
-                    return responseQueue.take();
-                });
-        binding = Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), mat)
+        handler = Flow.fromFunction(request -> {
+            requestQueue.offer(request);
+            return responseQueue.take();
+        });
+        binding = Http.get(actorSystem)
+                .bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), mat)
                 .toCompletableFuture()
                 .join();
-        connection = ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
-                ConnectionType.HTTP_PUSH,
-                ConnectivityStatus.OPEN,
-                "http://127.0.0.1:" + binding.localAddress().getPort())
-                .targets(singletonList(TARGET))
-                .build();
+        connection = getConnectionToLocalBinding(false);
     }
 
     @After
@@ -145,7 +151,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testConnection() {
+    public void testTCPConnection() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
             underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -155,13 +161,84 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testConnectionFails() {
+    public void testTCPConnectionFails() {
         new TestKit(actorSystem) {{
             binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
             final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
             underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
             final Status.Failure failure = expectMsgClass(Status.Failure.class);
             assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
+            expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void testTLSConnectionFails() {
+        // GIVEN: server has a self-signed certificate
+        connection = getConnectionToLocalBinding(true);
+        final ClientCertificateCredentials credentials = ClientCertificateCredentials.newBuilder()
+                .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
+                .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
+                .build();
+        final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty())
+                .clientCertificate(credentials);
+        final HttpsConnectionContext invalidHttpsContext = ConnectionContext.https(sslContext);
+
+        final int port = binding.localAddress().getPort();
+        binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
+        binding = Http.get(actorSystem)
+                .bindAndHandle(handler,
+                        ConnectHttp.toHostHttps("127.0.0.1", port).withCustomHttpsContext(invalidHttpsContext),
+                        mat)
+                .toCompletableFuture()
+                .join();
+
+        new TestKit(actorSystem) {{
+            // WHEN: the connection is tested
+            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
+            underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+
+            // THEN: the test fails
+            final Status.Failure failure = expectMsgClass(Status.Failure.class);
+            assertThat(failure.cause()).isInstanceOf(DittoRuntimeException.class);
+            assertThat(((DittoRuntimeException) failure.cause()).getDescription().orElse(""))
+                    .contains("unable to find valid certification path");
+            expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void testConnectionRequestSuccess() throws Exception {
+        new TestKit(actorSystem) {{
+            final StatusCode expectedStatus = StatusCodes.IM_A_TEAPOT;
+            connection = getConnectionWithTestConfig("DELETE", expectedStatus);
+            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
+            underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+
+            final HttpRequest request = requestQueue.take();
+            responseQueue.offer(HttpResponse.create().withStatus(expectedStatus));
+            assertThat(request.method()).isEqualTo(HttpMethods.DELETE);
+
+            expectMsg(new Status.Success("successfully connected + initialized mapper"));
+            expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void testConnectionRequestFailure() throws Exception {
+        new TestKit(actorSystem) {{
+            final StatusCode expectedStatus = StatusCodes.IM_A_TEAPOT;
+            final StatusCode actualStatus = StatusCodes.INSUFFICIENT_STORAGE;
+            connection = getConnectionWithTestConfig("DELETE", expectedStatus);
+            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
+            underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+
+            final HttpRequest request = requestQueue.take();
+            responseQueue.offer(HttpResponse.create().withStatus(actualStatus));
+            assertThat(request.method()).isEqualTo(HttpMethods.DELETE);
+
+            final Status.Failure failure = expectMsgClass(Status.Failure.class);
+            assertThat(failure.cause().getMessage()).contains("completed with a different status");
             expectTerminated(underTest);
         }};
     }
@@ -231,4 +308,22 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
         return ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
     }
 
+    private Connection getConnectionToLocalBinding(final boolean isSecure) {
+        return ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
+                ConnectionType.HTTP_PUSH,
+                ConnectivityStatus.OPEN,
+                (isSecure ? "https" : "http") + "://127.0.0.1:" + binding.localAddress().getPort())
+                .targets(singletonList(TARGET))
+                .validateCertificate(isSecure)
+                .build();
+    }
+
+    private Connection getConnectionWithTestConfig(final String method, final StatusCode status) {
+        final Map<String, String> specificConfig = new HashMap<>(4);
+        specificConfig.put(HttpPushFactory.TEST_METHOD, method);
+        specificConfig.put(HttpPushFactory.TEST_STATUS, String.valueOf(status.intValue()));
+        return getConnectionToLocalBinding(false).toBuilder()
+                .specificConfig(specificConfig)
+                .build();
+    }
 }

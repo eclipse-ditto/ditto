@@ -38,6 +38,21 @@ public interface HttpPushFactory {
     String PARALLELISM = "parallelism";
 
     /**
+     * Specific config path for the method of test requests.
+     */
+    String TEST_METHOD = "test-method";
+
+    /**
+     * Specific config path for the expected status code of test requests.
+     */
+    String TEST_STATUS = "test-status";
+
+    /**
+     * Optional path of test requests.
+     */
+    String TEST_PATH = "test-path";
+
+    /**
      * Create a request template without headers or payload for an HTTP publish target.
      * Published external messages set the headers and payload.
      *

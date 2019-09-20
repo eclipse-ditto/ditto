@@ -12,8 +12,9 @@
         </encoder>
     </appender>
 
-
-    <logger name="org.eclipse.ditto" level="INFO"/>
+    <!-- Akka and Ditto log levels are reduced to reduce log verbosity. Increase them to debug tests. -->
+    <logger name="akka" level="OFF"/>
+    <logger name="org.eclipse.ditto" level="ERROR"/>
     <logger name="org.apache.qpid.jms.provider.ProviderFactory" level="OFF"/>
     <logger name="org.apache.kafka" level="WARN"/>
 

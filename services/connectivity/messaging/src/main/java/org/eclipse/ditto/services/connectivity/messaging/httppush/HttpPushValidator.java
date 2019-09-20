@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -79,6 +80,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         validateTargetConfigs(connection, dittoHeaders);
         validateHttpMethod(connection.getSpecificConfig().get(HttpPushFactory.METHOD), dittoHeaders);
         validateParallelism(connection.getSpecificConfig(), dittoHeaders, config);
+        validateTest(connection.getSpecificConfig(), dittoHeaders);
     }
 
     @Override
@@ -129,6 +131,40 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         }
     }
 
+    private void validateTest(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders) {
+        final String testMethod = specificConfig.get(HttpPushFactory.TEST_METHOD);
+        final String testStatus = specificConfig.get(HttpPushFactory.TEST_STATUS);
+        if (testMethod != null || testStatus != null) {
+            if (testMethod == null || testStatus == null) {
+                final String message =
+                        String.format("The specific config '%s' and '%s' must be both present or absent.",
+                                HttpPushFactory.TEST_METHOD, HttpPushFactory.TEST_STATUS);
+                throw ConnectionConfigurationInvalidException.newBuilder(message)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
+            if (!HttpMethods.lookup(testMethod).isPresent()) {
+                throw testMethodNotFound(testMethod, dittoHeaders);
+            }
+            try {
+                if (!HttpStatusCode.forInt(Integer.parseInt(testStatus)).isPresent()) {
+                    throw testStatusNotFound(testStatus, dittoHeaders);
+                }
+            } catch (final NumberFormatException e) {
+                throw testStatusNotFound(testStatus, dittoHeaders);
+            }
+        }
+    }
+
+    private static ConnectionConfigurationInvalidException testStatusNotFound(final String testStatus,
+            final DittoHeaders dittoHeaders) {
+
+        final String message = String.format("The test-status '%s' is not an HTTP status code.", testStatus);
+        return ConnectionConfigurationInvalidException.newBuilder(message)
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
     private static ConnectionConfigurationInvalidException parallelismValidationFailed(final String parallelismString,
             final DittoHeaders headers, @Nullable final ConnectionConfig config) {
 
@@ -147,6 +183,14 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         }
         return ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                 .dittoHeaders(headers)
+                .build();
+    }
+
+    static ConnectionConfigurationInvalidException testMethodNotFound(final String testMethod,
+            final DittoHeaders dittoHeaders) {
+        final String message = String.format("The test-method '%s' is not an HTTP method.", testMethod);
+        return ConnectionConfigurationInvalidException.newBuilder(message)
+                .dittoHeaders(dittoHeaders)
                 .build();
     }
 
