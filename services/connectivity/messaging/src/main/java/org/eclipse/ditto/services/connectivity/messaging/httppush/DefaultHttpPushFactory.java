@@ -73,7 +73,6 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
                 .withUri(appendPath(baseUri, httpPublishTarget.getPathSegments()));
     }
 
-    // TODO: check failure restart behavior.
     @Override
     public <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(final ActorSystem system,
             final LoggingAdapter log) {

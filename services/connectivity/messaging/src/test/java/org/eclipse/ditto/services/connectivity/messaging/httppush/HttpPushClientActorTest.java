@@ -68,9 +68,7 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
-    private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
-
-    private static final Target TARGET = ConnectivityModelFactory.newTargetBuilder()
+    static final Target TARGET = ConnectivityModelFactory.newTargetBuilder()
             .address("target/address")
             .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
             .headerMapping(ConnectivityModelFactory.newHeaderMapping(
@@ -78,6 +76,8 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             ))
             .topics(Topic.TWIN_EVENTS, Topic.values())
             .build();
+
+    private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
     private ActorSystem actorSystem;
     private ActorMaterializer mat;
@@ -157,7 +157,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testConnectionFails() {
         new TestKit(actorSystem) {{
-            binding.terminate(Duration.ofMillis(1L));
+            binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
             final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
             underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
             final Status.Failure failure = expectMsgClass(Status.Failure.class);
