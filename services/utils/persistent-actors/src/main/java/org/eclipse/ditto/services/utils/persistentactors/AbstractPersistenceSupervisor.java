@@ -43,6 +43,7 @@ import akka.japi.pf.ReceiveBuilder;
  * <li>shuts down self on command, and</li>
  * <li>handles initialization errors by becoming corrupted for a time.</li>
  * </ol>
+ * @param <E> the type of the EntityId
  */
 public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends AbstractActorWithTimers {
 
@@ -247,7 +248,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     }
 
     private void replyUnavailableException(final Object message) {
-        log.warning("Received message during downtime of child actor for Thing with ID <{}>: <{}>", entityId, message);
+        log.warning("Received message during downtime of child actor for Entity with ID <{}>: <{}>", entityId, message);
         final DittoRuntimeExceptionBuilder<?> builder = getUnavailableExceptionBuilder(entityId);
         if (message instanceof WithDittoHeaders) {
             builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());

@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.FeatureDeleted;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.FeatureDeleted} event.
  */
 @Immutable
-final class FeatureDeletedStrategy extends AbstractEventStrategy<FeatureDeleted> {
+final class FeatureDeletedStrategy extends AbstractThingEventStrategy<FeatureDeleted> {
 
     @Override
     protected ThingBuilder.FromCopy applyEvent(final FeatureDeleted event, final ThingBuilder.FromCopy thingBuilder) {

@@ -35,8 +35,8 @@ import akka.persistence.SnapshotProtocol;
 import akka.persistence.SnapshotSelectionCriteria;
 
 /**
- * Extends {@code AbstractPersistentActorWithTimers} to provide functionality to handle the {@link CleanupPersistence} command by
- * deleting all persisted snapshots and events up to the latest snapshot sequence number.
+ * Extends {@code AbstractPersistentActorWithTimers} to provide functionality to handle the {@link CleanupPersistence}
+ * command by deleting all persisted snapshots and events up to the latest snapshot sequence number.
  */
 public abstract class AbstractPersistentActorWithTimersAndCleanup extends AbstractPersistentActorWithTimers {
 

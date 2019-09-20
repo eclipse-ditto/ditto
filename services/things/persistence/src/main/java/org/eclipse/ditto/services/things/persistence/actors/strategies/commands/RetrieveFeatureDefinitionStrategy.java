@@ -31,7 +31,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link RetrieveFeatureDefinition} command.
  */
 @Immutable
-public final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrategy<RetrieveFeatureDefinition> {
+final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrategy<RetrieveFeatureDefinition> {
 
     /**
      * Constructs a new {@code RetrieveFeatureDefinitionStrategy} object.

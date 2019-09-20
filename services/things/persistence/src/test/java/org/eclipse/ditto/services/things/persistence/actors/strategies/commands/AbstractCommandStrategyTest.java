@@ -85,7 +85,7 @@ public abstract class AbstractCommandStrategyTest {
         assertModificationResult(result, expectedEventClass, expectedCommandResponse, becomeDeleted);
     }
 
-    protected static <C> void assertErrorResult(
+    protected static <C extends Command> void assertErrorResult(
             final CommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
             @Nullable final Thing thing,
             final C command,
@@ -96,7 +96,7 @@ public abstract class AbstractCommandStrategyTest {
         verify(mock).onError(eq(expectedException));
     }
 
-    protected static <C> void assertQueryResult(
+    protected static <C extends Command> void assertQueryResult(
             final CommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
             @Nullable final Thing thing,
             final C command,
@@ -106,7 +106,7 @@ public abstract class AbstractCommandStrategyTest {
     }
 
 
-    protected static <C> void assertUnhandledResult(
+    protected static <C extends Command> void assertUnhandledResult(
             final AbstractCommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
             @Nullable final Thing thing,
             final C command,
@@ -138,7 +138,7 @@ public abstract class AbstractCommandStrategyTest {
         verify(mock).onQuery(any(), eq(infoResponse));
     }
 
-    private static <C> Result<ThingEvent> applyStrategy(
+    private static <C extends Command> Result<ThingEvent> applyStrategy(
             final CommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
             final CommandStrategy.Context<ThingId> context,
             final @Nullable Thing thing,

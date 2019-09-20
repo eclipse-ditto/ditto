@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.PolicyIdModified} event.
  */
 @Immutable
-final class PolicyIdCreatedStrategy extends AbstractEventStrategy<PolicyIdCreated> {
+final class PolicyIdCreatedStrategy extends AbstractThingEventStrategy<PolicyIdCreated> {
 
     @Override
     protected ThingBuilder.FromCopy applyEvent(final PolicyIdCreated event, final ThingBuilder.FromCopy thingBuilder) {

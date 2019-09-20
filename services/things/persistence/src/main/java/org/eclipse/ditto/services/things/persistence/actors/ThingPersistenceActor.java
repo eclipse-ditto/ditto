@@ -21,9 +21,8 @@ import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
 import org.eclipse.ditto.services.things.common.config.ThingConfig;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CreateThingStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ThingReceiveStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ThingCommandStrategies;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.events.ThingEventStrategies;
 import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoSnapshotAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
@@ -33,9 +32,11 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorRef;
@@ -129,18 +130,18 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    protected ThingReceiveStrategy getCreatedStrategy() {
-        return ThingReceiveStrategy.getInstance();
+    protected ThingCommandStrategies getCreatedStrategy() {
+        return ThingCommandStrategies.getInstance();
     }
 
     @Override
-    protected CreateThingStrategy getDeletedStrategy() {
-        return CreateThingStrategy.getInstance();
+    protected CommandStrategy<CreateThing, Thing, ThingId, Result<ThingEvent>> getDeletedStrategy() {
+        return ThingCommandStrategies.getCreateThingStrategy();
     }
 
     @Override
     protected EventStrategy<ThingEvent, Thing> getEventStrategy() {
-        return EventHandleStrategy.getInstance();
+        return ThingEventStrategies.getInstance();
     }
 
     @Override

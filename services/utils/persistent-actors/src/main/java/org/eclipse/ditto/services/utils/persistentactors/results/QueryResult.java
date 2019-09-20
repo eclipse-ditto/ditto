@@ -14,13 +14,14 @@ package org.eclipse.ditto.services.utils.persistentactors.results;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Result for query commands.
  *
  * @param <E> type of events (irrelevant).
  */
-public final class QueryResult<E> implements Result<E> {
+public final class QueryResult<E extends Event> implements Result<E> {
 
     private final Command command;
     private final WithDittoHeaders response;

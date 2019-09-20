@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.AttributesCreated;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AttributesCreated} event.
  */
 @Immutable
-final class AttributesCreatedStrategy extends AbstractEventStrategy<AttributesCreated> {
+final class AttributesCreatedStrategy extends AbstractThingEventStrategy<AttributesCreated> {
 
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AttributesCreated event,

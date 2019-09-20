@@ -14,9 +14,9 @@ package org.eclipse.ditto.services.connectivity.messaging.persistence.stages;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.function.Predicate;
@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
@@ -37,7 +36,7 @@ import akka.actor.ActorRef;
 
 /**
  * Non-serializable local-only command for multi-stage processing by
- * {@link org.eclipse.ditto.services.connectivity.messaging.ConnectionActor}.
+ * {@link org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor}.
  * <p>
  * It contains a sequence of actions. Some actions are asynchronous. The connection actor can thus schedule the next
  * action as a staged command to self after an asynchronous action. Synchronous actions can be executed right away.
@@ -78,21 +77,8 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
      * @return the staged command.
      */
     public static StagedCommand of(final ConnectivityCommand command, final ConnectivityEvent event,
-            final WithDittoHeaders response, final Collection<ConnectionAction> actions) {
+            final WithDittoHeaders response, final List<ConnectionAction> actions) {
         return new StagedCommand(command, event, response, ActorRef.noSender(), actions);
-    }
-
-    /**
-     * Create a staged command for forwarding a signal.
-     *
-     * @param signal the signal to forward; it is at the response position.
-     * @return the staged command.
-     */
-    public static StagedCommand forwardSignal(final Signal signal) {
-        final ConnectivityCommand dummyCommand = dummyCommand();
-        final ConnectivityEvent dummyEvent = dummyEvent();
-        return new StagedCommand(dummyCommand, dummyEvent, signal, ActorRef.noSender(),
-                Collections.singleton(ConnectionAction.FORWARD_SIGNAL));
     }
 
     /**

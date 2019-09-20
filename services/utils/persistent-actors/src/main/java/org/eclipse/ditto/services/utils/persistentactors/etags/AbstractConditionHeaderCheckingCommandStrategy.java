@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -28,17 +28,22 @@ import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractComman
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Responsible to check conditional (http) headers based on the thing's current eTag value.
  *
- * @param <C> The type of the handled command.
- * @param <E> The type of the addressed entity.
+ * @param <C> the type of the handled commands
+ * @param <S> the type of the addressed entity
+ * @param <K> the type of the context
+ * @param <E> the type of the emitted events
  */
 @Immutable
-public abstract class AbstractConditionHeaderCheckingCommandStrategy<C extends Command, S extends Entity, I, E>
-        extends AbstractCommandStrategy<C, S, I, Result<E>>
-        implements ETagEntityProvider<C, S> {
+public abstract class AbstractConditionHeaderCheckingCommandStrategy<
+        C extends Command,
+        S extends Entity,
+        K,
+        E extends Event> extends AbstractCommandStrategy<C, S, K, Result<E>> implements ETagEntityProvider<C, S> {
 
     protected AbstractConditionHeaderCheckingCommandStrategy(final Class<C> theMatchingClass) {
         super(theMatchingClass);
@@ -58,7 +63,7 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<C extends C
      * extending strategy.
      */
     @Override
-    public Result<E> apply(final Context<I> context, @Nullable final S entity, final long nextRevision,
+    public Result<E> apply(final Context<K> context, @Nullable final S entity, final long nextRevision,
             final C command) {
 
         final EntityTag currentETagValue = previousETagEntity(command, entity)
@@ -79,7 +84,7 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<C extends C
     }
 
     @Override
-    public boolean isDefined(final Context<I> context, @Nullable final S entity, final C command) {
+    public boolean isDefined(final Context<K> context, @Nullable final S entity, final C command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
 

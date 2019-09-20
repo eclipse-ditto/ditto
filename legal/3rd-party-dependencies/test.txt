@@ -1,11 +1,11 @@
-   com.github.dnvriend:akka-persistence-inmemory_2.12:jar:2.5.1.1:test
+   com.github.dnvriend:akka-persistence-inmemory_2.12:jar:2.5.15.2:test
    com.github.stefanbirkner:system-rules:jar:1.19.0:test
-   com.typesafe.akka:akka-http-testkit_2.12:jar:10.1.8:test
-   com.typesafe.akka:akka-stream-testkit_2.12:jar:2.5.23:test
-   com.typesafe.akka:akka-testkit_2.12:jar:2.5.23:test
+   com.typesafe.akka:akka-http-testkit_2.12:jar:10.1.9:test
+   com.typesafe.akka:akka-stream-testkit_2.12:jar:2.5.25:test
+   com.typesafe.akka:akka-testkit_2.12:jar:2.5.25:test
    de.flapdoodle.embed:de.flapdoodle.embed.mongo:jar:2.2.0:test
    de.flapdoodle.embed:de.flapdoodle.embed.process:jar:2.1.2:test
-   io.jsonwebtoken:jjwt-orgjson:jar:0.10.6:test
+   io.jsonwebtoken:jjwt-orgjson:jar:0.10.7:test
    junit:junit:jar:4.12:test
    net.bytebuddy:byte-buddy-agent:jar:1.7.0:test
    net.bytebuddy:byte-buddy:jar:1.7.0:test
@@ -30,6 +30,6 @@
    org.scalactic:scalactic_2.12:jar:3.0.0:test
    org.scala-lang.modules:scala-xml_2.12:jar:1.0.5:test
    org.scalatest:scalatest_2.12:jar:3.0.0:test
-   org.scalaz:scalaz-core_2.12:jar:7.2.12:test
+   org.scalaz:scalaz-core_2.12:jar:7.2.28:test
    org.skyscreamer:jsonassert:jar:1.2.3:test
-   org.slf4j:slf4j-simple:jar:1.7.25:test
+   org.slf4j:slf4j-simple:jar:1.7.28:test

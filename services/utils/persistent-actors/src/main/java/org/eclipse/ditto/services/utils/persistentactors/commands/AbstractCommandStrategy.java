@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -21,17 +21,24 @@ import java.util.NoSuchElementException;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.signals.commands.base.Command;
+
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Abstract base implementation of {@code CommandStrategy}.
  *
- * @param <T> type of the handled command.
+ * @param <C> the type of the handled command
+ * @param <S> the type of the managed entity
+ * @param <K> the type of the context
+ * @param <R> the type of the result
  */
 @Immutable
-public abstract class AbstractCommandStrategy<T, S, I, R> implements CommandStrategy<T, S, I, R> {
+public abstract class AbstractCommandStrategy<C extends Command, S, K, R extends Result>
+        implements CommandStrategy<C, S, K, R> {
 
-    private final Class<T> matchingClass;
+    private final Class<C> matchingClass;
 
     /**
      * Constructs a new {@code AbstractCommandStrategy} object.
@@ -39,13 +46,13 @@ public abstract class AbstractCommandStrategy<T, S, I, R> implements CommandStra
      * @param theMatchingClass the class.
      * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
      */
-    protected AbstractCommandStrategy(final Class<T> theMatchingClass) {
+    protected AbstractCommandStrategy(final Class<C> theMatchingClass) {
         matchingClass = checkNotNull(theMatchingClass, "matching Class");
     }
 
     @Override
-    public R apply(final Context<I> context, @Nullable final S entity, final long nextRevision,
-            final T command) {
+    public R apply(final Context<K> context, @Nullable final S entity, final long nextRevision,
+            final C command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
 
@@ -69,8 +76,8 @@ public abstract class AbstractCommandStrategy<T, S, I, R> implements CommandStra
      * @param command the incoming command.
      * @return result of the command strategy.
      */
-    protected abstract R doApply(final Context<I> context, @Nullable final S entity, final long nextRevision,
-            final T command);
+    protected abstract R doApply(final Context<K> context, @Nullable final S entity, final long nextRevision,
+            final C command);
 
     /**
      * Throw an {@code IllegalArgumentException} for unhandled command.
@@ -82,14 +89,14 @@ public abstract class AbstractCommandStrategy<T, S, I, R> implements CommandStra
      * @return nothing.
      * @throws java.lang.IllegalArgumentException always.
      */
-    public R unhandled(final Context<I> context, @Nullable final S entity, final long nextRevision,
-            final T command) {
+    public R unhandled(final Context<K> context, @Nullable final S entity, final long nextRevision,
+            final C command) {
         final String msgPattern = "Unhandled: <{0}>!";
         throw new IllegalArgumentException(MessageFormat.format(msgPattern, command));
     }
 
     @Override
-    public Class<T> getMatchingClass() {
+    public Class<C> getMatchingClass() {
         return matchingClass;
     }
 
