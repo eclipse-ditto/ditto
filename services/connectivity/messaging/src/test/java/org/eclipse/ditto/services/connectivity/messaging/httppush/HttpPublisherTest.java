@@ -38,7 +38,10 @@ import akka.stream.javadsl.Flow;
 import akka.testkit.TestProbe;
 import scala.util.Try;
 
-public class HttpPublisherActorTest extends AbstractPublisherActorTest {
+/**
+ * Tests {@link org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPublisher}.
+ */
+public final class HttpPublisherTest extends AbstractPublisherActorTest {
 
     private HttpPushFactory httpPushFactory;
     private BlockingQueue<HttpRequest> received = new LinkedBlockingQueue<>();

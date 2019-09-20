@@ -191,8 +191,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
             // THEN: only headers in the header mapping are retained
             assertThat(thingModifiedRequest.entity().getContentType()).isEqualTo(ContentTypes.APPLICATION_JSON);
-            // TODO: do not forward headers not defined in the header mapping
-            // assertThat(thingModifiedRequest.getHeader("correlation-id")).isEmpty();
+            assertThat(thingModifiedRequest.getHeader("correlation-id")).isEmpty();
 
             // THEN: the payload is the JSON string of the event as a Ditto protocol message
             assertThat(thingModifiedRequest.entity()

@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
@@ -86,7 +87,7 @@ public class BasePublisherActorTest {
 
         // when
         final ExternalMessage headerMappedExternalMessage = BasePublisherActor.applyHeaderMapping(mappedOutboundSignal, target,
-                Mockito.mock(DiagnosticLoggingAdapter.class));
+                Mockito.mock(DiagnosticLoggingAdapter.class), ExternalMessageBuilder::withAdditionalHeaders);
 
         // then
         final Map<String, String> expectedHeaders = new HashMap<>();

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivit
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
@@ -109,6 +111,13 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
     @Override
     protected DiagnosticLoggingAdapter log() {
         return log;
+    }
+
+    @Override
+    protected ExternalMessageBuilder withMappedHeaders(final ExternalMessageBuilder builder,
+            final Map<String, String> mappedHeaders) {
+        // instead of appending mapped headers, remove all but the mapped headers.
+        return builder.withHeaders(mappedHeaders);
     }
 
     private HttpRequest createRequest(final HttpPublishTarget publishTarget, final ExternalMessage message) {

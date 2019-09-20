@@ -119,30 +119,35 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         if (parallelismString != null) {
             try {
                 final int parallelism = Integer.parseInt(parallelismString);
-                if (parallelism <= 0) {
-                    // skip to the catch block
-                    throw new NumberFormatException();
-                }
-                if (config != null && parallelism > config.getHttpPushConfig().getMaxParallelism()) {
-                    final String errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
-                                    "It must be a positive integer between 1 and %d.",
-                            parallelismString,
-                            HttpPushFactory.PARALLELISM,
-                            config.getHttpPushConfig().getMaxParallelism()
-                    );
-                    throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                            .dittoHeaders(dittoHeaders)
-                            .build();
+                if (parallelism <= 0 ||
+                        config != null && parallelism > config.getHttpPushConfig().getMaxParallelism()) {
+                    throw parallelismValidationFailed(parallelismString, dittoHeaders, config);
                 }
             } catch (final NumberFormatException e) {
-                final String errorMessage = String.format(
-                        "The configured value '%s' of '%s' is invalid. It must be a positive integer.",
-                        parallelismString, HttpPushFactory.PARALLELISM);
-                throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
+                throw parallelismValidationFailed(parallelismString, dittoHeaders, config);
             }
         }
+    }
+
+    private static ConnectionConfigurationInvalidException parallelismValidationFailed(final String parallelismString,
+            final DittoHeaders headers, @Nullable final ConnectionConfig config) {
+
+        final String errorMessage;
+        if (config == null) {
+            errorMessage = String.format(
+                    "The configured value '%s' of '%s' is invalid. It must be a positive integer.",
+                    parallelismString, HttpPushFactory.PARALLELISM);
+        } else {
+            errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
+                            "It must be a positive integer between 1 and %d.",
+                    parallelismString,
+                    HttpPushFactory.PARALLELISM,
+                    config.getHttpPushConfig().getMaxParallelism()
+            );
+        }
+        return ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                .dittoHeaders(headers)
+                .build();
     }
 
     static boolean isSecureScheme(final String scheme) {

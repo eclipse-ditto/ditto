@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -154,7 +155,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         try {
                             final T publishTarget = toPublishTarget(target.getAddress());
                             final ExternalMessage messageWithMappedHeaders =
-                                    applyHeaderMapping(outbound, target, log());
+                                    applyHeaderMapping(outbound, target, log(), this::withMappedHeaders);
                             publishMessage(target, publishTarget, messageWithMappedHeaders, publishedMonitor);
                         } catch (final DittoRuntimeException e) {
                             // TODO: might there be private information in the exception message so we shouldn't be allowed to see them?
@@ -229,6 +230,20 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected abstract DiagnosticLoggingAdapter log();
 
     /**
+     * Control how mapped headers are added to external messages. Append the mapped headers by default.
+     * Override in subclasses to change the behavior.
+     *
+     * @param builder the builder of the external message to send.
+     * @param mappedHeaders result of header mapping.
+     * @return builder incorporating the mapped headers.
+     */
+    protected ExternalMessageBuilder withMappedHeaders(final ExternalMessageBuilder builder,
+            final Map<String, String> mappedHeaders) {
+
+        return builder.withAdditionalHeaders(mappedHeaders);
+    }
+
+    /**
      * Checks whether the passed in {@code outboundSignal} is a response or an error.
      *
      * @param outboundSignal the OutboundSignal to check.
@@ -249,7 +264,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @return the ExternalMessage with replaced headers
      */
     static ExternalMessage applyHeaderMapping(final OutboundSignal.WithExternalMessage outboundSignal,
-            final Target target, final DiagnosticLoggingAdapter log) {
+            final Target target, final DiagnosticLoggingAdapter log,
+            final BiFunction<ExternalMessageBuilder, Map<String, String>, ExternalMessageBuilder> withMappedHeaders) {
 
         final ExternalMessage originalMessage = outboundSignal.getExternalMessage();
         final Map<String, String> originalHeaders = new HashMap<>(originalMessage.getHeaders());
@@ -291,10 +307,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             LogUtil.enhanceLogWithCorrelationId(log, sourceSignal);
             log.debug("Result of header mapping <{}> are these headers to be published: {}", mapping, mappedHeaders);
 
-            // only explicitly re-add the mapped headers:
-            return messageBuilder
-                    .withAdditionalHeaders(mappedHeaders)
-                    .build();
+            // combine with external headers
+            return withMappedHeaders.apply(messageBuilder, mappedHeaders).build();
         }).orElseGet(messageBuilder::build);
     }
 }

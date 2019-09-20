@@ -72,7 +72,7 @@ public final class ConnectionValidator {
      *
      * @param connection the connection to validate.
      * @param dittoHeaders headers of the command that triggered the connection validation.
-     * @param config
+     * @param config the service-level connection configuration.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the connection has errors.
      * @throws java.lang.IllegalStateException if the connection type is not known.
      */
@@ -83,7 +83,7 @@ public final class ConnectionValidator {
         validateFormatOfCertificates(connection, dittoHeaders);
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
-            spec.validate(connection, dittoHeaders, null);
+            spec.validate(connection, dittoHeaders, config);
         } else {
             throw new IllegalStateException("Unknown connection type: " + connection);
         }
