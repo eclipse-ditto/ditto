@@ -44,7 +44,7 @@ public interface DistributedPub<T> {
      * @param message the message to publish.
      * @param sender reply address for all subscribers who receive this message.
      */
-    default void publish(T message, ActorRef sender) {
+    default void publish(final T message, final ActorRef sender) {
         getPublisher().tell(wrapForPublication(message), sender);
     }
 
