@@ -26,6 +26,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
@@ -147,9 +149,13 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
     private BiFunction<QueueOfferResult, Throwable, Void> handleQueueOfferResult(final ExternalMessage message) {
         return (queueOfferResult, error) -> {
             if (error != null) {
-                log.error(error, "Source queue failure");
-            }
-            if (error != null || queueOfferResult == QueueOfferResult.dropped()) {
+                final String errorDescription = "Source queue failure";
+                log.error(error, errorDescription);
+                responseDroppedMonitor.failure(message,
+                        "Message dropped because the connection failed",
+                        config.getMaxQueueSize());
+                escalate(error, errorDescription);
+            } else if (queueOfferResult == QueueOfferResult.dropped()) {
                 log.debug("HTTP request dropped due to full queue");
                 responseDroppedMonitor.failure(message,
                         "Message dropped because the number of ongoing requests exceeded {0}.",
@@ -165,8 +171,10 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
         final ExternalMessage message = responseWithMessage.second();
         if (tryResponse.isFailure()) {
             final Throwable error = tryResponse.toEither().left().get();
+            final String errorDescription = "Failed to send HTTP request.";
             log.debug("Failed to send message <{}> due to <{}>", message, error);
-            responsePublishedMonitor.failure(message, "Failed to send HTTP request.");
+            responsePublishedMonitor.failure(message, errorDescription);
+            escalate(error, errorDescription);
         } else {
             final HttpResponse response = tryResponse.toEither().right().get();
             log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
@@ -176,6 +184,11 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
                 responsePublishedMonitor.failure(message, "Server responded with status {0}.", response.status());
             }
         }
+    }
+
+    private void escalate(final Throwable error, final String description) {
+        final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), error, description);
+        getContext().getParent().tell(failure, getSelf());
     }
 
     private static byte[] getPayloadAsBytes(final ExternalMessage message) {

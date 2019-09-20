@@ -90,7 +90,8 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     @Override
     protected void cleanupResourcesForConnection() {
-        // noop
+        // stop publisher actor also on connection failure
+        stopPublisherActor();
     }
 
     @Override
