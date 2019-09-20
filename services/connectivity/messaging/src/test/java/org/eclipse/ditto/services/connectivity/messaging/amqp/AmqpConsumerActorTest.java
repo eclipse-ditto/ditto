@@ -198,12 +198,12 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         }};
     }
 
-    private ActorRef setupActor(final ActorRef conciergeForwarderActor,
+    private ActorRef setupActor(final ActorRef testRef,
             final MappingContext mappingContext) {
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(conciergeForwarderActor, mappingProcessor, CONNECTION_ID);
+                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION_ID);
 
         final Resizer resizer = new DefaultResizer(2, 2);
 

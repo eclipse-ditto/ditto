@@ -60,6 +60,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
@@ -91,6 +92,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private final Map<String, ActorRef> consumerByNamePrefix;
     private final boolean recoverSessionOnSessionClosed;
     private final boolean recoverSessionOnConnectionRestored;
+    private ActorRef amqpPublisherActor;
 
     /*
      * This constructor is called via reflection by the static method propsForTest.
@@ -249,27 +251,50 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
         if (clientConnected instanceof JmsConnected) {
-            final ActorRef jmsActor = getConnectConnectionHandler(connection());
             final JmsConnected c = (JmsConnected) clientConnected;
             log.info("Received JmsConnected");
             ensureJmsConnectionClosed();
             jmsConnection = c.connection;
             jmsConnection.addConnectionListener(connectionListener);
             jmsSession = c.session;
-            // note: start order is important (publisher -> mapping -> consumer actor)
-            startPublisherActor();
-            startCommandConsumers(c.consumerList, jmsActor);
-            notifyConsumersReady();
         } else {
             log.info("ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
         }
+    }
+
+    protected CompletionStage<Status.Status> startPublisherActor() {
+        final CompletableFuture<Status.Status> future = new CompletableFuture<>();
+        stopChildActor(amqpPublisherActor);
+        final String namePrefix = AmqpPublisherActor.ACTOR_NAME_PREFIX;
+        if (jmsSession != null) {
+            final Props props = AmqpPublisherActor.props(connectionId(), getTargetsOrEmptyList(), jmsSession,
+                    connectivityConfig.getConnectionConfig());
+            amqpPublisherActor = startChildActorConflictFree(namePrefix, props);
+            future.complete(DONE);
+        } else {
+            future.completeExceptionally(ConnectionFailedException
+                    .newBuilder(connectionId())
+                    .message("Could not start publisher actor due to missing JMS session or connection!")
+                    .build());
+        }
+        return future;
+    }
+
+    @Override
+    protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
+        if (clientConnected instanceof JmsConnected) {
+            final JmsConnected c = (JmsConnected) clientConnected;
+            final ActorRef jmsActor = getConnectConnectionHandler(connection());
+            startCommandConsumers(c.consumerList, jmsActor);
+        }
+        return CompletableFuture.completedFuture(new Status.Success(Done.getInstance()));
     }
 
     @Override
     protected void cleanupResourcesForConnection() {
         log.debug("cleaning up resources for connection '{}'", connectionId());
         stopCommandConsumers();
-        stopPublisherActor();
+        stopChildActor(amqpPublisherActor);
         // closing JMS connection closes all sessions and consumers
         ensureJmsConnectionClosed();
         jmsConnection = null;
@@ -314,6 +339,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
     }
 
+    @Override
+    protected ActorRef getPublisherActor() {
+        return amqpPublisherActor;
+    }
+
     private void startCommandConsumers(final List<ConsumerData> consumers, final ActorRef jmsActor) {
         if (isConsuming()) {
             stopCommandConsumers();
@@ -332,22 +362,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
         consumerByNamePrefix.put(namePrefix, child);
-    }
-
-    private void startPublisherActor() {
-        stopPublisherActor();
-        final String namePrefix = AmqpPublisherActor.ACTOR_NAME_PREFIX;
-        if (jmsSession != null) {
-            final Props props =
-                    AmqpPublisherActor.props(connectionId(), getTargetsOrEmptyList(), jmsSession,
-                            connectivityConfig.getConnectionConfig());
-            publisherActor = startChildActorConflictFree(namePrefix, props);
-        } else {
-            throw ConnectionFailedException
-                    .newBuilder(connectionId())
-                    .message("Could not start publisher actor due to missing JMS session or connection!")
-                    .build();
-        }
     }
 
     private void stopCommandConsumers() {
@@ -448,8 +462,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private FSM.State<BaseClientState, BaseClientData> handleProducerClosed(
             final ProducerClosedStatusReport statusReport,
             final BaseClientData currentData) {
-        if (publisherActor != null) {
-            publisherActor.tell(statusReport, ActorRef.noSender());
+        if (amqpPublisherActor != null) {
+            amqpPublisherActor.tell(statusReport, ActorRef.noSender());
         }
         return stay().using(currentData);
     }
@@ -471,7 +485,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         log.info("Recovering closed JMS session.");
         // first stop all child actors, they relied on the closed/corrupt session
         stopCommandConsumers();
-        stopPublisherActor();
+        stopChildActor(amqpPublisherActor);
         // create a new session, result will be delivered with JmsSessionRecovered event
         getConnectConnectionHandler(connection()).tell(new JmsRecoverSession(getSender(), jmsConnection, session),
                 getSelf());
@@ -489,10 +503,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         jmsSession = sessionRecovered.getSession();
 
-        startPublisherActor();
-        startCommandConsumers(sessionRecovered.getConsumerList(), jmsActor);
-
-        connectionLogger.success("Session has been recovered successfully.");
+        startPublisherActor()
+                .thenRun(() -> startCommandConsumers(sessionRecovered.getConsumerList(), jmsActor))
+                .thenRun(() -> connectionLogger.success("Session has been recovered successfully."))
+                .exceptionally(t -> {
+                    final ImmutableConnectionFailure failure = new ImmutableConnectionFailure(null, t,
+                            "failed to recover session");
+                    getSelf().tell(failure, getSelf());
+                    return null;
+                });
 
         return stay().using(currentData);
     }

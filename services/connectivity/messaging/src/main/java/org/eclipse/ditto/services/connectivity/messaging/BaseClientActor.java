@@ -32,7 +32,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
@@ -54,7 +53,6 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
-import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -62,6 +60,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
@@ -93,6 +92,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 
+import akka.Done;
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -101,7 +101,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FSMStateFunctionBuilder;
-import akka.routing.Broadcast;
+import akka.pattern.Patterns;
 import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
 
@@ -115,13 +115,12 @@ import akka.routing.ConsistentHashingRouter;
  */
 public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseClientData> {
 
+    protected static final Status.Success DONE = new Status.Success(Done.getInstance());
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
-
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     protected final ConnectionLogger connectionLogger;
-    @Nullable protected ActorRef publisherActor = null;
 
     protected final ConnectivityConfig connectivityConfig;
     protected final ClientConfig clientConfig;
@@ -156,11 +155,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
         final BaseClientData startingData = new BaseClientData(connectionId, connection,
-                ConnectivityStatus.UNKNOWN, desiredConnectionStatus, "initialized", Instant.now(), null, null,
-                new InitializationState(connection.getProcessorPoolSize()));
+                ConnectivityStatus.UNKNOWN, desiredConnectionStatus, "initialized", Instant.now(), null, null);
 
         clientGauge = DittoMetrics.gauge("connection_client")
-                .tag("id",  connectionId.toString())
+                .tag("id", connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
         clientConnectingGauge = DittoMetrics.gauge("connecting_client")
                 .tag("id", connectionId.toString())
@@ -216,7 +214,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @param clientConnected the ClientConnected message which may be subclassed and thus adding more information
      */
-    protected abstract void allocateResourcesOnConnection(ClientConnected clientConnected);
+    protected void allocateResourcesOnConnection(ClientConnected clientConnected) {
+        // do nothing by default
+    }
 
     /**
      * Clean up everything spawned in {@code allocateResourcesOnConnection}. It should be idempotent.
@@ -282,10 +282,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .event(ResetConnectionLogs.class, BaseClientData.class, this::resetConnectionLogs)
                 .event(CheckConnectionLogsActive.class, BaseClientData.class,
                         (command, data) -> this.checkLoggingActive(command))
-                .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
-                    handleOutboundSignal(signal);
-                    return stay();
-                }).event(ResourceReady.class, this::resourceReady);
+                .event(OutboundSignal.class, BaseClientData.class, this::handleOutboundSignal)
+                .event(PublishMappedMessage.class, BaseClientData.class, this::publishMappedMessage);
     }
 
     /**
@@ -293,12 +291,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected final ActorRef getMessageMappingProcessorActor() {
         return messageMappingProcessorActor;
-    }
-
-    protected void stopPublisherActor() {
-        if (publisherActor != null) {
-            stopChildActor(publisherActor);
-        }
     }
 
     /**
@@ -344,27 +336,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * Stops a child actor.
      *
-     * @param name the Actor's name
-     */
-    protected final void stopChildActor(final String name) {
-        final String nameEscaped = escapeActorName(name);
-        final Optional<ActorRef> child = getContext().findChild(nameEscaped);
-        if (child.isPresent()) {
-            log.debug("Stopping child actor <{}>.", nameEscaped);
-            getContext().stop(child.get());
-        } else {
-            log.debug("Cannot stop child actor <{}> because it does not exist.", nameEscaped);
-        }
-    }
-
-    /**
-     * Stops a child actor.
-     *
      * @param actor the ActorRef
      */
     protected final void stopChildActor(final ActorRef actor) {
-        log.debug("Stopping child actor <{}>.", actor.path());
-        getContext().stop(actor);
+        if (actor != null) {
+            log.debug("Stopping child actor <{}>.", actor.path());
+            getContext().stop(actor);
+        }
     }
 
     /**
@@ -496,6 +474,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectingConnectionFailed)
                 .event(ClientConnected.class, BaseClientData.class, this::clientConnected)
+                .event(InitializationResult.class, BaseClientData.class, this::handleInitializationResult)
                 .event(CloseConnection.class, BaseClientData.class, this::closeConnection);
     }
 
@@ -508,6 +487,20 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return matchEvent(CloseConnection.class, BaseClientData.class, this::closeConnection)
                 .event(OpenConnection.class, BaseClientData.class, this::connectionAlreadyOpen)
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectedConnectionFailed);
+    }
+
+    @Nullable
+    protected abstract ActorRef getPublisherActor();
+
+    private FSM.State<BaseClientState, BaseClientData> publishMappedMessage(final PublishMappedMessage message,
+            final BaseClientData data) {
+        if (getPublisherActor() != null) {
+            getPublisherActor().forward(message.getOutboundSignal(), getContext());
+        } else {
+            log.warning("No publisher actor available, dropping message.");
+            connectionLogger.failure("No publisher actor available, dropping message.");
+        }
+        return stay();
     }
 
     /**
@@ -720,35 +713,44 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
         return ifEventUpToDate(clientConnected, () -> {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
+
             allocateResourcesOnConnection(clientConnected);
+
+            final CompletionStage<InitializationResult> init =
+                    startPublisherActor()
+                            .thenRun(() -> log.info("Publisher started. Now starting consumers."))
+                            .thenCompose(unused -> startConsumerActors(clientConnected)) // then start consumers
+                            .thenRun(
+                                    () -> log.info("Consumers started. Client actor is now ready to process messages."))
+                            .thenApply(unused -> InitializationResult.success())
+                            .exceptionally(InitializationResult::failed);
+
+            Patterns.pipe(init, getContext().getDispatcher()).to(getSelf());
+
             return stay().using(data);
         });
     }
 
-    private State<BaseClientState, BaseClientData> resourceReady(final ResourceReady resourceReady,
+    private State<BaseClientState, BaseClientData> handleInitializationResult(
+            final InitializationResult initializationResult,
             final BaseClientData data) {
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
-
-        log.debug("Resource initialized: {}.", resourceReady);
-
-        final BaseClientData currentState =
-                data.setInitializationState(data.getInitializationState().resourceReady(resourceReady));
-
-        if (resourceReady.isPublisher()) {
-            // tell all message mapping actors that the publisher is ready now
-            getMessageMappingProcessorActor().tell(new Broadcast(resourceReady), getSelf());
-        }
-
-        if (currentState.getInitializationState().isFinished()) {
+        if (initializationResult.getFailure() == null) {
             connectionLogger.success("Connection successful.");
             data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
                     .setConnectionStatusDetails("Connected at " + Instant.now()));
         } else {
-            log.debug("Initialization in progress, current state {}.", currentState.getInitializationState());
-            return stay().using(currentState);
+            getSelf().tell(initializationResult.getFailure(), ActorRef.noSender());
+            return stay();
         }
+    }
+
+    protected abstract CompletionStage<Status.Status> startPublisherActor();
+
+    protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
+        return CompletableFuture.completedFuture(new Status.Success(Done.getInstance()));
     }
 
     private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
@@ -1036,10 +1038,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return false;
     }
 
-    private void handleOutboundSignal(final OutboundSignal signal) {
+    private FSM.State<BaseClientState, BaseClientData> handleOutboundSignal(final OutboundSignal signal,
+            final BaseClientData data) {
         enhanceLogUtil(signal.getSource());
-        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal, signal.getSource().getEntityId().toString());
+        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal,
+                signal.getSource().getEntityId().toString());
         messageMappingProcessorActor.tell(msg, getSender());
+        return stay();
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
@@ -1106,7 +1111,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                 connection.getProcessorPoolSize());
-        final Props props = MessageMappingProcessorActor.props(conciergeForwarder, processor, connectionId());
+        final Props props = MessageMappingProcessorActor.props(conciergeForwarder, getSelf(), processor,
+                connectionId());
 
         /*
          * By using a ConsistentHashingPool, messages sent to this actor which are wrapped into
@@ -1152,9 +1158,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         setTimer(DITTO_STATE_TIMEOUT_TIMER, StateTimeout(), duration, false);
     }
 
-    protected void notifyConsumersReady() {
-        getSelf().tell(ResourceReady.consumersReady(), getSelf());
-    }
     /**
      * Add meaningful message to status for reporting.
      *
@@ -1329,6 +1332,48 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         private static Predicate<Duration> isPositiveOrZero() {
             return arg -> !arg.isNegative();
+        }
+    }
+
+    /**
+     * Wrapper for a mapped {@link OutboundSignal} that should be forwarded to the publisher actor.
+     */
+    static class PublishMappedMessage {
+
+        private final OutboundSignal.WithExternalMessage outboundSignal;
+
+        PublishMappedMessage(final OutboundSignal.WithExternalMessage outboundSignal) {
+            this.outboundSignal = outboundSignal;
+        }
+
+        OutboundSignal.WithExternalMessage getOutboundSignal() {
+            return outboundSignal;
+        }
+    }
+
+    /**
+     * Signals successful or failed result of client actor initialization.
+     */
+    static class InitializationResult {
+
+        @Nullable private final ConnectionFailure failure;
+
+        public static InitializationResult success() {
+            return new InitializationResult(null);
+        }
+
+        public static InitializationResult failed(@Nullable final Throwable throwable) {
+            return new InitializationResult(new ImmutableConnectionFailure(null, throwable,
+                    "Exception during client actor initialization."));
+        }
+
+        private InitializationResult(@Nullable final ConnectionFailure failure) {
+            this.failure = failure;
+        }
+
+        @Nullable
+        public ConnectionFailure getFailure() {
+            return failure;
         }
     }
 }
