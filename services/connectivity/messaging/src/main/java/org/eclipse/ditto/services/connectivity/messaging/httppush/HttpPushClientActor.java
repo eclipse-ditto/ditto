@@ -40,7 +40,12 @@ public final class HttpPushClientActor extends BaseClientActor {
         factory = HttpPushFactory.of(connection);
     }
 
-    // TODO
+    /**
+     * Create the {@code Props} object for an {@code HttpPushClientActor}.
+     *
+     * @param connection the HTTP-push connection.
+     * @return the {@code Props} object.
+     */
     public static Props props(final Connection connection) {
         return Props.create(HttpPushClientActor.class, connection, connection.getConnectionStatus());
     }

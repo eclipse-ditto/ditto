@@ -16,6 +16,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.TWIN;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
@@ -79,6 +81,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     private ActorSystem actorSystem;
     private ActorMaterializer mat;
+    private ServerBinding binding;
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
     private BlockingQueue<HttpResponse> responseQueue;
@@ -94,10 +97,9 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                     requestQueue.offer(request);
                     return responseQueue.take();
                 });
-        final ServerBinding binding =
-                Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), mat)
-                        .toCompletableFuture()
-                        .join();
+        binding = Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), mat)
+                .toCompletableFuture()
+                .join();
         connection = ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
                 ConnectionType.HTTP_PUSH,
                 ConnectivityStatus.OPEN,
@@ -129,7 +131,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testConnect() {
+    public void connectAndDisconnect() {
         new TestKit(actorSystem) {{
             final Props props = createClientActor(getRef());
             final ActorRef underTest = actorSystem.actorOf(props);
@@ -143,11 +145,23 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testTestConnection() {
+    public void testConnection() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
             underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
             expectMsg(new Status.Success("successfully connected + initialized mapper"));
+            expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void testConnectionFails() {
+        new TestKit(actorSystem) {{
+            binding.terminate(Duration.ofMillis(1L));
+            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
+            underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+            final Status.Failure failure = expectMsgClass(Status.Failure.class);
+            assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
             expectTerminated(underTest);
         }};
     }
@@ -182,11 +196,35 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
             // THEN: the payload is the JSON string of the event as a Ditto protocol message
             assertThat(thingModifiedRequest.entity()
-                    .toStrict(60_000, mat)
+                    .toStrict(10_000, mat)
                     .toCompletableFuture()
                     .join()
                     .getData()
                     .utf8String()).isEqualTo(toJsonString(ADAPTER.toAdaptable(thingModifiedEvent, TWIN)));
+        }};
+    }
+
+    @Test
+    public void placeholderReplacement() throws Exception {
+        final Target target = TestConstants.Targets.TARGET_WITH_PLACEHOLDER;
+        connection = connection.toBuilder().setTargets(singletonList(target)).build();
+
+        new TestKit(actorSystem) {{
+            // GIVEN: local HTTP connection is connected
+            final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef()));
+            underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
+            expectMsg(new Status.Success(BaseClientState.CONNECTED));
+
+            // WHEN: a thing event is sent to a target with header mapping content-type=application/json
+            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(target));
+            underTest.tell(outboundSignal, getRef());
+
+            // THEN: a POST-request is forwarded to the path defined in the target
+            final HttpRequest thingModifiedRequest = requestQueue.take();
+            responseQueue.offer(HttpResponse.create().withStatus(StatusCodes.OK));
+            assertThat(thingModifiedRequest.getUri().getPathString()).isEqualTo("/target:ditto/thing@twin");
         }};
     }
 

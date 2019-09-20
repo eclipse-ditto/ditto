@@ -309,7 +309,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), aggregator.ref());
-            final ResourceStatus resourceStatus = aggregator.expectMsgClass(ResourceStatus.class);
+            aggregator.expectMsgClass(ResourceStatus.class);
 
             final JmsConnectionListener connectionListener = checkNotNull(listenerArgumentCaptor.getValue());
 
