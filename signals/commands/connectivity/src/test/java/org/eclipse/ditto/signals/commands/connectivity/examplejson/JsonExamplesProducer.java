@@ -113,14 +113,6 @@ public class JsonExamplesProducer {
                 CreateConnectionResponse.of(TestConstants.CONNECTION, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("createConnection.json")), createConnectionResponse);
 
-        final ModifyConnectionResponse modifyConnectionResponseCreated =
-                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty());
-        writeJson(commandsDir.resolve(Paths.get("modifyConnectionCreated.json")), modifyConnectionResponseCreated);
-
-        final ModifyConnectionResponse modifyConnectionResponseModified =
-                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty());
-        writeJson(commandsDir.resolve(Paths.get("modifyConnectionModified.json")), modifyConnectionResponseModified);
-
         final DeleteConnectionResponse deleteConnectionResponse =
                 DeleteConnectionResponse.of(TestConstants.ID, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("deleteConnection.json")), deleteConnectionResponse);

@@ -125,7 +125,7 @@ public abstract class AbstractActorWithLock extends AbstractActorWithStash {
     }
 
     @Override
-    public void postStop() {
+    public void postStop() throws Exception {
         cancelLockTimeout();
         super.postStop();
     }

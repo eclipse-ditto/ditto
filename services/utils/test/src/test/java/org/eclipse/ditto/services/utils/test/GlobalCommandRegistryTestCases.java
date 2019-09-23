@@ -70,6 +70,16 @@ public abstract class GlobalCommandRegistryTestCases {
     }
 
     /**
+     * Override this method to exclude certain classes.
+     *
+     * @param clazz the class to check.
+     * @return whether the class is excluded.
+     */
+    protected boolean isExcluded(final Class<?> clazz) {
+        return false;
+    }
+
+    /**
      * This test should verify that all modules containing commands that need to be deserialized
      * in this service are still in the classpath.
      * Therefore one sample of each module is placed in {@code samples}.
@@ -102,7 +112,7 @@ public abstract class GlobalCommandRegistryTestCases {
         StreamSupport.stream(ClassIndex.getSubclasses(Command.class).spliterator(), true)
                 .filter(c -> {
                     final int m = c.getModifiers();
-                    return !(Modifier.isAbstract(m) || Modifier.isInterface(m));
+                    return !(Modifier.isAbstract(m) || Modifier.isInterface(m) || isExcluded(c));
                 })
                 .forEach(c -> assertThat(c.isAnnotationPresent(JsonParsableCommand.class))
                         .as("Check that '%s' is annotated with JsonParsableCommand.", c.getName())
