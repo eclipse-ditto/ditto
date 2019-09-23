@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -18,6 +18,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -31,7 +32,6 @@ import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrateg
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
 
@@ -48,10 +48,19 @@ import scala.Option;
 /**
  * PersistentActor which "knows" the state of a single entity supervised by a sharded
  * {@code AbstractPersistenceSupervisor}.
+ *
+ * @param <C> the base type of the Commands this actor handles
+ * @param <S> the entity type this actor manages
+ * @param <I> the type of the EntityId this actor manages
+ * @param <K> the type of the state of the {@link CommandStrategy.Context}
+ * @param <E> the base type of the Events this actor emits
  */
-public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K, E extends Event>
-        extends AbstractPersistentActorWithTimersAndCleanup
-        implements ResultVisitor<E> {
+public abstract class AbstractShardedPersistenceActor<
+        C extends Command,
+        S,
+        I extends EntityId,
+        K,
+        E extends Event> extends AbstractPersistentActorWithTimersAndCleanup implements ResultVisitor<E> {
 
     /**
      * Logger of the actor.
@@ -175,7 +184,7 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
      *
      * @param event the event that recovery completed.
      */
-    protected void recoveryCompleted(RecoveryCompleted event) {
+    protected void recoveryCompleted(final RecoveryCompleted event) {
         // override to introduce additional logging and other side effects
         becomeCreatedOrDeletedHandler();
     }
@@ -200,7 +209,7 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
     }
 
     @Override
-    public void postStop() {
+    public void postStop() throws Exception {
         log.debug("Stopping PersistenceActor for Thing with ID <{}>.", entityId);
         super.postStop();
     }
@@ -369,12 +378,12 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
         handleByStrategy(command, getCreatedStrategy());
     }
 
-    private <T> ReceiveBuilder handleByStrategyReceiveBuilder(final CommandStrategy<T, S, K, Result<E>> strategy) {
+    private <T extends Command> ReceiveBuilder handleByStrategyReceiveBuilder(final CommandStrategy<T, S, K, Result<E>> strategy) {
         return ReceiveBuilder.create()
                 .match(strategy.getMatchingClass(), command -> handleByStrategy(command, strategy));
     }
 
-    private <T> void handleByStrategy(final T command, final CommandStrategy<T, S, K, Result<E>> strategy) {
+    private <T extends Command> void handleByStrategy(final T command, final CommandStrategy<T, S, K, Result<E>> strategy) {
         log.debug("Handling by strategy: <{}>", command);
         accessCounter++;
         final Result<E> result;
@@ -513,7 +522,12 @@ public abstract class AbstractShardedPersistenceActor<C extends Signal, S, I, K,
         return entity != null && !entityExistsAsDeleted();
     }
 
-    private void matchAnyAfterInitialization(final Object message) {
+    /**
+     * Default is to log a warning, may be overwritten by implementations in order to handle additional messages.
+     *
+     * @param message the message to handle after initialization.
+     */
+    protected void matchAnyAfterInitialization(final Object message) {
         log.warning("Unknown message: {}", message);
     }
 

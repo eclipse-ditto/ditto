@@ -14,13 +14,14 @@ package org.eclipse.ditto.services.utils.persistentactors.results;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Result that demands persistence of a mutation event.
  *
  * @param <E> type of the event.
  */
-public final class MutationResult<E> implements Result<E> {
+public final class MutationResult<E extends Event> implements Result<E> {
 
     private final Command command;
     private final E eventToPersist;

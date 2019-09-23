@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -24,8 +24,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
 /**
  * Determines an entity for eTag generation based on a command and Thing.
  *
- * @param <C> The type of the handled command.
- * @param <S> The type of the addressed entity.
+ * @param <C> the type of the handled command
+ * @param <S> the type of the addressed entity
  */
 public interface ETagEntityProvider<C extends Command, S> {
 
@@ -36,7 +36,7 @@ public interface ETagEntityProvider<C extends Command, S> {
      * @param previousEntity The entity, may be {@code null}.
      * @return An optional of an entity against which the etag header should be matched.
      */
-    Optional<?> previousETagEntity(final C command, @Nullable final S previousEntity);
+    Optional<?> previousETagEntity(C command, @Nullable S previousEntity);
 
     /**
      * Determines the value based on which an eTag will be generated after a modify command.
@@ -45,7 +45,7 @@ public interface ETagEntityProvider<C extends Command, S> {
      * @param newEntity The entity, may be {@code null}.
      * @return An optional of the entity from which the etag header should be generated.
      */
-    Optional<?> nextETagEntity(final C command, @Nullable final S newEntity);
+    Optional<?> nextETagEntity(C command, @Nullable S newEntity);
 
     /**
      * Append an ETag header if given by the entity.

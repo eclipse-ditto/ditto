@@ -105,10 +105,5 @@ public enum ConnectionAction {
     /**
      * Disable logging.
      */
-    DISABLE_LOGGING,
-
-    /**
-     * Forward given signal to client actors if started.
-     */
-    FORWARD_SIGNAL;
+    DISABLE_LOGGING
 }

@@ -50,7 +50,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link CreateThingStrategy} command.
  */
 @Immutable
-public final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing> {
+final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing> {
 
     private static final CreateThingStrategy INSTANCE = new CreateThingStrategy();
 

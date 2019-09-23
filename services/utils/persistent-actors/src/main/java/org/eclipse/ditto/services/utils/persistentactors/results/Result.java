@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors.results;
 
+import org.eclipse.ditto.signals.events.base.Event;
+
 /**
  * The result of applying the strategy to the given command.
  */
-public interface Result<E> {
+public interface Result<E extends Event> {
 
     /**
      * Evaluate the result by a visitor.

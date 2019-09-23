@@ -13,11 +13,12 @@
 package org.eclipse.ditto.services.utils.persistentactors.results;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Result signifying an error.
  */
-public final class ErrorResult<E> implements Result<E> {
+public final class ErrorResult<E extends Event> implements Result<E> {
 
     private final DittoRuntimeException dittoRuntimeException;
 

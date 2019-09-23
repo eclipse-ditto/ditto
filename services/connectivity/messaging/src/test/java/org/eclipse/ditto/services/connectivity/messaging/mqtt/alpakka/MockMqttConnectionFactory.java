@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -88,6 +89,7 @@ final class MockMqttConnectionFactory implements MqttConnectionFactory {
             return akka.stream.javadsl.Source.<MqttMessage>failed(error).mapMaterializedValue(this::failedFuture);
         } else {
             return akka.stream.javadsl.Source.from(messages)
+                    .initialDelay(Duration.ofSeconds(1))
                     .filter(MockMqttConnectionFactory.topicMatches(mqttSource.getAddresses()))
                     .mapMaterializedValue(whatever -> CompletableFuture.completedFuture(Done.getInstance()));
         }

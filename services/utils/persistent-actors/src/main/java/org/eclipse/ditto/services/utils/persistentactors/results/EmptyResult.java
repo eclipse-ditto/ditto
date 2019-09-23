@@ -12,17 +12,25 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors.results;
 
+import org.eclipse.ditto.signals.events.base.Event;
+
 /**
  * Result without content.
  *
  * @param <E> type of events.
  */
-public final class EmptyResult<E> implements Result<E> {
+public final class EmptyResult<E extends Event> implements Result<E> {
 
     private static final Object INSTANCE = new EmptyResult();
 
+    /**
+     * Returns the singleton instance of an empty {@link Result}.
+     *
+     * @param <E> the type of the event contained in the result.
+     * @return the empty result instance.
+     */
     @SuppressWarnings("unchecked")
-    public static <E> EmptyResult<E> getInstance() {
+    public static <E extends Event> EmptyResult<E> getInstance() {
         return (EmptyResult<E>) INSTANCE;
     }
 

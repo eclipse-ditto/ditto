@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -14,17 +14,20 @@ package org.eclipse.ditto.services.utils.persistentactors.commands;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.signals.commands.base.Command;
+
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * The CommandStrategy interface.
  *
- * @param <C> type of handled command.
- * @param <S> type of entities.
- * @param <I> type of entity IDs.
- * @param <R> type of results.
+ * @param <C> the type of the handled command
+ * @param <S> the type of the managed entity
+ * @param <K> the type of the context
+ * @param <R> the type of the results
  */
-public interface CommandStrategy<C, S, I, R> {
+public interface CommandStrategy<C extends Command, S, K, R extends Result> {
 
     /**
      * @return the message class to react to.
@@ -40,7 +43,7 @@ public interface CommandStrategy<C, S, I, R> {
      * @param command the command.
      * @return the result of the strategy that will be handled in the context of the calling actor.
      */
-    R apply(Context<I> context, @Nullable S entity, long nextRevision, C command);
+    R apply(Context<K> context, @Nullable S entity, long nextRevision, C command);
 
     /**
      * Indicates whether this strategy is defined for the specified command and can be applied.
@@ -60,21 +63,21 @@ public interface CommandStrategy<C, S, I, R> {
      * @return {@code true} if the strategy is defined for the given command and can be applied.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    default boolean isDefined(final Context<I> context, @Nullable final S entity, final C command) {
+    default boolean isDefined(final Context<K> context, @Nullable final S entity, final C command) {
         return isDefined(command);
     }
 
     /**
      * The Context in which a strategy is executed.
      *
-     * @param <I> type of the state of the context.
+     * @param <K> the type of the state of the context
      */
-    interface Context<I> {
+    interface Context<K> {
 
         /**
          * @return the state.
          */
-        I getState();
+        K getState();
 
         /**
          * @return the log.

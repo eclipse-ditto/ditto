@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -22,12 +22,13 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
- * Responsible to check conditional (http) headers based on the thing's current eTag value.
+ * Abstract base class for {@link org.eclipse.ditto.signals.commands.things.ThingCommand} strategies.
  *
- * @param <C> The type of the handled command.
+ * @param <C> the type of the handled command - of type {@code Command} as also
+ * {@link org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand} are handled which are no ThingCommands.
  */
 @Immutable
-public abstract class AbstractThingCommandStrategy<C extends Command<C>>
+abstract class AbstractThingCommandStrategy<C extends Command<C>>
         extends AbstractConditionHeaderCheckingCommandStrategy<C, Thing, ThingId, ThingEvent> {
 
     private static final ConditionalHeadersValidator VALIDATOR =

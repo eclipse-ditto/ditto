@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -14,14 +14,16 @@ package org.eclipse.ditto.services.utils.persistentactors.events;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.signals.events.base.Event;
+
 /**
  * This interface represents a strategy for handling events in a persistent actor.
  *
- * @param <E> type of the event this strategy matches against.
- * @param <S> type of entity.
+ * @param <E> the type of the event this strategy matches against
+ * @param <S> the type of the entity
  */
 @FunctionalInterface
-public interface EventStrategy<E, S> {
+public interface EventStrategy<E extends Event, S> {
 
     /**
      * Applies an event to an entity.
@@ -29,7 +31,7 @@ public interface EventStrategy<E, S> {
      * @param event the event to apply.
      * @param entity the entity to apply the event to.
      * @param revision the next revision of the entity.
-     * @return the Thing with the event applied or {@code null} if no strategy for {@code event} could be found.
+     * @return the entity with the event applied or {@code null} if no strategy for {@code event} could be found.
      * @throws NullPointerException if {@code event} is {@code null}.
      */
     @Nullable

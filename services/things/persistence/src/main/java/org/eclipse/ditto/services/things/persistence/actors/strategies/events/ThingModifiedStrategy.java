@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.ThingModified} event.
  */
 @Immutable
-final class ThingModifiedStrategy extends AbstractEventStrategy<ThingModified> {
+final class ThingModifiedStrategy extends AbstractThingEventStrategy<ThingModified> {
 
     /**
      * Merges the modifications from {@code thingWithModifications} to {@code thingBuilder}.

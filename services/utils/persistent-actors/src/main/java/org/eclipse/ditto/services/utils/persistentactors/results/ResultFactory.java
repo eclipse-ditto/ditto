@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -17,6 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * A factory for creating {@link Result} instances.
@@ -37,7 +38,7 @@ public final class ResultFactory {
      * @param <E> type of the event.
      * @return the result.
      */
-    public static <E> Result<E> newMutationResult(final Command command, final E eventToPersist,
+    public static <E extends Event> Result<E> newMutationResult(final Command command, final E eventToPersist,
             final WithDittoHeaders response) {
 
         return new MutationResult<>(command, eventToPersist, response, false, false);
@@ -54,7 +55,7 @@ public final class ResultFactory {
      * @param <E> type of the event.
      * @return the result.
      */
-    public static <E> Result<E> newMutationResult(final Command command,
+    public static <E extends Event> Result<E> newMutationResult(final Command command,
             final E eventToPersist,
             final WithDittoHeaders response,
             final boolean becomeCreated,
@@ -70,7 +71,7 @@ public final class ResultFactory {
      * @param <E> type of events (irrelevant).
      * @return the result.
      */
-    public static <E> Result<E> newErrorResult(final DittoRuntimeException dittoRuntimeException) {
+    public static <E extends Event> Result<E> newErrorResult(final DittoRuntimeException dittoRuntimeException) {
         return new ErrorResult<>(dittoRuntimeException);
     }
 
@@ -82,7 +83,7 @@ public final class ResultFactory {
      * @param <E> type of events (irrelevant).
      * @return the result.
      */
-    public static <E> Result<E> newQueryResult(final Command command, final WithDittoHeaders response) {
+    public static <E extends Event> Result<E> newQueryResult(final Command command, final WithDittoHeaders response) {
         return new QueryResult<>(command, response);
     }
 
@@ -92,7 +93,7 @@ public final class ResultFactory {
      * @param <E> type of events (irrelevant).
      * @return the empty result.
      */
-    public static <E> Result<E> emptyResult() {
+    public static <E extends Event> Result<E> emptyResult() {
         return EmptyResult.getInstance();
     }
 

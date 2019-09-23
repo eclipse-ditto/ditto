@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -23,33 +23,35 @@ import akka.event.DiagnosticLoggingAdapter;
 /**
  * Holds the context required to execute the
  * {@link org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy}s.
+ *
+ * @param <K> the type of the context's state
  */
 @Immutable
-public final class DefaultContext<I> implements CommandStrategy.Context<I> {
+public final class DefaultContext<K> implements CommandStrategy.Context<K> {
 
-    private final I state;
+    private final K state;
     private final DiagnosticLoggingAdapter log;
 
-    private DefaultContext(final I state, final DiagnosticLoggingAdapter theLog) {
+    private DefaultContext(final K state, final DiagnosticLoggingAdapter theLog) {
 
-        this.state = checkNotNull(state, "Thing ID");
+        this.state = checkNotNull(state, "state");
         log = checkNotNull(theLog, "DiagnosticLoggingAdapter");
     }
 
     /**
      * Returns an instance of {@code DefaultContext}.
      *
-     * @param thingId the ID of the Thing.
+     * @param state the state.
      * @param log the logging adapter to be used.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <I> DefaultContext<I> getInstance(final I thingId, final DiagnosticLoggingAdapter log) {
-        return new DefaultContext<>(thingId, log);
+    public static <K> DefaultContext<K> getInstance(final K state, final DiagnosticLoggingAdapter log) {
+        return new DefaultContext<>(state, log);
     }
 
     @Override
-    public I getState() {
+    public K getState() {
         return state;
     }
 
@@ -78,7 +80,7 @@ public final class DefaultContext<I> implements CommandStrategy.Context<I> {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "thingId=" + state +
+                "state=" + state +
                 ", log=" + log +
                 "]";
     }

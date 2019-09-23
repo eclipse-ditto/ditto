@@ -12,7 +12,7 @@
  */
 
 /**
- * Staged command handling idiosyncratic to {@link org.eclipse.ditto.services.connectivity.messaging.ConnectionActor}.
+ * Staged command handling idiosyncratic to {@link org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor}.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
 package org.eclipse.ditto.services.connectivity.messaging.persistence.stages;

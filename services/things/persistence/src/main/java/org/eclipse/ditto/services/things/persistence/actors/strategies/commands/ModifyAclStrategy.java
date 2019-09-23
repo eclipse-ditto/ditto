@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link ModifyAcl} command.
  */
 @Immutable
-public final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
+final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
 
     /**
      * Constructs a new {@code ModifyAclStrategy} object.
