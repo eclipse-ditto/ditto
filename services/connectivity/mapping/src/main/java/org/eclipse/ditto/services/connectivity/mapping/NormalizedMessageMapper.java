@@ -16,12 +16,16 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -41,10 +45,18 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
  */
 public final class NormalizedMessageMapper implements MessageMapper {
 
+    /**
+     * Config property to project parts from the mapping result.
+     */
+    static final String FIELDS = "fields";
+
     private static final JsonFieldDefinition<String> THING_ID = Thing.JsonFields.ID;
     private static final JsonFieldDefinition<String> MODIFIED = Thing.JsonFields.MODIFIED;
     private static final JsonFieldDefinition<JsonObject> ABRIDGED_ORIGINAL_MESSAGE =
             JsonFactory.newJsonObjectFieldDefinition("_context");
+
+    @Nullable
+    private JsonFieldSelector jsonFieldSelector;
 
     /**
      * Constructs a new {@code MessageMapper} object.
@@ -54,7 +66,10 @@ public final class NormalizedMessageMapper implements MessageMapper {
 
     @Override
     public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
-        // no op
+        final Optional<String> fields = configuration.findProperty(FIELDS);
+        fields.ifPresent(s ->
+                jsonFieldSelector =
+                        JsonFactory.newFieldSelector(s, JsonParseOptions.newBuilder().withoutUrlDecoding().build()));
     }
 
     @Override
@@ -99,12 +114,15 @@ public final class NormalizedMessageMapper implements MessageMapper {
         payload.getTimestamp().ifPresent(timestamp -> builder.set(MODIFIED, timestamp.toString()));
         builder.set(ABRIDGED_ORIGINAL_MESSAGE, abridgeMessage(adaptable));
 
+        final JsonObject result = jsonFieldSelector == null
+                ? builder.build()
+                : builder.build().get(jsonFieldSelector);
 
         final Map<String, String> headers = getHeaders(adaptable);
 
         return ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .withTopicPath(adaptable.getTopicPath())
-                .withText(builder.build().toString())
+                .withText(result.toString())
                 .build();
     }
 

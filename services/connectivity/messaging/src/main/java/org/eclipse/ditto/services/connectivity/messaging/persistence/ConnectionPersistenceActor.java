@@ -455,8 +455,6 @@ public final class ConnectionPersistenceActor
     }
 
     private void forwardSignalToClientActors(final Signal signal) {
-        // Do not flush pending responses - pub/sub may not be ready on all nodes
-
         enhanceLogUtil(signal);
         if (clientActorRouter == null) {
             logDroppedSignal(signal.getType(), "Client actor not ready.");

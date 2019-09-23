@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
+import java.util.Collections;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
@@ -48,6 +49,8 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests {@link org.eclipse.ditto.services.connectivity.mapping.NormalizedMessageMapper}.
@@ -130,6 +133,34 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/features/featureId/properties/the/quick/brown/fox/jumped/over/the/lazy/dog\",\n" +
                         "    \"revision\": 2,\n" +
                         "    \"timestamp\": \"1970-01-01T00:00:02Z\",\n" +
+                        "    \"headers\": {\n" +
+                        "      \"content-type\": \"application/vnd.eclipse.ditto+json\"\n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}"));
+    }
+
+    @Test
+    public void withFieldSelection() {
+        final ThingEvent event = FeaturePropertyModified.of(
+                ThingId.of("thing:id"),
+                "featureId",
+                JsonPointer.of("/the/quick/brown/fox/jumped/over/the/lazy/dog/"),
+                JsonValue.of(9),
+                2L,
+                Instant.ofEpochSecond(2L),
+                DittoHeaders.empty());
+
+        underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
+                DefaultMessageMapperConfiguration.of(Collections.singletonMap(NormalizedMessageMapper.FIELDS,
+                        "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer")));
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
+        Assertions.assertThat(mapToJson(adaptable))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:02Z\",\n" +
+                        "  \"_context\": {\n" +
+                        "    \"topic\": \"thing/id/things/twin/events/modified\",\n" +
                         "    \"headers\": {\n" +
                         "      \"content-type\": \"application/vnd.eclipse.ditto+json\"\n" +
                         "    }\n" +
