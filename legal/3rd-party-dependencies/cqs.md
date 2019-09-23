@@ -14,8 +14,8 @@
 |com.github.jnr|jnr-ffi|2.1.7| [16303](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16303) |
 |com.github.jnr|jnr-x86asm|1.0.2| [16304](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16304) |
 |com.github.luben|zstd-jni|1.3.7-1| [19163](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19163) |
-|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.3.1| []() TODO |
-|com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.3.1| []() TODO |
+|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.3.1| [20858](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20858) |
+|com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.3.1| [20859](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20859) |
 |com.hivemq|hivemq-mqtt-client|1.1.2| [20712](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20712) |
 |com.lightbend.akka|akka-stream-alpakka-mqtt_2.12|1.0.0| [19510](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19510) |
 |com.lightbend.akka.discovery|akka-discovery-kubernetes-api_2.12|1.0.3| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
@@ -63,25 +63,25 @@
 |io.netty|netty-transport-native-unix-common|4.1.41.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
 |io.reactivex.rxjava2|rxjava|2.2.5| [20711](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20711) |
 |io.spray|spray-json_2.12|1.3.5| [16555](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16555) |
-|nl.grons|metrics4-akka_a25_2.12|4.0.8| []() TODO |
-|nl.grons|metrics4-scala_2.12|4.0.8| []() TODO |
+|nl.grons|metrics4-akka_a25_2.12|4.0.8| [20860](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20860) |
+|nl.grons|metrics4-scala_2.12|4.0.8| [20861](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20861) |
 |org.agrona|agrona|0.9.31| [16554](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16554) |
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
 |org.apache.kafka|kafka-clients|2.1.1| [19161](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19161) |
 |org.apache.qpid|proton-j|0.33.2| [19000](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19000) |
-|org.apache.qpid|qpid-jms-client|0.45.0| []() TODO |
+|org.apache.qpid|qpid-jms-client|0.45.0| [20862](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20862) |
 |org.atteo.classindex|classindex|3.8| [20713](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20713) |
 |org.eclipse.paho|org.eclipse.paho.client.mqttv3|1.2.0| not required as Eclipse project |
 |org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
 |org.lmdbjava|lmdbjava|0.6.1| [16336](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16336) |
 |org.lz4|lz4-java|1.5.0| [19162](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19162) |
-|org.mongodb|bson|3.11.0| []() TODO |
-|org.mongodb|mongodb-driver-async|3.11.0| []() TODO |
-|org.mongodb|mongodb-driver-core|3.11.0| []() TODO |
-|org.mongodb|mongodb-driver-reactivestreams|1.12.0| []() TODO |
-|org.mongodb|mongo-java-driver|3.11.0| []() TODO |
-|org.mongodb.scala|mongo-scala-bson_2.12|2.7.0| []() TODO |
-|org.mongodb.scala|mongo-scala-driver_2.12|2.7.0| []() TODO |
+|org.mongodb|bson|3.11.0| [20863](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20863) |
+|org.mongodb|mongodb-driver-async|3.11.0| [20863](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20863) |
+|org.mongodb|mongodb-driver-core|3.11.0| [20863](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20863) |
+|org.mongodb|mongodb-driver-reactivestreams|1.12.0| [20864](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20864) |
+|org.mongodb|mongo-java-driver|3.11.0| [20863](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20863) |
+|org.mongodb.scala|mongo-scala-bson_2.12|2.7.0| [20865](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20865) |
+|org.mongodb.scala|mongo-scala-driver_2.12|2.7.0| [20865](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20865) |
 |org.mozilla|rhino|1.7.11| [16320](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16320) |
 |org.ow2.asm|asm-analysis|5.2| [16321](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16321) |
 |org.ow2.asm|asm-commons|5.2| [16322](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16322) |
@@ -89,7 +89,7 @@
 |org.ow2.asm|asm-tree|5.2| [16323](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16323) |
 |org.ow2.asm|asm-util|5.2| [16324](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16324) |
 |org.reactivestreams|reactive-streams|1.0.3| [16332](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16332) |
-|org.scala-lang.modules|scala-collection-compat_2.12|2.1.1| []() TODO |
+|org.scala-lang.modules|scala-collection-compat_2.12|2.1.1| [20866](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20866) |
 |org.scala-lang.modules|scala-java8-compat_2.12|0.8.0| [14402](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14402) |
 |org.scala-lang.modules|scala-parser-combinators_2.12|1.1.0| [16341](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16341) |
 |org.scala-lang|scala-library|2.12.8| [16335](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16335) |
