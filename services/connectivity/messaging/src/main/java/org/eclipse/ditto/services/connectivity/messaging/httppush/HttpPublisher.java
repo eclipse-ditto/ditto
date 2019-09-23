@@ -151,9 +151,7 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
             if (error != null) {
                 final String errorDescription = "Source queue failure";
                 log.error(error, errorDescription);
-                responseDroppedMonitor.failure(message,
-                        "Message dropped because the connection failed",
-                        config.getMaxQueueSize());
+                responseDroppedMonitor.failure(message, "Message dropped because the connection failed");
                 escalate(error, errorDescription);
             } else if (queueOfferResult == QueueOfferResult.dropped()) {
                 log.debug("HTTP request dropped due to full queue");

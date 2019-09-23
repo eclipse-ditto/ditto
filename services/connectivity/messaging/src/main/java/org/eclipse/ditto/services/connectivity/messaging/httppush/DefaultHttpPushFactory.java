@@ -27,8 +27,6 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.ConnectionContext;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.HttpsConnectionContext;
-import akka.http.javadsl.model.HttpMethod;
-import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.Uri;
@@ -42,16 +40,13 @@ import scala.util.Try;
 final class DefaultHttpPushFactory implements HttpPushFactory {
 
     private final ConnectionId connectionId;
-    private final HttpMethod method;
     private final Uri baseUri;
     private final int parallelism;
     private final SSLContextCreator sslContextCreator;
 
-    private DefaultHttpPushFactory(final ConnectionId connectionId,
-            final HttpMethod method, final Uri baseUri, final int parallelism,
+    private DefaultHttpPushFactory(final ConnectionId connectionId, final Uri baseUri, final int parallelism,
             final SSLContextCreator sslContextCreator) {
         this.connectionId = connectionId;
-        this.method = method;
         this.baseUri = baseUri;
         this.parallelism = parallelism;
         this.sslContextCreator = sslContextCreator;
@@ -60,16 +55,15 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     static HttpPushFactory of(final Connection connection) {
         final ConnectionId connectionId = connection.getId();
         final Uri baseUri = Uri.create(connection.getUri());
-        final HttpMethod method = parseHttpMethod(connection.getSpecificConfig());
         final int parallelism = parseParallelism(connection.getSpecificConfig());
         final SSLContextCreator sslContextCreator = SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
-        return new DefaultHttpPushFactory(connectionId, method, baseUri, parallelism, sslContextCreator);
+        return new DefaultHttpPushFactory(connectionId, baseUri, parallelism, sslContextCreator);
     }
 
     @Override
     public HttpRequest newRequest(final HttpPublishTarget httpPublishTarget) {
         return HttpRequest.create()
-                .withMethod(method)
+                .withMethod(httpPublishTarget.getMethod())
                 .withUri(appendPath(baseUri, httpPublishTarget.getPathSegments()));
     }
 
@@ -109,12 +103,6 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         return ConnectionPoolSettings.create(system)
                 .withConnectionSettings(ClientConnectionSettings.create(system)
                         .withParserSettings(parserSettings.withHeaderValueCacheLimits(disambiguator)));
-    }
-
-    private static HttpMethod parseHttpMethod(final Map<String, String> specificConfig) {
-        return Optional.ofNullable(specificConfig.get(HttpPushFactory.METHOD))
-                .flatMap(HttpMethods::lookup)
-                .orElse(HttpMethods.POST);
     }
 
     private static int parseParallelism(final Map<String, String> specificConfig) {

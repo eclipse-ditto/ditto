@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -78,9 +77,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "HTTP");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validateHttpMethod(connection.getSpecificConfig().get(HttpPushFactory.METHOD), dittoHeaders);
         validateParallelism(connection.getSpecificConfig(), dittoHeaders, config);
-        validateTest(connection.getSpecificConfig(), dittoHeaders);
     }
 
     @Override
@@ -99,19 +96,35 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
         validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
                 newHeadersPlaceholder());
+        validateTargetAddress(target.getAddress(), dittoHeaders, targetDescription);
     }
 
-    private void validateHttpMethod(@Nullable final String methodName, final DittoHeaders dittoHeaders) {
-        if (methodName != null) {
-            final Optional<HttpMethod> method = HttpMethods.lookup(methodName);
-            if (!method.isPresent() || !SUPPORTED_METHODS.contains(method.get())) {
-                final String errorMessage = String.format(
-                        "The method '%s' is not supported. Supported methods are %s.",
-                        methodName, SUPPORTED_METHOD_NAMES);
-                throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
+    private void validateTargetAddress(final String targetAddress, final DittoHeaders dittoHeaders,
+            final Supplier<String> targetDescription) {
+
+        final String[] methodAndPath = HttpPublishTarget.splitMethodAndPath(targetAddress);
+        if (methodAndPath.length == 2) {
+            validateHttpMethod(methodAndPath[0], dittoHeaders, targetDescription);
+        } else {
+            final String message =
+                    String.format("%s: Target address has invalid format. Expect '%s', for example '%s'.",
+                            targetDescription.get(), "<VERB>:/<path>", "POST:/api");
+            throw ConnectionConfigurationInvalidException.newBuilder(message)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+    }
+
+    private void validateHttpMethod(final String methodName, final DittoHeaders dittoHeaders,
+            final Supplier<String> targetDescriptor) {
+        final Optional<HttpMethod> method = HttpMethods.lookup(methodName);
+        if (!method.isPresent() || !SUPPORTED_METHODS.contains(method.get())) {
+            final String errorMessage = String.format(
+                    "%s: The method '%s' is not supported. Supported methods are %s.",
+                    targetDescriptor.get(), methodName, SUPPORTED_METHOD_NAMES);
+            throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
         }
     }
 
@@ -129,40 +142,6 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
                 throw parallelismValidationFailed(parallelismString, dittoHeaders, config);
             }
         }
-    }
-
-    private void validateTest(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders) {
-        final String testMethod = specificConfig.get(HttpPushFactory.TEST_METHOD);
-        final String testStatus = specificConfig.get(HttpPushFactory.TEST_STATUS);
-        if (testMethod != null || testStatus != null) {
-            if (testMethod == null || testStatus == null) {
-                final String message =
-                        String.format("The specific config '%s' and '%s' must be both present or absent.",
-                                HttpPushFactory.TEST_METHOD, HttpPushFactory.TEST_STATUS);
-                throw ConnectionConfigurationInvalidException.newBuilder(message)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-            if (!HttpMethods.lookup(testMethod).isPresent()) {
-                throw testMethodNotFound(testMethod, dittoHeaders);
-            }
-            try {
-                if (!HttpStatusCode.forInt(Integer.parseInt(testStatus)).isPresent()) {
-                    throw testStatusNotFound(testStatus, dittoHeaders);
-                }
-            } catch (final NumberFormatException e) {
-                throw testStatusNotFound(testStatus, dittoHeaders);
-            }
-        }
-    }
-
-    private static ConnectionConfigurationInvalidException testStatusNotFound(final String testStatus,
-            final DittoHeaders dittoHeaders) {
-
-        final String message = String.format("The test-status '%s' is not an HTTP status code.", testStatus);
-        return ConnectionConfigurationInvalidException.newBuilder(message)
-                .dittoHeaders(dittoHeaders)
-                .build();
     }
 
     private static ConnectionConfigurationInvalidException parallelismValidationFailed(final String parallelismString,
@@ -183,14 +162,6 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         }
         return ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                 .dittoHeaders(headers)
-                .build();
-    }
-
-    static ConnectionConfigurationInvalidException testMethodNotFound(final String testMethod,
-            final DittoHeaders dittoHeaders) {
-        final String message = String.format("The test-method '%s' is not an HTTP method.", testMethod);
-        return ConnectionConfigurationInvalidException.newBuilder(message)
-                .dittoHeaders(dittoHeaders)
                 .build();
     }
 

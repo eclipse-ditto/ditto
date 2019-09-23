@@ -48,7 +48,7 @@ public final class HttpPublisherTest extends AbstractPublisherActorTest {
 
     @Override
     protected String getOutboundAddress() {
-        return "the/quick/brown/fox/jumps/over/the/lazy/dog";
+        return "PATCH:/the/quick/brown/fox/jumps/over/the/lazy/dog";
     }
 
     @Override
@@ -74,6 +74,9 @@ public final class HttpPublisherTest extends AbstractPublisherActorTest {
     protected void verifyPublishedMessage() throws Exception {
         final HttpRequest request = received.take();
         assertThat(received).hasSize(0);
+
+        // method
+        assertThat(request.method()).isEqualTo(HttpMethods.PATCH);
 
         // uri
         assertThat(request.getUri().host().address()).isEqualTo("127.1.2.7");
@@ -109,7 +112,7 @@ public final class HttpPublisherTest extends AbstractPublisherActorTest {
             final Uri uri =
                     DefaultHttpPushFactory.appendPath(Uri.create("http://127.1.2.7:12345"),
                             httpPublishTarget.getPathSegments());
-            return HttpRequest.create().withMethod(HttpMethods.GET).withUri(uri);
+            return HttpRequest.create().withMethod(httpPublishTarget.getMethod()).withUri(uri);
         }
 
         @Override

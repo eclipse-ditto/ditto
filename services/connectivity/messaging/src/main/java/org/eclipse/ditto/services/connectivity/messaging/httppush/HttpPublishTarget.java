@@ -14,19 +14,42 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 
+import akka.http.javadsl.model.HttpMethod;
+import akka.http.javadsl.model.HttpMethods;
+
 final class HttpPublishTarget implements PublishTarget {
 
+    private static final String METHOD_SEPARATOR = ":/";
+    private static final String PATH_SEPARATOR = "/";
+
+    private final HttpMethod method;
     private final String path;
 
-    private HttpPublishTarget(final String path) {
+    private HttpPublishTarget(final HttpMethod method, final String path) {
+        this.method = method;
         this.path = path;
     }
 
-    String[] getPathSegments() {
-        return path.split("/");
+    HttpMethod getMethod() {
+        return method;
     }
 
-    static HttpPublishTarget of(final String path) {
-        return new HttpPublishTarget(path);
+    String[] getPathSegments() {
+        return path.split(PATH_SEPARATOR);
+    }
+
+    static HttpPublishTarget of(final String targetAddress) {
+        final String[] methodAndPath = splitMethodAndPath(targetAddress);
+        if (methodAndPath.length == 2) {
+            final HttpMethod method = HttpMethods.lookup(methodAndPath[0]).orElse(HttpMethods.POST);
+            return new HttpPublishTarget(method, methodAndPath[1]);
+        } else {
+            // validator should rule this out
+            return new HttpPublishTarget(HttpMethods.POST, targetAddress);
+        }
+    }
+
+    static String[] splitMethodAndPath(final String targetAddress) {
+        return targetAddress.split(METHOD_SEPARATOR, 2);
     }
 }

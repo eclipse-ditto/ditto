@@ -18,8 +18,6 @@ import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.TWIN;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -67,7 +65,6 @@ import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
@@ -79,7 +76,7 @@ import akka.testkit.javadsl.TestKit;
 public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     static final Target TARGET = ConnectivityModelFactory.newTargetBuilder()
-            .address("target/address")
+            .address("POST:/target/address")
             .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
             .headerMapping(ConnectivityModelFactory.newHeaderMapping(
                     Collections.singletonMap("content-type", "application/json")
@@ -208,42 +205,6 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testConnectionRequestSuccess() throws Exception {
-        new TestKit(actorSystem) {{
-            final StatusCode expectedStatus = StatusCodes.IM_A_TEAPOT;
-            connection = getConnectionWithTestConfig("DELETE", expectedStatus);
-            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
-            underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
-
-            final HttpRequest request = requestQueue.take();
-            responseQueue.offer(HttpResponse.create().withStatus(expectedStatus));
-            assertThat(request.method()).isEqualTo(HttpMethods.DELETE);
-
-            expectMsg(new Status.Success("successfully connected + initialized mapper"));
-            expectTerminated(underTest);
-        }};
-    }
-
-    @Test
-    public void testConnectionRequestFailure() throws Exception {
-        new TestKit(actorSystem) {{
-            final StatusCode expectedStatus = StatusCodes.IM_A_TEAPOT;
-            final StatusCode actualStatus = StatusCodes.INSUFFICIENT_STORAGE;
-            connection = getConnectionWithTestConfig("DELETE", expectedStatus);
-            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
-            underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
-
-            final HttpRequest request = requestQueue.take();
-            responseQueue.offer(HttpResponse.create().withStatus(actualStatus));
-            assertThat(request.method()).isEqualTo(HttpMethods.DELETE);
-
-            final Status.Failure failure = expectMsgClass(Status.Failure.class);
-            assertThat(failure.cause().getMessage()).contains("completed with a different status");
-            expectTerminated(underTest);
-        }};
-    }
-
-    @Test
     public void publishTwinEvent() throws Exception {
         new TestKit(actorSystem) {{
             // GIVEN: local HTTP connection is connected
@@ -315,15 +276,6 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 (isSecure ? "https" : "http") + "://127.0.0.1:" + binding.localAddress().getPort())
                 .targets(singletonList(TARGET))
                 .validateCertificate(isSecure)
-                .build();
-    }
-
-    private Connection getConnectionWithTestConfig(final String method, final StatusCode status) {
-        final Map<String, String> specificConfig = new HashMap<>(4);
-        specificConfig.put(HttpPushFactory.TEST_METHOD, method);
-        specificConfig.put(HttpPushFactory.TEST_STATUS, String.valueOf(status.intValue()));
-        return getConnectionToLocalBinding(false).toBuilder()
-                .specificConfig(specificConfig)
                 .build();
     }
 }

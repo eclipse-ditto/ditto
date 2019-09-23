@@ -28,29 +28,9 @@ import scala.util.Try;
 public interface HttpPushFactory {
 
     /**
-     * Specific config name for the HTTP method of the connection.
-     */
-    String METHOD = "method";
-
-    /**
      * Specific config name for the amount of concurrent HTTP requests to make.
      */
     String PARALLELISM = "parallelism";
-
-    /**
-     * Specific config path for the method of test requests.
-     */
-    String TEST_METHOD = "test-method";
-
-    /**
-     * Specific config path for the expected status code of test requests.
-     */
-    String TEST_STATUS = "test-status";
-
-    /**
-     * Optional path of test requests.
-     */
-    String TEST_PATH = "test-path";
 
     /**
      * Create a request template without headers or payload for an HTTP publish target.

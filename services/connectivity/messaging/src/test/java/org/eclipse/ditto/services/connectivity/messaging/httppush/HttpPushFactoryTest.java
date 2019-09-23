@@ -33,6 +33,7 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
@@ -65,12 +66,7 @@ public final class HttpPushFactoryTest {
         actorSystem = ActorSystem.create(getClass().getSimpleName(), TestConstants.CONFIG);
         mat = ActorMaterializer.create(actorSystem);
         newBinding(0);
-        connection = ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
-                ConnectionType.HTTP_PUSH,
-                ConnectivityStatus.OPEN,
-                "http://127.0.0.1:" + binding.localAddress().getPort())
-                .targets(singletonList(HttpPushClientActorTest.TARGET))
-                .build();
+        connection = createHttpPushConnection(binding);
     }
 
     @After
@@ -78,6 +74,17 @@ public final class HttpPushFactoryTest {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
         }
+    }
+
+    @Test
+    public void appendPathToUri() {
+        connection = connection.toBuilder()
+                .uri("http://127.0.0.1:" + binding.localAddress().getPort() + "/path/prefix/")
+                .build();
+        final HttpPushFactory underTest = HttpPushFactory.of(connection);
+        final HttpRequest request = underTest.newRequest(HttpPublishTarget.of("PUT:/path/appendage/"));
+        assertThat(request.method()).isEqualTo(HttpMethods.PUT);
+        assertThat(request.getUri().getPathString()).isEqualTo("/path/prefix/path/appendage");
     }
 
     @Test
@@ -151,5 +158,14 @@ public final class HttpPushFactoryTest {
                 .toCompletableFuture()
                 .join()
                 .orElseThrow(() -> new AssertionError("Response expected"));
+    }
+
+    private static Connection createHttpPushConnection(final ServerBinding binding) {
+        return ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
+                ConnectionType.HTTP_PUSH,
+                ConnectivityStatus.OPEN,
+                "http://127.0.0.1:" + binding.localAddress().getPort())
+                .targets(singletonList(HttpPushClientActorTest.TARGET))
+                .build();
     }
 }
