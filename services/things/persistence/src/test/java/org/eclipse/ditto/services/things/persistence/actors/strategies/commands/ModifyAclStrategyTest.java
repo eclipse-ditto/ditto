@@ -20,7 +20,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.events.things.AclModified;
 import org.junit.Before;
@@ -45,12 +47,12 @@ public final class ModifyAclStrategyTest extends AbstractCommandStrategyTest {
 
     @Test
     public void modifyExistingAclEntryToProduceInvalidAcl() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final AccessControlList acl = ThingsModelFactory.newAcl(TestConstants.Authorization.ACL_ENTRY_OLDMAN);
-        final ModifyAcl modifyAcl = ModifyAcl.of(context.getThingEntityId(), acl, DittoHeaders.empty());
+        final ModifyAcl modifyAcl = ModifyAcl.of(context.getState(), acl, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V1, modifyAcl,
                 AclModified.class,
-                modifyAclResponse(context.getThingEntityId(), acl, modifyAcl.getDittoHeaders(), false));
+                modifyAclResponse(context.getState(), acl, modifyAcl.getDittoHeaders(), false));
     }
 }

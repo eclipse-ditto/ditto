@@ -23,7 +23,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy.Context;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy.Context;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.junit.Before;
@@ -48,22 +49,23 @@ public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
 
     @Test
     public void resultContainsJsonOfExistingAcl() {
-        final Context context = getDefaultContext();
-        final RetrieveAcl command = RetrieveAcl.of(context.getThingEntityId(), DittoHeaders.empty());
+        final Context<ThingId> context = getDefaultContext();
+        final RetrieveAcl command = RetrieveAcl.of(context.getState(), DittoHeaders.empty());
 
         final AccessControlList expectedAcl = THING_V1.getAccessControlList().get();
         final JsonObject expectedAclJson = expectedAcl.toJson(JsonSchemaVersion.V_1);
 
         final RetrieveAclResponse expectedResponse =
-                retrieveAclResponse(command.getThingEntityId(), expectedAcl, expectedAclJson, command.getDittoHeaders());
+                retrieveAclResponse(command.getThingEntityId(), expectedAcl, expectedAclJson,
+                        command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V1, command, expectedResponse);
     }
 
     @Test
     public void resultContainsEmptyJsonObject() {
-        final Context context = getDefaultContext();
-        final RetrieveAcl command = RetrieveAcl.of(context.getThingEntityId(), DittoHeaders.empty());
+        final Context<ThingId> context = getDefaultContext();
+        final RetrieveAcl command = RetrieveAcl.of(context.getState(), DittoHeaders.empty());
         final RetrieveAclResponse expectedResponse =
                 RetrieveAclResponse.of(command.getThingEntityId(), JsonFactory.newObject(), command.getDittoHeaders());
 

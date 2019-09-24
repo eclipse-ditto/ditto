@@ -86,7 +86,7 @@ public final class MongoClientWrapperTest {
         assertWithExpected(underTest, false, true);
     }
 
-    @Test (expected = UnsupportedOperationException.class)
+    @Test
     public void createByUriWithSslEnabled() {
         // prepare
         final String uriWithSslEnabled = createUri(true);

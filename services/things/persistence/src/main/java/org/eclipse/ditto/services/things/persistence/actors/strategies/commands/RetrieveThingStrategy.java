@@ -21,17 +21,20 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link RetrieveThing} command.
  */
 @Immutable
-final class RetrieveThingStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveThing, Thing> {
+final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveThing> {
 
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
@@ -41,20 +44,21 @@ final class RetrieveThingStrategy
     }
 
     @Override
-    public boolean isDefined(final Context context, @Nullable final Thing thing,
+    public boolean isDefined(final Context<ThingId> context, @Nullable final Thing thing,
             final RetrieveThing command) {
         final boolean thingExists = Optional.ofNullable(thing)
                 .map(t -> !t.isDeleted())
                 .orElse(false);
 
-        return Objects.equals(context.getThingEntityId(), command.getEntityId()) && thingExists;
+        return Objects.equals(context.getState(), command.getEntityId()) && thingExists;
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
 
-        return ResultFactory.newQueryResult(command, thing, getRetrieveThingResponse(thing, command), this);
+        return ResultFactory.newQueryResult(command,
+                appendETagHeaderIfProvided(command, getRetrieveThingResponse(thing, command), thing));
     }
 
     private static WithDittoHeaders getRetrieveThingResponse(@Nullable final Thing thing,
@@ -78,14 +82,19 @@ final class RetrieveThingStrategy
     }
 
     @Override
-    protected Result unhandled(final Context context, @Nullable final Thing thing,
+    public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
         return ResultFactory.newErrorResult(
-                new ThingNotAccessibleException(context.getThingEntityId(), command.getDittoHeaders()));
+                new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()));
     }
 
     @Override
-    public Optional<Thing> determineETagEntity(final RetrieveThing command, @Nullable final Thing thing) {
-        return Optional.ofNullable(thing);
+    public Optional<?> previousETagEntity(final RetrieveThing command, @Nullable final Thing previousEntity) {
+        return nextETagEntity(command, previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final RetrieveThing command, @Nullable final Thing newEntity) {
+        return Optional.ofNullable(newEntity);
     }
 }

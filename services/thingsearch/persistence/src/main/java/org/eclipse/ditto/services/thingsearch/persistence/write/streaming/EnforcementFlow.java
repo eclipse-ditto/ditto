@@ -178,7 +178,7 @@ final class EnforcementFlow {
         if (sudoRetrieveThingResponse == null) {
             return deleteEvent
                     ? Source.single(ThingDeleteModel.of(metadata))
-                    : Source.empty(); // TODO: refactor config.
+                    : Source.empty();
         } else {
             final JsonObject thing = sudoRetrieveThingResponse.getEntity().asObject();
 

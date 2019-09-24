@@ -96,6 +96,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -126,6 +127,7 @@ import akka.actor.Props;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.Patterns;
+import akka.testkit.TestProbe;
 
 public final class TestConstants {
 
@@ -380,10 +382,12 @@ public final class TestConstants {
                     .thenReturn(CONNECTION_MONITOR_MOCK);
             when(MONITOR_REGISTRY_MOCK.forOutboundPublished(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(any(ConnectionId.class))).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
             when(MONITOR_REGISTRY_MOCK.forResponseDropped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
             when(MONITOR_REGISTRY_MOCK.forResponseMapped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponsePublished(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponsePublished(any(ConnectionId.class))).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
         }
 
     }
@@ -596,7 +600,7 @@ public final class TestConstants {
             final ActorRef conciergeForwarder,
             final DittoProtocolSub dittoProtocolSub) {
         return createConnectionSupervisorActor(connectionId, actorSystem, conciergeForwarder,
-                mockClientActorPropsFactory, dittoProtocolSub);
+                mockClientActorPropsFactory, dittoProtocolSub, TestProbe.apply(actorSystem).ref());
     }
 
     static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
@@ -605,7 +609,7 @@ public final class TestConstants {
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory clientActorPropsFactory) {
         return createConnectionSupervisorActor(connectionId, actorSystem, conciergeForwarder,
-                clientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator));
+                clientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
     }
 
     static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
@@ -614,15 +618,17 @@ public final class TestConstants {
             final ActorRef conciergeForwarder) {
 
         return createConnectionSupervisorActor(connectionId, actorSystem, conciergeForwarder,
-                mockClientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator));
+                mockClientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
     }
 
     static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef conciergeForwarder,
-            final ClientActorPropsFactory clientActorPropsFactory, final DittoProtocolSub dittoProtocolSub) {
+            final ClientActorPropsFactory clientActorPropsFactory,
+            final DittoProtocolSub dittoProtocolSub,
+            final ActorRef pubSubMediator) {
         final Props props = ConnectionSupervisorActor.props(dittoProtocolSub, conciergeForwarder,
-                clientActorPropsFactory, null);
+                clientActorPropsFactory, null, pubSubMediator);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

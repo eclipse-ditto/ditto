@@ -46,6 +46,13 @@ public interface ExponentialBackOffConfig {
     double getRandomFactor();
 
     /**
+     * Returns the maximum idle time before a corrupted supervisor terminates.
+     *
+     * @return the maximum idle time in corrupted state.
+     */
+    Duration getCorruptedReceiveTimeout();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ExponentialBackOffConfig}.
      */
@@ -64,7 +71,12 @@ public interface ExponentialBackOffConfig {
         /**
          * The random factor of the exponential back-off strategy.
          */
-        RANDOM_FACTOR("random-factor", 0.2D);
+        RANDOM_FACTOR("random-factor", 1.0D),
+
+        /**
+         * How long to wait before stopping an idle corrupted supervisor actor.
+         */
+        CORRUPTED_RECEIVE_TIMEOUT("corrupted-receive-timeout", Duration.ofSeconds(600L));
 
         private final String path;
         private final Object defaultValue;

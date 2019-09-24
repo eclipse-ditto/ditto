@@ -22,6 +22,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
 import org.junit.Before;
@@ -46,9 +48,9 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
 
     @Test
     public void getDefinition() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getThingEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final RetrieveFeatureDefinitionResponse expectedResponse =
                 retrieveFeatureDefinitionResponse(command.getThingEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_DEFINITION, command.getDittoHeaders());
@@ -58,9 +60,9 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
 
     @Test
     public void getDefinitionFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getThingEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -70,14 +72,15 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
 
     @Test
     public void getNonExistingDefinition() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getThingEntityId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureDefinitionNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
-        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDefinition()), command, expectedException);
+        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDefinition()), command,
+                expectedException);
     }
 
 }

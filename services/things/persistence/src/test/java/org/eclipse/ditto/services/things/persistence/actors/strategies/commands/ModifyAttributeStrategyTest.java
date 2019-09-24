@@ -21,6 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
@@ -56,25 +58,25 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
 
     @Test
     public void modifyAttributeOfThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getThingEntityId(), attributePointer, attributeValue, DittoHeaders.empty());
+                ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributeCreated.class,
-                modifyAttributeResponse(context.getThingEntityId(), attributePointer, attributeValue,
+                modifyAttributeResponse(context.getState(), attributePointer, attributeValue,
                         command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyAttributeOfThingWithoutThatAttribute() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getThingEntityId(), attributePointer, attributeValue, DittoHeaders.empty());
+                ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributeCreated.class,
-                modifyAttributeResponse(context.getThingEntityId(), attributePointer, attributeValue,
+                modifyAttributeResponse(context.getState(), attributePointer, attributeValue,
                         command.getDittoHeaders(), true));
     }
 
@@ -83,14 +85,14 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final JsonPointer existingAttributePointer = JsonFactory.newPointer("/location/latitude");
         final JsonValue newAttributeValue = JsonFactory.newValue(42.0D);
 
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getThingEntityId(), existingAttributePointer, newAttributeValue,
+                ModifyAttribute.of(context.getState(), existingAttributePointer, newAttributeValue,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributeModified.class,
-                modifyAttributeResponse(context.getThingEntityId(), existingAttributePointer, newAttributeValue,
+                modifyAttributeResponse(context.getState(), existingAttributePointer, newAttributeValue,
                         command.getDittoHeaders(), false));
     }
 

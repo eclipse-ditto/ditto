@@ -27,9 +27,9 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.policies.common.config.PoliciesConfig;
-import org.eclipse.ditto.services.policies.persistence.actors.policies.PoliciesPersistenceStreamingActorCreator;
-import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyPersistenceOperationsActor;
-import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
+import org.eclipse.ditto.services.policies.persistence.actors.PoliciesPersistenceStreamingActorCreator;
+import org.eclipse.ditto.services.policies.persistence.actors.PolicyPersistenceOperationsActor;
+import org.eclipse.ditto.services.policies.persistence.actors.PolicySupervisorActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
@@ -70,7 +70,7 @@ import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 
 /**
@@ -246,7 +246,7 @@ public final class PoliciesRootActor extends AbstractActor {
 
     private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
         log.info("Sending the namespace stats of the policy shard as requested ...");
-        PatternsCS.pipe(retrieveStatisticsDetailsResponseSupplier
+        Patterns.pipe(retrieveStatisticsDetailsResponseSupplier
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
