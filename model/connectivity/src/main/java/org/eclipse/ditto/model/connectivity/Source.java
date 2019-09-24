@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -74,6 +75,14 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return the optional header mappings
      */
     Optional<HeaderMapping> getHeaderMapping();
+
+    /**
+     * The list of mappings that should be applied in this order for messages received on this source. Each
+     * mapping can produce multiple signals on its own that are then forwarded to concierge independently.
+     *
+     * @return list of mappings to execute
+     */
+    List<String> getMapping();
 
     /**
      * Returns all non hidden marked fields of this {@code Source}.
@@ -143,6 +152,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
                 JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Source} payload mapping.
+         */
+        public static final JsonFieldDefinition<JsonArray> MAPPING =
+                JsonFactory.newJsonArrayFieldDefinition("mapping", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

@@ -186,7 +186,15 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      *
      * @return the MappingContext to apply for this connection
      */
+    // TODO remove once the message mappers use the new format
     Optional<MappingContext> getMappingContext();
+
+    /**
+     * Returns the defined mappings for this connection.
+     *
+     * @return the mappings defined for this connection
+     */
+    Map<String, MappingContext> getMappings();
 
     /**
      * Returns the tags of this {@code Connection}.
@@ -354,6 +362,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
                 JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the definitions of {@code Connection} mappings.
+         */
+        public static final JsonFieldDefinition<JsonObject> MAPPINGS =
+                JsonFactory.newJsonObjectFieldDefinition("mappings", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

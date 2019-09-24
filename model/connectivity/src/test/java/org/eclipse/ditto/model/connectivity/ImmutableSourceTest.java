@@ -18,10 +18,13 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -47,6 +50,8 @@ public final class ImmutableSourceTest {
     }
 
     private static final String AMQP_SOURCE1 = "amqp/source1";
+    private static final String DITTO_MAPPING = "ditto-mapping";
+    private static final String CUSTOM_MAPPING = "custom-mapping";
     private static final Source SOURCE_WITH_AUTH_CONTEXT =
             ConnectivityModelFactory.newSourceBuilder()
                     .authorizationContext(ctx)
@@ -54,6 +59,7 @@ public final class ImmutableSourceTest {
                     .index(0)
                     .address(AMQP_SOURCE1)
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(mapping))
+                    .mapping(Arrays.asList(DITTO_MAPPING, CUSTOM_MAPPING))
                     .build();
 
     private static final JsonObject SOURCE_JSON = JsonObject
@@ -64,6 +70,7 @@ public final class ImmutableSourceTest {
                     JsonFactory.newObjectBuilder().setAll(mapping.entrySet().stream()
                             .map(e -> JsonFactory.newField(JsonFactory.newKey(e.getKey()), JsonValue.of(e.getValue())))
                             .collect(Collectors.toList())).build())
+            .set(Source.JsonFields.MAPPING, JsonArray.of(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();
 
     private static final JsonObject SOURCE_JSON_WITH_AUTH_CONTEXT = SOURCE_JSON.toBuilder()
@@ -133,6 +140,14 @@ public final class ImmutableSourceTest {
     public void mqttFromJsonReturnsExpected() {
         final Source actual = ImmutableSource.fromJson(MQTT_SOURCE_JSON, 0);
         assertThat(actual).isEqualTo(MQTT_SOURCE);
+    }
+
+    @Test
+    public void addMappingToExistingSource() {
+        final ImmutableSource.Builder builder = new ImmutableSource.Builder(SOURCE_WITH_AUTH_CONTEXT);
+        final SourceBuilder builderWithMapping = builder.mapping(Collections.singletonList("mapping"));
+        final Source sourceWithMapping = builderWithMapping.build();
+        assertThat(sourceWithMapping.getMapping()).containsExactly("mapping");
     }
 
 }

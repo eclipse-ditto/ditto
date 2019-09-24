@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -88,6 +89,14 @@ public interface TargetBuilder {
      * @return this builder
      */
     TargetBuilder headerMapping(@Nullable HeaderMapping headerMapping);
+
+    /**
+     * Sets the list of mappings for the target.
+     *
+     * @param mapping list of mappings for this target
+     * @return this builder
+     */
+    TargetBuilder mapping(List<String> mapping);
 
     /**
      * Build the {@link Target} instance.

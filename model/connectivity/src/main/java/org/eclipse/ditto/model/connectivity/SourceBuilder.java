@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -88,6 +89,14 @@ public interface SourceBuilder<T extends SourceBuilder> {
      * @return this builder
      */
     T headerMapping(@Nullable HeaderMapping headerMapping);
+
+    /**
+     * Sets the list of mappings for this source.
+     *
+     * @param mapping list of mappings for this source
+     * @return this builder
+     */
+    T mapping(List<String> mapping);
 
     /**
      * Build the source instance.

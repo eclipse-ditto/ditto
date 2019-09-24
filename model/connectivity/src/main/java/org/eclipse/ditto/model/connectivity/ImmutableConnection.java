@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -71,7 +72,7 @@ final class ImmutableConnection implements Connection {
     private final boolean validateCertificate;
     private final int processorPoolSize;
     private final Map<String, String> specificConfig;
-    @Nullable private final MappingContext mappingContext;
+    private final Map<String, MappingContext> mappings;
     private final Set<String> tags;
 
     private ImmutableConnection(final Builder builder) {
@@ -89,7 +90,7 @@ final class ImmutableConnection implements Connection {
         validateCertificate = builder.validateCertificate;
         processorPoolSize = builder.processorPoolSize;
         specificConfig = Collections.unmodifiableMap(new HashMap<>(builder.specificConfig));
-        mappingContext = builder.mappingContext;
+        mappings = Collections.unmodifiableMap(new HashMap<>(builder.mappings));
         tags = Collections.unmodifiableSet(new HashSet<>(builder.tags));
         lifecycle = builder.lifecycle;
     }
@@ -138,7 +139,7 @@ final class ImmutableConnection implements Connection {
                 .targets(connection.getTargets())
                 .clientCount(connection.getClientCount())
                 .specificConfig(connection.getSpecificConfig())
-                .mappingContext(connection.getMappingContext().orElse(null))
+                .mappings(connection.getMappings())
                 .name(connection.getName().orElse(null))
                 .tags(connection.getTags())
                 .lifecycle(connection.getLifecycle().orElse(null));
@@ -154,6 +155,9 @@ final class ImmutableConnection implements Connection {
      */
     public static Connection fromJson(final JsonObject jsonObject) {
         final ConnectionType type = getConnectionTypeOrThrow(jsonObject);
+        final MappingContext mappingContext = jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
+                .map(ConnectivityModelFactory::mappingContextFromJson)
+                .orElse(null);
         final ConnectionBuilder builder = new Builder(type)
                 .id(ConnectionId.of(jsonObject.getValueOrThrow(JsonFields.ID)))
                 .connectionStatus(getConnectionStatusOrThrow(jsonObject))
@@ -161,9 +165,10 @@ final class ImmutableConnection implements Connection {
                 .sources(getSources(jsonObject))
                 .targets(getTargets(jsonObject))
                 .name(jsonObject.getValue(JsonFields.NAME).orElse(null))
-                .mappingContext(jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
-                        .map(ConnectivityModelFactory::mappingContextFromJson)
-                        .orElse(null))
+                .mappingContext(mappingContext)
+                .mappings(jsonObject.getValue(JsonFields.MAPPINGS)
+                        .map(ConnectivityModelFactory::mappingsFromJson)
+                        .orElse(Collections.emptyMap()))
                 .specificConfig(getSpecificConfiguration(jsonObject))
                 .tags(getTags(jsonObject));
 
@@ -343,7 +348,13 @@ final class ImmutableConnection implements Connection {
 
     @Override
     public Optional<MappingContext> getMappingContext() {
-        return Optional.ofNullable(mappingContext);
+        // TODO temp. to stay compatible, will be removed
+        return mappings.values().stream().findFirst();
+    }
+
+    @Override
+    public Map<String, MappingContext> getMappings() {
+        return mappings;
     }
 
     @Override
@@ -388,9 +399,10 @@ final class ImmutableConnection implements Connection {
                     .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
                     .collect(JsonCollectors.fieldsToObject()), predicate);
         }
-        if (mappingContext != null) {
-            jsonObjectBuilder.set(JsonFields.MAPPING_CONTEXT, mappingContext.toJson(schemaVersion, thePredicate),
-                    predicate);
+        if (!mappings.isEmpty()) {
+            jsonObjectBuilder.set(JsonFields.MAPPINGS, mappings.entrySet().stream()
+                    .map(e -> JsonField.newInstance(e.getKey(), e.getValue().toJson(schemaVersion, thePredicate)))
+                    .collect(JsonCollectors.fieldsToObject()));
         }
         if (credentials != null) {
             jsonObjectBuilder.set(JsonFields.CREDENTIALS, credentials.toJson());
@@ -428,7 +440,7 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(processorPoolSize, that.processorPoolSize) &&
                 Objects.equals(validateCertificate, that.validateCertificate) &&
                 Objects.equals(specificConfig, that.specificConfig) &&
-                Objects.equals(mappingContext, that.mappingContext) &&
+                Objects.equals(mappings, that.mappings) &&
                 Objects.equals(lifecycle, that.lifecycle) &&
                 Objects.equals(tags, that.tags);
     }
@@ -437,7 +449,7 @@ final class ImmutableConnection implements Connection {
     public int hashCode() {
         return Objects.hash(id, name, connectionType, connectionStatus, sources, targets, clientCount, failOverEnabled,
                 credentials, trustedCertificates, uri, validateCertificate, processorPoolSize, specificConfig,
-                mappingContext, tags, lifecycle);
+                mappings, tags, lifecycle);
     }
 
     @Override
@@ -457,7 +469,7 @@ final class ImmutableConnection implements Connection {
                 ", validateCertificate=" + validateCertificate +
                 ", processorPoolSize=" + processorPoolSize +
                 ", specificConfig=" + specificConfig +
-                ", mappingContext=" + mappingContext +
+                ", mappings=" + mappings +
                 ", tags=" + tags +
                 ", lifecycle=" + lifecycle +
                 "]";
@@ -491,6 +503,7 @@ final class ImmutableConnection implements Connection {
         private final List<Target> targets = new ArrayList<>();
         private int clientCount = 1;
         private int processorPoolSize = 5;
+        private final Map<String, MappingContext> mappings = new HashMap<>();
         private final Map<String, String> specificConfig = new HashMap<>();
 
         private Builder(final ConnectionType connectionType) {
@@ -614,10 +627,62 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
+        public ConnectionBuilder mapping(final String mappingId, final MappingContext mappingContext) {
+            mappings.put(mappingId, mappingContext);
+            return this;
+        }
+
+        @Override
+        public ConnectionBuilder mappings(final Map<String, MappingContext> mappings) {
+            this.mappings.clear();
+            this.mappings.putAll(mappings);
+            return this;
+        }
+
+        @Override
         public Connection build() {
             checkSourceAndTargetAreValid();
             checkAuthorizationContextsAreValid();
+            migrateMappingContext();
+            validateMappingReferences();
             return new ImmutableConnection(this);
+        }
+
+        private void validateMappingReferences() {
+            // validate that mappings referenced in sources and targets exist
+            Stream.concat(sources.stream().flatMap(s -> s.getMapping().stream()),
+                    targets.stream().flatMap(s -> s.getMapping().stream()))
+                    .filter(key -> !mappings.containsKey(key))
+                    .distinct()
+                    .reduce((s1, s2) -> String.join(", ", s1, s2))
+                    .ifPresent(this::throwInvalidMappingException);
+        }
+
+        private void migrateMappingContext() {
+            // migrate legacy mapping context on the fly
+            if (mappingContext != null) {
+
+                mappings.put("migrated", mappingContext);
+
+                // add migrated mapping to all sources and targets
+                setSources(sources.stream()
+                        .map(source -> new ImmutableSource.Builder(source)
+                                .mapping(Collections.singletonList("migrated"))
+                                .build())
+                        .collect(Collectors.toList()));
+
+                setTargets(targets.stream()
+                        .map(target -> new ImmutableTarget.Builder(target)
+                                .mapping(Collections.singletonList("migrated"))
+                                .build())
+                        .collect(Collectors.toList()));
+            }
+        }
+
+        private void throwInvalidMappingException(final String invalidMappings) {
+            final String message =
+                    String.format("The mappings '%s' are not defined in the connection.", invalidMappings);
+            throw ConnectionConfigurationInvalidException.newBuilder(message).build();
         }
 
         private void checkSourceAndTargetAreValid() {

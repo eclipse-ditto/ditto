@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.connectivity;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -52,27 +53,17 @@ final class ImmutableTarget implements Target {
     private final AuthorizationContext authorizationContext;
     private final String originalAddress;
     @Nullable private final HeaderMapping headerMapping;
+    private final List<String> mapping;
 
-    private ImmutableTarget(final String address, final Set<FilteredTopic> topics, @Nullable final Integer qos,
-            final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping) {
-        this.address = checkNotNull(address, "address");
-        this.originalAddress = this.address;
-        this.topics = Collections.unmodifiableSet(new HashSet<>(checkNotNull(topics, "topics")));
-        this.qos = qos;
-        this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
-        this.headerMapping = headerMapping;
-    }
-
-    private ImmutableTarget(final String address, final Set<FilteredTopic> topics, @Nullable final Integer qos,
-            final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping, final String originalAddress) {
-        this.address = checkNotNull(address, "address");
-        this.originalAddress = checkNotNull(originalAddress, "originalAddress");
-        this.topics = Collections.unmodifiableSet(new HashSet<>(checkNotNull(topics, "topics")));
-        this.qos = qos;
-        this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
-        this.headerMapping = headerMapping;
+    private ImmutableTarget(final ImmutableTarget.Builder builder) {
+        this.address = checkNotNull(builder.address, "address");
+        this.originalAddress = checkNotNull(builder.originalAddress, "originalAddress");
+        this.topics = Collections.unmodifiableSet(
+                new HashSet<>(builder.topics == null ? Collections.emptySet() : builder.topics));
+        this.qos = builder.qos;
+        this.authorizationContext = checkNotNull(builder.authorizationContext, "authorizationContext");
+        this.headerMapping = builder.headerMapping;
+        this.mapping = Collections.unmodifiableList(new ArrayList<>(builder.mapping));
     }
 
     @Override
@@ -87,7 +78,7 @@ final class ImmutableTarget implements Target {
 
     @Override
     public Target withAddress(final String newAddress) {
-        return new ImmutableTarget(newAddress, topics, qos, authorizationContext, headerMapping, address);
+        return new ImmutableTarget.Builder(this).address(newAddress).build();
     }
 
     @Override
@@ -108,6 +99,11 @@ final class ImmutableTarget implements Target {
     @Override
     public Optional<HeaderMapping> getHeaderMapping() {
         return Optional.ofNullable(headerMapping);
+    }
+
+    @Override
+    public List<String> getMapping() {
+        return mapping;
     }
 
     @Override
@@ -136,6 +132,10 @@ final class ImmutableTarget implements Target {
                     predicate);
         }
 
+        if (!mapping.isEmpty()) {
+            jsonObjectBuilder.set(Target.JsonFields.MAPPING, JsonArray.of(mapping));
+        }
+
         return jsonObjectBuilder.build();
     }
 
@@ -148,15 +148,13 @@ final class ImmutableTarget implements Target {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Target fromJson(final JsonObject jsonObject) {
-        final String readAddress = jsonObject.getValueOrThrow(JsonFields.ADDRESS);
+
         final Set<FilteredTopic> readTopics = jsonObject.getValue(JsonFields.TOPICS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
                         .map(ConnectivityModelFactory::newFilteredTopic)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
-
-        final Integer readQos = jsonObject.getValue(JsonFields.QOS).orElse(null);
 
         final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() -> JsonArray.newBuilder().build());
@@ -173,7 +171,22 @@ final class ImmutableTarget implements Target {
                         .map(ImmutableHeaderMapping::fromJson)
                         .orElse(null);
 
-        return new ImmutableTarget(readAddress, readTopics, readQos, readAuthorizationContext, readHeaderMapping);
+        final List<String> readMapping =
+                jsonObject.getValue(Source.JsonFields.MAPPING)
+                        .map(array -> array.stream()
+                                .filter(JsonValue::isString)
+                                .map(JsonValue::asString)
+                                .collect(Collectors.toList()))
+                        .orElse(Collections.emptyList());
+
+        return new Builder()
+                .address(jsonObject.getValueOrThrow(JsonFields.ADDRESS))
+                .topics(readTopics)
+                .qos(jsonObject.getValue(JsonFields.QOS).orElse(null))
+                .authorizationContext(readAuthorizationContext)
+                .headerMapping(readHeaderMapping)
+                .mapping(readMapping)
+                .build();
     }
 
     @Override
@@ -181,28 +194,30 @@ final class ImmutableTarget implements Target {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final ImmutableTarget that = (ImmutableTarget) o;
-        return Objects.equals(address, that.address) &&
-                Objects.equals(topics, that.topics) &&
+        return address.equals(that.address) &&
+                topics.equals(that.topics) &&
                 Objects.equals(qos, that.qos) &&
+                authorizationContext.equals(that.authorizationContext) &&
+                originalAddress.equals(that.originalAddress) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
-                Objects.equals(originalAddress, that.originalAddress) &&
-                Objects.equals(authorizationContext, that.authorizationContext);
+                mapping.equals(that.mapping);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(address, topics, qos, authorizationContext, headerMapping, originalAddress);
+        return Objects.hash(address, topics, qos, authorizationContext, originalAddress, headerMapping, mapping);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "address=" + address +
-                ", originalAddress=" + originalAddress +
                 ", topics=" + topics +
                 ", qos=" + qos +
                 ", authorizationContext=" + authorizationContext +
+                ", originalAddress=" + originalAddress +
                 ", headerMapping=" + headerMapping +
+                ", mapping=" + mapping +
                 "]";
     }
 
@@ -212,12 +227,25 @@ final class ImmutableTarget implements Target {
     @NotThreadSafe
     static final class Builder implements TargetBuilder {
 
+        private final List<String> mapping = new ArrayList<>();
         @Nullable private String address;
         @Nullable private String originalAddress;
         @Nullable private Set<FilteredTopic> topics;
         @Nullable private Integer qos;
         @Nullable private AuthorizationContext authorizationContext;
         @Nullable private HeaderMapping headerMapping;
+
+        Builder() {
+        }
+
+        Builder(final Target target) {
+            address(target.getAddress())
+                    .authorizationContext(target.getAuthorizationContext())
+                    .topics(target.getTopics())
+                    .headerMapping(target.getHeaderMapping().orElse(null))
+                    .qos(target.getQos().orElse(null))
+                    .mapping(target.getMapping());
+        }
 
         @Override
         public TargetBuilder address(final String address) {
@@ -263,7 +291,8 @@ final class ImmutableTarget implements Target {
         public TargetBuilder topics(final Topic requiredTopic, final Topic... additionalTopics) {
             final Set<Topic> theTopics = new HashSet<>(Collections.singleton(requiredTopic));
             theTopics.addAll(Arrays.asList(additionalTopics));
-            return topics(theTopics.stream().map(ConnectivityModelFactory::newFilteredTopic).collect(Collectors.toSet()));
+            return topics(
+                    theTopics.stream().map(ConnectivityModelFactory::newFilteredTopic).collect(Collectors.toSet()));
         }
 
         @Override
@@ -273,12 +302,19 @@ final class ImmutableTarget implements Target {
         }
 
         @Override
+        public TargetBuilder mapping(final List<String> mapping) {
+            this.mapping.clear();
+            this.mapping.addAll(mapping);
+            return this;
+        }
+
+        @Override
         public Target build() {
             checkNotNull(address, "address");
             checkNotNull(topics, "topics");
             checkNotNull(authorizationContext, "authorizationContext");
             checkNotNull(originalAddress, "originalAddress");
-            return new ImmutableTarget(address, topics, qos, authorizationContext, headerMapping, originalAddress);
+            return new ImmutableTarget(this);
         }
     }
 }

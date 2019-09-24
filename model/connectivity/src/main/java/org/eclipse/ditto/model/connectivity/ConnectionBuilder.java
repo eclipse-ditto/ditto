@@ -196,7 +196,30 @@ public interface ConnectionBuilder {
      */
     ConnectionBuilder tag(String tag);
 
+    /**
+     * Sets the {@link ConnectionLifecycle} of the connection.
+     *
+     * @param lifecycle the connection lifecycle
+     * @return this builder
+     */
     ConnectionBuilder lifecycle(@Nullable ConnectionLifecycle lifecycle);
+
+    /**
+     * Adds a mapping definition to the connection.
+     *
+     * @param mappingId the ID of the new mapping
+     * @param mappingContext the mapping definition
+     * @return this builder
+     */
+    ConnectionBuilder mapping(String mappingId, MappingContext mappingContext);
+
+    /**
+     * Sets the mapping definitions of the connection.
+     *
+     * @param mappings the mapping definitions
+     * @return this builder
+     */
+    ConnectionBuilder mappings(Map<String, MappingContext> mappings);
 
     /**
      * Builds a new {@link Connection}.

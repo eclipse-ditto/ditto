@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -54,6 +55,7 @@ final class ImmutableSource implements Source {
     private final AuthorizationContext authorizationContext;
     @Nullable private final Enforcement enforcement;
     @Nullable private final HeaderMapping headerMapping;
+    private final List<String> mapping;
 
     private ImmutableSource(final Builder builder) {
         this.addresses = Collections.unmodifiableSet(
@@ -64,6 +66,7 @@ final class ImmutableSource implements Source {
         this.index = builder.index;
         this.enforcement = builder.enforcement;
         this.headerMapping = builder.headerMapping;
+        this.mapping = Collections.unmodifiableList(new ArrayList<>(builder.mapping));
     }
 
     @Override
@@ -102,6 +105,11 @@ final class ImmutableSource implements Source {
     }
 
     @Override
+    public List<String> getMapping() {
+        return mapping;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -127,7 +135,12 @@ final class ImmutableSource implements Source {
         }
 
         if (headerMapping != null) {
-            jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate), predicate);
+            jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate),
+                    predicate);
+        }
+
+        if (!mapping.isEmpty()) {
+            jsonObjectBuilder.set(JsonFields.MAPPING, JsonArray.of(mapping));
         }
 
         return jsonObjectBuilder.build();
@@ -166,6 +179,14 @@ final class ImmutableSource implements Source {
         final HeaderMapping readHeaderMapping =
                 jsonObject.getValue(JsonFields.HEADER_MAPPING).map(ImmutableHeaderMapping::fromJson).orElse(null);
 
+        final List<String> readMapping =
+                jsonObject.getValue(JsonFields.MAPPING)
+                        .map(array -> array.stream()
+                                .filter(JsonValue::isString)
+                                .map(JsonValue::asString)
+                                .collect(Collectors.toList()))
+                        .orElse(Collections.emptyList());
+
         return new Builder()
                 .addresses(readSources)
                 .qos(readQos)
@@ -174,6 +195,7 @@ final class ImmutableSource implements Source {
                 .index(index)
                 .enforcement(readEnforcement)
                 .headerMapping(readHeaderMapping)
+                .mapping(readMapping)
                 .build();
     }
 
@@ -188,12 +210,14 @@ final class ImmutableSource implements Source {
                 Objects.equals(qos, that.qos) &&
                 Objects.equals(enforcement, that.enforcement) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
+                Objects.equals(mapping, that.mapping) &&
                 Objects.equals(authorizationContext, that.authorizationContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement, headerMapping);
+        return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement, headerMapping,
+                mapping);
     }
 
     @Override
@@ -206,6 +230,7 @@ final class ImmutableSource implements Source {
                 ", authorizationContext=" + authorizationContext +
                 ", enforcement=" + enforcement +
                 ", headerMapping=" + headerMapping +
+                ", mapping=" + mapping +
                 "]";
     }
 
@@ -225,8 +250,22 @@ final class ImmutableSource implements Source {
         @Nullable private Integer qos = null;
 
         // optional with default:
+        private final List<String> mapping = new ArrayList<>();
         private int index = DEFAULT_INDEX;
         private int consumerCount = DEFAULT_CONSUMER_COUNT;
+
+        Builder() {}
+
+        public Builder(final Source source) {
+            addresses(source.getAddresses())
+                    .authorizationContext(source.getAuthorizationContext())
+                    .enforcement(source.getEnforcement().orElse(null))
+                    .headerMapping(source.getHeaderMapping().orElse(null))
+                    .qos(source.getQos().orElse(null))
+                    .mapping(source.getMapping())
+                    .index(source.getIndex())
+                    .consumerCount(source.getConsumerCount());
+        }
 
         @Override
         public SourceBuilder addresses(final Set<String> addresses) {
@@ -276,6 +315,13 @@ final class ImmutableSource implements Source {
         @Override
         public SourceBuilder headerMapping(@Nullable final HeaderMapping headerMapping) {
             this.headerMapping = headerMapping;
+            return this;
+        }
+
+        @Override
+        public SourceBuilder mapping(final List<String> mapping) {
+            this.mapping.clear();
+            this.mapping.addAll(mapping);
             return this;
         }
 

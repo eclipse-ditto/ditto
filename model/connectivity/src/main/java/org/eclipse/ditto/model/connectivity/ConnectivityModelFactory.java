@@ -14,12 +14,14 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -377,12 +379,42 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Creates a new {@code Map<String, MappingContext>} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the MappingContext to be created.
+     * @return a new map which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    static Map<String, MappingContext> mappingsFromJson(final JsonObject jsonObject) {
+        return jsonObject.stream().filter(f -> f.getValue().isObject()).map(field -> {
+            final String id = field.getKeyName();
+            final MappingContext context = ImmutableMappingContext.fromJson(field.getValue().asObject());
+            return new AbstractMap.SimpleImmutableEntry<>(id, context);
+        }).collect(fromEntries());
+    }
+
+
+    private static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>> fromEntries() {
+        return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue);
+    }
+
+    /**
      * Creates a new {@link SourceBuilder} for building {@link Source}s.
      *
      * @return new {@link Source} builder
      */
     public static SourceBuilder newSourceBuilder() {
         return new ImmutableSource.Builder();
+    }
+
+    /**
+     * Creates a new {@link SourceBuilder} for building {@link Source}s.
+     *
+     * @return new {@link Source} builder
+     */
+    public static SourceBuilder newSourceBuilder(final Source source) {
+        return new ImmutableSource.Builder(source);
     }
 
     /**
