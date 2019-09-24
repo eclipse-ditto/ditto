@@ -52,6 +52,7 @@ public final class NormalizedMessageMapper implements MessageMapper {
 
     private static final JsonFieldDefinition<String> THING_ID = Thing.JsonFields.ID;
     private static final JsonFieldDefinition<String> MODIFIED = Thing.JsonFields.MODIFIED;
+    private static final JsonFieldDefinition<Long> REVISION = Thing.JsonFields.REVISION;
     private static final JsonFieldDefinition<JsonObject> ABRIDGED_ORIGINAL_MESSAGE =
             JsonFactory.newJsonObjectFieldDefinition("_context");
 
@@ -112,6 +113,7 @@ public final class NormalizedMessageMapper implements MessageMapper {
             payloadValue.ifPresent(jsonValue -> builder.set(path, jsonValue));
         }
         payload.getTimestamp().ifPresent(timestamp -> builder.set(MODIFIED, timestamp.toString()));
+        payload.getRevision().ifPresent(revision -> builder.set(REVISION, revision));
         builder.set(ABRIDGED_ORIGINAL_MESSAGE, abridgeMessage(adaptable));
 
         final JsonObject result = jsonFieldSelector == null
@@ -127,7 +129,6 @@ public final class NormalizedMessageMapper implements MessageMapper {
     }
 
     private Map<String, String> getHeaders(final Adaptable adaptable) {
-        // TODO: add config to filter headers
         return new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
     }
 
@@ -137,8 +138,6 @@ public final class NormalizedMessageMapper implements MessageMapper {
         // add fields of an event protocol message excluding "value" and "status"
         builder.set(JsonifiableAdaptable.JsonFields.TOPIC, adaptable.getTopicPath().getPath());
         builder.set(Payload.JsonFields.PATH, payload.getPath().toString());
-        payload.getRevision().ifPresent(revision -> builder.set(Payload.JsonFields.REVISION, revision));
-        payload.getTimestamp().ifPresent(timestamp -> builder.set(Payload.JsonFields.TIMESTAMP, timestamp.toString()));
         payload.getFields().ifPresent(fields -> builder.set(Payload.JsonFields.FIELDS, fields.toString()));
         builder.set(JsonifiableAdaptable.JsonFields.HEADERS,
                 dittoHeadersToJson(adaptable.getHeaders().orElse(DittoHeaders.empty())));

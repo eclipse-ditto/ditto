@@ -94,11 +94,10 @@ public final class NormalizedMessageMapperTest {
                         "    }\n" +
                         "  },\n" +
                         "  \"_modified\": \"1970-01-01T00:00:01Z\",\n" +
+                        "  \"_revision\": 1,\n" +
                         "  \"_context\": {\n" +
                         "    \"topic\": \"thing/created/things/twin/events/created\",\n" +
                         "    \"path\": \"/\",\n" +
-                        "    \"revision\": 1,\n" +
-                        "    \"timestamp\": \"1970-01-01T00:00:01Z\",\n" +
                         "    \"headers\": {\n" +
                         "      \"content-type\": \"application/vnd.eclipse.ditto+json\"\n" +
                         "    }\n" +
@@ -111,7 +110,7 @@ public final class NormalizedMessageMapperTest {
         final ThingEvent event = FeaturePropertyModified.of(
                 ThingId.of("thing:id"),
                 "featureId",
-                JsonPointer.of("/the/quick/brown/fox/jumped/over/the/lazy/dog/"),
+                JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog/"),
                 JsonValue.of(9),
                 2L,
                 Instant.ofEpochSecond(2L),
@@ -123,16 +122,15 @@ public final class NormalizedMessageMapperTest {
                         "  \"thingId\": \"thing:id\",\n" +
                         "  \"features\": {\n" +
                         "    \"featureId\": {\n" +
-                        "      \"properties\": {\"the\":{\"quick\":{\"brown\":{\"fox\":{\"jumped\":{\"over\":{" +
+                        "      \"properties\": {\"the\":{\"quick\":{\"brown\":{\"fox\":{\"jumps\":{\"over\":{" +
                         "        \"the\":{\"lazy\":{\"dog\":9}}}}}}}}}\n" +
                         "    }\n" +
                         "  },\n" +
                         "  \"_modified\": \"1970-01-01T00:00:02Z\",\n" +
+                        "  \"_revision\": 2,\n" +
                         "  \"_context\": {\n" +
                         "    \"topic\": \"thing/id/things/twin/events/modified\",\n" +
-                        "    \"path\": \"/features/featureId/properties/the/quick/brown/fox/jumped/over/the/lazy/dog\",\n" +
-                        "    \"revision\": 2,\n" +
-                        "    \"timestamp\": \"1970-01-01T00:00:02Z\",\n" +
+                        "    \"path\": \"/features/featureId/properties/the/quick/brown/fox/jumps/over/the/lazy/dog\",\n" +
                         "    \"headers\": {\n" +
                         "      \"content-type\": \"application/vnd.eclipse.ditto+json\"\n" +
                         "    }\n" +
@@ -145,7 +143,7 @@ public final class NormalizedMessageMapperTest {
         final ThingEvent event = FeaturePropertyModified.of(
                 ThingId.of("thing:id"),
                 "featureId",
-                JsonPointer.of("/the/quick/brown/fox/jumped/over/the/lazy/dog/"),
+                JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog/"),
                 JsonValue.of(9),
                 2L,
                 Instant.ofEpochSecond(2L),
@@ -169,11 +167,44 @@ public final class NormalizedMessageMapperTest {
     }
 
     @Test
+    public void withFullThingPayloadFieldSelection() {
+        final ThingEvent event = ThingCreated.of(ThingsModelFactory.newThingBuilder()
+                .setId(ThingId.of("thing:created"))
+                .setPolicyId(PolicyId.of("thing:created"))
+                .setAttributes(Attributes.newBuilder().set("x", 5).build())
+                .setFeatures(Features.newBuilder().set(Feature.newBuilder()
+                        .properties(JsonObject.of("{\"y\":6}"))
+                        .withId("feature")
+                        .build()))
+                .build(), 1L, Instant.ofEpochSecond(1L), DittoHeaders.empty());
+
+        underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
+                DefaultMessageMapperConfiguration.of(Collections.singletonMap(NormalizedMessageMapper.FIELDS,
+                        "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
+                                "_context/headers/correlation-id")));
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
+        Assertions.assertThat(mapToJson(adaptable))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"thingId\": \"thing:created\",\n" +
+                        "  \"policyId\": \"thing:created\",\n" +
+                        "  \"attributes\": {\"x\": 5},\n" +
+                        "  \"features\":{\"feature\":{\"properties\":{\"y\":6}}},\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:01Z\",\n" +
+                        "  \"_revision\": 1,\n" +
+                        "  \"_context\": {\n" +
+                        "    \"topic\": \"thing/created/things/twin/events/created\",\n" +
+                        "    \"path\": \"/\"\n" +
+                        "  }\n" +
+                        "}"));
+    }
+
+    @Test
     public void deletedEventsAreNotMapped() {
         assertNotMapped(AttributeDeleted.of(ThingId.of("thing:id"), JsonPointer.of("/the/quick/brown/fox/"), 3L,
                 Instant.ofEpochSecond(3L), DittoHeaders.empty()));
         assertNotMapped(FeaturePropertyDeleted.of(ThingId.of("thing:id"), "featureId",
-                JsonPointer.of("jumped/over/the/lazy/dog"), 4L, Instant.ofEpochSecond(4L), DittoHeaders.empty()));
+                JsonPointer.of("jumps/over/the/lazy/dog"), 4L, Instant.ofEpochSecond(4L), DittoHeaders.empty()));
         assertNotMapped(FeatureDeleted.of(ThingId.of("thing:id"), "featureId", 5L, DittoHeaders.empty()));
         assertNotMapped(ThingDeleted.of(ThingId.of("thing:id"), 6L, DittoHeaders.empty()));
     }
