@@ -25,6 +25,7 @@ import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.Props;
@@ -97,6 +98,11 @@ public final class EventAndResponsePublisher
                         buffer.add((Signal<?>) signal);
                         deliverBuf();
                     }
+                })
+                .match(GatewayWebsocketSessionExpiredException.class, gwsee -> {
+                    onNext(gwsee);
+                    // throw exception via onErrorAndStop to close the ws session and afterwards stop the actor
+                    onErrorThenStop(gwsee);
                 })
                 .match(DittoRuntimeException.class, cre -> buffer.size() >= backpressureBufferSize, cre -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, cre.getDittoHeaders().getCorrelationId());

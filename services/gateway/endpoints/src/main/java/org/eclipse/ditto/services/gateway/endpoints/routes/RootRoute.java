@@ -333,11 +333,12 @@ public final class RootRoute {
 
                                                             final String userAgent = extractUserAgent(ctx).orElse(null);
                                                             final ProtocolAdapter chosenProtocolAdapter =
-                                                                    protocolAdapterProvider.getProtocolAdapter(
-                                                                            userAgent);
+                                                                    protocolAdapterProvider.getProtocolAdapter(userAgent);
                                                             return websocketRoute.buildWebsocketRoute(wsVersion,
                                                                     correlationId,
-                                                                    authContext, dittoHeaders, chosenProtocolAdapter);
+                                                                    authContext,
+                                                                    dittoHeaders,
+                                                                    chosenProtocolAdapter);
                                                         }
                                                 )
                                 )
