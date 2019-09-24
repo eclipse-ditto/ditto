@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -39,6 +41,7 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
 import akka.japi.Pair;
 import akka.stream.ActorMaterializer;
+import akka.stream.KillSwitches;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
@@ -54,12 +57,19 @@ import scala.util.Try;
  */
 public final class HttpPushFactoryTest {
 
+    private final ConcurrentLinkedQueue<CompletableFuture<Void>> killSwitchTriggerQueue;
+
     private ActorSystem actorSystem;
     private ActorMaterializer mat;
     private ServerBinding binding;
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
     private BlockingQueue<HttpResponse> responseQueue;
+
+    public HttpPushFactoryTest() {
+        killSwitchTriggerQueue = new ConcurrentLinkedQueue<>();
+        killSwitchTriggerQueue.offer(new CompletableFuture<>());
+    }
 
     @Before
     public void createActorSystem() {
@@ -116,9 +126,9 @@ public final class HttpPushFactoryTest {
             assertThat(responseOrError1.get().status()).isEqualTo(response1.status());
 
             // WHEN: HTTP server becomes unavailable.
-            binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
             // THEN: Request fails.
             sourceQueue.offer(request2);
+            shutdownAllServerStreams();
             final Try<HttpResponse> responseOrError2 = pullResponse(sinkQueue);
             assertThat(responseOrError2.isSuccess()).isFalse();
 
@@ -143,14 +153,25 @@ public final class HttpPushFactoryTest {
     private void newBinding(final int port) {
         requestQueue = new LinkedBlockingQueue<>();
         responseQueue = new LinkedBlockingQueue<>();
+
         final Flow<HttpRequest, HttpResponse, NotUsed> handler =
-                Flow.fromFunction(request -> {
+                Flow.<HttpRequest, HttpResponse>fromFunction(request -> {
                     requestQueue.offer(request);
                     return responseQueue.take();
-                });
+                })
+                        .viaMat(KillSwitches.single(), Keep.right())
+                        .mapMaterializedValue(killSwitch -> {
+                            killSwitchTriggerQueue.peek().thenAccept(_void -> killSwitch.shutdown());
+                            return NotUsed.getInstance();
+                        });
         binding = Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", port), mat)
                 .toCompletableFuture()
                 .join();
+    }
+
+    private void shutdownAllServerStreams() {
+        killSwitchTriggerQueue.offer(new CompletableFuture<>());
+        killSwitchTriggerQueue.poll().complete(null);
     }
 
     private static Try<HttpResponse> pullResponse(final SinkQueueWithCancel<Try<HttpResponse>> responseQueue) {
