@@ -15,7 +15,8 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Duration;
+import java.util.Objects;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -57,25 +58,24 @@ import scala.util.Try;
  */
 public final class HttpPushFactoryTest {
 
-    private final ConcurrentLinkedQueue<CompletableFuture<Void>> killSwitchTriggerQueue;
+    private final Queue<CompletableFuture<Void>> killSwitchTrigger = new ConcurrentLinkedQueue<>();
 
     private ActorSystem actorSystem;
     private ActorMaterializer mat;
     private ServerBinding binding;
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
-    private BlockingQueue<HttpResponse> responseQueue;
+    private BlockingQueue<CompletableFuture<HttpResponse>> responseQueue;
 
     public HttpPushFactoryTest() {
-        killSwitchTriggerQueue = new ConcurrentLinkedQueue<>();
-        killSwitchTriggerQueue.offer(new CompletableFuture<>());
+        killSwitchTrigger.offer(new CompletableFuture<>());
     }
 
     @Before
     public void createActorSystem() {
         actorSystem = ActorSystem.create(getClass().getSimpleName(), TestConstants.CONFIG);
         mat = ActorMaterializer.create(actorSystem);
-        newBinding(0);
+        newBinding();
         connection = createHttpPushConnection(binding);
     }
 
@@ -118,60 +118,57 @@ public final class HttpPushFactoryTest {
             final HttpResponse response3 = HttpResponse.create().withStatus(StatusCodes.BLOCKED_BY_PARENTAL_CONTROLS);
 
             // GIVEN: The connection is working.
+            responseQueue.offer(CompletableFuture.completedFuture(response1));
             sourceQueue.offer(request1);
             assertThat(requestQueue.take().getUri()).isEqualTo(request1.getUri());
-            responseQueue.offer(response1);
             final Try<HttpResponse> responseOrError1 = pullResponse(sinkQueue);
             assertThat(responseOrError1.isSuccess()).isTrue();
             assertThat(responseOrError1.get().status()).isEqualTo(response1.status());
 
-            // WHEN: HTTP server becomes unavailable.
-            // THEN: Request fails.
+            // WHEN: In-flight request is killed
+            // THEN: Akka HTTP responds with status 500
+            responseQueue.offer(new CompletableFuture<>());
             sourceQueue.offer(request2);
+            assertThat(requestQueue.take().getUri()).isEqualTo(request2.getUri());
             shutdownAllServerStreams();
             final Try<HttpResponse> responseOrError2 = pullResponse(sinkQueue);
-            assertThat(responseOrError2.isSuccess()).isFalse();
+            assertThat(responseOrError2.isSuccess()).isTrue();
+            assertThat(responseOrError2.get().status()).isEqualTo(StatusCodes.INTERNAL_SERVER_ERROR);
 
             // WHEN: HTTP server becomes available again.
-            refreshBinding();
             // THEN: A new request resumes and the previously failed request is discarded.
+            responseQueue.offer(CompletableFuture.completedFuture(response3));
             sourceQueue.offer(request3);
             assertThat(requestQueue.take().getUri()).isEqualTo(request3.getUri());
-            responseQueue.offer(response3);
             final Try<HttpResponse> responseOrError3 = pullResponse(sinkQueue);
             assertThat(responseOrError3.isSuccess()).isTrue();
             assertThat(responseOrError3.get().status()).isEqualTo(response3.status());
         }};
     }
 
-    private void refreshBinding() {
-        final int port = binding.localAddress().getPort();
-        binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
-        newBinding(port);
-    }
-
-    private void newBinding(final int port) {
+    private void newBinding() {
         requestQueue = new LinkedBlockingQueue<>();
         responseQueue = new LinkedBlockingQueue<>();
 
         final Flow<HttpRequest, HttpResponse, NotUsed> handler =
-                Flow.<HttpRequest, HttpResponse>fromFunction(request -> {
-                    requestQueue.offer(request);
-                    return responseQueue.take();
-                })
-                        .viaMat(KillSwitches.single(), Keep.right())
+                Flow.fromGraph(KillSwitches.<HttpRequest>single())
+                        .mapAsync(1, request -> {
+                            requestQueue.offer(request);
+                            return responseQueue.take();
+                        })
                         .mapMaterializedValue(killSwitch -> {
-                            killSwitchTriggerQueue.peek().thenAccept(_void -> killSwitch.shutdown());
+                            Objects.requireNonNull(killSwitchTrigger.peek())
+                                    .thenAccept(_void -> killSwitch.shutdown());
                             return NotUsed.getInstance();
                         });
-        binding = Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", port), mat)
+        binding = Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), mat)
                 .toCompletableFuture()
                 .join();
     }
 
     private void shutdownAllServerStreams() {
-        killSwitchTriggerQueue.offer(new CompletableFuture<>());
-        killSwitchTriggerQueue.poll().complete(null);
+        killSwitchTrigger.offer(new CompletableFuture<>());
+        Objects.requireNonNull(killSwitchTrigger.poll()).complete(null);
     }
 
     private static Try<HttpResponse> pullResponse(final SinkQueueWithCancel<Try<HttpResponse>> responseQueue) {
