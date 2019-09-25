@@ -74,7 +74,7 @@ public final class DefaultActivityCheckConfigTest {
 
         softly.assertThat(underTest.getInactiveInterval())
                 .as(ActivityCheckConfig.ActivityCheckConfigValue.INACTIVE_INTERVAL.getConfigPath())
-                .isEqualTo(Duration.ofDays(100L));
+                .isEqualTo(Duration.ofDays(-1L));
         softly.assertThat(underTest.getDeletedInterval())
                 .as(ActivityCheckConfig.ActivityCheckConfigValue.DELETED_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofDays(100L));

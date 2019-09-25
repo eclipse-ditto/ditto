@@ -34,6 +34,7 @@ final class ThingsConditionalHeadersValidatorProvider {
 
         /**
          * Returns a builder for a {@link ThingPreconditionFailedException}.
+         *
          * @param conditionalHeaderName the name of the conditional header.
          * @param expected the expected value.
          * @param actual the actual ETag value.
@@ -47,6 +48,7 @@ final class ThingsConditionalHeadersValidatorProvider {
 
         /**
          * Returns a builder for a {@link ThingPreconditionNotModifiedException}.
+         *
          * @param expectedNotToMatch the value which was expected not to match {@code matched} value.
          * @param matched the matched value.
          * @return the builder.
@@ -66,6 +68,7 @@ final class ThingsConditionalHeadersValidatorProvider {
 
     /**
      * Returns the (singleton) instance of {@link ConditionalHeadersValidator} for Thing resources.
+     *
      * @return the {@link ConditionalHeadersValidator}.
      */
     public static ConditionalHeadersValidator getInstance() {

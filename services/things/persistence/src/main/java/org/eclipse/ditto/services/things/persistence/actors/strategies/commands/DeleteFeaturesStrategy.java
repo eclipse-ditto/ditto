@@ -18,19 +18,22 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturesResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures} command.
  */
 @Immutable
-final class DeleteFeaturesStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<DeleteFeatures, Features> {
+final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFeatures> {
 
     /**
      * Constructs a new {@code DeleteFeaturesStrategy} object.
@@ -40,32 +43,42 @@ final class DeleteFeaturesStrategy extends AbstractConditionalHeadersCheckingCom
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final DeleteFeatures command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return extractFeatures(thing)
-                .map(features -> ResultFactory.newMutationResult(command, getEventToPersist(context, nextRevision, dittoHeaders),
-                        getResponse(context, dittoHeaders), this))
-                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(context.getThingEntityId(),
-                        dittoHeaders)));
+                .map(features ->
+                        ResultFactory.newMutationResult(command, getEventToPersist(context, nextRevision, dittoHeaders),
+                                getResponse(context, command, thing))
+                )
+                .orElseGet(() ->
+                        ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(context.getState(),
+                                dittoHeaders)));
     }
 
     private Optional<Features> extractFeatures(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getFeatures();
+        return getEntityOrThrow(thing).getFeatures();
     }
 
-    private static ThingModifiedEvent getEventToPersist(final Context context, final long nextRevision,
+    private static ThingEvent getEventToPersist(final Context<ThingId> context, final long nextRevision,
             final DittoHeaders dittoHeaders) {
-        return FeaturesDeleted.of(context.getThingEntityId(), nextRevision, getEventTimestamp(), dittoHeaders);
+        return FeaturesDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders);
     }
 
-    private static ThingModifyCommandResponse getResponse(final Context context, final DittoHeaders dittoHeaders) {
-        return DeleteFeaturesResponse.of(context.getThingEntityId(), dittoHeaders);
+    private WithDittoHeaders getResponse(final Context<ThingId> context, final DeleteFeatures command,
+            @Nullable final Thing thing) {
+        return appendETagHeaderIfProvided(command,
+                DeleteFeaturesResponse.of(context.getState(), command.getDittoHeaders()), thing);
     }
 
     @Override
-    public Optional<Features> determineETagEntity(final DeleteFeatures command, @Nullable final Thing thing) {
-        return extractFeatures(thing);
+    public Optional<?> previousETagEntity(final DeleteFeatures command, @Nullable final Thing previousEntity) {
+        return extractFeatures(previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final DeleteFeatures command, @Nullable final Thing newEntity) {
+        return Optional.empty();
     }
 }

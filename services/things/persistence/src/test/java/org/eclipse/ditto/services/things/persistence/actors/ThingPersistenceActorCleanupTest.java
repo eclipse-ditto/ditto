@@ -24,8 +24,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -128,6 +128,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                                         .orElseThrow(() -> new IllegalStateException("ID must not be null!")),
                                 modifiedThing, null, dittoHeadersV2);
                 underTest.tell(modifyThingCommand, getRef());
+
                 expectMsgEquals(modifyThingResponse(modifiedThing, dittoHeadersV2));
 
                 return toEvent(modifyThingCommand, revisionNumber);
@@ -140,10 +141,11 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
         setup(createNewDefaultTestConfig());
         final List<Event> expectedEvents = new ArrayList<>();
 
-        new TestKit(actorSystem) {{
+        new TestKit(actorSystem) {
+            {
                 final Thing thing = createThingV2WithRandomId();
-            final ThingId thingId =
-                    thing.getEntityId().orElseThrow(() -> new IllegalStateException("ID must not be null!"));
+                final ThingId thingId =
+                        thing.getEntityId().orElseThrow(() -> new IllegalStateException("ID must not be null!"));
                 final ActorRef persistenceActorUnderTest = createPersistenceActorFor(thingId);
 
                 // create a thing...
@@ -171,8 +173,9 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 // tell the persistence actor to clean up
                 persistenceActorUnderTest.tell(CleanupPersistence.of(thingId, DittoHeaders.empty()), getRef());
-            expectMsg(CleanupPersistenceResponse.success(
-                    DefaultEntityId.of(ThingPersistenceActor.PERSISTENCE_ID_PREFIX + thingId), DittoHeaders.empty()));
+                expectMsg(CleanupPersistenceResponse.success(
+                        DefaultEntityId.of(ThingPersistenceActor.PERSISTENCE_ID_PREFIX + thingId),
+                        DittoHeaders.empty()));
 
                 // we expect only the latest snapshot to exist after cleanup
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));

@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.AttributesDeleted;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AttributesDeleted} event.
  */
 @Immutable
-final class AttributesDeletedStrategy extends AbstractEventStrategy<AttributesDeleted> {
+final class AttributesDeletedStrategy extends AbstractThingEventStrategy<AttributesDeleted> {
 
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AttributesDeleted event,

@@ -19,18 +19,21 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link RetrieveAclEntry} command.
  */
 @Immutable
-final class RetrieveAclEntryStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveAclEntry, AclEntry> {
+final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<RetrieveAclEntry> {
 
     /**
      * Constructs a new {@code RetrieveAclEntryStrategy} object.
@@ -40,27 +43,35 @@ final class RetrieveAclEntryStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveAclEntry command) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getState();
         final AuthorizationSubject authorizationSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return extractAclEntry(command, thing)
-                .map(aclEntry -> ResultFactory.newQueryResult(command, thing,
-                        RetrieveAclEntryResponse.of(thingId, aclEntry, dittoHeaders), this))
+                .map(aclEntry -> {
+                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                            RetrieveAclEntryResponse.of(thingId, aclEntry, dittoHeaders), thing);
+                    return ResultFactory.<ThingEvent>newQueryResult(command, response);
+                })
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.aclEntryNotFound(thingId, authorizationSubject, dittoHeaders)));
     }
 
     private Optional<AclEntry> extractAclEntry(final RetrieveAclEntry command, final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getAccessControlList()
+        return getEntityOrThrow(thing).getAccessControlList()
                 .flatMap(acl -> acl.getEntryFor(command.getAuthorizationSubject()));
     }
 
 
     @Override
-    public Optional<AclEntry> determineETagEntity(final RetrieveAclEntry command, @Nullable final Thing thing) {
-        return extractAclEntry(command, thing);
+    public Optional<?> previousETagEntity(final RetrieveAclEntry command, @Nullable final Thing previousEntity) {
+        return nextETagEntity(command, previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final RetrieveAclEntry command, @Nullable final Thing newEntity) {
+        return extractAclEntry(command, newEntity);
     }
 }
