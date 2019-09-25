@@ -6,7 +6,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
@@ -26,6 +29,9 @@ public class ConnectionStatusMessageMapper implements MessageMapper {
     public static final String HEADER_HUB_DEVICE_ID = "device_id";
     public static final String HEADER_HUB_TTD = "ttd";
     public static final String HEADER_HUB_CREATION_TIME = "creation-time";
+
+    public static final String MAPPING_OPTIONS_PROPERTIES_THINGID = "thingId";
+    public static final String MAPPING_OPTIONS_PROPERTIES_FEATUREID = "featureId";
 
     public static final String DEFAULT_FEATURE_ID = "ConnectionStatus";
     public static final String FEATURE_DEFINITION = "com.bosch.iot.suite.standard:ConnectionStatus:1.0.0";
@@ -52,24 +58,25 @@ public class ConnectionStatusMessageMapper implements MessageMapper {
     @Override
     public void configure(final MappingConfig mappingConfig,
             final MessageMapperConfiguration messageMapperConfiguration) {
-        featureId = messageMapperConfiguration.findProperty("featureId").orElse(DEFAULT_FEATURE_ID);
 
-        mappingOptionThingId = PlaceholderFactory.newHeadersPlaceholder()
-                .resolve(messageMapperConfiguration.getProperties(), "thingId");
-        if (mappingOptionThingId.equals(Optional.empty())) {
-            noErrorOccurred = false;
-            LOGGER.info("Could not find thingId in your mapping options");
-        }
+        mappingOptionThingId = messageMapperConfiguration.findProperty(
+                MAPPING_OPTIONS_PROPERTIES_THINGID);    //returns Optional.empty() if option is not set
+        featureId = messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_FEATUREID)
+                .orElse(DEFAULT_FEATURE_ID);
     }
 
     @Override
     public Optional<Adaptable> map(final ExternalMessage externalMessage) {
+        //Validate
         extractedHeader =
                 extractHeader(externalMessage, HEADER_HUB_TTD, HEADER_HUB_CREATION_TIME, HEADER_HUB_DEVICE_ID);
 
         checkIfEntriesSet(extractedHeader);
 
-        checkMappingOption(mappingOptionThingId);
+        if (!mappingOptionThingId.isPresent()) {
+            noErrorOccurred = false;
+            LOGGER.info("Mapping option \"{}\" is not set", MAPPING_OPTIONS_PROPERTIES_THINGID);
+        }
 
         //Check if time is convertible
         long creationTime = 0;
@@ -78,17 +85,34 @@ public class ConnectionStatusMessageMapper implements MessageMapper {
             creationTime = Long.parseLong(extractedHeader.get(HEADER_HUB_CREATION_TIME));
             ttd = Long.parseLong(extractedHeader.get(HEADER_HUB_TTD));
         } catch (NumberFormatException e) {
-            LOGGER.info("Header {} or {} is not convertible to type long", HEADER_HUB_CREATION_TIME, HEADER_HUB_TTD);
+            LOGGER.info("Header \"{}\" or \"{}\" is not convertible to type long", HEADER_HUB_CREATION_TIME,
+                    HEADER_HUB_TTD);
             noErrorOccurred = false;
         }
 
-        if (creationTime < 0 || ttd < -1) {
-            LOGGER.info("Undefined value in {} or {}", HEADER_HUB_CREATION_TIME, HEADER_HUB_TTD);
+        if (creationTime < 0) {
+            LOGGER.info("Undefined value in \"{}\"", HEADER_HUB_CREATION_TIME);
             noErrorOccurred = false;
         }
 
+        if (ttd < -1) {
+            LOGGER.info("Undefined value in \"{}\"", HEADER_HUB_CREATION_TIME);
+            noErrorOccurred = false;
+        }
+
+        //Execute
         if (noErrorOccurred) {
-            final ThingId thingId = ThingId.of(mappingConnectionOptions(mappingOptionThingId));
+
+            //Read thingId
+            final ThingId thingId;
+            if (mappingOptionThingId.get().equals("{{ header:device_id }}")) {
+                final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
+                final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                        PlaceholderFactory.newPlaceholderResolver(headersPlaceholder, extractedHeader));
+                thingId = ThingId.of(PlaceholderFilter.apply("{{ header:device_id }}", expressionResolver, false));
+            } else {
+                thingId = ThingId.of(mappingOptionThingId.get());
+            }
 
             //Set time to ISO-8601 UTC
             String readyUntil;
@@ -116,49 +140,12 @@ public class ConnectionStatusMessageMapper implements MessageMapper {
                     .build();
 
             final ModifyFeature modifyFeature = ModifyFeature.of(thingId, feature, DittoHeaders.empty());
-            LOGGER.info("modifyFeature: {} ", modifyFeature);
             final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(modifyFeature);
 
-            LOGGER.info("Feature {} of Thing {} is modified", featureId, extractedHeader.get(HEADER_HUB_DEVICE_ID));
+            LOGGER.info("Feature \"{}\" of Thing \"{}\" is modified", featureId, thingId.toString());
 
             return Optional.of(adaptable);
         } else { return Optional.empty();}
-    }
-
-    private void checkMappingOption(final Optional<String> mappingOption) {
-        final String extractedValue = mappingOption.get();
-
-        if (extractedValue.startsWith("{{") && extractedValue.endsWith("}}")) {
-
-            final String mappingContext = extractedValue
-                    .substring(extractedValue.indexOf(' ') + 1, extractedValue.indexOf(':'));
-
-            if (!mappingContext.equals(PlaceholderFactory.newHeadersPlaceholder().getPrefix())) {
-                noErrorOccurred = false;
-            }
-        }
-    }
-
-    private CharSequence mappingConnectionOptions(final Optional<String> mappingOption) {
-        final String extractedValue = mappingOption.get();
-
-        if (extractedValue.startsWith("{{") && extractedValue.endsWith("}}")) {
-
-            final String mappingValue =
-                    extractedValue.substring(extractedValue.indexOf(":") + 1, extractedValue.lastIndexOf(" "));
-            return extractedHeader.get(mappingValue);
-        }
-        return extractedValue;
-    }
-
-
-    private void checkIfEntriesSet(final HashMap<String, String> extractedHeader) {
-        for (Map.Entry<String, String> entry : extractedHeader.entrySet()) {
-            if (entry.getValue() == null || "".equals(entry.getValue())) {
-                LOGGER.info("Header {} is not set", entry.getKey());
-                noErrorOccurred = false;
-            }
-        }
     }
 
     private HashMap<String, String> extractHeader(final ExternalMessage externalMessage,
@@ -172,6 +159,15 @@ public class ConnectionStatusMessageMapper implements MessageMapper {
                     externalMessage.findHeader(header).orElse(""));
         }
         return extractedHeader;
+    }
+
+    private void checkIfEntriesSet(final HashMap<String, String> extractedHeader) {
+        for (Map.Entry<String, String> entry : extractedHeader.entrySet()) {
+            if ("".equals(entry.getValue())) {
+                LOGGER.info("Header \"{}\" is not set", entry.getKey());
+                noErrorOccurred = false;
+            }
+        }
     }
 
     @Override
