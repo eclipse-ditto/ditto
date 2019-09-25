@@ -34,6 +34,7 @@ import akka.http.javadsl.settings.ClientConnectionSettings;
 import akka.http.javadsl.settings.ConnectionPoolSettings;
 import akka.http.javadsl.settings.ParserSettings;
 import akka.japi.Pair;
+import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Flow;
 import scala.util.Try;
 
@@ -73,14 +74,16 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
         final Http http = Http.get(system);
         final ConnectionPoolSettings poolSettings = getConnectionPoolSettings(system);
+        final Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> flow;
         if (HttpPushValidator.isSecureScheme(baseUri.getScheme())) {
             final ConnectHttp connectHttpsWithCustomSSLContext =
                     ConnectHttp.toHostHttps(baseUri).withCustomHttpsContext(getHttpsConnectionContext());
-            return http.cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
+            flow = http.cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
         } else {
             // no SSL, hence no need for SSLContextCreator
-            return http.cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
+            flow = http.cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
         }
+        return flow.buffer(parallelism, OverflowStrategy.backpressure());
     }
 
     private ConnectionPoolSettings getConnectionPoolSettings(final ActorSystem system) {
