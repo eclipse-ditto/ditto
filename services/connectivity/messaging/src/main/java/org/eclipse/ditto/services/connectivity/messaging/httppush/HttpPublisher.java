@@ -13,11 +13,10 @@
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -42,6 +41,7 @@ import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.headers.ContentType;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
@@ -123,13 +123,13 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private HttpRequest createRequest(final HttpPublishTarget publishTarget, final ExternalMessage message) {
-        final HttpRequest requestWithoutEntity = factory.newRequest(publishTarget).addHeaders(getHttpHeaders(message));
-        final Optional<akka.http.javadsl.model.headers.ContentType> contentTypeHeader =
-                requestWithoutEntity.getHeader(akka.http.javadsl.model.headers.ContentType.class);
-        if (contentTypeHeader.isPresent()) {
-            final akka.http.javadsl.model.headers.ContentType header = contentTypeHeader.get();
-            final HttpEntity.Strict httpEntity = HttpEntities.create(header.contentType(), getPayloadAsBytes(message));
-            return requestWithoutEntity.removeHeader(header.name()).withEntity(httpEntity);
+        final Pair<Iterable<HttpHeader>, ContentType> headersPair = getHttpHeadersPair(message);
+        final HttpRequest requestWithoutEntity = factory.newRequest(publishTarget).addHeaders(headersPair.first());
+        final ContentType contentTypeHeader = headersPair.second();
+        if (contentTypeHeader != null) {
+            final HttpEntity.Strict httpEntity =
+                    HttpEntities.create(contentTypeHeader.contentType(), getPayloadAsBytes(message));
+            return requestWithoutEntity.withEntity(httpEntity);
         } else if (message.isTextMessage()) {
             return requestWithoutEntity.withEntity(getTextPayload(message));
         } else {
@@ -137,12 +137,18 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
         }
     }
 
-    private Iterable<HttpHeader> getHttpHeaders(final ExternalMessage message) {
-        return message.getHeaders()
-                .entrySet()
-                .stream()
-                .map(entry -> HttpHeader.parse(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+    private Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final ExternalMessage message) {
+        final List<HttpHeader> headers = new ArrayList<>(message.getHeaders().size());
+        ContentType contentType = null;
+        for (final Map.Entry<String, String> entry : message.getHeaders().entrySet()) {
+            final HttpHeader httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
+            if (httpHeader instanceof ContentType) {
+                contentType = (ContentType) httpHeader;
+            } else {
+                headers.add(httpHeader);
+            }
+        }
+        return Pair.create(headers, contentType);
     }
 
     // Async callback. Must be thread-safe.
