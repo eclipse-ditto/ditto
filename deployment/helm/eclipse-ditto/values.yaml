@@ -73,6 +73,7 @@ gateway:
   enabled: true
   name: gateway
   replicaCount: 1
+  secureDevops: true
   networkPolicy:
     enabled: true
   image:

@@ -68,6 +68,8 @@ spec:
               value: "{{ .Values.global.timezone }}"
             - name: IBM_JAVA_OPTIONS
               value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+            - name: DEVOPS_SECURE_STATUS
+              value: "{{ .Values.gateway.secureDevops }}"
 ---
 apiVersion: v1
 kind: Service
