@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -157,6 +158,11 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     public List<String> getScopes() {
         final String[] strings = body.getValue(JsonFields.SCOPE).map(s -> s.split(" ")).orElseGet(() -> new String[]{});
         return Arrays.stream(strings).collect(Collectors.toList());
+    }
+
+    @Override
+    public Instant getExpirationTime() {
+        return Instant.ofEpochMilli(Long.parseLong(body.getValueOrThrow(JsonFields.EXP)));
     }
 
     @Override

@@ -25,6 +25,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_MESSAGES;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -47,6 +48,9 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
+import org.eclipse.ditto.services.gateway.security.HttpHeader;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.ImmutableJsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
@@ -103,6 +107,8 @@ public final class WebsocketRoute {
     private static final String PROTOCOL_CMD_ACK_SUFFIX = ":ACK";
 
     private static final String STREAMING_TYPE_WS = "WS";
+
+    private static final String BEARER = "Bearer";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketRoute.class);
 
@@ -260,12 +266,15 @@ public final class WebsocketRoute {
                 .tag("type", "ws")
                 .tag("direction", "out");
 
+        final Optional<JsonWebToken> optJsonWebToken = extractJwtFromRequestIfPresent(request);
+
         final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                         EventAndResponsePublisher.props(webSocketConfig.getPublisherBackpressureBufferSize()))
                         .mapMaterializedValue(actorRef -> {
-                            streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_WS),
-                                    null);
+                            streamingActor.tell(
+                                    new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_WS,
+                                            optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null)), null);
                             return NotUsed.getInstance();
                         })
                         .map(this::publishResponsePublishedEvent);
@@ -518,6 +527,13 @@ public final class WebsocketRoute {
                     + " Event nor DittoRuntimeException: " + jsonifiable.getClass().getSimpleName());
         }
         return adaptable;
+    }
+
+    private static Optional<JsonWebToken> extractJwtFromRequestIfPresent(final HttpRequest request) {
+        return request.getHeader(HttpHeader.AUTHORIZATION.toString())
+                .map(akka.http.javadsl.model.HttpHeader::value)
+                .filter(s -> s.startsWith(BEARER))
+                .map(ImmutableJsonWebToken::fromAuthorizationString);
     }
 
 }

@@ -19,6 +19,8 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyId;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
@@ -44,8 +46,8 @@ public final class RetrievePolicyIdStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveExistingPolicyId() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final RetrievePolicyId command = RetrievePolicyId.of(context.getThingEntityId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final RetrievePolicyId command = RetrievePolicyId.of(context.getState(), DittoHeaders.empty());
         final RetrievePolicyIdResponse expectedResponse =
                 retrievePolicyIdResponse(command.getThingEntityId(), POLICY_ID, DittoHeaders.empty());
 
@@ -54,12 +56,12 @@ public final class RetrievePolicyIdStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveNonExistingPolicyId() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final RetrievePolicyId command = RetrievePolicyId.of(context.getThingEntityId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final RetrievePolicyId command = RetrievePolicyId.of(context.getState(), DittoHeaders.empty());
         final PolicyIdNotAccessibleException expectedException =
                 PolicyIdNotAccessibleException.newBuilder(command.getThingEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build();
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build();
 
         assertErrorResult(underTest, THING_V2.toBuilder().removePolicyId().build(), command, expectedException);
     }

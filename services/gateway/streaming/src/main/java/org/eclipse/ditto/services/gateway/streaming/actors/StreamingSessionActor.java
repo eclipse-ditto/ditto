@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -50,6 +52,7 @@ import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
@@ -69,6 +72,7 @@ final class StreamingSessionActor extends AbstractActor {
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef eventAndResponsePublisher;
     private final Set<StreamingType> outstandingSubscriptionAcks;
+    private final Cancellable sessionTerminationScheduler;
 
     private List<String> authorizationSubjects;
     private Map<StreamingType, List<String>> namespacesForStreamingTypes;
@@ -76,7 +80,8 @@ final class StreamingSessionActor extends AbstractActor {
 
     @SuppressWarnings("unused")
     private StreamingSessionActor(final String connectionCorrelationId, final String type,
-            final DittoProtocolSub dittoProtocolSub, final ActorRef eventAndResponsePublisher) {
+            final DittoProtocolSub dittoProtocolSub, final ActorRef eventAndResponsePublisher,
+            final Instant sessionExpirationTime) {
         this.connectionCorrelationId = connectionCorrelationId;
         this.type = type;
         this.dittoProtocolSub = dittoProtocolSub;
@@ -87,6 +92,17 @@ final class StreamingSessionActor extends AbstractActor {
         eventFilterCriteriaForStreamingTypes = new EnumMap<>(StreamingType.class);
 
         getContext().watch(eventAndResponsePublisher);
+
+        if (sessionExpirationTime != null) {
+            final FiniteDuration sessionExpirationTimeMillis =
+                    FiniteDuration.apply(sessionExpirationTime.getEpochSecond(), TimeUnit.MILLISECONDS);
+            sessionTerminationScheduler = getContext().getSystem().getScheduler()
+                    .scheduleOnce(sessionExpirationTimeMillis,
+                            this::handleSessionTimeout, getContext().getDispatcher());
+        } else {
+            sessionTerminationScheduler = null;
+        }
+
     }
 
     /**
@@ -97,10 +113,11 @@ final class StreamingSessionActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     static Props props(final String connectionCorrelationId, final String type,
-            final DittoProtocolSub dittoProtocolSub, final ActorRef eventAndResponsePublisher) {
+            final DittoProtocolSub dittoProtocolSub, final ActorRef eventAndResponsePublisher,
+            final Instant sessionExpirationTime) {
 
         return Props.create(StreamingSessionActor.class, connectionCorrelationId, type, dittoProtocolSub,
-                eventAndResponsePublisher);
+                eventAndResponsePublisher, sessionExpirationTime);
     }
 
     @Override
@@ -234,6 +251,16 @@ final class StreamingSessionActor extends AbstractActor {
                 }
             }
         }
+    }
+
+    private void handleSessionTimeout() {
+        logger.info("Stopping websocket session for connection with id: {}", connectionCorrelationId);
+//        getSelf().tell(new StopStreaming(StreamingType.valueOf(type), connectionCorrelationId), getSelf());
+        eventAndResponsePublisher.tell(GatewayWebsocketSessionExpiredException.newBuilder()
+                .dittoHeaders(DittoHeaders.newBuilder()
+                        .correlationId(connectionCorrelationId)
+                        .build())
+                .build(), getSelf());
     }
 
     private boolean matchesNamespaces(final Signal<?> signal) {

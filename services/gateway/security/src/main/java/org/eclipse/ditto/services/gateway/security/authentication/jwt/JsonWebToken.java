@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
+import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.concurrent.Immutable;
@@ -102,6 +102,13 @@ public interface JsonWebToken {
     List<String> getScopes();
 
     /**
+     * Returns the expiration time of the token.
+     *
+     * @return the expiration time.
+     */
+    Instant getExpirationTime();
+
+    /**
      * Checks if this JSON web token is valid in terms of not expired, well formed and correctly signed.
      *
      * @param publicKeyProvider the public key provider to provide the public key that should be used to sign this JSON
@@ -151,6 +158,12 @@ public interface JsonWebToken {
          */
         public static final JsonFieldDefinition<String> SCOPE =
                 JsonFactory.newStringFieldDefinition("scope", FieldType.REGULAR);
+
+        /**
+         * JSON field containing the expiration time.
+         */
+        public static final JsonFieldDefinition<String> EXP =
+                JsonFactory.newStringFieldDefinition("exp", FieldType.REGULAR);
 
         private JsonFields() {
             throw new AssertionError();

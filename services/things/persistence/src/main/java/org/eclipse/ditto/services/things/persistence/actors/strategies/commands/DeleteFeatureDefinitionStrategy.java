@@ -18,20 +18,23 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition} command.
  */
 @Immutable
 final class DeleteFeatureDefinitionStrategy extends
-        AbstractConditionalHeadersCheckingCommandStrategy<DeleteFeatureDefinition, FeatureDefinition> {
+        AbstractThingCommandStrategy<DeleteFeatureDefinition> {
 
     /**
      * Constructs a new {@code DeleteFeatureDefinitionStrategy} object.
@@ -41,37 +44,48 @@ final class DeleteFeatureDefinitionStrategy extends
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final DeleteFeatureDefinition command) {
 
-        return getThingOrThrow(thing).getFeatures()
+        return getEntityOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()))
-                .map(feature -> getDeleteFeatureDefinitionResult(feature, context, nextRevision,
-                        command))
+                .map(feature -> getDeleteFeatureDefinitionResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
+                        ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                                 command.getDittoHeaders())));
     }
 
-    private Result getDeleteFeatureDefinitionResult(final Feature feature, final Context context,
-            final long nextRevision, final DeleteFeatureDefinition command) {
+    private Result<ThingEvent> getDeleteFeatureDefinitionResult(final Feature feature, final Context<ThingId> context,
+            final long nextRevision, final DeleteFeatureDefinition command, @Nullable Thing thing) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getState();
         final String featureId = feature.getId();
 
         return feature.getDefinition()
-                .map(featureDefinition -> ResultFactory.newMutationResult(command,
-                        FeatureDefinitionDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
-                                dittoHeaders), DeleteFeatureDefinitionResponse.of(thingId, featureId, dittoHeaders), this))
+                .map(featureDefinition -> {
+                    final ThingEvent event =
+                            FeatureDefinitionDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
+                                    dittoHeaders);
+                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                            DeleteFeatureDefinitionResponse.of(thingId, featureId, dittoHeaders), thing);
+                    return ResultFactory.newMutationResult(command, event, response);
+                })
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders)));
     }
 
     @Override
-    public Optional<FeatureDefinition> determineETagEntity(final DeleteFeatureDefinition command, @Nullable final Thing thing) {
-        return getThingOrThrow(thing).getFeatures()
+    public Optional<?> previousETagEntity(final DeleteFeatureDefinition command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity)
+                .flatMap(Thing::getFeatures)
                 .flatMap(features -> features.getFeature(command.getFeatureId()))
                 .flatMap(Feature::getDefinition);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final DeleteFeatureDefinition command,
+            @Nullable final Thing newEntity) {
+        return Optional.empty();
     }
 }

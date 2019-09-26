@@ -17,13 +17,12 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -43,7 +42,7 @@ import akka.stream.javadsl.Source;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Actor which wakes up {@link ConnectionActor}s automatically on startup. The {@link ConnectionActor} then
+ * Actor which wakes up {@link org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor}s automatically on startup. The {@link org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor} then
  * decides if the connection will be opened or stay closed depending on the persisted connection status.
  */
 public final class ReconnectActor extends AbstractActor {
@@ -207,9 +206,9 @@ public final class ReconnectActor extends AbstractActor {
         // ConnectionActor manages its own reconnection on recovery.
         // OpenConnection would set desired state to OPEN even for deleted connections.
 
-        if (persistenceId.startsWith(ConnectionActor.PERSISTENCE_ID_PREFIX)) {
+        if (persistenceId.startsWith(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX)) {
             final ConnectionId connectionId =
-                    ConnectionId.of(persistenceId.substring(ConnectionActor.PERSISTENCE_ID_PREFIX.length()));
+                    ConnectionId.of(persistenceId.substring(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX.length()));
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .correlationId(toCorrelationId(connectionId))
                     .build();

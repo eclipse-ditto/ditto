@@ -12,13 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.sse;
 
-import static akka.http.javadsl.server.Directives.completeOK;
-import static akka.http.javadsl.server.Directives.extractRequest;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.headerValuePF;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.time.Duration;
@@ -39,7 +32,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
@@ -56,7 +48,6 @@ import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePubli
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
@@ -230,7 +221,7 @@ public class SseThingsRoute extends AbstractRoute {
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                         EventAndResponsePublisher.props(10))
                         .mapMaterializedValue(actorRef -> {
-                            streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_SSE),
+                            streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_SSE, null),
                                     null);
                             streamingActor.tell(
                                     new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,

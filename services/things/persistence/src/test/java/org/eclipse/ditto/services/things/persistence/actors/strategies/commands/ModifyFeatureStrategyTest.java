@@ -20,6 +20,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
@@ -53,32 +55,32 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void modifyFeatureOnThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final ModifyFeature command = ModifyFeature.of(context.getThingEntityId(), modifiedFeature, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeFeatures(), command,
                 FeatureCreated.class,
-                modifyFeatureResponse(context.getThingEntityId(), command.getFeature(), command.getDittoHeaders(), true));
+                modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyFeatureOnThingWithoutThatFeature() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final ModifyFeature command = ModifyFeature.of(context.getThingEntityId(), modifiedFeature, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeFeature(modifiedFeature.getId()), command,
                 FeatureCreated.class,
-                modifyFeatureResponse(context.getThingEntityId(), command.getFeature(), command.getDittoHeaders(), true));
+                modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyExistingFeature() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final ModifyFeature command = ModifyFeature.of(context.getThingEntityId(), modifiedFeature, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeatureModified.class,
-                modifyFeatureResponse(context.getThingEntityId(), command.getFeature(), command.getDittoHeaders(), false));
+                modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), false));
     }
 
 }
