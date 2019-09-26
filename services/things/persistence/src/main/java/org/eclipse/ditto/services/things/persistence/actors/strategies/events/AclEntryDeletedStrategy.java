@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AclEntryDeleted} event.
  */
 @Immutable
-final class AclEntryDeletedStrategy extends AbstractEventStrategy<AclEntryDeleted> {
+final class AclEntryDeletedStrategy extends AbstractThingEventStrategy<AclEntryDeleted> {
 
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AclEntryDeleted event, final ThingBuilder.FromCopy thingBuilder) {

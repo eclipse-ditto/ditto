@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.FeaturePropertyCreated} event.
  */
 @Immutable
-final class FeaturePropertyCreatedStrategy extends AbstractEventStrategy<FeaturePropertyCreated> {
+final class FeaturePropertyCreatedStrategy extends AbstractThingEventStrategy<FeaturePropertyCreated> {
 
     @Override
     protected ThingBuilder.FromCopy applyEvent(final FeaturePropertyCreated event,

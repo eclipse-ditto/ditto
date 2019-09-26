@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.FeaturePropertiesModified} event.
  */
 @Immutable
-final class FeaturePropertiesModifiedStrategy extends AbstractEventStrategy<FeaturePropertiesModified> {
+final class FeaturePropertiesModifiedStrategy extends AbstractThingEventStrategy<FeaturePropertiesModified> {
 
     @Override
     protected ThingBuilder.FromCopy applyEvent(final FeaturePropertiesModified event,

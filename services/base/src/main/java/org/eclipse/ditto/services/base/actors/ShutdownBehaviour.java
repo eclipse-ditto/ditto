@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.base.actors;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import javax.annotation.Nonnull;
+
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
@@ -57,13 +59,32 @@ public final class ShutdownBehaviour {
     public static ShutdownBehaviour fromId(final NamespacedEntityId entityId, final ActorRef pubSubMediator,
             final ActorRef self) {
 
-        checkNotNull(entityId, "Entity ID");
-        checkNotNull(self, "Self");
-        final String namespace = entityId.getNamespace();
-        final ShutdownBehaviour purgeEntitiesBehaviour = new ShutdownBehaviour(namespace, entityId, self);
+        checkNotNull(entityId, "entityId");
+        return fromIdWithNamespace(entityId, pubSubMediator, self, entityId.getNamespace());
+    }
 
-        purgeEntitiesBehaviour.subscribePubSub(checkNotNull(pubSubMediator, "Pub-Sub-Mediator"));
-        return purgeEntitiesBehaviour;
+    /**
+     * Create the actor behavior from its entity ID (without namespace) and reference.
+     *
+     * @param entityId entity ID to react to.
+     * @param pubSubMediator Akka pub-sub mediator.
+     * @param self reference of the actor itself.
+     * @return the actor behavior.
+     */
+    public static ShutdownBehaviour fromIdWithoutNamespace(final EntityId entityId, final ActorRef pubSubMediator,
+            final ActorRef self) {
+
+        return fromIdWithNamespace(checkNotNull(entityId, "entityId"), pubSubMediator, self, "");
+    }
+
+    private static ShutdownBehaviour fromIdWithNamespace(@Nonnull final EntityId entityId,
+            final ActorRef pubSubMediator, final ActorRef self, final String namespace) {
+        checkNotNull(pubSubMediator, "pubSubMediator");
+        checkNotNull(self, "self");
+        checkNotNull(namespace, "namespace");
+        final ShutdownBehaviour shutdownBehaviour = new ShutdownBehaviour(namespace, entityId, self);
+        shutdownBehaviour.subscribePubSub(pubSubMediator);
+        return shutdownBehaviour;
     }
 
     private void subscribePubSub(final ActorRef pubSubMediator) {

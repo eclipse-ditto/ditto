@@ -28,7 +28,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
-import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -134,7 +133,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance(connectionConfig);
         final Props props =
                 ConnectionSupervisorActor.props(nopSub(), conciergeForwarderProbe.ref(), entityActorFactory,
-                        dummyInterceptor);
+                        dummyInterceptor, pubSubMediator);
 
         return system.actorOf(props, String.valueOf(id));
     }

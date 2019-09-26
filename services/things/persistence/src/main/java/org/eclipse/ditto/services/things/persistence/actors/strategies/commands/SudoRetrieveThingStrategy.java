@@ -22,16 +22,19 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link SudoRetrieveThing} command.
  */
 @Immutable
-final class SudoRetrieveThingStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<SudoRetrieveThing, Thing> {
+final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoRetrieveThing> {
 
     /**
      * Constructs a new {@code SudoRetrieveThingStrategy} object.
@@ -41,28 +44,29 @@ final class SudoRetrieveThingStrategy
     }
 
     @Override
-    public boolean isDefined(final Context context, @Nullable final Thing thing,
+    public boolean isDefined(final Context<ThingId> context, @Nullable final Thing thing,
             final SudoRetrieveThing command) {
         final boolean thingExists = Optional.ofNullable(thing)
                 .map(t -> !t.isDeleted())
                 .orElse(false);
 
-        return Objects.equals(context.getThingEntityId(), command.getEntityId()) && thingExists;
+        return Objects.equals(context.getState(), command.getEntityId()) && thingExists;
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final SudoRetrieveThing command) {
 
-        final Thing theThing = getThingOrThrow(thing);
+        final Thing theThing = getEntityOrThrow(thing);
 
         final JsonSchemaVersion jsonSchemaVersion = determineSchemaVersion(command, theThing);
         final JsonObject thingJson = command.getSelectedFields()
                 .map(selectedFields -> theThing.toJson(jsonSchemaVersion, selectedFields, FieldType.regularOrSpecial()))
                 .orElseGet(() -> theThing.toJson(jsonSchemaVersion, FieldType.regularOrSpecial()));
 
-        return ResultFactory.newQueryResult(command, thing,
-                SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()), this);
+        return ResultFactory.newQueryResult(command,
+                appendETagHeaderIfProvided(command, SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()),
+                        thing));
     }
 
     private static JsonSchemaVersion determineSchemaVersion(final SudoRetrieveThing command, final Thing thing) {
@@ -72,14 +76,19 @@ final class SudoRetrieveThingStrategy
     }
 
     @Override
-    protected Result unhandled(final Context context, @Nullable final Thing thing,
+    public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final SudoRetrieveThing command) {
         return ResultFactory.newErrorResult(
-                new ThingNotAccessibleException(context.getThingEntityId(), command.getDittoHeaders()));
+                new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()));
     }
 
     @Override
-    public Optional<Thing> determineETagEntity(final SudoRetrieveThing command, @Nullable final Thing thing) {
-        return Optional.ofNullable(thing);
+    public Optional<?> previousETagEntity(final SudoRetrieveThing command, @Nullable final Thing previousEntity) {
+        return nextETagEntity(command, previousEntity);
+    }
+
+    @Override
+    public Optional<?> nextETagEntity(final SudoRetrieveThing command, @Nullable final Thing newEntity) {
+        return Optional.ofNullable(newEntity);
     }
 }

@@ -19,18 +19,19 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link RetrieveFeatureDefinition} command.
  */
 @Immutable
-public final class RetrieveFeatureDefinitionStrategy extends
-        AbstractConditionalHeadersCheckingCommandStrategy<RetrieveFeatureDefinition, FeatureDefinition> {
+final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrategy<RetrieveFeatureDefinition> {
 
     /**
      * Constructs a new {@code RetrieveFeatureDefinitionStrategy} object.
@@ -40,9 +41,9 @@ public final class RetrieveFeatureDefinitionStrategy extends
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveFeatureDefinition command) {
-        final ThingId thingId = context.getThingEntityId();
+        final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
@@ -52,11 +53,11 @@ public final class RetrieveFeatureDefinitionStrategy extends
     }
 
     private Optional<Feature> extractFeature(final RetrieveFeatureDefinition command, final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getFeatures()
+        return getEntityOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result getFeatureDefinition(final Feature feature, final ThingId thingId,
+    private Result<ThingEvent> getFeatureDefinition(final Feature feature, final ThingId thingId,
             final RetrieveFeatureDefinition command, @Nullable final Thing thing) {
 
         final String featureId = feature.getId();
@@ -65,17 +66,22 @@ public final class RetrieveFeatureDefinitionStrategy extends
         return feature.getDefinition()
                 .map(featureDefinition -> RetrieveFeatureDefinitionResponse.of(thingId, featureId,
                         featureDefinition, dittoHeaders))
-                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .<Result<ThingEvent>>map(response ->
+                        ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders)));
     }
 
 
     @Override
-    public Optional<FeatureDefinition> determineETagEntity(final RetrieveFeatureDefinition command,
-            @Nullable final Thing thing) {
+    public Optional<?> previousETagEntity(final RetrieveFeatureDefinition command,
+            @Nullable final Thing previousEntity) {
+        return nextETagEntity(command, previousEntity);
+    }
 
-        return extractFeature(command, thing)
-                .flatMap(Feature::getDefinition);
+    @Override
+    public Optional<?> nextETagEntity(final RetrieveFeatureDefinition command,
+            @Nullable final Thing newEntity) {
+        return extractFeature(command, newEntity).flatMap(Feature::getDefinition);
     }
 }
