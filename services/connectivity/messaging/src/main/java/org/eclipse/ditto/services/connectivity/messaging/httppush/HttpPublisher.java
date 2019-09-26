@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
@@ -51,8 +52,12 @@ import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueue;
+import akka.util.ByteString;
 import scala.util.Try;
 
+/**
+ * Actor responsible for publishing messages to an HTTP endpoint.
+ */
 final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -60,8 +65,10 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
     private final HttpPushFactory factory;
     private final HttpPushConfig config;
 
+    private final ActorMaterializer materializer;
     private final SourceQueue<Pair<HttpRequest, ExternalMessage>> sourceQueue;
 
+    @SuppressWarnings("unused")
     private HttpPublisher(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
         super(connectionId, targets);
         this.factory = factory;
@@ -71,11 +78,12 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
                 .getConnectionConfig()
                 .getHttpPushConfig();
 
+        materializer = ActorMaterializer.create(getContext());
         sourceQueue =
                 Source.<Pair<HttpRequest, ExternalMessage>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
                         .viaMat(factory.createFlow(system, log), Keep.left())
                         .toMat(Sink.foreach(this::processResponse), Keep.left())
-                        .run(ActorMaterializer.create(getContext()));
+                        .run(materializer);
     }
 
     static Props props(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
@@ -183,9 +191,13 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
             final HttpResponse response = tryResponse.toEither().right().get();
             log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
             if (response.status().isSuccess()) {
-                responsePublishedMonitor.success(message);
+                responsePublishedMonitor.success(message, "HTTP call successfully responded with status <{0}>.",
+                        response.status());
             } else {
-                responsePublishedMonitor.failure(message, "Server responded with status {0}.", response.status());
+                responsePublishedMonitor.failure(message, "HTTP call responded with status <{0}> and body: {1}.",
+                        response.status(),
+                        getResponseBody(response, materializer).toCompletableFuture().join()
+                );
             }
         }
     }
@@ -207,5 +219,12 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
 
     private static byte[] getBytePayload(final ExternalMessage message) {
         return message.getBytePayload().map(ByteBuffer::array).orElse(new byte[0]);
+    }
+
+    private static CompletionStage<String> getResponseBody(final HttpResponse response,
+            final ActorMaterializer materializer) {
+        return response.entity().toStrict(100, materializer)
+                .thenApply(HttpEntity.Strict::getData)
+                .thenApply(ByteString::utf8String);
     }
 }

@@ -37,7 +37,7 @@ public interface ConnectionLogger {
      * Log a success event.
      * @param infoProvider containing additional information on the event.
      */
-    void success(final ConnectionMonitor.InfoProvider infoProvider);
+    void success(ConnectionMonitor.InfoProvider infoProvider);
 
     /**
      * Log a success event.
@@ -46,14 +46,14 @@ public interface ConnectionLogger {
      * @param messageArguments additional message arguments that are part of {@code message}.
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    void success(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments);
+    void success(ConnectionMonitor.InfoProvider infoProvider, String message, Object... messageArguments);
 
     /**
      * Log a failure event.
      * @param infoProvider containing additional information on the event.
      * @param exception the exception that caused a failure. Its message is used in the log entry.
      */
-    void failure(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final DittoRuntimeException exception);
+    void failure(ConnectionMonitor.InfoProvider infoProvider, @Nullable DittoRuntimeException exception);
 
     /**
      * Log a failure event.
@@ -62,14 +62,14 @@ public interface ConnectionLogger {
      * @param messageArguments additional message arguments that are part of {@code message}.
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    void failure(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments);
+    void failure(ConnectionMonitor.InfoProvider infoProvider, String message, Object... messageArguments);
 
     /**
      * Log a failure event.
      * @param infoProvider containing additional information on the event.
      * @param exception the exception that caused a failure. Its message is used in the log entry.
      */
-    void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception);
+    void exception(ConnectionMonitor.InfoProvider infoProvider, @Nullable Exception exception);
 
     /**
      * Log an exception event.
@@ -78,7 +78,7 @@ public interface ConnectionLogger {
      * @param messageArguments additional message arguments that are part of {@code message}.
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    void exception(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments);
+    void exception(ConnectionMonitor.InfoProvider infoProvider, String message, Object... messageArguments);
 
     /**
      * Clears the logs.

@@ -12,44 +12,96 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
+import java.util.Objects;
+
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpMethods;
 
+/**
+ * A HTTP target to which messages can be published.
+ */
+@Immutable
 final class HttpPublishTarget implements PublishTarget {
 
-    private static final String METHOD_SEPARATOR = ":/";
-    private static final String PATH_SEPARATOR = "/";
+    private static final String METHOD_SEPARATOR = ":";
+    private static final HttpMethod FALLBACK_METHOD = HttpMethods.POST;
 
     private final HttpMethod method;
-    private final String path;
+    private final String pathWithQuery;
 
-    private HttpPublishTarget(final HttpMethod method, final String path) {
+    private HttpPublishTarget(final HttpMethod method, final String pathWithQuery) {
         this.method = method;
-        this.path = path;
+        this.pathWithQuery = pathWithQuery;
     }
 
+    /**
+     * @return the Akka HTTP method to use for the HTTP request.
+     */
     HttpMethod getMethod() {
         return method;
     }
 
-    String[] getPathSegments() {
-        return path.split(PATH_SEPARATOR);
+    /**
+     * @return the complete path including optional query paramerters to use for the HTTP request.
+     */
+    String getPathWithQuery() {
+        return pathWithQuery;
     }
 
+    /**
+     * Creates a new HttpPublishTarget instance based on the passed {@code targetAddress} which is of format:
+     * <pre>
+     * {@code
+     *     <HTTP_METHOD>:/<HTTP_PATH_INCL_PARAMS>
+     * }
+     * </pre>
+     * E.g.: {@code POST:/api/1/foo?bar=bla}
+     *
+     * @param targetAddress the target address in format {@code <HTTP_METHOD>:/<HTTP_PATH_INCL_PARAMS>}
+     * @return the created HttpPublishTarget
+     */
     static HttpPublishTarget of(final String targetAddress) {
         final String[] methodAndPath = splitMethodAndPath(targetAddress);
         if (methodAndPath.length == 2) {
-            final HttpMethod method = HttpMethods.lookup(methodAndPath[0]).orElse(HttpMethods.POST);
+            final HttpMethod method = HttpMethods.lookup(methodAndPath[0]).orElse(FALLBACK_METHOD);
             return new HttpPublishTarget(method, methodAndPath[1]);
         } else {
             // validator should rule this out
-            return new HttpPublishTarget(HttpMethods.POST, targetAddress);
+            return new HttpPublishTarget(FALLBACK_METHOD, targetAddress);
         }
     }
 
     static String[] splitMethodAndPath(final String targetAddress) {
         return targetAddress.split(METHOD_SEPARATOR, 2);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final HttpPublishTarget that = (HttpPublishTarget) o;
+        return Objects.equals(method, that.method) &&
+                Objects.equals(pathWithQuery, that.pathWithQuery);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(method, pathWithQuery);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "method=" + method +
+                ", pathWithQuery=" + pathWithQuery +
+                "]";
     }
 }

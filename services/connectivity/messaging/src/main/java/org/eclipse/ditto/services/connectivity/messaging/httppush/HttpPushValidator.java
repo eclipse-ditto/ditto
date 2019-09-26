@@ -37,6 +37,8 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProt
 
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpMethods;
+import akka.http.javadsl.model.Uri;
+import akka.http.scaladsl.model.IllegalUriException;
 
 /**
  * Validation of http-push connections.
@@ -105,11 +107,23 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         final String[] methodAndPath = HttpPublishTarget.splitMethodAndPath(targetAddress);
         if (methodAndPath.length == 2) {
             validateHttpMethod(methodAndPath[0], dittoHeaders, targetDescription);
+            try {
+                Uri.create(methodAndPath[1]);
+            } catch (final IllegalUriException e) {
+                final String message =
+                        String.format("%s: URI path of target address could not be parsed. Was: '%s'.",
+                                targetDescription.get(), methodAndPath[1]);
+                throw ConnectionConfigurationInvalidException.newBuilder(message)
+                        .description("Detailed error: " + e.getMessage())
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
         } else {
             final String message =
                     String.format("%s: Target address has invalid format. Expect '%s', for example '%s'.",
                             targetDescription.get(), "<VERB>:/<path>", "POST:/api");
             throw ConnectionConfigurationInvalidException.newBuilder(message)
+                    .description("Supported methods are: " + SUPPORTED_METHOD_NAMES)
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
@@ -120,9 +134,9 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         final Optional<HttpMethod> method = HttpMethods.lookup(methodName);
         if (!method.isPresent() || !SUPPORTED_METHODS.contains(method.get())) {
             final String errorMessage = String.format(
-                    "%s: The method '%s' is not supported. Supported methods are %s.",
-                    targetDescriptor.get(), methodName, SUPPORTED_METHOD_NAMES);
+                    "%s: The method '%s' is not supported", targetDescriptor.get(), methodName);
             throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                    .description("Supported methods are: " + SUPPORTED_METHOD_NAMES)
                     .dittoHeaders(dittoHeaders)
                     .build();
         }

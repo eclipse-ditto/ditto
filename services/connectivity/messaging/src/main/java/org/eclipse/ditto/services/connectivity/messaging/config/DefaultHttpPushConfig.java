@@ -22,6 +22,9 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
+/**
+ * This class is the default implementation of {@link HttpPushConfig}.
+ */
 @Immutable
 final class DefaultHttpPushConfig implements HttpPushConfig {
 

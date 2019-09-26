@@ -38,7 +38,12 @@ import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Flow;
 import scala.util.Try;
 
+/**
+ * Default implementation of {@link HttpPushFactory}.
+ */
 final class DefaultHttpPushFactory implements HttpPushFactory {
+
+    private static final String PATH_DELIMITER = "/";
 
     private final ConnectionId connectionId;
     private final Uri baseUri;
@@ -63,9 +68,34 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
     @Override
     public HttpRequest newRequest(final HttpPublishTarget httpPublishTarget) {
+        final String baseUriStrToUse = determineBaseUri(baseUri);
+        final String pathWithQueryToUse = determineHttpPath(httpPublishTarget);
         return HttpRequest.create()
                 .withMethod(httpPublishTarget.getMethod())
-                .withUri(appendPath(baseUri, httpPublishTarget.getPathSegments()));
+                .withUri(Uri.create(baseUriStrToUse + pathWithQueryToUse));
+    }
+
+    private static String determineBaseUri(final Uri baseUri) {
+        final String baseUriStr = baseUri.toString();
+        final String baseUriStrToUse;
+        if (baseUriStr.endsWith(PATH_DELIMITER)) {
+            // avoid double "/", so cut it off at the baseUri to use:
+            baseUriStrToUse = baseUriStr.substring(0, baseUriStr.length()-1);
+        } else {
+            baseUriStrToUse = baseUriStr;
+        }
+        return baseUriStrToUse;
+    }
+
+    private static String determineHttpPath(final HttpPublishTarget httpPublishTarget) {
+        final String pathWithQuery = httpPublishTarget.getPathWithQuery();
+        final String pathWithQueryToUse;
+        if (pathWithQuery.startsWith(PATH_DELIMITER) || pathWithQuery.startsWith("?") || pathWithQuery.startsWith("#")) {
+            pathWithQueryToUse = pathWithQuery;
+        } else {
+            pathWithQueryToUse = PATH_DELIMITER + pathWithQuery;
+        }
+        return pathWithQueryToUse;
     }
 
     @Override
@@ -78,10 +108,10 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         if (HttpPushValidator.isSecureScheme(baseUri.getScheme())) {
             final ConnectHttp connectHttpsWithCustomSSLContext =
                     ConnectHttp.toHostHttps(baseUri).withCustomHttpsContext(getHttpsConnectionContext());
-            flow = http.cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
+            flow = http.<T>cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
         } else {
             // no SSL, hence no need for SSLContextCreator
-            flow = http.cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
+            flow = http.<T>cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
         }
         return flow.buffer(parallelism, OverflowStrategy.backpressure());
     }
@@ -114,11 +144,4 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
                 .orElse(1);
     }
 
-    static Uri appendPath(final Uri baseUri, final String[] pathSegments) {
-        Uri uri = baseUri;
-        for (final String segment : pathSegments) {
-            uri = uri.addPathSegment(segment);
-        }
-        return uri;
-    }
 }

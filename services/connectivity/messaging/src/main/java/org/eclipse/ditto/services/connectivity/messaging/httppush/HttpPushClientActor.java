@@ -40,7 +40,8 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     private final HttpPushFactory factory;
 
-    protected HttpPushClientActor(final Connection connection, final ConnectivityStatus desiredConnectionStatus) {
+    @SuppressWarnings("unused")
+    private HttpPushClientActor(final Connection connection, final ConnectivityStatus desiredConnectionStatus) {
         super(connection, desiredConnectionStatus, ActorRef.noSender());
         factory = HttpPushFactory.of(connection);
     }
