@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.AclModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AclModified} event.
  */
 @Immutable
-final class AclModifiedStrategy extends AbstractEventStrategy<AclModified> {
+final class AclModifiedStrategy extends AbstractThingEventStrategy<AclModified> {
 
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AclModified event, final ThingBuilder.FromCopy thingBuilder) {

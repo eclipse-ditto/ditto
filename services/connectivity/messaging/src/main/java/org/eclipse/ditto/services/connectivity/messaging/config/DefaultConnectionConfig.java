@@ -22,6 +22,8 @@ import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultActivityCheckConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultSnapshotConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 
 import com.typesafe.config.Config;
 

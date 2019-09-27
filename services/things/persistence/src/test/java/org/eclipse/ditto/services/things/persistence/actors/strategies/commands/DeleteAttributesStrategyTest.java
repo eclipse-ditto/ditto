@@ -18,6 +18,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
 import org.eclipse.ditto.signals.events.things.AttributesDeleted;
@@ -43,20 +45,20 @@ public final class DeleteAttributesStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void successfullyDeleteAllAttributesFromThing() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAttributes command = DeleteAttributes.of(context.getThingEntityId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttributes command = DeleteAttributes.of(context.getState(), DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributesDeleted.class,
-                DeleteAttributesResponse.of(context.getThingEntityId(), command.getDittoHeaders()));
+                DeleteAttributesResponse.of(context.getState(), command.getDittoHeaders()));
     }
 
     @Test
     public void deleteAttributesFromThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAttributes command = DeleteAttributes.of(context.getThingEntityId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttributes command = DeleteAttributes.of(context.getState(), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributesNotFound(context.getThingEntityId(), command.getDittoHeaders());
+                ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeAttributes(), command, expectedException);
     }

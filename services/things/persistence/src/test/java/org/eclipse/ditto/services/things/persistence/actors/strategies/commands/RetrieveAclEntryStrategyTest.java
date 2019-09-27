@@ -22,6 +22,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.junit.Before;
@@ -46,9 +48,9 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveAclEntryFromThingWithoutAcl() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAclEntry command =
-                RetrieveAclEntry.of(context.getThingEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+                RetrieveAclEntry.of(context.getState(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.aclEntryNotFound(command.getThingEntityId(), command.getAuthorizationSubject(),
                         command.getDittoHeaders());
@@ -58,9 +60,9 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveAclEntryFromThingWithoutThatAclEntry() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAclEntry command =
-                RetrieveAclEntry.of(context.getThingEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+                RetrieveAclEntry.of(context.getState(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
                 ExceptionFactory.aclEntryNotFound(command.getThingEntityId(), command.getAuthorizationSubject(),
                         command.getDittoHeaders());
@@ -70,9 +72,9 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveExistingAclEntry() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAclEntry command =
-                RetrieveAclEntry.of(context.getThingEntityId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+                RetrieveAclEntry.of(context.getState(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
         final RetrieveAclEntryResponse expectedResponse =
                 retrieveAclEntryResponse(command.getThingEntityId(), TestConstants.Authorization.ACL_ENTRY_GRIMES,
                         command.getDittoHeaders());

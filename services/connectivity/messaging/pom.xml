@@ -83,7 +83,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cleanup</artifactId>
+            <artifactId>ditto-services-utils-persistent-actors</artifactId>
         </dependency>
 
         <dependency>

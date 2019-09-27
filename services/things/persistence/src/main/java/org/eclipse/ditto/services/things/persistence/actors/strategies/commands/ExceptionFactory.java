@@ -114,10 +114,4 @@ final class ExceptionFactory {
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
-
-    static IllegalArgumentException unhandled(final WithId command) {
-        final String msgPattern = "This Thing Actor did not handle the requested Thing with ID <{0}>!";
-        throw new IllegalArgumentException(MessageFormat.format(msgPattern, command.getEntityId()));
-    }
-
 }

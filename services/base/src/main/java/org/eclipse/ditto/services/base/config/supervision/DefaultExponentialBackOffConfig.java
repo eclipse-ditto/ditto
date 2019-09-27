@@ -33,11 +33,14 @@ public final class DefaultExponentialBackOffConfig implements ExponentialBackOff
     private final Duration min;
     private final Duration max;
     private final double randomFactor;
+    private final Duration corruptedReceiveTimeout;
 
     private DefaultExponentialBackOffConfig(final ScopedConfig config) {
         min = config.getDuration(ExponentialBackOffConfigValue.MIN.getConfigPath());
         max = config.getDuration(ExponentialBackOffConfigValue.MAX.getConfigPath());
         randomFactor = config.getDouble(ExponentialBackOffConfigValue.RANDOM_FACTOR.getConfigPath());
+        corruptedReceiveTimeout =
+                config.getDuration(ExponentialBackOffConfigValue.CORRUPTED_RECEIVE_TIMEOUT.getConfigPath());
     }
 
     /**
@@ -68,6 +71,11 @@ public final class DefaultExponentialBackOffConfig implements ExponentialBackOff
     }
 
     @Override
+    public Duration getCorruptedReceiveTimeout() {
+        return corruptedReceiveTimeout;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -78,12 +86,13 @@ public final class DefaultExponentialBackOffConfig implements ExponentialBackOff
         final DefaultExponentialBackOffConfig that = (DefaultExponentialBackOffConfig) o;
         return Double.compare(that.randomFactor, randomFactor) == 0 &&
                 Objects.equals(min, that.min) &&
-                Objects.equals(max, that.max);
+                Objects.equals(max, that.max) &&
+                Objects.equals(corruptedReceiveTimeout, that.corruptedReceiveTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(min, max, randomFactor);
+        return Objects.hash(min, max, randomFactor, corruptedReceiveTimeout);
     }
 
     @Override
@@ -92,6 +101,7 @@ public final class DefaultExponentialBackOffConfig implements ExponentialBackOff
                 "min=" + min +
                 ", max=" + max +
                 ", randomFactor=" + randomFactor +
+                ", corruptedReceiveTimeout=" + corruptedReceiveTimeout +
                 "]";
     }
 
