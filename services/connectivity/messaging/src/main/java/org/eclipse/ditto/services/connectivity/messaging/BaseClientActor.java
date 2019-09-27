@@ -199,6 +199,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         initialize();
     }
 
+    @Override
+    public void postStop() {
+        clientGauge.reset();
+        clientConnectingGauge.reset();
+        super.postStop();
+    }
+
     /**
      * Handles {@link TestConnection} commands by returning a CompletionState of {@link akka.actor.Status.Status Status}
      * which may be {@link akka.actor.Status.Success Success} or {@link akka.actor.Status.Failure Failure}.
@@ -393,17 +400,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
         log.debug("Transition: {} -> {}", from, to);
         if (to == CONNECTED) {
-            clientGauge.increment();
+            clientGauge.set(1L);
         }
         if (to == DISCONNECTED) {
-            clientGauge.decrement();
+            clientGauge.reset();
         }
         if (to == CONNECTING) {
-            clientConnectingGauge.increment();
+            clientConnectingGauge.set(1L);
         }
         // dont use else if since we might use goTo(CONNECTING) if in CONNECTING state. This will cause another onTransition.
         if (from == CONNECTING) {
-            clientConnectingGauge.decrement();
+            clientConnectingGauge.reset();
         }
         // cancel our own state timeout if target state is stable
         switch (to) {
