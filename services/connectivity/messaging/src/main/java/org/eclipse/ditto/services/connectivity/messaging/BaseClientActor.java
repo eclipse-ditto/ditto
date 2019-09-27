@@ -345,7 +345,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @param actor the ActorRef
      */
-    protected final void stopChildActor(final ActorRef actor) {
+    protected final void stopChildActor(@Nullable final ActorRef actor) {
         if (actor != null) {
             log.debug("Stopping child actor <{}>.", actor.path());
             getContext().stop(actor);
@@ -505,7 +505,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             getPublisherActor().forward(message.getOutboundSignal(), getContext());
         } else {
             log.warning("No publisher actor available, dropping message.");
-            connectionLogger.failure("No publisher actor available, dropping message.");
         }
         return stay();
     }
@@ -754,8 +753,26 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
+    /**
+     * Subclasses should start their publisher actor in the implementation of this method and report success or
+     * failure in the returned {@link CompletionStage}. {@link BaseClientActor} calls this method when the client is
+     * connected.
+     *
+     * @return a completion stage that completes either successfully when the publisher actor was started
+     * successfully or exceptionally when the publisher actor could not be started successfully
+     */
     protected abstract CompletionStage<Status.Status> startPublisherActor();
 
+    /**
+     * Subclasses should start their consumer actors in the implementation of this method and report success or
+     * failure in the returned {@link CompletionStage}. {@link BaseClientActor} calls this method when the client is
+     * connected and the publisher actor was started (this is important otherwise we are not able to publish
+     * potential error responses for consumed messages).
+     *
+     * @param clientConnected message indicating that the client has successfully been connected to the external system
+     * @return a completion stage that completes either successfully when all consumers were started
+     * successfully or exceptionally when starting a consumer actor failed
+     */
     protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
         return CompletableFuture.completedFuture(new Status.Success(Done.getInstance()));
     }

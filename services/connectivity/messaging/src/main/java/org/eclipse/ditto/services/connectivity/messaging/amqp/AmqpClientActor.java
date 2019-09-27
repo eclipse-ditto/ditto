@@ -262,6 +262,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
     }
 
+    @Override
     protected CompletionStage<Status.Status> startPublisherActor() {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         stopChildActor(amqpPublisherActor);

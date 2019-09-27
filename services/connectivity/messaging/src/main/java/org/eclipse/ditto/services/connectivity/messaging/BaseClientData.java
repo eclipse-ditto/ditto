@@ -58,7 +58,7 @@ public final class BaseClientData {
             @Nullable final String connectionStatusDetails,
             final Instant inConnectionStatusSince,
             @Nullable final ActorRef sessionSender,
-            @Nullable DittoHeaders sessionHeaders) {
+            @Nullable final DittoHeaders sessionHeaders) {
         this.connectionId = connectionId;
         this.connection = connection;
         this.connectionStatus = connectionStatus;
