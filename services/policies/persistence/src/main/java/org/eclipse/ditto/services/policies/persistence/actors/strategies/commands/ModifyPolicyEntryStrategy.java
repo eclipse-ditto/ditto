@@ -21,6 +21,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -94,12 +95,14 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
     }
 
     @Override
-    public Optional<?> previousETagEntity(final ModifyPolicyEntry command, @Nullable final Policy previousEntity) {
-        return Optional.ofNullable(previousEntity).flatMap(p -> p.getEntryFor(command.getPolicyEntry().getLabel()));
+    public Optional<EntityTag> previousEntityTag(final ModifyPolicyEntry command,
+            @Nullable final Policy previousEntity) {
+        return Optional.ofNullable(previousEntity)
+                .flatMap(p -> EntityTag.fromEntity(p.getEntryFor(command.getPolicyEntry().getLabel())));
     }
 
     @Override
-    public Optional<?> nextETagEntity(final ModifyPolicyEntry command, @Nullable final Policy newEntity) {
-        return Optional.of(command.getPolicyEntry());
+    public Optional<EntityTag> nextEntityTag(final ModifyPolicyEntry command, @Nullable final Policy newEntity) {
+        return Optional.of(command.getPolicyEntry()).flatMap(EntityTag::fromEntity);
     }
 }

@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
@@ -67,12 +68,12 @@ final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
     }
 
     @Override
-    public Optional<?> previousETagEntity(final ModifyAcl command, @Nullable final Thing previousEntity) {
-        return Optional.ofNullable(previousEntity).map(Thing::getAccessControlList);
+    public Optional<EntityTag> previousEntityTag(final ModifyAcl command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).map(Thing::getAccessControlList).flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final ModifyAcl command, @Nullable final Thing newEntity) {
-        return Optional.of(command.getAccessControlList());
+    public Optional<EntityTag> nextEntityTag(final ModifyAcl command, @Nullable final Thing newEntity) {
+        return Optional.of(command.getAccessControlList()).flatMap(EntityTag::fromEntity);
     }
 }

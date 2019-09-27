@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
@@ -92,16 +93,16 @@ final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAc
     }
 
     @Override
-    public Optional<?> previousETagEntity(final DeleteAclEntry command, @Nullable final Thing previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final DeleteAclEntry command, @Nullable final Thing previousEntity) {
         final AuthorizationSubject authSubject = command.getAuthorizationSubject();
 
         return Optional.ofNullable(previousEntity)
                 .flatMap(Thing::getAccessControlList)
-                .flatMap(acl -> acl.getEntryFor(authSubject));
+                .flatMap(acl -> acl.getEntryFor(authSubject).flatMap(EntityTag::fromEntity));
     }
 
     @Override
-    public Optional<?> nextETagEntity(final DeleteAclEntry command, @Nullable final Thing newEntity) {
+    public Optional<EntityTag> nextEntityTag(final DeleteAclEntry command, @Nullable final Thing newEntity) {
         return Optional.empty();
     }
 
