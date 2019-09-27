@@ -89,7 +89,6 @@ final class MockMqttConnectionFactory implements MqttConnectionFactory {
             return akka.stream.javadsl.Source.<MqttMessage>failed(error).mapMaterializedValue(this::failedFuture);
         } else {
             return akka.stream.javadsl.Source.from(messages)
-                    .initialDelay(Duration.ofSeconds(1))
                     .filter(MockMqttConnectionFactory.topicMatches(mqttSource.getAddresses()))
                     .mapMaterializedValue(whatever -> CompletableFuture.completedFuture(Done.getInstance()));
         }

@@ -33,14 +33,12 @@ import akka.testkit.TestProbe;
 
 public class MqttPublisherActorTest extends AbstractPublisherActorTest {
 
-    public static final String OUTBOUND_ADDRESS = "mqtt/eclipse/ditto";
-    private TestProbe probe;
+    private static final String OUTBOUND_ADDRESS = "mqtt/eclipse/ditto";
     private MqttConnectionFactory mqttConnectionFactory;
     private List<MqttMessage> received = new LinkedList<>();
 
     @Override
     protected void setupMocks(final TestProbe probe) {
-        this.probe = probe;
         mqttConnectionFactory = mock(MqttConnectionFactory.class);
         when(mqttConnectionFactory.newSink()).thenReturn(Sink.foreach(received::add));
     }
@@ -48,7 +46,7 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Props getPublisherActorProps() {
         return MqttPublisherActor.props(TestConstants.createRandomConnectionId(), Collections.emptyList(),
-                mqttConnectionFactory, probe.ref(), false);
+                mqttConnectionFactory, false);
     }
 
     @Override

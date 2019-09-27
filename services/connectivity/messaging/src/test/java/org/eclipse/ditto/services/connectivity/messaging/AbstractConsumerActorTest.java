@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedE
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
-import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
+import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -46,7 +46,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.routing.Broadcast;
 import akka.routing.ConsistentHashingPool;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -156,46 +155,41 @@ public abstract class AbstractConsumerActorTest<M> {
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
             final TestProbe concierge = TestProbe.apply(actorSystem);
-            final TestProbe publisher = TestProbe.apply(actorSystem);
+            final TestProbe clientActor = TestProbe.apply(actorSystem);
 
-            final ActorRef mappingActor = setupMessageMappingProcessorActor(getRef(), publisher.ref(), concierge.ref());
-
-            for (int i = 0; i < PROCESSOR_POOL_SIZE; i++) {
-                expectMsgClass(ResourceReady.class);
-            }
+            final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), concierge.ref());
 
             final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor));
 
             underTest.tell(getInboundMessage(header), sender.ref());
 
             if (isForwardedToConcierge) {
-                publisher.expectNoMessage(ONE_SECOND);
+                clientActor.expectNoMessage(ONE_SECOND);
                 final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
                 assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
                 verifySignal.accept(modifyThing);
             } else {
                 concierge.expectNoMessage(ONE_SECOND);
-                final OutboundSignal.WithExternalMessage outboundSignal =
-                        publisher.expectMsgClass(OutboundSignal.WithExternalMessage.class);
-                verifyResponse.accept(outboundSignal);
+                final PublishMappedMessage publishMappedMessage =
+                        clientActor.expectMsgClass(PublishMappedMessage.class);
+                verifyResponse.accept(publishMappedMessage.getOutboundSignal());
             }
         }};
     }
 
-    private ActorRef setupMessageMappingProcessorActor(final ActorRef testRef, final ActorRef publisher,
+    private ActorRef setupMessageMappingProcessorActor(final ActorRef clientActor,
             final ActorRef conciergeForwarderActor) {
         final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         final MessageMappingProcessor mappingProcessor = MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem,
                 connectivityConfig, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(conciergeForwarderActor, mappingProcessor, CONNECTION_ID);
+                MessageMappingProcessorActor.props(conciergeForwarderActor, clientActor, mappingProcessor,
+                        CONNECTION_ID);
 
-        final ActorRef mappingActor = actorSystem.actorOf(new ConsistentHashingPool(PROCESSOR_POOL_SIZE)
+        return actorSystem.actorOf(new ConsistentHashingPool(PROCESSOR_POOL_SIZE)
                         .withDispatcher("message-mapping-processor-dispatcher")
                         .props(messageMappingProcessorProps),
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
-        mappingActor.tell(new Broadcast(ResourceReady.publisherReady(publisher)), testRef);
-        return mappingActor;
     }
 
 }

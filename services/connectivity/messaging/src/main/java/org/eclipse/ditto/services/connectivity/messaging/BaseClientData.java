@@ -40,7 +40,6 @@ public final class BaseClientData {
     private final Instant inConnectionStatusSince;
     @Nullable private final ActorRef sessionSender;
     @Nullable private final DittoHeaders sessionHeaders;
-    private final InitializationState initializationState;
 
     /**
      * Constructs new instance of BaseClientData, the data of the {@link BaseClientActor}.
@@ -52,7 +51,6 @@ public final class BaseClientData {
      * @param connectionStatusDetails the optional details about the ConnectionStatus.
      * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus.
      * @param sessionSender the ActorRef which caused the latest state data change.
-     * @param initializationState the current state of initialization
      */
     BaseClientData(final ConnectionId connectionId, final Connection connection,
             final ConnectivityStatus connectionStatus,
@@ -60,8 +58,7 @@ public final class BaseClientData {
             @Nullable final String connectionStatusDetails,
             final Instant inConnectionStatusSince,
             @Nullable final ActorRef sessionSender,
-            @Nullable final DittoHeaders sessionHeaders,
-            final InitializationState initializationState) {
+            @Nullable final DittoHeaders sessionHeaders) {
         this.connectionId = connectionId;
         this.connection = connection;
         this.connectionStatus = connectionStatus;
@@ -70,7 +67,6 @@ public final class BaseClientData {
         this.inConnectionStatusSince = inConnectionStatusSince;
         this.sessionSender = sessionSender;
         this.sessionHeaders = sessionHeaders;
-        this.initializationState = initializationState;
     }
 
     public ConnectionId getConnectionId() {
@@ -85,19 +81,19 @@ public final class BaseClientData {
         return connectionStatus;
     }
 
-    ConnectivityStatus getDesiredConnectionStatus() {
+    public ConnectivityStatus getDesiredConnectionStatus() {
         return desiredConnectionStatus;
     }
 
-    Optional<String> getConnectionStatusDetails() {
+    public Optional<String> getConnectionStatusDetails() {
         return Optional.ofNullable(connectionStatusDetails);
     }
 
-    Instant getInConnectionStatusSince() {
+    public Instant getInConnectionStatusSince() {
         return inConnectionStatusSince;
     }
 
-    Optional<ActorRef> getSessionSender() {
+    public Optional<ActorRef> getSessionSender() {
         return Optional.ofNullable(sessionSender);
     }
 
@@ -105,44 +101,34 @@ public final class BaseClientData {
         return Optional.ofNullable(sessionHeaders).orElseGet(DittoHeaders::empty);
     }
 
-    InitializationState getInitializationState() {
-        return initializationState;
-    }
-
     public BaseClientData setConnection(final Connection connection) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders, initializationState);
+                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
     }
 
     public BaseClientData setConnectionStatus(final ConnectivityStatus connectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, Instant.now(), sessionSender, sessionHeaders, initializationState);
+                connectionStatusDetails, Instant.now(), sessionSender, sessionHeaders);
     }
 
-    BaseClientData setDesiredConnectionStatus(final ConnectivityStatus desiredConnectionStatus) {
+    public BaseClientData setDesiredConnectionStatus(final ConnectivityStatus desiredConnectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders, initializationState);
+                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
     }
 
     public BaseClientData setConnectionStatusDetails(@Nullable final String connectionStatusDetails) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders, initializationState);
+                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
     }
 
-    BaseClientData setSessionSender(@Nullable final ActorRef origin) {
+    public BaseClientData setSessionSender(@Nullable final ActorRef origin) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, origin, sessionHeaders, initializationState);
+                connectionStatusDetails, inConnectionStatusSince, origin, sessionHeaders);
     }
 
-    BaseClientData setSessionHeaders(@Nullable final DittoHeaders lastCommandHeaders) {
+    public BaseClientData setSessionHeaders(@Nullable final DittoHeaders lastCommandHeaders) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, lastCommandHeaders,
-                initializationState);
-    }
-
-    BaseClientData setInitializationState(final InitializationState newState) {
-        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders, newState);
+                connectionStatusDetails, inConnectionStatusSince, sessionSender, lastCommandHeaders);
     }
 
     /**
@@ -151,10 +137,9 @@ public final class BaseClientData {
      *
      * @return data without info related to the last command.
      */
-    BaseClientData resetSession() {
+    public BaseClientData resetSession() {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, null, null,
-                new InitializationState(connection.getProcessorPoolSize()));
+                connectionStatusDetails, inConnectionStatusSince, null, null);
     }
 
     @Override
@@ -169,14 +154,13 @@ public final class BaseClientData {
                 Objects.equals(connectionStatusDetails, that.connectionStatusDetails) &&
                 Objects.equals(inConnectionStatusSince, that.inConnectionStatusSince) &&
                 Objects.equals(sessionSender, that.sessionSender) &&
-                Objects.equals(sessionHeaders, that.sessionHeaders) &&
-                Objects.equals(initializationState, that.initializationState);
+                Objects.equals(sessionHeaders, that.sessionHeaders);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders, initializationState);
+                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
     }
 
     @Override
@@ -190,7 +174,6 @@ public final class BaseClientData {
                 ", inConnectionStatusSince=" + inConnectionStatusSince +
                 ", sessionSender=" + sessionSender +
                 ", sessionHeaders=" + sessionHeaders +
-                ", initializationState=" + initializationState +
                 "]";
     }
 }
