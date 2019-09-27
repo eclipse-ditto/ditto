@@ -90,6 +90,13 @@ public interface OutboundSignal extends Jsonifiable.WithFieldSelectorAndPredicat
                 JsonFactory.newJsonArrayFieldDefinition("targets", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
+        /**
+         * JSON field containing the {@code DittoHeaders} of the {@code source} {@link Signal}.
+         */
+        static final JsonFieldDefinition<JsonObject> JSON_DITTO_HEADERS =
+                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
         private JsonFields() {
             throw new AssertionError();
         }
