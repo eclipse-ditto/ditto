@@ -33,7 +33,10 @@ import akka.http.javadsl.server.Route;
  */
 public final class RequestResultLoggingDirective {
 
+    private static final String DITTO_TRACE_HEADERS = "ditto-trace-headers";
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestResultLoggingDirective.class);
+    private static final Logger TRACE_LOGGER =
+            LoggerFactory.getLogger(RequestResultLoggingDirective.class.getName() + "." + DITTO_TRACE_HEADERS);
 
     private RequestResultLoggingDirective() {
         // no op
@@ -66,7 +69,10 @@ public final class RequestResultLoggingDirective {
                             LOGGER.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
                             final String rawRequestUri = HttpUtils.getRawRequestUri(request);
                             LOGGER.debug("Raw request URI was: {}", rawRequestUri);
-
+                            request.getHeader(DITTO_TRACE_HEADERS)
+                                    .filter(unused -> TRACE_LOGGER.isDebugEnabled())
+                                    .ifPresent(
+                                            unused -> TRACE_LOGGER.debug("Request headers: {}", request.getHeaders()));
                         } else {
                          /* routeResult could be Rejected, if no route is able to handle the request -> but this should
                             not happen when rejections are handled before this directive is called. */
@@ -79,6 +85,4 @@ public final class RequestResultLoggingDirective {
                     }), innerWithAkkaLoggingRoute);
         });
     }
-
-
 }
