@@ -1031,7 +1031,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             connectionLogger.failure("Socket could not be opened for {0}:{1,number,#} due to {2}", host, port,
                     ex.getMessage());
 
-            log.warning("Socket could not be opened for <{}:{}> due to <{}:{}>", host, port,
+            log.warning("Socket could not be opened for <{}:{}> due to {}: {}", host, port,
                     ex.getClass().getCanonicalName(), ex.getMessage());
         }
         return false;

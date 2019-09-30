@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -110,7 +110,7 @@ public final class NormalizedMessageMapperTest {
         final ThingEvent event = FeaturePropertyModified.of(
                 ThingId.of("thing:id"),
                 "featureId",
-                JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog/"),
+                JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog"),
                 JsonValue.of(9),
                 2L,
                 Instant.ofEpochSecond(2L),
@@ -143,7 +143,7 @@ public final class NormalizedMessageMapperTest {
         final ThingEvent event = FeaturePropertyModified.of(
                 ThingId.of("thing:id"),
                 "featureId",
-                JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog/"),
+                JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog"),
                 JsonValue.of(9),
                 2L,
                 Instant.ofEpochSecond(2L),

@@ -61,9 +61,11 @@ public final class NormalizedMessageMapper implements MessageMapper {
 
     /**
      * Constructs a new {@code MessageMapper} object.
-     * This constructor is required as the the instance is created via reflection.
      */
-    public NormalizedMessageMapper() {}
+    @SuppressWarnings("unused")
+    public NormalizedMessageMapper() {
+        // This constructor is required as the the instance is created via reflection
+    }
 
     @Override
     public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
@@ -156,11 +158,8 @@ public final class NormalizedMessageMapper implements MessageMapper {
         if (topicPath.getCriterion() == TopicPath.Criterion.EVENTS &&
                 topicPath.getGroup() == TopicPath.Group.THINGS &&
                 action.isPresent()) {
-            switch (action.get()) {
-                case CREATED:
-                case MODIFIED:
-                    return true;
-            }
+            final TopicPath.Action act = action.get();
+            return act == TopicPath.Action.CREATED || act == TopicPath.Action.MODIFIED;
         }
         return false;
     }
