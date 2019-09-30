@@ -531,11 +531,17 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             return;
         }
 
-        log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(),
-                subscribedAndAuthorizedTargets);
+        subscribedAndAuthorizedTargets.stream()
+                .collect(Collectors.groupingBy(Target::getMapping))
+                .values()
+                .forEach(targets -> {
+                    final OutboundSignal outbound =
+                            OutboundSignalFactory.newOutboundSignal(signal, targets);
+                    log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(),
+                            targets);
+                    clientActorRouter.tell(outbound, getSender());
+                });
 
-        final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
-        clientActorRouter.tell(outbound, getSender());
     }
 
     private void testConnection(final TestConnection command) {

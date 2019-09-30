@@ -14,10 +14,12 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.AbstractMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -136,19 +138,24 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     @Override
     public MessageMapperRegistry registryOf(final MappingContext defaultContext,
-            @Nullable final MappingContext context) {
+            final Map<String, MappingContext> contexts) {
 
         final MessageMapper defaultMapper = mapperOf(defaultContext)
                 .map(WrappingMessageMapper::wrap)
                 .orElseThrow(() -> new IllegalArgumentException("No default mapper found: " + defaultContext));
 
-        final MessageMapper messageMapper;
-        if (context != null) {
-            messageMapper = mapperOf(context).map(WrappingMessageMapper::wrap).orElse(null);
-        } else {
-            messageMapper = null;
-        }
-        return DefaultMessageMapperRegistry.of(defaultMapper, messageMapper);
+        final Map<String, MessageMapper> mappers = contexts
+                .entrySet()
+                .stream()
+                .map(e -> {
+                    final MessageMapper messageMapper =
+                            mapperOf(e.getValue()).map(WrappingMessageMapper::wrap).orElse(null);
+                    return new AbstractMap.SimpleImmutableEntry<>(e.getKey(), messageMapper);
+                })
+                .collect(Collectors.toMap(AbstractMap.SimpleImmutableEntry::getKey,
+                        AbstractMap.SimpleImmutableEntry::getValue));
+
+        return DefaultMessageMapperRegistry.of(defaultMapper, mappers);
     }
 
     private boolean configureInstance(final MessageMapper mapper, final MessageMapperConfiguration options) {

@@ -54,6 +54,10 @@ public class ConnectionStatusMessageMapper implements MessageMapper {
         noErrorOccurred = true;
     }
 
+    @Override
+    public String getId() {
+        return "connectionStatus";
+    }
 
     @Override
     public void configure(final MappingConfig mappingConfig,

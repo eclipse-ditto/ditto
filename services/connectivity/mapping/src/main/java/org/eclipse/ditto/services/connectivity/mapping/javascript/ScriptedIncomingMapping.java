@@ -13,7 +13,9 @@
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
 import java.nio.ByteBuffer;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -25,7 +27,9 @@ import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
+import org.mozilla.javascript.NativeArray;
 import org.mozilla.javascript.NativeJSON;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.RhinoException;
@@ -35,7 +39,7 @@ import org.mozilla.javascript.typedarrays.NativeArrayBuffer;
 /**
  * Mapping function for incoming messages based on JavaScript.
  */
-public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage, Optional<Adaptable>> {
+public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage, List<Adaptable>> {
 
     private static final String EXTERNAL_MESSAGE_HEADERS = "headers";
     private static final String EXTERNAL_MESSAGE_CONTENT_TYPE = "contentType";
@@ -55,9 +59,9 @@ public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage,
     }
 
     @Override
-    public Optional<Adaptable> apply(final ExternalMessage message) {
+    public List<Adaptable> apply(final ExternalMessage message) {
         try {
-            return Optional.ofNullable((Adaptable) contextFactory.call(cx -> {
+            return contextFactory.call(cx -> {
                 final NativeObject headersObj = new NativeObject();
                 message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
 
@@ -89,15 +93,20 @@ public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage,
                 if (result == null) {
                     // return null if result is null causing the wrapping Optional to be empty
                     return null;
+                } else if (result instanceof NativeArray) {
+                    // array handling
+                    final NativeArray jsArray = (NativeArray) result;
+                    final List<Adaptable> list = new ArrayList<>();
+                    for (Object idxObj : jsArray.getIds()) {
+                        int index = (Integer) idxObj;
+                        final Object element = jsArray.get(index, null);
+                        list.add(getAdaptableFromObject(cx, element));
+                    }
+                    return list;
                 }
 
-                final String dittoProtocolJsonStr = (String) NativeJSON.stringify(cx, scope, result, null, null);
-
-                return DittoJsonException.wrapJsonRuntimeException(() -> {
-                    final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
-                    return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
-                });
-            }));
+                return Collections.singletonList(getAdaptableFromObject(cx, result));
+            });
         } catch (final RhinoException e) {
             throw buildMessageMappingFailedException(e, message.findContentType().orElse(""),
                     DittoHeaders.of(message.getHeaders()));
@@ -108,5 +117,14 @@ public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage,
                     .cause(e)
                     .build();
         }
+    }
+
+    private Adaptable getAdaptableFromObject(final Context cx, final Object result) {
+        final String dittoProtocolJsonStr = (String) NativeJSON.stringify(cx, scope, result, null, null);
+
+        return DittoJsonException.wrapJsonRuntimeException(() -> {
+            final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
+            return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
+        });
     }
 }

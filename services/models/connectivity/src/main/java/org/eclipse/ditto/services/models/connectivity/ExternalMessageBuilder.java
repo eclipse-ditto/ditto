@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -153,6 +154,14 @@ public interface ExternalMessageBuilder {
      * @return this builder.
      */
     ExternalMessageBuilder withInternalHeaders(DittoHeaders internalHeaders);
+
+    /**
+     * Defines which mappings are applied for this {@link ExternalMessage}.
+     *
+     * @param mapping the mapping that is applied for this message
+     * @return this builder.
+     */
+    ExternalMessageBuilder withPayloadMapping(List<String> mapping);
 
     /**
      * Builds the ExternalMessage.

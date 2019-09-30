@@ -440,7 +440,8 @@ public final class MessageMappingProcessorActorTest {
     }
 
     private static MessageMappingProcessor getMessageMappingProcessor() {
-        return MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem, TestConstants.CONNECTIVITY_CONFIG,
+        return MessageMappingProcessor.of(CONNECTION_ID, Collections.emptyMap(), actorSystem,
+                TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 

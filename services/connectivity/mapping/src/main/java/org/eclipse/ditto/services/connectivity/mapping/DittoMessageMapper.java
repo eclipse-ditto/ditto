@@ -58,6 +58,11 @@ public final class DittoMessageMapper implements MessageMapper {
     }
 
     @Override
+    public String getId() {
+        return "ditto";
+    }
+
+    @Override
     public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         // no op
     }

@@ -16,6 +16,7 @@ import java.io.ByteArrayOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
+import org.mozilla.javascript.NativeArray;
 import org.mozilla.javascript.NativeJSON;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.RhinoException;
@@ -48,7 +50,7 @@ import org.mozilla.javascript.typedarrays.NativeArrayBuffer;
 /**
  * Mapping function for outgoing messages based on JavaScript.
  */
-public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable, Optional<ExternalMessage>> {
+public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable, List<ExternalMessage>> {
 
     private static final String EXTERNAL_MESSAGE_HEADERS = "headers";
     private static final String EXTERNAL_MESSAGE_CONTENT_TYPE = "contentType";
@@ -66,60 +68,34 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
     }
 
     @Override
-    public Optional<ExternalMessage> apply(final Adaptable adaptable) {
+    public List<ExternalMessage> apply(final Adaptable adaptable) {
         try {
             final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
-            return Optional.ofNullable((ExternalMessage) contextFactory.call(cx -> {
+            return contextFactory.call(cx -> {
                 final Object dittoProtocolMessage =
                         NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
 
-                final org.mozilla.javascript.Function
-                        mapFromDittoProtocolMsgWrapper = (org.mozilla.javascript.Function) scope.get(OUTGOING_FUNCTION_NAME, scope);
-                final NativeObject result =
-                        (NativeObject) mapFromDittoProtocolMsgWrapper.call(cx, scope, scope,
-                                new Object[]{dittoProtocolMessage});
+                final org.mozilla.javascript.Function mapFromDittoProtocolMsgWrapper =
+                        (org.mozilla.javascript.Function) scope.get(OUTGOING_FUNCTION_NAME, scope);
+                final Object result =
+                        mapFromDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[]{dittoProtocolMessage});
 
                 if (result == null) {
                     // return null if result is null causing the wrapping Optional to be empty
                     return null;
+                } else if (result instanceof NativeArray) {
+                    // handle array
+                    final NativeArray jsArray = (NativeArray) result;
+                    final List<ExternalMessage> list = new ArrayList<>();
+                    for (Object idxObj : jsArray.getIds()) {
+                        int index = (Integer) idxObj;
+                        final Object element = jsArray.get(index, null);
+                        list.add(getExternalMessageFromObject(adaptable, (NativeObject) element));
+                    }
+                    return list;
                 }
-
-                final Object contentType = result.get(EXTERNAL_MESSAGE_CONTENT_TYPE);
-                final Object textPayload = result.get(EXTERNAL_MESSAGE_TEXT_PAYLOAD);
-                final Object bytePayload = result.get(EXTERNAL_MESSAGE_BYTE_PAYLOAD);
-                final Object mappingHeaders = result.get(EXTERNAL_MESSAGE_HEADERS);
-
-                final Map<String, String> headers;
-                if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
-                    headers = new HashMap<>();
-                    final Map jsHeaders = (Map) mappingHeaders;
-                    jsHeaders.forEach((key, value) -> headers.put((String) key, value.toString()));
-                } else {
-                    headers = Collections.emptyMap();
-                }
-
-                final ExternalMessageBuilder messageBuilder =
-                        ExternalMessageFactory.newExternalMessageBuilder(headers);
-
-                if (!(contentType instanceof Undefined)) {
-                    messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
-                            ((CharSequence) contentType).toString());
-                }
-
-                final Optional<ByteBuffer> byteBuffer = convertToByteBuffer(bytePayload);
-                if (byteBuffer.isPresent()) {
-                    messageBuilder.withBytes(byteBuffer.get());
-                } else if (!(textPayload instanceof Undefined)) {
-                    messageBuilder.withText(((CharSequence) textPayload).toString());
-                } else {
-                    throw MessageMappingFailedException.newBuilder("")
-                            .description("Neither <bytePayload> nor <textPayload> were defined in the outgoing script")
-                            .dittoHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()))
-                            .build();
-                }
-
-                return messageBuilder.build();
-            }));
+                return Collections.singletonList(getExternalMessageFromObject(adaptable, (NativeObject) result));
+            });
         } catch (final RhinoException e) {
             throw buildMessageMappingFailedException(e, MessageMapper.findContentType(adaptable).orElse(""),
                     adaptable.getHeaders().orElseGet(DittoHeaders::empty));
@@ -130,6 +106,44 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
                     .cause(e)
                     .build();
         }
+    }
+
+    private ExternalMessage getExternalMessageFromObject(final Adaptable adaptable, final NativeObject result) {
+        final Object contentType = result.get(EXTERNAL_MESSAGE_CONTENT_TYPE);
+        final Object textPayload = result.get(EXTERNAL_MESSAGE_TEXT_PAYLOAD);
+        final Object bytePayload = result.get(EXTERNAL_MESSAGE_BYTE_PAYLOAD);
+        final Object mappingHeaders = result.get(EXTERNAL_MESSAGE_HEADERS);
+
+        final Map<String, String> headers;
+        if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
+            headers = new HashMap<>();
+            final Map jsHeaders = (Map) mappingHeaders;
+            jsHeaders.forEach((key, value) -> headers.put((String) key, value.toString()));
+        } else {
+            headers = Collections.emptyMap();
+        }
+
+        final ExternalMessageBuilder messageBuilder =
+                ExternalMessageFactory.newExternalMessageBuilder(headers);
+
+        if (!(contentType instanceof Undefined)) {
+            messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
+                    ((CharSequence) contentType).toString());
+        }
+
+        final Optional<ByteBuffer> byteBuffer = convertToByteBuffer(bytePayload);
+        if (byteBuffer.isPresent()) {
+            messageBuilder.withBytes(byteBuffer.get());
+        } else if (!(textPayload instanceof Undefined)) {
+            messageBuilder.withText(((CharSequence) textPayload).toString());
+        } else {
+            throw MessageMappingFailedException.newBuilder("")
+                    .description("Neither <bytePayload> nor <textPayload> were defined in the outgoing script")
+                    .dittoHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()))
+                    .build();
+        }
+
+        return messageBuilder.build();
     }
 
     private static Optional<ByteBuffer> convertToByteBuffer(final Object obj) {

@@ -12,9 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import java.util.Map;
 import java.util.Optional;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.MappingContext;
 
@@ -44,7 +43,7 @@ public interface MessageMapperFactory {
      * not available will not be added to the registry.
      *
      * @param defaultContext the context used to instantiate the default mapper
-     * @param context the contexts used to instantiate the registry mapper
+     * @param contexts the contexts used to instantiate the registry mapper
      * @return the registry
      * @throws java.lang.NullPointerException if a parameters is null
      * @throws java.lang.IllegalArgumentException if the default mapper could not be instantiated
@@ -53,5 +52,6 @@ public interface MessageMapperFactory {
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
      * the {@code context} failed for a mapper specific reason
      */
-    MessageMapperRegistry registryOf(MappingContext defaultContext, @Nullable MappingContext context);
+//    MessageMapperRegistry registryOf(MappingContext defaultContext, @Nullable MappingContext context);
+    MessageMapperRegistry registryOf(MappingContext defaultContext, Map<String, MappingContext> contexts);
 }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -41,6 +42,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private TopicPath topicPath;
     @Nullable private EnforcementFilter<CharSequence> enforcementFilter;
     @Nullable private HeaderMapping headerMapping;
+    @Nullable private List<String> payloadMapping;
     @Nullable private String sourceAddress;
     private DittoHeaders internalHeaders = DittoHeaders.empty();
 
@@ -60,6 +62,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
         this.topicPath = message.getTopicPath().orElse(null);
         this.enforcementFilter = message.getEnforcementFilter().orElse(null);
         this.headerMapping = message.getHeaderMapping().orElse(null);
+        this.payloadMapping = message.getPayloadMapping();
         this.sourceAddress = message.getSourceAddress().orElse(null);
         this.internalHeaders = message.getInternalHeaders();
     }
@@ -149,6 +152,12 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
+    public ExternalMessageBuilder withPayloadMapping(final List<String> mapping) {
+        this.payloadMapping = mapping;
+        return this;
+    }
+
+    @Override
     public ExternalMessageBuilder withSourceAddress(@Nullable final String sourceAddress) {
         this.sourceAddress = sourceAddress;
         return this;
@@ -175,7 +184,8 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Override
     public ExternalMessage build() {
         return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
-                authorizationContext, topicPath, enforcementFilter, headerMapping, sourceAddress, internalHeaders);
+                authorizationContext, topicPath, enforcementFilter, headerMapping, payloadMapping, sourceAddress,
+                internalHeaders);
     }
 
 }

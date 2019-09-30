@@ -16,7 +16,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
- * Represents an inbound {@link ExternalMessage} i.e. a message that is recevied by Ditto. It contains the
+ * Represents an inbound {@link ExternalMessage} i.e. a message that is received by Ditto. It contains the
  * original external message, the mapped topic path and the resulting signal of the message mapping.
  */
 public interface InboundExternalMessage {

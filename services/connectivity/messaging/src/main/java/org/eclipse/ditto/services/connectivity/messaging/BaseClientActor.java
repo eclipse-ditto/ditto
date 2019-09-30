@@ -48,7 +48,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
@@ -641,8 +640,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             getSelf().tell(failure, self);
         } else {
             final CompletionStage<Status.Status> connectionStatusStage = doTestConnection(connection);
-            final CompletionStage<Status.Status> mappingStatusStage =
-                    testMessageMappingProcessor(connection.getMappingContext().orElse(null));
+            final CompletionStage<Status.Status> mappingStatusStage = testMessageMappingProcessor();
 
             connectionStatusStage.toCompletableFuture()
                     .thenCombine(mappingStatusStage, (connectionStatus, mappingStatus) -> {
@@ -1026,9 +1024,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stateData().getInConnectionStatusSince();
     }
 
-    private CompletionStage<Status.Status> testMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
+    private CompletionStage<Status.Status> testMessageMappingProcessor() {
         try {
-            return tryToConfigureMessageMappingProcessor(mappingContext);
+            return tryToConfigureMessageMappingProcessor();
         } catch (final DittoRuntimeException dre) {
             final String logMessage = MessageFormat.format(
                     "Got DittoRuntimeException during initialization of MessageMappingProcessor: {0} {1} - desc: {2}",
@@ -1039,13 +1037,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
-    private CompletionStage<Status.Status> tryToConfigureMessageMappingProcessor(
-            @Nullable final MappingContext mappingContext) {
-
+    private CompletionStage<Status.Status> tryToConfigureMessageMappingProcessor() {
         final ActorSystem actorSystem = getContext().getSystem();
-
         // this one throws DittoRuntimeExceptions when the mapper could not be configured
-        MessageMappingProcessor.of(connectionId(), mappingContext, actorSystem, connectivityConfig,
+        MessageMappingProcessor.of(connectionId(), connection().getMappings(), actorSystem, connectivityConfig,
                 protocolAdapterProvider, log);
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
@@ -1060,16 +1055,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * messageMappingProcessorActor}.
      */
     protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessorActor() {
-        final MappingContext mappingContext = stateData().getConnection().getMappingContext().orElse(null);
-
         if (!getMessageMappingProcessorActor().isPresent()) {
             final Connection connection = connection();
 
             final MessageMappingProcessor processor;
             try {
                 // this one throws DittoRuntimeExceptions when the mapper could not be configured
-                processor = MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(),
-                        connectivityConfig, protocolAdapterProvider, log);
+                processor = MessageMappingProcessor.of(connectionId(), connection().getMappings(),
+                        getContext().getSystem(), connectivityConfig, protocolAdapterProvider, log);
             } catch (final DittoRuntimeException dre) {
                 connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
                 log.info(

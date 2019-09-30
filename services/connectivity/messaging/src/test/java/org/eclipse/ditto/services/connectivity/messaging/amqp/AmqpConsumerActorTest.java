@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -153,6 +154,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
+            Mockito.when(source.getMapping()).thenReturn(Collections.singletonList("test"));
             final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION_ID,
                     consumerData("foo", Mockito.mock(MessageConsumer.class), source), processor, getRef()));
 
@@ -166,6 +168,101 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
             assertThat(((ModifyAttribute) command).getAttributePointer()).isEqualTo(JsonPointer.of("/foo"));
             assertThat(((ModifyAttribute) command).getAttributeValue()).isEqualTo(JsonValue.of(plainPayload));
+        }};
+    }
+
+
+    @Test
+    public void plainStringMappingMultipleTest() {
+        new TestKit(actorSystem) {{
+            final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
+                    "JavaScript",
+                    MessageMappers.createJavaScriptMapperConfigurationBuilder()
+                            .incomingScript("function mapToDittoProtocolMsg(\n" +
+                                    "    headers,\n" +
+                                    "    textPayload,\n" +
+                                    "    bytePayload,\n" +
+                                    "    contentType\n" +
+                                    ") {\n" +
+                                    "\n" +
+                                    "    // ###\n" +
+                                    "    // Insert your mapping logic here\n" +
+                                    "    let namespace = \"org.eclipse.ditto\";\n" +
+                                    "    let id = \"foo-bar\";\n" +
+                                    "    let group = \"things\";\n" +
+                                    "    let channel = \"twin\";\n" +
+                                    "    let criterion = \"commands\";\n" +
+                                    "    let action = \"modify\";\n" +
+                                    "    let path = \"/attributes/foo\";\n" +
+                                    "    let dittoHeaders = headers;\n" +
+                                    "    let value = textPayload;\n" +
+                                    "    // ###\n" +
+                                    "\n" +
+                                    "    let msg = Ditto.buildDittoProtocolMsg(\n" +
+                                    "        namespace,\n" +
+                                    "        id,\n" +
+                                    "        group,\n" +
+                                    "        channel,\n" +
+                                    "        criterion,\n" +
+                                    "        action,\n" +
+                                    "        path,\n" +
+                                    "        dittoHeaders,\n" +
+                                    "        value\n" +
+                                    "    );\n" +
+                                    "    return [msg, msg, msg];\n" +
+                                    "}")
+                            .outgoingScript("function mapFromDittoProtocolMsg(\n" +
+                                    "    namespace,\n" +
+                                    "    id,\n" +
+                                    "    group,\n" +
+                                    "    channel,\n" +
+                                    "    criterion,\n" +
+                                    "    action,\n" +
+                                    "    path,\n" +
+                                    "    dittoHeaders,\n" +
+                                    "    value\n" +
+                                    ") {\n" +
+                                    "\n" +
+                                    "    // ###\n" +
+                                    "    // Insert your mapping logic here\n" +
+                                    "    let headers = {};\n" +
+                                    "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
+                                    "    let textPayload = \"Topic was: \" + namespace + \":\" + id;\n" +
+                                    "    let contentType = \"text/plain\";\n" +
+                                    "    // ###\n" +
+                                    "\n" +
+                                    "     return Ditto.buildExternalMsg(\n" +
+                                    "        headers,\n" +
+                                    "        textPayload,\n" +
+                                    "        null,\n" +
+                                    "        contentType\n" +
+                                    "    );" +
+                                    "}")
+                            .build()
+                            .getProperties()
+            );
+
+            final ActorRef processor = setupActor(getRef(), getRef(), mappingContext);
+
+            final Source source = Mockito.mock(Source.class);
+            Mockito.when(source.getAuthorizationContext())
+                    .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
+            Mockito.when(source.getMapping()).thenReturn(Collections.singletonList("test"));
+            final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION_ID,
+                    consumerData("foo", Mockito.mock(MessageConsumer.class), source), processor, getRef()));
+
+            final String plainPayload = "hello world!";
+            final String correlationId = "cor-";
+
+            underTest.tell(getJmsMessage(plainPayload, correlationId), null);
+
+            for (int i = 0; i < 3; i++) {
+                final Command command = expectMsgClass(Command.class);
+                assertThat(command.getType()).isEqualTo(ModifyAttribute.TYPE);
+                assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
+                assertThat(((ModifyAttribute) command).getAttributePointer()).isEqualTo(JsonPointer.of("/foo"));
+                assertThat(((ModifyAttribute) command).getAttributeValue()).isEqualTo(JsonValue.of(plainPayload));
+            }
         }};
     }
 
@@ -260,7 +357,11 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     }
 
     private static MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem, TestConstants.CONNECTIVITY_CONFIG,
+        final HashMap<String, MappingContext> mappings = new HashMap<>();
+        if (mappingContext != null) {
+            mappings.put("test", mappingContext);
+        }
+        return MessageMappingProcessor.of(CONNECTION_ID, mappings, actorSystem, TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 

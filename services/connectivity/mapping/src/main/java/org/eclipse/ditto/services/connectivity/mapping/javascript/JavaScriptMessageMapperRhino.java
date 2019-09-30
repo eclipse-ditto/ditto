@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping.javascript;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -47,8 +48,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     @Nullable private ContextFactory contextFactory;
     @Nullable private JavaScriptMessageMapperConfiguration configuration;
 
-    private MappingFunction<ExternalMessage, Optional<Adaptable>> incomingMapping = DefaultIncomingMapping.get();
-    private MappingFunction<Adaptable, Optional<ExternalMessage>> outgoingMapping = DefaultOutgoingMapping.get();
+    private MappingFunction<ExternalMessage, List<Adaptable>> incomingMapping = DefaultIncomingMapping.get();
+    private MappingFunction<Adaptable, List<ExternalMessage>> outgoingMapping = DefaultOutgoingMapping.get();
 
     /**
      * Constructs a new {@code JavaScriptMessageMapper} object.
@@ -56,6 +57,11 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
      */
     JavaScriptMessageMapperRhino() {
         super();
+    }
+
+    @Override
+    public String getId() {
+        return "javascript";
     }
 
     @Override
@@ -99,11 +105,25 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
 
     @Override
     public Optional<Adaptable> map(final ExternalMessage message) {
+        // TODO throw java.lang.UnsupportedOperationException?
+        final List<Adaptable> result = incomingMapping.apply(message);
+        return result == null ? Optional.empty() : result.stream().findFirst();
+    }
+
+    @Override
+    public List<Adaptable> mapMultiple(final ExternalMessage message) {
         return incomingMapping.apply(message);
     }
 
     @Override
     public Optional<ExternalMessage> map(final Adaptable adaptable) {
+        // TODO throw java.lang.UnsupportedOperationException?
+        final List<ExternalMessage> result = outgoingMapping.apply(adaptable);
+        return result == null ? Optional.empty() : result.stream().findFirst();
+    }
+
+    @Override
+    public List<ExternalMessage> mapMultiple(final Adaptable adaptable) {
         return outgoingMapping.apply(adaptable);
     }
 

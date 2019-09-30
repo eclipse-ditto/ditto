@@ -12,7 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -25,7 +26,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 /**
  * The default mapping for outgoing messages that maps to Ditto protocol format.
  */
-public class DefaultOutgoingMapping implements MappingFunction<Adaptable, Optional<ExternalMessage>> {
+public class DefaultOutgoingMapping implements MappingFunction<Adaptable, List<ExternalMessage>> {
 
     private static final DefaultOutgoingMapping INSTANCE = new DefaultOutgoingMapping();
 
@@ -37,7 +38,7 @@ public class DefaultOutgoingMapping implements MappingFunction<Adaptable, Option
     }
 
     @Override
-    public Optional<ExternalMessage> apply(final Adaptable adaptable) {
+    public List<ExternalMessage> apply(final Adaptable adaptable) {
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
         final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(
                 adaptable.getHeaders().orElseGet(adaptable::getDittoHeaders))
@@ -45,7 +46,7 @@ public class DefaultOutgoingMapping implements MappingFunction<Adaptable, Option
         messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
                 DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
         messageBuilder.withText(jsonifiableAdaptable.toJsonString());
-        return Optional.of(messageBuilder.build());
+        return Collections.singletonList(messageBuilder.build());
     }
 
 }

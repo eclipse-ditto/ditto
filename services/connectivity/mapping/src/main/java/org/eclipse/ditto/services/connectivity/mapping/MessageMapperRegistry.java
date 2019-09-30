@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import java.util.Optional;
+import java.util.List;
 
 /**
  * Defines a collection of mappers with a fallback default mapper.
@@ -26,9 +26,9 @@ public interface MessageMapperRegistry {
     MessageMapper getDefaultMapper();
 
     /**
-     * Returns the mapper to use for mapping.
-     * @return the mapper
+     * Returns the {@link MessageMapper}s to use for mapping.
+     * @return the list of mappers
      */
-    Optional<MessageMapper> getMapper();
+    List<MessageMapper> getMappers(final List<String> ids);
 
 }

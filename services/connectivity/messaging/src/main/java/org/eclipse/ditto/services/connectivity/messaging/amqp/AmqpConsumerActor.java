@@ -127,7 +127,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         throttleState = new AtomicReference<>(new ThrottleState(0L, 0));
 
         final Enforcement enforcement = consumerData.getSource().getEnforcement().orElse(null);
-
         headerEnforcementFilterFactory = enforcement != null ? EnforcementFactoryFactory
                 .newEnforcementFilterFactory(enforcement, PlaceholderFactory.newHeadersPlaceholder()) :
                 input -> null;
@@ -325,6 +324,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                     .withAuthorizationContext(authorizationContext)
                     .withEnforcement(headerEnforcementFilterFactory.getFilter(headers)).withHeaderMapping(headerMapping)
                     .withSourceAddress(sourceAddress)
+                    .withPayloadMapping(consumerData.getSource().getMapping())
                     .build();
             inboundMonitor.success(externalMessage);
 

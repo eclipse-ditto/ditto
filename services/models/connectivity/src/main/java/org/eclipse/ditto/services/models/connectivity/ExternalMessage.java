@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -137,6 +138,11 @@ public interface ExternalMessage {
      * @return the optional header mapping
      */
     Optional<HeaderMapping> getHeaderMapping();
+
+    /**
+     * @return the payload mapping that is applied for this message
+     */
+    List<String> getPayloadMapping();
 
     /**
      * @return optional source address, where this message was received

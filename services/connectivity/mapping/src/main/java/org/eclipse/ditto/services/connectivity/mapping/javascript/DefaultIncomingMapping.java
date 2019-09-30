@@ -13,6 +13,8 @@
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -25,7 +27,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 /**
  * The default mapping for incoming messages that maps messages from Ditto protocol format.
  */
-public final class DefaultIncomingMapping implements MappingFunction<ExternalMessage, Optional<Adaptable>> {
+public final class DefaultIncomingMapping implements MappingFunction<ExternalMessage, List<Adaptable>> {
 
     private static final DefaultIncomingMapping INSTANCE = new DefaultIncomingMapping();
 
@@ -37,11 +39,14 @@ public final class DefaultIncomingMapping implements MappingFunction<ExternalMes
     }
 
     @Override
-    public Optional<Adaptable> apply(final ExternalMessage message) {
+    public List<Adaptable> apply(final ExternalMessage message) {
         return DittoJsonException.wrapJsonRuntimeException(() -> getPlainStringPayload(message)
                 .map(JsonFactory::readFrom)
                 .map(JsonValue::asObject)
-                .map(ProtocolFactory::jsonifiableAdaptableFromJson));
+                .map(ProtocolFactory::jsonifiableAdaptableFromJson))
+                .map(jsonifiableAdaptable -> (Adaptable) jsonifiableAdaptable)
+                .map(Collections::singletonList)
+                .orElse(Collections.emptyList());
     }
 
     private static Optional<String> getPlainStringPayload(final ExternalMessage message) {

@@ -32,6 +32,11 @@ public final class MockMapper implements MessageMapper {
     }
 
     @Override
+    public String getId() {
+        return "mock";
+    }
+
+    @Override
     public void configure(@Nonnull final MappingConfig mappingConfig,
             @Nonnull final MessageMapperConfiguration configuration) {
 
