@@ -36,7 +36,6 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
-import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -271,7 +270,6 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
         private MockKafkaPublisherActor(final ActorRef target, final Status.Status status) {
             this.target = target;
-            getContext().getParent().tell(ResourceReady.publisherReady(getSelf()), getSelf());
             getContext().getParent().tell(status, getSelf());
         }
 

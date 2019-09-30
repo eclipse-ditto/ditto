@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -26,7 +27,6 @@ import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -37,6 +37,7 @@ import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscription;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAck;
 
 import akka.actor.ActorRef;
+import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
@@ -47,8 +48,7 @@ final class HiveMqtt3SubscriptionHandler {
     private static final MqttQos DEFAULT_QOS = MqttQos.AT_MOST_ONCE;
     private final Connection connection;
     private final Mqtt3Client client;
-    private final Consumer<ConnectionFailure> failureHandler;
-    private final Runnable subscriptionsDone;
+    private final CompletableFuture<Status.Status> subscriptionsDone;
     private final DiagnosticLoggingAdapter log;
 
     private final Map<Source, ActorRef> consumerActors = new HashMap<>();
@@ -57,12 +57,10 @@ final class HiveMqtt3SubscriptionHandler {
     private boolean isConnected = false;
 
     HiveMqtt3SubscriptionHandler(final Connection connection, final Mqtt3Client client,
-            final Consumer<ConnectionFailure> failureHandler, final Runnable subscriptionsDone,
             final DiagnosticLoggingAdapter log) {
         this.connection = connection;
         this.client = client;
-        this.failureHandler = failureHandler;
-        this.subscriptionsDone = subscriptionsDone;
+        this.subscriptionsDone = new CompletableFuture<>();
         this.log = log;
         mqtt3Subscribe = prepareSubscriptions();
     }
@@ -79,6 +77,10 @@ final class HiveMqtt3SubscriptionHandler {
     void handleMqttConsumer(final MqttConsumer consumer) {
         consumerActors.put(consumer.getSource(), consumer.getConsumerActor());
         subscribeIfReady();
+    }
+
+    CompletionStage<Status.Status> getCompletionStage() {
+        return subscriptionsDone;
     }
 
     private boolean allConsumersReady() {
@@ -104,7 +106,6 @@ final class HiveMqtt3SubscriptionHandler {
                                 final Mqtt3Subscribe theMqtt3Subscribe = e.getValue();
                                 final ActorRef consumerActorRef = consumerActors.get(source);
                                 if (consumerActorRef == null) {
-                                    failureHandler.accept(noConsumerActorFound(source));
                                     return failedFuture(new IllegalStateException("no consumer"));
                                 } else {
                                     return subscribe(source, theMqtt3Subscribe, consumerActorRef);
@@ -114,9 +115,10 @@ final class HiveMqtt3SubscriptionHandler {
                     .whenComplete((result, t) -> {
                         if (t == null) {
                             log.debug("All subscriptions created successfully.");
-                            subscriptionsDone.run();
+                            subscriptionsDone.complete(new Status.Success("successfully subscribed"));
                         } else {
-                            log.info("Subscribe failed.");
+                            log.info("Subscribe failed due to: {}", t.getMessage());
+                            subscriptionsDone.completeExceptionally(t);
                         }
                     });
         }
@@ -144,8 +146,6 @@ final class HiveMqtt3SubscriptionHandler {
                         // Handle failure to subscribe
                         log.warning("Error subscribing to topics: <{}>: {}", source.getAddresses(),
                                 throwable.getMessage());
-                        failureHandler.accept(new ImmutableConnectionFailure(null, throwable,
-                                "Subscribe failed for source: " + source));
                     } else {
                         // Handle successful subscription, e.g. logging or incrementing a metric
                         log.info("Successfully subscribed to <{}>", source.getAddresses());

@@ -56,7 +56,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.services.connectivity.messaging.InitializationState.ResourceReady;
+import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -132,10 +132,9 @@ public final class MessageMappingProcessorActorTest {
 
             messageMappingProcessorActor.tell(outboundSignal, getRef());
 
-            final OutboundSignal.WithExternalMessage externalMessage =
-                    expectMsgClass(OutboundSignal.WithExternalMessage.class);
+            final PublishMappedMessage externalMessage = expectMsgClass(PublishMappedMessage.class);
 
-            assertThat(externalMessage.getTargets()).containsExactlyInAnyOrder(
+            assertThat(externalMessage.getOutboundSignal().getTargets()).containsExactlyInAnyOrder(
                     newTarget(fixedAddress, fixedAddress),
                     newTarget(addressWithSomeOtherPlaceholder, addressWithSomeOtherPlaceholder),
                     newTarget(expectedTargetAddress, addressWithTopicPlaceholder));
@@ -204,7 +203,7 @@ public final class MessageMappingProcessorActorTest {
                         .extracting(headers -> headers.get(MessageHeaderDefinition.THING_ID.getKey()))
                         .isEqualTo(KNOWN_THING_ID.toString());
             } else {
-                final OutboundSignal errorResponse = expectMsgClass(OutboundSignal.WithExternalMessage.class);
+                final OutboundSignal errorResponse = expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
                 assertThat(errorResponse.getSource()).isInstanceOf(ThingErrorResponse.class);
                 final ThingErrorResponse response = (ThingErrorResponse) errorResponse.getSource();
                 assertThat(response.getDittoRuntimeException()).isInstanceOf(
@@ -264,7 +263,8 @@ public final class MessageMappingProcessorActorTest {
 
             // THEN: resulting error response retains the correlation ID
             final ExternalMessage outboundMessage =
-                    expectMsgClass(OutboundSignal.WithExternalMessage.class).getExternalMessage();
+                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal().getExternalMessage();
+            ;
             assertThat(outboundMessage)
                     .extracting(e -> e.getHeaders().get("correlation-id"))
                     .isEqualTo(correlationId);
@@ -300,7 +300,7 @@ public final class MessageMappingProcessorActorTest {
 
             // THEN: resulting error response retains the topic including thing ID and channel
             final ExternalMessage outboundMessage =
-                    expectMsgClass(OutboundSignal.WithExternalMessage.class).getExternalMessage();
+                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal().getExternalMessage();
             assertThat(outboundMessage)
                     .extracting(e -> JsonFactory.newObject(e.getTextPayload().orElse("{}"))
                             .getValue("topic"))
@@ -318,12 +318,13 @@ public final class MessageMappingProcessorActorTest {
                 AuthorizationModelFactory.newAuthSubject("integration:" + placeholder));
 
         testMessageMapping(UUID.randomUUID().toString(), contextWithUnknownPlaceholder,
-                OutboundSignal.WithExternalMessage.class, error -> {
+                PublishMappedMessage.class, error -> {
+                    final OutboundSignal.WithExternalMessage outboundSignal = error.getOutboundSignal();
                     final UnresolvedPlaceholderException exception = UnresolvedPlaceholderException.fromMessage(
-                            error.getExternalMessage()
+                            outboundSignal.getExternalMessage()
                                     .getTextPayload()
                                     .orElseThrow(() -> new IllegalArgumentException("payload was empty")),
-                            DittoHeaders.of(error.getExternalMessage().getHeaders()));
+                            DittoHeaders.of(outboundSignal.getExternalMessage().getHeaders()));
                     assertThat(exception.getMessage()).contains(placeholderKey);
                 });
     }
@@ -370,7 +371,7 @@ public final class MessageMappingProcessorActorTest {
             messageMappingProcessorActor.tell(commandResponse, getRef());
 
             final OutboundSignal.WithExternalMessage outboundSignal =
-                    expectMsgClass(OutboundSignal.WithExternalMessage.class);
+                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
             assertThat(outboundSignal.getExternalMessage().findContentType())
                     .contains(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
             assertThat(outboundSignal.getExternalMessage().getHeaders().get(CORRELATION_ID.getKey()))
@@ -396,7 +397,7 @@ public final class MessageMappingProcessorActorTest {
             messageMappingProcessorActor.tell(thingNotAccessibleException, getRef());
 
             final OutboundSignal.WithExternalMessage outboundSignal =
-                    expectMsgClass(OutboundSignal.WithExternalMessage.class);
+                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
 
             // THEN: correlation ID is preserved
             assertThat(outboundSignal.getExternalMessage().getHeaders().get(CORRELATION_ID.getKey()))
@@ -428,11 +429,9 @@ public final class MessageMappingProcessorActorTest {
 
     private static ActorRef createMessageMappingProcessorActor(final TestKit kit) {
         final Props props =
-                MessageMappingProcessorActor.props(kit.getRef(), getMessageMappingProcessor(), CONNECTION_ID);
-        final ActorRef mappingActor = actorSystem.actorOf(props);
-        mappingActor.tell(ResourceReady.publisherReady(kit.getRef()), kit.getRef());
-        kit.expectMsgClass(ResourceReady.class);
-        return mappingActor;
+                MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
+                        CONNECTION_ID);
+        return actorSystem.actorOf(props);
     }
 
     private static MessageMappingProcessor getMessageMappingProcessor() {
