@@ -40,6 +40,9 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     private final HttpPushFactory factory;
 
+    @Nullable
+    private ActorRef httpPublisherActor;
+
     @SuppressWarnings("unused")
     private HttpPushClientActor(final Connection connection, final ConnectivityStatus desiredConnectionStatus) {
         super(connection, desiredConnectionStatus, ActorRef.noSender());
@@ -70,33 +73,39 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
-        // all 0 consumers are ready.
-        notifyConsumersReady();
+        // nothing to do here; publisher and consumers (no consumers for HTTP) started already.
     }
 
     @Override
     protected void cleanupResourcesForConnection() {
         // stop publisher actor also on connection failure
-        stopPublisherActor();
+        stopChildActor(httpPublisherActor);
     }
 
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        ensurePublisherActor();
         getSelf().tell((ClientConnected) () -> Optional.ofNullable(origin), getSelf());
     }
 
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        stopPublisherActor();
         getSelf().tell((ClientDisconnected) () -> Optional.ofNullable(origin), getSelf());
     }
 
-    private void ensurePublisherActor() {
-        if (publisherActor == null) {
-            publisherActor =
-                    getContext().actorOf(HttpPublisher.props(connection().getId(), connection().getTargets(), factory));
-        }
+    @Nullable
+    @Override
+    protected ActorRef getPublisherActor() {
+        return httpPublisherActor;
+    }
+
+    @Override
+    protected CompletionStage<Status.Status> startPublisherActor() {
+        final CompletableFuture<Status.Status> future = new CompletableFuture<>();
+        stopChildActor(httpPublisherActor);
+        final Props props = HttpPublisherActor.props(connection().getId(), connection().getTargets(), factory);
+        httpPublisherActor = startChildActorConflictFree(HttpPublisherActor.ACTOR_NAME, props);
+        future.complete(DONE);
+        return future;
     }
 
     private CompletionStage<Status.Status> testSSL(final Connection connection, final String hostWithoutLookup,

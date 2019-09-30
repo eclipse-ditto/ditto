@@ -94,7 +94,7 @@ public final class HttpPushFactoryTest {
         final HttpPushFactory underTest = HttpPushFactory.of(connection);
         final HttpRequest request = underTest.newRequest(HttpPublishTarget.of("PUT:/path/appendage/"));
         assertThat(request.method()).isEqualTo(HttpMethods.PUT);
-        assertThat(request.getUri().getPathString()).isEqualTo("/path/prefix/path/appendage");
+        assertThat(request.getUri().getPathString()).isEqualTo("/path/prefix/path/appendage/");
     }
 
     @Test

@@ -243,7 +243,8 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     @Test
     public void placeholderReplacement() throws Exception {
-        final Target target = TestConstants.Targets.TARGET_WITH_PLACEHOLDER;
+        final Target target = TestConstants.Targets.TARGET_WITH_PLACEHOLDER
+                        .withAddress("PATCH:" + TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress());
         connection = connection.toBuilder().setTargets(singletonList(target)).build();
 
         new TestKit(actorSystem) {{

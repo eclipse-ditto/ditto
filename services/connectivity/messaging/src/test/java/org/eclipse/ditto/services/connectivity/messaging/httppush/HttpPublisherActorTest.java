@@ -39,9 +39,9 @@ import akka.testkit.TestProbe;
 import scala.util.Try;
 
 /**
- * Tests {@link org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPublisher}.
+ * Tests {@link HttpPublisherActor}.
  */
-public final class HttpPublisherTest extends AbstractPublisherActorTest {
+public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     private HttpPushFactory httpPushFactory;
     private BlockingQueue<HttpRequest> received = new LinkedBlockingQueue<>();
@@ -61,7 +61,7 @@ public final class HttpPublisherTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return HttpPublisher.props(TestConstants.createRandomConnectionId(), Collections.emptyList(), httpPushFactory);
+        return HttpPublisherActor.props(TestConstants.createRandomConnectionId(), Collections.emptyList(), httpPushFactory);
     }
 
     @Override

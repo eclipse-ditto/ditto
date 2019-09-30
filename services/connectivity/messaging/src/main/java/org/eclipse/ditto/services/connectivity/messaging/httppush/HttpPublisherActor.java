@@ -58,7 +58,12 @@ import scala.util.Try;
 /**
  * Actor responsible for publishing messages to an HTTP endpoint.
  */
-final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
+final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
+
+    /**
+     * The name of this Actor in the ActorSystem.
+     */
+    static final String ACTOR_NAME = "httpPublisherActor";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -69,7 +74,7 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
     private final SourceQueue<Pair<HttpRequest, ExternalMessage>> sourceQueue;
 
     @SuppressWarnings("unused")
-    private HttpPublisher(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
+    private HttpPublisherActor(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
         super(connectionId, targets);
         this.factory = factory;
 
@@ -87,7 +92,7 @@ final class HttpPublisher extends BasePublisherActor<HttpPublishTarget> {
     }
 
     static Props props(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
-        return Props.create(HttpPublisher.class, connectionId, targets, factory);
+        return Props.create(HttpPublisherActor.class, connectionId, targets, factory);
     }
 
     @Override
