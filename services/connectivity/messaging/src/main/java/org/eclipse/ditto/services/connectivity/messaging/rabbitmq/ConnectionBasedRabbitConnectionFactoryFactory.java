@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

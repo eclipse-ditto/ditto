@@ -65,6 +65,7 @@ public abstract class AbstractProtocolValidator {
     protected static void validateUriScheme(final Connection connection,
             final DittoHeaders dittoHeaders,
             final Collection<String> acceptedSchemes,
+            final Collection<String> secureSchemes,
             final String protocolName) {
 
         if (!acceptedSchemes.contains(connection.getProtocol())) {
@@ -75,6 +76,17 @@ public abstract class AbstractProtocolValidator {
                     MessageFormat.format("Accepted URI schemes are: {0}", String.join(", ", acceptedSchemes));
             throw ConnectionUriInvalidException.newBuilder(connection.getUri())
                     .message(message)
+                    .description(description)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+
+        // insecure protocol + certificates configured
+        if (!secureSchemes.contains(connection.getProtocol()) && connection.getTrustedCertificates().isPresent()) {
+            final String description = MessageFormat.format("Either switch to a secure protocol ({0}) or remove the " +
+                            "trusted certificates.", secureSchemes);
+            throw ConnectionUriInvalidException.newBuilder(connection.getUri())
+                    .message("The connection has trusted certificates configured but uses an insecure protocol.")
                     .description(description)
                     .dittoHeaders(dittoHeaders)
                     .build();

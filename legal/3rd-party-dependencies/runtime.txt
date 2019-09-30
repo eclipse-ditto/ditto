@@ -1,0 +1,5 @@
+   com.github.jnr:jffi:jar:native:1.2.16:runtime
+   com.google.dagger:dagger:jar:2.20:runtime
+   javax.inject:javax.inject:jar:1:runtime
+   org.jctools:jctools-core:jar:2.1.2:runtime
+   org.jetbrains:annotations:jar:16.0.3:runtime

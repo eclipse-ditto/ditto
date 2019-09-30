@@ -26,21 +26,22 @@ import org.awaitility.Awaitility;
  * Provides assertions for testing the thing persistence.
  */
 public final class Assertions {
+
     private Assertions() {
         throw new AssertionError();
     }
 
-
     /**
      * Asserts a list by applying the given {@code elementAssert} and provides information about the concrete element
      * and index where the assertion failed.
+     *
      * @param actual the actual list to be asserted
      * @param elementAssert a {@link BiFunction} providing the actual and expected list
      * @param <T> the type of the list elements
      * @return an instance of {@link ListAssert}
      */
-    @SuppressWarnings("unchecked")
-    public static <T> ListAssert<T> assertListWithIndexInfo(final List<T> actual, final BiConsumer<T, T> elementAssert) {
+    public static <T> ListAssert<T> assertListWithIndexInfo(final List<T> actual,
+            final BiConsumer<T, T> elementAssert) {
         return new ListAssert<>(actual).usingComparator((actualList, expectedList) -> {
             assertThat(actualList).hasSize(expectedList.size());
 
@@ -52,8 +53,8 @@ public final class Assertions {
                     elementAssert.accept(actualElement, expectedElement);
                 } catch (final AssertionError e) {
                     throw new AssertionError(String.format("List assertion failed at index %s:%nActual list: " +
-                            "%s%nExpected list: " +
-                            "%s%n%nActual element: %s%nExpected element: %s%nDetailed message: %s", i, actualList,
+                                    "%s%nExpected list: " +
+                                    "%s%n%nActual element: %s%nExpected element: %s%nDetailed message: %s", i, actualList,
                             expectedList, actualElement, expectedElement, e.getMessage()), e.getCause());
                 }
             }
@@ -64,6 +65,7 @@ public final class Assertions {
 
     /**
      * Retries the given runnable {@code retryCount} times with a delay of {@code retryDelayMs} millis.
+     *
      * @param waitAtMostMs defines how long to wait at most until the assertions are successful
      * @param retryDelayMs defines the interval between the retries in millis
      * @param r the Runnable containing the assertions to be applied

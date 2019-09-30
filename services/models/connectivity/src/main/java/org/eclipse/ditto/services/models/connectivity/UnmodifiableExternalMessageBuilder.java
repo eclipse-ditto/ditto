@@ -127,6 +127,26 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
+    public ExternalMessageBuilder withTextAndBytes(@Nullable final String text, @Nullable final byte[] bytes) {
+        this.payloadType = ExternalMessage.PayloadType.TEXT_AND_BYTES;
+        this.textPayload = text;
+        if (Objects.isNull(bytes)) {
+            this.bytePayload = null;
+        } else {
+            this.bytePayload = ByteBuffer.wrap(bytes);
+        }
+        return this;
+    }
+
+    @Override
+    public ExternalMessageBuilder withTextAndBytes(@Nullable final String text, @Nullable final ByteBuffer bytes) {
+        this.payloadType = ExternalMessage.PayloadType.TEXT_AND_BYTES;
+        this.textPayload = text;
+        this.bytePayload = bytes;
+        return this;
+    }
+
+    @Override
     public ExternalMessageBuilder withAuthorizationContext(final AuthorizationContext authorizationContext) {
         this.authorizationContext = authorizationContext;
         return this;

@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -44,14 +43,11 @@ import akka.japi.pf.FSMStateFunctionBuilder;
 public final class KafkaClientActor extends BaseClientActor {
 
     private final KafkaPublisherActorFactory publisherActorFactory;
-
-    @Nullable
-    private ActorRef kafkaPublisherActor;
-
     private final Set<ActorRef> pendingStatusReportsFromStreams;
     private final KafkaConnectionFactory connectionFactory;
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
+    private ActorRef kafkaPublisherActor;
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
@@ -124,16 +120,6 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     @Override
-    protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
-        // nothing to do here; publisher and consumers started already.
-    }
-
-    @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(kafkaPublisherActor);
-    }
-
-    @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         connectClient(false);
     }
@@ -141,6 +127,11 @@ public final class KafkaClientActor extends BaseClientActor {
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
         self().tell((ClientDisconnected) () -> null, origin);
+    }
+
+    @Override
+    protected ActorRef getPublisherActor() {
+        return kafkaPublisherActor;
     }
 
     /**
@@ -151,33 +142,35 @@ public final class KafkaClientActor extends BaseClientActor {
     private void connectClient(final boolean dryRun) {
         // start publisher
         startKafkaPublisher(dryRun);
-        startMessageMappingProcessorActor();
         // no command consumers as we don't support consuming from sources yet
     }
 
     private void startKafkaPublisher(final boolean dryRun) {
         log.info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
-        stopKafkaPublisher();
-        kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(),
-                publisherActorFactory.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, getSelf(),
-                        dryRun));
+        stopPublisherActor();
+        final Props publisherActorProps =
+                publisherActorFactory.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, dryRun);
+        kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
 
     @Override
     protected void cleanupResourcesForConnection() {
         pendingStatusReportsFromStreams.clear();
-        stopKafkaPublisher();
+        stopPublisherActor();
     }
 
+    @Override
+    protected CompletionStage<Status.Status> startPublisherActor() {
+        return CompletableFuture.completedFuture(DONE);
+    }
 
-    private void stopKafkaPublisher() {
+    private void stopPublisherActor() {
         if (kafkaPublisherActor != null) {
             log.debug("Stopping child actor <{}>.", kafkaPublisherActor.path());
             // shutdown using a message, so the actor can clean up first
             kafkaPublisherActor.tell(KafkaPublisherActor.GracefulStop.INSTANCE, getSelf());
-            kafkaPublisherActor = null;
         }
     }
 
@@ -207,5 +200,4 @@ public final class KafkaClientActor extends BaseClientActor {
             getSelf().tell(new Status.Failure(exception), getSelf());
         }
     }
-
 }

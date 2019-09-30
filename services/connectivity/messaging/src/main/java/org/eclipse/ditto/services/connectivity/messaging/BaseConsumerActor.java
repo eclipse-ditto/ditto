@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
@@ -41,14 +42,15 @@ import akka.actor.ActorRef;
 public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     protected final String sourceAddress;
-    protected final ActorRef messageMappingProcessor;
     protected final AuthorizationContext authorizationContext;
-    @Nullable protected final HeaderMapping headerMapping;
     protected final ConnectionMonitor inboundMonitor;
-    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     protected final ConnectionId connectionId;
 
+    @Nullable protected final HeaderMapping headerMapping;
     @Nullable protected ResourceStatus resourceStatus;
+
+    private final ActorRef messageMappingProcessor;
+    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
 
     protected BaseConsumerActor(final ConnectionId connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
@@ -66,6 +68,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
         this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connectionId, sourceAddress);
+    }
+
+    protected void forwardToMappingActor(final Object message, final String hashKey) {
+        final Object envelope = new ConsistentHashingRouter.ConsistentHashableEnvelope(message, hashKey);
+        messageMappingProcessor.forward(envelope, getContext());
     }
 
     protected void resetResourceStatus() {

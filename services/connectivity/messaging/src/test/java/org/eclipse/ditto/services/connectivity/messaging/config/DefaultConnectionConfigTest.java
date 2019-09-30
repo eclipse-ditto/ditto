@@ -21,6 +21,7 @@ import java.time.Duration;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -94,9 +95,14 @@ public final class DefaultConnectionConfigTest {
 
         softly.assertThat(underTest.getMqttConfig())
                 .as("mqttConfig")
-                .satisfies(mqttConfig -> softly.assertThat(mqttConfig.getSourceBufferSize())
-                        .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
-                        .isEqualTo(7));
+                .satisfies(mqttConfig ->  {
+                    softly.assertThat(mqttConfig.getSourceBufferSize())
+                            .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
+                            .isEqualTo(7);
+                    softly.assertThat(mqttConfig.isLegacyMode())
+                            .as(MqttConfig.MqttConfigValue.LEGACY_MODE.getConfigPath())
+                            .isEqualTo(true);
+                });
     }
 
 }

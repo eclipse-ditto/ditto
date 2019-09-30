@@ -30,12 +30,13 @@ import javax.naming.NamingException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
-import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
@@ -164,7 +165,8 @@ public final class ConnectivityRootActor extends AbstractActor {
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
         final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
         final Props connectionSupervisorProps =
-                getConnectionSupervisorProps(dittoProtocolSub, conciergeForwarder, commandValidator);
+                getConnectionSupervisorProps(dittoProtocolSub, conciergeForwarder, commandValidator, pubSubMediator,
+                        connectivityConfig.getConnectionConfig());
 
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
@@ -174,7 +176,8 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         startClusterSingletonActor(
                 ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
-                        MongoReadJournal.newInstance(actorSystem)));
+                        MongoReadJournal.newInstance(actorSystem)),
+                ReconnectActor.ACTOR_NAME);
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
@@ -261,8 +264,8 @@ public final class ConnectivityRootActor extends AbstractActor {
         return getContext().actorOf(props, actorName);
     }
 
-    private void startClusterSingletonActor(final Props props) {
-        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, ReconnectActor.ACTOR_NAME, props);
+    private void startClusterSingletonActor(final Props props, final String name) {
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, name, props);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
@@ -310,13 +313,15 @@ public final class ConnectivityRootActor extends AbstractActor {
 
     private static Props getConnectionSupervisorProps(final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
-            @Nullable final ConnectivityCommandInterceptor commandValidator) {
+            @Nullable final ConnectivityCommandInterceptor commandValidator,
+            final ActorRef pubSubMediator,
+            final ConnectionConfig connectionConfig) {
 
         final ClientActorPropsFactory clientActorPropsFactory =
-                DefaultClientActorPropsFactory.getInstance();
+                DefaultClientActorPropsFactory.getInstance(connectionConfig);
 
         return ConnectionSupervisorActor.props(dittoProtocolSub, conciergeForwarder,
-                clientActorPropsFactory, commandValidator);
+                clientActorPropsFactory, commandValidator, pubSubMediator);
     }
 
     private static ActorRef getConnectionShardRegion(final ActorSystem actorSystem,

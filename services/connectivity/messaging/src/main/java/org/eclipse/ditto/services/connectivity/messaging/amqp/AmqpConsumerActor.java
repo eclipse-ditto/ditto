@@ -73,7 +73,6 @@ import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import akka.routing.ConsistentHashingRouter;
 
 /**
  * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
@@ -85,6 +84,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
     private static final String RESTART_MESSAGE_CONSUMER = "restartMessageConsumer";
+    private static final String CREATION_TIME_HEADER = "creation-time";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
@@ -334,17 +334,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
                         externalMessage.getTextPayload().orElse("binary"));
             }
-            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, hashKey);
-            messageMappingProcessor.forward(msg, getContext());
+            forwardToMappingActor(externalMessage, hashKey);
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
                 inboundMonitor.failure(headers, e);
-                final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(
-                        e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
-                messageMappingProcessor.forward(msg, getContext());
+                forwardToMappingActor(e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
             } else {
                 inboundMonitor.failure(e);
             }
@@ -423,6 +420,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         if (jmsCorrelationId != null) {
             headersFromJmsProperties.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), jmsCorrelationId);
         }
+
+        headersFromJmsProperties.put(CREATION_TIME_HEADER, Long.toString(message.getJMSTimestamp()));
 
         return headersFromJmsProperties;
     }

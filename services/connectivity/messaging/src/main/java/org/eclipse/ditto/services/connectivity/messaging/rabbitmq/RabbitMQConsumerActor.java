@@ -13,13 +13,9 @@
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -51,7 +47,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.routing.ConsistentHashingRouter;
 
 
 /**
@@ -60,8 +55,7 @@ import akka.routing.ConsistentHashingRouter;
 public final class RabbitMQConsumerActor extends BaseConsumerActor {
 
     private static final String MESSAGE_ID_HEADER = "messageId";
-    private static final Set<String> CONTENT_TYPES_INTERPRETED_AS_TEXT = Collections.unmodifiableSet(new HashSet<>(
-            Arrays.asList("text/plain", "text/html", "text/yaml", "application/json", "application/xml")));
+    private static final String CONTENT_TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -126,11 +120,11 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
             final String contentType = properties.getContentType();
-            if (shouldBeInterpretedAsText(contentType)) {
-                final String text = new String(body, CharsetDeterminer.getInstance().apply(contentType));
-                externalMessageBuilder.withText(text);
-            } else {
+            final String text = new String(body, CharsetDeterminer.getInstance().apply(contentType));
+            if (shouldBeInterpretedAsBytes(contentType)) {
                 externalMessageBuilder.withBytes(body);
+            } else {
+                externalMessageBuilder.withTextAndBytes(text, body);
             }
             externalMessageBuilder.withAuthorizationContext(authorizationContext);
             externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
@@ -138,21 +132,18 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             externalMessageBuilder.withSourceAddress(sourceAddress);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             inboundMonitor.success(externalMessage);
-            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, hashKey);
-            messageMappingProcessor.forward(msg, getContext());
+            forwardToMappingActor(externalMessage, hashKey);
         } catch (final DittoRuntimeException e) {
-            log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
+            log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
                 // send response if headers were extracted successfully
-                final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(
-                        e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
-                messageMappingProcessor.forward(msg, getContext());
+                forwardToMappingActor(e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
                 inboundMonitor.failure(headers, e);
             } else {
                 inboundMonitor.failure(e);
             }
         } catch (final Exception e) {
-            log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
+            log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
                 inboundMonitor.exception(headers, e);
             } else {
@@ -161,8 +152,8 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
         }
     }
 
-    private static boolean shouldBeInterpretedAsText(@Nullable final String contentType) {
-        return contentType != null && CONTENT_TYPES_INTERPRETED_AS_TEXT.stream().anyMatch(contentType::startsWith);
+    private static boolean shouldBeInterpretedAsBytes(@Nullable final String contentType) {
+        return contentType != null && contentType.startsWith(CONTENT_TYPE_APPLICATION_OCTET_STREAM);
     }
 
     private static Map<String, String> extractHeadersFromMessage(final BasicProperties properties,

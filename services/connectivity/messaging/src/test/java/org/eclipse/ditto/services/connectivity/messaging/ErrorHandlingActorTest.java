@@ -37,7 +37,7 @@ import akka.cluster.pubsub.DistributedPubSub;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests error handling behaviour of {@link ConnectionActor}.
+ * Tests error handling behaviour of {@link org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor}.
  */
 public class ErrorHandlingActorTest extends WithMockServers {
 

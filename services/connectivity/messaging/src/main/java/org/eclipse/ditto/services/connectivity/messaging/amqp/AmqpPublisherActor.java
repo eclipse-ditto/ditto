@@ -110,7 +110,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         // we open producers for static addresses (no placeholders) on startup and try to reopen them when closed.
         // producers for other addresses (with placeholders, reply-to) are opened on demand and may be closed to
         // respect the cache size limit
-        createStaticTargetProducers(targets);
+        try {
+            createStaticTargetProducers(targets);
+        } catch (final Exception e) {
+            log.warning("Failed to create static target producers: {}", e.getMessage());
+            getContext().getParent().tell(new ImmutableConnectionFailure(null, e,
+                    "failed to initialize static producers"), getSelf());
+            throw e;
+        }
     }
 
     /**
@@ -245,7 +252,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         .entrySet()
                         .stream()
                         // skip special jms properties in generic mapping
-                        .filter(h -> !JMS_HEADER_MAPPING.keySet().contains(h.getKey()))
+                        .filter(h -> !JMS_HEADER_MAPPING.containsKey(h.getKey()))
                         .forEach(entry -> {
                             try {
                                 amqpJmsMessageFacade.setApplicationProperty(entry.getKey(), entry.getValue());

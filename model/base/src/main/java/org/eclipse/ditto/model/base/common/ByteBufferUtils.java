@@ -13,7 +13,9 @@
 package org.eclipse.ditto.model.base.common;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -21,6 +23,8 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 public final class ByteBufferUtils {
+
+    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     private ByteBufferUtils() {
         throw new AssertionError();
@@ -34,7 +38,7 @@ public final class ByteBufferUtils {
      */
     public static ByteBuffer clone(final ByteBuffer original) {
         if (original.remaining() == 0) {
-            return ByteBuffer.wrap(new byte[0]);
+            return ByteBuffer.wrap(EMPTY_BYTE_ARRAY);
         }
 
         final ByteBuffer clone = ByteBuffer.allocate(original.remaining());
@@ -46,6 +50,27 @@ public final class ByteBufferUtils {
             clone.flip();
         }
         return clone;
+    }
+
+    /**
+     * Creates an empty ByteBuffer of size 0.
+     * @return an empty ByteBuffer.
+     */
+    public static ByteBuffer empty() {
+        return ByteBuffer.allocate(0);
+    }
+
+    /**
+     * Creates a string from the ByteBuffer.
+     * @param byteBuffer the ByteBuffer to decode.
+     * @return the ByteBuffer in UTF-8 representation or {@code null} if it was null.
+     */
+    @Nullable
+    public static String toUtf8String(@Nullable final ByteBuffer byteBuffer) {
+        if (null == byteBuffer) {
+            return null;
+        }
+        return StandardCharsets.UTF_8.decode(byteBuffer.asReadOnlyBuffer()).toString();
     }
 
 }

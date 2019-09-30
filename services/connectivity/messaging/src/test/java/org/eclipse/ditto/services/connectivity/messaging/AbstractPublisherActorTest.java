@@ -85,9 +85,9 @@ public abstract class AbstractPublisherActorTest {
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
 
             final Props props = getPublisherActorProps();
-            final ActorRef publisherActor = actorSystem.actorOf(props);
+            final ActorRef publisherActor = childActorOf(props);
 
-            publisherCreated(publisherActor);
+            publisherCreated(this, publisherActor);
 
             publisherActor.tell(mappedOutboundSignal, getRef());
 
@@ -113,7 +113,9 @@ public abstract class AbstractPublisherActorTest {
 
     protected abstract Props getPublisherActorProps();
 
-    protected abstract void publisherCreated(ActorRef publisherActor);
+    protected void publisherCreated(final TestKit kit, final ActorRef publisherActor) {
+        // do nothing by default
+    }
 
     protected abstract Target decorateTarget(Target target);
 

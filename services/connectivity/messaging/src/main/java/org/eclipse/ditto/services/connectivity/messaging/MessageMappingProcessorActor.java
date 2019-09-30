@@ -67,6 +67,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -106,9 +107,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ActorRef publisherActor;
     private final Map<String, StartedTimer> timers;
 
+    private final ActorRef clientActor;
     private final MessageMappingProcessor messageMappingProcessor;
     private final ConnectionId connectionId;
     private final ActorRef conciergeForwarder;
@@ -127,13 +128,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final ConnectionMonitor responseMappedMonitor;
 
     @SuppressWarnings("unused")
-    private MessageMappingProcessorActor(final ActorRef publisherActor,
-            final ActorRef conciergeForwarder,
+    private MessageMappingProcessorActor(final ActorRef conciergeForwarder,
+            final ActorRef clientActor,
             final MessageMappingProcessor messageMappingProcessor,
             final ConnectionId connectionId) {
 
-        this.publisherActor = publisherActor;
         this.conciergeForwarder = conciergeForwarder;
+        this.clientActor = clientActor;
         this.messageMappingProcessor = messageMappingProcessor;
         this.connectionId = connectionId;
 
@@ -160,18 +161,18 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param publisherActor actor that handles/publishes outgoing messages.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param clientActor the client actor that created this mapping actor
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection ID.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef publisherActor,
-            final ActorRef conciergeForwarder,
+    public static Props props(final ActorRef conciergeForwarder,
+            final ActorRef clientActor,
             final MessageMappingProcessor processor,
             final ConnectionId connectionId) {
 
-        return Props.create(MessageMappingProcessorActor.class, publisherActor, conciergeForwarder, processor,
+        return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, clientActor, processor,
                 connectionId);
     }
 
@@ -265,9 +266,14 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         enhanceLogUtil(exception);
 
-        final String stackTrace = stackTraceAsString(exception);
-        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
-                exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
+        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
+                exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""));
+
+        if (log.isDebugEnabled()) {
+            final String stackTrace = stackTraceAsString(exception);
+            log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
+                    exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
+        }
 
         handleCommandResponse(errorResponse, exception);
     }
@@ -346,6 +352,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         mapToExternalMessage(outbound);
     }
 
+    private void forwardToPublisherActor(final OutboundSignal.WithExternalMessage mappedOutboundSignal) {
+        clientActor.forward(new PublishMappedMessage(mappedOutboundSignal), getContext());
+    }
+
     /**
      * Is called for responses or errors which were directly sent to the mapping actor as a response.
      *
@@ -365,7 +375,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 mappedOutboundMessage -> {
                     final OutboundSignal.WithExternalMessage withExternalMessage =
                             replaceTargetAddressPlaceholders.apply(outbound, mappedOutboundMessage);
-                    publisherActor.forward(withExternalMessage, getContext());
+                    forwardToPublisherActor(withExternalMessage);
                 },
                 () -> log.debug("Message mapping returned null, message is dropped."),
                 exception -> {

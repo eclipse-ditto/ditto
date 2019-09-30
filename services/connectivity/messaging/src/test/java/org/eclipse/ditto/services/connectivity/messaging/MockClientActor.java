@@ -36,7 +36,7 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 
 /**
- * Mocks a {@link ConnectionActor} and provides abstraction for a real connection.
+ * Mocks a {@link org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor} and provides abstraction for a real connection.
  */
 public class MockClientActor extends AbstractActor {
 

@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -62,33 +63,13 @@ public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage,
     public List<Adaptable> apply(final ExternalMessage message) {
         try {
             return contextFactory.call(cx -> {
-                final NativeObject headersObj = new NativeObject();
-                message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
-
-                final NativeArrayBuffer bytePayload;
-                if (message.getBytePayload().isPresent()) {
-                    final ByteBuffer byteBuffer = message.getBytePayload().get();
-                    final byte[] array = byteBuffer.array();
-                    bytePayload = new NativeArrayBuffer(array.length);
-                    for (int a = 0; a < array.length; a++) {
-                        bytePayload.getBuffer()[a] = array[a];
-                    }
-                } else {
-                    bytePayload = null;
-                }
-
-                final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
-                final String textPayload = message.getTextPayload().orElse(null);
-
-                final NativeObject externalMessage = new NativeObject();
-                externalMessage.put(EXTERNAL_MESSAGE_HEADERS, externalMessage, headersObj);
-                externalMessage.put(EXTERNAL_MESSAGE_TEXT_PAYLOAD, externalMessage, textPayload);
-                externalMessage.put(EXTERNAL_MESSAGE_BYTE_PAYLOAD, externalMessage, bytePayload);
-                externalMessage.put(EXTERNAL_MESSAGE_CONTENT_TYPE, externalMessage, contentType);
+                final NativeObject externalMessage = mapExternalMessageToNativeObject(message);
 
                 final org.mozilla.javascript.Function
-                        mapToDittoProtocolMsgWrapper = (org.mozilla.javascript.Function) scope.get(INCOMING_FUNCTION_NAME, scope);
-                final Object result = mapToDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[] {externalMessage});
+                        mapToDittoProtocolMsgWrapper =
+                        (org.mozilla.javascript.Function) scope.get(INCOMING_FUNCTION_NAME, scope);
+                final Object result =
+                        mapToDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[]{externalMessage});
 
                 if (result == null) {
                     // return null if result is null causing the wrapping Optional to be empty
@@ -117,6 +98,30 @@ public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage,
                     .cause(e)
                     .build();
         }
+    }
+
+    static NativeObject mapExternalMessageToNativeObject(final ExternalMessage message) {
+        final NativeObject headersObj = new NativeObject();
+        message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
+
+        final NativeArrayBuffer bytePayload =
+                message.getBytePayload()
+                        .map(bb -> {
+                            final NativeArrayBuffer nativeArrayBuffer = new NativeArrayBuffer(bb.remaining());
+                            bb.get(nativeArrayBuffer.getBuffer());
+                            return nativeArrayBuffer;
+                        })
+                        .orElse(null);
+
+        final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
+        final String textPayload = message.getTextPayload().orElse(null);
+
+        final NativeObject externalMessage = new NativeObject();
+        externalMessage.put(EXTERNAL_MESSAGE_HEADERS, externalMessage, headersObj);
+        externalMessage.put(EXTERNAL_MESSAGE_TEXT_PAYLOAD, externalMessage, textPayload);
+        externalMessage.put(EXTERNAL_MESSAGE_BYTE_PAYLOAD, externalMessage, bytePayload);
+        externalMessage.put(EXTERNAL_MESSAGE_CONTENT_TYPE, externalMessage, contentType);
+        return externalMessage;
     }
 
     private Adaptable getAdaptableFromObject(final Context cx, final Object result) {

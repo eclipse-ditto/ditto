@@ -51,25 +51,25 @@ helm dependency update ./eclipse-ditto/
 (Optional) we recommend to define a K8s [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) independent of the Helm release to ensure the data survives a helm delete:
 
 ```bash
-kubectl apply -f ditto-mongodb-pvc.yaml --namespace dittons
+kubectl apply -f ditto-mongodb-pvc.yaml
 ```
 
 ...in this case start Ditto with:
 
 ```bash
-helm upgrade ditto ./eclipse-ditto/ --namespace dittons --set mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-mongodb-pvc --wait --install
+helm upgrade ditto ./eclipse-ditto/ --set mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-mongodb-pvc --wait --install
 ```
 
 .. or else
 
 ```bash
-helm upgrade ditto ./eclipse-ditto/ --namespace dittons --set mongodb.persistence.enabled=true --wait --install
+helm upgrade ditto ./eclipse-ditto/ --set mongodb.persistence.enabled=true --wait --install
 ```
 
 ...or without persistence for the MongoDB at all:
 
 ```bash
-helm upgrade ditto ./eclipse-ditto/ --namespace dittons --wait --install
+helm upgrade ditto ./eclipse-ditto/ --wait --install
 ```
 
 ### Use Eclipse Ditto

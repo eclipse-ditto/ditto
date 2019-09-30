@@ -83,7 +83,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cleanup</artifactId>
+            <artifactId>ditto-services-utils-persistent-actors</artifactId>
         </dependency>
 
         <dependency>
@@ -162,6 +162,10 @@
         <dependency>
             <groupId>com.lightbend.akka</groupId>
             <artifactId>akka-stream-alpakka-mqtt_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.hivemq</groupId>
+            <artifactId>hivemq-mqtt-client</artifactId>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>

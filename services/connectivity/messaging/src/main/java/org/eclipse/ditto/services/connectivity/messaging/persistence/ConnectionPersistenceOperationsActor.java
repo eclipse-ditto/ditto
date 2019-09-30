@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
-import org.eclipse.ditto.services.connectivity.messaging.ConnectionActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
@@ -64,8 +63,8 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
 
         return Props.create(ConnectionPersistenceOperationsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
-                    MongoEventSourceSettings.fromConfig(config, ConnectionActor.PERSISTENCE_ID_PREFIX, false,
-                            ConnectionActor.JOURNAL_PLUGIN_ID, ConnectionActor.SNAPSHOT_PLUGIN_ID);
+                    MongoEventSourceSettings.fromConfig(config, ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX, false,
+                            ConnectionPersistenceActor.JOURNAL_PLUGIN_ID, ConnectionPersistenceActor.SNAPSHOT_PLUGIN_ID);
 
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
             final MongoDatabase db = mongoClient.getDefaultDatabase();

@@ -167,10 +167,6 @@ public final class SendThingMessageTest {
         final SendThingMessage<?> underTest =
                 SendThingMessage.of(THING_ID, MESSAGE_EMPTY_PAYLOAD, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
-
-        System.out.println(actualJson.toString());
-        System.out.println(KNOWN_JSON_WITH_EMPTY_PAYLOAD.toString());
-
         assertThat(actualJson).isEqualTo(KNOWN_JSON_WITH_EMPTY_PAYLOAD);
     }
 

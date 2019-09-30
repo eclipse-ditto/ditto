@@ -23,6 +23,12 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface MqttConfig {
 
     /**
+     * @see MqttConfigValue#LEGACY_MODE
+     * @return see {@link MqttConfigValue#LEGACY_MODE}.
+     */
+    boolean isLegacyMode();
+
+    /**
      * Returns the maximum number of buffered messages for each MQTT source.
      *
      * @return the buffer size.
@@ -38,12 +44,17 @@ public interface MqttConfig {
         /**
          * The maximum number of buffered messages for each MQTT source.
          */
-        SOURCE_BUFFER_SIZE("source-buffer-size", 8);
+        SOURCE_BUFFER_SIZE("source-buffer-size", 8),
+
+        /**
+         * If Ditto should use the "legacy" MQTT client (based on alpakka-mqtt using Paho).
+         */
+        LEGACY_MODE("legacy-mode", false);
 
         private final String path;
         private final Object defaultValue;
 
-        private MqttConfigValue(final String thePath, final Object theDefaultValue) {
+        MqttConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

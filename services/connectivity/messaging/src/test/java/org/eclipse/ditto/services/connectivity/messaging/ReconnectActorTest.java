@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -68,9 +69,9 @@ public final class ReconnectActorTest {
             final ConnectionId connectionId3 = ConnectionId.of("connection-3");
             final Props props = ReconnectActor.props(probe.ref(),
                     () -> Source.from(Arrays.asList(
-                            ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId1,
+                            ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + connectionId1,
                             "invalid:" + connectionId2,
-                            ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId3)));
+                            ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + connectionId3)));
 
             actorSystem.actorOf(props);
 
@@ -87,9 +88,9 @@ public final class ReconnectActorTest {
             final TestProbe probe = new TestProbe(actorSystem);
             final Props props = ReconnectActor.props(probe.ref(),
                     () -> Source.from(Arrays.asList(
-                            ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-1",
-                            ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-2",
-                            ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-3")));
+                            ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + "connection-1",
+                            ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + "connection-2",
+                            ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + "connection-3")));
 
             final ActorRef reconnectActor = actorSystem.actorOf(props);
             reconnectActor.tell(ReconnectActor.ReconnectMessages.START_RECONNECT, getRef());

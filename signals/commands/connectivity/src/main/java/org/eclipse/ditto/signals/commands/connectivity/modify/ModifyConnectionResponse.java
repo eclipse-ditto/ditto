@@ -32,9 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
@@ -57,34 +55,15 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
                     JsonSchemaVersion.V_2);
 
     private final ConnectionId connectionId;
-    @Nullable private final Connection connectionCreated;
 
-    private ModifyConnectionResponse(final ConnectionId connectionId,
-            final HttpStatusCode statusCode,
-            @Nullable final Connection connectionCreated,
-            final DittoHeaders dittoHeaders) {
+    private ModifyConnectionResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
         this.connectionId = checkNotNull(connectionId, "Connection ID");
-        this.connectionCreated = connectionCreated;
     }
 
     /**
-     * Returns a new {@code ModifyConnectionResponse} for a created Thing. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
-     *
-     * @param connection the connection which was created.
-     * @param dittoHeaders the headers of the request.
-     * @return a new ModifyConnectionResponse.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static ModifyConnectionResponse created(final Connection connection, final DittoHeaders dittoHeaders) {
-        checkNotNull(connection, "Connection");
-        return new ModifyConnectionResponse(connection.getId(), HttpStatusCode.CREATED, connection, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyConnectionResponse} for a modified Thing. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyConnectionResponse}. This corresponds to the HTTP status code
      * {@link HttpStatusCode#NO_CONTENT}.
      *
      * @param connectionId the ID of the connection which was modified.
@@ -92,8 +71,8 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
      * @return a new ModifyConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyConnectionResponse modified(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        return new ModifyConnectionResponse(connectionId, HttpStatusCode.NO_CONTENT, null, dittoHeaders);
+    public static ModifyConnectionResponse of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+        return new ModifyConnectionResponse(connectionId, dittoHeaders);
     }
 
     /**
@@ -127,22 +106,8 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
                     final ConnectionId connectionId = ConnectionId.of(readConnectionId);
-
-                    final Connection readConnection= jsonObject.getValue(JSON_CONNECTION)
-                            .map(ConnectivityModelFactory::connectionFromJson)
-                            .orElse(null);
-
-                    return new ModifyConnectionResponse(connectionId, statusCode, readConnection, dittoHeaders);
+                    return new ModifyConnectionResponse(connectionId, dittoHeaders);
                 });
-    }
-
-    /**
-     * Returns the created {@code Connection}.
-     *
-     * @return the created Connection.
-     */
-    public Optional<Connection> getConnectionCreated() {
-        return Optional.ofNullable(connectionCreated);
     }
 
     @Override
@@ -152,9 +117,6 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
 
         jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
                 predicate);
-        if (connectionCreated != null) {
-            jsonObjectBuilder.set(JSON_CONNECTION, connectionCreated.toJson(schemaVersion, thePredicate), predicate);
-        }
     }
 
     @Override
@@ -164,14 +126,12 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(connectionCreated).map(connection ->
-                connection.toJson(schemaVersion, FieldType.notHidden()));
+        return Optional.empty();
     }
 
     @Override
     public ModifyConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return connectionCreated != null ? created(connectionCreated, dittoHeaders) :
-                modified(connectionId, dittoHeaders);
+        return of(connectionId, dittoHeaders);
     }
 
     @Override
@@ -191,13 +151,12 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
             return false;
         }
         final ModifyConnectionResponse that = (ModifyConnectionResponse) o;
-        return Objects.equals(connectionId, that.connectionId) &&
-                Objects.equals(connectionCreated, that.connectionCreated);
+        return Objects.equals(connectionId, that.connectionId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId, connectionCreated);
+        return Objects.hash(super.hashCode(), connectionId);
     }
 
     @Override
@@ -205,7 +164,6 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
         return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", connectionId=" + connectionId +
-                ", connectionCreated=" + connectionCreated +
                 "]";
     }
 }

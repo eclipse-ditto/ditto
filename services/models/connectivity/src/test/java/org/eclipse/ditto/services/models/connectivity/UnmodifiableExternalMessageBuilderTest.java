@@ -30,15 +30,20 @@ public class UnmodifiableExternalMessageBuilderTest {
 
     @Test
     public void testBuildExternalMessageWithTextPayload() {
-        testBuildExternalMessage(false);
+        testBuildExternalMessage(true, false);
     }
 
     @Test
     public void testBuildExternalMessageWithBytePayload() {
-        testBuildExternalMessage(true);
+        testBuildExternalMessage(false, true);
     }
 
-    private void testBuildExternalMessage(final boolean bytePayload) {
+    @Test
+    public void testBuildExternalMessageWithTextAndBytePayload() {
+        testBuildExternalMessage(true, true);
+    }
+
+    private void testBuildExternalMessage(final boolean textPayload, final boolean bytePayload) {
         final AuthorizationContext authorizationContext = Mockito.mock(AuthorizationContext.class);
         final TopicPath topicPath = Mockito.mock(TopicPath.class);
         final Map<String, String> headers = new HashMap<>();
@@ -50,7 +55,9 @@ public class UnmodifiableExternalMessageBuilderTest {
         messageBuilder.withAdditionalHeaders("ditto", "eclipse");
         messageBuilder.withAuthorizationContext(authorizationContext);
         messageBuilder.withTopicPath(topicPath);
-        if (bytePayload) {
+        if (textPayload && bytePayload) {
+            messageBuilder.withTextAndBytes(PAYLOAD, BYTES);
+        } else if (bytePayload) {
             messageBuilder.withBytes(BYTES);
         } else {
             messageBuilder.withText(PAYLOAD);
@@ -65,10 +72,19 @@ public class UnmodifiableExternalMessageBuilderTest {
         Assertions.assertThat(externalMessage.isError()).isFalse();
         Assertions.assertThat(externalMessage.isResponse()).isFalse();
 
-        if (bytePayload) {
+        if (textPayload && bytePayload) {
+            Assertions.assertThat(externalMessage.isBytesMessage()).isTrue();
+            Assertions.assertThat(externalMessage.isTextMessage()).isTrue();
+            Assertions.assertThat(externalMessage.getTextPayload()).contains(PAYLOAD);
+            Assertions.assertThat(externalMessage.getBytePayload()).contains(ByteBuffer.wrap(BYTES));
+        } else if (bytePayload) {
+            Assertions.assertThat(externalMessage.isBytesMessage()).isTrue();
+            Assertions.assertThat(externalMessage.isTextMessage()).isFalse();
             Assertions.assertThat(externalMessage.getTextPayload()).isEmpty();
             Assertions.assertThat(externalMessage.getBytePayload()).contains(ByteBuffer.wrap(BYTES));
         } else {
+            Assertions.assertThat(externalMessage.isBytesMessage()).isFalse();
+            Assertions.assertThat(externalMessage.isTextMessage()).isTrue();
             Assertions.assertThat(externalMessage.getTextPayload()).contains(PAYLOAD);
             Assertions.assertThat(externalMessage.getBytePayload()).isEmpty();
         }

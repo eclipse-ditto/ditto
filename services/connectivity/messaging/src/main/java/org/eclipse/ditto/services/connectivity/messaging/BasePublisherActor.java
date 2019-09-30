@@ -291,5 +291,4 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     .build();
         }).orElseGet(messageBuilder::build);
     }
-
 }

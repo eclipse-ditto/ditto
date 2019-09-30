@@ -20,6 +20,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
@@ -46,22 +48,22 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
     @Test
     public void successfullyDeleteAttribute() {
         final JsonPointer attrPointer = JsonFactory.newPointer("/location/longitude");
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAttribute command = DeleteAttribute.of(context.getThingEntityId(), attrPointer, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributeDeleted.class,
-                DeleteAttributeResponse.of(context.getThingEntityId(),
+                DeleteAttributeResponse.of(context.getState(),
                         attrPointer, command.getDittoHeaders()));
     }
 
     @Test
     public void deleteAttributeFromThingWithoutAttributes() {
         final JsonPointer attrPointer = JsonFactory.newPointer("/location/longitude");
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAttribute command = DeleteAttribute.of(context.getThingEntityId(), attrPointer, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributeNotFound(context.getThingEntityId(), attrPointer, command.getDittoHeaders());
+                ExceptionFactory.attributeNotFound(context.getState(), attrPointer, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeAttributes(), command, expectedException);
     }
@@ -69,10 +71,10 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
     @Test
     public void deleteAttributeFromThingWithoutThatAttribute() {
         final JsonPointer attrPointer = JsonFactory.newPointer("/location/longitude");
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAttribute command = DeleteAttribute.of(context.getThingEntityId(), attrPointer, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributeNotFound(context.getThingEntityId(), attrPointer, command.getDittoHeaders());
+                ExceptionFactory.attributeNotFound(context.getState(), attrPointer, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeAttribute(attrPointer), command, expectedException);
     }
