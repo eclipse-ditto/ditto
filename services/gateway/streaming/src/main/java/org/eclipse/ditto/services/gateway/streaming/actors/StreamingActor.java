@@ -13,12 +13,20 @@
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.ImmutableJsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
+import org.eclipse.ditto.services.gateway.streaming.JwtToken;
+import org.eclipse.ditto.services.gateway.streaming.ResetSessionTimer;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
@@ -52,6 +60,7 @@ public final class StreamingActor extends AbstractActor {
 
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef commandRouter;
+    private final JwtValidator jwtValidator;
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(Throwable.class, e -> {
@@ -66,9 +75,12 @@ public final class StreamingActor extends AbstractActor {
     private final Cancellable sessionCounterScheduler;
 
     @SuppressWarnings("unused")
-    private StreamingActor(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter) {
+    private StreamingActor(final DittoProtocolSub dittoProtocolSub,
+            final ActorRef commandRouter,
+            final JwtValidator jwtValidator) {
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
+        this.jwtValidator = jwtValidator;
 
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
 
@@ -94,11 +106,12 @@ public final class StreamingActor extends AbstractActor {
      *
      * @param dittoProtocolSub the Ditto protocol sub access.
      * @param commandRouter the command router used to send signals into the cluster
+     * @param jwtValidator the validator for JWT tokens.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter) {
-
-        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter);
+    public static Props props(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter,
+            final JwtValidator jwtValidator) {
+        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtValidator);
     }
 
     @Override
@@ -126,6 +139,7 @@ public final class StreamingActor extends AbstractActor {
                         stopStreaming -> forwardToSessionActor(stopStreaming.getConnectionCorrelationId(),
                                 stopStreaming)
                 )
+                .match(JwtToken.class, this::refreshWebsocketSession)
                 .match(Signal.class, signal -> {
                     final Optional<String> originOpt = signal.getDittoHeaders().getOrigin();
                     if (originOpt.isPresent()) {
@@ -151,6 +165,18 @@ public final class StreamingActor extends AbstractActor {
                     }
                 })
                 .matchAny(any -> logger.warning("Got unknown message: '{}'", any)).build();
+    }
+
+
+    private void refreshWebsocketSession(final JwtToken jwtToken) {
+            final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromAuthorizationString(jwtToken.getJwtTokenAsString());
+            jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
+                if (binaryValidationResult.isValid()) {
+                    final String connectionCorrelationId = jwtToken.getConnectionCorrelationId();
+                    forwardToSessionActor(connectionCorrelationId,
+                            new ResetSessionTimer(connectionCorrelationId, jsonWebToken.getExpirationTime()));
+                }
+            });
     }
 
     private void forwardToSessionActor(final String connectionCorrelationId, final Object object) {

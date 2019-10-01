@@ -17,6 +17,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.OAuthConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
@@ -47,6 +49,11 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.DefaultHttpClientFacad
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoPublicKeyProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuerConfig;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuersConfig;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.PublicKeyProvider;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -113,8 +120,12 @@ public final class RootRouteTest extends EndpointTestBase {
                 ProtocolAdapterProvider.load(protocolConfig, actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
         final DefaultHttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
+        final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig(authConfig.getOAuthConfig());
+        final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
+                cacheConfig, "ditto_authorization_jwt_publicKeys_cache");
+        final JwtValidator jwtValidator = JwtValidator.getInstance(publicKeyProvider);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(authConfig, cacheConfig, httpClient, messageDispatcher);
+                new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtSubjectIssuersConfig, jwtValidator, messageDispatcher);
 
         final ActorRef proxyActor = createDummyResponseActor();
         final Supplier<ClusterStatus> clusterStatusSupplier = createClusterStatusSupplierMock();
@@ -367,4 +378,11 @@ public final class RootRouteTest extends EndpointTestBase {
         return withDummyAuthentication(httpRequest, "some-issuer:foo");
     }
 
+    private static JwtSubjectIssuersConfig buildJwtSubjectIssuersConfig(final OAuthConfig config) {
+        final Set<JwtSubjectIssuerConfig> configItems = config.getOpenIdConnectIssuers().entrySet().stream()
+                .map(entry -> new JwtSubjectIssuerConfig(entry.getValue(), entry.getKey()))
+                .collect(Collectors.toSet());
+
+        return new JwtSubjectIssuersConfig(configItems);
+    }
 }

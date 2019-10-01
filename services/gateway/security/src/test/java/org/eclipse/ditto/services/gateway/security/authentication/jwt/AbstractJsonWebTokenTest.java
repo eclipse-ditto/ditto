@@ -21,8 +21,10 @@ import static org.eclipse.ditto.services.gateway.security.authentication.jwt.Jwt
 import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.VALID_JWT_TOKEN;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -95,6 +97,14 @@ public final class AbstractJsonWebTokenTest {
         assertThat(abstractJsonWebTokenTestImplementation.getHeader().toString()).isEqualTo(header);
         assertThat(abstractJsonWebTokenTestImplementation.getBody().toString()).isEqualTo(payload);
         assertThat(abstractJsonWebTokenTestImplementation.getSignature()).isEqualTo(base64(signature));
+    }
+
+    @Test
+    public void checkExpirationTimeReturnsCorrectInstant() {
+        final AbstractJsonWebTokenTestImplementation expiredJsonWebToken =
+                new AbstractJsonWebTokenTestImplementation("Bearer " + VALID_JWT_TOKEN);
+
+        assertThat(expiredJsonWebToken.getExpirationTime()).isBefore(Instant.now());
     }
 
     private static final class AbstractJsonWebTokenTestImplementation extends AbstractJsonWebToken {

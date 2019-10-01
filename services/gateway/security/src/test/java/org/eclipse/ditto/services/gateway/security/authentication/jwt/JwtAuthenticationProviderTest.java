@@ -13,10 +13,6 @@
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.ISSUER;
-import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.KEY_ID;
-import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.PUBLIC_KEY;
-import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.PUBLIC_KEY_2;
 import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.VALID_JWT_TOKEN;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -24,7 +20,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -58,14 +53,14 @@ public final class JwtAuthenticationProviderTest {
     private JwtAuthenticationProvider underTest;
 
     @Mock
-    private PublicKeyProvider publicKeyProvider;
+    private JwtValidator jwtValidator;
 
     @Mock
     private JwtAuthorizationContextProvider authenticationContextProvider;
 
     @Before
     public void setup() {
-        underTest = JwtAuthenticationProvider.getInstance(publicKeyProvider, authenticationContextProvider);
+        underTest = JwtAuthenticationProvider.getInstance(jwtValidator, authenticationContextProvider);
     }
 
     @Test
@@ -91,8 +86,8 @@ public final class JwtAuthenticationProviderTest {
 
     @Test
     public void doExtractAuthentication() {
-        when(publicKeyProvider.getPublicKey(ISSUER, KEY_ID)).thenReturn(
-                CompletableFuture.completedFuture(Optional.of(PUBLIC_KEY)));
+        when(jwtValidator.validate(any(JsonWebToken.class)))
+                .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         when(authenticationContextProvider.getAuthorizationContext(any(JsonWebToken.class))).thenReturn(
                 AuthorizationContext.newInstance(AuthorizationSubject.newInstance("myAuthSubj")));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
@@ -105,8 +100,8 @@ public final class JwtAuthenticationProviderTest {
 
     @Test
     public void doExtractAuthenticationWhenAuthorizationContextProviderErrors() {
-        when(publicKeyProvider.getPublicKey(ISSUER, KEY_ID)).thenReturn(
-                CompletableFuture.completedFuture(Optional.of(PUBLIC_KEY)));
+        when(jwtValidator.validate(any(JsonWebToken.class)))
+                .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         when(authenticationContextProvider.getAuthorizationContext(any(JsonWebToken.class)))
                 .thenThrow(new RuntimeException("Something happened"));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
@@ -147,8 +142,9 @@ public final class JwtAuthenticationProviderTest {
 
     @Test
     public void doExtractAuthenticationWithInvalidJwt() {
-        when(publicKeyProvider.getPublicKey(ISSUER, KEY_ID)).thenReturn(
-                CompletableFuture.completedFuture(Optional.of(PUBLIC_KEY_2)));
+        when(jwtValidator.validate(any(JsonWebToken.class)))
+                .thenReturn(CompletableFuture.completedFuture(
+                        BinaryValidationResult.invalid(new IllegalStateException("foo"))));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
         final String correlationId = getRandomUuid();
 
@@ -192,7 +188,7 @@ public final class JwtAuthenticationProviderTest {
     @Test
     public void getType() {
         final JwtAuthenticationProvider underTest =
-                JwtAuthenticationProvider.getInstance(publicKeyProvider, authenticationContextProvider);
+                JwtAuthenticationProvider.getInstance(jwtValidator, authenticationContextProvider);
 
         assertThat(underTest.getType()).isEqualTo("JWT");
     }

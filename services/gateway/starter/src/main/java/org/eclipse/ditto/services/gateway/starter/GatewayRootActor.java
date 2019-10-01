@@ -14,18 +14,24 @@ package org.eclipse.ditto.services.gateway.starter;
 
 import java.net.ConnectException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.CachesConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.OAuthConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
@@ -45,7 +51,16 @@ import org.eclipse.ditto.services.gateway.health.GatewayHttpReadinessCheck;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.BinaryValidationResult;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoPublicKeyProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.ImmutableJsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuerConfig;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuersConfig;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.PublicKeyProvider;
 import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
+import org.eclipse.ditto.services.gateway.streaming.ResetSessionTimer;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
@@ -157,6 +172,10 @@ final class GatewayRootActor extends AbstractActor {
 
         final ActorSystem actorSystem = context().system();
 
+        final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
+        final DefaultHttpClientFacade httpClient =
+                DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
+
         final ClusterConfig clusterConfig = gatewayConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
 
@@ -178,9 +197,17 @@ final class GatewayRootActor extends AbstractActor {
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
+        final JwtSubjectIssuersConfig jwtSubjectIssuersConfig =
+                buildJwtSubjectIssuersConfig(gatewayConfig.getAuthenticationConfig().getOAuthConfig());
+
+        final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
+                gatewayConfig.getCachesConfig().getPublicKeysConfig(), "ditto_authorization_jwt_publicKeys_cache");
+
+        final JwtValidator jwtValidator = JwtValidator.getInstance(publicKeyProvider);
+
         final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
-                StreamingActor.props(dittoProtocolSub, proxyActor));
+                StreamingActor.props(dittoProtocolSub, proxyActor, jwtValidator));
 
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
@@ -193,8 +220,8 @@ final class GatewayRootActor extends AbstractActor {
         }
 
         final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor, healthCheckActor,
-                healthCheckConfig);
-        final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), (() -> rootRoute));
+                healthCheckConfig, jwtSubjectIssuersConfig, jwtValidator);
+        final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
         httpBinding = Http.get(actorSystem)
                 .bindAndHandle(routeWithLogging.flow(actorSystem, materializer),
@@ -260,17 +287,17 @@ final class GatewayRootActor extends AbstractActor {
             final ActorRef proxyActor,
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor,
-            final HealthCheckConfig healthCheckConfig) {
+            final HealthCheckConfig healthCheckConfig,
+            final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
+            final JwtValidator jwtValidator) {
 
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
-        final CachesConfig cachesConfig = gatewayConfig.getCachesConfig();
-        final DefaultHttpClientFacade httpClient =
-                DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
-        final MessageDispatcher authenticationDispatcher = actorSystem.dispatchers().lookup(
-                AUTHENTICATION_DISPATCHER_NAME);
+
+        final MessageDispatcher authenticationDispatcher = actorSystem.dispatchers().lookup(AUTHENTICATION_DISPATCHER_NAME);
+
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(authConfig, cachesConfig.getPublicKeysConfig(),
-                        httpClient, authenticationDispatcher);
+                new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtSubjectIssuersConfig,
+                        jwtValidator, authenticationDispatcher);
 
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
@@ -319,6 +346,14 @@ final class GatewayRootActor extends AbstractActor {
 
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
+    }
+
+    private static JwtSubjectIssuersConfig buildJwtSubjectIssuersConfig(final OAuthConfig config) {
+        final Set<JwtSubjectIssuerConfig> configItems = config.getOpenIdConnectIssuers().entrySet().stream()
+                .map(entry -> new JwtSubjectIssuerConfig(entry.getValue(), entry.getKey()))
+                .collect(Collectors.toSet());
+
+        return new JwtSubjectIssuersConfig(configItems);
     }
 
 }

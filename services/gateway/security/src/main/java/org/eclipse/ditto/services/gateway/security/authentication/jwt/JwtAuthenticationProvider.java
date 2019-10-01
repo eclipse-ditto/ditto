@@ -44,29 +44,29 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
     private static final String AUTHENTICATION_TYPE = "JWT";
     private static final String AUTHORIZATION_JWT = "Bearer";
 
-    private final PublicKeyProvider publicKeyProvider;
     private final JwtAuthorizationContextProvider jwtAuthorizationContextProvider;
+    private final JwtValidator jwtValidator;
 
-    private JwtAuthenticationProvider(final PublicKeyProvider publicKeyProvider,
+    private JwtAuthenticationProvider(final JwtValidator jwtValidator,
             final JwtAuthorizationContextProvider jwtAuthorizationContextProvider) {
 
-        this.publicKeyProvider = checkNotNull(publicKeyProvider, "PublicKeyProvider");
         this.jwtAuthorizationContextProvider =
                 checkNotNull(jwtAuthorizationContextProvider, "JwtAuthorizationContextProvider");
+        this.jwtValidator = checkNotNull(jwtValidator, "JWT Validator");
     }
 
     /**
      * Creates a new instance of the JWT authentication provider.
      *
-     * @param publicKeyProvider the provider of public keys that are allowed to sign a JWT.
+     * @param jwtValidator the .
      * @param jwtAuthorizationContextProvider builds the authorization context based on the JWT.
      * @return the created instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static JwtAuthenticationProvider getInstance(final PublicKeyProvider publicKeyProvider,
+    public static JwtAuthenticationProvider getInstance(final JwtValidator jwtValidator,
             final JwtAuthorizationContextProvider jwtAuthorizationContextProvider) {
 
-        return new JwtAuthenticationProvider(publicKeyProvider, jwtAuthorizationContextProvider);
+        return new JwtAuthenticationProvider(jwtValidator, jwtAuthorizationContextProvider);
     }
 
     /**
@@ -116,7 +116,7 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
     private CompletableFuture<AuthorizationContext> getAuthorizationContext(final JsonWebToken jwt,
             final CharSequence correlationId) {
 
-        return jwt.validate(publicKeyProvider)
+        return jwtValidator.validate(jwt)
                 .thenApply(validationResult -> {
                     LogUtil.enhanceLogWithCorrelationId(correlationId);
                     if (!validationResult.isValid()) {

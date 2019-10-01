@@ -162,8 +162,8 @@ public interface JsonWebToken {
         /**
          * JSON field containing the expiration time.
          */
-        public static final JsonFieldDefinition<String> EXP =
-                JsonFactory.newStringFieldDefinition("exp", FieldType.REGULAR);
+        public static final JsonFieldDefinition<Long> EXP =
+                JsonFactory.newLongFieldDefinition("exp", FieldType.REGULAR);
 
         private JsonFields() {
             throw new AssertionError();

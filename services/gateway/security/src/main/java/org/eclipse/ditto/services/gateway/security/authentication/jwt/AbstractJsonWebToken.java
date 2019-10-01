@@ -162,7 +162,7 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
 
     @Override
     public Instant getExpirationTime() {
-        return Instant.ofEpochMilli(Long.parseLong(body.getValueOrThrow(JsonFields.EXP)));
+        return Instant.ofEpochSecond(body.getValueOrThrow(JsonFields.EXP));
     }
 
     @Override

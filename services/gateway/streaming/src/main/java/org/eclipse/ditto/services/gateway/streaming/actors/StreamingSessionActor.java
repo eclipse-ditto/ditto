@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFacto
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.gateway.streaming.ResetSessionTimer;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
@@ -72,7 +73,7 @@ final class StreamingSessionActor extends AbstractActor {
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef eventAndResponsePublisher;
     private final Set<StreamingType> outstandingSubscriptionAcks;
-    private final Cancellable sessionTerminationScheduler;
+    private Cancellable sessionTerminationCancellable;
 
     private List<String> authorizationSubjects;
     private Map<StreamingType, List<String>> namespacesForStreamingTypes;
@@ -94,13 +95,9 @@ final class StreamingSessionActor extends AbstractActor {
         getContext().watch(eventAndResponsePublisher);
 
         if (sessionExpirationTime != null) {
-            final FiniteDuration sessionExpirationTimeMillis =
-                    FiniteDuration.apply(sessionExpirationTime.getEpochSecond(), TimeUnit.MILLISECONDS);
-            sessionTerminationScheduler = getContext().getSystem().getScheduler()
-                    .scheduleOnce(sessionExpirationTimeMillis,
-                            this::handleSessionTimeout, getContext().getDispatcher());
+            sessionTerminationCancellable = startSessionTimeout(sessionExpirationTime);
         } else {
-            sessionTerminationScheduler = null;
+            sessionTerminationCancellable = null;
         }
 
     }
@@ -123,6 +120,7 @@ final class StreamingSessionActor extends AbstractActor {
     @Override
     public void postStop() throws Exception {
         LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
+        sessionTerminationCancellable.cancel();
         logger.info("Closing '{}' streaming session: {}", type, connectionCorrelationId);
     }
 
@@ -199,6 +197,10 @@ final class StreamingSessionActor extends AbstractActor {
                                 .thenAccept(ack -> getSelf().tell(unsubscribeAck, getSelf()));
                     }
                 })
+                .match(ResetSessionTimer.class, resetSessionTimer -> {
+                    sessionTerminationCancellable.cancel();
+                    sessionTerminationCancellable = startSessionTimeout(resetSessionTimer.getSessionTimeout());
+                })
                 .match(AcknowledgeSubscription.class, msg ->
                         acknowledgeSubscription(msg.getStreamingType(), getSelf()))
                 .match(AcknowledgeUnsubscription.class, msg ->
@@ -253,9 +255,18 @@ final class StreamingSessionActor extends AbstractActor {
         }
     }
 
+    private Cancellable startSessionTimeout(final Instant sessionExpirationTime) {
+        logger.debug("Starting session timeout - session will expire in {}s", sessionExpirationTime.getEpochSecond());
+        final FiniteDuration sessionExpirationTimeMillis =
+                FiniteDuration.apply(sessionExpirationTime.getEpochSecond(), TimeUnit.MILLISECONDS);
+        return getContext().getSystem().getScheduler()
+                .scheduleOnce(sessionExpirationTimeMillis,
+                        this::handleSessionTimeout, getContext().getDispatcher());
+    }
+
     private void handleSessionTimeout() {
-        logger.info("Stopping websocket session for connection with id: {}", connectionCorrelationId);
-//        getSelf().tell(new StopStreaming(StreamingType.valueOf(type), connectionCorrelationId), getSelf());
+        logger.info("Stopping websocket session for connection with id: {}",
+                connectionCorrelationId);
         eventAndResponsePublisher.tell(GatewayWebsocketSessionExpiredException.newBuilder()
                 .dittoHeaders(DittoHeaders.newBuilder()
                         .correlationId(connectionCorrelationId)

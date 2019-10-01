@@ -94,7 +94,7 @@ public class ProtocolMessageExtractorTest {
                     final Object extracted = extractor.apply(protocolMessage.getIdentifier() + parameters);
                     assertThat(extracted).isInstanceOfAny(StartStreaming.class);
                     final StartStreaming start = ((StartStreaming) extracted);
-                    assertThat(start.getStreamingType()).isEqualTo(protocolMessage.getStreamingType());
+                    assertThat(start.getStreamingType()).isEqualTo(protocolMessage.getStreamingType().get());
                     assertThat(start.getConnectionCorrelationId()).isEqualTo(correlationId);
                     assertThat(start.getAuthorizationContext()).isEqualTo(authorizationContext);
                     assertThat(start.getNamespaces()).isEqualTo(expectedNamespaces);
@@ -110,7 +110,7 @@ public class ProtocolMessageExtractorTest {
                     final Object extracted = extractor.apply(protocolMessage.getIdentifier());
                     assertThat(extracted).isInstanceOfAny(StopStreaming.class);
                     final StopStreaming stop = ((StopStreaming) extracted);
-                    assertThat(stop.getStreamingType()).isEqualTo(protocolMessage.getStreamingType());
+                    assertThat(stop.getStreamingType()).isEqualTo(protocolMessage.getStreamingType().get());
                     assertThat(stop.getConnectionCorrelationId()).isEqualTo(correlationId);
                 });
     }

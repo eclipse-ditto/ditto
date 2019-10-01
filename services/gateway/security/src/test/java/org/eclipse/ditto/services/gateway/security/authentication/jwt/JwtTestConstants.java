@@ -16,6 +16,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Date;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -59,6 +60,7 @@ final class JwtTestConstants {
         return Jwts.builder()
                 .setHeaderParam("kid", KEY_ID)
                 .setIssuer(ISSUER)
+                .setExpiration(new Date())
                 .signWith(PRIVATE_KEY, SignatureAlgorithm.RS256)
                 .compact();
     }

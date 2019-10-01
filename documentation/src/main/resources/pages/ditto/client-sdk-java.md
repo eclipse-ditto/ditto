@@ -60,7 +60,7 @@ TrustStoreConfiguration trustStoreConfiguration = TrustStoreConfiguration.newBui
    .build();
 
 CommonConfiguration configuration = DittoClientFactory.configurationBuilder()
-   .messagingConfiguration(MessagingProviders.dittoWebsocketProviderBuilder()
+   .providerConfiguration(MessagingProviders.dittoWebsocketProviderBuilder()
       .endpoint("wss://ditto.eclipse.org")
       .authenticationConfiguration(authenticationConfiguration)
       .build()
