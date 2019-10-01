@@ -449,7 +449,7 @@ public abstract class AbstractShardedPersistenceActor<
     private void takeSnapshot(final String reason) {
         final long revision = getRevisionNumber();
         if (entity != null && lastSnapshotRevision != revision) {
-            log.info("Taking snapshot for entity with ID <{}> and sequence number <{}> because {}.", entityId, revision,
+            log.debug("Taking snapshot for entity with ID <{}> and sequence number <{}> because {}.", entityId, revision,
                     reason);
 
             final Object snapshotSubject = snapshotAdapter.toSnapshotStore(entity);
@@ -487,7 +487,7 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     private void saveSnapshotSuccess(final SaveSnapshotSuccess s) {
-        log.info("Got {}", s);
+        log.debug("Got {}", s);
         confirmedSnapshotRevision = s.metadata().sequenceNr();
     }
 
