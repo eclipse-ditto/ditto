@@ -1374,20 +1374,15 @@ h4.panel-title {
     content: none;
 }
 
-.highlight.who .user-logos {
-    display: table;
-    padding-left: 0;
-    padding-right: 0;
-    width: 100%;
-    table-layout: fixed;
-    margin-left: auto;
-    margin-right: auto;
+.highlight.who ul.user-logos {
+    display: flex ;
+    flex-flow: row wrap;
+    padding: 0;
 }
 
-.highlight.who .user-logo {
-    display: table-cell;
-    float: none!important;
-    vertical-align: middle;
-    width: 100%;
+.highlight.who ul.user-logos > li {
+    flex: 1 1 33%; /* 3 logos per line */
+    padding-bottom: 2em;
+    list-style: none;
 }
 
