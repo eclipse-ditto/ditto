@@ -82,7 +82,7 @@ Example connection configuration to create a new Kafka 2.x connection in order t
     "failoverEnabled": true,
     "uri": "tcp://user:password@localhost:9092",
     "specificConfig": {
-      "bootstrapServers": "localhost:9092,other.host:9092"
+      "bootstrapServers": "localhost:9092,other.host:9092",
       "saslMechanism": "plain"
     },
     "sources": [],
