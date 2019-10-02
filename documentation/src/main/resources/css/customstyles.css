@@ -1350,23 +1350,27 @@ h4.panel-title {
 .highlight.who img {
     /*margin: 25px 12.5px;*/
     width: 180px;
+    height: 100%;
 }
 
 @media (max-width: 990px) {
     .highlight.who img {
         width: 160px;
+        height: 100%;
     }
 }
 
 @media (max-width: 767px) {
     .highlight.who img {
         width: 120px;
+        height: 100%;
     }
 }
 
 @media (max-width: 500px) {
     .highlight.who img {
         width: 100px;
+        height: 100%;
     }
 }
 
