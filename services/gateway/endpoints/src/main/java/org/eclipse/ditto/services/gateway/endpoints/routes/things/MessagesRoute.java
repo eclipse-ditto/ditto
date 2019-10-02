@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -35,7 +33,7 @@ import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActor;
+import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
@@ -118,7 +116,7 @@ final class MessagesRoute extends AbstractRoute {
 
         return concat(
                 claimMessages(ctx, dittoHeaders, thingId), // /inbox/claim
-                rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
+                rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
                         inboxOutbox -> // /<inbox|outbox>
                                 post(() -> thingMessages(ctx, dittoHeaders, thingId, inboxOutbox))
                 )
@@ -135,7 +133,7 @@ final class MessagesRoute extends AbstractRoute {
             final ThingId thingId,
             final String featureId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
                 inboxOutbox -> // /<inbox|outbox>
                         post(() -> featureMessages(ctx, dittoHeaders, thingId, featureId, inboxOutbox))
         );
@@ -147,8 +145,8 @@ final class MessagesRoute extends AbstractRoute {
      * @return route for claim messages resource.
      */
     private Route claimMessages(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_INBOX), () -> // /inbox
-                rawPathPrefix(mergeDoubleSlashes().concat(PATH_CLAIM), () -> // /inbox/claim
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_INBOX), () -> // /inbox
+                rawPathPrefix(PathMatchers.slash().concat(PATH_CLAIM), () -> // /inbox/claim
                         post(() ->
                                 pathEndOrSingleSlash(() ->
                                         parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
@@ -186,7 +184,7 @@ final class MessagesRoute extends AbstractRoute {
             final ThingId thingId,
             final String inboxOutbox) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
                 () -> // /messages
                         extractUnmatchedPath(msgSubject -> // <msgSubject/with/slashes>
                                 parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
@@ -230,7 +228,7 @@ final class MessagesRoute extends AbstractRoute {
             final String featureId,
             final String inboxOutbox) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
                 () -> // /messages
                         extractUnmatchedPath(msgSubject -> // /messages/<msgSubject/with/slashes>
                                 parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
@@ -397,7 +395,7 @@ final class MessagesRoute extends AbstractRoute {
                 .map(ByteBuffer::wrap)
                 .map(requestPayloadToCommandFunction)
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
-                        HttpRequestActor.COMPLETE_MESSAGE))
+                        AbstractHttpRequestActor.COMPLETE_MESSAGE))
                 .run(materializer);
 
         return completeWithFuture(preprocessResponse(httpResponseFuture));

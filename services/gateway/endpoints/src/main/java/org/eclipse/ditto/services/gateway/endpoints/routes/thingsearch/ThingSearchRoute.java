@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
-import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
@@ -36,6 +35,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.server.Directives;
+import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 
@@ -72,8 +72,8 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return the {@code /search}} route.
      */
     public Route buildSearchRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_SEARCH), () ->
-                Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_THINGS),
+        return Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_SEARCH), () ->
+                Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS),
                         () -> // /search/things
                                 concat(
                                         // /search/things/count
