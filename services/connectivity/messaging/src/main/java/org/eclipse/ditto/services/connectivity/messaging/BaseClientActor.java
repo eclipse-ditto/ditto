@@ -413,11 +413,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             clientConnectingGauge.reset();
         }
         // cancel our own state timeout if target state is stable
-        switch (to) {
-            case UNKNOWN:
-            case CONNECTED:
-            case DISCONNECTED:
-                cancelStateTimeout();
+        if (to == CONNECTED || to == DISCONNECTED) {
+            cancelStateTimeout();
+        } else if (to == UNKNOWN) {
+            log.debug("State transition to UNKNOWN which happens after actor initialization.");
         }
     }
 
@@ -504,7 +503,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         if (getPublisherActor() != null) {
             getPublisherActor().forward(message.getOutboundSignal(), getContext());
         } else {
-            log.warning("No publisher actor available, dropping message.");
+            log.error("No publisher actor available, dropping message: {}", message);
         }
         return stay();
     }
@@ -1372,6 +1371,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         OutboundSignal.WithExternalMessage getOutboundSignal() {
             return outboundSignal;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "outboundSignal=" + outboundSignal +
+                    "]";
         }
     }
 
