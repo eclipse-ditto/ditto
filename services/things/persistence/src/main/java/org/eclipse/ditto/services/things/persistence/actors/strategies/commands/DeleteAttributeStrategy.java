@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -72,14 +73,14 @@ final class DeleteAttributeStrategy
 
 
     @Override
-    public Optional<?> previousETagEntity(final DeleteAttribute command, @Nullable final Thing previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final DeleteAttribute command, @Nullable final Thing previousEntity) {
         return Optional.ofNullable(previousEntity)
                 .flatMap(Thing::getAttributes)
-                .flatMap(attr -> attr.getValue(command.getAttributePointer()));
+                .flatMap(attr -> attr.getValue(command.getAttributePointer()).flatMap(EntityTag::fromEntity));
     }
 
     @Override
-    public Optional<?> nextETagEntity(final DeleteAttribute command, @Nullable final Thing newEntity) {
+    public Optional<EntityTag> nextEntityTag(final DeleteAttribute command, @Nullable final Thing newEntity) {
         return Optional.empty();
     }
 }

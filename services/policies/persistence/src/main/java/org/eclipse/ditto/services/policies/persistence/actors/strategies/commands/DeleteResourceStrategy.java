@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -79,14 +80,15 @@ final class DeleteResourceStrategy extends AbstractPolicyCommandStrategy<DeleteR
     }
 
     @Override
-    public Optional<?> previousETagEntity(final DeleteResource command, @Nullable final Policy previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final DeleteResource command, @Nullable final Policy previousEntity) {
         return Optional.ofNullable(previousEntity)
                 .flatMap(p -> p.getEntryFor(command.getLabel()))
-                .flatMap(entry -> entry.getResources().getResource(command.getResourceKey()));
+                .flatMap(entry -> entry.getResources().getResource(command.getResourceKey()))
+                .flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final DeleteResource command, @Nullable final Policy newEntity) {
+    public Optional<EntityTag> nextEntityTag(final DeleteResource command, @Nullable final Policy newEntity) {
         return Optional.empty();
     }
 }

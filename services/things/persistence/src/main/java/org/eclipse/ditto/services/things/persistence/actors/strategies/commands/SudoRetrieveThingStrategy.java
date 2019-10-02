@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
@@ -83,12 +84,13 @@ final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoR
     }
 
     @Override
-    public Optional<?> previousETagEntity(final SudoRetrieveThing command, @Nullable final Thing previousEntity) {
-        return nextETagEntity(command, previousEntity);
+    public Optional<EntityTag> previousEntityTag(final SudoRetrieveThing command,
+            @Nullable final Thing previousEntity) {
+        return nextEntityTag(command, previousEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final SudoRetrieveThing command, @Nullable final Thing newEntity) {
-        return Optional.ofNullable(newEntity);
+    public Optional<EntityTag> nextEntityTag(final SudoRetrieveThing command, @Nullable final Thing newEntity) {
+        return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
 }
