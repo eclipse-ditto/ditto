@@ -30,6 +30,9 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
 
     private static final String DEFAULT_DESCRIPTION = "Check, for example, if the JSON Pointer is not empty.";
 
+    private static final String MULTIPLE_SLASHES_DESCRIPTION =
+            "Consecutive slashes in JSON pointers are not supported.";
+
     private static final long serialVersionUID = -6773700329225961931L;
 
     private JsonPointerInvalidException(@Nullable final String message,
@@ -50,6 +53,20 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
     }
 
     /**
+     * Returns a new builder already containing a generic message that consecutive slashes are not supported for json
+     * pointers.
+     *
+     * @param jsonPointer The json pointer containing the consecutive slashes.
+     * @return a builder for {@code JsonPointerInvalidException} objects.
+     */
+    static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderForConsecutiveSlashes(
+            final CharSequence jsonPointer) {
+        return new Builder()
+                .jsonPointer(jsonPointer)
+                .description(MULTIPLE_SLASHES_DESCRIPTION);
+    }
+
+    /**
      * A mutable builder for a {@code JsonPointerInvalidException}.
      */
     @NotThreadSafe
@@ -61,8 +78,8 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
         }
 
         /**
-         * Sets a message which points to the name of the invalid JSON pointer. Thus if this method is called,
-         * {@link #message} should not be called.
+         * Sets a message which points to the name of the invalid JSON pointer. Thus if this method is called, {@link
+         * #message(String)} should not be called.
          *
          * @param jsonPointerString the string representation of the invalid JSON pointer.
          * @return this builder to allow method chaining.
