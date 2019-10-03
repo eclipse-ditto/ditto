@@ -65,6 +65,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
      */
     static final String ACTOR_NAME = "httpPublisherActor";
 
+    private static final long READ_BODY_TIMEOUT_MS = 1000L;
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final HttpPushFactory factory;
@@ -74,7 +76,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final SourceQueue<Pair<HttpRequest, ExternalMessage>> sourceQueue;
 
     @SuppressWarnings("unused")
-    private HttpPublisherActor(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
+    private HttpPublisherActor(final ConnectionId connectionId, final List<Target> targets,
+            final HttpPushFactory factory) {
         super(connectionId, targets);
         this.factory = factory;
 
@@ -199,10 +202,19 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 responsePublishedMonitor.success(message, "HTTP call successfully responded with status <{0}>.",
                         response.status());
             } else {
-                responsePublishedMonitor.failure(message, "HTTP call responded with status <{0}> and body: {1}.",
-                        response.status(),
-                        getResponseBody(response, materializer).toCompletableFuture().join()
-                );
+                getResponseBody(response, materializer)
+                        .thenAccept(body -> responsePublishedMonitor.failure(message,
+                                "HTTP call responded with status <{0}> and body: {1}.", response.status(), body)
+                        )
+                        .exceptionally(bodyReadError -> {
+                            responsePublishedMonitor.failure(message,
+                                    "HTTP call responded with status <{0}>. Failed to read body within {1} ms",
+                                    response.status(), READ_BODY_TIMEOUT_MS);
+                            LogUtil.enhanceLogWithCorrelationId(log, message.getInternalHeaders());
+                            log.info("Got <{}> when reading body of publish response to <{}>", bodyReadError,
+                                    message);
+                            return null;
+                        });
             }
         }
     }
@@ -228,7 +240,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private static CompletionStage<String> getResponseBody(final HttpResponse response,
             final ActorMaterializer materializer) {
-        return response.entity().toStrict(100, materializer)
+        return response.entity()
+                .toStrict(READ_BODY_TIMEOUT_MS, materializer)
                 .thenApply(HttpEntity.Strict::getData)
                 .thenApply(ByteString::utf8String);
     }
