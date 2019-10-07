@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.EXPIRED_JWT_TOKEN;
 import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.ISSUER;
 import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.KEY_ID;
 import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.PUBLIC_KEY;
@@ -100,11 +101,11 @@ public final class AbstractJsonWebTokenTest {
     }
 
     @Test
-    public void checkExpirationTimeReturnsCorrectInstant() {
+    public void checkTokenExpiration() {
         final AbstractJsonWebTokenTestImplementation expiredJsonWebToken =
-                new AbstractJsonWebTokenTestImplementation("Bearer " + VALID_JWT_TOKEN);
+                new AbstractJsonWebTokenTestImplementation("Bearer " + EXPIRED_JWT_TOKEN);
 
-        assertThat(expiredJsonWebToken.getExpirationTime()).isBefore(Instant.now());
+        assertThat(expiredJsonWebToken.hasExpired()).isEqualTo(true);
     }
 
     private static final class AbstractJsonWebTokenTestImplementation extends AbstractJsonWebToken {

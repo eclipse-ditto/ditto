@@ -109,6 +109,13 @@ public interface JsonWebToken {
     Instant getExpirationTime();
 
     /**
+     * Returns true if the token has expired.
+     *
+     * @return true if token has expired otherwise false.
+     */
+    boolean hasExpired();
+
+    /**
      * Checks if this JSON web token is valid in terms of not expired, well formed and correctly signed.
      *
      * @param publicKeyProvider the public key provider to provide the public key that should be used to sign this JSON

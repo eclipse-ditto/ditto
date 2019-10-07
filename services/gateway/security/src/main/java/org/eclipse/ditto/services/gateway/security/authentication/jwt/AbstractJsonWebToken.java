@@ -166,6 +166,11 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     }
 
     @Override
+    public boolean hasExpired() {
+        return Instant.now().isAfter(getExpirationTime());
+    }
+
+    @Override
     public CompletableFuture<BinaryValidationResult> validate(final PublicKeyProvider publicKeyProvider) {
         final String issuer = getIssuer();
         final String keyId = getKeyId();
