@@ -51,14 +51,14 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final ModifyPolicyEntry command) {
 
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyEntry policyEntry = command.getPolicyEntry();
         final Label label = policyEntry.getLabel();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         try {
             PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> {
-                final long policyLength = policy.removeEntry(label).toJsonString().length();
+                final long policyLength = nonNullPolicy.removeEntry(label).toJsonString().length();
                 final long entryLength =
                         policyEntry.toJsonString().length() + label.toString().length() + 5L;
                 return policyLength + entryLength;
@@ -67,13 +67,13 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             return ResultFactory.newErrorResult(e);
         }
 
-        final PoliciesValidator validator = PoliciesValidator.newInstance(policy.setEntry(policyEntry));
+        final PoliciesValidator validator = PoliciesValidator.newInstance(nonNullPolicy.setEntry(policyEntry));
         final PolicyId policyId = context.getState();
 
         if (validator.isValid()) {
             final PolicyEvent eventToPersist;
             final ModifyPolicyEntryResponse createdOrModifiedResponse;
-            if (policy.contains(label)) {
+            if (nonNullPolicy.contains(label)) {
                 eventToPersist =
                         PolicyEntryModified.of(policyId, policyEntry, nextRevision, getEventTimestamp(),
                                 dittoHeaders);
@@ -85,7 +85,7 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
                 createdOrModifiedResponse = ModifyPolicyEntryResponse.created(policyId, policyEntry, dittoHeaders);
             }
             final WithDittoHeaders response =
-                    appendETagHeaderIfProvided(command, createdOrModifiedResponse, policy);
+                    appendETagHeaderIfProvided(command, createdOrModifiedResponse, nonNullPolicy);
 
             return ResultFactory.newMutationResult(command, eventToPersist, response);
         } else {

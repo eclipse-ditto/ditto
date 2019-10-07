@@ -27,8 +27,9 @@ final class PolicyEntriesModifiedStrategy implements EventStrategy<PolicyEntries
 
     @Override
     public Policy handle(final PolicyEntriesModified pem, @Nullable final Policy policy, final long revision) {
-        return checkNotNull(policy, "policy").toBuilder()
-                .removeAll(policy.getEntriesSet())
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
+        return nonNullPolicy.toBuilder()
+                .removeAll(nonNullPolicy.getEntriesSet())
                 .setAll(pem.getPolicyEntries())
                 .setRevision(revision)
                 .setModified(pem.getTimestamp().orElse(null))
