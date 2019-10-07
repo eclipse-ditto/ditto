@@ -418,8 +418,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         // cancel our own state timeout if target state is stable
         if (to == CONNECTED || to == DISCONNECTED || to == UNKNOWN) {
             cancelStateTimeout();
-        } else if (to == UNKNOWN) {
-            log.debug("State transition to UNKNOWN which happens after actor initialization.");
         }
     }
 
