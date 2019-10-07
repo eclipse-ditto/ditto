@@ -49,22 +49,22 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final ModifySubjects command) {
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
         final Subjects subjects = command.getSubjects();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        if (policy.getEntryFor(label).isPresent()) {
+        if (nonNullPolicy.getEntryFor(label).isPresent()) {
             final PoliciesValidator validator =
-                    PoliciesValidator.newInstance(policy.setSubjectsFor(label, subjects));
+                    PoliciesValidator.newInstance(nonNullPolicy.setSubjectsFor(label, subjects));
 
             if (validator.isValid()) {
                 final SubjectsModified subjectsModified =
                         SubjectsModified.of(policyId, label, subjects, nextRevision, getEventTimestamp(),
                                 command.getDittoHeaders());
                 final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                        ModifySubjectsResponse.of(policyId, label, dittoHeaders), policy);
+                        ModifySubjectsResponse.of(policyId, label, dittoHeaders), nonNullPolicy);
                 return ResultFactory.newMutationResult(command, subjectsModified, response);
             } else {
                 return ResultFactory.newErrorResult(

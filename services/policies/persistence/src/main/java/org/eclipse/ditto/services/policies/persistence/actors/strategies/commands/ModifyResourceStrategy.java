@@ -46,16 +46,16 @@ final class ModifyResourceStrategy extends AbstractPolicyCommandStrategy<ModifyR
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final ModifyResource command) {
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
         final Resource resource = command.getResource();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(label);
+        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
         if (optionalEntry.isPresent()) {
             final PoliciesValidator validator =
-                    PoliciesValidator.newInstance(policy.setResourceFor(label, resource));
+                    PoliciesValidator.newInstance(nonNullPolicy.setResourceFor(label, resource));
 
             if (validator.isValid()) {
                 final PolicyEntry policyEntry = optionalEntry.get();
@@ -75,7 +75,7 @@ final class ModifyResourceStrategy extends AbstractPolicyCommandStrategy<ModifyR
                 }
 
                 return ResultFactory.newMutationResult(command, eventToPersist,
-                        appendETagHeaderIfProvided(command, rawResponse, policy));
+                        appendETagHeaderIfProvided(command, rawResponse, nonNullPolicy));
             } else {
                 return ResultFactory.newErrorResult(
                         policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders));
