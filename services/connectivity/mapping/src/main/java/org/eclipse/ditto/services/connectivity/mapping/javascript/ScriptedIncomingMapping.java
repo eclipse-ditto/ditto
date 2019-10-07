@@ -12,11 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -73,7 +71,7 @@ public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage,
 
                 if (result == null) {
                     // return null if result is null causing the wrapping Optional to be empty
-                    return null;
+                    return Collections.emptyList();
                 } else if (result instanceof NativeArray) {
                     // array handling
                     final NativeArray jsArray = (NativeArray) result;

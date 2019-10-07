@@ -82,7 +82,7 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
 
                 if (result == null) {
                     // return null if result is null causing the wrapping Optional to be empty
-                    return null;
+                    return Collections.emptyList();
                 } else if (result instanceof NativeArray) {
                     // handle array
                     final NativeArray jsArray = (NativeArray) result;

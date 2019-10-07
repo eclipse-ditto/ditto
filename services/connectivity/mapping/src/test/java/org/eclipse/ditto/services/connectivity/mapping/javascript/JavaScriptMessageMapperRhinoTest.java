@@ -384,8 +384,8 @@ public final class JavaScriptMessageMapperRhinoTest {
                 .build();
 
         final long startTs = System.nanoTime();
-        final List<Adaptable> adaptableOpt = javaScriptRhinoMapperNoop.map(message);
-        final Adaptable mappedAdaptable = adaptableOpt.get(0);
+        final List<Adaptable> adaptables = javaScriptRhinoMapperNoop.map(message);
+        final Adaptable mappedAdaptable = adaptables.get(0);
         System.out.println(mappedAdaptable);
         System.out.println(
                 "testNoopJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
@@ -482,8 +482,8 @@ public final class JavaScriptMessageMapperRhinoTest {
 
 
         final long startTs = System.nanoTime();
-        final List<Adaptable> adaptableOpt = javaScriptRhinoMapperPlain.map(message);
-        final Adaptable adaptable = adaptableOpt.get(0);
+        final List<Adaptable> adaptables = javaScriptRhinoMapperPlain.map(message);
+        final Adaptable adaptable = adaptables.get(0);
         System.out.println(adaptable);
         System.out.println(
                 "testPlainJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
@@ -533,11 +533,11 @@ public final class JavaScriptMessageMapperRhinoTest {
         final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
 
         final long startTs = System.nanoTime();
-        final List<Adaptable> adaptableOpt = javaScriptRhinoMapperEmpty.map(message);
+        final List<Adaptable> adaptables = javaScriptRhinoMapperEmpty.map(message);
         System.out.println(
                 "testEmptyJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1_000_000.0 + "ms");
 
-        assertThat(adaptableOpt).isEmpty();
+        assertThat(adaptables).isEmpty();
     }
 
     @Test
