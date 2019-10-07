@@ -30,6 +30,7 @@ import akka.http.javadsl.HttpsConnectionContext;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.Uri;
+import akka.http.javadsl.model.headers.HttpCredentials;
 import akka.http.javadsl.settings.ClientConnectionSettings;
 import akka.http.javadsl.settings.ConnectionPoolSettings;
 import akka.http.javadsl.settings.ParserSettings;
@@ -70,9 +71,18 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     public HttpRequest newRequest(final HttpPublishTarget httpPublishTarget) {
         final String baseUriStrToUse = determineBaseUri(baseUri);
         final String pathWithQueryToUse = determineHttpPath(httpPublishTarget);
-        return HttpRequest.create()
+        final String userInfo = baseUri.getUserInfo();
+        final int passwordSeparatorLocation = userInfo.indexOf(":");
+        final HttpRequest request = HttpRequest.create()
                 .withMethod(httpPublishTarget.getMethod())
                 .withUri(Uri.create(baseUriStrToUse + pathWithQueryToUse));
+        if (passwordSeparatorLocation >= 0) {
+            final String username = userInfo.substring(0, passwordSeparatorLocation);
+            final String password = userInfo.substring(Math.min(userInfo.length(), passwordSeparatorLocation + 1));
+            return request.addCredentials(HttpCredentials.createBasicHttpCredentials(username, password));
+        } else {
+            return request;
+        }
     }
 
     private static String determineBaseUri(final Uri baseUri) {
@@ -80,7 +90,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         final String baseUriStrToUse;
         if (baseUriStr.endsWith(PATH_DELIMITER)) {
             // avoid double "/", so cut it off at the baseUri to use:
-            baseUriStrToUse = baseUriStr.substring(0, baseUriStr.length()-1);
+            baseUriStrToUse = baseUriStr.substring(0, baseUriStr.length() - 1);
         } else {
             baseUriStrToUse = baseUriStr;
         }
@@ -90,7 +100,8 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     private static String determineHttpPath(final HttpPublishTarget httpPublishTarget) {
         final String pathWithQuery = httpPublishTarget.getPathWithQuery();
         final String pathWithQueryToUse;
-        if (pathWithQuery.startsWith(PATH_DELIMITER) || pathWithQuery.startsWith("?") || pathWithQuery.startsWith("#")) {
+        if (pathWithQuery.startsWith(PATH_DELIMITER) || pathWithQuery.startsWith("?") ||
+                pathWithQuery.startsWith("#")) {
             pathWithQueryToUse = pathWithQuery;
         } else {
             pathWithQueryToUse = PATH_DELIMITER + pathWithQuery;

@@ -40,6 +40,7 @@ import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
+import akka.http.javadsl.model.headers.Authorization;
 import akka.japi.Pair;
 import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitches;
@@ -98,17 +99,36 @@ public final class HttpPushFactoryTest {
     }
 
     @Test
+    public void basicAuth() throws Exception {
+        // GIVEN: the connection has plain credentials in the URI
+        connection = connection.toBuilder()
+                .uri("http://username:password@127.0.0.1:" + binding.localAddress().getPort() + "/path/prefix/")
+                .build();
+        final HttpPushFactory underTest = HttpPushFactory.of(connection);
+        final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
+                newSourceSinkQueues(underTest);
+        final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
+        final SinkQueueWithCancel<Try<HttpResponse>> sinkQueue = pair.second();
+        final HttpRequest request = underTest.newRequest(HttpPublishTarget.of("PUT:/path/appendage/"));
+        final HttpResponse response = HttpResponse.create().withStatus(StatusCodes.OK);
+
+        // WHEN: request-response cycle is carried out
+        responseQueue.offer(CompletableFuture.completedFuture(response));
+        sourceQueue.offer(request);
+        final HttpRequest actualRequest = requestQueue.take();
+
+        // THEN: actual received request has a basic auth header
+        assertThat(actualRequest.getHeader(Authorization.class))
+                .contains(Authorization.basic("username", "password"));
+    }
+
+    @Test
     public void handleFailure() throws Exception {
         new TestKit(actorSystem) {{
             // GIVEN: An HTTP-push connection is established against localhost.
             final HttpPushFactory underTest = HttpPushFactory.of(connection);
             final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
-                    Source.<HttpRequest>queue(10, OverflowStrategy.dropNew())
-                            .map(r -> Pair.create(r, null))
-                            .viaMat(underTest.createFlow(actorSystem, actorSystem.log()), Keep.left())
-                            .map(Pair::first)
-                            .toMat(Sink.queue(), Keep.both())
-                            .run(mat);
+                    newSourceSinkQueues(underTest);
             final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
             final SinkQueueWithCancel<Try<HttpResponse>> sinkQueue = pair.second();
             final HttpRequest request1 = underTest.newRequest(HttpPublishTarget.of("1"));
@@ -169,6 +189,17 @@ public final class HttpPushFactoryTest {
     private void shutdownAllServerStreams() {
         killSwitchTrigger.offer(new CompletableFuture<>());
         Objects.requireNonNull(killSwitchTrigger.poll()).complete(null);
+    }
+
+    private Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> newSourceSinkQueues(
+            final HttpPushFactory underTest) {
+
+        return Source.<HttpRequest>queue(10, OverflowStrategy.dropNew())
+                .map(r -> Pair.create(r, null))
+                .viaMat(underTest.createFlow(actorSystem, actorSystem.log()), Keep.left())
+                .map(Pair::first)
+                .toMat(Sink.queue(), Keep.both())
+                .run(mat);
     }
 
     private static Try<HttpResponse> pullResponse(final SinkQueueWithCancel<Try<HttpResponse>> responseQueue) {
