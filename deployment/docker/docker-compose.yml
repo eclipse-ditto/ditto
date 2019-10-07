@@ -26,6 +26,12 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
+    entrypoint:
+      - java
+      # Set additional configuration options here
+      # -Dditto.policies...
+      - -jar
+      - starter.jar
 
   things:
     init: true
@@ -43,6 +49,12 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
+    entrypoint:
+      - java
+      # Set additional configuration options here
+      # -Dditto.things...
+      - -jar
+      - starter.jar
 
   things-search:
     init: true
@@ -60,6 +72,12 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
+    entrypoint:
+      - java
+      # Set additional configuration options here
+      # -Dditto.things-search...
+      - -jar
+      - starter.jar
 
   concierge:
     init: true
@@ -77,6 +95,12 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
+    entrypoint:
+      - java
+      # Set additional configuration options here
+      # -Dditto.concierge...
+      - -jar
+      - starter.jar
 
   connectivity:
     init: true
@@ -95,6 +119,12 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
+    entrypoint:
+      - java
+      # Set additional configuration options here
+      # -Dditto.connectivity...
+      - -jar
+      - starter.jar
 
   gateway:
     init: true
@@ -116,6 +146,14 @@ services:
       - REMOTING_IDLE_CPU_LEVEL=1
       - ENABLE_DUMMY_AUTH=true
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      # You may use the environment for setting the devops password
+      #- DEVOPS_PASSWORD=foobar
+    entrypoint:
+      - java
+      # Setting the devops password via java VM environment
+      - -Dditto.gateway.authentication.devops.password=foobar
+      - -jar
+      - starter.jar
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v3.20.5

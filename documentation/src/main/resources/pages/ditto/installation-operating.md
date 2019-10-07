@@ -11,6 +11,29 @@ Once you have successfully started Ditto, proceed with setting it up for continu
 
 This page shows the basics for operating Ditto.
 
+## Configuration
+
+Each service may be configured via it's java VM variables on service startup.
+
+The following example configures the devops password of the gateway-service started via docker-compose. In order
+to supply additional configuration one has to add the variable in the corresponding `entrypoint` section of the
+`docker-compose.yml` file.
+
+```yml
+    ...
+    entrypoint:
+      - java
+      # Alternative approach for configuration of the service
+      - -Dditto.gateway.authentication.devops.password=foobar
+      - -jar
+      - starter.jar
+```
+
+The executable for the microservice is called `starter.jar`. The configuration variables have to be set before
+the `-jar` option.
+
+For a list of available configuration options go to the respective configuration files under the services 
+directory. E.g. for the gateway service visit [/services/gateway/starter/src/main/resources/gateway.conf](https://github.com/eclipse/ditto/blob/master/services/gateway/starter/src/main/resources/gateway.conf).
 
 ## Logging
 
