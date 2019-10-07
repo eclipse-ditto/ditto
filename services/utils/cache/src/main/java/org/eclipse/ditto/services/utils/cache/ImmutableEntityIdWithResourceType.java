@@ -42,7 +42,8 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
      */
     private ImmutableEntityIdWithResourceType(final String resourceType, final EntityId id) {
         this.resourceType = checkNotNull(resourceType, "resourceType");
-        this.id = checkNotNull(id, "id");
+        // build a default entity id, so that serializing and deserializing works properly
+        this.id = DefaultEntityId.of(checkNotNull(id, "id"));
         if (resourceType.contains(DELIMITER)) {
             final String message =
                     String.format("Resource type <%s> may not contain ':'. Id = <%s>", resourceType, id);
@@ -81,7 +82,6 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
             return new ImmutableEntityIdWithResourceType(resourceType, id);
         }
     }
-
 
     @Override
     public String getResourceType() {

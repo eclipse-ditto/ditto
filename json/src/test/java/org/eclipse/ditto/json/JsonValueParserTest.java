@@ -157,7 +157,7 @@ public final class JsonValueParserTest {
         assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.apply(jsonLong))
                 .withMessage("Failed to parse JSON string '%s'!", jsonLong)
-                .withCauseExactlyInstanceOf(java.lang.NumberFormatException.class);;
+                .withCauseExactlyInstanceOf(java.lang.NumberFormatException.class);
     }
 
     @Test
@@ -168,7 +168,7 @@ public final class JsonValueParserTest {
         assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.apply(null))
                 .withMessage("Failed to parse JSON string '%s'!", null)
-                .withCauseExactlyInstanceOf(java.lang.NullPointerException.class);;
+                .withCauseExactlyInstanceOf(java.lang.NullPointerException.class);
     }
 
 }

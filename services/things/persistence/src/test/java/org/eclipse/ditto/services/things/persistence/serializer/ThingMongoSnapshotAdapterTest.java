@@ -15,12 +15,8 @@ package org.eclipse.ditto.services.things.persistence.serializer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.bson.BsonDocument;
-import org.bson.BsonString;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,4 +47,5 @@ public final class ThingMongoSnapshotAdapterTest {
         final Thing restoredThing = underTest.fromSnapshotStore(new SnapshotOffer(SNAPSHOT_METADATA, dbObject));
         assertThat(restoredThing).isEqualTo(thing);
     }
+
 }

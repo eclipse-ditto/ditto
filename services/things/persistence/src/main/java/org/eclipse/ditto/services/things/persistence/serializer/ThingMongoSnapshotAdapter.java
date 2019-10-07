@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.things.persistence.serializer;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
@@ -33,11 +32,6 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
      */
     public ThingMongoSnapshotAdapter() {
         super(LoggerFactory.getLogger(ThingMongoSnapshotAdapter.class));
-    }
-
-    @Override
-    protected JsonObject convertToJson(final Thing thing) {
-        return super.convertToJson(thing);
     }
 
     @Override

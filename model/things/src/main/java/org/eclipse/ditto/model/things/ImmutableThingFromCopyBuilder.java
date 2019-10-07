@@ -88,7 +88,9 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
                 .map(ThingsModelFactory::newAcl)
                 .ifPresent(result::setPermissions);
 
-        jsonObject.getValue(Thing.JsonFields.POLICY_ID).ifPresent(result::setPolicyId);
+        jsonObject.getValue(Thing.JsonFields.POLICY_ID)
+                .map(PolicyId::of)
+                .ifPresent(result::setPolicyId);
 
         jsonObject.getValue(Thing.JsonFields.ATTRIBUTES)
                 .map(ThingsModelFactory::newAttributes)

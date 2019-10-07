@@ -39,8 +39,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespac
 public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public GatewayServiceGlobalErrorRegistryTest() {
-        super(Arrays.asList(
-                UnknownCommandException.class,
+        super(UnknownCommandException.class,
                 DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AclEntryInvalidException.class,
@@ -60,6 +59,7 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 NamespacedEntityIdInvalidException.class,
                 ThingIdInvalidException.class,
                 PolicyIdInvalidException.class
-        ));
+        );
     }
+
 }
