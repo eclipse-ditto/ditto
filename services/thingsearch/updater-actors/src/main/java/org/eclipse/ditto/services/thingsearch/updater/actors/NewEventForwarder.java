@@ -133,7 +133,7 @@ final class NewEventForwarder extends AbstractActorWithTimers {
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
-        log.debug("Forwarding incoming ThingEvent for thingId '{}'", thingEvent.getThingId());
+        log.debug("Forwarding incoming ThingEvent for thingId '{}'", thingEvent.getThingEntityId());
         namespaceBlockingBehavior.block(thingEvent).thenAccept(m -> shardRegion.tell(m, getSelf()));
     }
 

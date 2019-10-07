@@ -38,8 +38,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespac
 public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public ConciergeServiceGlobalErrorRegistryTest() {
-        super(Arrays.asList(
-                UnknownCommandException.class,
+        super(UnknownCommandException.class,
                 DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AclEntryInvalidException.class,
@@ -58,6 +57,7 @@ public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRe
                 NamespacedEntityIdInvalidException.class,
                 ThingIdInvalidException.class,
                 PolicyIdInvalidException.class
-        ));
+        );
     }
+
 }

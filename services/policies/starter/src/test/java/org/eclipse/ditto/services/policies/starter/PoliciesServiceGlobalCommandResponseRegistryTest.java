@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.policies.starter;
 
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
@@ -33,7 +32,6 @@ public final class PoliciesServiceGlobalCommandResponseRegistryTest extends Glob
 
     public PoliciesServiceGlobalCommandResponseRegistryTest() {
         super(
-                SudoRetrieveThingResponse.class,
                 SudoRetrievePolicyResponse.class,
                 RetrieveFeatureResponse.class,
                 ModifyFeaturePropertyResponse.class,
