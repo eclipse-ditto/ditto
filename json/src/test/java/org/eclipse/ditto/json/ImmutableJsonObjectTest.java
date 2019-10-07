@@ -1180,7 +1180,28 @@ public final class ImmutableJsonObjectTest {
         final JsonObject expected =
                 JsonObject.newBuilder().set("foo", fooJsonObject).set("thingId", "0x1337").build();
 
+        // all fields should be equal.
         assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void jsonFieldSelectorPutsFieldsInIdenticalOrder() {
+        final JsonObject underTest = JsonFactory.newObject(
+                "{\"the\":1,\"quick\":2,\"brown\":3,\"fox\":{\"jumps\":5,\"over\":{\"the\":6,\"lazy\":7}},\"dog\":8}");
+
+        assertThat(underTest.get(selector("the,quick,dog")).toString())
+                .isEqualTo("{\"the\":1,\"quick\":2,\"dog\":8}");
+
+        assertThat(underTest.get(selector("dog,quick,the")).toString())
+                .isEqualTo("{\"dog\":8,\"quick\":2,\"the\":1}");
+
+        assertThat(underTest.get(selector("dog,fox/over/lazy,quick,fox/jumps,brown,fox/over/the,the")).toString())
+                .isEqualTo("{\"dog\":8,\"fox\":{\"over\":{\"lazy\":7,\"the\":6},\"jumps\":5}," +
+                        "\"quick\":2,\"brown\":3,\"the\":1}");
+
+        assertThat(underTest.get(selector("the,fox/jumps,brown,fox/over/the,quick,fox/over/lazy,dog")).toString())
+                .isEqualTo("{\"the\":1,\"fox\":{\"jumps\":5,\"over\":{\"the\":6,\"lazy\":7}}," +
+                        "\"brown\":3,\"quick\":2,\"dog\":8}");
     }
 
     @Test
@@ -1344,6 +1365,10 @@ public final class ImmutableJsonObjectTest {
 
     private static JsonField toField(final CharSequence key, final JsonValue value) {
         return JsonField.newInstance(JsonKey.of(key), value);
+    }
+
+    private static JsonFieldSelector selector(final String s) {
+        return JsonFactory.newFieldSelector(s, JsonParseOptions.newBuilder().withoutUrlDecoding().build());
     }
 
 }
