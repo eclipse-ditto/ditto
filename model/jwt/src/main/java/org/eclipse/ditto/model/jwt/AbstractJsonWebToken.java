@@ -10,42 +10,29 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.security.authentication.jwt;
+package org.eclipse.ditto.model.jwt;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
-import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.services.utils.jwt.JjwtDeserializer;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.Jwts;
 
 /**
  * Abstract implementation of {@link JsonWebToken}.
  */
 public abstract class AbstractJsonWebToken implements JsonWebToken {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractJsonWebToken.class);
 
     /**
      * Delimiter of the authorization string.
@@ -68,7 +55,7 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
         final String[] tokenParts = token.split(JWT_DELIMITER);
         final int expectedTokenPartAmount = 3;
         if (expectedTokenPartAmount != tokenParts.length) {
-            throw GatewayJwtInvalidException.newBuilder()
+            throw JwtInvalidException.newBuilder()
                     .description("The token is expected to have three parts: header, payload and signature.")
                     .build();
         }
@@ -83,7 +70,9 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
 
         final String[] authorizationStringSplit = authorizationString.split(AUTHORIZATION_DELIMITER);
         if (2 != authorizationStringSplit.length) {
-            throw GatewayAuthenticationFailedException.newBuilder("The Authorization Header is invalid!").build();
+            throw JwtInvalidException.newBuilder()
+                    .description("The Authorization Header is invalid!")
+                    .build();
         }
         return authorizationStringSplit[1];
     }
@@ -92,7 +81,7 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
         try {
             return decodeJwtPart(jwtPart);
         } catch (final IllegalArgumentException | JsonParseException e) {
-            throw GatewayJwtInvalidException.newBuilder()
+            throw JwtInvalidException.newBuilder()
                     .description("Check if your JSON Web Token has the correct format and is Base64 URL encoded.")
                     .cause(e)
                     .build();
@@ -166,42 +155,8 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     }
 
     @Override
-    public boolean hasExpired() {
+    public boolean isExpired() {
         return Instant.now().isAfter(getExpirationTime());
-    }
-
-    @Override
-    public CompletableFuture<BinaryValidationResult> validate(final PublicKeyProvider publicKeyProvider) {
-        final String issuer = getIssuer();
-        final String keyId = getKeyId();
-        return publicKeyProvider.getPublicKey(issuer, keyId)
-                .thenApply(publicKeyOpt -> publicKeyOpt
-                        .map(this::tryToValidatePublicKey)
-                        .orElseGet(() -> {
-                            final String msgPattern = "Public Key of issuer <{0}> with key ID <{1}> not found!";
-                            final String msg = MessageFormat.format(msgPattern, issuer, keyId);
-                            final Exception exception = GatewayAuthenticationFailedException.newBuilder(msg).build();
-                            return BinaryValidationResult.invalid(exception);
-                        }));
-    }
-
-    private BinaryValidationResult tryToValidatePublicKey(final Key publicKey) {
-        try {
-            return validatePublicKey(publicKey);
-        } catch (final Exception e) {
-            LOGGER.info("Failed to parse JWT!", e);
-            return BinaryValidationResult.invalid(e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private BinaryValidationResult validatePublicKey(final Key publicKey) {
-        final JwtParser jwtParser = Jwts.parser();
-        jwtParser.deserializeJsonWith(JjwtDeserializer.getInstance())
-                .setSigningKey(publicKey)
-                .parse(getToken());
-
-        return BinaryValidationResult.valid();
     }
 
     @Override

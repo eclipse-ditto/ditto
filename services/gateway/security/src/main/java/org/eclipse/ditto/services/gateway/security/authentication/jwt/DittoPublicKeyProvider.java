@@ -39,6 +39,8 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.jwt.ImmutableJsonWebKey;
+import org.eclipse.ditto.model.jwt.JsonWebKey;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.security.cache.PublicKeyIdWithIssuer;
 import org.eclipse.ditto.services.gateway.util.HttpClientFacade;

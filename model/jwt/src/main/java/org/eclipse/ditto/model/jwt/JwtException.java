@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.security.authentication.jwt;
+package org.eclipse.ditto.model.jwt;
 
 public interface JwtException {
 
@@ -18,4 +18,5 @@ public interface JwtException {
      * Error code prefix of errors related to JWT.
      */
     String ERROR_CODE_PREFIX = "jwt" + ":";
+
 }

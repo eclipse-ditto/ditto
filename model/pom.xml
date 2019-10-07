@@ -34,6 +34,7 @@
         <module>namespaces</module>
         <module>policies</module>
         <module>enforcers</module>
+        <module>jwt</module>
         <module>things</module>
         <module>thingsearch</module>
         <module>thingsearch-parser</module>

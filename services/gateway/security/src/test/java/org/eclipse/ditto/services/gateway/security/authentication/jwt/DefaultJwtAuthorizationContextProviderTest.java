@@ -23,6 +23,7 @@ import java.util.Collections;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;

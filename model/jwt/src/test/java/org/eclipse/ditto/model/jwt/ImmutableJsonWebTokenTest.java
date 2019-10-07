@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.security.authentication.jwt;
+package org.eclipse.ditto.model.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -19,10 +19,10 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonParseException;
+import java.time.Instant;
+import java.util.Base64;
+
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -32,9 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tokens can be decrypted at https://jwt.io
  */
 public final class ImmutableJsonWebTokenTest {
-
-    private static final String TOKEN_WITH_REQUIRED_FIELDS =
-            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJzdWIiOiJkaXR0byIsImp0aSI6ImUwMTI1YTZmLTNkMTctNDE0Mi04ZjA4LTk0MzFmMGJhY2FjZSIsImlhdCI6MTUwNDc2NjMwNiwiZXhwIjoxNTA0NzY5OTA2fQ.x29HhiY8YyQ5ODukfVsQAKl-q_KbAAWzQWp5G7gNSUY";
 
     @Test
     public void assertImmutability() {
@@ -53,35 +50,67 @@ public final class ImmutableJsonWebTokenTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void tryToCreateInstanceFromEmptyAuthorizationString() {
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString(""))
-                .withMessage("The Authorization String must not be empty!")
                 .withNoCause();
     }
 
     @Test
     public void tryToParseTokenFromMissingAuthorization() {
-        assertThatExceptionOfType(GatewayAuthenticationFailedException.class)
+        assertThatExceptionOfType(JwtInvalidException.class)
                 .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString("Authorization"))
-                .withMessage("The Authorization Header is invalid!")
                 .withNoCause();
     }
 
     @Test
     public void tryToParseTokenFromInvalidAuthorization() {
-        assertThatExceptionOfType(GatewayJwtInvalidException.class)
+        assertThatExceptionOfType(JwtInvalidException.class)
                 .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString("Authorization foo"));
     }
 
     @Test
-    public void parseTokenFromValidAuthorization() {
-        final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromAuthorizationString("Authorization " +
-                TOKEN_WITH_REQUIRED_FIELDS);
+    public void tryToParseTokenWithMissingSignature() {
+        final String header = "{\"header\":\"value\"}";
+        final String payload = "{\"payload\":\"foo\"}";
 
-        assertThat(jsonWebToken.getIssuer()).isEqualTo("https://accounts.google.com");
+        final String authorizationHeader = "Bearer " + base64(header) + "." + base64(payload);
+
+        assertThatExceptionOfType(JwtInvalidException.class)
+                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString(authorizationHeader));
+    }
+
+    @Test
+    public void parseToken() {
+        final String header = "{\"header\":\"value\"}";
+        final String payload = "{\"payload\":\"foo\"}";
+        final String signature = "{\"signature\":\"foo\"}";
+
+        final String authorizationHeader = "Bearer " + base64(header) + "." + base64(payload) + "." + base64(signature);
+
+        final JsonWebToken immutableJsonWebToken = ImmutableJsonWebToken.fromAuthorizationString(authorizationHeader);
+
+        assertThat(immutableJsonWebToken.getHeader().toString()).isEqualTo(header);
+        assertThat(immutableJsonWebToken.getBody().toString()).isEqualTo(payload);
+        assertThat(immutableJsonWebToken.getSignature()).isEqualTo(base64(signature));
+    }
+
+    @Test
+    public void checkTokenExpiration() {
+        final String header = "{\"header\":\"value\"}";
+        final String payload = String.format("{\"exp\":%d}", Instant.now().getEpochSecond());
+        final String signature = "{\"signature\":\"foo\"}";
+
+        final String authorizationHeader = "Bearer " + base64(header) + "." + base64(payload) + "." + base64(signature);
+
+        final JsonWebToken expiredJsonWebToken = ImmutableJsonWebToken.fromAuthorizationString(authorizationHeader);
+
+        assertThat(expiredJsonWebToken.isExpired()).isEqualTo(true);
+    }
+
+    private static String base64(final String value) {
+        return new String(Base64.getEncoder().encode(value.getBytes()));
     }
 
 }

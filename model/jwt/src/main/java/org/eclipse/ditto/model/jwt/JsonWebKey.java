@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.security.authentication.jwt;
+package org.eclipse.ditto.model.jwt;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -112,6 +112,9 @@ public interface JsonWebKey {
         public static final JsonFieldDefinition<String> KEY_EXPONENT =
                 JsonFactory.newStringFieldDefinition("e", FieldType.REGULAR);
 
+        private JsonFields() {
+            throw new AssertionError();
+        }
     }
 
 }

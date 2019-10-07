@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 
 /**
  * Default implementation of {@link JwtAuthorizationContextProvider}.

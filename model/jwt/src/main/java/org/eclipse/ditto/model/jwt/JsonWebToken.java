@@ -10,11 +10,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.security.authentication.jwt;
+package org.eclipse.ditto.model.jwt;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -109,20 +108,11 @@ public interface JsonWebToken {
     Instant getExpirationTime();
 
     /**
-     * Returns true if the token has expired.
+     * Returns true if the token is expired.
      *
-     * @return true if token has expired otherwise false.
+     * @return true if token is expired otherwise false.
      */
-    boolean hasExpired();
-
-    /**
-     * Checks if this JSON web token is valid in terms of not expired, well formed and correctly signed.
-     *
-     * @param publicKeyProvider the public key provider to provide the public key that should be used to sign this JSON
-     * web token.
-     * @return A Future resolving to a {@link BinaryValidationResult}.
-     */
-    CompletableFuture<BinaryValidationResult> validate(PublicKeyProvider publicKeyProvider);
+    boolean isExpired();
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a JSON Web Token.

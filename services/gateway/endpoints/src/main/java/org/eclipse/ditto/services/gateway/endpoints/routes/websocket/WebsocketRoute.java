@@ -49,8 +49,8 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.ImmutableJsonWebToken;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.JsonWebToken;
+import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
@@ -345,11 +345,11 @@ public final class WebsocketRoute {
                     try {
                         return buildSignal(cmdString, version, connectionCorrelationId, connectionAuthContext,
                                 additionalHeaders, adapter);
-                    } catch (final Throwable throwable) {
+                    } catch (final Exception e) {
                         // This is a client error usually; log at level INFO without stack trace.
                         LOGGER.info("Error building signal from <{}>: <{}:{}>", cmdString,
-                                throwable.getClass().getCanonicalName(), throwable.getMessage());
-                        return throwable;
+                                e.getClass().getCanonicalName(), e.getMessage());
+                        return e;
                     }
                 });
 

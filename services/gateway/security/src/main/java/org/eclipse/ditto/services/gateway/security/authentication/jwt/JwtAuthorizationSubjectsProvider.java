@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 import java.util.List;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 
 /**
  * A provider for {@link AuthorizationSubject}s contained in a {@link JsonWebToken}.

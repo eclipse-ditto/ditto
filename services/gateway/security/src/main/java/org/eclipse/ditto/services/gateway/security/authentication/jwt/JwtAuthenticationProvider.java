@@ -23,6 +23,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.TimeMeasuringAuthenticationProvider;
@@ -122,7 +124,7 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
                     if (!validationResult.isValid()) {
                         final Throwable reasonForInvalidity = validationResult.getReasonForInvalidity();
                         LOGGER.debug("The JWT is invalid.", reasonForInvalidity);
-                        throw buildJwtUnauthorizedException(correlationId, reasonForInvalidity.getMessage());
+                        throw buildJwtUnauthorizedException(correlationId, reasonForInvalidity);
                     }
 
                     final AuthorizationContext authorizationContext = tryToGetAuthorizationContext(jwt, correlationId);
@@ -137,8 +139,7 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
         try {
             return jwtAuthorizationContextProvider.getAuthorizationContext(jwt);
         } catch (final Exception e) {
-            LOGGER.debug("Could not extract the authorization context from JWT.", e);
-            throw buildJwtUnauthorizedException(correlationId, e.getMessage());
+            throw buildJwtUnauthorizedException(correlationId, e);
         }
     }
 
@@ -173,11 +174,12 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
     }
 
     private static DittoRuntimeException buildJwtUnauthorizedException(final CharSequence correlationId,
-            final String description) {
+            final Throwable cause) {
 
         return GatewayAuthenticationFailedException.newBuilder("The JWT could not be verified.")
-                .description(description)
+                .description(cause.getMessage())
                 .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                .cause(cause)
                 .build();
     }
 

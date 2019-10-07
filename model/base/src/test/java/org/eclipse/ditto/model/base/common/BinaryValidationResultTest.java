@@ -10,15 +10,16 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.security.authentication.jwt;
+package org.eclipse.ditto.model.base.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import org.eclipse.ditto.model.base.common.BinaryValidationResult;
 import org.junit.Test;
 
 /**
- * Tests {@link BinaryValidationResult}.
+ * Tests {@link org.eclipse.ditto.model.base.common.BinaryValidationResult}.
  */
 public final class BinaryValidationResultTest {
 
