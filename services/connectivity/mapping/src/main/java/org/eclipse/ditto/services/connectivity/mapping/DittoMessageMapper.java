@@ -12,11 +12,14 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import static java.util.Collections.singletonList;
+
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -73,26 +76,26 @@ public final class DittoMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Optional<Adaptable> map(final ExternalMessage message) {
+    public List<Adaptable> map(final ExternalMessage message) {
         final String payload = extractPayloadAsString(message);
         final JsonifiableAdaptable jsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(() ->
                 ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(payload))
         );
 
         final DittoHeaders mergedHeaders = mergeHeaders(message, jsonifiableAdaptable);
-        return Optional.of(
+        return singletonList(
                 ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable).withHeaders(mergedHeaders).build());
     }
 
     @Override
-    public Optional<ExternalMessage> map(final Adaptable adaptable) {
+    public List<ExternalMessage> map(final Adaptable adaptable) {
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
 
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 
         final boolean isError = TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion());
         final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
-        return Optional.of(
+        return singletonList(
                 ExternalMessageFactory.newExternalMessageBuilder(headers)
                         .withTopicPath(adaptable.getTopicPath())
                         .withText(jsonString)

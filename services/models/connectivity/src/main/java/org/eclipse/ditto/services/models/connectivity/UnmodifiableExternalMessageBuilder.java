@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -204,8 +205,8 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Override
     public ExternalMessage build() {
         return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
-                authorizationContext, topicPath, enforcementFilter, headerMapping, payloadMapping, sourceAddress,
-                internalHeaders);
+                authorizationContext, topicPath, enforcementFilter, headerMapping,
+                payloadMapping != null ? payloadMapping : Collections.emptyList(), sourceAddress, internalHeaders);
     }
 
 }

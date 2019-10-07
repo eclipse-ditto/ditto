@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.connectivity.mapping.custom;
 
 import java.util.HashMap;
-import java.util.Optional;
+import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.things.ThingId;
@@ -62,7 +62,7 @@ public class ConnectionStatusMessageMapperTest {
     public void doForwardMapWithValidUseCase() {
         underTest.configure(mappingConfig, DefaultMessageMapperConfiguration.of(validConfigProps));
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
 
         Assertions.assertThat(mappingResult).isNotEmpty();
     }
@@ -74,7 +74,7 @@ public class ConnectionStatusMessageMapperTest {
         final HashMap<String, String> invalidHeader = validHeader;
         invalidHeader.remove(HEADER_HUB_TTD);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
     }
 
@@ -84,7 +84,7 @@ public class ConnectionStatusMessageMapperTest {
         final HashMap<String, String> invalidHeader = validHeader;
         invalidHeader.remove(HEADER_HUB_CREATION_TIME);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
     }
 
@@ -94,7 +94,7 @@ public class ConnectionStatusMessageMapperTest {
         final HashMap<String, String> invalidHeader = validHeader;
         invalidHeader.remove(HEADER_HUB_DEVICE_ID);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
     }
 
@@ -104,7 +104,7 @@ public class ConnectionStatusMessageMapperTest {
         final HashMap<String, String> invalidHeader = validHeader;
         invalidHeader.replace(HEADER_HUB_TTD, "Invalid Value");
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
     }
 
@@ -114,7 +114,7 @@ public class ConnectionStatusMessageMapperTest {
         final HashMap<String, String> invalidHeader = validHeader;
         invalidHeader.replace(HEADER_HUB_CREATION_TIME, "Invalid Value");
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
     }
 
@@ -125,7 +125,7 @@ public class ConnectionStatusMessageMapperTest {
         final String invalidTTDValue = "-5625";
         invalidHeader.replace(HEADER_HUB_TTD, invalidTTDValue);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
     }
 
@@ -134,8 +134,8 @@ public class ConnectionStatusMessageMapperTest {
     public void doForwardMappingContextWithoutFeatureId() {
         underTest.configure(mappingConfig, DefaultMessageMapperConfiguration.of(validConfigProps));
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
-        Assertions.assertThat(mappingResult.get().getPayload().getPath().getFeatureId().get())
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
+        Assertions.assertThat(mappingResult.get(0).getPayload().getPath().getFeatureId().get())
                 .isEqualTo("ConnectionStatus");
     }
 
@@ -145,8 +145,8 @@ public class ConnectionStatusMessageMapperTest {
         validConfigProps.put(MAPPING_OPTIONS_PROPERTIES_FEATUREID, individualFeatureId);
         underTest.configure(mappingConfig, DefaultMessageMapperConfiguration.of(validConfigProps));
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
-        Assertions.assertThat(mappingResult.get().getPayload().getPath().getFeatureId().get())
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
+        Assertions.assertThat(mappingResult.get(0).getPayload().getPath().getFeatureId().get())
                 .isEqualTo(individualFeatureId);
     }
 
@@ -155,7 +155,7 @@ public class ConnectionStatusMessageMapperTest {
         validConfigProps.remove(MAPPING_OPTIONS_PROPERTIES_THINGID);
         underTest.configure(mappingConfig, DefaultMessageMapperConfiguration.of(validConfigProps));
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
 
         Assertions.assertThat(mappingResult).isEmpty();
     }
@@ -165,8 +165,8 @@ public class ConnectionStatusMessageMapperTest {
         validConfigProps.replace(MAPPING_OPTIONS_PROPERTIES_THINGID, "{{ header:device_id }}");
         underTest.configure(mappingConfig, DefaultMessageMapperConfiguration.of(validConfigProps));
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
-        final Optional<Adaptable> mappingResult = underTest.map(externalMessage);
-        Assertions.assertThat(mappingResult.get().getTopicPath().getId())
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
+        Assertions.assertThat(mappingResult.get(0).getTopicPath().getId())
                 .isEqualTo(ThingId.of(validHeader.get(HEADER_HUB_DEVICE_ID)).getName());
     }
 }

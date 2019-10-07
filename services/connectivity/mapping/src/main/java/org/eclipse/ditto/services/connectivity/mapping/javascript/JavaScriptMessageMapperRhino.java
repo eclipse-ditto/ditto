@@ -104,26 +104,12 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     }
 
     @Override
-    public Optional<Adaptable> map(final ExternalMessage message) {
-        // TODO throw java.lang.UnsupportedOperationException?
-        final List<Adaptable> result = incomingMapping.apply(message);
-        return result == null ? Optional.empty() : result.stream().findFirst();
-    }
-
-    @Override
-    public List<Adaptable> mapMultiple(final ExternalMessage message) {
+    public List<Adaptable> map(final ExternalMessage message) {
         return incomingMapping.apply(message);
     }
 
     @Override
-    public Optional<ExternalMessage> map(final Adaptable adaptable) {
-        // TODO throw java.lang.UnsupportedOperationException?
-        final List<ExternalMessage> result = outgoingMapping.apply(adaptable);
-        return result == null ? Optional.empty() : result.stream().findFirst();
-    }
-
-    @Override
-    public List<ExternalMessage> mapMultiple(final Adaptable adaptable) {
+    public List<ExternalMessage> map(final Adaptable adaptable) {
         return outgoingMapping.apply(adaptable);
     }
 

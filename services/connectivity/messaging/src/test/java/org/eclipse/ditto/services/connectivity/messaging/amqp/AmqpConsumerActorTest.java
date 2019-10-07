@@ -242,7 +242,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
                             .getProperties()
             );
 
-            final ActorRef processor = setupActor(getRef(), getRef(), mappingContext);
+            final ActorRef processor = setupActor(getRef(), mappingContext);
 
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())

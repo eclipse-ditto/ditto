@@ -72,9 +72,7 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public List<Adaptable> mapMultiple(final ExternalMessage message) {
-
-        // TODO duplication
+    public List<Adaptable> map(final ExternalMessage message) {
         final ExternalMessage enhancedMessage;
         final String correlationId;
         if (!message.getHeaders().containsKey(DittoHeaderDefinition.CORRELATION_ID.getKey())) {
@@ -89,7 +87,7 @@ final class WrappingMessageMapper implements MessageMapper {
             enhancedMessage = message;
         }
 
-        final List<Adaptable> mappedAdaptables = delegate.mapMultiple(enhancedMessage);
+        final List<Adaptable> mappedAdaptables = delegate.map(enhancedMessage);
 
         return mappedAdaptables.stream().map(mapped -> {
             final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
@@ -106,48 +104,11 @@ final class WrappingMessageMapper implements MessageMapper {
                     .withHeaders(headersBuilder.build())
                     .build();
         }).collect(Collectors.toList());
-
     }
 
     @Override
-    public Optional<Adaptable> map(final ExternalMessage message) {
-        final ExternalMessage enhancedMessage;
-        final String correlationId;
-        if (!message.getHeaders().containsKey(DittoHeaderDefinition.CORRELATION_ID.getKey())) {
-            // if no correlation-id was provided in the ExternalMessage, generate one here:
-            correlationId = UUID.randomUUID().toString();
-            enhancedMessage = ExternalMessageFactory.newExternalMessageBuilder(message)
-                    .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(),
-                            correlationId)
-                    .build();
-        } else {
-            correlationId = message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-            enhancedMessage = message;
-        }
-
-        final Optional<Adaptable> mappedOpt = delegate.map(enhancedMessage);
-
-        return mappedOpt.map(mapped -> {
-            final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
-            headersBuilder.correlationId(correlationId);
-
-            Optional.ofNullable(message.getHeaders().get(ExternalMessage.REPLY_TO_HEADER)).ifPresent(replyTo ->
-                    headersBuilder.putHeader(ExternalMessage.REPLY_TO_HEADER, replyTo)
-            );
-
-            final Optional<DittoHeaders> headersOpt = mapped.getHeaders();
-            headersOpt.ifPresent(headersBuilder::putHeaders); // overwrite with mapped headers (if any)
-
-            return ProtocolFactory.newAdaptableBuilder(mapped)
-                    .withHeaders(headersBuilder.build())
-                    .build();
-        });
-    }
-
-    @Override
-    public List<ExternalMessage> mapMultiple(final Adaptable adaptable) {
-        // TODO duplication
-        final List<ExternalMessage> mappedMessages = delegate.mapMultiple(adaptable);
+    public List<ExternalMessage> map(final Adaptable adaptable) {
+        final List<ExternalMessage> mappedMessages = delegate.map(adaptable);
         return mappedMessages.stream().map(mapped -> {
             final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(mapped);
             messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
@@ -157,21 +118,6 @@ final class WrappingMessageMapper implements MessageMapper {
                             replyTo -> messageBuilder.withAdditionalHeaders(ExternalMessage.REPLY_TO_HEADER, replyTo));
             return messageBuilder.build();
         }).collect(Collectors.toList());
-    }
-
-    @Override
-    public Optional<ExternalMessage> map(final Adaptable adaptable) {
-        final Optional<ExternalMessage> mappedOpt = delegate.map(adaptable);
-
-        return mappedOpt.map(mapped -> {
-            final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(mapped);
-            messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
-            adaptable.getHeaders()
-                    .map(h -> h.get(ExternalMessage.REPLY_TO_HEADER))
-                    .ifPresent(
-                            replyTo -> messageBuilder.withAdditionalHeaders(ExternalMessage.REPLY_TO_HEADER, replyTo));
-            return messageBuilder.build();
-        });
     }
 
     @Override

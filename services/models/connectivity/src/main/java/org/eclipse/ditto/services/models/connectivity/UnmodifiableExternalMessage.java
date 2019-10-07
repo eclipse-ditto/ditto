@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +61,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final TopicPath topicPath,
             @Nullable final EnforcementFilter<CharSequence> enforcementFilter,
             @Nullable final HeaderMapping headerMapping,
-            @Nullable final List<String> payloadMapping,
+            final List<String> payloadMapping,
             @Nullable final String sourceAddress,
             final DittoHeaders internalHeaders) {
 
@@ -74,7 +75,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
         this.topicPath = topicPath;
         this.enforcementFilter = enforcementFilter;
         this.headerMapping = headerMapping;
-        this.payloadMapping = payloadMapping;
+        this.payloadMapping = Collections.unmodifiableList(new ArrayList<>(payloadMapping));
         this.sourceAddress = sourceAddress;
         this.internalHeaders = internalHeaders;
     }

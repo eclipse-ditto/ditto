@@ -150,7 +150,7 @@ public final class MessageMappingProcessor {
         try {
             checkNotNull(message, "message");
             log.debug("Mapping message using mapper {}.", mapper.getId());
-            final List<Adaptable> adaptables = timer.payload(mapper.getId(), () -> mapper.mapMultiple(message));
+            final List<Adaptable> adaptables = timer.payload(mapper.getId(), () -> mapper.map(message));
             if (adaptables.isEmpty()) {
                 handlers.onMessageDropped();
             } else {
@@ -178,7 +178,7 @@ public final class MessageMappingProcessor {
             final MappingResultHandler<ExternalMessage> resultHandler) {
         try {
             final List<ExternalMessage> messages = timer.payload(mapper.getId(), () -> {
-                return mapper.mapMultiple(adaptable)
+                return mapper.map(adaptable)
                         .stream()
                         .map(em -> ExternalMessageFactory.newExternalMessageBuilder(em)
                                 .withTopicPath(adaptable.getTopicPath())

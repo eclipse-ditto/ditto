@@ -13,7 +13,9 @@
 package org.eclipse.ditto.services.connectivity.mapping.custom;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -82,7 +84,7 @@ public class ConnectionStatusMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Optional<Adaptable> map(final ExternalMessage externalMessage) {
+    public List<Adaptable> map(final ExternalMessage externalMessage) {
         //Validate
         extractedHeader =
                 extractHeader(externalMessage, HEADER_HUB_TTD, HEADER_HUB_CREATION_TIME, HEADER_HUB_DEVICE_ID);
@@ -160,8 +162,8 @@ public class ConnectionStatusMessageMapper implements MessageMapper {
 
             LOGGER.info("Feature \"{}\" of Thing \"{}\" is modified", featureId, thingId.toString());
 
-            return Optional.of(adaptable);
-        } else { return Optional.empty();}
+            return Collections.singletonList(adaptable);
+        } else { return Collections.emptyList();}
     }
 
     private HashMap<String, String> extractHeader(final ExternalMessage externalMessage,
@@ -187,7 +189,7 @@ public class ConnectionStatusMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Optional<ExternalMessage> map(final Adaptable adaptable) {
-        return Optional.empty();
+    public List<ExternalMessage> map(final Adaptable adaptable) {
+        return Collections.emptyList();
     }
 }

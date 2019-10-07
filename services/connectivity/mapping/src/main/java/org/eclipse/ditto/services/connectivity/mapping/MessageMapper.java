@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,29 +61,21 @@ public interface MessageMapper {
      * Maps an {@link ExternalMessage} to an {@link Adaptable}
      *
      * @param message the ExternalMessage to map
-     * @return the mapped Adaptable or an empty Optional if the ExternalMessage should not be mapped after all
+     * @return the mapped Adaptable or an empty List if the ExternalMessage should not be mapped after all
      * @throws org.eclipse.ditto.model.connectivity.MessageMappingFailedException if the given message can not be mapped
      * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if anything during Ditto Adaptable creation
      * went wrong
      */
-    Optional<Adaptable> map(ExternalMessage message);
-
-    default List<Adaptable> mapMultiple(ExternalMessage message) {
-        return map(message).map(Collections::singletonList).orElseGet(Collections::emptyList);
-    }
+    List<Adaptable> map(ExternalMessage message);
 
     /**
      * Maps an {@link Adaptable} to an {@link ExternalMessage}
      *
      * @param adaptable the Adaptable to map
-     * @return the ExternalMessage or an empty Optional if the Adaptable should not be mapped after all
+     * @return the ExternalMessage or an empty List if the Adaptable should not be mapped after all
      * @throws org.eclipse.ditto.model.connectivity.MessageMappingFailedException if the given adaptable can not be mapped
      */
-    Optional<ExternalMessage> map(Adaptable adaptable);
-
-    default List<ExternalMessage> mapMultiple(Adaptable adaptable) {
-        return map(adaptable).map(Collections::singletonList).orElseGet(Collections::emptyList);
-    }
+    List<ExternalMessage> map(Adaptable adaptable);
 
     /**
      * Finds the content-type header from the passed ExternalMessage.

@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.test;
 
-import java.util.Optional;
+import static java.util.Collections.emptyList;
+
+import java.util.List;
 
 import javax.annotation.Nonnull;
 
@@ -46,14 +48,14 @@ public final class MockMapper implements MessageMapper {
 
     @Override
     @Nonnull
-    public Optional<Adaptable> map(@Nonnull final ExternalMessage message) {
-        return Optional.empty();
+    public List<Adaptable> map(@Nonnull final ExternalMessage message) {
+        return emptyList();
     }
 
     @Override
     @Nonnull
-    public Optional<ExternalMessage> map(@Nonnull final Adaptable adaptable) {
-        return Optional.empty();
+    public List<ExternalMessage> map(@Nonnull final Adaptable adaptable) {
+        return emptyList();
     }
 
 }
