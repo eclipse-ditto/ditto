@@ -13,16 +13,13 @@
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.ImmutableJsonWebToken;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.JsonWebToken;
+import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.JwtToken;
@@ -129,7 +126,8 @@ public final class StreamingActor extends AbstractActor {
                     final String connectionCorrelationId = connect.getConnectionCorrelationId();
                     getContext().actorOf(
                             StreamingSessionActor.props(connectionCorrelationId, connect.getType(), dittoProtocolSub,
-                                    eventAndResponsePublisher, connect.getSessionExpirationTime()), connectionCorrelationId);
+                                    eventAndResponsePublisher, connect.getSessionExpirationTime()),
+                            connectionCorrelationId);
                 })
                 .match(StartStreaming.class,
                         startStreaming -> forwardToSessionActor(startStreaming.getConnectionCorrelationId(),
@@ -169,14 +167,14 @@ public final class StreamingActor extends AbstractActor {
 
 
     private void refreshWebsocketSession(final JwtToken jwtToken) {
-            final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromAuthorizationString(jwtToken.getJwtTokenAsString());
-            jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
-                if (binaryValidationResult.isValid()) {
-                    final String connectionCorrelationId = jwtToken.getConnectionCorrelationId();
-                    forwardToSessionActor(connectionCorrelationId,
-                            new ResetSessionTimer(connectionCorrelationId, jsonWebToken.getExpirationTime()));
-                }
-            });
+        final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromAuthorizationString(jwtToken.getJwtTokenAsString());
+        jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
+            if (binaryValidationResult.isValid()) {
+                final String connectionCorrelationId = jwtToken.getConnectionCorrelationId();
+                forwardToSessionActor(connectionCorrelationId,
+                        new ResetSessionTimer(connectionCorrelationId, jsonWebToken.getExpirationTime()));
+            }
+        });
     }
 
     private void forwardToSessionActor(final String connectionCorrelationId, final Object object) {
