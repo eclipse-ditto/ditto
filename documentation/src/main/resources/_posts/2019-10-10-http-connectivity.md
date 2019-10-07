@@ -1,7 +1,7 @@
 ---
 title: "Integration of foreign HTTP endpoints/webhooks"
 published: true
-permalink: 2019-10-02-http-connectivity.html
+permalink: 2019-10-10-http-connectivity.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
