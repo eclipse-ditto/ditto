@@ -36,7 +36,7 @@ public interface ETagEntityProvider<C extends Command, S> {
      * @param previousEntity The entity, may be {@code null}.
      * @return An optional of an entity against which the etag header should be matched.
      */
-    Optional<?> previousETagEntity(C command, @Nullable S previousEntity);
+    Optional<EntityTag> previousEntityTag(C command, @Nullable S previousEntity);
 
     /**
      * Determines the value based on which an eTag will be generated after a modify command.
@@ -45,7 +45,8 @@ public interface ETagEntityProvider<C extends Command, S> {
      * @param newEntity The entity, may be {@code null}.
      * @return An optional of the entity from which the etag header should be generated.
      */
-    Optional<?> nextETagEntity(C command, @Nullable S newEntity);
+    Optional<EntityTag> nextEntityTag(C command, @Nullable S newEntity);
+
 
     /**
      * Append an ETag header if given by the entity.
@@ -58,16 +59,13 @@ public interface ETagEntityProvider<C extends Command, S> {
     default WithDittoHeaders appendETagHeaderIfProvided(final C command,
             final WithDittoHeaders withDittoHeaders, @Nullable final S entity) {
 
-        final Optional<?> eTagEntityOpt = nextETagEntity(command, entity);
-        if (eTagEntityOpt.isPresent()) {
-            final Optional<EntityTag> entityTagOpt = EntityTag.fromEntity(eTagEntityOpt.get());
-            if (entityTagOpt.isPresent()) {
-                final EntityTag entityTag = entityTagOpt.get();
-                final DittoHeaders newDittoHeaders = withDittoHeaders.getDittoHeaders().toBuilder()
-                        .eTag(entityTag)
-                        .build();
-                return withDittoHeaders.setDittoHeaders(newDittoHeaders);
-            }
+        final Optional<EntityTag> entityTagOpt = nextEntityTag(command, entity);
+        if (entityTagOpt.isPresent()) {
+            final EntityTag entityTag = entityTagOpt.get();
+            final DittoHeaders newDittoHeaders = withDittoHeaders.getDittoHeaders().toBuilder()
+                    .eTag(entityTag)
+                    .build();
+            return withDittoHeaders.setDittoHeaders(newDittoHeaders);
         }
         return withDittoHeaders;
     }

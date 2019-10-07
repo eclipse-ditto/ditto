@@ -148,7 +148,7 @@ public class JavaTestProbe {
      * @param target The actor expected to terminate.
      * @return The status of termination.
      */
-    public Terminated expectTerminated(ActorRef target) {
+    public Terminated expectTerminated(final ActorRef target) {
         return testProbe.expectTerminated(target, Duration.Undefined());
     }
 

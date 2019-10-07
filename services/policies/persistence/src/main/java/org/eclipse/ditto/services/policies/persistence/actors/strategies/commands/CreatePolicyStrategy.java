@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
@@ -77,13 +78,13 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
     }
 
     @Override
-    public Optional<?> previousETagEntity(final CreatePolicy command, @Nullable final Policy previousEntity) {
-        return Optional.ofNullable(previousEntity);
+    public Optional<EntityTag> previousEntityTag(final CreatePolicy command, @Nullable final Policy previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final CreatePolicy command, @Nullable final Policy newEntity) {
-        return Optional.ofNullable(newEntity);
+    public Optional<EntityTag> nextEntityTag(final CreatePolicy command, @Nullable final Policy newEntity) {
+        return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
 
     @Override

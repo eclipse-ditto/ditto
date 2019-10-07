@@ -7,6 +7,15 @@
             $('[data-toggle="tooltip"]').tooltip()
         })
     </script>
+    <script src="//iot.eclipse.org/assets/js/eclipsefdn.adopters.js"></script>
+    <script>
+        eclipseFdnAdopters.getList({
+           project_id: "iot.ditto",
+           selector: ".who .user-logos-container",
+           ul_classes: "user-logos",
+           logo_white: true
+        });
+    </script>
 </head>
 {% if site.google_analytics %}
 {% include google_analytics.html %}

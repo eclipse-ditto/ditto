@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -75,14 +76,15 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
     }
 
     @Override
-    public Optional<?> previousETagEntity(final ModifySubjects command, @Nullable final Policy previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final ModifySubjects command, @Nullable final Policy previousEntity) {
         return Optional.ofNullable(previousEntity)
                 .flatMap(p -> p.getEntryFor(command.getLabel()))
-                .map(PolicyEntry::getSubjects);
+                .map(PolicyEntry::getSubjects)
+                .flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final ModifySubjects command, @Nullable final Policy newEntity) {
-        return Optional.of(command.getSubjects());
+    public Optional<EntityTag> nextEntityTag(final ModifySubjects command, @Nullable final Policy newEntity) {
+        return Optional.of(command.getSubjects()).flatMap(EntityTag::fromEntity);
     }
 }

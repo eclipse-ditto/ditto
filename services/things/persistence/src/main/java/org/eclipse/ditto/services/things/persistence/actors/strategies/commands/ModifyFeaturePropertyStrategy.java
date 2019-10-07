@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -120,13 +121,14 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
 
 
     @Override
-    public Optional<?> previousETagEntity(final ModifyFeatureProperty command, @Nullable final Thing previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final ModifyFeatureProperty command,
+            @Nullable final Thing previousEntity) {
         return extractFeature(command, previousEntity).flatMap(Feature::getProperties)
-                .flatMap(props -> props.getValue(command.getPropertyPointer()));
+                .flatMap(props -> props.getValue(command.getPropertyPointer()).flatMap(EntityTag::fromEntity));
     }
 
     @Override
-    public Optional<?> nextETagEntity(final ModifyFeatureProperty command, @Nullable final Thing newEntity) {
-        return Optional.of(command.getPropertyValue());
+    public Optional<EntityTag> nextEntityTag(final ModifyFeatureProperty command, @Nullable final Thing newEntity) {
+        return Optional.of(command.getPropertyValue()).flatMap(EntityTag::fromEntity);
     }
 }

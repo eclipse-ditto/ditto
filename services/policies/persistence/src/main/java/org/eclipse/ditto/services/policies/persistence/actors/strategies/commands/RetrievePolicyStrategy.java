@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -45,7 +46,7 @@ final class RetrievePolicyStrategy extends AbstractPolicyQueryCommandStrategy<Re
     }
 
     @Override
-    public Optional<?> nextETagEntity(final RetrievePolicy command, @Nullable final Policy newEntity) {
-        return Optional.ofNullable(newEntity);
+    public Optional<EntityTag> nextEntityTag(final RetrievePolicy command, @Nullable final Policy newEntity) {
+        return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
 }

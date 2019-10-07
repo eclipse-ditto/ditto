@@ -94,6 +94,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
@@ -126,7 +127,8 @@ import akka.routing.RoundRobinPool;
  * remote server is delegated to a child actor that uses a specific client (AMQP 1.0 or 0.9.1).
  */
 public final class ConnectionPersistenceActor
-        extends AbstractShardedPersistenceActor<ConnectivityCommand, Connection, ConnectionId, ConnectionState, ConnectivityEvent> {
+        extends AbstractShardedPersistenceActor<ConnectivityCommand, Connection, ConnectionId, ConnectionState,
+        ConnectivityEvent> {
 
     /**
      * Prefix to prepend to the connection ID to construct the persistence ID.
@@ -232,7 +234,8 @@ public final class ConnectionPersistenceActor
             final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> commandValidator
     ) {
-        return Props.create(ConnectionPersistenceActor.class, connectionId, dittoProtocolSub, conciergeForwarder, propsFactory,
+        return Props.create(ConnectionPersistenceActor.class, connectionId, dittoProtocolSub, conciergeForwarder,
+                propsFactory,
                 commandValidator);
     }
 
@@ -446,9 +449,16 @@ public final class ConnectionPersistenceActor
     protected void matchAnyAfterInitialization(final Object message) {
         if (message instanceof Signal) {
             forwardSignalToClientActors((Signal) message);
+        } else if (message == CheckLoggingActive.INSTANCE) {
+            checkLoggingEnabled();
         } else {
             log.warning("Unknown message: {}", message);
         }
+    }
+
+    private void checkLoggingEnabled() {
+        final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
+        tellClientActorsIfStarted(checkLoggingActive, getSelf());
     }
 
     private void forwardSignalToClientActors(final Signal signal) {
@@ -861,18 +871,6 @@ public final class ConnectionPersistenceActor
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Message that will be sent by scheduler and indicates a check if logging is still enabled for this connection.
-     */
-    static final class CheckLoggingActive {
-
-        static final CheckLoggingActive INSTANCE = new CheckLoggingActive();
-
-        private CheckLoggingActive() {
-        }
-
-    }
-
     private static <T> CompletionStage<T> failedFuture(final Throwable cause) {
         final CompletableFuture<T> future = new CompletableFuture<>();
         future.completeExceptionally(cause);
@@ -895,6 +893,13 @@ public final class ConnectionPersistenceActor
                     .dittoHeaders(headers)
                     .build();
         }
+    }
+
+    /**
+     * Message that will be sent by scheduler and indicates a check if logging is still enabled for this connection.
+     */
+    enum CheckLoggingActive {
+        INSTANCE
     }
 
     /**

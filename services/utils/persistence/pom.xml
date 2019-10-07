@@ -60,11 +60,11 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-things</artifactId>
+            <artifactId>ditto-services-utils-cache</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cache</artifactId>
+            <artifactId>ditto-services-utils-cluster</artifactId>
         </dependency>
 
         <dependency>

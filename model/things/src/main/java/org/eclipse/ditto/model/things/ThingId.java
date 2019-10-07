@@ -38,12 +38,12 @@ public final class ThingId implements NamespacedEntityId {
     }
 
     /**
-     * Returns a {@link ThingId} based on the given thingId CharSequence. May return the same instance as
-     * the parameter if the given parameter is already a ThingId. Skips validation if the given
-     * {@code thingId} is an instance of NamespacedEntityId.
+     * Returns an instance of this class based on the given CharSequence.
+     * May return the same instance as the parameter if the given parameter is already a ThingId.
+     * Skips validation if the given {@code thingId} is an instance of NamespacedEntityId.
      *
-     * @param thingId The thing ID.
-     * @return the thing ID.
+     * @param thingId the thing ID.
+     * @return the ID.
      */
     public static ThingId of(final CharSequence thingId) {
 
@@ -55,21 +55,21 @@ public final class ThingId implements NamespacedEntityId {
     }
 
     /**
-     * Creates a new {@link ThingId} with the given namespace and name.
+     * Returns an instance of this class with the given namespace and name.
      *
      * @param namespace the namespace of the thing.
      * @param name the name of the thing.
-     * @return the created instance of {@link ThingId}
+     * @return the created ID.
      */
     public static ThingId of(final String namespace, final String name) {
         return wrapInThingIdInvalidException(() -> new ThingId(DefaultNamespacedEntityId.of(namespace, name)));
     }
 
     /**
-     * Creates {@link ThingId} with default namespace placeholder.
+     * Returns an instance of this class with default namespace placeholder.
      *
      * @param name the name of the thing.
-     * @return the created thing ID.
+     * @return the created ID.
      */
     public static ThingId inDefaultNamespace(final String name) {
         return wrapInThingIdInvalidException(() -> new ThingId(fromName(name)));
@@ -93,8 +93,9 @@ public final class ThingId implements NamespacedEntityId {
     }
 
     /**
-     * Returns a dummy {@link ThingId}. This ID should not be used. It can be identified by
-     * checking {@link ThingId#isDummy()}.
+     * Returns a dummy ThingId.
+     * <em>This ID should not be used for entities.</em>
+     * It can be identified by checking {@link ThingId#isDummy()}.
      *
      * @return the dummy ID.
      */
@@ -117,11 +118,14 @@ public final class ThingId implements NamespacedEntityId {
         return entityId.getNamespace();
     }
 
-
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final ThingId thingId = (ThingId) o;
         return Objects.equals(entityId, thingId.entityId);
     }

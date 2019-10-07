@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -91,12 +92,12 @@ final class ModifyAttributesStrategy extends AbstractThingCommandStrategy<Modify
     }
 
     @Override
-    public Optional<?> previousETagEntity(final ModifyAttributes command, @Nullable final Thing previousEntity) {
-        return Optional.ofNullable(previousEntity).flatMap(Thing::getAttributes);
+    public Optional<EntityTag> previousEntityTag(final ModifyAttributes command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(Thing::getAttributes).flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final ModifyAttributes command, @Nullable final Thing newEntity) {
-        return Optional.of(command.getAttributes());
+    public Optional<EntityTag> nextEntityTag(final ModifyAttributes command, @Nullable final Thing newEntity) {
+        return Optional.of(command.getAttributes()).flatMap(EntityTag::fromEntity);
     }
 }
