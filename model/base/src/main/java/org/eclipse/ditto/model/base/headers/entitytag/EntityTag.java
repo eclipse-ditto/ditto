@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
@@ -129,7 +130,7 @@ public final class EntityTag {
      * @return An optional for the {@link EntityTag} built from the given entity. Empty if no {@link EntityTag}
      * could be built for the given entity
      */
-    public static Optional<EntityTag> fromEntity(final Object entity) {
+    public static Optional<EntityTag> fromEntity(@Nullable final Object entity) {
         return EntityTagBuilder.buildFromEntity(entity);
     }
 

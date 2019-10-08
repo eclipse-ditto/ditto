@@ -76,8 +76,7 @@ public abstract class AbstractCommandStrategy<C extends Command, S, K, R extends
      * @param command the incoming command.
      * @return result of the command strategy.
      */
-    protected abstract R doApply(final Context<K> context, @Nullable final S entity, final long nextRevision,
-            final C command);
+    protected abstract R doApply(Context<K> context, @Nullable S entity, long nextRevision, C command);
 
     /**
      * Throw an {@code IllegalArgumentException} for unhandled command.

@@ -72,7 +72,7 @@ final class DeletePolicyEntryStrategy extends AbstractPolicyCommandStrategy<Dele
     public Optional<EntityTag> previousEntityTag(final DeletePolicyEntry command,
             @Nullable final Policy previousEntity) {
         return Optional.ofNullable(previousEntity)
-                .flatMap(p -> EntityTag.fromEntity(p.getEntryFor(command.getLabel())));
+                .flatMap(p -> EntityTag.fromEntity(p.getEntryFor(command.getLabel()).orElse(null)));
     }
 
     @Override
