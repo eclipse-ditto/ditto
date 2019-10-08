@@ -54,7 +54,7 @@ public final class PolicyId implements NamespacedEntityId {
         return wrapInPolicyIdInvalidException(() -> new PolicyId(DefaultNamespacedEntityId.of(policyId)));
     }
 
-    public static PolicyId of(PolicyId policyId) {
+    public static PolicyId of(final PolicyId policyId) {
         return policyId;
     }
 

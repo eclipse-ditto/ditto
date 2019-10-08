@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.persistence.strategies
 
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.ENABLE_LOGGING;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
-import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.TELL_CLIENT_ACTORS_IF_STARTED;
+import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.BROADCAST_TO_CLIENT_ACTORS_IF_STARTED;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,6 +42,6 @@ final class EnableConnectionLogsStrategy extends AbstractEphemeralStrategy<Enabl
 
     @Override
     List<ConnectionAction> getActions() {
-        return Arrays.asList(TELL_CLIENT_ACTORS_IF_STARTED, SEND_RESPONSE, ENABLE_LOGGING);
+        return Arrays.asList(BROADCAST_TO_CLIENT_ACTORS_IF_STARTED, SEND_RESPONSE, ENABLE_LOGGING);
     }
 }

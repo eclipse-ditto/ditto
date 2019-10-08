@@ -41,14 +41,14 @@ final class RetrieveSubjectsStrategy extends AbstractPolicyQueryCommandStrategy<
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final RetrieveSubjects command) {
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
-        final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(command.getLabel());
+        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(command.getLabel());
         if (optionalEntry.isPresent()) {
             final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                     RetrieveSubjectsResponse.of(policyId, command.getLabel(), optionalEntry.get().getSubjects(),
                             command.getDittoHeaders()),
-                    policy);
+                    nonNullPolicy);
             return ResultFactory.newQueryResult(command, response);
         } else {
             return ResultFactory.newErrorResult(

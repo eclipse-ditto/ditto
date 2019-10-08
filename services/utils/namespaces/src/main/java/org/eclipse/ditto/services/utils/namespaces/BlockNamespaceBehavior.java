@@ -46,7 +46,7 @@ public final class BlockNamespaceBehavior {
     }
 
     /**
-     * Blocks a {@code signal} if it relates to an entity within a blocked namespace.
+     * Blocks the given {@code signal} if it relates to an entity within a blocked namespace.
      *
      * @param signal the signal to block.
      * @return a completion stage which either completes successfully with the given {@code signal} or exceptionally
