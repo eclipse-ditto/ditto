@@ -16,6 +16,7 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -63,13 +64,14 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     private static final ConnectionId CONNECTION_ID = ConnectionId.of("connection");
 
     @Override
-    protected Props getConsumerActorProps(final ActorRef mappingActor) {
+    protected Props getConsumerActorProps(final ActorRef mappingActor, final List<String> mappings) {
         final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
         final ConsumerData mockConsumerData =
                 consumerData(CONNECTION_ID.toString(), messageConsumer, ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
+                        .mapping(mappings)
                         .build());
         return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,
                 TestProbe.apply(actorSystem).testActor());

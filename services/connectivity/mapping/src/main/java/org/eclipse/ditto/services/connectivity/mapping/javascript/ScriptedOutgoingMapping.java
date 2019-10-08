@@ -81,7 +81,7 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
                         mapFromDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[]{dittoProtocolMessage});
 
                 if (result == null) {
-                    // return null if result is null causing the wrapping Optional to be empty
+                    // return empty list if result is null
                     return Collections.emptyList();
                 } else if (result instanceof NativeArray) {
                     // handle array

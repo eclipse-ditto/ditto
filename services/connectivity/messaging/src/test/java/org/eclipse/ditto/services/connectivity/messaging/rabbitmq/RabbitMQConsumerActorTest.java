@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.common.DittoConstants;
@@ -37,10 +38,10 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
     private static final Envelope ENVELOPE = new Envelope(1, false, "inbound", "ditto");
 
     @Override
-    protected Props getConsumerActorProps(final ActorRef mappingActor) {
+    protected Props getConsumerActorProps(final ActorRef mappingActor, final List<String> mappings) {
         return RabbitMQConsumerActor.props("rmq-consumer", mappingActor,
                 TestConstants.Authorization.AUTHORIZATION_CONTEXT, ENFORCEMENT, TestConstants.HEADER_MAPPING,
-                CONNECTION_ID);
+                mappings, CONNECTION_ID);
     }
 
     @Override

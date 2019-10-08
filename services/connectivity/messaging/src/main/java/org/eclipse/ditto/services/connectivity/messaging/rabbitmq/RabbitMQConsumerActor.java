@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -60,34 +61,39 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
+    private final List<String> payloadMapping;
 
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final ConnectionId connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
-            @Nullable final Enforcement enforcement, @Nullable final HeaderMapping headerMapping) {
+            @Nullable final Enforcement enforcement, @Nullable final HeaderMapping headerMapping,
+            final List<String> payloadMapping) {
         super(connectionId, sourceAddress, messageMappingProcessor, authorizationContext, headerMapping);
         headerEnforcementFilterFactory =
                 enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                         PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
+        this.payloadMapping = payloadMapping;
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
      *
-     * @param connectionId ID of the connection
      * @param source the source of messages
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
      * @param authorizationContext the authorization context of this source
      * @param enforcement the enforcement configuration
      * @param headerMapping optional header mappings
+     * @param payloadMapping payload mappings for messages received on this source
+     * @param connectionId ID of the connection
      * @return the Akka configuration Props object.
      */
     static Props props(final String source, final ActorRef messageMappingProcessor, final
     AuthorizationContext authorizationContext, @Nullable final Enforcement enforcement,
-            @Nullable final HeaderMapping headerMapping, final ConnectionId connectionId) {
+            @Nullable final HeaderMapping headerMapping, final List<String> payloadMapping,
+            final ConnectionId connectionId) {
 
         return Props.create(RabbitMQConsumerActor.class, connectionId, source, messageMappingProcessor,
-                                authorizationContext, enforcement, headerMapping);
+                authorizationContext, enforcement, headerMapping, payloadMapping);
     }
 
     @Override
@@ -130,6 +136,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
             externalMessageBuilder.withHeaderMapping(headerMapping);
             externalMessageBuilder.withSourceAddress(sourceAddress);
+            externalMessageBuilder.withPayloadMapping(payloadMapping);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             inboundMonitor.success(externalMessage);
             forwardToMappingActor(externalMessage, hashKey);

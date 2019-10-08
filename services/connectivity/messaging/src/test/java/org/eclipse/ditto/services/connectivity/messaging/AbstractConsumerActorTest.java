@@ -17,7 +17,10 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -26,7 +29,9 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -87,6 +92,25 @@ public abstract class AbstractConsumerActorTest<M> {
         testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, s -> {}, o -> {});
     }
 
+
+    @Test
+    public void testInboundMessageWitMultipleMappingsSucceeds() {
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 2, 0, s -> {}, o -> {},
+                Arrays.asList("ditto", "ditto"));
+    }
+
+    @Test
+    public void testInboundMessageWithMultipleMappingsOneFailingSucceeds() {
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 1, 1, s -> {}, o -> {},
+                Arrays.asList("faulty", "ditto"));
+    }
+
+    @Test
+    public void testInboundMessageWithDuplicatingMapperSucceeds() {
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 3, 0, s -> {}, o -> {},
+                Arrays.asList("duplicator", "ditto"));
+    }
+
     @Test
     public void testInboundMessageFails() {
         disableLogging(actorSystem);
@@ -144,7 +168,7 @@ public abstract class AbstractConsumerActorTest<M> {
         );
     }
 
-    protected abstract Props getConsumerActorProps(final ActorRef mappingActor);
+    protected abstract Props getConsumerActorProps(final ActorRef mappingActor, final List<String> mappings);
 
     protected abstract M getInboundMessage(final Map.Entry<String, Object> header);
 
@@ -152,6 +176,17 @@ public abstract class AbstractConsumerActorTest<M> {
             final boolean isForwardedToConcierge,
             final Consumer<Signal<?>> verifySignal,
             final Consumer<OutboundSignal.WithExternalMessage> verifyResponse) {
+        testInboundMessage(header, isForwardedToConcierge ? 1 : 0, isForwardedToConcierge ? 0 : 1, verifySignal,
+                verifyResponse, Collections.emptyList());
+    }
+
+    private void testInboundMessage(final Map.Entry<String, Object> header,
+            final int forwardedToConcierge,
+            final int respondedToCaller,
+            final Consumer<Signal<?>> verifySignal,
+            final Consumer<OutboundSignal.WithExternalMessage> verifyResponse,
+            final List<String> mappings
+    ) {
 
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
@@ -160,30 +195,44 @@ public abstract class AbstractConsumerActorTest<M> {
 
             final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), concierge.ref());
 
-            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor));
+            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor, mappings));
 
             underTest.tell(getInboundMessage(header), sender.ref());
 
-            if (isForwardedToConcierge) {
-                clientActor.expectNoMessage(ONE_SECOND);
-                final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
-                assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-                verifySignal.accept(modifyThing);
+            if (forwardedToConcierge >= 0) {
+                for (int i = 0; i < forwardedToConcierge; i++) {
+                    final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
+                    assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+                    verifySignal.accept(modifyThing);
+                }
             } else {
                 concierge.expectNoMessage(ONE_SECOND);
-                final PublishMappedMessage publishMappedMessage =
-                        clientActor.expectMsgClass(PublishMappedMessage.class);
-                verifyResponse.accept(publishMappedMessage.getOutboundSignal());
+            }
+
+            if (respondedToCaller >= 0) {
+                for (int i = 0; i < respondedToCaller; i++) {
+                    final PublishMappedMessage publishMappedMessage =
+                            clientActor.expectMsgClass(PublishMappedMessage.class);
+                    verifyResponse.accept(publishMappedMessage.getOutboundSignal());
+                }
+            } else {
+                clientActor.expectNoMessage(ONE_SECOND);
             }
         }};
     }
 
     private ActorRef setupMessageMappingProcessorActor(final ActorRef clientActor,
             final ActorRef conciergeForwarderActor) {
+
+        final Map<String, MappingContext> mappings = new HashMap<>();
+        mappings.put("ditto", DittoMessageMapper.CONTEXT);
+        mappings.put("faulty", FaultyMessageMapper.CONTEXT);
+        mappings.put("duplicator", DuplicatingMessageMapper.CONTEXT);
+
         final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         final MessageMappingProcessor mappingProcessor =
-                MessageMappingProcessor.of(CONNECTION_ID, Collections.emptyMap(), actorSystem,
-                connectivityConfig, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
+                MessageMappingProcessor.of(CONNECTION_ID, mappings, actorSystem,
+                        connectivityConfig, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(conciergeForwarderActor, clientActor, mappingProcessor,
                         CONNECTION_ID);

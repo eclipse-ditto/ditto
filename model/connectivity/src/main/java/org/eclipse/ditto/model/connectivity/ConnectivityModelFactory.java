@@ -451,6 +451,15 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Creates a new {@link TargetBuilder} for building {@link Target}s.
+     *
+     * @return new {@link Target} builder
+     */
+    public static TargetBuilder newTargetBuilder(final Target target) {
+        return new ImmutableTarget.Builder(target);
+    }
+
+    /**
      * Creates a new {@link Target} from existing target but different address.
      *
      * @param target the target

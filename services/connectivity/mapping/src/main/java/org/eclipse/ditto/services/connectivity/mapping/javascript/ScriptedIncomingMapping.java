@@ -70,7 +70,7 @@ public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage,
                         mapToDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[]{externalMessage});
 
                 if (result == null) {
-                    // return null if result is null causing the wrapping Optional to be empty
+                    // return empty list if result is null
                     return Collections.emptyList();
                 } else if (result instanceof NativeArray) {
                     // array handling

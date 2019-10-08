@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -357,10 +358,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         final AuthorizationContext authorizationContext = source.getAuthorizationContext();
                         final Enforcement enforcement = source.getEnforcement().orElse(null);
                         final HeaderMapping headerMapping = source.getHeaderMapping().orElse(null);
+                        final List<String> payloadMapping = source.getMapping();
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
                                 RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(),
-                                        authorizationContext, enforcement, headerMapping, connectionId()));
+                                        authorizationContext, enforcement, headerMapping, payloadMapping,
+                                        connectionId()));
                         consumerByAddressWithIndex.put(addressWithIndex, consumer);
                         try {
                             final String consumerTag = channel.basicConsume(sourceAddress, false,
