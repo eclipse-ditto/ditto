@@ -1202,6 +1202,12 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest.get(selector("the,fox/jumps,brown,fox/over/the,quick,fox/over/lazy,dog")).toString())
                 .isEqualTo("{\"the\":1,\"fox\":{\"jumps\":5,\"over\":{\"the\":6,\"lazy\":7}}," +
                         "\"brown\":3,\"quick\":2,\"dog\":8}");
+
+        assertThat(underTest.get(selector("fox/(jumps,over/(the,lazy))")).toString())
+                .isEqualTo("{\"fox\":{\"jumps\":5,\"over\":{\"the\":6,\"lazy\":7}}}");
+
+        assertThat(underTest.get(selector("fox/(over/(lazy,the),jumps)")).toString())
+                .isEqualTo("{\"fox\":{\"over\":{\"lazy\":7,\"the\":6},\"jumps\":5}}");
     }
 
     @Test
