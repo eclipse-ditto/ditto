@@ -1,5 +1,5 @@
 ---
-title: "Integration of foreign HTTP endpoints/webhooks"
+title: "Integration of HTTP endpoints/webhooks"
 published: true
 permalink: 2019-10-10-http-connectivity.html
 layout: post
@@ -17,7 +17,7 @@ By adding another connectivity type - [HTTP](connectivity-protocol-bindings-http
 That is especially useful for invoking existing APIs (which are most of the time HTTP based) whenever e.g.
  a digital twin was modified.
 
-One example on how to make a great use of this new feature is to invoke a custom 
+One example on how to benefit from this new feature is to invoke a custom 
  [IFTTT](https://ifttt.com) (if-this-than-that) [webhook](https://ifttt.com/maker_webhooks) via a HTTP `POST` request
  which then may trigger other IFTTT follow-up-actions (e.g. send a chat message to a [Slack](https://ifttt.com/slack) 
  room).
@@ -33,11 +33,11 @@ For IFTTT "webhooks" the address would be `POST https://maker.ifttt.com/trigger/
 }
 ```
 
-In combination with [payload mapping](connectivity-mapping.html) the `value1` to `value3` fields requested by the IFTTT
-API can be extracted from the [Ditto Protocol](protocol-specification.html) and can e.g. contain the changed value.
+In combination with [payload mapping](connectivity-mapping.html), the `value1` to `value3` fields requested by the IFTTT
+API can be extracted from the [Ditto Protocol](protocol-specification.html) and could contain the changed value.
 
 In combination with [filters for targets](basic-connections.html#target-topics-and-filtering) you can even specify to
-only publish e.g. `twin events` where the temperature of a twin exceeded a certain threshold:
+only publish e.g. `twin events`, where the temperature of a twin exceeded a certain threshold:
 
 ```
 {
@@ -49,8 +49,8 @@ only publish e.g. `twin events` where the temperature of a twin exceeded a certa
 }
 ```
 
-Get creative on what HTTP APIs to trigger based on twin events - invoke a "function-as-a-service" API or invoke the 
-Twitter API and let your digital twin tweet whenever it detects that it is getting too warm in your office. 
+Get creative on which HTTP APIs to trigger based on twin events. E.g. invoke a "function-as-a-service" API or invoke the 
+Twitter API and let your digital twin tweet whenever it detects, that it is getting too warm in your office. 
 
 
 {% include image.html file="ditto.svg" alt="Ditto" max-width=500 %}

@@ -14,7 +14,7 @@ as well. Following are some specifics for HTTP connections:
 
 ### Source format
 
-{% include warning.html content="HTTP connections currently don't support sources - the HTTP integration may only be used for pushing data out." %}
+{% include note.html content="HTTP connections currently don't support sources - the HTTP integration may only be used for pushing data out." %}
 
 ### Target format
 
@@ -26,7 +26,7 @@ The supported HTTP `<http_verb>` values are:
 * PUT
 * PATCH
 
-The specified `<http_path>` contains the path - including potential query parameters - to be appended to the configured
+The specified `<http_path>` contains the path - including optionally potential query parameters - to be appended to the configured
 `uri` of the connection.
 
 The body of the HTTP request is either the outgoing [Ditto Protocol](protocol-specification.html) message (e.g. an event)
@@ -43,7 +43,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [target topics and filtering](basic-connections.html#target-topics-and-filtering) for more information on that.
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-have READ permission on the Thing that is associated with a message.
+has READ permission on the Thing, that is associated with a message.
 
 ```json
 {
@@ -61,7 +61,7 @@ have READ permission on the Thing that is associated with a message.
 
 ### Specific configuration properties
 
-The specific configuration properties contain the following keys:
+The specific configuration properties contain the following optional keys:
 * `parallelism` (optional): Configures how many parallel requests per connection to perform, each takes up one outgoing 
 TCP connection. Default (if not provided): 1
 
