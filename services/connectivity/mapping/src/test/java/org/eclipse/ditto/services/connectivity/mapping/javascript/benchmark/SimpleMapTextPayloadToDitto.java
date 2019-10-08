@@ -83,7 +83,7 @@ public class SimpleMapTextPayloadToDitto implements MapToDittoProtocolScenario {
         final MessageMapper javaScriptRhinoMapperPlain = MessageMappers.createJavaScriptMessageMapper();
         javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
-                        .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
+                        .createJavaScriptMessageMapperConfigurationBuilder("text", Collections.emptyMap())
                         .contentType(CONTENT_TYPE)
                         .incomingScript(MAPPING_INCOMING_PLAIN)
                         .build()

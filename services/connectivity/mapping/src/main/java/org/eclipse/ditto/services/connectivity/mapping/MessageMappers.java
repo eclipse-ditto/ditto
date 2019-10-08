@@ -58,21 +58,24 @@ public final class MessageMappers implements MessageMapperInstantiation {
      * Creates a new {@link JavaScriptMessageMapperConfiguration.Builder}.
      *
      * @return the builder.
+     * @param id
      */
-    public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMapperConfigurationBuilder() {
-        return createJavaScriptMapperConfigurationBuilder(Collections.emptyMap());
+    public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMapperConfigurationBuilder(
+            final String id) {
+        return createJavaScriptMapperConfigurationBuilder(id, Collections.emptyMap());
     }
 
     /**
      * Creates a new {@link JavaScriptMessageMapperConfiguration.Builder} with options.
      *
+     * @param id
      * @param options configuration properties to initialize the builder with.
      * @return the builder.
      */
     public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMapperConfigurationBuilder(
-            final Map<String, String> options) {
+            final String id, final Map<String, String> options) {
 
-        return JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder(options);
+        return JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder(id, options);
     }
 
     /**

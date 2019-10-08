@@ -29,7 +29,7 @@ public final class MockMapper implements MessageMapper {
 
     public static final String OPT_IS_VALID = "Mock";
 
-    public MockMapper() {
+    MockMapper() {
         super();
     }
 

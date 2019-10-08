@@ -90,21 +90,21 @@ public final class DefaultMessageMapperFactoryTest {
         // looking for a method containing 'test' and returning a MessageMapper in Mappers.class
         final MappingContext ctx = MappingContexts.mock("test", options);
 
-        assertThat(underTest.mapperOf(ctx)).isPresent();
+        assertThat(underTest.mapperOf("test", ctx)).isPresent();
     }
 
     @Test
     public void loadMapperFromClass() {
         final MappingContext ctx = MappingContexts.mock(true);
 
-        assertThat(underTest.mapperOf(ctx)).isPresent();
+        assertThat(underTest.mapperOf("test", ctx)).isPresent();
     }
 
     @Test
     public void loadMissingMapper() {
         final MappingContext ctx = MappingContexts.mock("not-a-class", Collections.emptyMap());
 
-        assertThat(underTest.mapperOf(ctx)).isEmpty();
+        assertThat(underTest.mapperOf("test", ctx)).isEmpty();
     }
 
     @Test
@@ -112,7 +112,7 @@ public final class DefaultMessageMapperFactoryTest {
         final MappingContext ctx = MappingContexts.mock(String.class.getCanonicalName(),
                 Collections.emptyMap());
 
-        assertThat(underTest.mapperOf(ctx)).isEmpty();
+        assertThat(underTest.mapperOf("test", ctx)).isEmpty();
     }
 
     @Test
@@ -158,7 +158,7 @@ public final class DefaultMessageMapperFactoryTest {
     @Test
     public void loadMapperWithInvalidConfig() {
         final MappingContext ctx = MappingContexts.mock(false);
-        assertThat(underTest.mapperOf(ctx)).isEmpty();
+        assertThat(underTest.mapperOf("test", ctx)).isEmpty();
     }
 
     @Test
@@ -167,7 +167,7 @@ public final class DefaultMessageMapperFactoryTest {
 
         final MappingContext ctx =
                 ConnectivityModelFactory.newMappingContext(MockMapper.class.getCanonicalName(), opts);
-        assertThat(underTest.mapperOf(ctx)).isEmpty();
+        assertThat(underTest.mapperOf("test", ctx)).isEmpty();
     }
 
     @Test

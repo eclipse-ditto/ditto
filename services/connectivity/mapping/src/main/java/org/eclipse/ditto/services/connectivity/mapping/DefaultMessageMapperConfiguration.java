@@ -27,21 +27,31 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class DefaultMessageMapperConfiguration implements MessageMapperConfiguration {
 
+    private final String id;
     private final Map<String, String> properties;
 
-    private DefaultMessageMapperConfiguration(final Map<String, String> properties) {
+    private DefaultMessageMapperConfiguration(final String id, final Map<String, String> properties) {
+        this.id = id;
         this.properties = Collections.unmodifiableMap(new HashMap<>(properties));
     }
 
     /**
      * Constructs a new {@code DefaultMessageMapperConfiguration} of the given map.
      *
+     * @param id the id of the mapper
      * @param configuration the map holding configuration properties.
      * @return the instance.
      * @throws NullPointerException if {@code configuration} is {@code null}.
      */
-    public static DefaultMessageMapperConfiguration of(final Map<String, String> configuration) {
-        return new DefaultMessageMapperConfiguration(checkNotNull(configuration, "configuration properties"));
+    public static DefaultMessageMapperConfiguration of(final String id, final Map<String, String> configuration) {
+        checkNotNull(id, "id");
+        checkNotNull(configuration, "configuration properties");
+        return new DefaultMessageMapperConfiguration(id, configuration);
+    }
+
+    @Override
+    public String getId() {
+        return id;
     }
 
     @Override
@@ -51,26 +61,23 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final DefaultMessageMapperConfiguration that = (DefaultMessageMapperConfiguration) o;
-        return Objects.equals(properties, that.properties);
+        return Objects.equals(id, that.id) &&
+                Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(properties);
+        return Objects.hash(id, properties);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "properties=" + properties +
+                "id=" + id +
+                ", properties=" + properties +
                 "]";
     }
-
 }

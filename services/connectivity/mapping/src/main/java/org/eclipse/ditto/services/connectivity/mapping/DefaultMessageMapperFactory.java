@@ -120,9 +120,10 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     }
 
     @Override
-    public Optional<MessageMapper> mapperOf(final MappingContext mappingContext) {
+    public Optional<MessageMapper> mapperOf(final String mapperId, final MappingContext mappingContext) {
         final Optional<MessageMapper> mapper = createMessageMapperInstance(mappingContext);
-        final MessageMapperConfiguration options = DefaultMessageMapperConfiguration.of(mappingContext.getOptions());
+        final MessageMapperConfiguration options =
+                DefaultMessageMapperConfiguration.of(mapperId, mappingContext.getOptions());
         return mapper.map(m -> configureInstance(m, options) ? m : null);
     }
 
@@ -140,7 +141,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     public MessageMapperRegistry registryOf(final MappingContext defaultContext,
             final Map<String, MappingContext> contexts) {
 
-        final MessageMapper defaultMapper = mapperOf(defaultContext)
+        final MessageMapper defaultMapper = mapperOf("default", defaultContext)
                 .map(WrappingMessageMapper::wrap)
                 .orElseThrow(() -> new IllegalArgumentException("No default mapper found: " + defaultContext));
 
@@ -149,7 +150,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 .stream()
                 .map(e -> {
                     final MessageMapper messageMapper =
-                            mapperOf(e.getValue()).map(WrappingMessageMapper::wrap).orElse(null);
+                            mapperOf(e.getKey(), e.getValue()).map(WrappingMessageMapper::wrap).orElse(null);
                     return new AbstractMap.SimpleImmutableEntry<>(e.getKey(), messageMapper);
                 })
                 .collect(Collectors.toMap(AbstractMap.SimpleImmutableEntry::getKey,

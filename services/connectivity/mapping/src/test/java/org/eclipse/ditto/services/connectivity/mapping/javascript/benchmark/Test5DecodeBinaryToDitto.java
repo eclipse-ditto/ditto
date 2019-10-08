@@ -90,7 +90,7 @@ public class Test5DecodeBinaryToDitto implements MapToDittoProtocolScenario {
         final MessageMapper javaScriptRhinoMapperPlain = MessageMappers.createJavaScriptMessageMapper();
         javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
-                        .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
+                        .createJavaScriptMessageMapperConfigurationBuilder("decode", Collections.emptyMap())
                         .contentType(CONTENT_TYPE)
                         .incomingScript(MAPPING_INCOMING_PLAIN)
                         .build()

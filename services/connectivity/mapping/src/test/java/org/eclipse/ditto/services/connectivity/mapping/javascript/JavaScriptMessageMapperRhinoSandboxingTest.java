@@ -102,7 +102,7 @@ public final class JavaScriptMessageMapperRhinoSandboxingTest {
 
         mapper.configure(mappingConfig,
                 JavaScriptMessageMapperFactory
-                        .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
+                        .createJavaScriptMessageMapperConfigurationBuilder("malicious", Collections.emptyMap())
                         .contentType("text/plain")
                         .incomingScript(getMappingWrapperScript(maliciousStuff))
                         .build()

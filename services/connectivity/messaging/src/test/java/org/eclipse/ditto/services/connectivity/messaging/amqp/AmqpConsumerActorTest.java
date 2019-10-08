@@ -87,7 +87,8 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         new TestKit(actorSystem) {{
             final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
                     "JavaScript",
-                    MessageMappers.createJavaScriptMapperConfigurationBuilder()
+                    MessageMappers
+                            .createJavaScriptMapperConfigurationBuilder("plainStringMapping")
                             .incomingScript("function mapToDittoProtocolMsg(\n" +
                                     "    headers,\n" +
                                     "    textPayload,\n" +
@@ -179,7 +180,8 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         new TestKit(actorSystem) {{
             final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
                     "JavaScript",
-                    MessageMappers.createJavaScriptMapperConfigurationBuilder()
+                    MessageMappers
+                            .createJavaScriptMapperConfigurationBuilder("plainStringMappingMultiple")
                             .incomingScript("function mapToDittoProtocolMsg(\n" +
                                     "    headers,\n" +
                                     "    textPayload,\n" +

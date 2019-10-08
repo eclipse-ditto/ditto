@@ -30,15 +30,18 @@ import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.services.connectivity.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConnectionStatusMessageMapper implements MessageMapper {
+/**
+ * TODO javadoc
+ */
+public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
     public static final String HEADER_HUB_DEVICE_ID = "device_id";
     public static final String HEADER_HUB_TTD = "ttd";
@@ -69,12 +72,7 @@ public class ConnectionStatusMessageMapper implements MessageMapper {
     }
 
     @Override
-    public String getId() {
-        return "connectionStatus";
-    }
-
-    @Override
-    public void configure(final MappingConfig mappingConfig,
+    public void doConfigure(final MappingConfig mappingConfig,
             final MessageMapperConfiguration messageMapperConfiguration) {
 
         mappingOptionThingId = messageMapperConfiguration.findProperty(

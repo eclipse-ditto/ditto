@@ -28,6 +28,7 @@ public interface MessageMapperFactory {
      * Creates an configures a {@link MessageMapper} instance of
      * the given context. It is possible, that there is no mapper available for a specific context.
      *
+     * @param mapperId
      * @param context the context
      * @return the mapper
      * @throws java.lang.NullPointerException if the context is null
@@ -36,11 +37,10 @@ public interface MessageMapperFactory {
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
      * the {@code context} failed for a mapper specific reason
      */
-    Optional<MessageMapper> mapperOf(MappingContext context);
+    Optional<MessageMapper> mapperOf(final String mapperId, MappingContext context);
 
     /**
-     * Creates a {@link MessageMapperRegistry}. Mappers that are
-     * not available will not be added to the registry.
+     * Creates a {@link MessageMapperRegistry}. Mappers that are not available will not be added to the registry.
      *
      * @param defaultContext the context used to instantiate the default mapper
      * @param contexts the contexts used to instantiate the registry mapper
@@ -52,6 +52,5 @@ public interface MessageMapperFactory {
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
      * the {@code context} failed for a mapper specific reason
      */
-//    MessageMapperRegistry registryOf(MappingContext defaultContext, @Nullable MappingContext context);
     MessageMapperRegistry registryOf(MappingContext defaultContext, Map<String, MappingContext> contexts);
 }

@@ -42,7 +42,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
  * A message mapper implementation for the Ditto Protocol.
  * Expects messages to contain a JSON serialized Ditto Protocol message.
  */
-public final class DittoMessageMapper implements MessageMapper {
+public final class DittoMessageMapper extends AbstractMessageMapper {
 
     /**
      * The context representing this mapper
@@ -58,16 +58,6 @@ public final class DittoMessageMapper implements MessageMapper {
      */
     public DittoMessageMapper() {
         super();
-    }
-
-    @Override
-    public String getId() {
-        return "ditto";
-    }
-
-    @Override
-    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
-        // no op
     }
 
     @Override
