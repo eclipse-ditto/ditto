@@ -37,7 +37,7 @@ final class EntityTagBuilder {
      * @param entity The entity you want to get an {@link EntityTag} for.
      * @return An optional of the generated {@link EntityTag}. If no value could be generated the optional is empty.
      */
-    static Optional<EntityTag> buildFromEntity(@Nullable Object entity) {
+    static Optional<EntityTag> buildFromEntity(@Nullable final Object entity) {
         if (entity == null) {
             return Optional.empty();
         }
