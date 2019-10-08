@@ -16,14 +16,16 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationContextProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.JwtToken;
-import org.eclipse.ditto.services.gateway.streaming.ResetSessionTimer;
+import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
@@ -58,6 +60,7 @@ public final class StreamingActor extends AbstractActor {
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef commandRouter;
     private final JwtValidator jwtValidator;
+    private final JwtAuthorizationContextProvider jwtAuthorizationContextProvider;
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(Throwable.class, e -> {
@@ -74,10 +77,12 @@ public final class StreamingActor extends AbstractActor {
     @SuppressWarnings("unused")
     private StreamingActor(final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandRouter,
-            final JwtValidator jwtValidator) {
+            final JwtValidator jwtValidator,
+            final JwtAuthorizationContextProvider jwtAuthorizationContextProvider) {
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
         this.jwtValidator = jwtValidator;
+        this.jwtAuthorizationContextProvider = jwtAuthorizationContextProvider;
 
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
 
@@ -107,8 +112,9 @@ public final class StreamingActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter,
-            final JwtValidator jwtValidator) {
-        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtValidator);
+            final JwtValidator jwtValidator, final JwtAuthorizationContextProvider jwtAuthorizationContextProvider) {
+        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtValidator,
+                jwtAuthorizationContextProvider);
     }
 
     @Override
@@ -171,8 +177,11 @@ public final class StreamingActor extends AbstractActor {
         jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
             if (binaryValidationResult.isValid()) {
                 final String connectionCorrelationId = jwtToken.getConnectionCorrelationId();
+                final AuthorizationContext authorizationContext =
+                        jwtAuthorizationContextProvider.getAuthorizationContext(jsonWebToken);
                 forwardToSessionActor(connectionCorrelationId,
-                        new ResetSessionTimer(connectionCorrelationId, jsonWebToken.getExpirationTime()));
+                        new RefreshSession(connectionCorrelationId, jsonWebToken.getExpirationTime(),
+                                authorizationContext));
             }
         });
     }

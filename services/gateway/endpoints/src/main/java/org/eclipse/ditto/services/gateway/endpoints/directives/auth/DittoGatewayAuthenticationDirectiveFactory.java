@@ -24,10 +24,8 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationFailureAggregators;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.dummy.DummyAuthenticationProvider;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.DefaultJwtAuthorizationContextProvider;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuersConfig;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationContextProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,16 +40,17 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
     private final GatewayAuthenticationDirective gatewayAuthenticationDirective;
 
     public DittoGatewayAuthenticationDirectiveFactory(final AuthenticationConfig authConfig,
-            final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
             final JwtValidator jwtValidator,
+            final JwtAuthorizationContextProvider authorizationContextProvider,
             final Executor authenticationDispatcher) {
 
         checkNotNull(authConfig, "AuthenticationConfig");
-        checkNotNull(jwtSubjectIssuersConfig, "jwtSubjectIssuerConfig");
+        checkNotNull(jwtValidator, "JwtValidator");
+        checkNotNull(authorizationContextProvider, "JwtAuthorizationContextProvider");
         checkNotNull(authenticationDispatcher, "authentication dispatcher");
 
         gatewayAuthenticationDirective = generateGatewayAuthenticationDirective(authConfig,
-                jwtSubjectIssuersConfig, jwtValidator, authenticationDispatcher);
+                jwtValidator, authorizationContextProvider, authenticationDispatcher);
     }
 
     @Override
@@ -66,8 +65,8 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
 
     private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(
             final AuthenticationConfig authConfig,
-            final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
             final JwtValidator jwtValidator,
+            final JwtAuthorizationContextProvider authorizationContextProvider,
             final Executor authenticationDispatcher) {
 
         final Collection<AuthenticationProvider> authenticationProviders = new ArrayList<>();
@@ -75,11 +74,6 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
             LOGGER.warn("Dummy authentication is enabled - Do not use this feature in production.");
             authenticationProviders.add(DummyAuthenticationProvider.getInstance());
         }
-
-        final DittoJwtAuthorizationSubjectsProvider authorizationSubjectsProvider =
-                DittoJwtAuthorizationSubjectsProvider.of(jwtSubjectIssuersConfig);
-        final DefaultJwtAuthorizationContextProvider authorizationContextProvider =
-                DefaultJwtAuthorizationContextProvider.getInstance(authorizationSubjectsProvider);
         final JwtAuthenticationProvider jwtAuthenticationProvider =
                 JwtAuthenticationProvider.getInstance(jwtValidator, authorizationContextProvider);
 

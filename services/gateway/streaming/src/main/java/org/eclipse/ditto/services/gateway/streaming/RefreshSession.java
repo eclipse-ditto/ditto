@@ -15,10 +15,16 @@ package org.eclipse.ditto.services.gateway.streaming;
 
 import java.time.Instant;
 
-public class ResetSessionTimer {
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+
+/**
+ * Simple event which signals that a websocket session should be refreshed.
+ */
+public class RefreshSession {
 
     private final String correlationId;
     private final Instant sessionTimeout;
+    private final AuthorizationContext authorizationContext;
 
     public String getCorrelationId() {
         return correlationId;
@@ -26,8 +32,12 @@ public class ResetSessionTimer {
 
     public Instant getSessionTimeout() {return sessionTimeout; }
 
-    public ResetSessionTimer(final String correlationId, final Instant sessionTimeout) {
+    public AuthorizationContext getAuthorizationContext() { return authorizationContext; }
+
+    public RefreshSession(final String correlationId, final Instant sessionTimeout,
+            final AuthorizationContext authorizationContext) {
         this.correlationId = correlationId;
         this.sessionTimeout = sessionTimeout;
+        this.authorizationContext = authorizationContext;
     }
 }

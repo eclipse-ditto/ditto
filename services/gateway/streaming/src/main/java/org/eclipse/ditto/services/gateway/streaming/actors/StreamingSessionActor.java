@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFacto
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.gateway.streaming.ResetSessionTimer;
+import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
@@ -45,6 +45,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -99,7 +100,6 @@ final class StreamingSessionActor extends AbstractActor {
         } else {
             sessionTerminationCancellable = null;
         }
-
     }
 
     /**
@@ -118,7 +118,7 @@ final class StreamingSessionActor extends AbstractActor {
     }
 
     @Override
-    public void postStop() throws Exception {
+    public void postStop() {
         LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
         sessionTerminationCancellable.cancel();
         logger.info("Closing '{}' streaming session: {}", type, connectionCorrelationId);
@@ -197,9 +197,9 @@ final class StreamingSessionActor extends AbstractActor {
                                 .thenAccept(ack -> getSelf().tell(unsubscribeAck, getSelf()));
                     }
                 })
-                .match(ResetSessionTimer.class, resetSessionTimer -> {
+                .match(RefreshSession.class, refreshSession -> {
                     sessionTerminationCancellable.cancel();
-                    sessionTerminationCancellable = startSessionTimeout(resetSessionTimer.getSessionTimeout());
+                    checkAuthorizationContextAndStartSessionTimer(refreshSession);
                 })
                 .match(AcknowledgeSubscription.class, msg ->
                         acknowledgeSubscription(msg.getStreamingType(), getSelf()))
@@ -256,12 +256,12 @@ final class StreamingSessionActor extends AbstractActor {
     }
 
     private Cancellable startSessionTimeout(final Instant sessionExpirationTime) {
-        logger.debug("Starting session timeout - session will expire in {}s", sessionExpirationTime.getEpochSecond());
-        final FiniteDuration sessionExpirationTimeMillis =
-                FiniteDuration.apply(sessionExpirationTime.getEpochSecond(), TimeUnit.MILLISECONDS);
-        return getContext().getSystem().getScheduler()
-                .scheduleOnce(sessionExpirationTimeMillis,
-                        this::handleSessionTimeout, getContext().getDispatcher());
+        final long timeout = sessionExpirationTime.minusMillis(Instant.now().toEpochMilli()).toEpochMilli();
+
+        logger.debug("Starting session timeout - session will expire in {} ms", timeout);
+        final FiniteDuration sessionExpirationTimeMillis = FiniteDuration.apply(timeout, TimeUnit.MILLISECONDS);
+        return getContext().getSystem().getScheduler().scheduleOnce(sessionExpirationTimeMillis,
+                this::handleSessionTimeout, getContext().getDispatcher());
     }
 
     private void handleSessionTimeout() {
@@ -272,6 +272,22 @@ final class StreamingSessionActor extends AbstractActor {
                         .correlationId(connectionCorrelationId)
                         .build())
                 .build(), getSelf());
+    }
+
+    private void checkAuthorizationContextAndStartSessionTimer(final RefreshSession refreshSession) {
+        final List<String> newAuthorizationSubjects =
+                refreshSession.getAuthorizationContext().getAuthorizationSubjectIds();
+        if (!authorizationSubjects.equals(newAuthorizationSubjects)) {
+            logger.debug("Authorization Context changed for websocket session: <{}> - terminating the session",
+                    connectionCorrelationId);
+            eventAndResponsePublisher.tell(GatewayWebsocketSessionClosedException.newBuilder()
+                    .dittoHeaders(DittoHeaders.newBuilder()
+                            .correlationId(connectionCorrelationId)
+                            .build())
+                    .build(), getSelf());
+        } else {
+            sessionTerminationCancellable = startSessionTimeout(refreshSession.getSessionTimeout());
+        }
     }
 
     private boolean matchesNamespaces(final Signal<?> signal) {

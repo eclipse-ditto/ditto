@@ -49,6 +49,8 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.DefaultHttpClientFacad
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.DefaultJwtAuthorizationContextProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoPublicKeyProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuerConfig;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuersConfig;
@@ -119,13 +121,20 @@ public final class RootRouteTest extends EndpointTestBase {
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(protocolConfig, actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
-        final DefaultHttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
-        final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig(authConfig.getOAuthConfig());
+        final DefaultHttpClientFacade httpClient =
+                DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
+        final JwtSubjectIssuersConfig jwtSubjectIssuersConfig =
+                buildJwtSubjectIssuersConfig(authConfig.getOAuthConfig());
         final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
                 cacheConfig, "ditto_authorization_jwt_publicKeys_cache");
         final JwtValidator jwtValidator = JwtValidator.getInstance(publicKeyProvider);
+        final DittoJwtAuthorizationSubjectsProvider authorizationSubjectsProvider =
+                DittoJwtAuthorizationSubjectsProvider.of(jwtSubjectIssuersConfig);
+        final DefaultJwtAuthorizationContextProvider authorizationContextProvider =
+                DefaultJwtAuthorizationContextProvider.getInstance(authorizationSubjectsProvider);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtSubjectIssuersConfig, jwtValidator, messageDispatcher);
+                new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtValidator, authorizationContextProvider,
+                        messageDispatcher);
 
         final ActorRef proxyActor = createDummyResponseActor();
         final Supplier<ClusterStatus> clusterStatusSupplier = createClusterStatusSupplierMock();
