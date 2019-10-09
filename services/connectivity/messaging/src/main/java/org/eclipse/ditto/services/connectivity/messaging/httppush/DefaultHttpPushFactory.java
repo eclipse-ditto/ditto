@@ -16,13 +16,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
+import akka.http.javadsl.ClientTransport;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.ConnectionContext;
 import akka.http.javadsl.Http;
@@ -51,20 +55,28 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     private final int parallelism;
     private final SSLContextCreator sslContextCreator;
 
+    @Nullable
+    private final ClientTransport clientTransport;
+
     private DefaultHttpPushFactory(final ConnectionId connectionId, final Uri baseUri, final int parallelism,
-            final SSLContextCreator sslContextCreator) {
+            final SSLContextCreator sslContextCreator, @Nullable final HttpProxyConfig httpProxyConfig) {
         this.connectionId = connectionId;
         this.baseUri = baseUri;
         this.parallelism = parallelism;
         this.sslContextCreator = sslContextCreator;
+        if (httpProxyConfig == null) {
+            clientTransport = null;
+        } else {
+            clientTransport = httpProxyConfig.toClientTransport();
+        }
     }
 
-    static HttpPushFactory of(final Connection connection) {
+    static HttpPushFactory of(final Connection connection, @Nullable final HttpProxyConfig httpProxyConfig) {
         final ConnectionId connectionId = connection.getId();
         final Uri baseUri = Uri.create(connection.getUri());
         final int parallelism = parseParallelism(connection.getSpecificConfig());
         final SSLContextCreator sslContextCreator = SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
-        return new DefaultHttpPushFactory(connectionId, baseUri, parallelism, sslContextCreator);
+        return new DefaultHttpPushFactory(connectionId, baseUri, parallelism, sslContextCreator, httpProxyConfig);
     }
 
     @Override
@@ -128,13 +140,25 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     }
 
     private ConnectionPoolSettings getConnectionPoolSettings(final ActorSystem system) {
-        return disambiguateByConnectionId(system, connectionId).withMaxConnections(parallelism);
+        final ConnectionPoolSettings settings =
+                disambiguateByConnectionId(system, connectionId).withMaxConnections(parallelism);
+        return clientTransport == null
+                ? settings
+                : settings.withTransport(clientTransport);
     }
 
     private HttpsConnectionContext getHttpsConnectionContext() {
         return ConnectionContext.https(sslContextCreator.withoutClientCertificate());
     }
 
+    /**
+     * Create connection pool settings unique for the connection ID but functionally identical for
+     * identically configured connections.
+     *
+     * @param system the actor system that runs this HTTP-push factory.
+     * @param id the connection ID.
+     * @return artificially unique connection pool settings.
+     */
     private static ConnectionPoolSettings disambiguateByConnectionId(final ActorSystem system, final ConnectionId id) {
 
         final ParserSettings parserSettings = ParserSettings.create(system);
