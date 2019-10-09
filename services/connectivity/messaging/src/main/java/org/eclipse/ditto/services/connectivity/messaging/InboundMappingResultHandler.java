@@ -22,7 +22,6 @@ import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessa
  * {@link MappingResultHandler} for inbound messages. This handler forwards to the given handlers. Additionally it
  * calls the {@link MappingResultHandler#onException(Exception)} method for exceptions thrown in handlers and
  * increases the according counters for mapped, dropped failed messages.
- * </ul>
  */
 public class InboundMappingResultHandler implements MappingResultHandler<MappedInboundExternalMessage> {
 
