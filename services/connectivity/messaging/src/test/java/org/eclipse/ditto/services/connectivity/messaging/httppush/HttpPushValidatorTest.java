@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.kafka;
+package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -41,20 +42,20 @@ import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator}.
+ * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushValidator}.
  */
-public final class KafkaValidatorTest {
+public final class HttpPushValidatorTest {
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static Map<String, String> defaultSpecificConfig = new HashMap<>();
     private static ActorSystem actorSystem;
 
-    private KafkaValidator underTest;
+    private HttpPushValidator underTest;
 
     @BeforeClass
     public static void initTestFixture() {
         defaultSpecificConfig = new HashMap<>();
-        defaultSpecificConfig.put("bootstrapServers", "localhost:1883");
+        defaultSpecificConfig.put("parallelism", "1");
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
     }
 
@@ -68,7 +69,7 @@ public final class KafkaValidatorTest {
 
     @Before
     public void setUp() {
-        underTest = KafkaValidator.getInstance();
+        underTest = HttpPushValidator.newInstance();
     }
 
     @Test
@@ -87,59 +88,29 @@ public final class KafkaValidatorTest {
     @Test
     public void testValidTargetAddress() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
-        underTest.validate(getConnectionWithTarget("events"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithTarget("ditto/{{thing:id}}"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithTarget("{{thing:namespace}}/{{thing:name}}"), emptyDittoHeaders,
+        underTest.validate(getConnectionWithTarget("POST:events"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithTarget("PUT:ditto/{{thing:id}}"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithTarget("PATCH:/{{thing:namespace}}/{{thing:name}}"), emptyDittoHeaders,
                 actorSystem);
-        underTest.validate(getConnectionWithTarget("events#{{topic:full}}"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithTarget("ditto/{{header:x}}"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithTarget("PUT:events#{{topic:full}}"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithTarget("POST:ditto?{{header:x}}"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithTarget("POST:"), emptyDittoHeaders, actorSystem);
     }
 
     @Test
     public void testInvalidTargetAddress() {
         verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget(""));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("events/"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("ditto#"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("ditto#notANumber"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("ditto*a"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("ditto\\"));
-    }
-
-    @Test
-    public void testValidBootstrapServers() {
-        final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
-        underTest.validate(getConnectionWithBootstrapServers("foo:123"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithBootstrapServers("foo:123,bar:456"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithBootstrapServers("foo:123, bar:456 , baz:789"), emptyDittoHeaders,
-                actorSystem);
-    }
-
-    @Test
-    public void testInvalidBootstrapServers() {
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithBootstrapServers(null));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithBootstrapServers(""));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithBootstrapServers("fo#add#123o:123"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithBootstrapServers("foo:123;bar:456"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithBootstrapServers("http://foo:123"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("events"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("GET:foo"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("DELETE:/bar"));
     }
 
     private static Connection getConnectionWithTarget(final String target) {
-        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
-                ConnectivityStatus.OPEN, "tcp://localhost:1883")
+        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.HTTP_PUSH,
+                ConnectivityStatus.OPEN, "http://localhost:80")
                 .targets(singletonList(
                         ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
                 .specificConfig(defaultSpecificConfig)
-                .build();
-    }
-
-    private static Connection getConnectionWithBootstrapServers(final String bootstrapServers) {
-        final Map<String, String> specificConfig = new HashMap<>();
-        specificConfig.put("bootstrapServers", bootstrapServers);
-        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
-                ConnectivityStatus.OPEN, "tcp://localhost:1883")
-                .targets(singletonList(ConnectivityModelFactory.newTarget("events", AUTHORIZATION_CONTEXT, null, 1,
-                        Topic.LIVE_EVENTS)))
-                .specificConfig(specificConfig)
                 .build();
     }
 

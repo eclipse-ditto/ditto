@@ -33,8 +33,11 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpMethods;
 
@@ -55,8 +58,6 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
             .map(HttpMethod::name)
             .collect(Collectors.joining(", "));
 
-    private HttpPushValidator() {}
-
     /**
      * Create a new validator for http-push connections.
      *
@@ -72,12 +73,12 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     }
 
     @Override
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders,
-            final @Nullable ConnectionConfig config) {
+    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "HTTP");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validateParallelism(connection.getSpecificConfig(), dittoHeaders, config);
+        validateMappingContext(connection, actorSystem, dittoHeaders);
+        validateParallelism(connection.getSpecificConfig(), actorSystem, dittoHeaders);
     }
 
     @Override
@@ -129,18 +130,21 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         }
     }
 
-    private void validateParallelism(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders,
-            @Nullable final ConnectionConfig config) {
+    private void validateParallelism(final Map<String, String> specificConfig, final ActorSystem actorSystem,
+            final DittoHeaders dittoHeaders) {
+        final ConnectionConfig connectionConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        ).getConnectionConfig();
+
         final String parallelismString = specificConfig.get(HttpPushFactory.PARALLELISM);
         if (parallelismString != null) {
             try {
                 final int parallelism = Integer.parseInt(parallelismString);
-                if (parallelism <= 0 ||
-                        config != null && parallelism > config.getHttpPushConfig().getMaxParallelism()) {
-                    throw parallelismValidationFailed(parallelismString, dittoHeaders, config);
+                if (parallelism <= 0 || parallelism > connectionConfig.getHttpPushConfig().getMaxParallelism()) {
+                    throw parallelismValidationFailed(parallelismString, dittoHeaders, connectionConfig);
                 }
             } catch (final NumberFormatException e) {
-                throw parallelismValidationFailed(parallelismString, dittoHeaders, config);
+                throw parallelismValidationFailed(parallelismString, dittoHeaders, connectionConfig);
             }
         }
     }

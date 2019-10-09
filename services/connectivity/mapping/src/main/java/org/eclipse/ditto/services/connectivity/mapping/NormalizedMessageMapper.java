@@ -48,7 +48,7 @@ public final class NormalizedMessageMapper implements MessageMapper {
     /**
      * Config property to project parts from the mapping result.
      */
-    static final String FIELDS = "fields";
+    public static final String FIELDS = "fields";
 
     private static final JsonFieldDefinition<String> THING_ID = Thing.JsonFields.ID;
     private static final JsonFieldDefinition<String> MODIFIED = Thing.JsonFields.MODIFIED;

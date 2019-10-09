@@ -23,6 +23,9 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -34,9 +37,15 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.services.connectivity.mapping.NormalizedMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import akka.actor.ActorSystem;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator}.
@@ -44,6 +53,21 @@ import org.junit.Test;
 public class ConnectionValidatorTest {
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
+
+    private static ActorSystem actorSystem;
+
+    @BeforeClass
+    public static void setUp() {
+        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        if (actorSystem != null) {
+            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
+                    false);
+        }
+    }
 
     @Test
     public void testImmutability() {
@@ -58,7 +82,7 @@ public class ConnectionValidatorTest {
     public void acceptValidConnection() {
         final Connection connection = createConnection(CONNECTION_ID);
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
-        underTest.validate(connection, DittoHeaders.empty(), null);
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
     @Test
@@ -76,7 +100,7 @@ public class ConnectionValidatorTest {
 
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
 
     @Test
@@ -95,7 +119,7 @@ public class ConnectionValidatorTest {
 
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
 
     @Test
@@ -112,7 +136,27 @@ public class ConnectionValidatorTest {
 
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithInvalidNormalizerMapperJsonFieldSelector() {
+        final Map<String, String> normalizerMessageMapperOptions = new HashMap<>();
+        normalizerMessageMapperOptions.put(NormalizedMessageMapper.FIELDS, "foo(bar");
+
+        final Connection connection =
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
+                        ConnectionType.AMQP_10, ConnectivityStatus.OPEN, "amqp://localhost:5671")
+                        .targets(TestConstants.Targets.TARGETS)
+                        .mappingContext(ConnectivityModelFactory.newMappingContext(
+                                NormalizedMessageMapper.class.getName(),
+                                normalizerMessageMapperOptions
+                        ))
+                        .build();
+
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
 
     @Test
@@ -122,7 +166,7 @@ public class ConnectionValidatorTest {
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
 
     @Test
@@ -136,7 +180,7 @@ public class ConnectionValidatorTest {
                 .trustedCertificates(trustedCertificates)
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
-        underTest.validate(connection, DittoHeaders.empty(), null);
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
     @Test
@@ -149,7 +193,7 @@ public class ConnectionValidatorTest {
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
 
     @Test
@@ -162,7 +206,7 @@ public class ConnectionValidatorTest {
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), null));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
 
     }
 
@@ -175,7 +219,7 @@ public class ConnectionValidatorTest {
                         .build())
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
-        underTest.validate(connection, DittoHeaders.empty(), null);
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
 }

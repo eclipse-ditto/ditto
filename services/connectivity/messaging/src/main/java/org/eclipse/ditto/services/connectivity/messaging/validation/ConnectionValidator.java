@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -34,8 +33,9 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+
+import akka.actor.ActorSystem;
 
 /**
  * Validate a connection according to its type.
@@ -72,18 +72,17 @@ public final class ConnectionValidator {
      *
      * @param connection the connection to validate.
      * @param dittoHeaders headers of the command that triggered the connection validation.
-     * @param config the service-level connection configuration.
+     * @param actorSystem the ActorSystem to use.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the connection has errors.
      * @throws java.lang.IllegalStateException if the connection type is not known.
      */
-    void validate(final Connection connection, final DittoHeaders dittoHeaders,
-            final @Nullable ConnectionConfig config) {
+    void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
         validateFormatOfCertificates(connection, dittoHeaders);
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
-            spec.validate(connection, dittoHeaders, config);
+            spec.validate(connection, dittoHeaders, actorSystem);
         } else {
             throw new IllegalStateException("Unknown connection type: " + connection);
         }

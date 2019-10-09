@@ -110,6 +110,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
@@ -190,13 +191,15 @@ public final class ConnectionPersistenceActor
         this.conciergeForwarder = conciergeForwarder;
         this.propsFactory = propsFactory;
 
+        final ActorSystem actorSystem = getContext().getSystem();
         final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
         );
         config = connectivityConfig.getConnectionConfig();
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR, config);
+                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR,
+                        actorSystem);
 
         if (customCommandValidator != null) {
             commandValidator =
