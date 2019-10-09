@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -387,16 +388,69 @@ public final class ConnectivityModelFactory {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     static Map<String, MappingContext> mappingsFromJson(final JsonObject jsonObject) {
-        return jsonObject.stream().filter(f -> f.getValue().isObject()).map(field -> {
-            final String id = field.getKeyName();
-            final MappingContext context = ImmutableMappingContext.fromJson(field.getValue().asObject());
-            return new AbstractMap.SimpleImmutableEntry<>(id, context);
-        }).collect(fromEntries());
+        return jsonObject.stream()
+                .filter(f -> f.getValue().isObject())
+                .map(field -> {
+                    final String id = field.getKeyName();
+                    final MappingContext context = ImmutableMappingContext.fromJson(field.getValue().asObject());
+                    return new AbstractMap.SimpleImmutableEntry<>(id, context);
+                }).collect(fromEntries());
     }
-
 
     private static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>> fromEntries() {
         return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue);
+    }
+
+    /**
+     * @return new empty {@link PayloadMappingDefinition}
+     */
+    public static PayloadMappingDefinition emptyPayloadMappingDefinition() {
+        return ImmutablePayloadMappingDefinition.empty();
+    }
+
+    /**
+     * @param definitions the existing definitions
+     * @return new instance of {@link PayloadMappingDefinition} initialized with the given definitions
+     */
+    public static PayloadMappingDefinition newPayloadMappingDefinition(final Map<String, MappingContext> definitions) {
+        return ImmutablePayloadMappingDefinition.from(definitions);
+    }
+
+    /**
+     * @param id ID of the mapping
+     * @param mappingContext config of the mapping
+     * @return new instance of {@link PayloadMappingDefinition} initialized with the given definition
+     */
+    public static PayloadMappingDefinition newPayloadMappingDefinition(final String id,
+            final MappingContext mappingContext) {
+        final Map<String, MappingContext> definitions = new HashMap<>();
+        definitions.put(id, mappingContext);
+        return ImmutablePayloadMappingDefinition.from(definitions);
+    }
+
+    /**
+     * @return new instance of empty {@link PayloadMapping}
+     */
+    public static PayloadMapping emptyPayloadMapping() {
+        return ImmutablePayloadMapping.empty();
+    }
+
+    /**
+     * @return new instance of {@link PayloadMapping} initialized with the given mappings
+     */
+    public static PayloadMapping newPayloadMapping(final List<String> mappings) {
+        return ImmutablePayloadMapping.from(mappings);
+    }
+
+    /**
+     * @return new instance of {@link PayloadMapping} initialized with the given mappings
+     */
+    public static PayloadMapping newPayloadMapping(@Nullable final String... mappings) {
+        if (mappings == null || mappings.length == 0) {
+            return emptyPayloadMapping();
+        } else {
+            return ImmutablePayloadMapping.from(Arrays.asList(mappings));
+        }
     }
 
     /**
@@ -731,6 +785,7 @@ public final class ConnectivityModelFactory {
 
     /**
      * Creates a new {@link org.eclipse.ditto.model.connectivity.LogEntryBuilder} with the given parameters.
+     *
      * @param correlationId the correlation ID.
      * @param timestamp the timestamp of the log entry.
      * @param logCategory the category.
@@ -739,9 +794,11 @@ public final class ConnectivityModelFactory {
      * @param message the message.
      * @return a new builder.
      */
-    public static LogEntryBuilder newLogEntryBuilder(final String correlationId, final Instant timestamp, final LogCategory logCategory,
+    public static LogEntryBuilder newLogEntryBuilder(final String correlationId, final Instant timestamp,
+            final LogCategory logCategory,
             final LogType logType, final LogLevel logLevel, final String message) {
         return ImmutableLogEntry.getBuilder(correlationId, timestamp, logCategory, logType, logLevel, message);
     }
+
 
 }

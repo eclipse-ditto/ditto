@@ -42,6 +42,8 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
@@ -189,17 +191,11 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testMappingFailedExpectErrorResponseWitMapperId() {
         disableLogging(actorSystem);
-        final Enforcement mqttEnforcement =
-                ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
-                        "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
-        final EnforcementFilterFactory<String, CharSequence> factory =
-                EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
-        final EnforcementFilter<CharSequence> enforcementFilter = factory.getFilter("some/invalid/target");
-        testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, false, FAULTY_MAPPER,
+        testExternalMessageInDittoProtocolIsProcessed(null, false, FAULTY_MAPPER,
                 r -> {
                     assertThat(r.getDittoRuntimeException()).isInstanceOf(MessageMappingFailedException.class);
-                    assertThat(r.getDittoRuntimeException().getDescription()).hasValueSatisfying(desc ->
-                            assertThat(desc).contains(FAULTY_MAPPER));
+                    assertThat(r.getDittoRuntimeException().getDescription())
+                            .hasValueSatisfying(desc -> assertThat(desc).contains(FAULTY_MAPPER));
                 }
         );
     }
@@ -221,8 +217,7 @@ public final class MessageMappingProcessorActorTest {
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
             final ModifyAttribute modifyCommand = createModifyAttributeCommand();
-            final List<String> mappings =
-                    null == mapping ? Collections.emptyList() : Collections.singletonList(mapping);
+            final PayloadMapping mappings = ConnectivityModelFactory.newPayloadMapping(mapping);
             final ExternalMessage externalMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(modifyCommand.getDittoHeaders())
                             .withText(ProtocolFactory
@@ -503,7 +498,9 @@ public final class MessageMappingProcessorActorTest {
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
-        return MessageMappingProcessor.of(CONNECTION_ID, mappingDefinitions, actorSystem,
+        final PayloadMappingDefinition payloadMappingDefinition =
+                ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
+        return MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
                 TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
     }

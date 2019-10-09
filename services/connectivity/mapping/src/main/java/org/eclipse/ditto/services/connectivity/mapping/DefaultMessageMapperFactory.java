@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 
 import akka.actor.ActorSystem;
 import akka.actor.DynamicAccess;
@@ -139,13 +140,13 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     @Override
     public MessageMapperRegistry registryOf(final MappingContext defaultContext,
-            final Map<String, MappingContext> contexts) {
+            final PayloadMappingDefinition payloadMappingDefinition) {
 
         final MessageMapper defaultMapper = mapperOf("default", defaultContext)
                 .map(WrappingMessageMapper::wrap)
                 .orElseThrow(() -> new IllegalArgumentException("No default mapper found: " + defaultContext));
 
-        final Map<String, MessageMapper> mappers = contexts
+        final Map<String, MessageMapper> mappers = payloadMappingDefinition.getDefinitions()
                 .entrySet()
                 .stream()
                 .map(e -> {

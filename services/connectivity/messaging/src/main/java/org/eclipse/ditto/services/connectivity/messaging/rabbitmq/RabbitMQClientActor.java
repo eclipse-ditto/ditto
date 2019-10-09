@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -34,6 +33,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
@@ -358,7 +358,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         final AuthorizationContext authorizationContext = source.getAuthorizationContext();
                         final Enforcement enforcement = source.getEnforcement().orElse(null);
                         final HeaderMapping headerMapping = source.getHeaderMapping().orElse(null);
-                        final List<String> payloadMapping = source.getMapping();
+                        final PayloadMapping payloadMapping = source.getPayloadMapping();
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
                                 RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(),

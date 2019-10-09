@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -96,9 +97,12 @@ public class MessageMappingProcessorTest {
         mappings.put(FAILING_MAPPER, FaultyMessageMapper.CONTEXT);
         mappings.put(DROPPING_MAPPER, DroppingMessageMapper.CONTEXT);
         mappings.put(DUPLICATING_MAPPER, DuplicatingMessageMapper.CONTEXT);
+        final PayloadMappingDefinition payloadMappingDefinition =
+                ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
+
         underTest =
-                MessageMappingProcessor.of(ConnectionId.of("theConnection"), mappings, actorSystem, connectivityConfig,
-                        protocolAdapterProvider, log);
+                MessageMappingProcessor.of(ConnectionId.of("theConnection"), payloadMappingDefinition, actorSystem,
+                        connectivityConfig, protocolAdapterProvider, log);
     }
 
     @Test
@@ -155,7 +159,7 @@ public class MessageMappingProcessorTest {
 
     private static Target targetWithMapping(final String... mappings) {
         return ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
-                .mapping(Arrays.asList(mappings))
+                .payloadMapping(ConnectivityModelFactory.newPayloadMapping(mappings))
                 .build();
     }
 
@@ -181,7 +185,7 @@ public class MessageMappingProcessorTest {
             final ExternalMessage externalMessage = ExternalMessageFactory
                     .newExternalMessageBuilder(Collections.emptyMap())
                     .withText(TestConstants.modifyThing())
-                    .withPayloadMapping(Arrays.asList(mappers))
+                    .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(mappers))
                     .build();
             final MappingResultHandler<MappedInboundExternalMessage> mock = Mockito.mock(MappingResultHandler.class);
             underTest.process(externalMessage, mock);

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -82,12 +81,12 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Optional<HeaderMapping> getHeaderMapping();
 
     /**
-     * The list of mappings that should be applied in this order for messages sent on this target. Each
+     * The payload mappings that should be applied in this order for messages sent on this target. Each
      * mapping can produce multiple signals on its own that are then forwarded to the external system.
      *
-     * @return list of mappings to execute
+     * @return the payload mappings to execute
      */
-    List<String> getMapping();
+    PayloadMapping getPayloadMapping();
 
     /**
      * Returns all non hidden marked fields of this {@code Connection}.
@@ -155,8 +154,8 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
         /**
          * JSON field containing the {@code Target} payload mapping.
          */
-        public static final JsonFieldDefinition<JsonArray> MAPPING =
-                JsonFactory.newJsonArrayFieldDefinition("mapping", FieldType.REGULAR,
+        public static final JsonFieldDefinition<JsonArray> PAYLOAD_MAPPING =
+                JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

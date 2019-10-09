@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
+
 /**
  * The default implementation of a {@link MessageMapperRegistry}.
  */
@@ -51,8 +53,8 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
     }
 
     @Override
-    public List<MessageMapper> getMappers(final List<String> ids) {
-        return ids.stream()
+    public List<MessageMapper> getMappers(final PayloadMapping payloadMapping) {
+        return payloadMapping.getMappings().stream()
                 .map(mappers::get)
                 .map(resolvedMapper -> null == resolvedMapper ? defaultMapper : resolvedMapper)
                 .collect(Collectors.toList());

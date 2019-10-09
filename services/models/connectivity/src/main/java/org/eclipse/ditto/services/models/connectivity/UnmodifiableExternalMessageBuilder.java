@@ -13,9 +13,7 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -25,6 +23,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
@@ -43,7 +42,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private TopicPath topicPath;
     @Nullable private EnforcementFilter<CharSequence> enforcementFilter;
     @Nullable private HeaderMapping headerMapping;
-    @Nullable private List<String> payloadMapping;
+    @Nullable private PayloadMapping payloadMapping;
     @Nullable private String sourceAddress;
     private DittoHeaders internalHeaders = DittoHeaders.empty();
 
@@ -173,8 +172,8 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
-    public ExternalMessageBuilder withPayloadMapping(final List<String> mapping) {
-        this.payloadMapping = mapping;
+    public ExternalMessageBuilder withPayloadMapping(final PayloadMapping payloadMapping) {
+        this.payloadMapping = payloadMapping;
         return this;
     }
 
@@ -206,7 +205,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     public ExternalMessage build() {
         return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
                 authorizationContext, topicPath, enforcementFilter, headerMapping,
-                payloadMapping != null ? payloadMapping : Collections.emptyList(), sourceAddress, internalHeaders);
+                payloadMapping, sourceAddress, internalHeaders);
     }
 
 }

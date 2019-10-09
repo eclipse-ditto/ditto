@@ -1093,8 +1093,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private CompletionStage<Status.Status> tryToConfigureMessageMappingProcessor() {
         final ActorSystem actorSystem = getContext().getSystem();
         // this one throws DittoRuntimeExceptions when the mapper could not be configured
-        MessageMappingProcessor.of(connectionId(), connection().getMappings(), actorSystem, connectivityConfig,
-                protocolAdapterProvider, log);
+        MessageMappingProcessor.of(connectionId(), connection().getPayloadMappingDefinition(), actorSystem,
+                connectivityConfig, protocolAdapterProvider, log);
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
@@ -1112,8 +1112,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final MessageMappingProcessor processor;
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            processor = MessageMappingProcessor.of(connectionId(), connection().getMappings(), getContext().getSystem(),
-                    connectivityConfig, protocolAdapterProvider, log);
+            processor = MessageMappingProcessor.of(connectionId(), connection().getPayloadMappingDefinition(),
+                    getContext().getSystem(), connectivityConfig, protocolAdapterProvider, log);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
             log.info(

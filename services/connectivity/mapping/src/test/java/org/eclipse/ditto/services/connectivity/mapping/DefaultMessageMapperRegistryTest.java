@@ -13,9 +13,8 @@
 package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newPayloadMapping;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,17 +48,17 @@ public class DefaultMessageMapperRegistryTest {
     @Test
     public void testMapperRegistry() {
         assertThat(underTest.getDefaultMapper()).isSameAs(defaultMapper);
-        assertThat(underTest.getMappers(Collections.singletonList("mock1"))).containsExactly(mockMapper1);
-        assertThat(underTest.getMappers(Collections.singletonList("mock2"))).containsExactly(mockMapper2);
-        assertThat(underTest.getMappers(Arrays.asList("mock1", "mock2"))).containsExactly(mockMapper1, mockMapper2);
-        assertThat(underTest.getMappers(Arrays.asList("mock1", "mock1"))).containsExactly(mockMapper1, mockMapper1);
-        assertThat(underTest.getMappers(Arrays.asList("mock1", "mock2", "mock1"))).containsExactly(mockMapper1,
+        assertThat(underTest.getMappers(newPayloadMapping("mock1"))).containsExactly(mockMapper1);
+        assertThat(underTest.getMappers(newPayloadMapping("mock2"))).containsExactly(mockMapper2);
+        assertThat(underTest.getMappers(newPayloadMapping("mock1", "mock2"))).containsExactly(mockMapper1, mockMapper2);
+        assertThat(underTest.getMappers(newPayloadMapping("mock1", "mock1"))).containsExactly(mockMapper1, mockMapper1);
+        assertThat(underTest.getMappers(newPayloadMapping("mock1", "mock2", "mock1"))).containsExactly(mockMapper1,
                 mockMapper2, mockMapper1);
-        assertThat(underTest.getMappers(Arrays.asList("mock2", "mock1"))).containsExactly(mockMapper2, mockMapper1);
+        assertThat(underTest.getMappers(newPayloadMapping("mock2", "mock1"))).containsExactly(mockMapper2, mockMapper1);
     }
 
     @Test
     public void testNonExistentMapperResolvesToDefaultMapper() {
-        assertThat(underTest.getMappers(Collections.singletonList("eclipse"))).containsExactly(defaultMapper);
+        assertThat(underTest.getMappers(newPayloadMapping("eclipse"))).containsExactly(defaultMapper);
     }
 }

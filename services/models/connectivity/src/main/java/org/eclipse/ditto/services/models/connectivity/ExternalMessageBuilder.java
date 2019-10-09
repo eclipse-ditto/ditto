@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -22,6 +21,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
@@ -178,10 +178,10 @@ public interface ExternalMessageBuilder {
     /**
      * Defines which mappings are applied for this {@link ExternalMessage}.
      *
-     * @param mapping the mapping that is applied for this message
+     * @param payloadMapping the payloadMapping that is applied for this message
      * @return this builder.
      */
-    ExternalMessageBuilder withPayloadMapping(List<String> mapping);
+    ExternalMessageBuilder withPayloadMapping(PayloadMapping payloadMapping);
 
     /**
      * Builds the ExternalMessage.

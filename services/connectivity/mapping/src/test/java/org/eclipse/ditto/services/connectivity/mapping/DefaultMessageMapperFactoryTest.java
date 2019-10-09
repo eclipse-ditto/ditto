@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
@@ -173,12 +172,9 @@ public final class DefaultMessageMapperFactoryTest {
     @Test
     public void loadRegistry() {
         final MappingContext fooCtx = MappingContexts.mock(true);
-
-        final Map<String, MappingContext> map = new HashMap<>();
-        map.put("foo", fooCtx);
-
-        final MessageMapperRegistry underTest = this.underTest.registryOf(DittoMessageMapper.CONTEXT, map);
-        final MessageMapper fooMapper = underTest.getMappers(singletonList("foo")).get(0);
+        final MessageMapperRegistry underTest = this.underTest.registryOf(DittoMessageMapper.CONTEXT,
+                ConnectivityModelFactory.newPayloadMappingDefinition("foo", fooCtx));
+        final MessageMapper fooMapper = underTest.getMappers(ConnectivityModelFactory.newPayloadMapping("foo")).get(0);
         final MessageMapper defaultMapper = underTest.getDefaultMapper();
         assertThat(fooMapper).isInstanceOf(WrappingMessageMapper.class);
         assertThat(((WrappingMessageMapper) fooMapper).getDelegate()).isInstanceOf(MockMapper.class);

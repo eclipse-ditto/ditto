@@ -20,7 +20,10 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMo
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 /**
- * TODO javadoc
+ * {@link MappingResultHandler} for outbound messages. This handler forwards to the given handlers and
+ * calls the {@link MappingResultHandler#onException(Exception)} method for exceptions thrown in these handlers and
+ * increases the according counters for mapped, dropped failed messages.
+ * </ul>
  */
 public class OutboundMappingResultHandler implements MappingResultHandler<ExternalMessage> {
 
@@ -31,10 +34,8 @@ public class OutboundMappingResultHandler implements MappingResultHandler<Extern
     private final Set<ConnectionMonitor> outboundDropped;
     private final ConnectionMonitor.InfoProvider infoProvider;
 
-    OutboundMappingResultHandler(
-            final Consumer<ExternalMessage> onMessageMapped, final Runnable onMessageDropped,
-            final Consumer<Exception> onException,
-            final Set<ConnectionMonitor> outboundMapped,
+    OutboundMappingResultHandler(final Consumer<ExternalMessage> onMessageMapped, final Runnable onMessageDropped,
+            final Consumer<Exception> onException, final Set<ConnectionMonitor> outboundMapped,
             final Set<ConnectionMonitor> outboundDropped, final ConnectionMonitor.InfoProvider infoProvider) {
         this.onMessageMapped = onMessageMapped;
         this.onMessageDropped = onMessageDropped;

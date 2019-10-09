@@ -13,10 +13,8 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -26,6 +24,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
@@ -39,7 +38,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     private final boolean response;
     private final boolean error;
     private final PayloadType payloadType;
-    private final List<String> payloadMapping;
+    private final PayloadMapping payloadMapping;
 
     @Nullable private final String textPayload;
     @Nullable private final ByteBuffer bytePayload;
@@ -61,7 +60,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final TopicPath topicPath,
             @Nullable final EnforcementFilter<CharSequence> enforcementFilter,
             @Nullable final HeaderMapping headerMapping,
-            final List<String> payloadMapping,
+            final PayloadMapping payloadMapping,
             @Nullable final String sourceAddress,
             final DittoHeaders internalHeaders) {
 
@@ -75,7 +74,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
         this.topicPath = topicPath;
         this.enforcementFilter = enforcementFilter;
         this.headerMapping = headerMapping;
-        this.payloadMapping = Collections.unmodifiableList(new ArrayList<>(payloadMapping));
+        this.payloadMapping = payloadMapping;
         this.sourceAddress = sourceAddress;
         this.internalHeaders = internalHeaders;
     }
@@ -169,7 +168,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     }
 
     @Override
-    public List<String> getPayloadMapping() {
+    public PayloadMapping getPayloadMapping() {
         return payloadMapping;
     }
 

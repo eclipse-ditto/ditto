@@ -324,7 +324,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                     .withAuthorizationContext(authorizationContext)
                     .withEnforcement(headerEnforcementFilterFactory.getFilter(headers)).withHeaderMapping(headerMapping)
                     .withSourceAddress(sourceAddress)
-                    .withPayloadMapping(consumerData.getSource().getMapping())
+                    .withPayloadMapping(consumerData.getSource().getPayloadMapping())
                     .build();
             inboundMonitor.success(externalMessage);
 

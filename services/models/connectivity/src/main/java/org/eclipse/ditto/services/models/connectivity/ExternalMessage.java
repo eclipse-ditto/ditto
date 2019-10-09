@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -21,6 +20,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
@@ -142,7 +142,7 @@ public interface ExternalMessage {
     /**
      * @return the payload mapping that is applied for this message
      */
-    List<String> getPayloadMapping();
+    PayloadMapping getPayloadMapping();
 
     /**
      * @return optional source address, where this message was received

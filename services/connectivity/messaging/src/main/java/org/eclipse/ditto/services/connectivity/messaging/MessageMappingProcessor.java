@@ -17,7 +17,6 @@ import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELA
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,8 +27,10 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
@@ -80,7 +81,7 @@ public final class MessageMappingProcessor {
      * The dynamic access is needed to instantiate message mappers for an actor system.
      *
      * @param connectionId the connection that the processor works for.
-     * @param mappings the configured mappings used by this processor
+     * @param mappingDefinition the configured mappings used by this processor
      * @param actorSystem the dynamic access used for message mapper instantiation.
      * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param protocolAdapterProvider provides the ProtocolAdapter to be used.
@@ -92,7 +93,7 @@ public final class MessageMappingProcessor {
      * one of the {@code mappingContext} failed for a mapper specific reason.
      */
     public static MessageMappingProcessor of(final ConnectionId connectionId,
-            final Map<String, MappingContext> mappings,
+            final PayloadMappingDefinition mappingDefinition,
             final ActorSystem actorSystem,
             final ConnectivityConfig connectivityConfig,
             final ProtocolAdapterProvider protocolAdapterProvider,
@@ -101,7 +102,7 @@ public final class MessageMappingProcessor {
         final MessageMapperFactory messageMapperFactory =
                 DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(), log);
         final MessageMapperRegistry registry =
-                messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappings);
+                messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 
         final LimitsConfig limitsConfig = connectivityConfig.getLimitsConfig();
         final DittoHeadersSizeChecker dittoHeadersSizeChecker =
@@ -244,20 +245,20 @@ public final class MessageMappingProcessor {
     }
 
     private List<MessageMapper> getMappers(final OutboundSignal outboundSignal) {
-        final List<String> mappings;
+        final PayloadMapping payloadMapping;
         if (outboundSignal.getTargets().isEmpty()) {
             // responses/errors do not have a target assigned, read mapper from internal header
-            mappings = outboundSignal.getSource()
+            payloadMapping = outboundSignal.getSource()
                     .getDittoHeaders()
                     .getMapper()
-                    .map(Collections::singletonList)
-                    .orElseGet(Collections::emptyList);
+                    .map(ConnectivityModelFactory::newPayloadMapping)
+                    .orElseGet(ConnectivityModelFactory::emptyPayloadMapping);
         } else {
             // note: targets have been grouped by mapping -> all targets have the same mapping here
-            mappings = outboundSignal.getTargets().get(0).getMapping();
+            payloadMapping = outboundSignal.getTargets().get(0).getPayloadMapping();
         }
 
-        final List<MessageMapper> mappers = registry.getMappers(mappings);
+        final List<MessageMapper> mappers = registry.getMappers(payloadMapping);
         if (mappers.isEmpty()) {
             log.debug("Falling back to Default MessageMapper for mapping as no MessageMapper was present: {}",
                     outboundSignal);

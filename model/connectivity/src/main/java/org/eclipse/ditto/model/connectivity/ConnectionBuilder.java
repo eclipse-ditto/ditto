@@ -211,15 +211,15 @@ public interface ConnectionBuilder {
      * @param mappingContext the mapping definition
      * @return this builder
      */
-    ConnectionBuilder mapping(String mappingId, MappingContext mappingContext);
+    ConnectionBuilder mappingDefinition(String mappingId, MappingContext mappingContext);
 
     /**
      * Sets the mapping definitions of the connection.
      *
-     * @param mappings the mapping definitions
+     * @param payloadMappingDefinition the mapping definitions
      * @return this builder
      */
-    ConnectionBuilder mappings(Map<String, MappingContext> mappings);
+    ConnectionBuilder payloadMappingDefinition(PayloadMappingDefinition payloadMappingDefinition);
 
     /**
      * Builds a new {@link Connection}.

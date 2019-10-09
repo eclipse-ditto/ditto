@@ -16,7 +16,6 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -32,6 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
@@ -64,14 +64,14 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     private static final ConnectionId CONNECTION_ID = ConnectionId.of("connection");
 
     @Override
-    protected Props getConsumerActorProps(final ActorRef mappingActor, final List<String> mappings) {
+    protected Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping) {
         final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
         final ConsumerData mockConsumerData =
                 consumerData(CONNECTION_ID.toString(), messageConsumer, ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
-                        .mapping(mappings)
+                        .payloadMapping(payloadMapping)
                         .build());
         return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,
                 TestProbe.apply(actorSystem).testActor());
@@ -157,7 +157,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
-            Mockito.when(source.getMapping()).thenReturn(Collections.singletonList("test"));
+            Mockito.when(source.getPayloadMapping()).thenReturn(ConnectivityModelFactory.newPayloadMapping("test"));
             final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION_ID,
                     consumerData("foo", Mockito.mock(MessageConsumer.class), source), processor, getRef()));
 
@@ -251,7 +251,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
-            Mockito.when(source.getMapping()).thenReturn(Collections.singletonList("test"));
+            Mockito.when(source.getPayloadMapping()).thenReturn(ConnectivityModelFactory.newPayloadMapping("test"));
             final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION_ID,
                     consumerData("foo", Mockito.mock(MessageConsumer.class), source), processor, getRef()));
 
@@ -364,7 +364,8 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         if (mappingContext != null) {
             mappings.put("test", mappingContext);
         }
-        return MessageMappingProcessor.of(CONNECTION_ID, mappings, actorSystem, TestConstants.CONNECTIVITY_CONFIG,
+        return MessageMappingProcessor.of(CONNECTION_ID, ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
+                actorSystem, TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 

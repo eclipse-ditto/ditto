@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -29,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
@@ -61,13 +61,13 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
-    private final List<String> payloadMapping;
+    private final PayloadMapping payloadMapping;
 
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final ConnectionId connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
             @Nullable final Enforcement enforcement, @Nullable final HeaderMapping headerMapping,
-            final List<String> payloadMapping) {
+            final PayloadMapping payloadMapping) {
         super(connectionId, sourceAddress, messageMappingProcessor, authorizationContext, headerMapping);
         headerEnforcementFilterFactory =
                 enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
@@ -89,7 +89,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
      */
     static Props props(final String source, final ActorRef messageMappingProcessor, final
     AuthorizationContext authorizationContext, @Nullable final Enforcement enforcement,
-            @Nullable final HeaderMapping headerMapping, final List<String> payloadMapping,
+            @Nullable final HeaderMapping headerMapping, final PayloadMapping payloadMapping,
             final ConnectionId connectionId) {
 
         return Props.create(RabbitMQConsumerActor.class, connectionId, source, messageMappingProcessor,

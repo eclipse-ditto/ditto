@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import java.util.List;
 
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
+
 /**
  * Defines a collection of mappers with a fallback default mapper.
  */
@@ -21,14 +23,17 @@ public interface MessageMapperRegistry {
 
     /**
      * Returns a mapper with the supposed role of a fallback mapping strategy.
+     *
      * @return the default mapper
      */
     MessageMapper getDefaultMapper();
 
     /**
      * Returns the {@link MessageMapper}s to use for mapping.
-     * @return the list of mappers
+     *
+     * @param payloadMapping the payload mapping
+     * @return the list of resolved mappers
      */
-    List<MessageMapper> getMappers(final List<String> ids);
+    List<MessageMapper> getMappers(final PayloadMapping payloadMapping);
 
 }

@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -57,7 +56,7 @@ public class ImmutableTargetTest {
             .authorizationContext(ctx)
             .headerMapping(HEADER_MAPPING)
             .topics(TWIN_EVENTS)
-            .mapping(Arrays.asList(DITTO_MAPPING, CUSTOM_MAPPING))
+            .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();
 
     private static final JsonObject TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT = JsonObject
@@ -68,7 +67,7 @@ public class ImmutableTargetTest {
 
     private static final JsonObject TARGET_JSON_WITH_AUTH_CONTEXT = TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT.toBuilder()
             .set(Target.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
-            .set(Target.JsonFields.MAPPING, JsonArray.of(DITTO_MAPPING, CUSTOM_MAPPING))
+            .set(Target.JsonFields.PAYLOAD_MAPPING, JsonArray.of(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();
 
     private static final String MQTT_ADDRESS = "mqtt/target1";
@@ -93,7 +92,8 @@ public class ImmutableTargetTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableTarget.class, areImmutable(),
-                provided(AuthorizationContext.class, FilteredTopic.class, HeaderMapping.class).isAlsoImmutable());
+                provided(AuthorizationContext.class, FilteredTopic.class, HeaderMapping.class,
+                        PayloadMapping.class).isAlsoImmutable());
     }
 
     @Test
