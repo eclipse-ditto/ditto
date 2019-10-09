@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -119,9 +120,10 @@ public final class MessageMappingProcessor {
     }
 
     /**
-     * Processes an ExternalMessage which may result in 0..n messages/errors.
+     * Processes an {@link ExternalMessage} which may result in 0..n messages/errors.
      *
-     * @param message the message
+     * @param message the inbound {@link ExternalMessage} to be processed
+     * @param resultHandler handles the 0..n results of the mapping(s)
      */
     void process(final ExternalMessage message,
             final MappingResultHandler<MappedInboundExternalMessage> resultHandler) {
@@ -131,14 +133,15 @@ public final class MessageMappingProcessor {
         log.debug("Mappers resolved for message: {}", mappers);
         mappers.forEach(mapper -> {
             final MappingTimer mappingTimer = MappingTimer.inbound(connectionId);
-            mappingTimer.overall(() -> convertMessage(mapper, message, mappingTimer, resultHandler));
+            mappingTimer.overall(() -> convertInboundMessage(mapper, message, mappingTimer, resultHandler));
         });
     }
 
     /**
-     * Processes a Signal to an ExternalMessage.
+     * Processes an {@link OutboundSignal} to 0..n {@link ExternalMessage}s.
      *
-     * @param outboundSignal the outboundSignal
+     * @param outboundSignal the outboundSignal to be processed
+     * @param resultHandler handles the 0..n results of the mapping(s)
      */
     void process(final OutboundSignal outboundSignal, final MappingResultHandler<ExternalMessage> resultHandler) {
         final MappingTimer timer = MappingTimer.outbound(connectionId);
@@ -147,40 +150,37 @@ public final class MessageMappingProcessor {
         final List<MessageMapper> mappers = getMappers(outboundSignal);
         log.debug("Resolved mappers for message {} to targets {}: {}",
                 outboundSignal.getSource().getDittoHeaders().getCorrelationId(), outboundSignal.getTargets(), mappers);
-        mappers.forEach(mapper -> convertToExternalMessage(adaptable, mapper, timer, resultHandler));
+        mappers.forEach(mapper -> convertOutboundMessage(adaptable, mapper, timer, resultHandler));
     }
 
-    private void convertMessage(final MessageMapper mapper, final ExternalMessage message, final MappingTimer timer,
-            MappingResultHandler<MappedInboundExternalMessage> handlers) {
+    private void convertInboundMessage(final MessageMapper mapper, final ExternalMessage message,
+            final MappingTimer timer,
+            MappingResultHandler<MappedInboundExternalMessage> handler) {
         try {
             checkNotNull(message, "message");
             log.debug("Mapping message using mapper {}.", mapper.getId());
             final List<Adaptable> adaptables = timer.payload(mapper.getId(), () -> mapper.map(message));
             if (isNullOrEmpty(adaptables)) {
-                handlers.onMessageDropped();
+                handler.onMessageDropped();
             } else {
                 adaptables.forEach(adaptable -> {
                     enhanceLogFromAdaptable(adaptable);
                     final Signal<?> signal = timer.protocol(() -> protocolAdapter.fromAdaptable(adaptable));
                     dittoHeadersSizeChecker.check(signal.getDittoHeaders());
-                    handlers.onMessageMapped(
-                            MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal));
+                    handler.onMessageMapped(MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal));
                 });
             }
         } catch (final DittoRuntimeException e) {
-            handlers.onException(e);
+            handler.onException(e);
         } catch (final Exception e) {
             final MessageMappingFailedException mappingFailedException = buildMappingFailedException("inbound",
-                    message.findContentType().orElse(""), DittoHeaders.of(message.getHeaders()), e);
-            handlers.onException(mappingFailedException);
+                    message.findContentType().orElse(""), mapper.getId(), DittoHeaders.of(message.getHeaders()), e);
+            handler.onException(mappingFailedException);
         }
     }
 
-    private void convertToExternalMessage(
-            final Adaptable adaptable,
-            final MessageMapper mapper,
-            final MappingTimer timer,
-            final MappingResultHandler<ExternalMessage> resultHandler) {
+    private void convertOutboundMessage(final Adaptable adaptable, final MessageMapper mapper,
+            final MappingTimer timer, final MappingResultHandler<ExternalMessage> resultHandler) {
         try {
 
             log.debug("Applying mapper {} to message {}", mapper.getId(),
@@ -195,7 +195,7 @@ public final class MessageMappingProcessor {
                                     .build())
                             .collect(Collectors.toList()));
 
-            log.debug("Mapping {} produced {} messages.", mapper.getId(), messages.size());
+            log.debug("Mapping '{}' produced {} messages.", mapper.getId(), messages.size());
 
             if (messages.isEmpty()) {
                 resultHandler.onMessageDropped();
@@ -206,11 +206,10 @@ public final class MessageMappingProcessor {
             resultHandler.onException(e);
         } catch (final Exception e) {
             final Optional<DittoHeaders> headers = adaptable.getHeaders();
-            final String contentType = headers
-                    .map(h -> h.get(ExternalMessage.CONTENT_TYPE_HEADER))
-                    .orElse("");
+            final String contentType = headers.map(h -> h.get(ExternalMessage.CONTENT_TYPE_HEADER)).orElse("");
             final MessageMappingFailedException mappingFailedException =
-                    buildMappingFailedException("outbound", contentType, headers.orElseGet(DittoHeaders::empty), e);
+                    buildMappingFailedException("outbound", contentType, mapper.getId(),
+                            headers.orElseGet(DittoHeaders::empty), e);
             resultHandler.onException(mappingFailedException);
         }
     }
@@ -243,23 +242,25 @@ public final class MessageMappingProcessor {
         } else {
             return mappings;
         }
-
     }
 
     private List<MessageMapper> getMappers(final OutboundSignal outboundSignal) {
-        final List<MessageMapper> defaultMappers = Collections.singletonList(registry.getDefaultMapper());
-        if (outboundSignal.getTargets().isEmpty()) { // response/error
-            // TODO read from internal header??
-            return defaultMappers;
+        final List<String> mappings;
+        if (outboundSignal.getTargets().isEmpty()) {
+            // responses/errors do not have a target assigned, read mapper from internal header
+            final String mapperFromHeader =
+                    outboundSignal.getSource().getDittoHeaders().get(DittoHeaderDefinition.MAPPER.getKey());
+            mappings = null == mapperFromHeader ? Collections.emptyList() : Collections.singletonList(mapperFromHeader);
+        } else {
+            // note: targets have been grouped by mapping -> all targets have the same mapping here
+            mappings = outboundSignal.getTargets().get(0).getMapping();
         }
 
-        // note: targets have been grouped by mapping -> all targets have the same mapping here
-        final List<String> mapping = outboundSignal.getTargets().get(0).getMapping();
-        final List<MessageMapper> mappers = registry.getMappers(mapping);
+        final List<MessageMapper> mappers = registry.getMappers(mappings);
         if (mappers.isEmpty()) {
             log.debug("Falling back to Default MessageMapper for mapping as no MessageMapper was present: {}",
                     outboundSignal);
-            return defaultMappers;
+            return Collections.singletonList(registry.getDefaultMapper());
         } else {
             return mappers;
         }
@@ -269,10 +270,11 @@ public final class MessageMappingProcessor {
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, adaptable, connectionId);
     }
 
-    private MessageMappingFailedException buildMappingFailedException(final String direction, final String contentType,
-            final DittoHeaders dittoHeaders, final Exception e) {
-        final String description = String.format("Could not map %s message due to unknown problem: %s %s",
-                direction, e.getClass().getSimpleName(), e.getMessage());
+    private MessageMappingFailedException buildMappingFailedException(final String direction,
+            final String contentType, final String mapperId, final DittoHeaders dittoHeaders, final Exception e) {
+        final String description =
+                String.format("Could not map %s message with mapper '%s' due to unknown problem: %s %s",
+                        direction, mapperId, e.getClass().getSimpleName(), e.getMessage());
         return MessageMappingFailedException.newBuilder(contentType)
                 .description(description)
                 .dittoHeaders(dittoHeaders)

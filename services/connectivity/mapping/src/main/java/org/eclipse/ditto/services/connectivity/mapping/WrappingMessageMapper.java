@@ -79,8 +79,7 @@ final class WrappingMessageMapper implements MessageMapper {
             // if no correlation-id was provided in the ExternalMessage, generate one here:
             correlationId = UUID.randomUUID().toString();
             enhancedMessage = ExternalMessageFactory.newExternalMessageBuilder(message)
-                    .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(),
-                            correlationId)
+                    .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationId)
                     .build();
         } else {
             correlationId = message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
@@ -92,6 +91,9 @@ final class WrappingMessageMapper implements MessageMapper {
         return mappedAdaptables.stream().map(mapped -> {
             final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
             headersBuilder.correlationId(correlationId);
+
+            // add mapper id to headers, this is required to resolve the correct mapper for responses
+            headersBuilder.putHeader(DittoHeaderDefinition.MAPPER.getKey(), getId());
 
             Optional.ofNullable(message.getHeaders().get(ExternalMessage.REPLY_TO_HEADER)).ifPresent(replyTo ->
                     headersBuilder.putHeader(ExternalMessage.REPLY_TO_HEADER, replyTo)

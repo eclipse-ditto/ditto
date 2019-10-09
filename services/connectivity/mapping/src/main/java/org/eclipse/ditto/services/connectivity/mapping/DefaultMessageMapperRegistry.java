@@ -52,7 +52,10 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
 
     @Override
     public List<MessageMapper> getMappers(final List<String> ids) {
-        return ids.stream().map(mappers::get).collect(Collectors.toList());
+        return ids.stream()
+                .map(mappers::get)
+                .map(resolvedMapper -> null == resolvedMapper ? defaultMapper : resolvedMapper)
+                .collect(Collectors.toList());
     }
 
     @Override

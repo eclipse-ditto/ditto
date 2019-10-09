@@ -57,4 +57,9 @@ public class DefaultMessageMapperRegistryTest {
                 mockMapper2, mockMapper1);
         assertThat(underTest.getMappers(Arrays.asList("mock2", "mock1"))).containsExactly(mockMapper2, mockMapper1);
     }
+
+    @Test
+    public void testNonExistentMapperResolvesToDefaultMapper() {
+        assertThat(underTest.getMappers(Collections.singletonList("eclipse"))).containsExactly(defaultMapper);
+    }
 }

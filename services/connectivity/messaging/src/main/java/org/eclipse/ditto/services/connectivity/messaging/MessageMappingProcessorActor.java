@@ -231,15 +231,14 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             connectionMonitorRegistry.forInboundEnforced(connectionId, source)
                     .wrapExecution(signal)
                     .execute(() -> applySignalIdEnforcement.accept(messageWithAuthSubject, signal));
-            /* the above throws an exception if signal id enforcement fails*/
-
+            // the above throws an exception if signal id enforcement fails
             final Signal<?> adjustedSignal = mapHeaders.andThen(
                     mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
                     .andThen(signal::setDittoHeaders)
                     .apply(mappedInboundMessage);
             startTrace(adjustedSignal);
-                    /* This message is important to check if a command is accepted for a specific connection, as
-                    this happens quite a lot this is going to the debug level. Use best with a connection-id filter.*/
+            // This message is important to check if a command is accepted for a specific connection, as this happens
+            // quite a lot this is going to the debug level. Use best with a connection-id filter.
             log.debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder",
                     adjustedSignal.getType());
             conciergeForwarder.tell(adjustedSignal, getSelf());
