@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -152,10 +152,9 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 .map(e -> {
                     final MessageMapper messageMapper =
                             mapperOf(e.getKey(), e.getValue()).map(WrappingMessageMapper::wrap).orElse(null);
-                    return new AbstractMap.SimpleImmutableEntry<>(e.getKey(), messageMapper);
+                    return new SimpleImmutableEntry<>(e.getKey(), messageMapper);
                 })
-                .collect(Collectors.toMap(AbstractMap.SimpleImmutableEntry::getKey,
-                        AbstractMap.SimpleImmutableEntry::getValue));
+                .collect(Collectors.toMap(SimpleImmutableEntry::getKey, SimpleImmutableEntry::getValue));
 
         return DefaultMessageMapperRegistry.of(defaultMapper, mappers);
     }

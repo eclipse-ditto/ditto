@@ -62,7 +62,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
         this.topicPath = message.getTopicPath().orElse(null);
         this.enforcementFilter = message.getEnforcementFilter().orElse(null);
         this.headerMapping = message.getHeaderMapping().orElse(null);
-        this.payloadMapping = message.getPayloadMapping();
+        this.payloadMapping = message.getPayloadMapping().orElse(null);
         this.sourceAddress = message.getSourceAddress().orElse(null);
         this.internalHeaders = message.getInternalHeaders();
     }

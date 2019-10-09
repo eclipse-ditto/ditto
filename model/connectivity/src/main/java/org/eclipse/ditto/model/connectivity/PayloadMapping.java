@@ -15,7 +15,7 @@ package org.eclipse.ditto.model.connectivity;
 import java.util.List;
 
 /**
- *
+ * References multiple mappings from a {@link PayloadMappingDefinition} in a {@link Source} or a {@link Target}.
  */
 public interface PayloadMapping {
 

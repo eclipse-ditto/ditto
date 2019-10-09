@@ -168,8 +168,8 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     }
 
     @Override
-    public PayloadMapping getPayloadMapping() {
-        return payloadMapping;
+    public Optional<PayloadMapping> getPayloadMapping() {
+        return Optional.ofNullable(payloadMapping);
     }
 
     @Override

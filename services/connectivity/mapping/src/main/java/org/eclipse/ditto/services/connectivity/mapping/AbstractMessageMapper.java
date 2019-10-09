@@ -13,11 +13,12 @@
 package org.eclipse.ditto.services.connectivity.mapping;
 
 /**
- * TODO
+ * Abstract implementation of {@link MessageMapper} which adds an id field and also its initialization from mapping
+ * configuration (id is not passed as constructor argument because the mappers are created by reflection).
  */
 public abstract class AbstractMessageMapper implements MessageMapper {
 
-    protected String id;
+    private String id;
 
     @Override
     public String getId() {

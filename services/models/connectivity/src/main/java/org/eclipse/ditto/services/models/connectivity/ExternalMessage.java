@@ -142,7 +142,7 @@ public interface ExternalMessage {
     /**
      * @return the payload mapping that is applied for this message
      */
-    PayloadMapping getPayloadMapping();
+    Optional<PayloadMapping> getPayloadMapping();
 
     /**
      * @return optional source address, where this message was received

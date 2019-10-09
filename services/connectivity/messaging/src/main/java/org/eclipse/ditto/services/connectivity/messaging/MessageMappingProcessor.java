@@ -234,7 +234,8 @@ public final class MessageMappingProcessor {
             }
         }
 
-        final List<MessageMapper> mappings = registry.getMappers(message.getPayloadMapping());
+        final List<MessageMapper> mappings =
+                message.getPayloadMapping().map(registry::getMappers).orElseGet(Collections::emptyList);
         if (mappings.isEmpty()) {
             log.debug("Falling back to Default MessageMapper for mapping ExternalMessage " +
                     "as no MessageMapper was present: {}", message);
