@@ -25,6 +25,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_MESSAGES;
 
+import java.time.Duration;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.exceptions.TooManyRequestsException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -54,6 +56,7 @@ import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.controlflow.LimitRateByRejection;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -79,6 +82,7 @@ import akka.http.javadsl.model.ws.UpgradeToWebSocket;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
 import akka.stream.Attributes;
+import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.UniformFanInShape;
@@ -105,6 +109,10 @@ public final class WebsocketRoute {
     private static final String STREAMING_TYPE_WS = "WS";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketRoute.class);
+
+    // TODO: make configurable
+    private static final Duration RATE_LIMIT_INTERVAL = Duration.ofSeconds(1L);
+    private static final int MESSAGES_PER_INTERVAL = 100;
 
     private final ActorRef streamingActor;
     private final WebSocketConfig webSocketConfig;
@@ -183,7 +191,8 @@ public final class WebsocketRoute {
                 logger.info("Creating WebSocket for connection authContext: <{}>", authContext));
 
         final Flow<Message, DittoRuntimeException, NotUsed> incoming =
-                createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request);
+                createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request,
+                        RATE_LIMIT_INTERVAL, MESSAGES_PER_INTERVAL);
         final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
                 createOutgoing(connectionCorrelationId, adapter, request);
 
@@ -195,7 +204,9 @@ public final class WebsocketRoute {
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
-            final HttpRequest request) {
+            final HttpRequest request,
+            final Duration rateLimitInterval,
+            final int messagesPerInterval) {
 
         final Counter inCounter = DittoMetrics.counter("streaming_messages")
                 .tag("type", "ws")
@@ -238,7 +249,11 @@ public final class WebsocketRoute {
                 buildSignalErrorFlow(commandSubscriber, version, connectionCorrelationId, connectionAuthContext,
                         additionalHeaders, adapter);
 
-        return extractStringFromMessage.via(signalErrorFlow);
+        final Graph<FanOutShape2<Message, Message, DittoRuntimeException>, NotUsed> rateLimiter =
+                LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, message ->
+                        TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval).build());
+
+        return joinIncomingFlows(rateLimiter, extractStringFromMessage.via(signalErrorFlow));
     }
 
     private boolean processProtocolMessage(final ProtocolMessageExtractor protocolMessageExtractor,
@@ -299,13 +314,31 @@ public final class WebsocketRoute {
         return Flow.fromGraph(GraphDSL.create3(eventAndResponseSource, errorFlow, messageFlow,
                 (notUsed1, notUsed2, notUsed3) -> notUsed1,
                 (builder, eventsAndResponses, errors, messages) -> {
-                    final UniformFanInShape<T, T> merge = builder.add(Merge.<T>create(2));
+                    final UniformFanInShape<T, T> merge = builder.add(Merge.create(2, true));
 
                     builder.from(eventsAndResponses).toFanIn(merge);
                     builder.from(errors).toFanIn(merge);
                     builder.from(merge.out()).toInlet(messages.in());
 
                     return FlowShape.of(errors.in(), messages.out());
+                }));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T, E> Flow<T, E, NotUsed> joinIncomingFlows(
+            final Graph<FanOutShape2<T, T, E>, NotUsed> rateLimiter,
+            final Flow<T, E, NotUsed> errorFlow) {
+
+        return Flow.fromGraph(GraphDSL.create(rateLimiter, errorFlow,
+                Keep.left(),
+                (builder, rateLimited, errors) -> {
+                    final UniformFanInShape<E, E> merge = builder.add(Merge.create(2, true));
+
+                    builder.from(rateLimited.out0()).toInlet(errors.in());
+                    builder.from(rateLimited.out1()).toFanIn(merge);
+                    builder.from(errors.out()).toFanIn(merge);
+
+                    return FlowShape.of(rateLimited.in(), merge.out());
                 }));
     }
 
