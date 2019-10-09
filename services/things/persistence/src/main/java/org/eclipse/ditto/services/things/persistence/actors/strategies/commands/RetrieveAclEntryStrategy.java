@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -66,12 +67,12 @@ final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<Retrie
 
 
     @Override
-    public Optional<?> previousETagEntity(final RetrieveAclEntry command, @Nullable final Thing previousEntity) {
-        return nextETagEntity(command, previousEntity);
+    public Optional<EntityTag> previousEntityTag(final RetrieveAclEntry command, @Nullable final Thing previousEntity) {
+        return nextEntityTag(command, previousEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final RetrieveAclEntry command, @Nullable final Thing newEntity) {
-        return extractAclEntry(command, newEntity);
+    public Optional<EntityTag> nextEntityTag(final RetrieveAclEntry command, @Nullable final Thing newEntity) {
+        return extractAclEntry(command, newEntity).flatMap(EntityTag::fromEntity);
     }
 }

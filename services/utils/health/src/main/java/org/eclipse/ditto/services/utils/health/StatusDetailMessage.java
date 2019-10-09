@@ -12,15 +12,15 @@
  */
 package org.eclipse.ditto.services.utils.health;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 
-import org.eclipse.ditto.json.JsonFactory;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -40,33 +40,31 @@ public final class StatusDetailMessage implements Jsonifiable<JsonObject> {
     private final JsonValue message;
 
     private StatusDetailMessage(final Level level, final JsonValue message) {
-        this.level = level;
-        this.message = message;
+        this.level = checkNotNull(level, "level");
+        this.message = checkNotNull(message, "message");
     }
 
     public static StatusDetailMessage of(final Level level, final String message) {
-        requireNonNull(level, "The Level must not be null!");
-        requireNonNull(message, "The Message must not be null!");
-
         return new StatusDetailMessage(level, JsonValue.of(message));
     }
 
     public static StatusDetailMessage of(final Level level, final JsonValue message) {
-        requireNonNull(level, "The Level must not be null!");
-        requireNonNull(message, "The Message must not be null!");
+        return new StatusDetailMessage(level, checkNotNull(message, "message"));
+    }
 
-        return new StatusDetailMessage(level, message);
+    public static StatusDetailMessage warn(@Nullable final Throwable throwable) {
+        return of(Level.WARN, String.valueOf(throwable));
     }
 
     @Override
     public JsonObject toJson() {
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        jsonObjectBuilder.set(level.toString(), message);
-        return jsonObjectBuilder.build();
+        return JsonObject.newBuilder()
+                .set(level.toString(), message)
+                .build();
     }
 
     /**
-     * Creates a new {@link StatusDetailMessage} from a JSON object.
+     * Creates a new {@code StatusDetailMessage} from a JSON object.
      *
      * @param jsonObject the JSON object.
      * @return the message.
@@ -95,7 +93,7 @@ public final class StatusDetailMessage implements Jsonifiable<JsonObject> {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -104,8 +102,7 @@ public final class StatusDetailMessage implements Jsonifiable<JsonObject> {
         }
 
         final StatusDetailMessage that = (StatusDetailMessage) o;
-        return level == that.level &&
-                Objects.equals(message, that.message);
+        return level == that.level && Objects.equals(message, that.message);
     }
 
     @Override

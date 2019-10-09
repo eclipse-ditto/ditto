@@ -1350,23 +1350,27 @@ h4.panel-title {
 .highlight.who img {
     /*margin: 25px 12.5px;*/
     width: 180px;
+    height: 100%;
 }
 
 @media (max-width: 990px) {
     .highlight.who img {
         width: 160px;
+        height: 100%;
     }
 }
 
 @media (max-width: 767px) {
     .highlight.who img {
         width: 120px;
+        height: 100%;
     }
 }
 
 @media (max-width: 500px) {
     .highlight.who img {
         width: 100px;
+        height: 100%;
     }
 }
 
@@ -1374,20 +1378,15 @@ h4.panel-title {
     content: none;
 }
 
-.highlight.who .user-logos {
-    display: table;
-    padding-left: 0;
-    padding-right: 0;
-    width: 100%;
-    table-layout: fixed;
-    margin-left: auto;
-    margin-right: auto;
+.highlight.who ul.user-logos {
+    display: flex ;
+    flex-flow: row wrap;
+    padding: 0;
 }
 
-.highlight.who .user-logo {
-    display: table-cell;
-    float: none!important;
-    vertical-align: middle;
-    width: 100%;
+.highlight.who ul.user-logos > li {
+    flex: 1 1 33%; /* 3 logos per line */
+    padding-bottom: 2em;
+    list-style: none;
 }
 

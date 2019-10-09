@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -62,12 +63,12 @@ final class RetrieveAclStrategy extends AbstractThingCommandStrategy<RetrieveAcl
 
 
     @Override
-    public Optional<?> previousETagEntity(final RetrieveAcl command, @Nullable final Thing previousEntity) {
-        return nextETagEntity(command, previousEntity);
+    public Optional<EntityTag> previousEntityTag(final RetrieveAcl command, @Nullable final Thing previousEntity) {
+        return nextEntityTag(command, previousEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final RetrieveAcl command, @Nullable final Thing newEntity) {
-        return extractAcl(newEntity);
+    public Optional<EntityTag> nextEntityTag(final RetrieveAcl command, @Nullable final Thing newEntity) {
+        return extractAcl(newEntity).flatMap(EntityTag::fromEntity);
     }
 }

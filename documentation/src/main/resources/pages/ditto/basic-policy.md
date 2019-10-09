@@ -28,11 +28,11 @@ A Subject ID must conform to one of the following rules:
 
 * The ID of a User defined in the nginx reverse proxy prefixed with `nginx`.
 * Different JWT providers with their JWT “iss” fields - the currently supported are listed in the table below.
+* OpenID Connect compliant providers - supported providers are listed at [OpenID Connect - Certified OpenID Provider Servers and Services](https://openid.net/developers/certified/) The `sub` claim and configured provider name are used in the form `<provider>:<sub-claim>`.
 
 | Prefix    | Type  | Description   |
 |-----------|-------|---------------|
 | google | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
-
 
 ## Which Resources can be controlled?
 

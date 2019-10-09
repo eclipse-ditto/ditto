@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.persistence.strategies.commands;
 
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
-import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.TELL_CLIENT_ACTORS_IF_STARTED;
+import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.BROADCAST_TO_CLIENT_ACTORS_IF_STARTED;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,6 +42,6 @@ final class ResetConnectionMetricsStrategy extends AbstractEphemeralStrategy<Res
 
     @Override
     List<ConnectionAction> getActions() {
-        return Arrays.asList(TELL_CLIENT_ACTORS_IF_STARTED, SEND_RESPONSE);
+        return Arrays.asList(BROADCAST_TO_CLIENT_ACTORS_IF_STARTED, SEND_RESPONSE);
     }
 }

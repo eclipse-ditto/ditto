@@ -214,7 +214,7 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void startSeveralTimes() {
+    public void startSeveralTimes() throws Exception {
         // This test simulates the situation where the root actor of a Ditto service restarts several times.
         new TestKit(system2) {{
             // GIVEN: many pub- and sub-factories start under different actors.
@@ -234,6 +234,8 @@ public final class PubSubFactoryTest {
                     sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
+
+            Thread.sleep(500L); // give local subscriber a chance to receive most updated subscriptions
             pub.publish("hello", publisher.ref());
             subscriber.expectMsg("hello");
         }};

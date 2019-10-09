@@ -80,7 +80,7 @@ public enum ConnectionAction {
     /**
      * Forward command to client actors without waiting for reply.
      */
-    TELL_CLIENT_ACTORS_IF_STARTED,
+    BROADCAST_TO_CLIENT_ACTORS_IF_STARTED,
 
     /**
      * Retrieve connection logs.

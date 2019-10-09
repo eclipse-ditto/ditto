@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
@@ -207,12 +208,12 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
     }
 
     @Override
-    public Optional<?> previousETagEntity(final CreateThing command, @Nullable final Thing previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final CreateThing command, @Nullable final Thing previousEntity) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<?> nextETagEntity(final CreateThing command, @Nullable final Thing newEntity) {
-        return Optional.ofNullable(newEntity);
+    public Optional<EntityTag> nextEntityTag(final CreateThing command, @Nullable final Thing newEntity) {
+        return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
 }

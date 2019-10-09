@@ -151,11 +151,10 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
 
             mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
             expectMsg(new Status.Success("successfully connected + initialized mapper"));
+            expectDisconnectCalled();
 
             // client actor should be stopped after testing
             expectTerminated(mqttClientActor);
-
-            expectDisconnectCalled();
         }};
     }
 

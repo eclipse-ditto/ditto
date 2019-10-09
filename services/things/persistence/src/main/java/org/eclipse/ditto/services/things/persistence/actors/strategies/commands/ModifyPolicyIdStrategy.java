@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -85,12 +86,12 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
     }
 
     @Override
-    public Optional<?> previousETagEntity(final ModifyPolicyId command, @Nullable final Thing previousEntity) {
-        return extractPolicyId(previousEntity);
+    public Optional<EntityTag> previousEntityTag(final ModifyPolicyId command, @Nullable final Thing previousEntity) {
+        return extractPolicyId(previousEntity).flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final ModifyPolicyId command, @Nullable final Thing newEntity) {
-        return Optional.of(command.getPolicyEntityId());
+    public Optional<EntityTag> nextEntityTag(final ModifyPolicyId command, @Nullable final Thing newEntity) {
+        return Optional.of(command.getPolicyEntityId()).flatMap(EntityTag::fromEntity);
     }
 }

@@ -18,6 +18,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.CONNECTING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTED;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTING;
+import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.INITIATING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.TESTING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.UNKNOWN;
 
@@ -179,7 +180,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         when(CONNECTING, inConnectingState());
         when(TESTING, inTestingState());
 
-        startWith(UNKNOWN, startingData, clientConfig.getInitTimeout());
+        // initial state. will always time out for client actors deployed on remote instances.
+        when(INITIATING, inUnknownState());
+        startWith(INITIATING, startingData, clientConfig.getInitTimeout());
 
         onTransition(this::onTransition);
 
@@ -415,11 +418,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             clientConnectingGauge.reset();
         }
         // cancel our own state timeout if target state is stable
-        switch (to) {
-            case UNKNOWN:
-            case CONNECTED:
-            case DISCONNECTED:
-                cancelStateTimeout();
+        if (to == CONNECTED || to == DISCONNECTED || to == UNKNOWN) {
+            cancelStateTimeout();
         }
     }
 
@@ -506,7 +506,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         if (getPublisherActor() != null) {
             getPublisherActor().forward(message.getOutboundSignal(), getContext());
         } else {
-            log.warning("No publisher actor available, dropping message.");
+            log.error("No publisher actor available, dropping message: {}", message);
         }
         return stay();
     }
@@ -1374,6 +1374,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         OutboundSignal.WithExternalMessage getOutboundSignal() {
             return outboundSignal;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "outboundSignal=" + outboundSignal +
+                    "]";
         }
     }
 

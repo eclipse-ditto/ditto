@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.utils.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,11 +39,14 @@ public abstract class GlobalErrorRegistryTestCases {
     /**
      * Creates a new instance of test cases.
      *
-     * @param samples a List of classes that are annotated with {@link JsonParsableException}. This list should contain
+     * @param sample a class that is annotated with {@link JsonParsableException}. This list should contain
      * at least one exception of each package containing an Exception in the classpath of the respective service.
+     * @param furtherSamples  further classes that are annotated with {@link JsonParsableException}.
      */
-    protected GlobalErrorRegistryTestCases(final List<Class<?>> samples) {
-        this.samples = samples;
+    protected GlobalErrorRegistryTestCases(final Class<?> sample, final Class<?> ... furtherSamples) {
+        samples = new ArrayList<>(1 + furtherSamples.length);
+        samples.add(sample);
+        Collections.addAll(samples, furtherSamples);
     }
 
     /**

@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -97,14 +98,14 @@ final class ModifyAttributeStrategy extends AbstractThingCommandStrategy<ModifyA
     }
 
     @Override
-    public Optional<?> previousETagEntity(final ModifyAttribute command, @Nullable final Thing previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final ModifyAttribute command, @Nullable final Thing previousEntity) {
         return Optional.ofNullable(previousEntity)
                 .flatMap(Thing::getAttributes)
-                .flatMap(attr -> attr.getValue(command.getAttributePointer()));
+                .flatMap(attr -> attr.getValue(command.getAttributePointer()).flatMap(EntityTag::fromEntity));
     }
 
     @Override
-    public Optional<?> nextETagEntity(final ModifyAttribute command, @Nullable final Thing newEntity) {
-        return Optional.of(command.getAttributeValue());
+    public Optional<EntityTag> nextEntityTag(final ModifyAttribute command, @Nullable final Thing newEntity) {
+        return Optional.of(command.getAttributeValue()).flatMap(EntityTag::fromEntity);
     }
 }
