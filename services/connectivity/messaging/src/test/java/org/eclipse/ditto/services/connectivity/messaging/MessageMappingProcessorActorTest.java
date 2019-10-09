@@ -35,7 +35,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
@@ -249,9 +248,7 @@ public final class MessageMappingProcessorActorTest {
                         .isEqualTo(KNOWN_THING_ID.toString());
 
                 final String expectedMapperHeader = mapping == null ? "default" : mapping;
-                assertThat(modifyAttribute.getDittoHeaders())
-                        .extracting(DittoHeaderDefinition.MAPPER.getKey())
-                        .containsExactly(expectedMapperHeader);
+                assertThat(modifyAttribute.getDittoHeaders().getMapper()).contains(expectedMapperHeader);
 
                 if (ADD_HEADER_MAPPER.equals(mapping)) {
                     assertThat(modifyAttribute.getDittoHeaders()).contains(AddHeaderMessageMapper.INBOUND_HEADER);

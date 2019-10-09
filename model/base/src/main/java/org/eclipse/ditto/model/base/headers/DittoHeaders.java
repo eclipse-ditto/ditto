@@ -226,6 +226,11 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<EntityTagMatchers> getIfNoneMatch();
 
     /**
+     * @return the mapper used to map the signal
+     */
+    Optional<String> getMapper();
+
+    /**
      * Indicates whether the size of the headers entries is greater than the specified size.
      *
      * @param size the size to compare to.

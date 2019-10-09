@@ -25,7 +25,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -248,9 +247,11 @@ public final class MessageMappingProcessor {
         final List<String> mappings;
         if (outboundSignal.getTargets().isEmpty()) {
             // responses/errors do not have a target assigned, read mapper from internal header
-            final String mapperFromHeader =
-                    outboundSignal.getSource().getDittoHeaders().get(DittoHeaderDefinition.MAPPER.getKey());
-            mappings = null == mapperFromHeader ? Collections.emptyList() : Collections.singletonList(mapperFromHeader);
+            mappings = outboundSignal.getSource()
+                    .getDittoHeaders()
+                    .getMapper()
+                    .map(Collections::singletonList)
+                    .orElseGet(Collections::emptyList);
         } else {
             // note: targets have been grouped by mapping -> all targets have the same mapping here
             mappings = outboundSignal.getTargets().get(0).getMapping();

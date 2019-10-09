@@ -173,6 +173,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Optional<String> getMapper() {
+        return getStringForDefinition(DittoHeaderDefinition.MAPPER);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         forEach((key, value) -> {

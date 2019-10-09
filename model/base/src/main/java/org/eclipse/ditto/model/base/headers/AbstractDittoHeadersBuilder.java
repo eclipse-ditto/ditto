@@ -245,6 +245,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S mapper(final String mapper) {
+        putCharSequence(DittoHeaderDefinition.MAPPER, mapper);
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");
