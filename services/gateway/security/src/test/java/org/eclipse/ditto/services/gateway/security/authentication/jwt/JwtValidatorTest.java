@@ -36,10 +36,10 @@ import io.jsonwebtoken.ExpiredJwtException;
 public final class JwtValidatorTest {
 
     private static final JsonWebToken VALID_JSON_WEB_TOKEN =
-            ImmutableJsonWebToken.fromAuthorizationString("Bearer " + JwtTestConstants.VALID_JWT_TOKEN);
+            ImmutableJsonWebToken.fromAuthorization("Bearer " + JwtTestConstants.VALID_JWT_TOKEN);
 
     private static final JsonWebToken INVALID_JSON_WEB_TOKEN =
-            ImmutableJsonWebToken.fromAuthorizationString("Bearer " + JwtTestConstants.EXPIRED_JWT_TOKEN);
+            ImmutableJsonWebToken.fromAuthorization("Bearer " + JwtTestConstants.EXPIRED_JWT_TOKEN);
 
     @Mock
     private PublicKeyProvider publicKeyProvider;

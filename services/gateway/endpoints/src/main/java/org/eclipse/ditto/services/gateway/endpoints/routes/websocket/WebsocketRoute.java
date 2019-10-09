@@ -549,7 +549,7 @@ public final class WebsocketRoute {
         return request.getHeader(HttpHeader.AUTHORIZATION.toString())
                 .map(akka.http.javadsl.model.HttpHeader::value)
                 .filter(s -> s.startsWith(BEARER))
-                .map(ImmutableJsonWebToken::fromAuthorizationString);
+                .map(ImmutableJsonWebToken::fromAuthorization);
     }
 
 }

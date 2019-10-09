@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.jwt;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
@@ -28,8 +29,8 @@ public final class ImmutableJsonWebToken extends AbstractJsonWebToken {
 
     private final List<String> authorizationSubjects;
 
-    private ImmutableJsonWebToken(final String authorizationString) {
-        super(authorizationString);
+    private ImmutableJsonWebToken(final String token) {
+        super(token);
 
         authorizationSubjects = getBody().getValue(JsonFields.USER_ID)
                 .map(Collections::singletonList)
@@ -37,14 +38,41 @@ public final class ImmutableJsonWebToken extends AbstractJsonWebToken {
     }
 
     /**
-     * Returns a new {@code ImmutableJsonWebToken} for the given {@code authorizationString}.
+     * Returns a new {@code ImmutableJsonWebToken} for the given {@code authorization}.
      *
-     * @param authorizationString the authorization string.
+     * @param authorization the authorization string.
      * @return the ImmutableJsonWebToken.
-     * @throws NullPointerException if {@code authorizationString} is {@code null}.
+     * @throws NullPointerException if {@code authorization} is {@code null}.
      */
-    public static JsonWebToken fromAuthorizationString(final String authorizationString) {
-        return new ImmutableJsonWebToken(checkNotNull(authorizationString));
+    public static JsonWebToken fromAuthorization(final String authorization) {
+        final String token = getTokenFromAuthorizationString(authorization);
+        return fromToken(token);
+    }
+
+    private static String getTokenFromAuthorizationString(final String authorizationString) {
+        checkNotNull(authorizationString, "authorizationString");
+        checkNotEmpty(authorizationString, "authorizationString");
+
+        final String[] authorizationStringSplit = authorizationString.split(" ");
+        if (2 != authorizationStringSplit.length) {
+            throw JwtInvalidException.newBuilder()
+                    .description("The Authorization Header is invalid!")
+                    .build();
+        }
+        return authorizationStringSplit[1];
+    }
+
+    /**
+     * Returns a new {@code ImmutableJsonWebToken} for the given {@code token}.
+     *
+     * @param token the token string.
+     * @return the ImmutableJsonWebToken.
+     * @throws NullPointerException if {@code token} is {@code null}.
+     */
+    public static JsonWebToken fromToken(final String token) {
+        checkNotNull(token, "token");
+        checkNotEmpty(token, "token");
+        return new ImmutableJsonWebToken(token);
     }
 
     @Override

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.model.jwt;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.charset.StandardCharsets;
@@ -35,11 +34,6 @@ import org.eclipse.ditto.json.JsonValue;
 public abstract class AbstractJsonWebToken implements JsonWebToken {
 
     /**
-     * Delimiter of the authorization string.
-     */
-    private static final String AUTHORIZATION_DELIMITER = " ";
-
-    /**
      * Delimiter of the JSON Web Token.
      */
     private static final String JWT_DELIMITER = "\\.";
@@ -49,10 +43,19 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     private final JsonObject body;
     private final String signature;
 
-    protected AbstractJsonWebToken(final String authorizationString) {
-        token = getBase64EncodedToken(authorizationString);
+    protected AbstractJsonWebToken(final JsonWebToken jsonWebToken) {
+        checkNotNull(jsonWebToken, "JSON Web Token");
 
-        final String[] tokenParts = token.split(JWT_DELIMITER);
+        token = jsonWebToken.getToken();
+        header = jsonWebToken.getHeader();
+        body = jsonWebToken.getBody();
+        signature = jsonWebToken.getSignature();
+    }
+
+    protected AbstractJsonWebToken(final String token) {
+        this.token = token;
+
+        final String[] tokenParts = this.token.split(JWT_DELIMITER);
         final int expectedTokenPartAmount = 3;
         if (expectedTokenPartAmount != tokenParts.length) {
             throw JwtInvalidException.newBuilder()
@@ -62,19 +65,6 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
         header = tryToDecodeJwtPart(tokenParts[0]);
         body = tryToDecodeJwtPart(tokenParts[1]);
         signature = tokenParts[2];
-    }
-
-    private static String getBase64EncodedToken(final String authorizationString) {
-        checkNotNull(authorizationString, "Authorization String");
-        checkNotEmpty(authorizationString, "Authorization String");
-
-        final String[] authorizationStringSplit = authorizationString.split(AUTHORIZATION_DELIMITER);
-        if (2 != authorizationStringSplit.length) {
-            throw JwtInvalidException.newBuilder()
-                    .description("The Authorization Header is invalid!")
-                    .build();
-        }
-        return authorizationStringSplit[1];
     }
 
     private static JsonObject tryToDecodeJwtPart(final String jwtPart) {
@@ -91,15 +81,6 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     private static JsonObject decodeJwtPart(final String jwtPart) {
         final Base64.Decoder decoder = Base64.getDecoder();
         return JsonFactory.newObject(new String(decoder.decode(jwtPart), StandardCharsets.UTF_8));
-    }
-
-    protected AbstractJsonWebToken(final JsonWebToken jsonWebToken) {
-        checkNotNull(jsonWebToken, "JSON Web Token");
-
-        token = jsonWebToken.getToken();
-        header = jsonWebToken.getHeader();
-        body = jsonWebToken.getBody();
-        signature = jsonWebToken.getSignature();
     }
 
     @Override

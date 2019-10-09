@@ -51,23 +51,23 @@ public final class ImmutableJsonWebTokenTest {
     }
 
     @Test
-    public void tryToCreateInstanceFromEmptyAuthorizationString() {
+    public void tryToCreateInstanceFromEmptyTokenString() {
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString(""))
+                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorization(""))
                 .withNoCause();
     }
 
     @Test
     public void tryToParseTokenFromMissingAuthorization() {
         assertThatExceptionOfType(JwtInvalidException.class)
-                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString("Authorization"))
+                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorization("Authorization"))
                 .withNoCause();
     }
 
     @Test
     public void tryToParseTokenFromInvalidAuthorization() {
         assertThatExceptionOfType(JwtInvalidException.class)
-                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString("Authorization foo"));
+                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorization("Authorization foo"));
     }
 
     @Test
@@ -78,7 +78,7 @@ public final class ImmutableJsonWebTokenTest {
         final String authorizationHeader = "Bearer " + base64(header) + "." + base64(payload);
 
         assertThatExceptionOfType(JwtInvalidException.class)
-                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString(authorizationHeader));
+                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorization(authorizationHeader));
     }
 
     @Test
@@ -89,7 +89,7 @@ public final class ImmutableJsonWebTokenTest {
 
         final String authorizationHeader = "Bearer " + base64(header) + "." + base64(payload) + "." + base64(signature);
 
-        final JsonWebToken immutableJsonWebToken = ImmutableJsonWebToken.fromAuthorizationString(authorizationHeader);
+        final JsonWebToken immutableJsonWebToken = ImmutableJsonWebToken.fromAuthorization(authorizationHeader);
 
         assertThat(immutableJsonWebToken.getHeader().toString()).isEqualTo(header);
         assertThat(immutableJsonWebToken.getBody().toString()).isEqualTo(payload);
@@ -104,7 +104,7 @@ public final class ImmutableJsonWebTokenTest {
 
         final String authorizationHeader = "Bearer " + base64(header) + "." + base64(payload) + "." + base64(signature);
 
-        final JsonWebToken expiredJsonWebToken = ImmutableJsonWebToken.fromAuthorizationString(authorizationHeader);
+        final JsonWebToken expiredJsonWebToken = ImmutableJsonWebToken.fromAuthorization(authorizationHeader);
 
         assertThat(expiredJsonWebToken.isExpired()).isEqualTo(true);
     }

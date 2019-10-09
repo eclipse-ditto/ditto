@@ -111,7 +111,7 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
 
     private static Optional<JsonWebToken> extractJwtFromRequest(final RequestContext requestContext) {
         return getRequestHeader(requestContext, HttpHeader.AUTHORIZATION.toString())
-                .map(ImmutableJsonWebToken::fromAuthorizationString);
+                .map(ImmutableJsonWebToken::fromAuthorization);
     }
 
     @SuppressWarnings("ConstantConditions")

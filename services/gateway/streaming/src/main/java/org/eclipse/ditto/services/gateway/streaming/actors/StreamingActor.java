@@ -173,7 +173,7 @@ public final class StreamingActor extends AbstractActor {
 
 
     private void refreshWebsocketSession(final JwtToken jwtToken) {
-        final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromAuthorizationString(jwtToken.getJwtTokenAsString());
+        final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(jwtToken.getJwtTokenAsString());
         jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
             if (binaryValidationResult.isValid()) {
                 final String connectionCorrelationId = jwtToken.getConnectionCorrelationId();
