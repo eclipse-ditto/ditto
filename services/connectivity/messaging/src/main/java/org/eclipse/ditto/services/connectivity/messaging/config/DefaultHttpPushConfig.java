@@ -17,6 +17,8 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.http.DefaultHttpProxyConfig;
+import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
@@ -32,10 +34,12 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
 
     private final int maxParallelism;
     private final int maxQueueSize;
+    private final HttpProxyConfig httpProxyConfig;
 
     private DefaultHttpPushConfig(final ScopedConfig config) {
         maxParallelism = config.getInt(ConfigValue.MAX_PARALLELISM.getConfigPath());
         maxQueueSize = config.getInt(ConfigValue.MAX_QUEUE_SIZE.getConfigPath());
+        httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
     }
 
     static DefaultHttpPushConfig of(final Config config) {
@@ -50,6 +54,11 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
     @Override
     public int getMaxQueueSize() {
         return maxQueueSize;
+    }
+
+    @Override
+    public HttpProxyConfig getHttpProxyConfig() {
+        return httpProxyConfig;
     }
 
     @Override

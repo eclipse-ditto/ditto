@@ -10,16 +10,21 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.config;
+package org.eclipse.ditto.services.base.config.http;
 
+import java.net.InetSocketAddress;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
+
+import akka.http.javadsl.ClientTransport;
+import akka.http.javadsl.model.headers.HttpCredentials;
 
 /**
  * This class is the default implementation of the HTTP proxy config.
@@ -27,7 +32,8 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultHttpProxyConfig implements HttpProxyConfig {
 
-    private static final String CONFIG_PATH = "http.proxy";
+    private static final String HTTP_PROXY_PATH = "http.proxy";
+    private static final String PROXY_PATH = "proxy";
 
     private final boolean enabled;
     private final String hostName;
@@ -46,13 +52,21 @@ public final class DefaultHttpProxyConfig implements HttpProxyConfig {
     /**
      * Returns an instance of {@code DefaultHttpProxyConfig} based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the HTTP proxy config at {@value #CONFIG_PATH}.
+     * @param config is supposed to provide the settings of the HTTP proxy config at {@value #HTTP_PROXY_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultHttpProxyConfig of(final Config config) {
+    public static DefaultHttpProxyConfig ofHttpProxy(final Config config) {
+        return ofConfigPath(config, HTTP_PROXY_PATH);
+    }
+
+    public static DefaultHttpProxyConfig ofProxy(final Config config) {
+        return ofConfigPath(config, PROXY_PATH);
+    }
+
+    private static DefaultHttpProxyConfig ofConfigPath(final Config config, final String relativePath) {
         return new DefaultHttpProxyConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, HttpProxyConfigValue.values()));
+                ConfigWithFallback.newInstance(config, relativePath, HttpProxyConfigValue.values()));
     }
 
     @Override
@@ -78,6 +92,24 @@ public final class DefaultHttpProxyConfig implements HttpProxyConfig {
     @Override
     public String getPassword() {
         return password;
+    }
+
+    @Override
+    public ClientTransport toClientTransport() {
+        final String hostname = this.getHostname();
+        final int port = this.getPort();
+        if (hostname.isEmpty() || 0 == port) {
+            throw new DittoConfigError("When HTTP proxy is enabled via config, at least proxy hostname and port must " +
+                    "be configured as well!");
+        }
+        final InetSocketAddress inetSocketAddress = InetSocketAddress.createUnresolved(hostname, port);
+
+        final String username = this.getUsername();
+        final String password = this.getPassword();
+        if (!username.isEmpty() && !password.isEmpty()) {
+            return ClientTransport.httpsProxy(inetSocketAddress, HttpCredentials.create(username, password));
+        }
+        return ClientTransport.httpsProxy(inetSocketAddress);
     }
 
     @Override

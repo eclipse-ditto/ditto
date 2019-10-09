@@ -16,6 +16,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -26,13 +27,19 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.services.base.config.http.DefaultHttpProxyConfig;
+import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 import akka.NotUsed;
 import akka.actor.ActorSystem;
+import akka.http.impl.engine.client.ProxyConnectionFailedException;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
@@ -52,6 +59,7 @@ import akka.stream.javadsl.SinkQueueWithCancel;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueueWithComplete;
 import akka.testkit.javadsl.TestKit;
+import scala.util.Failure;
 import scala.util.Try;
 
 /**
@@ -92,7 +100,7 @@ public final class HttpPushFactoryTest {
         connection = connection.toBuilder()
                 .uri("http://127.0.0.1:" + binding.localAddress().getPort() + "/path/prefix/")
                 .build();
-        final HttpPushFactory underTest = HttpPushFactory.of(connection);
+        final HttpPushFactory underTest = HttpPushFactory.of(connection, null);
         final HttpRequest request = underTest.newRequest(HttpPublishTarget.of("PUT:/path/appendage/"));
         assertThat(request.method()).isEqualTo(HttpMethods.PUT);
         assertThat(request.getUri().getPathString()).isEqualTo("/path/prefix/path/appendage/");
@@ -104,7 +112,7 @@ public final class HttpPushFactoryTest {
         connection = connection.toBuilder()
                 .uri("http://username:password@127.0.0.1:" + binding.localAddress().getPort() + "/path/prefix/")
                 .build();
-        final HttpPushFactory underTest = HttpPushFactory.of(connection);
+        final HttpPushFactory underTest = HttpPushFactory.of(connection, null);
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);
         final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
@@ -123,10 +131,39 @@ public final class HttpPushFactoryTest {
     }
 
     @Test
+    public void withHttpProxyConfig() throws Exception {
+        // GIVEN: the connection's URI points to an unreachable host
+        connection = connection.toBuilder()
+                .uri("http://no.such.host.example:42/path/prefix/")
+                .build();
+
+        // GIVEN: the HTTP-push factory has the proxy configured to the test server binding
+        final HttpPushFactory underTest = HttpPushFactory.of(connection, getEnabledProxyConfig(binding));
+        final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
+                newSourceSinkQueues(underTest);
+        final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
+        final SinkQueueWithCancel<Try<HttpResponse>> sinkQueue = pair.second();
+        final HttpRequest request = underTest.newRequest(HttpPublishTarget.of("PUT:/path/appendage/"));
+
+        // WHEN: request is made
+        sourceQueue.offer(request);
+
+        // THEN: CONNECT request is made to the Akka HTTP test server.
+        // THEN: Akka HTTP server rejects CONNECT request, creating a failed response
+        final Optional<Try<HttpResponse>> optionalTryResponse = sinkQueue.pull().toCompletableFuture().join();
+        assertThat(optionalTryResponse).isNotEmpty();
+        final Try<HttpResponse> tryResponse = optionalTryResponse.get();
+        assertThat(tryResponse).isInstanceOf(Failure.class);
+        assertThat(tryResponse.failed().get()).isInstanceOf(ProxyConnectionFailedException.class);
+        assertThat(tryResponse.failed().get().getMessage())
+                .contains("proxy rejected to open a connection to no.such.host.example:42 with status code: 400");
+    }
+
+    @Test
     public void handleFailure() throws Exception {
         new TestKit(actorSystem) {{
             // GIVEN: An HTTP-push connection is established against localhost.
-            final HttpPushFactory underTest = HttpPushFactory.of(connection);
+            final HttpPushFactory underTest = HttpPushFactory.of(connection, null);
             final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                     newSourceSinkQueues(underTest);
             final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
@@ -216,5 +253,16 @@ public final class HttpPushFactoryTest {
                 "http://127.0.0.1:" + binding.localAddress().getPort())
                 .targets(singletonList(HttpPushClientActorTest.TARGET))
                 .build();
+    }
+
+    private static HttpProxyConfig getEnabledProxyConfig(final ServerBinding binding) {
+        final Config config = ConfigFactory.parseString("proxy {\n" +
+                "  enabled = true\n" +
+                "  hostname = \"127.0.0.1\"\n" +
+                "  port = " + binding.localAddress().getPort() + "\n" +
+                "  username = \"username\"\n" +
+                "  password = \"password\"\n" +
+                "}");
+        return DefaultHttpProxyConfig.ofProxy(config);
     }
 }
