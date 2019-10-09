@@ -13,24 +13,27 @@
 
 package org.eclipse.ditto.services.gateway.streaming;
 
+import javax.annotation.Nullable;
+
 /**
- * Simple event which holds a JWT in string format.
+ * Simple event which signals that a send JWT was invalid.
  */
-public class JwtToken {
+public class InvalidJwtToken {
 
     private final String connectionCorrelationId;
-    private final String jwtToken;
+    @Nullable private final String reasonForInvalidity;
 
-    public JwtToken(final String connectionCorrelationId, final String jwtToken) {
+    public InvalidJwtToken(final String connectionCorrelationId, @Nullable final String reasonForInvalidity) {
+        this.reasonForInvalidity = reasonForInvalidity;
         this.connectionCorrelationId = connectionCorrelationId;
-        this.jwtToken = jwtToken;
     }
 
     public String getConnectionCorrelationId() {
         return connectionCorrelationId;
     }
 
-    public String getJwtTokenAsString() {
-        return jwtToken;
+    @Nullable
+    public String getReasonForInvalidity() {
+        return reasonForInvalidity;
     }
 }

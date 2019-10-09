@@ -35,6 +35,8 @@ import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFacto
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.gateway.streaming.InvalidJwtToken;
+import org.eclipse.ditto.services.gateway.streaming.JwtTokenAck;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
@@ -201,6 +203,11 @@ final class StreamingSessionActor extends AbstractActor {
                     sessionTerminationCancellable.cancel();
                     checkAuthorizationContextAndStartSessionTimer(refreshSession);
                 })
+                .match(InvalidJwtToken.class, invalidJwtToken -> {
+                    sessionTerminationCancellable.cancel();
+                    eventAndResponsePublisher.tell(new JwtTokenAck(false, invalidJwtToken.getReasonForInvalidity()),
+                            getSelf());
+                })
                 .match(AcknowledgeSubscription.class, msg ->
                         acknowledgeSubscription(msg.getStreamingType(), getSelf()))
                 .match(AcknowledgeUnsubscription.class, msg ->
@@ -265,8 +272,7 @@ final class StreamingSessionActor extends AbstractActor {
     }
 
     private void handleSessionTimeout() {
-        logger.info("Stopping websocket session for connection with id: {}",
-                connectionCorrelationId);
+        logger.info("Stopping websocket session for connection with id: {}", connectionCorrelationId);
         eventAndResponsePublisher.tell(GatewayWebsocketSessionExpiredException.newBuilder()
                 .dittoHeaders(DittoHeaders.newBuilder()
                         .correlationId(connectionCorrelationId)
@@ -287,6 +293,7 @@ final class StreamingSessionActor extends AbstractActor {
                     .build(), getSelf());
         } else {
             sessionTerminationCancellable = startSessionTimeout(refreshSession.getSessionTimeout());
+            eventAndResponsePublisher.tell(new JwtTokenAck(true, null), getSelf());
         }
     }
 

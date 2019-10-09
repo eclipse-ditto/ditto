@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationContextProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
+import org.eclipse.ditto.services.gateway.streaming.InvalidJwtToken;
 import org.eclipse.ditto.services.gateway.streaming.JwtToken;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
@@ -173,16 +174,19 @@ public final class StreamingActor extends AbstractActor {
 
 
     private void refreshWebsocketSession(final JwtToken jwtToken) {
+        final String connectionCorrelationId = jwtToken.getConnectionCorrelationId();
         final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(jwtToken.getJwtTokenAsString());
         jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
             if (binaryValidationResult.isValid()) {
-                final String connectionCorrelationId = jwtToken.getConnectionCorrelationId();
                 final AuthorizationContext authorizationContext =
                         jwtAuthorizationContextProvider.getAuthorizationContext(jsonWebToken);
                 forwardToSessionActor(connectionCorrelationId,
                         new RefreshSession(connectionCorrelationId, jsonWebToken.getExpirationTime(),
                                 authorizationContext));
             }
+            final String reasonForInvalidity = binaryValidationResult.getReasonForInvalidity().getMessage();
+            forwardToSessionActor(connectionCorrelationId,
+                    new InvalidJwtToken(connectionCorrelationId, reasonForInvalidity));
         });
     }
 

@@ -16,6 +16,7 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.JWT_TOKEN;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_EVENTS;
@@ -52,6 +53,7 @@ import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
+import org.eclipse.ditto.services.gateway.streaming.JwtTokenAck;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
@@ -281,17 +283,17 @@ public final class WebsocketRoute {
                             return NotUsed.getInstance();
                         })
                         .map(this::publishResponsePublishedEvent)
-                        .mapError(new PFBuilder().match(GatewayWebsocketSessionExpiredException.class,
+                        .recoverWithRetries(1, new PFBuilder().match(GatewayWebsocketSessionExpiredException.class,
                                 ex -> {
                                     LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
                                             logger.info("WebSocket connection terminated because JWT expired!"));
-                                    return ex;
+                                    return Source.empty();
                                 }).match(GatewayWebsocketSessionClosedException.class,
                                 ex -> {
                                     LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
                                             logger.info("WebSocket connection terminated because authorization " +
                                                     "context changed!"));
-                                    return ex;
+                                    return Source.empty();
                                 })
                                 .build());
 
@@ -471,6 +473,10 @@ public final class WebsocketRoute {
         return jsonifiable -> {
             if (jsonifiable instanceof StreamingAck) {
                 return streamingAckToString((StreamingAck) jsonifiable);
+            }
+
+            if (jsonifiable instanceof JwtTokenAck) {
+                return JWT_TOKEN.toString() + PROTOCOL_CMD_ACK_SUFFIX;
             }
 
             final Adaptable adaptable;
