@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -40,7 +41,8 @@ public final class UnmodifiableExternalMessageTest {
                 AllowedReason.provided(DittoHeaders.class).isAlsoImmutable(),
                 AllowedReason.assumingFields("bytePayload").areNotModifiedAndDoNotEscape(),
                 AllowedReason.provided(ByteBuffer.class, AuthorizationContext.class, Adaptable.class,
-                        EnforcementFilter.class, HeaderMapping.class, TopicPath.class).areAlsoImmutable());
+                        EnforcementFilter.class, HeaderMapping.class, PayloadMapping.class, TopicPath.class)
+                        .areAlsoImmutable());
     }
 
     @Test
