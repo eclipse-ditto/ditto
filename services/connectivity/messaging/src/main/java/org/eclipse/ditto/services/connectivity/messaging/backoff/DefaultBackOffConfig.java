@@ -18,7 +18,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -47,7 +47,7 @@ public final class DefaultBackOffConfig implements BackOffConfig {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultBackOffConfig of(final Config config) {
-        return new DefaultBackOffConfig(DefaultScopedConfig.newInstance(config, CONFIG_PATH));
+        return new DefaultBackOffConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, BackOffConfig.BackOffConfigValue.values()));
     }
 
     @Override
