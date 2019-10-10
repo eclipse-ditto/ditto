@@ -20,12 +20,12 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthe
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseThingsRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRouteBuilder;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 
@@ -81,10 +81,10 @@ public interface RootRouteBuilder {
     /**
      * Sets the sse things sub-route.
      *
-     * @param route the route to set.
+     * @param sseThingsRouteBuilder the route to set.
      * @return the Builder to allow method chaining.
      */
-    RootRouteBuilder sseThingsRoute(SseThingsRoute route);
+    RootRouteBuilder sseThingsRoute(SseRouteBuilder sseThingsRouteBuilder);
 
     /**
      * Sets the things sub-route.
@@ -105,10 +105,10 @@ public interface RootRouteBuilder {
     /**
      * Sets the websocket sub-route.
      *
-     * @param route the route to set.
+     * @param websocketRouteBuilder the route to set.
      * @return the Builder to allow method chaining.
      */
-    RootRouteBuilder websocketRoute(WebsocketRoute route);
+    RootRouteBuilder websocketRoute(WebsocketRouteBuilder websocketRouteBuilder);
 
     /**
      * Sets the stats sub-route.

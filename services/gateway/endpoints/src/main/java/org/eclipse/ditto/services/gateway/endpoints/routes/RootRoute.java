@@ -63,12 +63,12 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthe
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseThingsRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -108,10 +108,10 @@ public final class RootRoute {
     private final DevOpsRoute devopsRoute;
 
     private final PoliciesRoute policiesRoute;
-    private final SseThingsRoute sseThingsRoute;
+    private final SseRouteBuilder sseThingsRouteBuilder;
     private final ThingsRoute thingsRoute;
     private final ThingSearchRoute thingSearchRoute;
-    private final WebsocketRoute websocketRoute;
+    private final WebsocketRouteBuilder websocketRouteBuilder;
     private final StatsRoute statsRoute;
 
     private final CustomApiRoutesProvider customApiRoutesProvider;
@@ -133,10 +133,10 @@ public final class RootRoute {
         cachingHealthRoute = builder.cachingHealthRoute;
         devopsRoute = builder.devopsRoute;
         policiesRoute = builder.policiesRoute;
-        sseThingsRoute = builder.sseThingsRoute;
+        sseThingsRouteBuilder = builder.sseThingsRouteBuilder;
         thingsRoute = builder.thingsRoute;
         thingSearchRoute = builder.thingSearchRoute;
-        websocketRoute = builder.websocketRoute;
+        websocketRouteBuilder = builder.websocketRouteBuilder;
         statsRoute = builder.statsRoute;
         customApiRoutesProvider = builder.customApiRoutesProvider;
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
@@ -307,7 +307,7 @@ public final class RootRoute {
                 // /api/{apiVersion}/policies
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support
-                sseThingsRoute.buildThingsSseRoute(ctx, () ->
+                sseThingsRouteBuilder.build(ctx, () ->
                         overwriteDittoHeaders(ctx, dittoHeaders, authorizationContext)),
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
@@ -335,8 +335,7 @@ public final class RootRoute {
                                                             final ProtocolAdapter chosenProtocolAdapter =
                                                                     protocolAdapterProvider.getProtocolAdapter(
                                                                             userAgent);
-                                                            return websocketRoute.buildWebsocketRoute(wsVersion,
-                                                                    correlationId,
+                                                            return websocketRouteBuilder.build(wsVersion, correlationId,
                                                                     authContext, dittoHeaders, chosenProtocolAdapter);
                                                         }
                                                 )
@@ -475,10 +474,10 @@ public final class RootRoute {
         private DevOpsRoute devopsRoute;
 
         private PoliciesRoute policiesRoute;
-        private SseThingsRoute sseThingsRoute;
+        private SseRouteBuilder sseThingsRouteBuilder;
         private ThingsRoute thingsRoute;
         private ThingSearchRoute thingSearchRoute;
-        private WebsocketRoute websocketRoute;
+        private WebsocketRouteBuilder websocketRouteBuilder;
         private StatsRoute statsRoute;
 
         private CustomApiRoutesProvider customApiRoutesProvider;
@@ -528,8 +527,8 @@ public final class RootRoute {
         }
 
         @Override
-        public RootRouteBuilder sseThingsRoute(final SseThingsRoute route) {
-            sseThingsRoute = route;
+        public RootRouteBuilder sseThingsRoute(final SseRouteBuilder sseThingsRouteBuilder) {
+            this.sseThingsRouteBuilder = sseThingsRouteBuilder;
             return this;
         }
 
@@ -546,8 +545,8 @@ public final class RootRoute {
         }
 
         @Override
-        public RootRouteBuilder websocketRoute(final WebsocketRoute route) {
-            websocketRoute = route;
+        public RootRouteBuilder websocketRoute(final WebsocketRouteBuilder websocketRouteBuilder) {
+            this.websocketRouteBuilder = websocketRouteBuilder;
             return this;
         }
 

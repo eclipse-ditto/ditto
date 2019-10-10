@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_COMMANDS;
@@ -94,7 +95,7 @@ import akka.stream.javadsl.Source;
 /**
  * Builder for creating Akka HTTP routes for {@code /ws}.
  */
-public final class WebsocketRoute {
+public final class WebsocketRoute implements WebsocketRouteBuilder {
 
     /**
      * The backend sends the protocol message above suffixed by ":ACK" when the subscription was created. E.g.: {@code
@@ -118,11 +119,12 @@ public final class WebsocketRoute {
             final EventStream eventStream,
             final EventSniffer<String> incomingMessageSniffer,
             final EventSniffer<String> outgoingMessageSniffer) {
+
         this.streamingActor = streamingActor;
         this.webSocketConfig = webSocketConfig;
         this.eventStream = eventStream;
-        this.incomingMessageSniffer = incomingMessageSniffer;
-        this.outgoingMessageSniffer = outgoingMessageSniffer;
+        this.incomingMessageSniffer = checkNotNull(incomingMessageSniffer, "incomingMessageSniffer");
+        this.outgoingMessageSniffer = checkNotNull(outgoingMessageSniffer, "outgoingMessageSniffer");
     }
 
     /**
@@ -138,18 +140,16 @@ public final class WebsocketRoute {
         this(streamingActor, webSocketConfig, eventStream, EventSniffer.noOp(), EventSniffer.noOp());
     }
 
-    /**
-     * Create a copy of this object with message sniffers.
-     *
-     * @param incomingMessageSniffer sniffer of incoming messages.
-     * @param outgoingMessageSniffer sniffer of outgoing messages.
-     * @return a copy of this object with the message sniffers.
-     */
-    public WebsocketRoute withMessageSniffers(final EventSniffer<String> incomingMessageSniffer,
-            final EventSniffer<String> outgoingMessageSniffer) {
-
-        return new WebsocketRoute(streamingActor, webSocketConfig, eventStream, incomingMessageSniffer,
+    @Override
+    public WebsocketRouteBuilder withIncomingEventSniffer(final EventSniffer<String> eventSniffer) {
+        return new WebsocketRoute(streamingActor, webSocketConfig, eventStream, eventSniffer,
                 outgoingMessageSniffer);
+    }
+
+    @Override
+    public WebsocketRouteBuilder withOutgoingEventSniffer(final EventSniffer<String> eventSniffer) {
+        return new WebsocketRoute(streamingActor, webSocketConfig, eventStream, incomingMessageSniffer,
+                eventSniffer);
     }
 
     /**
@@ -157,8 +157,9 @@ public final class WebsocketRoute {
      *
      * @return the {@code /ws} route.
      */
-    public Route buildWebsocketRoute(final Integer version,
-            final String correlationId,
+    @Override
+    public Route build(final Integer version,
+            final CharSequence correlationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
