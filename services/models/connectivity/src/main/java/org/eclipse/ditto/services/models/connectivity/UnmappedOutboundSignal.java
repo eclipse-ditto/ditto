@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 final class UnmappedOutboundSignal implements OutboundSignal {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UnmappedOutboundSignal.class);
+
     private final Signal<?> source;
     private final List<Target> targets;
 
@@ -79,7 +80,11 @@ final class UnmappedOutboundSignal implements OutboundSignal {
             throw new IllegalStateException(message);
         }
 
-        final Jsonifiable signalJsonifiable = mappingStrategy.get().map(readSourceObj, DittoHeaders.empty());
+        final DittoHeaders dittoHeaders = jsonObject.getValue(JsonFields.JSON_DITTO_HEADERS)
+                .map(DittoHeaders::newBuilder)
+                .orElseGet(DittoHeaders::newBuilder)
+                .build();
+        final Jsonifiable signalJsonifiable = mappingStrategy.get().map(readSourceObj, dittoHeaders);
 
         final JsonArray readTargetsArr = jsonObject.getValueOrThrow(JsonFields.TARGETS);
         final List<Target> targets = readTargetsArr.stream()
@@ -110,6 +115,7 @@ final class UnmappedOutboundSignal implements OutboundSignal {
         jsonObjectBuilder.set(JsonFields.TARGETS, targets.stream()
                 .map(t -> t.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_DITTO_HEADERS, source.getDittoHeaders().toJson());
 
         return jsonObjectBuilder.build();
     }

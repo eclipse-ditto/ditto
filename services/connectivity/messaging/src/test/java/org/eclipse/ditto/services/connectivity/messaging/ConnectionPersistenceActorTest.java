@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -62,6 +63,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLo
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
@@ -76,10 +78,10 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.hamcrest.CoreMatchers;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -88,6 +90,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.japi.Creator;
 import akka.testkit.TestProbe;
@@ -104,11 +107,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             asSet(StreamingType.EVENTS, StreamingType.LIVE_EVENTS);
     private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS_AND_MESSAGES = asSet(StreamingType.EVENTS,
             StreamingType.LIVE_EVENTS, StreamingType.MESSAGES);
-    private static ActorSystem actorSystem;
-    private static ActorRef pubSubMediator;
-    private static ActorRef conciergeForwarder;
+    private ActorSystem actorSystem;
+    private ActorRef pubSubMediator;
+    private ActorRef conciergeForwarder;
     private ConnectionId connectionId;
     private CreateConnection createConnection;
+    private CreateConnection createClosedConnectionWith2Clients;
     private CreateConnection createClosedConnection;
     private ModifyConnection modifyConnection;
     private ModifyConnection modifyClosedConnection;
@@ -129,28 +133,32 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     private RetrieveConnectionResponse retrieveModifiedConnectionResponse;
     private RetrieveConnectionStatusResponse retrieveConnectionStatusOpenResponse;
     private ConnectionNotAccessibleException connectionNotAccessibleException;
+    private ThingModifiedEvent thingModified;
     private DittoProtocolSub dittoProtocolSubMock;
 
-    @BeforeClass
-    public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-        conciergeForwarder = actorSystem.actorOf(TestConstants.ConciergeForwarderActorMock.props());
-    }
+    // second actor system to test multiple client actors
+    private ActorSystem actorSystem2;
 
-    @AfterClass
-    public static void tearDown() {
-        TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS), false);
+    @After
+    public void tearDown() {
+        shutdown(actorSystem);
+        shutdown(actorSystem2);
     }
 
     @Before
     public void init() {
+        actorSystem = ActorSystem.create(getClass().getSimpleName(), TestConstants.CONFIG);
+        pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
+        conciergeForwarder = actorSystem.actorOf(TestConstants.ConciergeForwarderActorMock.props());
         connectionId = TestConstants.createRandomConnectionId();
         final Connection connection = TestConstants.createConnection(connectionId);
+        final Connection closedConnectionWith2Clients =
+                connection.toBuilder().clientCount(2).connectionStatus(ConnectivityStatus.CLOSED).build();
         final Connection closedConnection =
                 TestConstants.createConnection(connectionId, ConnectivityStatus.CLOSED,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
+        createClosedConnectionWith2Clients = CreateConnection.of(closedConnectionWith2Clients, DittoHeaders.empty());
         createClosedConnection = CreateConnection.of(closedConnection, DittoHeaders.empty());
         final Connection modifiedConnection =
                 connection.toBuilder()
@@ -197,7 +205,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                         "publisher started")))
                         .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
-
+        thingModified = TestConstants.thingModified(Collections.singleton(TestConstants.Authorization.SUBJECT_ID));
         dittoProtocolSubMock = Mockito.mock(DittoProtocolSub.class);
     }
 
@@ -210,8 +218,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             underTest.tell(testConnection, getRef());
 
-            final TestConnectionResponse testConnectionResponse = TestConnectionResponse
-                    .success(connectionId, "AkkaTestSystem=Success(mock)", DittoHeaders.empty());
+            final TestConnectionResponse testConnectionResponse =
+                    TestConnectionResponse.success(connectionId, "mock", DittoHeaders.empty());
             expectMsg(testConnectionResponse);
         }};
     }
@@ -284,6 +292,43 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(deleteConnection, getRef());
             expectMsg(deleteConnectionResponse);
             probe.expectNoMessage();
+            expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void manageConnectionWith2Clients() throws Exception {
+        startSecondActorSystemAndJoinCluster();
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create closed connection
+            underTest.tell(createClosedConnectionWith2Clients, getRef());
+            expectMsgClass(CreateConnectionResponse.class);
+
+            // open connection: only local client actor is asked for a response.
+            underTest.tell(openConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsgClass(OpenConnectionResponse.class);
+
+            // forward signal once
+            underTest.tell(thingModified, getRef());
+            final Object outboundSignal = probe.expectMsgClass(Object.class);
+            assertThat(outboundSignal).isInstanceOf(OutboundSignal.class);
+            // probe.expectMsg(OutboundSignal.class); // does not work for some reason
+
+            // close connection: at least 1 client actor gets the command; the other may or may not be started.
+            underTest.tell(closeConnection, getRef());
+            probe.expectMsg(closeConnection);
+            expectMsg(closeConnectionResponse);
+
+            // delete connection
+            underTest.tell(deleteConnection, getRef());
+            expectMsg(deleteConnectionResponse);
             expectTerminated(underTest);
         }};
     }
@@ -667,8 +712,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress(), null);
 
         final CreateConnection createConnection = CreateConnection.of(connection, DittoHeaders.empty());
-        final Set<String> valid = Collections.singleton(TestConstants.Authorization.SUBJECT_ID);
-        testForwardThingEvent(createConnection, true, TestConstants.thingModified(valid), expectedTarget);
+        testForwardThingEvent(createConnection, true, thingModified, expectedTarget);
     }
 
     @Test
@@ -940,6 +984,18 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         }};
     }
 
+    private void startSecondActorSystemAndJoinCluster() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(2);
+        actorSystem2 = ActorSystem.create(getClass().getSimpleName(), TestConstants.CONFIG);
+        final Cluster cluster1 = Cluster.get(actorSystem);
+        final Cluster cluster2 = Cluster.get(actorSystem2);
+        cluster1.registerOnMemberUp(latch::countDown);
+        cluster2.registerOnMemberUp(latch::countDown);
+        cluster1.join(cluster1.selfAddress());
+        cluster2.join(cluster1.selfAddress());
+        latch.await();
+    }
+
     static class TestActor extends AbstractActor {
 
         private final TestKit probe;
@@ -976,5 +1032,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     private void expectRemoveSubscriber(int howManyTimes) {
         verify(dittoProtocolSubMock, timeout(500).times(howManyTimes)).removeSubscriber(any(ActorRef.class));
+    }
+
+    private static void shutdown(final ActorSystem system) {
+        if (system != null) {
+            TestKit.shutdownActorSystem(system, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
+                    false);
+        }
     }
 }

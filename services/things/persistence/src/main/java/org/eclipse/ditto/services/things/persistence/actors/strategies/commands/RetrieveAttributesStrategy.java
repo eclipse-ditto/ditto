@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -70,12 +71,12 @@ final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<Retr
 
 
     @Override
-    public Optional<?> previousETagEntity(final RetrieveAttributes command, @Nullable final Thing previousEntity) {
-        return nextETagEntity(command, previousEntity);
+    public Optional<EntityTag> previousEntityTag(final RetrieveAttributes command, @Nullable final Thing previousEntity) {
+        return nextEntityTag(command, previousEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final RetrieveAttributes command, @Nullable final Thing newEntity) {
-        return extractAttributes(newEntity);
+    public Optional<EntityTag> nextEntityTag(final RetrieveAttributes command, @Nullable final Thing newEntity) {
+        return extractAttributes(newEntity).flatMap(EntityTag::fromEntity);
     }
 }

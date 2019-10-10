@@ -168,14 +168,10 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
 
     private void tick(final Clock tick) {
         final boolean forceUpdate = forceUpdate();
-        if (state == State.UPDATING) {
-            log.debug("ignoring tick in state <{}> with changed=<{}>", state, localSubscriptionsChanged);
-        } else if (!localSubscriptionsChanged && !forceUpdate) {
-            log.debug("tick in state <{}> with changed=<{}>: flushing acks", state, localSubscriptionsChanged);
+        if (!localSubscriptionsChanged && !forceUpdate) {
             moveAwaitUpdateToAwaitAcknowledge();
             flushAcknowledgements();
         } else {
-            log.debug("updating");
             final SubscriptionsReader snapshot;
             final CompletionStage<Void> ddataOp;
             if (subscriptions.isEmpty()) {
@@ -203,7 +199,6 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
     }
 
     private void updateSuccess(final SubscriptionsReader snapshot) {
-        log.debug("updateSuccess");
         flushAcknowledgements();
         state = State.WAITING;
         // race condition possible -- some published messages may arrive before the acknowledgement

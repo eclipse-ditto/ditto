@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -61,12 +62,12 @@ final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing
     }
 
     @Override
-    public Optional<?> previousETagEntity(final DeleteThing command, @Nullable final Thing previousEntity) {
-        return Optional.ofNullable(previousEntity);
+    public Optional<EntityTag> previousEntityTag(final DeleteThing command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final DeleteThing command, @Nullable final Thing newEntity) {
+    public Optional<EntityTag> nextEntityTag(final DeleteThing command, @Nullable final Thing newEntity) {
         return Optional.empty();
     }
 }

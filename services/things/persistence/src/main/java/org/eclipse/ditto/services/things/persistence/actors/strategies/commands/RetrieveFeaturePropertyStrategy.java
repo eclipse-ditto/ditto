@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -90,14 +91,16 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
     }
 
     @Override
-    public Optional<?> previousETagEntity(final RetrieveFeatureProperty command, @Nullable final Thing previousEntity) {
-        return nextETagEntity(command, previousEntity);
+    public Optional<EntityTag> previousEntityTag(final RetrieveFeatureProperty command,
+            @Nullable final Thing previousEntity) {
+        return nextEntityTag(command, previousEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final RetrieveFeatureProperty command, @Nullable final Thing newEntity) {
+    public Optional<EntityTag> nextEntityTag(final RetrieveFeatureProperty command, @Nullable final Thing newEntity) {
         return extractFeature(command, newEntity)
                 .flatMap(Feature::getProperties)
-                .flatMap(featureProperties -> featureProperties.getValue(command.getPropertyPointer()));
+                .flatMap(featureProperties -> featureProperties.getValue(command.getPropertyPointer()))
+                .flatMap(EntityTag::fromEntity);
     }
 }

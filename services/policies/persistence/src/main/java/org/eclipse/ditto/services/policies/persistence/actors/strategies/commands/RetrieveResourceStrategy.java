@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -40,9 +41,9 @@ final class RetrieveResourceStrategy extends AbstractPolicyQueryCommandStrategy<
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final RetrieveResource command) {
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
-        final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(command.getLabel());
+        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(command.getLabel());
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
 
@@ -53,7 +54,7 @@ final class RetrieveResourceStrategy extends AbstractPolicyQueryCommandStrategy<
                         RetrieveResourceResponse.of(policyId, command.getLabel(), optionalResource.get(),
                                 command.getDittoHeaders());
                 return ResultFactory.newQueryResult(command,
-                        appendETagHeaderIfProvided(command, rawResponse, policy));
+                        appendETagHeaderIfProvided(command, rawResponse, nonNullPolicy));
             } else {
                 return ResultFactory.newErrorResult(
                         resourceNotFound(policyId, command.getLabel(), command.getResourceKey(),
@@ -66,10 +67,11 @@ final class RetrieveResourceStrategy extends AbstractPolicyQueryCommandStrategy<
     }
 
     @Override
-    public Optional<?> nextETagEntity(final RetrieveResource command, @Nullable final Policy newEntity) {
+    public Optional<EntityTag> nextEntityTag(final RetrieveResource command, @Nullable final Policy newEntity) {
         return Optional.ofNullable(newEntity)
                 .flatMap(p -> p.getEntryFor(command.getLabel()))
                 .map(PolicyEntry::getResources)
-                .flatMap(r -> r.getResource(command.getResourceKey()));
+                .flatMap(r -> r.getResource(command.getResourceKey()))
+                .flatMap(EntityTag::fromEntity);
     }
 }

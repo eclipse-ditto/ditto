@@ -29,7 +29,6 @@ final class ConnectionOpenedStrategy implements EventStrategy<ConnectionOpened, 
     @Override
     public Connection handle(final ConnectionOpened event, @Nullable final Connection connection,
             final long revision) {
-        checkNotNull(connection, "connection");
-        return connection.toBuilder().connectionStatus(ConnectivityStatus.OPEN).build();
+        return checkNotNull(connection, "connection").toBuilder().connectionStatus(ConnectivityStatus.OPEN).build();
     }
 }

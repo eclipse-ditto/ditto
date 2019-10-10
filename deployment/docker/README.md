@@ -21,6 +21,30 @@ password in front like this:
 ditto:A6BgmB8IEtPTs
 ```
 
+## Configuration of the services
+
+You may configure each service via passing variables to the java VM in the entrypoint section for each
+service.
+
+```yml
+    ...
+    entrypoint:
+      - java
+      # Alternative approach for configuration of the service
+      - -Dditto.gateway.authentication.devops.password=foobar
+      - -jar
+      - starter.jar
+```
+
+To get a list of available configuration options you may retrieve them from a running instance via:
+
+```bash
+# Substitute gateway with the service you are interested in
+curl http://devops:foobar@localhost:8080/devops/config/gateway/?path=ditto
+```
+
+Or by going through the configuration files in this repository e.g. [/services/gateway/starter/src/main/resources/gateway.conf](https://github.com/eclipse/ditto/blob/master/services/gateway/starter/src/main/resources/gateway.conf).
+
 ## Start Eclipse Ditto
 
 ```bash

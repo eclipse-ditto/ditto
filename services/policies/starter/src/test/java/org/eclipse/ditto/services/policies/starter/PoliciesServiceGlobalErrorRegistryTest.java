@@ -32,8 +32,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInval
 public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public PoliciesServiceGlobalErrorRegistryTest() {
-        super(Arrays.asList(
-                DittoHeaderInvalidException.class,
+        super(DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AclEntryInvalidException.class,
                 CommandNotSupportedException.class,
@@ -46,6 +45,7 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 NamespacedEntityIdInvalidException.class,
                 ThingIdInvalidException.class,
                 PolicyIdInvalidException.class
-        ));
+        );
     }
+
 }

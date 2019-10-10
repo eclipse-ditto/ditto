@@ -83,6 +83,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private final Map<String, ActorRef> consumerByAddressWithIndex;
 
     @Nullable private ActorRef rmqConnectionActor;
+    private ActorRef rmqPublisherActor;
 
     /*
      * This constructor is called via reflection by the static method propsForTest.
@@ -194,23 +195,30 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
-        log.debug("Received ClientConnected");
+        // nothing to do here
+    }
+
+    @Override
+    protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
         if (clientConnected instanceof RmqConsumerChannelCreated) {
             final RmqConsumerChannelCreated rmqConsumerChannelCreated = (RmqConsumerChannelCreated) clientConnected;
             startCommandConsumers(rmqConsumerChannelCreated.getChannel());
-            notifyConsumersReady();
         }
+        return super.startConsumerActors(clientConnected);
     }
 
     @Override
     protected void cleanupResourcesForConnection() {
         log.debug("cleaning up");
         stopCommandConsumers();
-        stopPublisherActor();
-        if (rmqConnectionActor != null) {
-            stopChildActor(rmqConnectionActor);
-            rmqConnectionActor = null;
-        }
+        stopChildActor(rmqPublisherActor);
+        stopChildActor(rmqConnectionActor);
+        rmqConnectionActor = null;
+    }
+
+    @Override
+    protected ActorRef getPublisherActor() {
+        return rmqPublisherActor;
     }
 
     private static Optional<ConnectionFactory> tryToCreateConnectionFactory(
@@ -259,7 +267,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         });
 
                 rmqConnectionActor = startChildActorConflictFree(RMQ_CONNECTION_ACTOR_NAME, props);
-                publisherActor = startRmqPublisherActor();
+                rmqPublisherActor = startRmqPublisherActor();
 
                 // create publisher channel
                 final CreateChannel createChannel = CreateChannel.apply(
@@ -267,9 +275,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             log.info("Did set up publisher channel: {}. Telling the publisher actor the new channel",
                                     channel);
                             // provide the new channel to the publisher after the channel was connected (also includes reconnects)
-                            if (publisherActor != null) {
+                            if (rmqPublisherActor != null) {
                                 final ChannelCreated channelCreated = new ChannelCreated(channelActor);
-                                publisherActor.tell(channelCreated, channelActor);
+                                rmqPublisherActor.tell(channelCreated, channelActor);
                             }
                             return null;
                         }),
@@ -318,9 +326,14 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private ActorRef startRmqPublisherActor() {
-        stopPublisherActor();
+        stopChildActor(rmqPublisherActor);
         final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptyList());
         return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
+    }
+
+    @Override
+    protected CompletionStage<Status.Status> startPublisherActor() {
+        return CompletableFuture.completedFuture(DONE);
     }
 
     private void stopCommandConsumers() {

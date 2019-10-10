@@ -23,67 +23,77 @@ concierge:
   enabled: true
   name: concierge
   replicaCount: 1
+  memory: 512Mi
   networkPolicy:
     enabled: true
   image:
     repository: docker.io/eclipse/ditto-concierge
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0
+    tag: 1.0.0-M1a
 connectivity:
   enabled: true
   name: connectivity
   replicaCount: 1
+  memory: 512Mi
   networkPolicy:
     enabled: true
   image:
     repository: docker.io/eclipse/ditto-connectivity
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0
+    tag: 1.0.0-M1a
 things:
   enabled: true
   name: things
   replicaCount: 1
+  memory: 512Mi
   networkPolicy:
     enabled: true
   image:
     repository: docker.io/eclipse/ditto-things
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0
+    tag: 1.0.0-M1a
 search:
   enabled: true
   name: things-search
   replicaCount: 1
+  memory: 512Mi
   networkPolicy:
     enabled: true
   image:
     repository: docker.io/eclipse/ditto-things-search
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0
+    tag: 1.0.0-M1a
 policies:
   enabled: true
   name: policies
   replicaCount: 1
+  memory: 512Mi
   networkPolicy:
     enabled: true
   image:
     repository: docker.io/eclipse/ditto-policies
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0
+    tag: 1.0.0-M1a
 gateway:
   enabled: true
   name: gateway
   replicaCount: 1
+  memory: 512Mi
+  secureDevops: true
   networkPolicy:
     enabled: true
   image:
     repository: docker.io/eclipse/ditto-gateway
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0
+    tag: 1.0.0-M1a
 
 nginx:
+  enabled: true
   replicaCount: 1
   name: nginx
   version: 1.15
+  # Enable in case running on Openshift (needed for writing in pod)
+  rootAccess: false
 swagger:
   enabled: true
   name: swagger-ui
@@ -91,6 +101,8 @@ swagger:
   version: 3.17.4
   networkPolicy:
     enabled: true
+  # Enable in case running on Openshift (needed for writing in pod)
+  rootAccess: false
 
 
 ##

@@ -19,6 +19,7 @@ import java.util.Optional;
 
 /**
  * An enumeration of status of connectivity resource.
+ * TODO make Jsonifiable as it is sent in cluster
  */
 public enum ConnectivityStatus implements CharSequence {
 

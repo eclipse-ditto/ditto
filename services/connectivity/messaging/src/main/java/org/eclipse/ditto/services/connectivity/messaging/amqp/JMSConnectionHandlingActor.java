@@ -182,7 +182,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         final Optional<javax.jms.Connection> connectionOptional = recoverSession.getConnection();
 
         if (connectionOptional.isPresent()) {
-            final JmsConnection jmsConnection = connectionOptional.map(c -> (JmsConnection) c).get();
+            final JmsConnection jmsConnection = (JmsConnection) connectionOptional.get();
             try {
                 log.debug("Creating new JMS session.");
                 final Session session = createSession(jmsConnection);

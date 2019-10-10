@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
@@ -42,7 +43,7 @@ final class SudoRetrievePolicyStrategy extends AbstractPolicyQueryCommandStrateg
     }
 
     @Override
-    public Optional<?> nextETagEntity(final SudoRetrievePolicy command, @Nullable final Policy newEntity) {
-        return Optional.ofNullable(newEntity);
+    public Optional<EntityTag> nextEntityTag(final SudoRetrievePolicy command, @Nullable final Policy newEntity) {
+        return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
 }

@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -62,12 +63,12 @@ final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<Retrie
     }
 
     @Override
-    public Optional<?> previousETagEntity(final RetrievePolicyId command, @Nullable final Thing previousEntity) {
-        return nextETagEntity(command, previousEntity);
+    public Optional<EntityTag> previousEntityTag(final RetrievePolicyId command, @Nullable final Thing previousEntity) {
+        return nextEntityTag(command, previousEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final RetrievePolicyId command, @Nullable final Thing newEntity) {
-        return extractPolicyId(newEntity);
+    public Optional<EntityTag> nextEntityTag(final RetrievePolicyId command, @Nullable final Thing newEntity) {
+        return extractPolicyId(newEntity).flatMap(EntityTag::fromEntity);
     }
 }

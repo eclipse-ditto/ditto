@@ -58,17 +58,15 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef sourceActor;
-    private final ActorRef mqttClientActor;
 
     private final boolean dryRun;
+    private Status.Status initStatus;
 
     @SuppressWarnings("unused")
     private MqttPublisherActor(final ConnectionId connectionId, final List<Target> targets,
             final MqttConnectionFactory factory,
-            final ActorRef mqttClientActor,
             final boolean dryRun) {
         super(connectionId, targets);
-        this.mqttClientActor = mqttClientActor;
         this.dryRun = dryRun;
 
         final Pair<ActorRef, CompletionStage<Done>> materializedValues =
@@ -81,7 +79,6 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         sourceActor = materializedValues.first();
 
         log.info("Publisher ready");
-        mqttClientActor.tell(new Status.Success(Done.done()), getSelf());
     }
 
     /**
@@ -90,21 +87,22 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
      * @param connectionId the connectionId this publisher belongs to.
      * @param targets the targets to publish to.
      * @param factory the factory to create MqttConnections with.
-     * @param mqttClientActor the ActorRef to the Mqtt Client Actor
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Akka configuration Props object.
      */
     static Props props(final ConnectionId connectionId, final List<Target> targets,
-            final MqttConnectionFactory factory, final ActorRef mqttClientActor,
-            final boolean dryRun) {
+            final MqttConnectionFactory factory, final boolean dryRun) {
 
-        return Props.create(MqttPublisherActor.class, connectionId, targets, factory, mqttClientActor, dryRun);
+        return Props.create(MqttPublisherActor.class, connectionId, targets, factory, dryRun);
     }
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
-                outbound -> log.info("Message dropped in dry run mode: {}", outbound));
+        receiveBuilder
+                .match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
+                        outbound -> log.info("Message dropped in dry run mode: {}", outbound))
+                .match(RetrieveStatus.class, retrieve -> getSender().tell(null != initStatus ? initStatus :
+                        new Status.Success(Done.getInstance()), getSelf()));
     }
 
     @Override
@@ -186,7 +184,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     private Done handleDone(@Nullable final Done done, @Nullable final Throwable exception) {
         if (exception != null) {
             log.info("Publisher failed with {}: {}", exception.getClass().getSimpleName(), exception.getMessage());
-            mqttClientActor.tell(new Status.Failure(exception), getSelf());
+            this.initStatus = new Status.Failure(exception);
         } else {
             log.info("Got <{}>, stream finished!", done);
         }
@@ -198,4 +196,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         return log;
     }
 
+    enum RetrieveStatus {
+        RETRIEVE_STATUS
+    }
 }

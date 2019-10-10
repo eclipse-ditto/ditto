@@ -45,10 +45,18 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
         K,
         E extends Event> extends AbstractCommandStrategy<C, S, K, Result<E>> implements ETagEntityProvider<C, S> {
 
+    /**
+     * Construct a command-strategy with condition header checking..
+     *
+     * @param theMatchingClass final class of the command to handle.
+     */
     protected AbstractConditionHeaderCheckingCommandStrategy(final Class<C> theMatchingClass) {
         super(theMatchingClass);
     }
 
+    /**
+     * @return the conditional header validator.
+     */
     protected abstract ConditionalHeadersValidator getValidator();
 
     /**
@@ -66,9 +74,7 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
     public Result<E> apply(final Context<K> context, @Nullable final S entity, final long nextRevision,
             final C command) {
 
-        final EntityTag currentETagValue = previousETagEntity(command, entity)
-                .flatMap(EntityTag::fromEntity)
-                .orElse(null);
+        final EntityTag currentETagValue = previousEntityTag(command, entity).orElse(null);
 
         context.getLog().debug("Validating conditional headers with currentETagValue <{}> on command <{}>.",
                 currentETagValue, command);
