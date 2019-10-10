@@ -64,7 +64,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         this.baseUri = baseUri;
         this.parallelism = parallelism;
         this.sslContextCreator = sslContextCreator;
-        if (httpProxyConfig == null) {
+        if (httpProxyConfig == null || !httpProxyConfig.isEnabled()) {
             clientTransport = null;
         } else {
             clientTransport = httpProxyConfig.toClientTransport();
