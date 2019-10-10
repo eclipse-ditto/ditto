@@ -131,10 +131,10 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         if (HttpPushValidator.isSecureScheme(baseUri.getScheme())) {
             final ConnectHttp connectHttpsWithCustomSSLContext =
                     ConnectHttp.toHostHttps(baseUri).withCustomHttpsContext(getHttpsConnectionContext());
-            flow = http.<T>cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
+            flow = http.cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
         } else {
             // no SSL, hence no need for SSLContextCreator
-            flow = http.<T>cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
+            flow = http.cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
         }
         return flow.buffer(parallelism, OverflowStrategy.backpressure());
     }
