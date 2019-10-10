@@ -14,12 +14,15 @@ package org.eclipse.ditto.services.connectivity.mapping.custom;
 
 import java.time.Instant;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
@@ -39,150 +42,142 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * TODO javadoc
+ * This mapper extracts the headers {@code creation-time} and {@code ttd} from the message and builds a
+ * {@link ModifyFeature} command from it. The default featureId is {@code ConnectionStatus} but can be changed via
+ * the mapping configuration. The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
+ * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
  */
 public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
-    public static final String HEADER_HUB_DEVICE_ID = "device_id";
-    public static final String HEADER_HUB_TTD = "ttd";
-    public static final String HEADER_HUB_CREATION_TIME = "creation-time";
+    static final String HEADER_HUB_TTD = "ttd";
+    static final String HEADER_HUB_CREATION_TIME = "creation-time";
 
-    public static final String MAPPING_OPTIONS_PROPERTIES_THINGID = "thingId";
-    public static final String MAPPING_OPTIONS_PROPERTIES_FEATUREID = "featureId";
+    static final String MAPPING_OPTIONS_PROPERTIES_THING_ID = "thingId";
+    static final String MAPPING_OPTIONS_PROPERTIES_FEATURE_ID = "featureId";
 
-    public static final String DEFAULT_FEATURE_ID = "ConnectionStatus";
-    public static final String FEATURE_DEFINITION = "com.bosch.iot.suite.standard:ConnectionStatus:1.0.0";
-    public static final String FEATURE_PROPERTIE_READY_SINCE = "readySince";
-    public static final String FEATURE_PROPERTIE_READY_UNTIL = "readyUntil";
+    private static final String DEFAULT_FEATURE_ID = "ConnectionStatus";
+    private static final String FEATURE_DEFINITION = "com.bosch.iot.suite.standard:ConnectionStatus:1.0.0";
+    private static final String FEATURE_PROPERTY_READY_SINCE = "readySince";
+    private static final String FEATURE_PROPERTY_READY_UNTIL = "readyUntil";
 
     public static final Logger LOGGER = LoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
 
-    private boolean noErrorOccurred;
-    private String featureId;
-    private Optional<String> mappingOptionThingId;
+    // (unix time) 253402300799 = (ISO-8601) 9999-12-31T23:59:59
+    private static final String FUTURE_INSTANT = "253402300799";
+    private static final List<Adaptable> EMPTY_RESULT = Collections.emptyList();
+    private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
+    private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
-    private HashMap<String, String> extractedHeader;
+    private String featureId;
+    @Nullable private String mappingOptionThingId;
 
     /**
-     * Constructs a new {@code CsmPresenceSensorMessageMapper} object.
+     * Constructs a new {@code ConnectionStatusMessageMapper} instance.
      * This constructor is required as the the instance is created via reflection.
      */
-    public ConnectionStatusMessageMapper() {
-        noErrorOccurred = true;
-    }
+    public ConnectionStatusMessageMapper() {}
 
     @Override
     public void doConfigure(final MappingConfig mappingConfig,
             final MessageMapperConfiguration messageMapperConfiguration) {
-
-        mappingOptionThingId = messageMapperConfiguration.findProperty(
-                MAPPING_OPTIONS_PROPERTIES_THINGID);    //returns Optional.empty() if option is not set
-        featureId = messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_FEATUREID)
+        mappingOptionThingId =
+                messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_THING_ID).orElse(null);
+        featureId = messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_FEATURE_ID)
                 .orElse(DEFAULT_FEATURE_ID);
     }
 
     @Override
     public List<Adaptable> map(final ExternalMessage externalMessage) {
-        //Validate
-        extractedHeader =
-                extractHeader(externalMessage, HEADER_HUB_TTD, HEADER_HUB_CREATION_TIME, HEADER_HUB_DEVICE_ID);
+        try {
+            return doMap(externalMessage);
+        } catch (final Exception e) {
+            // we don't want to throw an exception in case something went wrong during the mapping
+            LOGGER.info("Error occurred during mapping: {}", e.getMessage());
+            return EMPTY_RESULT;
+        }
+    }
 
-        checkIfEntriesSet(extractedHeader);
+    private List<Adaptable> doMap(final ExternalMessage externalMessage) {
 
-        if (!mappingOptionThingId.isPresent()) {
-            noErrorOccurred = false;
-            LOGGER.info("Mapping option \"{}\" is not set", MAPPING_OPTIONS_PROPERTIES_THINGID);
+        if (mappingOptionThingId == null) {
+            throw getMappingFailedException(
+                    String.format("Mapping option '%s' is not set.", MAPPING_OPTIONS_PROPERTIES_THING_ID));
         }
 
         //Check if time is convertible
-        long creationTime = 0;
-        long ttd = 0;
-        try {
-            creationTime = Long.parseLong(extractedHeader.get(HEADER_HUB_CREATION_TIME));
-            ttd = Long.parseLong(extractedHeader.get(HEADER_HUB_TTD));
-        } catch (NumberFormatException e) {
-            LOGGER.info("Header \"{}\" or \"{}\" is not convertible to type long", HEADER_HUB_CREATION_TIME,
-                    HEADER_HUB_TTD);
-            noErrorOccurred = false;
-        }
+        final long creationTime = extractLongHeader(externalMessage.getHeaders(), HEADER_HUB_CREATION_TIME);
+        final long ttd = extractLongHeader(externalMessage.getHeaders(), HEADER_HUB_TTD);
 
         if (creationTime < 0) {
-            LOGGER.info("Undefined value in \"{}\"", HEADER_HUB_CREATION_TIME);
-            noErrorOccurred = false;
+            throw getMappingFailedException(String.format("Invalid value in header '%s': %d.",
+                    HEADER_HUB_CREATION_TIME, creationTime));
         }
 
         if (ttd < -1) {
-            LOGGER.info("Undefined value in \"{}\"", HEADER_HUB_CREATION_TIME);
-            noErrorOccurred = false;
+            throw getMappingFailedException(String.format("Invalid value in header '%s': %d.",
+                    HEADER_HUB_TTD, ttd));
         }
 
-        //Execute
-        if (noErrorOccurred) {
+        //Read thingId
+        final ThingId thingId = extractThingId(mappingOptionThingId, externalMessage.getHeaders());
 
-            //Read thingId
-            final ThingId thingId;
-            if (mappingOptionThingId.get().equals("{{ header:device_id }}")) {
-                final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
-                final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
-                        PlaceholderFactory.newPlaceholderResolver(headersPlaceholder, extractedHeader));
-                thingId = ThingId.of(PlaceholderFilter.apply("{{ header:device_id }}", expressionResolver, false));
-            } else {
-                thingId = ThingId.of(mappingOptionThingId.get());
-            }
-
-            //Set time to ISO-8601 UTC
-            String readyUntil;
-            if (ttd != -1) {
-                readyUntil = Instant.ofEpochSecond(creationTime + ttd).toString();
-            } else {
-                //(unix time) 253402300799 = (ISO-8601) 9999-12-31T23:59:59
-                readyUntil = Instant.ofEpochSecond(Long.parseLong("253402300799")).toString();
-            }
-
-            String readySince = Instant.ofEpochSecond(creationTime).toString();
-
-            //Build propertyPath of featureId
-            final FeatureProperties featureProperties = FeatureProperties.newBuilder()
-                    .set(FEATURE_PROPERTIE_READY_SINCE, readySince)
-                    .set(FEATURE_PROPERTIE_READY_UNTIL, readyUntil)
-                    .build();
-
-            final FeatureDefinition featureDefinition = FeatureDefinition.fromIdentifier(FEATURE_DEFINITION);
-
-            final Feature feature = Feature.newBuilder()
-                    .definition(featureDefinition)
-                    .properties(featureProperties)
-                    .withId(featureId)
-                    .build();
-
-            final ModifyFeature modifyFeature = ModifyFeature.of(thingId, feature, DittoHeaders.empty());
-            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(modifyFeature);
-
-            LOGGER.info("Feature \"{}\" of Thing \"{}\" is modified", featureId, thingId.toString());
-
-            return Collections.singletonList(adaptable);
-        } else { return Collections.emptyList();}
-    }
-
-    private HashMap<String, String> extractHeader(final ExternalMessage externalMessage,
-            final String... headerToExtract) {
-
-        HashMap<String, String> extractedHeader = new HashMap<>();
-
-        for (String header : headerToExtract) {
-            extractedHeader.put(
-                    header,
-                    externalMessage.findHeader(header).orElse(""));
+        //Set time to ISO-8601 UTC
+        final String readyUntil;
+        if (ttd != -1) {
+            readyUntil = Instant.ofEpochSecond(creationTime + ttd).toString();
+        } else {
+            readyUntil = Instant.ofEpochSecond(Long.parseLong(FUTURE_INSTANT)).toString();
         }
-        return extractedHeader;
+
+        final String readySince = Instant.ofEpochSecond(creationTime).toString();
+
+        //Build propertyPath of featureId
+        final Adaptable adaptable = getModifyFeatureAdaptable(thingId, readyUntil, readySince);
+
+        LOGGER.info("Feature '{}' of Thing '{}' is modified", featureId, thingId);
+
+        return Collections.singletonList(adaptable);
     }
 
-    private void checkIfEntriesSet(final HashMap<String, String> extractedHeader) {
-        for (Map.Entry<String, String> entry : extractedHeader.entrySet()) {
-            if ("".equals(entry.getValue())) {
-                LOGGER.info("Header \"{}\" is not set", entry.getKey());
-                noErrorOccurred = false;
-            }
+    @Nonnull
+    private Adaptable getModifyFeatureAdaptable(final ThingId thingId, final String readyUntil,
+            final String readySince) {
+        final FeatureProperties featureProperties = FeatureProperties.newBuilder()
+                .set(FEATURE_PROPERTY_READY_SINCE, readySince)
+                .set(FEATURE_PROPERTY_READY_UNTIL, readyUntil)
+                .build();
+
+        final FeatureDefinition featureDefinition = FeatureDefinition.fromIdentifier(FEATURE_DEFINITION);
+
+        final Feature feature = Feature.newBuilder()
+                .definition(featureDefinition)
+                .properties(featureProperties)
+                .withId(featureId)
+                .build();
+
+        LOGGER.debug("Feature created by mapping: {}", feature);
+
+        final ModifyFeature modifyFeature = ModifyFeature.of(thingId, feature, DittoHeaders.empty());
+        return DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyFeature);
+    }
+
+    private ThingId extractThingId(final String mappingOptionThingId, final Map<String, String> headers) {
+        final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headers));
+        return ThingId.of(PlaceholderFilter.apply(mappingOptionThingId, expressionResolver, false));
+    }
+
+    private MessageMappingFailedException getMappingFailedException(final String message) {
+        return MessageMappingFailedException.newBuilder("theContentType").message(message).build();
+    }
+
+    private Long extractLongHeader(final Map<String, String> headers, final String key) {
+        try {
+            return Optional.ofNullable(headers.get(key))
+                    .map(Long::parseLong)
+                    .orElseThrow(() -> getMappingFailedException(String.format("Header '%s' is not set.", key)));
+        } catch (NumberFormatException e) {
+            throw getMappingFailedException(String.format("Header '%s' is not convertible to type long.", key));
         }
     }
 

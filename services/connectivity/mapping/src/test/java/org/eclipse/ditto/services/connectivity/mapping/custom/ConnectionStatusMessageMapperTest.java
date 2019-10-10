@@ -12,6 +12,11 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.custom;
 
+import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.HEADER_HUB_CREATION_TIME;
+import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.HEADER_HUB_TTD;
+import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_FEATURE_ID;
+import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,15 +37,12 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
+/**
+ * Tests {@link ConnectionStatusMessageMapper}.
+ */
 public class ConnectionStatusMessageMapperTest {
 
     private static final String HEADER_HUB_DEVICE_ID = "device_id";
-    private static final String HEADER_HUB_TTD = "ttd";
-    private static final String HEADER_HUB_CREATION_TIME = "creation-time";
-
-    private static final String MAPPING_OPTIONS_PROPERTIES_THINGID = "thingId";
-    private static final String MAPPING_OPTIONS_PROPERTIES_FEATUREID = "featureId";
-
     private static MappingConfig mappingConfig;
 
     private Map<String, String> validHeader;
@@ -54,7 +56,8 @@ public class ConnectionStatusMessageMapperTest {
         underTest = new ConnectionStatusMessageMapper();
 
         validConfigProps = new HashMap<>();
-        validConfigProps.put(MAPPING_OPTIONS_PROPERTIES_THINGID, "configNamespace:configDeviceId");
+        validConfigProps.put(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID,
+                "configNamespace:configDeviceId");
 
         validHeader = new HashMap<>();
         validHeader.put(HEADER_HUB_DEVICE_ID, "headerNamespace:headerDeviceId");
@@ -68,7 +71,6 @@ public class ConnectionStatusMessageMapperTest {
         underTest.configure(mappingConfig, validMapperConfig);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
-
         Assertions.assertThat(mappingResult).isNotEmpty();
     }
 
@@ -94,11 +96,13 @@ public class ConnectionStatusMessageMapperTest {
     }
 
     @Test
-    public void doForwardMapWithMissingHeaderDeviceID() {
-        underTest.configure(mappingConfig, validMapperConfig);
-        final Map<String, String> invalidHeader = validHeader;
-        invalidHeader.remove(HEADER_HUB_DEVICE_ID);
-        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
+    public void doForwardMapWithMissingHeader() {
+        final Map<String, String> props = new HashMap<>();
+        props.put(MAPPING_OPTIONS_PROPERTIES_THING_ID, "{{ header:thing-id }}"); // header does not exist
+        final MessageMapperConfiguration thingIdWithPlaceholder
+                = DefaultMessageMapperConfiguration.of("placeholder", props);
+        underTest.configure(mappingConfig, thingIdWithPlaceholder);
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
     }
@@ -148,7 +152,7 @@ public class ConnectionStatusMessageMapperTest {
     public void doForwardMappingContextWithIndividualFeatureId() {
         final String individualFeatureId = "individualFeatureId";
         final Map<String, String> props = new HashMap<>(validConfigProps);
-        props.put(MAPPING_OPTIONS_PROPERTIES_FEATUREID, individualFeatureId);
+        props.put(MAPPING_OPTIONS_PROPERTIES_FEATURE_ID, individualFeatureId);
         final MessageMapperConfiguration individualFeatureIdConfig
                 = DefaultMessageMapperConfiguration.of("placeholder", props);
         underTest.configure(mappingConfig, individualFeatureIdConfig);
@@ -163,14 +167,13 @@ public class ConnectionStatusMessageMapperTest {
         underTest.configure(mappingConfig, DefaultMessageMapperConfiguration.of("valid", Collections.emptyMap()));
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
-
         Assertions.assertThat(mappingResult).isEmpty();
     }
 
     @Test
     public void doForwardMappingContextWithThingIdMapping() {
         final Map<String, String> props = new HashMap<>();
-        props.put(MAPPING_OPTIONS_PROPERTIES_THINGID, "{{ header:device_id }}");
+        props.put(MAPPING_OPTIONS_PROPERTIES_THING_ID, "{{ header:device_id }}");
         final MessageMapperConfiguration thingIdWithPlaceholder
                 = DefaultMessageMapperConfiguration.of("placeholder", props);
         underTest.configure(mappingConfig, thingIdWithPlaceholder);
