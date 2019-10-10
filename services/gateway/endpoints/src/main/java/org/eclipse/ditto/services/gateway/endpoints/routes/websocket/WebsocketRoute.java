@@ -166,7 +166,7 @@ public final class WebsocketRoute implements WebsocketRouteBuilder {
 
         return extractUpgradeToWebSocket(upgradeToWebSocket -> extractRequest(request ->
                 complete(
-                        createWebsocket(upgradeToWebSocket, version, correlationId, connectionAuthContext,
+                        createWebsocket(upgradeToWebSocket, version, correlationId.toString(), connectionAuthContext,
                                 additionalHeaders, chosenProtocolAdapter, request)
                 )
         ));
