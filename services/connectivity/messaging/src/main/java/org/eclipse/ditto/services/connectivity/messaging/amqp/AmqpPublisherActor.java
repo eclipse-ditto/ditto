@@ -17,12 +17,14 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.amqp.JmsExceptionThrowingBiConsumer.wrap;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -49,6 +51,7 @@ import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
+import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
@@ -61,6 +64,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 
 /**
  * Responsible for creating JMS {@link MessageProducer}s and sending {@link ExternalMessage}s as JMSMessages to those.
@@ -72,6 +76,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      */
     static final String ACTOR_NAME_PREFIX = "amqpPublisherActor";
 
+    private static final Object START_PRODUCER = new Object();
     private static final Map<String, BiConsumer<Message, String>> JMS_HEADER_MAPPING = new HashMap<>();
 
     static {
@@ -95,6 +100,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final LinkedHashMap<Destination, MessageProducer> dynamicTargets;
     private final Map<Destination, MessageProducer> staticTargets;
     private final int producerCacheSize;
+    private final ActorRef backOffActor;
+    private final Duration backOffAskTimeout;
 
     @SuppressWarnings("unused")
     private AmqpPublisherActor(final ConnectionId connectionId, final List<Target> targets, final Session session,
@@ -107,17 +114,20 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         producerCacheSize = checkArgument(connectionConfig.getAmqp10Config().getProducerCacheSize(), i -> i > 0,
                 () -> "producer-cache-size must be 1 or more");
 
+        this.backOffActor =
+                getContext().actorOf(BackOffActor.props(connectionConfig.getAmqp10Config().getBackOffConfig()));
+        this.backOffAskTimeout = checkArgument(connectionConfig.getAmqp10Config().getBackOffConfig().getAskTimeout(),
+                d -> !d.isNegative(), () -> "backoff-ask-timeout must be positive.");
+    }
+
+    @Override
+    public void preStart() throws Exception {
+        super.preStart();
+        // has to be done synchronously since there might already be messages in the actor's queue.
         // we open producers for static addresses (no placeholders) on startup and try to reopen them when closed.
         // producers for other addresses (with placeholders, reply-to) are opened on demand and may be closed to
         // respect the cache size limit
-        try {
-            createStaticTargetProducers(targets);
-        } catch (final Exception e) {
-            log.warning("Failed to create static target producers: {}", e.getMessage());
-            getContext().getParent().tell(new ImmutableConnectionFailure(null, e,
-                    "failed to initialize static producers"), getSelf());
-            throw e;
-        }
+        this.handleStartProducer(START_PRODUCER);
     }
 
     /**
@@ -137,15 +147,32 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(ProducerClosedStatusReport.class, this::handleProducerClosedStatusReport);
+        receiveBuilder.match(ProducerClosedStatusReport.class, this::handleProducerClosedStatusReport)
+                .matchEquals(START_PRODUCER, this::handleStartProducer);
+    }
+
+    private void handleStartProducer(final Object startProducer) {
+        try {
+            createStaticTargetProducers(targets);
+        } catch (final Exception e) {
+            log.warning("Failed to create static target producers: {}", e.getMessage());
+            getContext().getParent().tell(new ImmutableConnectionFailure(null, e,
+                    "failed to initialize static producers"), getSelf());
+            throw e;
+        }
     }
 
     private void handleProducerClosedStatusReport(final ProducerClosedStatusReport report) {
         final MessageProducer producer = report.getMessageProducer();
-        log.info("Got closed JMS producer '{}'", producer);
+        final String genericLogInfo = "Will try to re-establish the targets after some cool-down period.";
+        log.info("Got closed JMS producer '{}'. {}", producer, genericLogInfo);
+
         findByValue(dynamicTargets, producer).map(Map.Entry::getKey).forEach(dynamicTargets::remove);
-        findByValue(staticTargets, producer).map(Map.Entry::getKey).forEach(this::createTargetProducer);
+
+        connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
+        this.backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(START_PRODUCER), getSelf());
     }
+
 
     @Override
     protected void postEnhancement(final ReceiveBuilder receiveBuilder) {
@@ -165,10 +192,45 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @Override
     protected void publishMessage(@Nullable final Target target, final AmqpTarget publishTarget,
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
+        this.isInBackOffMode()
+                .thenAccept(isInBackOffMode -> {
+                    if (Boolean.TRUE.equals(isInBackOffMode)) {
+                        this.handleMessageInBackOffMode(message, publishedMonitor, publishTarget.getJmsDestination());
+                    } else {
+                        this.tryToPublishMessage(publishTarget, message, publishedMonitor);
+                    }
+                });
+    }
+
+
+    private CompletionStage<Boolean> isInBackOffMode() {
+        return Patterns.ask(this.backOffActor, BackOffActor.createIsInBackOffMessage(), backOffAskTimeout)
+                .thenApply(this::mapToBackOffResponse)
+                .handle((backOffResponse, throwable) -> {
+                    if (null != throwable) {
+                        log.warning("Received exception when asking BackOffActor if in back-off mode. "
+                                + "Assuming it is not in back-off mode. Exception: {}", throwable);
+                        return false;
+                    }
+                    return backOffResponse;
+                });
+
+    }
+
+    private boolean mapToBackOffResponse(final Object o) {
+        if (o instanceof BackOffActor.IsInBackOffResponse) {
+            return ((BackOffActor.IsInBackOffResponse) o).isInBackOff();
+        }
+        // fallback to false if there are errors / strange behaviour in BackOffActor. Actually this should never happen
+        return false;
+    }
+
+    private void tryToPublishMessage(final AmqpTarget publishTarget,
+            final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
         try {
             final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
             if (producer != null) {
-                final Message jmsMessage = toJmsMessage(message, publishTarget);
+                final Message jmsMessage = toJmsMessage(message);
 
                 final ActorRef origin = getSender();
                 log.debug("Attempt to send message {} with producer {}.", message, producer);
@@ -202,6 +264,20 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         }
     }
 
+    private void handleMessageInBackOffMode(final ExternalMessage message, final ConnectionMonitor publishedMonitor,
+            final Destination destination) {
+        final String errorMessage = String.format("Producer for target address '%s' is in back off mode, as the " +
+                "target configuration seems to contain errors. The message will be dropped.", destination);
+        publishedMonitor.exception(message, errorMessage);
+        log.info(errorMessage);
+        final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
+                .message(errorMessage)
+                .description("Check if the target or the reply-to configuration is correct.")
+                .dittoHeaders(DittoHeaders.of(message.getInternalHeaders()))
+                .build();
+        getSender().tell(sendFailedException, getSelf());
+    }
+
     private void handleSendException(final ExternalMessage message, final Exception e, final ActorRef sender,
             final ConnectionMonitor publishedMonitor) {
 
@@ -224,7 +300,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         }
     }
 
-    private Message toJmsMessage(final ExternalMessage externalMessage, final AmqpTarget amqpTarget)
+    private Message toJmsMessage(final ExternalMessage externalMessage)
             throws JMSException {
         final Message message;
         final Optional<String> optTextPayload = externalMessage.getTextPayload();
@@ -361,4 +437,5 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             final Map<Destination, MessageProducer> producerMap, final MessageProducer value) {
         return producerMap.entrySet().stream().filter(entry -> Objects.equals(entry.getValue(), value));
     }
+
 }

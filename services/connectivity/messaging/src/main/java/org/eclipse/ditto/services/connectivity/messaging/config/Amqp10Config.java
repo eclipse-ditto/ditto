@@ -16,6 +16,7 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
@@ -46,6 +47,13 @@ public interface Amqp10Config {
      * @return the message producer cache size.
      */
     int getProducerCacheSize();
+
+    /**
+     * Returns the backOff config used for the internal actors.
+     *
+     * @return the BackOffConfig.
+     */
+    BackOffConfig getBackOffConfig();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

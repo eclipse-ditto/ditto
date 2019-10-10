@@ -17,6 +17,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffConfig;
+import org.eclipse.ditto.services.connectivity.messaging.backoff.DefaultBackOffConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
@@ -33,11 +35,13 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     private final Duration consumerThrottlingInterval;
     private final int consumerThrottlingLimit;
     private final int producerCacheSize;
+    private final BackOffConfig backOffConfig;
 
     private DefaultAmqp10Config(final ScopedConfig config) {
         consumerThrottlingInterval = config.getDuration(Amqp10ConfigValue.CONSUMER_THROTTLING_INTERVAL.getConfigPath());
         consumerThrottlingLimit = config.getInt(Amqp10ConfigValue.CONSUMER_THROTTLING_LIMIT.getConfigPath());
         producerCacheSize = config.getInt(Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath());
+        backOffConfig = DefaultBackOffConfig.of(config);
     }
 
     /**
@@ -64,6 +68,11 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     @Override
     public int getProducerCacheSize() {
         return producerCacheSize;
+    }
+
+    @Override
+    public BackOffConfig getBackOffConfig() {
+        return backOffConfig;
     }
 
     @Override
