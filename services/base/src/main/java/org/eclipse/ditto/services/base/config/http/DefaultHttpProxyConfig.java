@@ -96,18 +96,14 @@ public final class DefaultHttpProxyConfig implements HttpProxyConfig {
 
     @Override
     public ClientTransport toClientTransport() {
-        final String hostname = this.getHostname();
-        final int port = this.getPort();
-        if (hostname.isEmpty() || 0 == port) {
+        if (hostName.isEmpty() || 0 == port) {
             throw new DittoConfigError("When HTTP proxy is enabled via config, at least proxy hostname and port must " +
                     "be configured as well!");
         }
-        final InetSocketAddress inetSocketAddress = InetSocketAddress.createUnresolved(hostname, port);
+        final InetSocketAddress inetSocketAddress = InetSocketAddress.createUnresolved(hostName, port);
 
-        final String username = this.getUsername();
-        final String password = this.getPassword();
-        if (!username.isEmpty() && !password.isEmpty()) {
-            return ClientTransport.httpsProxy(inetSocketAddress, HttpCredentials.create(username, password));
+        if (!userName.isEmpty() && !password.isEmpty()) {
+            return ClientTransport.httpsProxy(inetSocketAddress, HttpCredentials.create(userName, password));
         }
         return ClientTransport.httpsProxy(inetSocketAddress);
     }

@@ -84,7 +84,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         final String baseUriStrToUse = determineBaseUri(baseUri);
         final String pathWithQueryToUse = determineHttpPath(httpPublishTarget);
         final String userInfo = baseUri.getUserInfo();
-        final int passwordSeparatorLocation = userInfo.indexOf(":");
+        final int passwordSeparatorLocation = userInfo.indexOf(':');
         final HttpRequest request = HttpRequest.create()
                 .withMethod(httpPublishTarget.getMethod())
                 .withUri(Uri.create(baseUriStrToUse + pathWithQueryToUse));

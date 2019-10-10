@@ -12,9 +12,18 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
+import java.io.InputStream;
+import java.net.Socket;
+import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocket;
@@ -23,10 +32,14 @@ import javax.net.ssl.SSLSocketFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -38,15 +51,25 @@ import akka.http.javadsl.model.Uri;
  */
 public final class HttpPushClientActor extends BaseClientActor {
 
+    private static final int PROXY_CONNECT_TIMEOUT_SECONDS = 15;
+
     private final HttpPushFactory factory;
 
     @Nullable
     private ActorRef httpPublisherActor;
+    private final HttpProxyConfig httpProxyConfig;
 
     @SuppressWarnings("unused")
     private HttpPushClientActor(final Connection connection, final ConnectivityStatus desiredConnectionStatus) {
         super(connection, desiredConnectionStatus, ActorRef.noSender());
-        factory = HttpPushFactory.of(connection, null);
+
+        httpProxyConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        )
+                .getConnectionConfig()
+                .getHttpPushConfig()
+                .getHttpProxyConfig();
+        factory = HttpPushFactory.of(connection, httpProxyConfig);
     }
 
     /**
@@ -57,6 +80,18 @@ public final class HttpPushClientActor extends BaseClientActor {
      */
     public static Props props(final Connection connection) {
         return Props.create(HttpPushClientActor.class, connection, connection.getConnectionStatus());
+    }
+
+    @Override
+    protected boolean canConnectViaSocket(final Connection connection) {
+        if (httpProxyConfig.isEnabled()) {
+            return connectViaProxy(connection.getHostname(), connection.getPort())
+                    .handle((status, throwable) -> status instanceof Status.Success)
+                    .toCompletableFuture()
+                    .join();
+        } else {
+            return super.canConnectViaSocket(connection);
+        }
     }
 
     @Override
@@ -110,14 +145,75 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     private CompletionStage<Status.Status> testSSL(final Connection connection, final String hostWithoutLookup,
             final int port) {
-        final SSLContextCreator sslContextCreator = SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
-        final SSLSocketFactory socketFactory = sslContextCreator.withoutClientCertificate().getSocketFactory();
-        try (final SSLSocket socket = (SSLSocket) socketFactory.createSocket(hostWithoutLookup, port)) {
-            socket.startHandshake();
-            return statusSuccessFuture("TLS connection to '%s:%d' established successfully.", hostWithoutLookup,
-                    socket.getPort());
+        if (httpProxyConfig.isEnabled()) {
+            // don't do a second proxy check
+            return statusSuccessFuture("TLS connection to '%s:%d' via Http proxy established successfully.",
+                    hostWithoutLookup, port);
+        } else {
+            // check without HTTP proxy
+            final SSLContextCreator sslContextCreator = SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
+            final SSLSocketFactory socketFactory = sslContextCreator.withoutClientCertificate().getSocketFactory();
+            try (final SSLSocket socket = (SSLSocket) socketFactory.createSocket(hostWithoutLookup, port)) {
+                socket.startHandshake();
+                return statusSuccessFuture("TLS connection to '%s:%d' established successfully.",
+                        hostWithoutLookup, socket.getPort());
+            } catch (final Exception error) {
+                return statusFailureFuture(error);
+            }
+        }
+    }
+
+    private CompletionStage<Status.Status> connectViaProxy(final String hostWithoutLookup, final int port) {
+        try (final Socket proxySocket = new Socket(httpProxyConfig.getHostname(), httpProxyConfig.getPort())) {
+            String proxyConnect = "CONNECT " + hostWithoutLookup + ":" + port + " HTTP/1.1\n";
+            proxyConnect += "Host: " + hostWithoutLookup + ":" + port;
+
+            if (!httpProxyConfig.getUsername().isEmpty()) {
+                final String proxyUserPass = httpProxyConfig.getUsername() + ":" + httpProxyConfig.getPassword();
+                proxyConnect += "\nProxy-Authorization: Basic " +
+                        Base64.getEncoder().encodeToString(proxyUserPass.getBytes());
+            }
+            proxyConnect += "\n\n";
+            proxySocket.getOutputStream().write(proxyConnect.getBytes());
+
+            return checkProxyConnection(hostWithoutLookup, port, proxySocket);
         } catch (final Exception error) {
-            return statusFailureFuture(error);
+            return statusFailureFuture(new SocketException("Failed to connect to HTTP proxy: " + error.getMessage()));
+        }
+    }
+
+    private CompletionStage<Status.Status> checkProxyConnection(final String hostWithoutLookup, final int port,
+            final Socket proxySocket) throws InterruptedException, java.util.concurrent.ExecutionException {
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            return executor.submit(() -> {
+                byte[] tmpBuffer = new byte[512];
+                final InputStream socketInput = proxySocket.getInputStream();
+                int len = socketInput.read(tmpBuffer, 0, tmpBuffer.length);
+                if (len == 0) {
+                    socketInput.close();
+                    return statusFailureFuture(new SocketException("Invalid response from proxy"));
+                }
+
+                final String proxyResponse = new String(tmpBuffer, 0, len, StandardCharsets.UTF_8);
+                if (proxyResponse.startsWith("HTTP/1.1 200")) {
+                    socketInput.close();
+                    return statusSuccessFuture("Connection to '%s:%d' via HTTP proxy established successfully.",
+                            hostWithoutLookup, port);
+                } else {
+                    ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
+                    log.info("Could not connect to <{}> via Http Proxy <{}>", hostWithoutLookup + ":" + port,
+                            proxySocket.getInetAddress());
+                    socketInput.close();
+                    return statusFailureFuture(new SocketException("Failed to create Socket via HTTP proxy: " +
+                            proxyResponse));
+                }
+            }).get(PROXY_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (final TimeoutException timedOut) {
+            return statusFailureFuture(
+                    new SocketException("Failed to create Socket via HTTP proxy within timeout"));
+        } finally {
+            executor.shutdown();
         }
     }
 

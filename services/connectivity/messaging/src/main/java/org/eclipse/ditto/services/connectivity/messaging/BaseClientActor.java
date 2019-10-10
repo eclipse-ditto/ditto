@@ -1045,7 +1045,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
-    private boolean canConnectViaSocket(final Connection connection) {
+    protected boolean canConnectViaSocket(final Connection connection) {
         return checkHostAndPortForAvailability(connection.getHostname(), connection.getPort());
     }
 
