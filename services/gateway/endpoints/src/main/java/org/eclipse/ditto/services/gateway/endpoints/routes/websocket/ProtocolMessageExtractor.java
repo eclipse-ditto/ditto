@@ -33,6 +33,8 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
@@ -63,6 +65,7 @@ final class ProtocolMessageExtractor implements Function<String, Object> {
     }
 
     @Override
+    @Nullable
     public Object apply(final String protocolMessage) {
         // twin events
         if (START_SEND_EVENTS.matches(protocolMessage)) {

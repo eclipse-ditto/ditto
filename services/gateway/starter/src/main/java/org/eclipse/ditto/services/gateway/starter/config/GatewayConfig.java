@@ -18,7 +18,7 @@ import org.eclipse.ditto.services.gateway.endpoints.config.CachesConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.PublicHealthConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
+import org.eclipse.ditto.services.gateway.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.protocol.config.WithProtocolConfig;
 
@@ -42,7 +42,7 @@ public interface GatewayConfig extends ServiceSpecificConfig, WithProtocolConfig
      *
      * @return the config.
      */
-    WebSocketConfig getWebSocketConfig();
+    WebsocketConfig getWebSocketConfig();
 
     /**
      * Returns the health check config of the Gateway service.

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
-import static akka.http.javadsl.server.Directives.complete;
+import static akka.http.javadsl.server.Directives.completeWithFuture;
 import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
@@ -27,6 +27,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -47,13 +48,14 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
+import org.eclipse.ditto.services.gateway.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
+import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.LimitRateByRejection;
@@ -81,6 +83,7 @@ import akka.http.javadsl.model.ws.TextMessage;
 import akka.http.javadsl.model.ws.UpgradeToWebSocket;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
+import akka.pattern.Patterns;
 import akka.stream.Attributes;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
@@ -110,24 +113,19 @@ public final class WebsocketRoute {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketRoute.class);
 
-    // TODO: make configurable
-    private static final Duration RATE_LIMIT_INTERVAL = Duration.ofSeconds(1L);
-    private static final int MESSAGES_PER_INTERVAL = 100;
+    private static final Duration CONFIG_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
     private final ActorRef streamingActor;
-    private final WebSocketConfig webSocketConfig;
     private final EventStream eventStream;
 
     private final EventSniffer<String> incomingMessageSniffer;
     private final EventSniffer<String> outgoingMessageSniffer;
 
     private WebsocketRoute(final ActorRef streamingActor,
-            final WebSocketConfig webSocketConfig,
             final EventStream eventStream,
             final EventSniffer<String> incomingMessageSniffer,
             final EventSniffer<String> outgoingMessageSniffer) {
         this.streamingActor = streamingActor;
-        this.webSocketConfig = webSocketConfig;
         this.eventStream = eventStream;
         this.incomingMessageSniffer = incomingMessageSniffer;
         this.outgoingMessageSniffer = outgoingMessageSniffer;
@@ -137,13 +135,12 @@ public final class WebsocketRoute {
      * Constructs the {@code /ws} route builder.
      *
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
-     * @param webSocketConfig the configuration of the web socket enpoint.
      * @param eventStream eventStream used to publish events within the actor system
      */
-    public WebsocketRoute(final ActorRef streamingActor, final WebSocketConfig webSocketConfig,
+    public WebsocketRoute(final ActorRef streamingActor,
             final EventStream eventStream) {
 
-        this(streamingActor, webSocketConfig, eventStream, EventSniffer.noOp(), EventSniffer.noOp());
+        this(streamingActor, eventStream, EventSniffer.noOp(), EventSniffer.noOp());
     }
 
     /**
@@ -156,7 +153,7 @@ public final class WebsocketRoute {
     public WebsocketRoute withMessageSniffers(final EventSniffer<String> incomingMessageSniffer,
             final EventSniffer<String> outgoingMessageSniffer) {
 
-        return new WebsocketRoute(streamingActor, webSocketConfig, eventStream, incomingMessageSniffer,
+        return new WebsocketRoute(streamingActor, eventStream, incomingMessageSniffer,
                 outgoingMessageSniffer);
     }
 
@@ -172,14 +169,19 @@ public final class WebsocketRoute {
             final ProtocolAdapter chosenProtocolAdapter) {
 
         return extractUpgradeToWebSocket(upgradeToWebSocket -> extractRequest(request ->
-                complete(
+                completeWithFuture(
                         createWebsocket(upgradeToWebSocket, version, correlationId, connectionAuthContext,
                                 additionalHeaders, chosenProtocolAdapter, request)
                 )
         ));
     }
 
-    private HttpResponse createWebsocket(final UpgradeToWebSocket upgradeToWebSocket,
+    private CompletionStage<WebsocketConfig> retrieveWebsocketConfig() {
+        return Patterns.ask(streamingActor, StreamingActor.Control.RETRIEVE_WEBSOCKET_CONFIG, CONFIG_ASK_TIMEOUT)
+                .thenApply(reply -> (WebsocketConfig) reply); // fail future with ClassCastException on type error
+    }
+
+    private CompletionStage<HttpResponse> createWebsocket(final UpgradeToWebSocket upgradeToWebSocket,
             final Integer version,
             final String connectionCorrelationId,
             final AuthorizationContext authContext,
@@ -190,13 +192,15 @@ public final class WebsocketRoute {
         LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
                 logger.info("Creating WebSocket for connection authContext: <{}>", authContext));
 
-        final Flow<Message, DittoRuntimeException, NotUsed> incoming =
-                createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request,
-                        RATE_LIMIT_INTERVAL, MESSAGES_PER_INTERVAL);
-        final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
-                createOutgoing(connectionCorrelationId, adapter, request);
+        return retrieveWebsocketConfig().thenApply(websocketConfig -> {
+            final Flow<Message, DittoRuntimeException, NotUsed> incoming =
+                    createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request,
+                            websocketConfig);
+            final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
+                    createOutgoing(connectionCorrelationId, adapter, request, websocketConfig);
 
-        return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing));
+            return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing));
+        });
     }
 
     private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final Integer version,
@@ -205,8 +209,7 @@ public final class WebsocketRoute {
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request,
-            final Duration rateLimitInterval,
-            final int messagesPerInterval) {
+            final WebsocketConfig websocketConfig) {
 
         final Counter inCounter = DittoMetrics.counter("streaming_messages")
                 .tag("type", "ws")
@@ -229,7 +232,7 @@ public final class WebsocketRoute {
                         return textMsg.getStreamedText();
                     }
                 })
-                .flatMapConcat(textMsg -> textMsg.<String>fold("", (str1, str2) -> str1 + str2))
+                .flatMapConcat(textMsg -> textMsg.fold("", (str1, str2) -> str1 + str2))
                 .via(incomingMessageSniffer.toAsyncFlow(request))
                 .via(Flow.fromFunction(result -> {
                     LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
@@ -241,7 +244,7 @@ public final class WebsocketRoute {
                 .filter(strictText -> processProtocolMessage(protocolMessageExtractor, strictText));
 
         final Props commandSubscriberProps =
-                CommandSubscriber.props(streamingActor, webSocketConfig.getSubscriberBackpressureQueueSize(),
+                CommandSubscriber.props(streamingActor, websocketConfig.getSubscriberBackpressureQueueSize(),
                         eventStream);
         final Sink<Signal, ActorRef> commandSubscriber = Sink.actorSubscriber(commandSubscriberProps);
 
@@ -249,6 +252,8 @@ public final class WebsocketRoute {
                 buildSignalErrorFlow(commandSubscriber, version, connectionCorrelationId, connectionAuthContext,
                         additionalHeaders, adapter);
 
+        final Duration rateLimitInterval = websocketConfig.getThrottlingConfig().getInterval();
+        final int messagesPerInterval = websocketConfig.getThrottlingConfig().getLimit();
         final Graph<FanOutShape2<Message, Message, DittoRuntimeException>, NotUsed> rateLimiter =
                 LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, message ->
                         TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval).build());
@@ -269,7 +274,7 @@ public final class WebsocketRoute {
     }
 
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(final String connectionCorrelationId,
-            final ProtocolAdapter adapter, final HttpRequest request) {
+            final ProtocolAdapter adapter, final HttpRequest request, final WebsocketConfig websocketConfig) {
 
         final Counter outCounter = DittoMetrics.counter("streaming_messages")
                 .tag("type", "ws")
@@ -277,7 +282,7 @@ public final class WebsocketRoute {
 
         final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
-                        EventAndResponsePublisher.props(webSocketConfig.getPublisherBackpressureBufferSize()))
+                        EventAndResponsePublisher.props(websocketConfig.getPublisherBackpressureBufferSize()))
                         .mapMaterializedValue(actorRef -> {
                             streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_WS),
                                     null);
