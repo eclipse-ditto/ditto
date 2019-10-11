@@ -88,6 +88,7 @@ import akka.stream.Attributes;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
+import akka.stream.SinkShape;
 import akka.stream.UniformFanInShape;
 import akka.stream.UniformFanOutShape;
 import akka.stream.javadsl.Flow;
@@ -250,15 +251,9 @@ public final class WebsocketRoute {
 
         final Flow<String, DittoRuntimeException, NotUsed> signalErrorFlow =
                 buildSignalErrorFlow(commandSubscriber, version, connectionCorrelationId, connectionAuthContext,
-                        additionalHeaders, adapter);
+                        additionalHeaders, adapter, websocketConfig);
 
-        final Duration rateLimitInterval = websocketConfig.getThrottlingConfig().getInterval();
-        final int messagesPerInterval = websocketConfig.getThrottlingConfig().getLimit();
-        final Graph<FanOutShape2<Message, Message, DittoRuntimeException>, NotUsed> rateLimiter =
-                LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, message ->
-                        TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval).build());
-
-        return joinIncomingFlows(rateLimiter, extractStringFromMessage.via(signalErrorFlow));
+        return extractStringFromMessage.via(signalErrorFlow);
     }
 
     private boolean processProtocolMessage(final ProtocolMessageExtractor protocolMessageExtractor,
@@ -367,7 +362,8 @@ public final class WebsocketRoute {
             final String connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
-            final ProtocolAdapter adapter) {
+            final ProtocolAdapter adapter,
+            final WebsocketConfig websocketConfig) {
 
         final Flow<String, Object, NotUsed> resultOrErrorFlow =
                 Flow.fromFunction(cmdString -> {
@@ -392,17 +388,49 @@ public final class WebsocketRoute {
                         ? GatewayInternalErrorException.newBuilder().cause((Throwable) x).build()
                         : GatewayInternalErrorException.newBuilder().build());
 
-        final Sink<Object, NotUsed> signalSinkGraph =
-                Flow.fromFunction(Signal.class::cast).toMat(commandSubscriber, Keep.none());
+        final Graph<FlowShape<Object, DittoRuntimeException>, NotUsed> signalSinkGraph =
+                assembleSignalSink(commandSubscriber, websocketConfig);
+
+        final Graph<FanOutShape2<Signal, Signal, DittoRuntimeException>, NotUsed> rateLimiter =
+                getRateLimiter(websocketConfig);
 
         return connectSignalErrorFlow(resultOrErrorFlow, signalFilterGraph, signalSinkGraph, castErrorFlow);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Graph<FlowShape<Object, DittoRuntimeException>, NotUsed> assembleSignalSink(
+            final Sink<Signal, ?> commandSubscriber, final WebsocketConfig websocketConfig) {
+
+        return GraphDSL.create(builder -> {
+            final FlowShape<Object, Signal> cast = builder.add(Flow.fromFunction(Signal.class::cast));
+            final SinkShape<Signal> sink = builder.add(commandSubscriber);
+            final FanOutShape2<Signal, Signal, DittoRuntimeException> rateLimiter =
+                    builder.add(getRateLimiter(websocketConfig));
+
+            builder.from(cast.out()).toInlet(rateLimiter.in());
+            builder.from(rateLimiter.out0()).to(sink);
+
+            return FlowShape.of(cast.in(), rateLimiter.out1());
+        });
+    }
+
+    private static Graph<FanOutShape2<Signal, Signal, DittoRuntimeException>, NotUsed> getRateLimiter(
+            final WebsocketConfig websocketConfig) {
+        final Duration rateLimitInterval = websocketConfig.getThrottlingConfig().getInterval();
+        final int messagesPerInterval = websocketConfig.getThrottlingConfig().getLimit();
+        return LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, signal ->
+                TooManyRequestsException.newBuilder()
+                        .retryAfter(rateLimitInterval)
+                        .dittoHeaders(signal.getDittoHeaders())
+                        .build()
+        );
     }
 
     @SuppressWarnings("unchecked")
     private static Flow<String, DittoRuntimeException, NotUsed> connectSignalErrorFlow(
             final Flow<String, Object, NotUsed> resultOrErrorFlow,
             final Graph<UniformFanOutShape<Object, Object>, NotUsed> signalFilterGraph,
-            final Sink<Object, NotUsed> signalSinkGraph,
+            final Graph<FlowShape<Object, DittoRuntimeException>, NotUsed> signalSinkGraph,
             final Flow<Object, DittoRuntimeException, NotUsed> castErrorFlow) {
 
         return Flow.fromGraph(GraphDSL.create(signalSinkGraph, (builder, signalSink) -> {
@@ -410,11 +438,16 @@ public final class WebsocketRoute {
             final UniformFanOutShape<Object, Object> signalFilter = builder.add(signalFilterGraph);
             final FlowShape<Object, DittoRuntimeException> castError = builder.add(castErrorFlow);
 
-            builder.from(resultOrError.out()).toInlet(signalFilter.in());
-            builder.from(signalFilter.out(0)).to(signalSink);
-            builder.from(signalFilter.out(1)).toInlet(castError.in());
+            final UniformFanInShape<DittoRuntimeException, DittoRuntimeException> merge =
+                    builder.add(Merge.create(2, true));
 
-            return FlowShape.of(resultOrError.in(), castError.out());
+            builder.from(resultOrError.out()).toInlet(signalFilter.in());
+            builder.from(signalFilter.out(0)).toInlet(signalSink.in());
+            builder.from(signalFilter.out(1)).toInlet(castError.in());
+            builder.from(castError.out()).toFanIn(merge);
+            builder.from(signalSink.out()).toFanIn(merge);
+
+            return FlowShape.of(resultOrError.in(), merge.out());
         }));
     }
 
