@@ -22,7 +22,7 @@ import akka.http.javadsl.server.Route;
 /**
  * Builder with a fluent API for creating Akka HTTP routes for websocket connections.
  */
-public interface WebsocketRouteBuilder {
+public interface WebSocketRouteBuilder {
 
     /**
      * Sets the given event sniffer for incoming messages.
@@ -31,7 +31,7 @@ public interface WebsocketRouteBuilder {
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code eventSniffer} is {@code null}.
      */
-    WebsocketRouteBuilder withIncomingEventSniffer(EventSniffer<String> eventSniffer);
+    WebSocketRouteBuilder withIncomingEventSniffer(EventSniffer<String> eventSniffer);
 
     /**
      * Sets the given event sniffer for outgoing messages.
@@ -40,7 +40,17 @@ public interface WebsocketRouteBuilder {
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code eventSniffer} is {@code null}.
      */
-    WebsocketRouteBuilder withOutgoingEventSniffer(EventSniffer<String> eventSniffer);
+    WebSocketRouteBuilder withOutgoingEventSniffer(EventSniffer<String> eventSniffer);
+
+    /**
+     * Sets the given object to enforce authorization in order to establish the WebSocket connection.
+     * If no enforcer is set no authorization enforcement is performed.
+     *
+     * @param enforcer the enforcer to be used.
+     * @return this builder instance to allow method chaining.
+     * @throws NullPointerException if {@code enforcer} is {@code null}.
+     */
+    WebSocketRouteBuilder withAuthorizationEnforcer(WebSocketAuthorizationEnforcer enforcer);
 
     /**
      * Creates the Akka HTTP route for websocket.

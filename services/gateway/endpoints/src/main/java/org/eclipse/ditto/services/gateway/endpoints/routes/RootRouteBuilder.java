@@ -25,7 +25,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRouteBuilder;
+import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 
@@ -108,7 +108,7 @@ public interface RootRouteBuilder {
      * @param websocketRouteBuilder the route to set.
      * @return the Builder to allow method chaining.
      */
-    RootRouteBuilder websocketRoute(WebsocketRouteBuilder websocketRouteBuilder);
+    RootRouteBuilder websocketRoute(WebSocketRouteBuilder websocketRouteBuilder);
 
     /**
      * Sets the stats sub-route.

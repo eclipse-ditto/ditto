@@ -68,7 +68,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRouteBuilder;
+import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -111,7 +111,7 @@ public final class RootRoute {
     private final SseRouteBuilder sseThingsRouteBuilder;
     private final ThingsRoute thingsRoute;
     private final ThingSearchRoute thingSearchRoute;
-    private final WebsocketRouteBuilder websocketRouteBuilder;
+    private final WebSocketRouteBuilder websocketRouteBuilder;
     private final StatsRoute statsRoute;
 
     private final CustomApiRoutesProvider customApiRoutesProvider;
@@ -477,7 +477,7 @@ public final class RootRoute {
         private SseRouteBuilder sseThingsRouteBuilder;
         private ThingsRoute thingsRoute;
         private ThingSearchRoute thingSearchRoute;
-        private WebsocketRouteBuilder websocketRouteBuilder;
+        private WebSocketRouteBuilder websocketRouteBuilder;
         private StatsRoute statsRoute;
 
         private CustomApiRoutesProvider customApiRoutesProvider;
@@ -545,7 +545,7 @@ public final class RootRoute {
         }
 
         @Override
-        public RootRouteBuilder websocketRoute(final WebsocketRouteBuilder websocketRouteBuilder) {
+        public RootRouteBuilder websocketRoute(final WebSocketRouteBuilder websocketRouteBuilder) {
             this.websocketRouteBuilder = websocketRouteBuilder;
             return this;
         }

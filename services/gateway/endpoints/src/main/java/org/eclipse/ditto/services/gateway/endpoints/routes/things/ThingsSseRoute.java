@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
+import static akka.http.javadsl.server.Directives.parameterOptional;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -39,8 +40,7 @@ import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
@@ -55,13 +55,13 @@ import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.marshalling.sse.EventStreamMarshalling;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.headers.Accept;
 import akka.http.javadsl.model.sse.ServerSentEvent;
+import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.JavaPartialFunction;
@@ -72,7 +72,7 @@ import akka.stream.javadsl.Source;
 /**
  * Builder for creating Akka HTTP routes for SSE (Server Sent Events) {@code /things} routes.
  */
-public final class ThingsSseRoute extends AbstractRoute implements SseRouteBuilder {
+public final class ThingsSseRoute implements SseRouteBuilder {
 
     private static final String PATH_THINGS = "things";
 
@@ -81,52 +81,37 @@ public final class ThingsSseRoute extends AbstractRoute implements SseRouteBuild
     private static final String PARAM_FILTER = "filter";
     private static final String PARAM_NAMESPACES = "namespaces";
 
-    private final HttpConfig httpConfig;
     private final ActorRef streamingActor;
     private final EventSniffer<ServerSentEvent> eventSniffer;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
-    private final HeaderTranslator headerTranslator;
 
-    private ThingsSseRoute(final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final ActorRef streamingActor,
-            final EventSniffer<ServerSentEvent> eventSniffer,
-            final QueryFilterCriteriaFactory queryFilterCriteriaFactory,
-            final HeaderTranslator headerTranslator) {
+    private ThingsSseRoute(final ActorRef streamingActor, final EventSniffer<ServerSentEvent> eventSniffer,
+            final QueryFilterCriteriaFactory queryFilterCriteriaFactory) {
 
-        super(proxyActor, actorSystem, httpConfig, headerTranslator);
-        this.httpConfig = httpConfig;
         this.streamingActor = streamingActor;
-        this.eventSniffer = checkNotNull(eventSniffer, "eventSniffer");
+        this.eventSniffer = eventSniffer;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
-        this.headerTranslator = headerTranslator;
     }
 
     /**
-     * Constructs the SSE - ServerSentEvents supporting {@code /things} route builder.
+     * Returns an instance of this class.
      *
-     * @param proxyActor an actor selection of the command delegating actor.
-     * @param actorSystem the ActorSystem to use.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param headerTranslator translates headers from external sources or to external sources.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @param streamingActor is used for actual event streaming.
+     * @return the instance.
+     * @throws NullPointerException if {@code streamingActor} is {@code null}.
      */
-    public ThingsSseRoute(final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final ActorRef streamingActor,
-            final HeaderTranslator headerTranslator) {
+    public static ThingsSseRoute getInstance(final ActorRef streamingActor) {
+        checkNotNull(streamingActor, "streamingActor");
+        final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
+                new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ModelBasedThingsFieldExpressionFactory());
 
-        this(proxyActor, actorSystem, httpConfig, streamingActor, EventSniffer.noOp(),
-                new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ModelBasedThingsFieldExpressionFactory()),
-                headerTranslator);
+        return new ThingsSseRoute(streamingActor, EventSniffer.noOp(), queryFilterCriteriaFactory);
     }
 
     @Override
     public ThingsSseRoute withEventSniffer(final EventSniffer<ServerSentEvent> eventSniffer) {
-        return new ThingsSseRoute(proxyActor, actorSystem, httpConfig, streamingActor, eventSniffer,
-                queryFilterCriteriaFactory, headerTranslator);
+        return new ThingsSseRoute(streamingActor, checkNotNull(eventSniffer, "eventSniffer"),
+                queryFilterCriteriaFactory);
     }
 
     /**
@@ -137,42 +122,43 @@ public final class ThingsSseRoute extends AbstractRoute implements SseRouteBuild
     @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
     @Override
     public Route build(final RequestContext ctx, final Supplier<DittoHeaders> dittoHeadersSupplier) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_THINGS), () ->
-                pathEndOrSingleSlash(() ->
-                        get(() ->
-                                headerValuePF(AcceptHeaderExtractor.INSTANCE, accept ->
-                                        doBuildThingsSseRoute(dittoHeadersSupplier.get())
-                                )
-                        )
-                )
-        );
+        return Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_THINGS),
+                () -> Directives.pathEndOrSingleSlash(
+                        () -> Directives.get(
+                                () -> Directives.headerValuePF(AcceptHeaderExtractor.INSTANCE,
+                                        accept -> buildThingsSseRoute(ctx, dittoHeadersSupplier.get())))));
     }
 
-    private Route doBuildThingsSseRoute(final DittoHeaders dittoHeaders) {
-        return parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
-                parameterOptional(ThingsParameter.IDS.toString(),
-                        idsString -> // "ids" is optional for SSE
-                                parameterOptional(PARAM_NAMESPACES, namespacesString ->
-                                        parameterOptional(PARAM_FILTER, filterString ->
-                                                createSseRoute(dittoHeaders,
-                                                        calculateSelectedFields(
-                                                                fieldsString).orElse(null),
-                                                        idsString.map(ThingsSseRoute::splitThingIdString)
-                                                                .orElseGet(Collections::emptyList),
-                                                        namespacesString.map(str -> str.split(","))
-                                                                .map(Arrays::asList)
-                                                                .orElse(Collections.emptyList()),
-                                                        filterString.orElse(null))
-                                        )
-                                )
-                )
-        );
+    private Route buildThingsSseRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+        return parameterOptional(ThingsParameter.FIELDS.toString(),
+                fieldsString -> parameterOptional(ThingsParameter.IDS.toString(),
+                        idsString -> parameterOptional(PARAM_NAMESPACES,
+                                namespacesString -> parameterOptional(PARAM_FILTER,
+                                        filterString -> createSseRoute(ctx.getRequest(),
+                                                dittoHeaders,
+                                                getFieldSelector(fieldsString),
+                                                getThingIds(idsString),
+                                                getNamespaces(namespacesString),
+                                                filterString.orElse(null))))));
     }
 
-    private static List<ThingId> splitThingIdString(final String thingIdString) {
-        return Arrays.stream(thingIdString.split(","))
+    @Nullable
+    private static JsonFieldSelector getFieldSelector(final Optional<String> fieldsString) {
+        return AbstractRoute.calculateSelectedFields(fieldsString).orElse(null);
+    }
+
+    private static List<ThingId> getThingIds(final Optional<String> thingIdString) {
+        return thingIdString.map(s -> s.split(","))
+                .map(Arrays::stream)
+                .orElseGet(Stream::empty)
                 .map(ThingId::of)
                 .collect(Collectors.toList());
+    }
+
+    private static List<String> getNamespaces(final Optional<String> namespacesString) {
+        return namespacesString.map(s -> s.split(","))
+                .map(Arrays::asList)
+                .orElseGet(Collections::emptyList);
     }
 
     @SuppressWarnings("squid:CommentedOutCodeLine")
@@ -183,27 +169,17 @@ public final class ThingsSseRoute extends AbstractRoute implements SseRouteBuild
              console.log(e.data);
          }, false);
        */
-    private Route createSseRoute(final DittoHeaders dittoHeaders,
-            final JsonFieldSelector fieldSelector,
-            final Collection<ThingId> targetThingIds,
-            final List<String> namespaces,
-            @Nullable final String filterString) {
-
-        return extractRequest(request ->
-                createSseRoute(request, dittoHeaders, fieldSelector, targetThingIds, namespaces, filterString));
-    }
-
     private Route createSseRoute(final HttpRequest request,
             final DittoHeaders dittoHeaders,
-            final JsonFieldSelector fieldSelector,
+            @Nullable final JsonFieldSelector fieldSelector,
             final Collection<ThingId> targetThingIds,
             final List<String> namespaces,
             @Nullable final String filterString) {
 
         final String connectionCorrelationId = dittoHeaders.getCorrelationId()
-                .orElseGet(() -> UUID.randomUUID().toString());
-        final JsonSchemaVersion jsonSchemaVersion =
-                dittoHeaders.getSchemaVersion().orElse(dittoHeaders.getImplementedSchemaVersion());
+                .orElseGet(() -> String.valueOf(UUID.randomUUID()));
+        final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
+                .orElse(dittoHeaders.getImplementedSchemaVersion());
 
         final Counter messageCounter = DittoMetrics.counter("streaming_messages")
                         .tag("type", "sse")
@@ -251,7 +227,7 @@ public final class ThingsSseRoute extends AbstractRoute implements SseRouteBuild
                         .viaMat(eventSniffer.toAsyncFlow(request), Keep.left()) // sniffer shouldn't sniff heartbeats
                         .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
 
-        return completeOK(sseSource, EventStreamMarshalling.toEventStream());
+        return Directives.completeOK(sseSource, EventStreamMarshalling.toEventStream());
     }
 
     private static String namespaceFromId(final ThingEvent thingEvent) {
@@ -263,6 +239,7 @@ public final class ThingsSseRoute extends AbstractRoute implements SseRouteBuild
         private static final AcceptHeaderExtractor INSTANCE = new AcceptHeaderExtractor();
 
         private AcceptHeaderExtractor() {
+            super();
         }
 
         @Override
@@ -271,7 +248,7 @@ public final class ThingsSseRoute extends AbstractRoute implements SseRouteBuild
                 if (isCheck) {
                     return null;
                 } else if (matchesTextEventStream((Accept) x)) {
-                    return ((Accept) x);
+                    return (Accept) x;
                 }
             }
             throw noMatch();

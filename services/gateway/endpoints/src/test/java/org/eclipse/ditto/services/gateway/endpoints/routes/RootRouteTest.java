@@ -42,7 +42,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusR
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
@@ -131,12 +131,12 @@ public final class RootRouteTest extends EndpointTestBase {
                 .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig,
                         headerTranslator))
                 .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .sseThingsRoute(new ThingsSseRoute(proxyActor, actorSystem, httpConfig, proxyActor, headerTranslator))
+                .sseThingsRoute(ThingsSseRoute.getInstance(proxyActor))
                 .thingsRoute(
                         new ThingsRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
                                 headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(new WebsocketRoute(proxyActor, webSocketConfig, actorSystem.eventStream()))
+                .websocketRoute(WebSocketRoute.getInstance(proxyActor, webSocketConfig, actorSystem.eventStream()))
                 .supportedSchemaVersions(config.getIntList("ditto.gateway.http.schema-versions"))
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)

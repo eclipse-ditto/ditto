@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
-import static akka.http.javadsl.server.Directives.complete;
-import static akka.http.javadsl.server.Directives.extractRequest;
-import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_EVENTS;
@@ -77,6 +74,7 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.ws.Message;
 import akka.http.javadsl.model.ws.TextMessage;
 import akka.http.javadsl.model.ws.UpgradeToWebSocket;
+import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
 import akka.stream.Attributes;
@@ -95,7 +93,7 @@ import akka.stream.javadsl.Source;
 /**
  * Builder for creating Akka HTTP routes for {@code /ws}.
  */
-public final class WebsocketRoute implements WebsocketRouteBuilder {
+public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     /**
      * The backend sends the protocol message above suffixed by ":ACK" when the subscription was created. E.g.: {@code
@@ -105,51 +103,70 @@ public final class WebsocketRoute implements WebsocketRouteBuilder {
 
     private static final String STREAMING_TYPE_WS = "WS";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketRoute.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketRoute.class);
 
     private final ActorRef streamingActor;
     private final WebSocketConfig webSocketConfig;
     private final EventStream eventStream;
-
     private final EventSniffer<String> incomingMessageSniffer;
     private final EventSniffer<String> outgoingMessageSniffer;
+    private final WebSocketAuthorizationEnforcer authorizationEnforcer;
 
-    private WebsocketRoute(final ActorRef streamingActor,
+    private WebSocketRoute(final ActorRef streamingActor,
             final WebSocketConfig webSocketConfig,
             final EventStream eventStream,
             final EventSniffer<String> incomingMessageSniffer,
-            final EventSniffer<String> outgoingMessageSniffer) {
+            final EventSniffer<String> outgoingMessageSniffer,
+            final WebSocketAuthorizationEnforcer authorizationEnforcer) {
 
         this.streamingActor = streamingActor;
         this.webSocketConfig = webSocketConfig;
         this.eventStream = eventStream;
-        this.incomingMessageSniffer = checkNotNull(incomingMessageSniffer, "incomingMessageSniffer");
-        this.outgoingMessageSniffer = checkNotNull(outgoingMessageSniffer, "outgoingMessageSniffer");
+        this.incomingMessageSniffer = incomingMessageSniffer;
+        this.outgoingMessageSniffer = outgoingMessageSniffer;
+        this.authorizationEnforcer = authorizationEnforcer;
     }
 
     /**
-     * Constructs the {@code /ws} route builder.
+     * Returns an instance of this class.
      *
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
-     * @param webSocketConfig the configuration of the web socket enpoint.
+     * @param webSocketConfig the configuration of the web socket endpoint.
      * @param eventStream eventStream used to publish events within the actor system
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public WebsocketRoute(final ActorRef streamingActor, final WebSocketConfig webSocketConfig,
+    public static WebSocketRoute getInstance(final ActorRef streamingActor, final WebSocketConfig webSocketConfig,
             final EventStream eventStream) {
 
-        this(streamingActor, webSocketConfig, eventStream, EventSniffer.noOp(), EventSniffer.noOp());
+        checkNotNull(streamingActor, "streamingActor");
+        checkNotNull(webSocketConfig, "webSocketConfig");
+        checkNotNull(eventStream, "eventStream");
+
+        final EventSniffer<String> noOpEventSniffer = EventSniffer.noOp();
+        return new WebSocketRoute(streamingActor, webSocketConfig, eventStream, noOpEventSniffer, noOpEventSniffer,
+                new NoOpAuthorizationEnforcer());
     }
 
     @Override
-    public WebsocketRouteBuilder withIncomingEventSniffer(final EventSniffer<String> eventSniffer) {
-        return new WebsocketRoute(streamingActor, webSocketConfig, eventStream, eventSniffer,
-                outgoingMessageSniffer);
+    public WebSocketRouteBuilder withIncomingEventSniffer(final EventSniffer<String> eventSniffer) {
+        checkNotNull(incomingMessageSniffer, "incomingMessageSniffer");
+        return new WebSocketRoute(streamingActor, webSocketConfig, eventStream, eventSniffer,
+                outgoingMessageSniffer, authorizationEnforcer);
     }
 
     @Override
-    public WebsocketRouteBuilder withOutgoingEventSniffer(final EventSniffer<String> eventSniffer) {
-        return new WebsocketRoute(streamingActor, webSocketConfig, eventStream, incomingMessageSniffer,
-                eventSniffer);
+    public WebSocketRouteBuilder withOutgoingEventSniffer(final EventSniffer<String> eventSniffer) {
+        checkNotNull(outgoingMessageSniffer, "outgoingMessageSniffer");
+        return new WebSocketRoute(streamingActor, webSocketConfig, eventStream, incomingMessageSniffer,
+                eventSniffer, authorizationEnforcer);
+    }
+
+    @Override
+    public WebSocketRouteBuilder withAuthorizationEnforcer(final WebSocketAuthorizationEnforcer enforcer) {
+        checkNotNull(enforcer, "enforcer");
+        return new WebSocketRoute(streamingActor, webSocketConfig, eventStream, incomingMessageSniffer,
+                outgoingMessageSniffer, enforcer);
     }
 
     /**
@@ -164,12 +181,14 @@ public final class WebsocketRoute implements WebsocketRouteBuilder {
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
 
-        return extractUpgradeToWebSocket(upgradeToWebSocket -> extractRequest(request ->
-                complete(
-                        createWebsocket(upgradeToWebSocket, version, correlationId.toString(), connectionAuthContext,
-                                additionalHeaders, chosenProtocolAdapter, request)
-                )
-        ));
+        return Directives.extractUpgradeToWebSocket(
+                upgradeToWebSocketHeader -> Directives.extractRequest(
+                        request -> {
+                            authorizationEnforcer.checkAuthorization(request, connectionAuthContext, additionalHeaders);
+                            return Directives.complete(
+                                    createWebsocket(upgradeToWebSocketHeader, version, correlationId.toString(),
+                                            connectionAuthContext, additionalHeaders, chosenProtocolAdapter, request));
+                        }));
     }
 
     private HttpResponse createWebsocket(final UpgradeToWebSocket upgradeToWebSocket,
@@ -519,6 +538,20 @@ public final class WebsocketRoute implements WebsocketRouteBuilder {
                     + " Event nor DittoRuntimeException: " + jsonifiable.getClass().getSimpleName());
         }
         return adaptable;
+    }
+
+    /**
+     * Null implementation for {@link WebSocketAuthorizationEnforcer} which does nothing.
+     */
+    private static final class NoOpAuthorizationEnforcer implements WebSocketAuthorizationEnforcer {
+
+        @Override
+        public void checkAuthorization(final HttpRequest request, final AuthorizationContext authorizationContext,
+                final DittoHeaders dittoHeaders) {
+
+            // Does nothing.
+        }
+
     }
 
 }
