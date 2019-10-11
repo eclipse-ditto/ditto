@@ -49,7 +49,7 @@ public interface HttpPushFactory {
      *
      * @param system the actor system with the default Akka HTTP configuration.
      * @param log logger for the flow.
-     * @param <T> type of correlation IDs.
+     * @param <T> type of additional object flowing through flow.
      * @return flow from request-correlationId pairs to response-correlationId pairs.
      */
     <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(ActorSystem system, LoggingAdapter log);

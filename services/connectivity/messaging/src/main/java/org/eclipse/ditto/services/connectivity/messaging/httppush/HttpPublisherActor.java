@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import java.nio.ByteBuffer;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.ContentType;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
@@ -73,7 +75,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final HttpPushConfig config;
 
     private final ActorMaterializer materializer;
-    private final SourceQueue<Pair<HttpRequest, ExternalMessage>> sourceQueue;
+    private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final ConnectionId connectionId, final List<Target> targets,
@@ -88,7 +90,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         materializer = ActorMaterializer.create(getContext());
         sourceQueue =
-                Source.<Pair<HttpRequest, ExternalMessage>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
+                Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
                         .viaMat(factory.createFlow(system, log), Keep.left())
                         .toMat(Sink.foreach(this::processResponse), Keep.left())
                         .run(materializer);
@@ -123,7 +125,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
 
         final HttpRequest request = createRequest(publishTarget, message);
-        sourceQueue.offer(Pair.create(request, message)).handle(handleQueueOfferResult(message));
+        sourceQueue.offer(Pair.create(request, new HttpPushContext(message, request.getUri())))
+                .handle(handleQueueOfferResult(message));
     }
 
     @Override
@@ -186,12 +189,15 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     // Async callback. Must be thread-safe.
-    private void processResponse(final Pair<Try<HttpResponse>, ExternalMessage> responseWithMessage) {
+    private void processResponse(final Pair<Try<HttpResponse>, HttpPushContext> responseWithMessage) {
         final Try<HttpResponse> tryResponse = responseWithMessage.first();
-        final ExternalMessage message = responseWithMessage.second();
+        final HttpPushContext context = responseWithMessage.second();
+        final ExternalMessage message = context.getExternalMessage();
+        final Uri requestUri = context.getRequestUri();
         if (tryResponse.isFailure()) {
             final Throwable error = tryResponse.toEither().left().get();
-            final String errorDescription = "Failed to send HTTP request.";
+            final String errorDescription = MessageFormat.format("Failed to send HTTP request to <{0}>.",
+                    stripUserInfo(requestUri));
             log.debug("Failed to send message <{}> due to <{}>", message, error);
             responsePublishedMonitor.failure(message, errorDescription);
             escalate(error, errorDescription);
@@ -199,17 +205,19 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final HttpResponse response = tryResponse.toEither().right().get();
             log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
             if (response.status().isSuccess()) {
-                responsePublishedMonitor.success(message, "HTTP call successfully responded with status <{0}>.",
-                        response.status());
+                responsePublishedMonitor.success(message, "HTTP call to <{0}> successfully responded with status <{1}>.",
+                        stripUserInfo(requestUri), response.status());
             } else {
                 getResponseBody(response, materializer)
                         .thenAccept(body -> responsePublishedMonitor.failure(message,
-                                "HTTP call responded with status <{0}> and body: {1}.", response.status(), body)
+                                "HTTP call to <{0}> responded with status <{1}> and body: {2}.",
+                                stripUserInfo(requestUri),
+                                response.status(), body)
                         )
                         .exceptionally(bodyReadError -> {
                             responsePublishedMonitor.failure(message,
-                                    "HTTP call responded with status <{0}>. Failed to read body within {1} ms",
-                                    response.status(), READ_BODY_TIMEOUT_MS);
+                                    "HTTP call to <{0}> responded with status <{1}>. Failed to read body within {2} ms",
+                                    stripUserInfo(requestUri), response.status(), READ_BODY_TIMEOUT_MS);
                             LogUtil.enhanceLogWithCorrelationId(log, message.getInternalHeaders());
                             log.info("Got <{}> when reading body of publish response to <{}>", bodyReadError,
                                     message);
@@ -217,6 +225,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         });
             }
         }
+    }
+
+    private Uri stripUserInfo(final Uri requestUri) {
+        return requestUri.userInfo("");
     }
 
     private void escalate(final Throwable error, final String description) {
