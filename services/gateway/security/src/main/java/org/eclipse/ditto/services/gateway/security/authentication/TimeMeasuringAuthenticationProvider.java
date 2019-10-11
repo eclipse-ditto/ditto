@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.gateway.security.authentication;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -105,26 +104,18 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
     protected static DittoRuntimeException toDittoRuntimeException(final Throwable throwable,
             final CharSequence correlationId) {
 
-        final Throwable throwableToMap = unwrapCompletionException(throwable);
+        return DittoRuntimeException.asDittoRuntimeException(throwable,
+                cause -> {
+                    final DittoRuntimeException dittoRuntimeException =
+                            unwrapDittoRuntimeException(cause, correlationId);
 
-        final DittoRuntimeException result = unwrapDittoRuntimeException(throwableToMap, correlationId);
-        if (null != result) {
-            return result;
-        }
+                    if (dittoRuntimeException == null) {
+                        LOGGER.warn("Failed to unwrap DittoRuntimeException from Throwable!", throwable);
+                        return buildInternalErrorException(cause, correlationId);
+                    }
 
-        LOGGER.warn("Failed to unwrap DittoRuntimeException from Throwable!", throwable);
-        return buildInternalErrorException(throwableToMap, correlationId);
-    }
-
-    private static Throwable unwrapCompletionException(final Throwable potentialExecutionException) {
-        if (potentialExecutionException instanceof CompletionException) {
-            @Nullable final Throwable cause = potentialExecutionException.getCause();
-            if (null != cause) {
-                return cause;
-            }
-        }
-
-        return potentialExecutionException;
+                    return dittoRuntimeException;
+                });
     }
 
     private static DittoRuntimeException unwrapDittoRuntimeException(final Throwable throwable,
