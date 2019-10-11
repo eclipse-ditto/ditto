@@ -126,6 +126,10 @@ public final class WebsocketRoute {
             .tag("type", "ws")
             .tag("direction", "out");
 
+    private static final Counter DROPPED_COUNTER = DittoMetrics.counter("streaming_messages")
+            .tag("type", "ws")
+            .tag("direction", "dropped");
+
     private final ActorRef streamingActor;
     private final EventStream eventStream;
 
@@ -274,6 +278,12 @@ public final class WebsocketRoute {
             final FanOutShape2<Either<StreamControlMessage, Signal>, Either<StreamControlMessage, Signal>,
                     DittoRuntimeException> rateLimiter = builder.add(getRateLimiter(websocketConfig));
 
+            final FlowShape<DittoRuntimeException, DittoRuntimeException> droppedCounter =
+                    builder.add(Flow.fromFunction(e -> {
+                        DROPPED_COUNTER.increment();
+                        return e;
+                    }));
+
             final SinkShape<Either<StreamControlMessage, Signal>> sink =
                     builder.add(getStreamControlOrSignalSink(websocketConfig));
 
@@ -284,7 +294,7 @@ public final class WebsocketRoute {
             builder.from(select.out0()).toInlet(rateLimiter.in());
             builder.from(select.out1()).toFanIn(merge);
             builder.from(rateLimiter.out0()).to(sink);
-            builder.from(rateLimiter.out1()).toFanIn(merge);
+            builder.from(rateLimiter.out1()).via(droppedCounter).toFanIn(merge);
 
             return FlowShape.of(strictify.in(), merge.out());
         }));
