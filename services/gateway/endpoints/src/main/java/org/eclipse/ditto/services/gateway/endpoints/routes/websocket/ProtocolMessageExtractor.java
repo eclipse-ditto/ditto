@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 
 /**
@@ -45,7 +46,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
  * {@link StopStreaming} instance or {@code null} if the payload did not contain one of the defined
  * {@link ProtocolMessages}.
  */
-final class ProtocolMessageExtractor implements Function<String, Object> {
+final class ProtocolMessageExtractor implements Function<String, StreamControlMessage> {
 
     private static final String PARAM_FILTER = "filter";
     private static final String PARAM_NAMESPACES = "namespaces";
@@ -66,7 +67,7 @@ final class ProtocolMessageExtractor implements Function<String, Object> {
 
     @Override
     @Nullable
-    public Object apply(final String protocolMessage) {
+    public StreamControlMessage apply(final String protocolMessage) {
         // twin events
         if (START_SEND_EVENTS.matches(protocolMessage)) {
             return buildStartStreaming(START_SEND_EVENTS, protocolMessage);
