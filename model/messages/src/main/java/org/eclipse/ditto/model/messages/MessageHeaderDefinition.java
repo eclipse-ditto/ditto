@@ -46,10 +46,10 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     /**
      * Header definitions for the subject of a message.
      * <p>
-     * Key: {@code "subject"}, Java type: String.
+     * Key: {@code "ditto-subject"}, Java type: String.
      * </p>
      */
-    SUBJECT("subject", String.class, false, false) {
+    SUBJECT("ditto-subject", String.class, false, false) {
         @Override
         public void validateValue(@Nullable final CharSequence value) {
             super.validateValue(value);
@@ -106,7 +106,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * </p>
      */
     TIMESTAMP("timestamp", String.class, true, true) {
-        @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
+        @SuppressWarnings({"squid:S2201"})
         @Override
         public void validateValue(@Nullable final CharSequence value) {
             super.validateValue(value);
@@ -126,7 +126,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * </p>
      */
     STATUS_CODE("status", int.class, true, true) {
-        @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
+        @SuppressWarnings({"squid:S2201"})
         @Override
         public void validateValue(@Nullable final CharSequence value) {
             super.validateValue(value);
