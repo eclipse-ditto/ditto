@@ -269,7 +269,7 @@ public final class WebsocketRoute {
         return Flow.fromGraph(GraphDSL.create(builder -> {
 
             final FlowShape<Message, String> strictify =
-                    builder.add(getStrictifyFlow(request, connectionCorrelationId));
+                    builder.add(getStrictifyFlow(request, connectionCorrelationId).via(throttle(websocketConfig)));
 
             final FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException> select =
                     builder.add(selectStreamControlOrSignal(version, connectionCorrelationId, connectionAuthContext,
@@ -457,7 +457,9 @@ public final class WebsocketRoute {
     private static <T> Graph<FanOutShape2<Either<T, Signal>, Either<T, Signal>, DittoRuntimeException>, NotUsed>
     getRateLimiter(final WebsocketConfig websocketConfig) {
         final Duration rateLimitInterval = websocketConfig.getThrottlingConfig().getInterval();
-        final int messagesPerInterval = websocketConfig.getThrottlingConfig().getLimit();
+        final int throttlingLimit = websocketConfig.getThrottlingConfig().getLimit();
+        final int messagesPerInterval =
+                Math.max(throttlingLimit, (int) (throttlingLimit * websocketConfig.getThrottlingRejectionFactor()));
         return LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, either -> {
             final TooManyRequestsException.Builder builder =
                     TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval);
@@ -466,6 +468,12 @@ public final class WebsocketRoute {
             }
             return builder.build();
         });
+    }
+
+    private static <T> Flow<T, T, NotUsed> throttle(final WebsocketConfig websocketConfig) {
+        return Flow.<T>create()
+                .throttle(websocketConfig.getThrottlingConfig().getLimit(),
+                        websocketConfig.getThrottlingConfig().getInterval());
     }
 
     private static Signal buildSignal(final String cmdString,

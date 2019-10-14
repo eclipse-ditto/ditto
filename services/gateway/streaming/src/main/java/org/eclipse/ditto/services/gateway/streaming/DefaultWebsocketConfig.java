@@ -32,6 +32,7 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
     private final int subscriberBackpressureQueueSize;
     private final int publisherBackpressureBufferSize;
     private final Duration sessionCounterScrapeInterval;
+    private final double throttlingRejectionFactor;
     private final ThrottlingConfig throttlingConfig;
 
     private DefaultWebsocketConfig(final ScopedConfig scopedConfig) {
@@ -41,6 +42,8 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
                 scopedConfig.getInt(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE.getConfigPath());
         sessionCounterScrapeInterval =
                 scopedConfig.getDuration(WebsocketConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath());
+        throttlingRejectionFactor =
+                scopedConfig.getDouble(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath());
         throttlingConfig = ThrottlingConfig.of(scopedConfig);
     }
 
@@ -72,6 +75,11 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
     }
 
     @Override
+    public double getThrottlingRejectionFactor() {
+        return throttlingRejectionFactor;
+    }
+
+    @Override
     public ThrottlingConfig getThrottlingConfig() {
         return throttlingConfig;
     }
@@ -87,6 +95,7 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
         final DefaultWebsocketConfig that = (DefaultWebsocketConfig) o;
         return subscriberBackpressureQueueSize == that.subscriberBackpressureQueueSize &&
                 publisherBackpressureBufferSize == that.publisherBackpressureBufferSize &&
+                Double.compare(throttlingRejectionFactor, that.throttlingRejectionFactor) == 0 &&
                 Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
                 Objects.equals(throttlingConfig, that.throttlingConfig);
     }
@@ -94,7 +103,7 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
     @Override
     public int hashCode() {
         return Objects.hash(subscriberBackpressureQueueSize, publisherBackpressureBufferSize,
-                sessionCounterScrapeInterval, throttlingConfig);
+                sessionCounterScrapeInterval, throttlingRejectionFactor, throttlingConfig);
     }
 
     @Override
@@ -103,6 +112,7 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
                 "subscriberBackpressureQueueSize=" + subscriberBackpressureQueueSize +
                 ", publisherBackpressureBufferSize=" + publisherBackpressureBufferSize +
                 ", sessionCounterScrapeInterval=" + sessionCounterScrapeInterval +
+                ", throttlingRejectionFactor=" + throttlingRejectionFactor +
                 ", throttlingConfig=" + throttlingConfig +
                 "]";
     }

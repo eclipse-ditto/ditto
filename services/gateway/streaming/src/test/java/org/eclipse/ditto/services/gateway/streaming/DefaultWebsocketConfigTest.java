@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.assertj.core.data.Percentage;
 import org.eclipse.ditto.services.base.config.ThrottlingConfig;
 import org.eclipse.ditto.services.gateway.streaming.WebsocketConfig.WebsocketConfigValue;
 import org.junit.BeforeClass;
@@ -72,6 +73,10 @@ public final class DefaultWebsocketConfigTest {
         softly.assertThat(underTest.getSessionCounterScrapeInterval())
                 .as(WebsocketConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath())
                 .isEqualTo(WebsocketConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getDefaultValue());
+        softly.assertThat(underTest.getThrottlingRejectionFactor())
+                .as(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath())
+                .isCloseTo((Double) WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getDefaultValue(),
+                        Percentage.withPercentage(1.0));
     }
 
     @Test
@@ -87,6 +92,9 @@ public final class DefaultWebsocketConfigTest {
         softly.assertThat(underTest.getSessionCounterScrapeInterval())
                 .as(WebsocketConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(67L));
+        softly.assertThat(underTest.getThrottlingRejectionFactor())
+                .as(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath())
+                .isCloseTo(1.875, Percentage.withPercentage(1.0));
         softly.assertThat(underTest.getThrottlingConfig().getInterval())
                 .as("throttling.interval")
                 .isEqualTo(Duration.ofSeconds(8L));

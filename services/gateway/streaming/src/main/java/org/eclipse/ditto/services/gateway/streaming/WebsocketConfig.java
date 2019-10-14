@@ -59,6 +59,14 @@ public interface WebsocketConfig {
     Duration getSessionCounterScrapeInterval();
 
     /**
+     * Returns the factor of maximum throughput at which rejections were sent.
+     * This threshold should never be reached unless Akka HTTP or the underlying TCP implementation is broken.
+     *
+     * @return the factor of maximum throughput at which rejections are sent.
+     */
+    double getThrottlingRejectionFactor();
+
+    /**
      * Returns the throttling config for websocket.
      *
      * @return the throttling config.
@@ -78,6 +86,7 @@ public interface WebsocketConfig {
                 getPublisherBackpressureBufferSize());
         map.put(WebsocketConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath(),
                 getSessionCounterScrapeInterval().toMillis() + "ms");
+        map.put(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath(), getThrottlingRejectionFactor());
         return ConfigFactory.parseMap(map)
                 .withFallback(getThrottlingConfig().render())
                 .atKey(CONFIG_PATH);
@@ -102,7 +111,12 @@ public interface WebsocketConfig {
         /**
          * How often to update websocket session counter by counting child actors.
          */
-        SESSION_COUNTER_SCRAPE_INTERVAL("session-counter-scrape-interval", Duration.ofSeconds(30L));
+        SESSION_COUNTER_SCRAPE_INTERVAL("session-counter-scrape-interval", Duration.ofSeconds(30L)),
+
+        /**
+         * The factor of maximum throughput at which rejections were sent.
+         */
+        THROTTLING_REJECTION_FACTOR("throttling-rejection-factor", 1.25);
 
         private final String path;
         private final Object defaultValue;
