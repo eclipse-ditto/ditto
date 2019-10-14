@@ -19,11 +19,11 @@ package org.eclipse.ditto.services.gateway.streaming;
 public class JwtToken {
 
     private final String connectionCorrelationId;
-    private final String jwtToken;
+    private final String jwt;
 
-    public JwtToken(final String connectionCorrelationId, final String jwtToken) {
+    public JwtToken(final String connectionCorrelationId, final String jwt) {
         this.connectionCorrelationId = connectionCorrelationId;
-        this.jwtToken = jwtToken;
+        this.jwt = jwt;
     }
 
     public String getConnectionCorrelationId() {
@@ -31,6 +31,7 @@ public class JwtToken {
     }
 
     public String getJwtTokenAsString() {
-        return jwtToken;
+        return jwt;
     }
+
 }

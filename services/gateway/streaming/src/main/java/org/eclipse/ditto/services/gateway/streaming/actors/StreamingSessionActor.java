@@ -36,7 +36,6 @@ import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.InvalidJwtToken;
-import org.eclipse.ditto.services.gateway.streaming.JwtTokenAck;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
@@ -79,8 +78,8 @@ final class StreamingSessionActor extends AbstractActor {
     private Cancellable sessionTerminationCancellable;
 
     private List<String> authorizationSubjects;
-    private Map<StreamingType, List<String>> namespacesForStreamingTypes;
-    private Map<StreamingType, Criteria> eventFilterCriteriaForStreamingTypes;
+    private final Map<StreamingType, List<String>> namespacesForStreamingTypes;
+    private final Map<StreamingType, Criteria> eventFilterCriteriaForStreamingTypes;
 
     @SuppressWarnings("unused")
     private StreamingSessionActor(final String connectionCorrelationId, final String type,
@@ -203,11 +202,7 @@ final class StreamingSessionActor extends AbstractActor {
                     sessionTerminationCancellable.cancel();
                     checkAuthorizationContextAndStartSessionTimer(refreshSession);
                 })
-                .match(InvalidJwtToken.class, invalidJwtToken -> {
-                    sessionTerminationCancellable.cancel();
-                    eventAndResponsePublisher.tell(new JwtTokenAck(false, invalidJwtToken.getReasonForInvalidity()),
-                            getSelf());
-                })
+                .match(InvalidJwtToken.class, invalidJwtToken -> sessionTerminationCancellable.cancel())
                 .match(AcknowledgeSubscription.class, msg ->
                         acknowledgeSubscription(msg.getStreamingType(), getSelf()))
                 .match(AcknowledgeUnsubscription.class, msg ->
@@ -293,7 +288,6 @@ final class StreamingSessionActor extends AbstractActor {
                     .build(), getSelf());
         } else {
             sessionTerminationCancellable = startSessionTimeout(refreshSession.getSessionTimeout());
-            eventAndResponsePublisher.tell(new JwtTokenAck(true, null), getSelf());
         }
     }
 
@@ -380,7 +374,7 @@ final class StreamingSessionActor extends AbstractActor {
     /**
      * Messages to self to perform an outstanding acknowledgement if not already acknowledged.
      */
-    private static abstract class WithStreamingType {
+    private abstract static class WithStreamingType {
 
         private final StreamingType streamingType;
 

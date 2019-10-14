@@ -16,7 +16,6 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.JWT_TOKEN;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_EVENTS;
@@ -53,7 +52,6 @@ import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
-import org.eclipse.ditto.services.gateway.streaming.JwtTokenAck;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
@@ -229,7 +227,7 @@ public final class WebsocketRoute {
                         return textMsg.getStreamedText();
                     }
                 })
-                .flatMapConcat(textMsg -> textMsg.<String>fold("", (str1, str2) -> str1 + str2))
+                .flatMapConcat(textMsg -> textMsg.fold("", (str1, str2) -> str1 + str2))
                 .via(incomingMessageSniffer.toAsyncFlow(request))
                 .via(Flow.fromFunction(result -> {
                     LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
@@ -473,10 +471,6 @@ public final class WebsocketRoute {
         return jsonifiable -> {
             if (jsonifiable instanceof StreamingAck) {
                 return streamingAckToString((StreamingAck) jsonifiable);
-            }
-
-            if (jsonifiable instanceof JwtTokenAck) {
-                return JWT_TOKEN.toString() + PROTOCOL_CMD_ACK_SUFFIX;
             }
 
             final Adaptable adaptable;

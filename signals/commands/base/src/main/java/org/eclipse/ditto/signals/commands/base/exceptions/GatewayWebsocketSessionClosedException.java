@@ -38,11 +38,11 @@ public final class GatewayWebsocketSessionClosedException extends DittoRuntimeEx
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "websocket.session.closed";
 
-    private static final String DEFAULT_MESSAGE = "The websocket session was closed because the authorization context" +
-            " changed.";
+    private static final String DEFAULT_MESSAGE =
+            "The websocket session was closed because the authorization context changed.";
 
-    private static final String DEFAULT_DESCRIPTION = "Changing the authorization context for an established " +
-            "websocket session isn't supported.";
+    private static final String DEFAULT_DESCRIPTION =
+            "Changing the authorization context for an established websocket session isn't supported.";
 
     private static final long serialVersionUID = -1391574777788522077L;
 
