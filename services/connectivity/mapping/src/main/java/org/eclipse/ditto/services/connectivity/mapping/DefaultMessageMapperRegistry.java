@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 
 /**
@@ -27,24 +29,30 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 public final class DefaultMessageMapperRegistry implements MessageMapperRegistry {
 
     private final MessageMapper defaultMapper;
-    private final Map<String, MessageMapper> mappers;
+    private final Map<String, MessageMapper> customMappers;
+    private final Map<String, MessageMapper> fallbackMappers;
 
-    private DefaultMessageMapperRegistry(final MessageMapper defaultMapper, final Map<String, MessageMapper> mappers) {
+    private DefaultMessageMapperRegistry(final MessageMapper defaultMapper,
+            final Map<String, MessageMapper> customMappers,
+            final Map<String, MessageMapper> fallbackMappers) {
         this.defaultMapper = checkNotNull(defaultMapper);
-        this.mappers = mappers;
+        this.customMappers = customMappers;
+        this.fallbackMappers = fallbackMappers;
     }
 
     /**
      * Creates a new instance of {@code DefaultMessageMapperRegistry} of the parameter values.
      *
      * @param defaultMapper the default mapper.
-     * @param mappers the list of custom mappers.
+     * @param customMappers the list of custom mappers.
+     * @param fallbackMappers fallback mappers
      * @return the instance.
      */
     public static DefaultMessageMapperRegistry of(final MessageMapper defaultMapper,
-            final Map<String, MessageMapper> mappers) {
+            final Map<String, MessageMapper> customMappers,
+            final Map<String, MessageMapper> fallbackMappers) {
 
-        return new DefaultMessageMapperRegistry(defaultMapper, mappers);
+        return new DefaultMessageMapperRegistry(defaultMapper, customMappers, fallbackMappers);
     }
 
     @Override
@@ -55,36 +63,50 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
     @Override
     public List<MessageMapper> getMappers(final PayloadMapping payloadMapping) {
         return payloadMapping.getMappings().stream()
-                .map(mappers::get)
+                .map(this::resolveMessageMapper)
                 .map(resolvedMapper -> null == resolvedMapper ? defaultMapper : resolvedMapper)
                 .collect(Collectors.toList());
     }
 
+    @Nullable
+    private MessageMapper resolveMessageMapper(final String mapper) {
+        // first try to find a custom mapper with the given id
+        final MessageMapper customMapper = customMappers.get(mapper);
+        if (customMapper != null) {
+            return customMapper;
+        } else {
+            // if no custom mapper is found try to find a fallback mapper with the given id
+            final MessageMapper fallbackMapper = fallbackMappers.get(mapper);
+            if (fallbackMapper != null) {
+                return fallbackMapper;
+            } else {
+                // if no fallback mapper is found use the default mapper
+                return defaultMapper;
+            }
+        }
+    }
+
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final DefaultMessageMapperRegistry that = (DefaultMessageMapperRegistry) o;
-        return Objects.equals(mappers, that.mappers) &&
-                Objects.equals(defaultMapper, that.defaultMapper);
+        return Objects.equals(defaultMapper, that.defaultMapper) &&
+                Objects.equals(customMappers, that.customMappers) &&
+                Objects.equals(fallbackMappers, that.fallbackMappers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mappers, defaultMapper);
+        return Objects.hash(defaultMapper, customMappers, fallbackMappers);
     }
-
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "defaultMapper=" + defaultMapper +
-                ", mappers=" + mappers +
+                ", mappers=" + customMappers +
+                ", fallbackMappers=" + fallbackMappers +
                 "]";
     }
-
 }

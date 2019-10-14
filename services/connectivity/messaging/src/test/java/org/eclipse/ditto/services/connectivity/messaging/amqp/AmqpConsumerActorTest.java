@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
+import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
@@ -87,67 +87,10 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         new TestKit(actorSystem) {{
             final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
                     "JavaScript",
-                    MessageMappers
-                            .createJavaScriptMapperConfigurationBuilder("plainStringMapping")
-                            .incomingScript("function mapToDittoProtocolMsg(\n" +
-                                    "    headers,\n" +
-                                    "    textPayload,\n" +
-                                    "    bytePayload,\n" +
-                                    "    contentType\n" +
-                                    ") {\n" +
-                                    "\n" +
-                                    "    // ###\n" +
-                                    "    // Insert your mapping logic here\n" +
-                                    "    let namespace = \"org.eclipse.ditto\";\n" +
-                                    "    let id = \"foo-bar\";\n" +
-                                    "    let group = \"things\";\n" +
-                                    "    let channel = \"twin\";\n" +
-                                    "    let criterion = \"commands\";\n" +
-                                    "    let action = \"modify\";\n" +
-                                    "    let path = \"/attributes/foo\";\n" +
-                                    "    let dittoHeaders = headers;\n" +
-                                    "    let value = textPayload;\n" +
-                                    "    // ###\n" +
-                                    "\n" +
-                                    "    return Ditto.buildDittoProtocolMsg(\n" +
-                                    "        namespace,\n" +
-                                    "        id,\n" +
-                                    "        group,\n" +
-                                    "        channel,\n" +
-                                    "        criterion,\n" +
-                                    "        action,\n" +
-                                    "        path,\n" +
-                                    "        dittoHeaders,\n" +
-                                    "        value\n" +
-                                    "    );\n" +
-                                    "}")
-                            .outgoingScript("function mapFromDittoProtocolMsg(\n" +
-                                    "    namespace,\n" +
-                                    "    id,\n" +
-                                    "    group,\n" +
-                                    "    channel,\n" +
-                                    "    criterion,\n" +
-                                    "    action,\n" +
-                                    "    path,\n" +
-                                    "    dittoHeaders,\n" +
-                                    "    value\n" +
-                                    ") {\n" +
-                                    "\n" +
-                                    "    // ###\n" +
-                                    "    // Insert your mapping logic here\n" +
-                                    "    let headers = {};\n" +
-                                    "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
-                                    "    let textPayload = \"Topic was: \" + namespace + \":\" + id;\n" +
-                                    "    let contentType = \"text/plain\";\n" +
-                                    "    // ###\n" +
-                                    "\n" +
-                                    "     return Ditto.buildExternalMsg(\n" +
-                                    "        headers,\n" +
-                                    "        textPayload,\n" +
-                                    "        null,\n" +
-                                    "        contentType\n" +
-                                    "    );" +
-                                    "}")
+                    JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder(
+                            "plainStringMapping", Collections.emptyMap())
+                            .incomingScript(TestConstants.Mapping.INCOMING_MAPPING_SCRIPT)
+                            .outgoingScript(TestConstants.Mapping.OUTGOING_MAPPING_SCRIPT)
                             .build()
                             .getProperties()
             );
@@ -180,68 +123,12 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         new TestKit(actorSystem) {{
             final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
                     "JavaScript",
-                    MessageMappers
-                            .createJavaScriptMapperConfigurationBuilder("plainStringMappingMultiple")
-                            .incomingScript("function mapToDittoProtocolMsg(\n" +
-                                    "    headers,\n" +
-                                    "    textPayload,\n" +
-                                    "    bytePayload,\n" +
-                                    "    contentType\n" +
-                                    ") {\n" +
-                                    "\n" +
-                                    "    // ###\n" +
-                                    "    // Insert your mapping logic here\n" +
-                                    "    let namespace = \"org.eclipse.ditto\";\n" +
-                                    "    let id = \"foo-bar\";\n" +
-                                    "    let group = \"things\";\n" +
-                                    "    let channel = \"twin\";\n" +
-                                    "    let criterion = \"commands\";\n" +
-                                    "    let action = \"modify\";\n" +
-                                    "    let path = \"/attributes/foo\";\n" +
-                                    "    let dittoHeaders = headers;\n" +
-                                    "    let value = textPayload;\n" +
-                                    "    // ###\n" +
-                                    "\n" +
-                                    "    let msg = Ditto.buildDittoProtocolMsg(\n" +
-                                    "        namespace,\n" +
-                                    "        id,\n" +
-                                    "        group,\n" +
-                                    "        channel,\n" +
-                                    "        criterion,\n" +
-                                    "        action,\n" +
-                                    "        path,\n" +
-                                    "        dittoHeaders,\n" +
-                                    "        value\n" +
-                                    "    );\n" +
-                                    "    return [msg, msg, msg];\n" +
-                                    "}")
-                            .outgoingScript("function mapFromDittoProtocolMsg(\n" +
-                                    "    namespace,\n" +
-                                    "    id,\n" +
-                                    "    group,\n" +
-                                    "    channel,\n" +
-                                    "    criterion,\n" +
-                                    "    action,\n" +
-                                    "    path,\n" +
-                                    "    dittoHeaders,\n" +
-                                    "    value\n" +
-                                    ") {\n" +
-                                    "\n" +
-                                    "    // ###\n" +
-                                    "    // Insert your mapping logic here\n" +
-                                    "    let headers = {};\n" +
-                                    "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
-                                    "    let textPayload = \"Topic was: \" + namespace + \":\" + id;\n" +
-                                    "    let contentType = \"text/plain\";\n" +
-                                    "    // ###\n" +
-                                    "\n" +
-                                    "     return Ditto.buildExternalMsg(\n" +
-                                    "        headers,\n" +
-                                    "        textPayload,\n" +
-                                    "        null,\n" +
-                                    "        contentType\n" +
-                                    "    );" +
-                                    "}")
+                    JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder(
+                            "plainStringMultiMapping", Collections.emptyMap())
+                            .incomingScript(TestConstants.Mapping.INCOMING_MAPPING_SCRIPT
+                                    // return array instead of single result object
+                                    .replace("return msg;", "return [msg, msg, msg];"))
+                            .outgoingScript(TestConstants.Mapping.OUTGOING_MAPPING_SCRIPT)
                             .build()
                             .getProperties()
             );

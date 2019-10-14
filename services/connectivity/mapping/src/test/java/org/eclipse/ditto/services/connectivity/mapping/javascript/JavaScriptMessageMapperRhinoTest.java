@@ -42,7 +42,6 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -312,7 +311,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
     @BeforeClass
     public static void setup() {
-        javaScriptRhinoMapperNoop = MessageMappers.createJavaScriptMessageMapper();
+        javaScriptRhinoMapperNoop = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
         javaScriptRhinoMapperNoop.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("noop", Collections.emptyMap())
@@ -321,7 +320,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                         .build()
         );
 
-        javaScriptRhinoMapperPlain = MessageMappers.createJavaScriptMessageMapper();
+        javaScriptRhinoMapperPlain = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
         javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("plain", Collections.emptyMap())
@@ -331,7 +330,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                         .build()
         );
 
-        javaScriptRhinoMapperEmpty = MessageMappers.createJavaScriptMessageMapper();
+        javaScriptRhinoMapperEmpty = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
         javaScriptRhinoMapperEmpty.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("empty", Collections.emptyMap())
@@ -341,7 +340,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                         .build()
         );
 
-        javaScriptRhinoMapperBinary = MessageMappers.createJavaScriptMessageMapper();
+        javaScriptRhinoMapperBinary = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
         javaScriptRhinoMapperBinary.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("binary", Collections.emptyMap())
@@ -351,7 +350,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                         .build()
         );
 
-        javaScriptRhinoMapperDefault = MessageMappers.createJavaScriptMessageMapper();
+        javaScriptRhinoMapperDefault = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
         javaScriptRhinoMapperDefault.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("default", Collections.emptyMap())

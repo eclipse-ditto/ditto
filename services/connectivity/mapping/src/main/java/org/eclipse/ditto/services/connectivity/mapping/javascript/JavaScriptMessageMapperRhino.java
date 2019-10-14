@@ -25,6 +25,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.connectivity.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
@@ -34,6 +35,12 @@ import org.mozilla.javascript.Scriptable;
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.
  */
+@PayloadMapper(
+        alias = {JavaScriptMessageMapperRhino.ALIAS,
+                // legacy names
+                "org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperRhino",
+                "JavaScript"},
+        requiresMappingContext = true)
 final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
 
     private static final String WEBJARS_PATH = "/META-INF/resources/webjars";
@@ -44,6 +51,8 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
     private static final String DITTO_SCOPE_SCRIPT = "/javascript/ditto-scope.js";
     private static final String INCOMING_SCRIPT = "/javascript/incoming-mapping.js";
     private static final String OUTGOING_SCRIPT = "/javascript/outgoing-mapping.js";
+
+    static final String ALIAS = "javascript";
 
     @Nullable private ContextFactory contextFactory;
     @Nullable private JavaScriptMessageMapperConfiguration configuration;

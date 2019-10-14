@@ -27,6 +27,7 @@ import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 /**
@@ -34,14 +35,14 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
  * {@link org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper} and adds some headers to verify the
  * custom mapping was applied.
  */
+@PayloadMapper(alias = AddHeaderMessageMapper.ALIAS)
 public class AddHeaderMessageMapper implements MessageMapper {
 
+    static final String ALIAS = "header";
     /**
      * The context representing this mapper
      */
-    static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
-            AddHeaderMessageMapper.class.getCanonicalName(),
-            Collections.emptyMap()
+    static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(ALIAS, Collections.emptyMap()
     );
 
     static final Map.Entry<String, String> INBOUND_HEADER =

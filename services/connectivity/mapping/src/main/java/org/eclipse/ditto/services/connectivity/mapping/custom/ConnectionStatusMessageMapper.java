@@ -36,6 +36,7 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
  * the mapping configuration. The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
  * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
  */
+@PayloadMapper(alias = "status")
 public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
     static final String HEADER_HUB_TTD = "ttd";

@@ -57,25 +57,10 @@ public final class DefaultMappingConfigTest {
     }
 
     @Test
-    public void getFactoryNameReturnsDefaultValueIfConfigIsEmpty() {
-        final DefaultMappingConfig underTest = DefaultMappingConfig.of(ConfigFactory.empty());
-
-        softly.assertThat(underTest.getFactoryName()).isEqualTo(MappingConfig.MappingConfigValue.FACTORY.getDefaultValue());
-    }
-
-    @Test
-    public void getFactoryNameReturnsValueOfConfigurationFile() {
-        final DefaultMappingConfig underTest = DefaultMappingConfig.of(mappingTestConfig);
-
-        softly.assertThat(underTest.getFactoryName()).isEqualTo("org.test.mappers.MessageMapperFactory");
-    }
-
-    @Test
     public void toStringContainsExpected() {
         final DefaultMappingConfig underTest = DefaultMappingConfig.of(mappingTestConfig);
 
         softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
-                .contains("factoryName").contains(underTest.getFactoryName())
                 .contains("javaScriptConfig");
     }
 

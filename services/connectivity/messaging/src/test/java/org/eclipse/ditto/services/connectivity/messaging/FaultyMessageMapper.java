@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.eclipse.ditto.services.connectivity.messaging.FaultyMessageMapper.ALIAS;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -21,20 +23,21 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 /**
  * Implementation of {@link MessageMapper} that always throws an exception.
  */
+@PayloadMapper(alias = ALIAS)
 public class FaultyMessageMapper implements MessageMapper {
+
+    static final String ALIAS = "faulty";
 
     /**
      * The context representing this mapper
      */
-    static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
-            FaultyMessageMapper.class.getCanonicalName(),
-            Collections.emptyMap()
-    );
+    static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(ALIAS, Collections.emptyMap());
 
     @Override
     public String getId() {

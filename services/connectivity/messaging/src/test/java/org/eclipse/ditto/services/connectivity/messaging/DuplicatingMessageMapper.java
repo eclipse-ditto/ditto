@@ -25,19 +25,22 @@ import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 /**
  * Implementation of {@link MessageMapper} that always duplicates the incoming message.
  */
+@PayloadMapper(alias = DuplicatingMessageMapper.ALIAS)
 public class DuplicatingMessageMapper implements MessageMapper {
+
+    static final String ALIAS = "duplicating";
 
     /**
      * The context representing this mapper
      */
     static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
-            DuplicatingMessageMapper.class.getCanonicalName(),
-            Collections.emptyMap()
+            ALIAS, Collections.emptyMap()
     );
     private MessageMapper delegate = new DittoMessageMapper();
     private Long n;

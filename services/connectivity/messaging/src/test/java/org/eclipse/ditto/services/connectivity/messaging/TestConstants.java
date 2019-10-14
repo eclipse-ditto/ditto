@@ -484,6 +484,71 @@ public final class TestConstants {
 
     }
 
+    public static final class Mapping {
+
+        public static final String INCOMING_MAPPING_SCRIPT = "function mapToDittoProtocolMsg(\n" +
+                "    headers,\n" +
+                "    textPayload,\n" +
+                "    bytePayload,\n" +
+                "    contentType\n" +
+                ") {\n" +
+                "\n" +
+                "    // ###\n" +
+                "    // Insert your mapping logic here\n" +
+                "    let namespace = \"org.eclipse.ditto\";\n" +
+                "    let id = \"foo-bar\";\n" +
+                "    let group = \"things\";\n" +
+                "    let channel = \"twin\";\n" +
+                "    let criterion = \"commands\";\n" +
+                "    let action = \"modify\";\n" +
+                "    let path = \"/attributes/foo\";\n" +
+                "    let dittoHeaders = headers;\n" +
+                "    let value = textPayload;\n" +
+                "    // ###\n" +
+                "\n" +
+                "    let msg = Ditto.buildDittoProtocolMsg(\n" +
+                "        namespace,\n" +
+                "        id,\n" +
+                "        group,\n" +
+                "        channel,\n" +
+                "        criterion,\n" +
+                "        action,\n" +
+                "        path,\n" +
+                "        dittoHeaders,\n" +
+                "        value\n" +
+                "    );\n" +
+                "    return msg;\n" +
+                "}";
+
+        public static final String OUTGOING_MAPPING_SCRIPT = "function mapFromDittoProtocolMsg(\n" +
+                "    namespace,\n" +
+                "    id,\n" +
+                "    group,\n" +
+                "    channel,\n" +
+                "    criterion,\n" +
+                "    action,\n" +
+                "    path,\n" +
+                "    dittoHeaders,\n" +
+                "    value\n" +
+                ") {\n" +
+                "\n" +
+                "    // ###\n" +
+                "    // Insert your mapping logic here\n" +
+                "    let headers = {};\n" +
+                "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
+                "    let textPayload = \"Topic was: \" + namespace + \":\" + id;\n" +
+                "    let contentType = \"text/plain\";\n" +
+                "    // ###\n" +
+                "\n" +
+                "     return Ditto.buildExternalMsg(\n" +
+                "        headers,\n" +
+                "        textPayload,\n" +
+                "        null,\n" +
+                "        contentType\n" +
+                "    );" +
+                "}";
+    }
+
     private static <K, V> Map.Entry<K, V> entry(final K interval, final V count) {
         return new AbstractMap.SimpleImmutableEntry<>(interval, count);
     }

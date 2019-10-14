@@ -21,20 +21,21 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 /**
  * Implementation of {@link MessageMapper} that always drops.
  */
+@PayloadMapper(alias = DroppingMessageMapper.ALIAS)
 public class DroppingMessageMapper implements MessageMapper {
+
+    static final String ALIAS = "dropping";
 
     /**
      * The context representing this mapper
      */
-    static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
-            DroppingMessageMapper.class.getCanonicalName(),
-            Collections.emptyMap()
-    );
+    static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(ALIAS, Collections.emptyMap());
 
     @Override
     public String getId() {

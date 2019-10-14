@@ -45,8 +45,6 @@ import akka.testkit.javadsl.TestKit;
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultMessageMapperFactoryTest {
 
-    private static final String KNOWN_FACTORY_NAME = "org.eclipse.ditto.services.connectivity.mapping.test.Mappers";
-
     private static MappingConfig mappingConfig;
     private static ActorSystem system;
 
@@ -58,7 +56,7 @@ public final class DefaultMessageMapperFactoryTest {
     @BeforeClass
     public static void initTestFixture() {
         final Config testConfig = ConfigFactory.parseMap(
-                Collections.singletonMap("ditto.connectivity.mapping.factory", KNOWN_FACTORY_NAME));
+                Collections.singletonMap("ditto.connectivity.mapping.factory", ""));
         mappingConfig = DefaultMappingConfig.of(testConfig.getConfig("ditto.connectivity"));
 
         system = ActorSystem.create("test", testConfig);
@@ -95,15 +93,19 @@ public final class DefaultMessageMapperFactoryTest {
     @Test
     public void loadMapperFromClass() {
         final MappingContext ctx = MappingContexts.mock(true);
-
         assertThat(underTest.mapperOf("test", ctx)).isPresent();
     }
 
     @Test
-    public void loadMissingMapper() {
-        final MappingContext ctx = MappingContexts.mock("not-a-class", Collections.emptyMap());
-
+    public void loadMapperWitInvalidOptions() {
+        final MappingContext ctx = MappingContexts.mock(false);
         assertThat(underTest.mapperOf("test", ctx)).isEmpty();
+    }
+
+    @Test
+    public void loadMissingMapper() {
+        final MappingContext ctx = MappingContexts.mock("missing-mapper", Collections.emptyMap());
+        assertThat(underTest.mapperOf("missing-mapper-id", ctx)).isEmpty();
     }
 
     @Test
@@ -111,47 +113,29 @@ public final class DefaultMessageMapperFactoryTest {
         final MappingContext ctx = MappingContexts.mock(String.class.getCanonicalName(),
                 Collections.emptyMap());
 
-        assertThat(underTest.mapperOf("test", ctx)).isEmpty();
+        assertThat(underTest.mapperOf("some-id", ctx)).isEmpty();
     }
 
     @Test
     public void createWithFactoryMethod() {
         // looking for a method containing 'test' and returning a MessageMapper in Mappers.class
-        final MappingContext ctx = MappingContexts.mock("test", Collections.emptyMap());
-        assertThat(underTest.createMessageMapperInstance(ctx)).isPresent();
-    }
-
-    @Test
-    public void createWithFactoryMethodFindsNoMethod() {
-        // looking for a message containing 'strong-smell-wasabi' which does not exist in Mappers.class and therefore
-        // expect an empty optional
-        final MappingContext ctx = MappingContexts.mock("strong-smell-wasabi",
-                Collections.emptyMap());
-
-        assertThat(underTest.createMessageMapperInstance(ctx)).isEmpty();
+        assertThat(underTest.createMessageMapperInstance("test")).isPresent();
     }
 
     @Test
     public void createWithClassName() {
         // MockMapper extends MessageMapper and can be loaded
-        final MappingContext ctx = MappingContexts.mock(MockMapper.class, Collections.emptyMap());
-
-        assertThat(underTest.createMessageMapperInstance(ctx)).isPresent();
+        assertThat(underTest.createMessageMapperInstance("test")).isPresent();
     }
 
     @Test
     public void createWithClassNameFindsNoClass() {
-        final MappingContext ctx = MappingContexts.mock("not-a-class", Collections.emptyMap());
-
-        assertThat(underTest.createMessageMapperInstance(ctx)).isEmpty();
+        assertThat(underTest.createMessageMapperInstance("strong-smell-wasabi")).isEmpty();
     }
 
     @Test
     public void createWithClassNameFailsForNonMapperClass() {
-        // load string as a MessageMapper -> should fail
-        final MappingContext ctx = MappingContexts.mock(String.class.getCanonicalName(), Collections.emptyMap());
-
-        assertThat(underTest.createMessageMapperInstance(ctx)).isEmpty();
+        assertThat(underTest.createMessageMapperInstance(String.class.getCanonicalName())).isEmpty();
     }
 
     @Test
