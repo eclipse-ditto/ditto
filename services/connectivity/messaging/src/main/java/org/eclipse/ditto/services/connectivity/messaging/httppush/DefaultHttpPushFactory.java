@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 
 import akka.actor.ActorSystem;
@@ -59,24 +59,24 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     private final ClientTransport clientTransport;
 
     private DefaultHttpPushFactory(final ConnectionId connectionId, final Uri baseUri, final int parallelism,
-            final SSLContextCreator sslContextCreator, @Nullable final HttpProxyConfig httpProxyConfig) {
+            final SSLContextCreator sslContextCreator, final HttpPushConfig httpPushConfig) {
         this.connectionId = connectionId;
         this.baseUri = baseUri;
         this.parallelism = parallelism;
         this.sslContextCreator = sslContextCreator;
-        if (httpProxyConfig == null || !httpProxyConfig.isEnabled()) {
+        if (!httpPushConfig.getHttpProxyConfig().isEnabled()) {
             clientTransport = null;
         } else {
-            clientTransport = httpProxyConfig.toClientTransport();
+            clientTransport = httpPushConfig.getHttpProxyConfig().toClientTransport();
         }
     }
 
-    static HttpPushFactory of(final Connection connection, @Nullable final HttpProxyConfig httpProxyConfig) {
+    static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig) {
         final ConnectionId connectionId = connection.getId();
         final Uri baseUri = Uri.create(connection.getUri());
         final int parallelism = parseParallelism(connection.getSpecificConfig());
         final SSLContextCreator sslContextCreator = SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
-        return new DefaultHttpPushFactory(connectionId, baseUri, parallelism, sslContextCreator, httpProxyConfig);
+        return new DefaultHttpPushFactory(connectionId, baseUri, parallelism, sslContextCreator, httpPushConfig);
     }
 
     @Override

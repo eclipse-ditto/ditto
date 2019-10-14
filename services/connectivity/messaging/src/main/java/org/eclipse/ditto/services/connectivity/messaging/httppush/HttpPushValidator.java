@@ -40,6 +40,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpMethods;
+import akka.http.javadsl.model.Uri;
 
 /**
  * Validation of http-push connections.
@@ -75,10 +76,33 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "HTTP");
+        validateBlacklistedHostnames(connection, dittoHeaders, actorSystem);
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
         validateMappingContext(connection, actorSystem, dittoHeaders);
         validateParallelism(connection.getSpecificConfig(), actorSystem, dittoHeaders);
+    }
+
+    private static void validateBlacklistedHostnames(final Connection connection, final DittoHeaders dittoHeaders,
+            final ActorSystem actorSystem) {
+
+        final Collection<String> configuredBlacklistedHostnames = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        ).getConnectionConfig()
+                .getHttpPushConfig()
+                .getBlacklistedHostnames();
+        final Collection<String> blacklisted =
+                HttpPublisherActor.calculateBlacklistedHostnames(configuredBlacklistedHostnames, actorSystem.log());
+
+        final String connectionHostAddress = Uri.create(connection.getUri()).getHost().address();
+        if (blacklisted.contains(connectionHostAddress)) {
+            final String errorMessage = String.format("The configured host '%s' may not be used for the connection.",
+                    connectionHostAddress);
+            throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                    .description("It is a blacklisted hostname which may not be used.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     @Override

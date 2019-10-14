@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.http.DefaultHttpProxyConfig;
@@ -35,11 +37,14 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
     private final int maxParallelism;
     private final int maxQueueSize;
     private final HttpProxyConfig httpProxyConfig;
+    private final Collection<String> blacklistedHostnames;
 
     private DefaultHttpPushConfig(final ScopedConfig config) {
         maxParallelism = config.getInt(ConfigValue.MAX_PARALLELISM.getConfigPath());
         maxQueueSize = config.getInt(ConfigValue.MAX_QUEUE_SIZE.getConfigPath());
         httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
+        final String blacklistedHostnamesStr = config.getString(ConfigValue.BLACKLISTED_HOSTNAMES.getConfigPath());
+        blacklistedHostnames = Collections.unmodifiableCollection(Arrays.asList(blacklistedHostnamesStr.split(",")));
     }
 
     static DefaultHttpPushConfig of(final Config config) {
@@ -62,7 +67,12 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
     }
 
     @Override
-    public boolean equals(@Nullable final Object o) {
+    public Collection<String> getBlacklistedHostnames() {
+        return blacklistedHostnames;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -71,12 +81,14 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
         }
         final DefaultHttpPushConfig that = (DefaultHttpPushConfig) o;
         return maxParallelism == that.maxParallelism &&
-                maxQueueSize == that.maxQueueSize;
+                maxQueueSize == that.maxQueueSize &&
+                Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
+                Objects.equals(blacklistedHostnames, that.blacklistedHostnames);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxParallelism, maxQueueSize);
+        return Objects.hash(maxParallelism, maxQueueSize, httpProxyConfig, blacklistedHostnames);
     }
 
     @Override
@@ -84,7 +96,8 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
         return getClass().getSimpleName() + " [" +
                 "maxParallelism=" + maxParallelism +
                 ", maxQueueSize=" + maxQueueSize +
+                ", httpProxyConfig=" + httpProxyConfig +
+                ", blacklistedHostnames=" + blacklistedHostnames +
                 "]";
     }
-
 }

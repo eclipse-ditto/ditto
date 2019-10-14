@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
@@ -57,19 +58,18 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     @Nullable
     private ActorRef httpPublisherActor;
-    private final HttpProxyConfig httpProxyConfig;
+    private final HttpPushConfig httpPushConfig;
 
     @SuppressWarnings("unused")
     private HttpPushClientActor(final Connection connection, final ConnectivityStatus desiredConnectionStatus) {
         super(connection, desiredConnectionStatus, ActorRef.noSender());
 
-        httpProxyConfig = DittoConnectivityConfig.of(
+        httpPushConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         )
                 .getConnectionConfig()
-                .getHttpPushConfig()
-                .getHttpProxyConfig();
-        factory = HttpPushFactory.of(connection, httpProxyConfig);
+                .getHttpPushConfig();
+        factory = HttpPushFactory.of(connection, httpPushConfig);
     }
 
     /**
@@ -84,7 +84,7 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     @Override
     protected boolean canConnectViaSocket(final Connection connection) {
-        if (httpProxyConfig.isEnabled()) {
+        if (httpPushConfig.getHttpProxyConfig().isEnabled()) {
             return connectViaProxy(connection.getHostname(), connection.getPort())
                     .handle((status, throwable) -> status instanceof Status.Success)
                     .toCompletableFuture()
@@ -145,7 +145,7 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     private CompletionStage<Status.Status> testSSL(final Connection connection, final String hostWithoutLookup,
             final int port) {
-        if (httpProxyConfig.isEnabled()) {
+        if (httpPushConfig.getHttpProxyConfig().isEnabled()) {
             // don't do a second proxy check
             return statusSuccessFuture("TLS connection to '%s:%d' via Http proxy established successfully.",
                     hostWithoutLookup, port);
@@ -164,6 +164,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     }
 
     private CompletionStage<Status.Status> connectViaProxy(final String hostWithoutLookup, final int port) {
+        final HttpProxyConfig httpProxyConfig = this.httpPushConfig.getHttpProxyConfig();
         try (final Socket proxySocket = new Socket(httpProxyConfig.getHostname(), httpProxyConfig.getPort())) {
             String proxyConnect = "CONNECT " + hostWithoutLookup + ":" + port + " HTTP/1.1\n";
             proxyConnect += "Host: " + hostWithoutLookup + ":" + port;

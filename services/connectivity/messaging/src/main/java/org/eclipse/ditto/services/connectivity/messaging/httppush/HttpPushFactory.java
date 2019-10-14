@@ -12,10 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -59,10 +57,10 @@ public interface HttpPushFactory {
      * with undefined behavior if the connection is not valid.
      *
      * @param connection the connection.
-     * @param httpProxyConfig proxy configuration, or null if no proxy is needed.
+     * @param httpPushConfig configuration of Http connections.
      * @return the HTTP-push-factory.
      */
-    static HttpPushFactory of(final Connection connection, @Nullable final HttpProxyConfig httpProxyConfig) {
-        return DefaultHttpPushFactory.of(connection, httpProxyConfig);
+    static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig) {
+        return DefaultHttpPushFactory.of(connection, httpPushConfig);
     }
 }

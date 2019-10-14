@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
@@ -27,9 +29,13 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.http.DefaultHttpProxyConfig;
 import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.config.DefaultConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,6 +81,7 @@ public final class HttpPushFactoryTest {
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
     private BlockingQueue<CompletableFuture<HttpResponse>> responseQueue;
+    private DefaultConnectionConfig connectionConfig;
 
     public HttpPushFactoryTest() {
         killSwitchTrigger.offer(new CompletableFuture<>());
@@ -83,6 +90,9 @@ public final class HttpPushFactoryTest {
     @Before
     public void createActorSystem() {
         actorSystem = ActorSystem.create(getClass().getSimpleName(), TestConstants.CONFIG);
+        connectionConfig = DefaultConnectionConfig.of(
+                DittoServiceConfig.of(
+                        DefaultScopedConfig.dittoScoped(TestConstants.CONFIG), "connectivity"));
         mat = ActorMaterializer.create(actorSystem);
         newBinding();
         connection = createHttpPushConnection(binding);
@@ -100,7 +110,7 @@ public final class HttpPushFactoryTest {
         connection = connection.toBuilder()
                 .uri("http://127.0.0.1:" + binding.localAddress().getPort() + "/path/prefix/")
                 .build();
-        final HttpPushFactory underTest = HttpPushFactory.of(connection, null);
+        final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig());
         final HttpRequest request = underTest.newRequest(HttpPublishTarget.of("PUT:/path/appendage/"));
         assertThat(request.method()).isEqualTo(HttpMethods.PUT);
         assertThat(request.getUri().getPathString()).isEqualTo("/path/prefix/path/appendage/");
@@ -112,7 +122,7 @@ public final class HttpPushFactoryTest {
         connection = connection.toBuilder()
                 .uri("http://username:password@127.0.0.1:" + binding.localAddress().getPort() + "/path/prefix/")
                 .build();
-        final HttpPushFactory underTest = HttpPushFactory.of(connection, null);
+        final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig());
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);
         final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
@@ -138,7 +148,27 @@ public final class HttpPushFactoryTest {
                 .build();
 
         // GIVEN: the HTTP-push factory has the proxy configured to the test server binding
-        final HttpPushFactory underTest = HttpPushFactory.of(connection, getEnabledProxyConfig(binding));
+        final HttpPushFactory underTest = HttpPushFactory.of(connection, new HttpPushConfig() {
+                    @Override
+                    public int getMaxParallelism() {
+                        return 0;
+                    }
+
+                    @Override
+                    public int getMaxQueueSize() {
+                        return 0;
+                    }
+
+                    @Override
+                    public HttpProxyConfig getHttpProxyConfig() {
+                        return getEnabledProxyConfig(binding);
+                    }
+
+                    @Override
+                    public Collection<String> getBlacklistedHostnames() {
+                        return Collections.emptyList();
+                    }
+        });
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);
         final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
@@ -163,7 +193,7 @@ public final class HttpPushFactoryTest {
     public void handleFailure() throws Exception {
         new TestKit(actorSystem) {{
             // GIVEN: An HTTP-push connection is established against localhost.
-            final HttpPushFactory underTest = HttpPushFactory.of(connection, null);
+            final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig());
             final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                     newSourceSinkQueues(underTest);
             final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();

@@ -12,11 +12,17 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 
@@ -38,6 +44,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
@@ -76,6 +83,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private final ActorMaterializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
+    private final Collection<String> blacklistedHostsAndIps;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final ConnectionId connectionId, final List<Target> targets,
@@ -87,6 +95,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         config = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
                 .getConnectionConfig()
                 .getHttpPushConfig();
+        blacklistedHostsAndIps = calculateBlacklistedHostnames(config.getBlacklistedHostnames(), log);
 
         materializer = ActorMaterializer.create(getContext());
         sourceQueue =
@@ -94,6 +103,26 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .viaMat(factory.createFlow(system, log), Keep.left())
                         .toMat(Sink.foreach(this::processResponse), Keep.left())
                         .run(materializer);
+    }
+
+    static Collection<String> calculateBlacklistedHostnames(final Collection<String> configuredBlacklistedHostnames,
+            final LoggingAdapter log) {
+        final Set<String> blacklistedHostsAndIps = new HashSet<>(configuredBlacklistedHostnames);
+        configuredBlacklistedHostnames.stream()
+                .filter(host -> !host.isEmpty())
+                .forEach(host -> {
+                    try {
+                        Arrays.asList(InetAddress.getAllByName(host)).forEach(inetAddress -> {
+                            blacklistedHostsAndIps.add(inetAddress.getHostName());
+                            blacklistedHostsAndIps.add(inetAddress.getHostAddress());
+                        });
+                    } catch (final UnknownHostException e) {
+                        log.info("Could not resolve hostname during building blacklisted hostnames set: <{}>",
+                                host);
+                    }
+                }
+        );
+        return blacklistedHostsAndIps;
     }
 
     static Props props(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
@@ -125,8 +154,15 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
 
         final HttpRequest request = createRequest(publishTarget, message);
-        sourceQueue.offer(Pair.create(request, new HttpPushContext(message, request.getUri())))
-                .handle(handleQueueOfferResult(message));
+        final String requestAddress = request.getUri().host().address();
+        if (blacklistedHostsAndIps.contains(requestAddress)) {
+            log.warning("Tried to publish HTTP message to blacklisted host: <{}> - dropping!", requestAddress);
+            responseDroppedMonitor.failure(message, "Message dropped as the target address <{0}> is blacklisted " +
+                            "and may not be used", requestAddress);
+        } else {
+            sourceQueue.offer(Pair.create(request, new HttpPushContext(message, request.getUri())))
+                    .handle(handleQueueOfferResult(message));
+        }
     }
 
     @Override
@@ -181,7 +217,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else if (queueOfferResult == QueueOfferResult.dropped()) {
                 log.debug("HTTP request dropped due to full queue");
                 responseDroppedMonitor.failure(message,
-                        "Message dropped because the number of ongoing requests exceeded {0}.",
+                        "Message dropped because the number of ongoing requests exceeded <{0}>",
                         config.getMaxQueueSize());
             }
             return null;
