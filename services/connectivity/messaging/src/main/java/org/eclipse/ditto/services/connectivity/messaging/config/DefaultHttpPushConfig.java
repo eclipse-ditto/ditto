@@ -34,13 +34,11 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
 
     private static final String CONFIG_PATH = "http-push";
 
-    private final int maxParallelism;
     private final int maxQueueSize;
     private final HttpProxyConfig httpProxyConfig;
     private final Collection<String> blacklistedHostnames;
 
     private DefaultHttpPushConfig(final ScopedConfig config) {
-        maxParallelism = config.getInt(ConfigValue.MAX_PARALLELISM.getConfigPath());
         maxQueueSize = config.getInt(ConfigValue.MAX_QUEUE_SIZE.getConfigPath());
         httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
         final String blacklistedHostnamesStr = config.getString(ConfigValue.BLACKLISTED_HOSTNAMES.getConfigPath());
@@ -49,11 +47,6 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
 
     static DefaultHttpPushConfig of(final Config config) {
         return new DefaultHttpPushConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
-    }
-
-    @Override
-    public int getMaxParallelism() {
-        return maxParallelism;
     }
 
     @Override
@@ -80,22 +73,20 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
             return false;
         }
         final DefaultHttpPushConfig that = (DefaultHttpPushConfig) o;
-        return maxParallelism == that.maxParallelism &&
-                maxQueueSize == that.maxQueueSize &&
+        return maxQueueSize == that.maxQueueSize &&
                 Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
                 Objects.equals(blacklistedHostnames, that.blacklistedHostnames);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxParallelism, maxQueueSize, httpProxyConfig, blacklistedHostnames);
+        return Objects.hash(maxQueueSize, httpProxyConfig, blacklistedHostnames);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "maxParallelism=" + maxParallelism +
-                ", maxQueueSize=" + maxQueueSize +
+                "maxQueueSize=" + maxQueueSize +
                 ", httpProxyConfig=" + httpProxyConfig +
                 ", blacklistedHostnames=" + blacklistedHostnames +
                 "]";

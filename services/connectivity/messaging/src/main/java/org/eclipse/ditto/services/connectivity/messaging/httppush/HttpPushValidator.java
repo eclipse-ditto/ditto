@@ -24,15 +24,12 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -80,7 +77,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
         validateMappingContext(connection, actorSystem, dittoHeaders);
-        validateParallelism(connection.getSpecificConfig(), actorSystem, dittoHeaders);
+        validateParallelism(connection.getSpecificConfig(), dittoHeaders);
     }
 
     private static void validateBlacklistedHostnames(final Connection connection, final DittoHeaders dittoHeaders,
@@ -154,41 +151,28 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         }
     }
 
-    private void validateParallelism(final Map<String, String> specificConfig, final ActorSystem actorSystem,
-            final DittoHeaders dittoHeaders) {
-        final ConnectionConfig connectionConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        ).getConnectionConfig();
+    private void validateParallelism(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders) {
 
         final String parallelismString = specificConfig.get(HttpPushFactory.PARALLELISM);
         if (parallelismString != null) {
             try {
                 final int parallelism = Integer.parseInt(parallelismString);
-                if (parallelism <= 0 || parallelism > connectionConfig.getHttpPushConfig().getMaxParallelism()) {
-                    throw parallelismValidationFailed(parallelismString, dittoHeaders, connectionConfig);
+                if (parallelism <= 0) {
+                    throw parallelismValidationFailed(parallelismString, dittoHeaders);
                 }
             } catch (final NumberFormatException e) {
-                throw parallelismValidationFailed(parallelismString, dittoHeaders, connectionConfig);
+                throw parallelismValidationFailed(parallelismString, dittoHeaders);
             }
         }
     }
 
     private static ConnectionConfigurationInvalidException parallelismValidationFailed(final String parallelismString,
-            final DittoHeaders headers, @Nullable final ConnectionConfig config) {
+            final DittoHeaders headers) {
 
-        final String errorMessage;
-        if (config == null) {
-            errorMessage = String.format(
-                    "The configured value '%s' of '%s' is invalid. It must be a positive integer.",
-                    parallelismString, HttpPushFactory.PARALLELISM);
-        } else {
-            errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
-                            "It must be a positive integer between 1 and %d.",
+        final String errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
+                        "It must be a positive integer.",
                     parallelismString,
-                    HttpPushFactory.PARALLELISM,
-                    config.getHttpPushConfig().getMaxParallelism()
-            );
-        }
+                    HttpPushFactory.PARALLELISM);
         return ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                 .dittoHeaders(headers)
                 .build();

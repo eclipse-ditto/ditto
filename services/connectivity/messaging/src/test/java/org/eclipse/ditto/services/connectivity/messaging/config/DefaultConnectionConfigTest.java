@@ -109,9 +109,6 @@ public final class DefaultConnectionConfigTest {
         softly.assertThat(underTest.getHttpPushConfig())
                 .as("httpPushConfig")
                 .satisfies(httpPushConfig -> {
-                    softly.assertThat(httpPushConfig.getMaxParallelism())
-                            .as(HttpPushConfig.ConfigValue.MAX_PARALLELISM.getConfigPath())
-                            .isEqualTo(8);
                     softly.assertThat(httpPushConfig.getMaxQueueSize())
                             .as(HttpPushConfig.ConfigValue.MAX_QUEUE_SIZE.getConfigPath())
                             .isEqualTo(9);

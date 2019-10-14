@@ -23,11 +23,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface HttpPushConfig {
 
     /**
-     * @return maximum number of concurrent requests per connection.
-     */
-    int getMaxParallelism();
-
-    /**
      * @return maximum number of messages buffered at the publisher actor before dropping them.
      */
     int getMaxQueueSize();
@@ -47,11 +42,6 @@ public interface HttpPushConfig {
      * {@code HttpPushConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
-
-        /**
-         * How many parallel requests per connection to permit. Each takes up one outgoing TCP connection.
-         */
-        MAX_PARALLELISM("max-parallelism", 1),
 
         /**
          * How many messages to buffer in the publisher actor before dropping them. Each takes up to 100 KB heap space.

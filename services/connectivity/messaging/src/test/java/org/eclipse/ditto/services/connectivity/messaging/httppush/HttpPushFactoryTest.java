@@ -150,11 +150,6 @@ public final class HttpPushFactoryTest {
         // GIVEN: the HTTP-push factory has the proxy configured to the test server binding
         final HttpPushFactory underTest = HttpPushFactory.of(connection, new HttpPushConfig() {
                     @Override
-                    public int getMaxParallelism() {
-                        return 0;
-                    }
-
-                    @Override
                     public int getMaxQueueSize() {
                         return 0;
                     }
