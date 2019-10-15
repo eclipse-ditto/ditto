@@ -17,14 +17,14 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -45,6 +45,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.LoggingAdapter;
+import akka.http.javadsl.model.Host;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
@@ -83,7 +84,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private final ActorMaterializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
-    private final Collection<String> blacklistedHostsAndIps;
+    private final Collection<InetAddress> blacklistedAddresses;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final ConnectionId connectionId, final List<Target> targets,
@@ -95,7 +96,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         config = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
                 .getConnectionConfig()
                 .getHttpPushConfig();
-        blacklistedHostsAndIps = calculateBlacklistedHostnames(config.getBlacklistedHostnames(), log);
+        blacklistedAddresses = calculateBlacklistedHostnames(config.getBlacklistedHostnames(), log);
 
         materializer = ActorMaterializer.create(getContext());
         sourceQueue =
@@ -105,24 +106,38 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .run(materializer);
     }
 
-    static Collection<String> calculateBlacklistedHostnames(final Collection<String> configuredBlacklistedHostnames,
+    static Collection<InetAddress> calculateBlacklistedHostnames(
+            final Collection<String> configuredBlacklistedHostnames,
             final LoggingAdapter log) {
-        final Set<String> blacklistedHostsAndIps = new HashSet<>(configuredBlacklistedHostnames);
-        configuredBlacklistedHostnames.stream()
+
+        return configuredBlacklistedHostnames.stream()
                 .filter(host -> !host.isEmpty())
-                .forEach(host -> {
+                .flatMap(host -> {
                     try {
-                        Arrays.asList(InetAddress.getAllByName(host)).forEach(inetAddress -> {
-                            blacklistedHostsAndIps.add(inetAddress.getHostName());
-                            blacklistedHostsAndIps.add(inetAddress.getHostAddress());
-                        });
+                        return Stream.of(InetAddress.getAllByName(host));
                     } catch (final UnknownHostException e) {
-                        log.info("Could not resolve hostname during building blacklisted hostnames set: <{}>",
+                        log.error(e, "Could not resolve hostname during building blacklisted hostnames set: <{}>",
                                 host);
+                        return Stream.empty();
                     }
-                }
-        );
-        return blacklistedHostsAndIps;
+                })
+                .collect(Collectors.toSet());
+    }
+
+    static boolean isHostForbidden(final Host host, final Collection<InetAddress> blacklistedAddresses) {
+        if (blacklistedAddresses.isEmpty()) {
+            // If not even localhost is blacklisted, then permit even private, loopback, multicast and wildcard IPs.
+            return false;
+        } else {
+            // Forbid blacklisted, private, loopback, multicast and wildcard IPs.
+            return StreamSupport.stream(host.getInetAddresses().spliterator(), false)
+                    .anyMatch(requestAddress ->
+                            requestAddress.isLoopbackAddress() ||
+                                    requestAddress.isSiteLocalAddress() ||
+                                    requestAddress.isMulticastAddress() ||
+                                    requestAddress.isAnyLocalAddress() ||
+                                    blacklistedAddresses.contains(requestAddress));
+        }
     }
 
     static Props props(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
@@ -154,11 +169,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
 
         final HttpRequest request = createRequest(publishTarget, message);
-        final String requestAddress = request.getUri().host().address();
-        if (blacklistedHostsAndIps.contains(requestAddress)) {
-            log.warning("Tried to publish HTTP message to blacklisted host: <{}> - dropping!", requestAddress);
+        final Host requestHost = request.getUri().getHost();
+        if (isHostForbidden(requestHost, blacklistedAddresses)) {
+            log.warning("Tried to publish HTTP message to forbidden host: <{}> - dropping!", requestHost);
             responseDroppedMonitor.failure(message, "Message dropped as the target address <{0}> is blacklisted " +
-                            "and may not be used", requestAddress);
+                    "and may not be used", requestHost);
         } else {
             sourceQueue.offer(Pair.create(request, new HttpPushContext(message, request.getUri())))
                     .handle(handleQueueOfferResult(message));
@@ -241,7 +256,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final HttpResponse response = tryResponse.toEither().right().get();
             log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
             if (response.status().isSuccess()) {
-                responsePublishedMonitor.success(message, "HTTP call to <{0}> successfully responded with status <{1}>.",
+                responsePublishedMonitor.success(message,
+                        "HTTP call to <{0}> successfully responded with status <{1}>.",
                         stripUserInfo(requestUri), response.status());
             } else {
                 getResponseBody(response, materializer)

@@ -22,7 +22,10 @@ import java.util.function.Function;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.junit.Test;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
@@ -36,6 +39,7 @@ import akka.japi.Pair;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
 import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 import scala.util.Try;
 
 /**
@@ -53,15 +57,21 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void setupMocks(final TestProbe probe) {
-        httpPushFactory = new DummyHttpPushFactory(request -> {
+        httpPushFactory = new DummyHttpPushFactory("8.8.4.4", request -> {
             received.offer(request);
             return HttpResponse.create().withStatus(StatusCodes.OK);
         });
     }
 
+    @Test
+    public void testIpv6Blacklist() {
+        testHostBlacklist("[2001:4860:4860::1]");
+    }
+
     @Override
     protected Props getPublisherActorProps() {
-        return HttpPublisherActor.props(TestConstants.createRandomConnectionId(), Collections.emptyList(), httpPushFactory);
+        return HttpPublisherActor.props(TestConstants.createRandomConnectionId(), Collections.emptyList(),
+                httpPushFactory);
     }
 
     @Override
@@ -79,7 +89,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(request.method()).isEqualTo(HttpMethods.PATCH);
 
         // uri
-        assertThat(request.getUri().host().address()).isEqualTo("127.1.2.7");
+        assertThat(request.getUri().host().address()).isEqualTo("8.8.4.4");
         assertThat(request.getUri().port()).isEqualTo(12345);
 
         // headers
@@ -101,15 +111,17 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     private static final class DummyHttpPushFactory implements HttpPushFactory {
 
+        private final String hostname;
         private final Function<HttpRequest, HttpResponse> mapper;
 
-        private DummyHttpPushFactory(final Function<HttpRequest, HttpResponse> mapper) {
+        private DummyHttpPushFactory(final String hostname, final Function<HttpRequest, HttpResponse> mapper) {
+            this.hostname = hostname;
             this.mapper = mapper;
         }
 
         @Override
         public HttpRequest newRequest(final HttpPublishTarget httpPublishTarget) {
-            final Uri uri = Uri.create("http://127.1.2.7:12345/" + httpPublishTarget.getPathWithQuery());
+            final Uri uri = Uri.create("http://" + hostname + ":12345/" + httpPublishTarget.getPathWithQuery());
             return HttpRequest.create().withMethod(httpPublishTarget.getMethod()).withUri(uri);
         }
 
@@ -119,5 +131,24 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             return Flow.<Pair<HttpRequest, T>>create()
                     .map(pair -> Pair.create(Try.apply(() -> mapper.apply(pair.first())), pair.second()));
         }
+    }
+
+    private void testHostBlacklist(final String hostname) {
+        new TestKit(actorSystem) {{
+            // GIVEN: A connection has a blacklisted host configured
+            final TestProbe probe = new TestProbe(actorSystem);
+            httpPushFactory = new DummyHttpPushFactory(hostname, request -> {
+                probe.ref().tell(request, ActorRef.noSender());
+                return HttpResponse.create().withStatus(StatusCodes.OK);
+            });
+
+            // WHEN: the publisher is requested to send a message
+            final OutboundSignal.WithExternalMessage outboundSignal = getMockOutboundSignal();
+            final ActorRef underTest = childActorOf(getPublisherActorProps());
+            underTest.tell(outboundSignal, getRef());
+
+            // THEN: the message is dropped
+            probe.expectNoMessage();
+        }};
     }
 }

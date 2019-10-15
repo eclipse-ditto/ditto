@@ -51,6 +51,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigValueFactory;
+
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -96,7 +98,10 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     @Before
     public void createActorSystem() {
-        actorSystem = ActorSystem.create(getClass().getSimpleName(), TestConstants.CONFIG);
+        // create actor system with deactivated hostname blacklist to connect to localhost
+        actorSystem = ActorSystem.create(getClass().getSimpleName(),
+                TestConstants.CONFIG.withValue("ditto.connectivity.connection.http-push.blacklisted-hostnames",
+                        ConfigValueFactory.fromAnyRef("")));
         mat = ActorMaterializer.create(actorSystem);
         requestQueue = new LinkedBlockingQueue<>();
         responseQueue = new LinkedBlockingQueue<>();
@@ -244,7 +249,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void placeholderReplacement() throws Exception {
         final Target target = TestConstants.Targets.TARGET_WITH_PLACEHOLDER
-                        .withAddress("PATCH:" + TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress());
+                .withAddress("PATCH:" + TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress());
         connection = connection.toBuilder().setTargets(singletonList(target)).build();
 
         new TestKit(actorSystem) {{

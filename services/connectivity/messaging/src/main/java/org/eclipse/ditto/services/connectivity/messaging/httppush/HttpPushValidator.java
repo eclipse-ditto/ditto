@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeaders
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
+import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProt
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
+import akka.http.javadsl.model.Host;
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.Uri;
@@ -88,13 +90,13 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         ).getConnectionConfig()
                 .getHttpPushConfig()
                 .getBlacklistedHostnames();
-        final Collection<String> blacklisted =
+        final Collection<InetAddress> blacklisted =
                 HttpPublisherActor.calculateBlacklistedHostnames(configuredBlacklistedHostnames, actorSystem.log());
 
-        final String connectionHostAddress = Uri.create(connection.getUri()).getHost().address();
-        if (blacklisted.contains(connectionHostAddress)) {
+        final Host connectionHost = Uri.create(connection.getUri()).getHost();
+        if (HttpPublisherActor.isHostForbidden(connectionHost, blacklisted)) {
             final String errorMessage = String.format("The configured host '%s' may not be used for the connection.",
-                    connectionHostAddress);
+                    connectionHost);
             throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                     .description("It is a blacklisted hostname which may not be used.")
                     .dittoHeaders(dittoHeaders)
@@ -171,8 +173,8 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
 
         final String errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
                         "It must be a positive integer.",
-                    parallelismString,
-                    HttpPushFactory.PARALLELISM);
+                parallelismString,
+                HttpPushFactory.PARALLELISM);
         return ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                 .dittoHeaders(headers)
                 .build();
