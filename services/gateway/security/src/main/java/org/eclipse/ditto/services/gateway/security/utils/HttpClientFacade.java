@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.util;
+package org.eclipse.ditto.services.gateway.security.utils;
 
 import java.util.concurrent.CompletionStage;
 

@@ -10,13 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.config;
+package org.eclipse.ditto.services.gateway.security.config;
 
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpProxyConfig.HttpProxyConfigValue;
+import org.eclipse.ditto.services.gateway.security.config.HttpProxyConfig.HttpProxyConfigValue;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,7 +27,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.gateway.endpoints.config.DefaultHttpProxyConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.gateway.security.config.DefaultHttpProxyConfig}.
  */
 public final class DefaultHttpProxyConfigTest {
 

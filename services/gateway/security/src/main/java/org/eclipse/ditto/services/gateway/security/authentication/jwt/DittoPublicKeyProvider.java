@@ -43,7 +43,7 @@ import org.eclipse.ditto.model.jwt.ImmutableJsonWebKey;
 import org.eclipse.ditto.model.jwt.JsonWebKey;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.security.cache.PublicKeyIdWithIssuer;
-import org.eclipse.ditto.services.gateway.util.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;

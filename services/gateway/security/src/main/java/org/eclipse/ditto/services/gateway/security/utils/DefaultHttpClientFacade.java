@@ -10,15 +10,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.utils;
+package org.eclipse.ditto.services.gateway.security.utils;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpProxyConfig;
-import org.eclipse.ditto.services.gateway.util.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.security.config.HttpProxyConfig;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 
 import akka.actor.ActorSystem;

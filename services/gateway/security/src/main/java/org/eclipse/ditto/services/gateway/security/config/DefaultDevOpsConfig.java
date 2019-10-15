@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.config;
+package org.eclipse.ditto.services.gateway.security.config;
 
 import java.util.Objects;
 

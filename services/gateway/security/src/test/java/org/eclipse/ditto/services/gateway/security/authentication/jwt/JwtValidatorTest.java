@@ -30,7 +30,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import io.jsonwebtoken.ExpiredJwtException;
 
 /**
- * Unit test for {@link JwtValidator}.
+ * Unit test for {@link DefaultJwtValidator}.
  */
 @RunWith(MockitoJUnitRunner.class)
 public final class JwtValidatorTest {
@@ -49,7 +49,7 @@ public final class JwtValidatorTest {
         when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
 
-        final JwtValidator underTest = JwtValidator.getInstance(publicKeyProvider);
+        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider);
 
         final BinaryValidationResult jwtValidationResult = underTest.validate(VALID_JSON_WEB_TOKEN).get();
 
@@ -58,7 +58,10 @@ public final class JwtValidatorTest {
 
     @Test
     public void validateFails() throws ExecutionException, InterruptedException {
-        final JwtValidator underTest = JwtValidator.getInstance(publicKeyProvider);
+        when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
+
+        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider);
 
         final BinaryValidationResult jwtValidationResult = underTest.validate(INVALID_JSON_WEB_TOKEN).get();
 

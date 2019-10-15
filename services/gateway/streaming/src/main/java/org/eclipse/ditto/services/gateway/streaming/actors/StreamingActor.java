@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationContextProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -60,6 +61,8 @@ public final class StreamingActor extends AbstractActor {
 
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef commandRouter;
+    private final Gauge streamingSessionsCounter;
+    private final Cancellable sessionCounterScheduler;
     private final JwtValidator jwtValidator;
     private final JwtAuthorizationContextProvider jwtAuthorizationContextProvider;
 
@@ -72,24 +75,20 @@ public final class StreamingActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private final Gauge streamingSessionsCounter;
-    private final Cancellable sessionCounterScheduler;
-
     @SuppressWarnings("unused")
-    private StreamingActor(final DittoProtocolSub dittoProtocolSub,
-            final ActorRef commandRouter,
-            final JwtValidator jwtValidator,
-            final JwtAuthorizationContextProvider jwtAuthorizationContextProvider) {
+    private StreamingActor(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter,
+            final JwtAuthenticationFactory jwtAuthenticationFactory) {
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
-        this.jwtValidator = jwtValidator;
-        this.jwtAuthorizationContextProvider = jwtAuthorizationContextProvider;
 
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
 
         sessionCounterScheduler = getContext().getSystem().getScheduler()
                 .schedule(SESSIONS_COUNTER_SCRAPE_INTERVAL, SESSIONS_COUNTER_SCRAPE_INTERVAL,
                         this::updateStreamingSessionsCounter, getContext().getDispatcher());
+
+        jwtValidator = jwtAuthenticationFactory.getJwtValidator();
+        jwtAuthorizationContextProvider = jwtAuthenticationFactory.newJwtAuthorizationContextProvider();
     }
 
     private void updateStreamingSessionsCounter() {
@@ -109,13 +108,11 @@ public final class StreamingActor extends AbstractActor {
      *
      * @param dittoProtocolSub the Ditto protocol sub access.
      * @param commandRouter the command router used to send signals into the cluster
-     * @param jwtValidator the validator for JWT tokens.
      * @return the Akka configuration Props object.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter,
-            final JwtValidator jwtValidator, final JwtAuthorizationContextProvider jwtAuthorizationContextProvider) {
-        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtValidator,
-                jwtAuthorizationContextProvider);
+            final JwtAuthenticationFactory jwtAuthenticationFactory) {
+        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtAuthenticationFactory);
     }
 
     @Override

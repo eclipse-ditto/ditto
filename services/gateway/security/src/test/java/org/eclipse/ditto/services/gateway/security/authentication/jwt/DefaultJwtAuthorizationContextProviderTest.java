@@ -48,7 +48,7 @@ public final class DefaultJwtAuthorizationContextProviderTest {
     @Test
     public void getAuthorizationContext() {
         final DefaultJwtAuthorizationContextProvider underTest =
-                DefaultJwtAuthorizationContextProvider.getInstance(authorizationSubjectsProvider);
+                DefaultJwtAuthorizationContextProvider.of(authorizationSubjectsProvider);
         final JsonWebToken jsonWebToken = mock(JsonWebToken.class);
         final AuthorizationSubject myTestSubj = AuthorizationSubject.newInstance("myTestSubj");
         when(authorizationSubjectsProvider.getAuthorizationSubjects(jsonWebToken)).thenReturn(

@@ -22,12 +22,12 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActor;
-import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
@@ -143,7 +143,7 @@ public final class StatsRoute extends AbstractRoute {
                 .map(ByteString::utf8String)
                 .map(requestJsonToCommandFunction)
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
-                        HttpRequestActor.COMPLETE_MESSAGE))
+                        AbstractHttpRequestActor.COMPLETE_MESSAGE))
                 .run(materializer);
 
         return completeWithFuture(httpResponseFuture);
@@ -154,7 +154,7 @@ public final class StatsRoute extends AbstractRoute {
 
         Source.single(command)
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
-                        HttpRequestActor.COMPLETE_MESSAGE))
+                        AbstractHttpRequestActor.COMPLETE_MESSAGE))
                 .run(materializer);
 
         final CompletionStage<HttpResponse> allThingsCountHttpResponse = Source.fromCompletionStage(httpResponseFuture)

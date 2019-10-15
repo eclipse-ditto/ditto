@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.config;
+package org.eclipse.ditto.services.gateway.security.config;
 
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -27,7 +27,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.gateway.endpoints.config.DefaultAuthenticationConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.gateway.security.config.DefaultAuthenticationConfig}.
  */
 public final class DefaultAuthenticationConfigTest {
 
