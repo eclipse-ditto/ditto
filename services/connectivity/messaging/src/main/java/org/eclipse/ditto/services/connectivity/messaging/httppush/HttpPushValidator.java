@@ -16,7 +16,6 @@ import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeaders
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
-import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,15 +30,12 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 
 import akka.actor.ActorSystem;
-import akka.http.javadsl.model.Host;
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpMethods;
-import akka.http.javadsl.model.Uri;
 
 /**
  * Validation of http-push connections.
@@ -75,33 +71,10 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "HTTP");
-        validateBlacklistedHostnames(connection, dittoHeaders, actorSystem);
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
         validateMappingContext(connection, actorSystem, dittoHeaders);
         validateParallelism(connection.getSpecificConfig(), dittoHeaders);
-    }
-
-    private static void validateBlacklistedHostnames(final Connection connection, final DittoHeaders dittoHeaders,
-            final ActorSystem actorSystem) {
-
-        final Collection<String> configuredBlacklistedHostnames = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        ).getConnectionConfig()
-                .getHttpPushConfig()
-                .getBlacklistedHostnames();
-        final Collection<InetAddress> blacklisted =
-                HttpPublisherActor.calculateBlacklistedHostnames(configuredBlacklistedHostnames, actorSystem.log());
-
-        final Host connectionHost = Uri.create(connection.getUri()).getHost();
-        if (HttpPublisherActor.isHostForbidden(connectionHost, blacklisted)) {
-            final String errorMessage = String.format("The configured host '%s' may not be used for the connection.",
-                    connectionHost);
-            throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                    .description("It is a blacklisted hostname which may not be used.")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
     }
 
     @Override

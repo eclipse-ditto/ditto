@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -22,20 +21,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -44,7 +42,6 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.Host;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpEntity;
@@ -93,10 +90,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         this.factory = factory;
 
         final ActorSystem system = getContext().getSystem();
-        config = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
-                .getConnectionConfig()
-                .getHttpPushConfig();
-        blacklistedAddresses = calculateBlacklistedHostnames(config.getBlacklistedHostnames(), log);
+        final ConnectionConfig connectionConfig =
+                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
+                        .getConnectionConfig();
+        config = connectionConfig.getHttpPushConfig();
+        blacklistedAddresses =
+                ConnectionValidator.calculateBlacklistedAddresses(connectionConfig.getBlacklistedHostnames(), log);
 
         materializer = ActorMaterializer.create(getContext());
         sourceQueue =
@@ -104,40 +103,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .viaMat(factory.createFlow(system, log), Keep.left())
                         .toMat(Sink.foreach(this::processResponse), Keep.left())
                         .run(materializer);
-    }
-
-    static Collection<InetAddress> calculateBlacklistedHostnames(
-            final Collection<String> configuredBlacklistedHostnames,
-            final LoggingAdapter log) {
-
-        return configuredBlacklistedHostnames.stream()
-                .filter(host -> !host.isEmpty())
-                .flatMap(host -> {
-                    try {
-                        return Stream.of(InetAddress.getAllByName(host));
-                    } catch (final UnknownHostException e) {
-                        log.error(e, "Could not resolve hostname during building blacklisted hostnames set: <{}>",
-                                host);
-                        return Stream.empty();
-                    }
-                })
-                .collect(Collectors.toSet());
-    }
-
-    static boolean isHostForbidden(final Host host, final Collection<InetAddress> blacklistedAddresses) {
-        if (blacklistedAddresses.isEmpty()) {
-            // If not even localhost is blacklisted, then permit even private, loopback, multicast and wildcard IPs.
-            return false;
-        } else {
-            // Forbid blacklisted, private, loopback, multicast and wildcard IPs.
-            return StreamSupport.stream(host.getInetAddresses().spliterator(), false)
-                    .anyMatch(requestAddress ->
-                            requestAddress.isLoopbackAddress() ||
-                                    requestAddress.isSiteLocalAddress() ||
-                                    requestAddress.isMulticastAddress() ||
-                                    requestAddress.isAnyLocalAddress() ||
-                                    blacklistedAddresses.contains(requestAddress));
-        }
     }
 
     static Props props(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
@@ -170,7 +135,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         final HttpRequest request = createRequest(publishTarget, message);
         final Host requestHost = request.getUri().getHost();
-        if (isHostForbidden(requestHost, blacklistedAddresses)) {
+        if (ConnectionValidator.isHostForbidden(requestHost, blacklistedAddresses)) {
             log.warning("Tried to publish HTTP message to forbidden host: <{}> - dropping!", requestHost);
             responseDroppedMonitor.failure(message, "Message dropped as the target address <{0}> is blacklisted " +
                     "and may not be used", requestHost);

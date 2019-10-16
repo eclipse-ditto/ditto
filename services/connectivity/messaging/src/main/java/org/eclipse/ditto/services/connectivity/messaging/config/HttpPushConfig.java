@@ -33,11 +33,6 @@ public interface HttpPushConfig {
     HttpProxyConfig getHttpProxyConfig();
 
     /**
-     * @return the list of blacklisted HTTP hostnames to which sending out data will be prevented.
-     */
-    Collection<String> getBlacklistedHostnames();
-
-    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code HttpPushConfig}.
      */
@@ -46,12 +41,7 @@ public interface HttpPushConfig {
         /**
          * How many messages to buffer in the publisher actor before dropping them. Each takes up to 100 KB heap space.
          */
-        MAX_QUEUE_SIZE("max-queue-size", 10),
-
-        /**
-         * A comma separated list of blacklisted hostnames to which not http requests will be send out.
-         */
-        BLACKLISTED_HOSTNAMES("blacklisted-hostnames", "");
+        MAX_QUEUE_SIZE("max-queue-size", 10);
 
         private final String path;
         private final Object defaultValue;

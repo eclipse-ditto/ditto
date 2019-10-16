@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -36,13 +33,10 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
 
     private final int maxQueueSize;
     private final HttpProxyConfig httpProxyConfig;
-    private final Collection<String> blacklistedHostnames;
 
     private DefaultHttpPushConfig(final ScopedConfig config) {
         maxQueueSize = config.getInt(ConfigValue.MAX_QUEUE_SIZE.getConfigPath());
         httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
-        final String blacklistedHostnamesStr = config.getString(ConfigValue.BLACKLISTED_HOSTNAMES.getConfigPath());
-        blacklistedHostnames = Collections.unmodifiableCollection(Arrays.asList(blacklistedHostnamesStr.split(",")));
     }
 
     static DefaultHttpPushConfig of(final Config config) {
@@ -60,11 +54,6 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
     }
 
     @Override
-    public Collection<String> getBlacklistedHostnames() {
-        return blacklistedHostnames;
-    }
-
-    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -74,13 +63,12 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
         }
         final DefaultHttpPushConfig that = (DefaultHttpPushConfig) o;
         return maxQueueSize == that.maxQueueSize &&
-                Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
-                Objects.equals(blacklistedHostnames, that.blacklistedHostnames);
+                Objects.equals(httpProxyConfig, that.httpProxyConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxQueueSize, httpProxyConfig, blacklistedHostnames);
+        return Objects.hash(maxQueueSize, httpProxyConfig);
     }
 
     @Override
@@ -88,7 +76,6 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
         return getClass().getSimpleName() + " [" +
                 "maxQueueSize=" + maxQueueSize +
                 ", httpProxyConfig=" + httpProxyConfig +
-                ", blacklistedHostnames=" + blacklistedHostnames +
                 "]";
     }
 }

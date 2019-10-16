@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -51,6 +52,8 @@ public final class DefaultConnectionConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultConnectionConfig.class,
                 areImmutable(),
+                assumingFields("blacklistedHostnames")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 provided(DefaultSupervisorConfig.class).isAlsoImmutable(),
                 provided(DefaultSnapshotConfig.class).isAlsoImmutable(),
                 provided(DefaultMqttConfig.class).isAlsoImmutable(),
@@ -67,11 +70,15 @@ public final class DefaultConnectionConfigTest {
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultConnectionConfig underTest = DefaultConnectionConfig.of(connectionTestConf);
+        final ConnectionConfig underTest = DefaultConnectionConfig.of(connectionTestConf);
 
         softly.assertThat(underTest.getClientActorAskTimeout())
                 .as(ConnectionConfig.ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
+
+        softly.assertThat(underTest.getBlacklistedHostnames())
+                .as(ConnectionConfig.ConnectionConfigValue.BLACKLISTED_HOSTNAMES.getConfigPath())
+                .containsExactly("localhost");
 
         softly.assertThat(underTest.getSupervisorConfig())
                 .as("supervisorConfig")

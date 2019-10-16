@@ -105,21 +105,6 @@ public final class HttpPushValidatorTest {
         verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("DELETE:/bar"));
     }
 
-    @Test
-    public void testInvalidHosts() {
-        final String target = "POST:events";
-        // wildcard
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithHostAndTarget("0.0.0.0", target));
-        // blacklisted
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithHostAndTarget("8.8.8.8", target));
-        // loopback
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithHostAndTarget("[::1]", target));
-        // private
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithHostAndTarget("192.168.0.1", target));
-        // multicast
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithHostAndTarget("224.0.1.1", target));
-    }
-
     private static Connection getConnectionWithTarget(final String target) {
         return getConnectionWithHostAndTarget("8.8.4.4", target);
     }

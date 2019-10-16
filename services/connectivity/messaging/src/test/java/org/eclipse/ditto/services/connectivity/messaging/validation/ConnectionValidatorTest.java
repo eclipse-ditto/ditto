@@ -16,7 +16,6 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
-import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.createConnection;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -44,7 +43,10 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigValueFactory;
+
 import akka.actor.ActorSystem;
+import akka.http.javadsl.model.Uri;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -58,7 +60,9 @@ public class ConnectionValidatorTest {
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("AkkaTestSystem",
+                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blacklisted-hostnames",
+                        ConfigValueFactory.fromAnyRef("8.8.8.8,2001:4860:4860:0000:0000:0000:0000:0001")));
     }
 
     @AfterClass
@@ -220,6 +224,39 @@ public class ConnectionValidatorTest {
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void testInvalidHosts() {
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        // wildcard
+        expectConnectionConfigurationInvalid(underTest, getConnectionWithHost("0.0.0.0"));
+        // blacklisted
+        expectConnectionConfigurationInvalid(underTest, getConnectionWithHost("8.8.8.8"));
+        // loopback
+        expectConnectionConfigurationInvalid(underTest, getConnectionWithHost("[::1]"));
+        // private
+        expectConnectionConfigurationInvalid(underTest, getConnectionWithHost("192.168.0.1"));
+        // multicast
+        expectConnectionConfigurationInvalid(underTest, getConnectionWithHost("224.0.1.1"));
+    }
+
+    private static void expectConnectionConfigurationInvalid(final ConnectionValidator underTest,
+            final Connection connection) {
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    private static Connection getConnectionWithHost(final String host) {
+        final Connection template = createConnection(CONNECTION_ID);
+        final Uri newUri = Uri.create(template.getUri()).host(host);
+        return template.toBuilder().uri(newUri.toString()).build();
+    }
+
+    private static Connection createConnection(final ConnectionId connectionId) {
+        return TestConstants.createConnection(connectionId).toBuilder()
+                .uri("amqps://8.8.4.4:443")
+                .build();
     }
 
 }

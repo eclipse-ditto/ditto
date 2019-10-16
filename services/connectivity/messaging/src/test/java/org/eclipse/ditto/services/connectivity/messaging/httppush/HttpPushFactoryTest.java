@@ -15,8 +15,6 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
@@ -149,20 +147,15 @@ public final class HttpPushFactoryTest {
 
         // GIVEN: the HTTP-push factory has the proxy configured to the test server binding
         final HttpPushFactory underTest = HttpPushFactory.of(connection, new HttpPushConfig() {
-                    @Override
-                    public int getMaxQueueSize() {
-                        return 0;
-                    }
+            @Override
+            public int getMaxQueueSize() {
+                return 0;
+            }
 
-                    @Override
-                    public HttpProxyConfig getHttpProxyConfig() {
-                        return getEnabledProxyConfig(binding);
-                    }
-
-                    @Override
-                    public Collection<String> getBlacklistedHostnames() {
-                        return Collections.emptyList();
-                    }
+            @Override
+            public HttpProxyConfig getHttpProxyConfig() {
+                return getEnabledProxyConfig(binding);
+            }
         });
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
 import java.time.Duration;
+import java.util.Collection;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -35,6 +36,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
      * @return the timeout.
      */
     Duration getClientActorAskTimeout();
+
+    /**
+     * @return the list of blacklisted hostnames to which outgoing connections are prevented.
+     * Outgoing connections to private, wildcard, loopback and multicast addresses are also prevented
+     * when the list is nonempty.
+     */
+    Collection<String> getBlacklistedHostnames();
 
     /**
      * Returns the config of the connection snapshotting behaviour.
@@ -85,7 +93,12 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         /**
          * The amount of time for how long the connection actor waits for response from client actors.
          */
-        CLIENT_ACTOR_ASK_TIMEOUT("client-actor-ask-timeout", Duration.ofSeconds(60L));
+        CLIENT_ACTOR_ASK_TIMEOUT("client-actor-ask-timeout", Duration.ofSeconds(60L)),
+
+        /**
+         * A comma separated list of blacklisted hostnames to which not http requests will be send out.
+         */
+        BLACKLISTED_HOSTNAMES("blacklisted-hostnames", "");
 
         private final String path;
         private final Object defaultValue;
