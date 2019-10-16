@@ -12,27 +12,34 @@
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 
 /**
  * Message indicating a demand to receive entities of a specified {@link StreamingType} via a "streaming" connection.
  */
+@Immutable
 public final class StopStreaming {
 
     private final StreamingType streamingType;
     private final String connectionCorrelationId;
 
     /**
-     * Constructs a new {@link StopStreaming} instance.
+     * Constructs a new {@code StopStreaming} object.
      *
      * @param streamingType the type of entity to start the streaming for.
-     * @param connectionCorrelationId the correlationId of the connection/session.
+     * @param connectionCorrelationId the correlation ID of the connection/session.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public StopStreaming(final StreamingType streamingType, final String connectionCorrelationId) {
-        this.streamingType = streamingType;
-        this.connectionCorrelationId = connectionCorrelationId;
+        this.streamingType = checkNotNull(streamingType, "streamingType");
+        this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId");
     }
 
     /**
@@ -47,9 +54,13 @@ public final class StopStreaming {
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final StopStreaming that = (StopStreaming) o;
         return streamingType == that.streamingType &&
                 Objects.equals(connectionCorrelationId, that.connectionCorrelationId);
@@ -67,4 +78,5 @@ public final class StopStreaming {
                 ", connectionCorrelationId=" + connectionCorrelationId +
                 "]";
     }
+
 }
