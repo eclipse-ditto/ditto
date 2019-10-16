@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
- * Thrown if an RQL expression is invalid.
+ * Thrown if too many requests were done (e.g. via a WebSocket connection) in a short amount of time.
  */
 @JsonParsableException(errorCode = TooManyRequestsException.ERROR_CODE)
 public final class TooManyRequestsException extends DittoRuntimeException {
@@ -58,7 +58,7 @@ public final class TooManyRequestsException extends DittoRuntimeException {
     }
 
     /**
-     * A mutable builder for a {@code InvalidRqlExpressionException}.
+     * A mutable builder for a {@code TooManyRequestsException}.
      *
      * @return the builder.
      */
@@ -67,12 +67,11 @@ public final class TooManyRequestsException extends DittoRuntimeException {
     }
 
     /**
-     * Constructs a new {@code InvalidRqlExpressionException} object with given message.
-     * if *
+     * Constructs a new {@code TooManyRequestsException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new InvalidRqlExpressionException.
+     * @return the new TooManyRequestsException.
      */
     public static TooManyRequestsException fromMessage(final String message, final DittoHeaders dittoHeaders) {
         return new Builder()
@@ -82,12 +81,12 @@ public final class TooManyRequestsException extends DittoRuntimeException {
     }
 
     /**
-     * Constructs a new {@code InvalidRqlExpressionException} object with the exception message extracted from the
+     * Constructs a new {@code TooManyRequestsException} object with the exception message extracted from the
      * given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new InvalidRqlExpressionException.
+     * @return the new TooManyRequestsException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */

@@ -26,7 +26,6 @@ import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.CachesConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
-import org.eclipse.ditto.services.gateway.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
@@ -180,7 +179,7 @@ final class GatewayRootActor extends AbstractActor {
 
         final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
-                StreamingActor.props(dittoProtocolSub, proxyActor, gatewayConfig.getWebSocketConfig()));
+                StreamingActor.props(dittoProtocolSub, proxyActor, gatewayConfig.getStreamingConfig()));
 
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
@@ -275,8 +274,6 @@ final class GatewayRootActor extends AbstractActor {
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
-
-        final WebsocketConfig webSocketConfig = gatewayConfig.getWebSocketConfig();
 
         final Supplier<ClusterStatus> clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
         final StatusAndHealthProvider statusAndHealthProvider =

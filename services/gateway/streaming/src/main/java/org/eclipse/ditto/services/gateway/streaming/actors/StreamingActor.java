@@ -18,10 +18,10 @@ import java.util.stream.StreamSupport;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
-import org.eclipse.ditto.services.gateway.streaming.DefaultWebsocketConfig;
+import org.eclipse.ditto.services.gateway.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
-import org.eclipse.ditto.services.gateway.streaming.WebsocketConfig;
+import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
@@ -69,15 +69,15 @@ public final class StreamingActor extends AbstractActorWithTimers
 
     private final Gauge streamingSessionsCounter;
 
-    private WebsocketConfig websocketConfig;
+    private StreamingConfig streamingConfig;
 
     @SuppressWarnings("unused")
     private StreamingActor(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter,
-            final WebsocketConfig websocketConfig) {
+            final StreamingConfig streamingConfig) {
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
-        this.websocketConfig = websocketConfig;
+        this.streamingConfig = streamingConfig;
 
         // requires this.websocketConfig to be initialized
         scheduleScrapeStreamSessionsCounter();
@@ -88,12 +88,12 @@ public final class StreamingActor extends AbstractActorWithTimers
      *
      * @param dittoProtocolSub the Ditto protocol sub access.
      * @param commandRouter the command router used to send signals into the cluster
-     * @param websocketConfig the websocket config
+     * @param streamingConfig the streaming config
      * @return the Akka configuration Props object.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter,
-            final WebsocketConfig websocketConfig) {
-        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, websocketConfig);
+            final StreamingConfig streamingConfig) {
+        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, streamingConfig);
     }
 
     @Override
@@ -129,9 +129,9 @@ public final class StreamingActor extends AbstractActorWithTimers
                             final Optional<String> originOpt = signal.getDittoHeaders().getOrigin();
                             if (originOpt.isPresent()) {
                                 final String origin = originOpt.get();
-                                final ActorRef sessionActor = getContext().getChild(origin);
-                                if (sessionActor != null) {
-                                    commandRouter.tell(signal, sessionActor);
+                                final Optional<ActorRef> sessionActor = getContext().findChild(origin);
+                                if (sessionActor.isPresent()) {
+                                    commandRouter.tell(signal, sessionActor.get());
                                 } else {
                                     logger.debug("No session actor found for origin: {}", origin);
                                 }
@@ -158,17 +158,17 @@ public final class StreamingActor extends AbstractActorWithTimers
 
     @Override
     public Config getConfig() {
-        return websocketConfig.render().getConfig(WebsocketConfig.CONFIG_PATH);
+        return streamingConfig.render().getConfig(StreamingConfig.CONFIG_PATH);
     }
 
     @Override
     public Config setConfig(final Config config) {
-        websocketConfig = DefaultWebsocketConfig.of(
-                config.atKey(WebsocketConfig.CONFIG_PATH)
-                        .withFallback(websocketConfig.render()));
+        streamingConfig = DefaultStreamingConfig.of(
+                config.atKey(StreamingConfig.CONFIG_PATH)
+                        .withFallback(streamingConfig.render()));
         // reschedule scrapes: interval may have changed.
         scheduleScrapeStreamSessionsCounter();
-        return websocketConfig.render();
+        return streamingConfig.render();
     }
 
     private void forwardToSessionActor(final String connectionCorrelationId, final Object object) {
@@ -183,11 +183,11 @@ public final class StreamingActor extends AbstractActorWithTimers
 
     private void scheduleScrapeStreamSessionsCounter() {
         getTimers().startPeriodicTimer(Control.SCRAPE_STREAM_COUNTER, Control.SCRAPE_STREAM_COUNTER,
-                websocketConfig.getSessionCounterScrapeInterval());
+                streamingConfig.getSessionCounterScrapeInterval());
     }
 
     private void replyWebsocketConfig(final Control trigger) {
-        getSender().tell(websocketConfig, getSelf());
+        getSender().tell(streamingConfig, getSelf());
     }
 
     private void updateStreamingSessionsCounter(final Control trigger) {

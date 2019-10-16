@@ -50,15 +50,18 @@ public final class LimitRateByRejection {
     }
 
     /**
-     * Multiplex messages by an Either mapper.
+     * Creates a graph limiting the inlet elements to be not more than the configured {@code maxElements} in the
+     * passed {@code timeWindow}. All additionally flowing through elements, surpassing the max elements per time frame,
+     * are passed to the {@code errorReporter} function which builds the error passed to the second outlet instead of
+     * reaching the first outlet.
      *
      * @param <A> type of elements.
      * @param <E> type of errors.
      * @param timeWindow size of each time window.
      * @param maxElements number of elements to let through in each time window.
      * @param errorReporter creator of error from each rejected element.
-     * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages mapped to the right
-     * and the second outlet for messages mapped to the left.
+     * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages which were in the configured
+     * limits per time window and the second outlet for error messages which surpassed the limit.
      */
     public static <A, E> Graph<FanOutShape2<A, A, E>, NotUsed> of(
             final Duration timeWindow,
@@ -72,16 +75,16 @@ public final class LimitRateByRejection {
 
     private static final class Logic<A, E> implements akka.japi.function.Function<A, Iterable<Either<E, A>>> {
 
-        private final long windowSize;
+        private final long windowSizeMillis;
         private final int maxElements;
-        private final Function<A, E> errorReporter;
+        private final transient Function<A, E> errorReporter;
 
         private long previousWindow = 0L;
         private int counter = 0;
 
-        private Logic(final long windowSize, final int maxElements,
+        private Logic(final long windowSizeMillis, final int maxElements,
                 final Function<A, E> errorReporter) {
-            this.windowSize = windowSize;
+            this.windowSizeMillis = windowSizeMillis;
             this.maxElements = maxElements;
             this.errorReporter = errorReporter;
         }
@@ -96,7 +99,7 @@ public final class LimitRateByRejection {
         @Override
         public Iterable<Either<E, A>> apply(final A element) {
             final long currentTime = System.currentTimeMillis();
-            if (currentTime - previousWindow >= windowSize) {
+            if (currentTime - previousWindow >= windowSizeMillis) {
                 previousWindow = currentTime;
                 counter = 1;
             } else {

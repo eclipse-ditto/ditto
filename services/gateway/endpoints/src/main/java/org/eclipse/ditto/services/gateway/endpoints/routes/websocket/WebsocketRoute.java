@@ -26,6 +26,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_MESSAGES;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
@@ -118,17 +119,19 @@ public final class WebsocketRoute {
 
     private static final Duration CONFIG_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
-    private static final Counter IN_COUNTER = DittoMetrics.counter("streaming_messages")
-            .tag("type", "ws")
-            .tag("direction", "in");
-
-    private static final Counter OUT_COUNTER = DittoMetrics.counter("streaming_messages")
-            .tag("type", "ws")
-            .tag("direction", "out");
-
-    private static final Counter DROPPED_COUNTER = DittoMetrics.counter("streaming_messages")
-            .tag("type", "ws")
-            .tag("direction", "dropped");
+    private static final String STREAMING_MESSAGES = "streaming_messages";
+    private static final String WS = "ws";
+    private static final String DIRECTION = "direction";
+    private static final String TYPE = "type";
+    private static final Counter IN_COUNTER = DittoMetrics.counter(STREAMING_MESSAGES)
+            .tag(TYPE, WS)
+            .tag(DIRECTION, "in");
+    private static final Counter OUT_COUNTER = DittoMetrics.counter(STREAMING_MESSAGES)
+            .tag(TYPE, WS)
+            .tag(DIRECTION, "out");
+    private static final Counter DROPPED_COUNTER = DittoMetrics.counter(STREAMING_MESSAGES)
+            .tag(TYPE, WS)
+            .tag(DIRECTION, "dropped");
 
     private final ActorRef streamingActor;
     private final EventStream eventStream;
@@ -152,8 +155,7 @@ public final class WebsocketRoute {
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
      * @param eventStream eventStream used to publish events within the actor system
      */
-    public WebsocketRoute(final ActorRef streamingActor,
-            final EventStream eventStream) {
+    public WebsocketRoute(final ActorRef streamingActor, final EventStream eventStream) {
 
         this(streamingActor, eventStream, EventSniffer.noOp(), EventSniffer.noOp());
     }
@@ -287,16 +289,16 @@ public final class WebsocketRoute {
             final SinkShape<Either<StreamControlMessage, Signal>> sink =
                     builder.add(getStreamControlOrSignalSink(websocketConfig));
 
-            final UniformFanInShape<DittoRuntimeException, DittoRuntimeException> merge =
+            final UniformFanInShape<DittoRuntimeException, DittoRuntimeException> exceptionMerger =
                     builder.add(Merge.create(2, true));
 
             builder.from(strictify.out()).toInlet(select.in());
             builder.from(select.out0()).toInlet(rateLimiter.in());
-            builder.from(select.out1()).toFanIn(merge);
+            builder.from(select.out1()).toFanIn(exceptionMerger);
             builder.from(rateLimiter.out0()).to(sink);
-            builder.from(rateLimiter.out1()).via(droppedCounter).toFanIn(merge);
+            builder.from(rateLimiter.out1()).via(droppedCounter).toFanIn(exceptionMerger);
 
-            return FlowShape.of(strictify.in(), merge.out());
+            return FlowShape.of(strictify.in(), exceptionMerger.out());
         }));
     }
 
@@ -366,22 +368,24 @@ public final class WebsocketRoute {
                 new ProtocolMessageExtractor(connectionAuthContext, connectionCorrelationId);
 
         return Filter.multiplexByEither(cmdString -> {
-            final StreamControlMessage streamControlMessage = protocolMessageExtractor.apply(cmdString);
-            if (streamControlMessage != null) {
-                return Right.apply(Left.apply(streamControlMessage));
+            final Optional<StreamControlMessage> streamControlMessage = protocolMessageExtractor.apply(cmdString);
+            if (streamControlMessage.isPresent()) {
+                return Right.apply(Left.apply(streamControlMessage.get()));
             } else {
                 try {
                     final Signal signal =
                             buildSignal(cmdString, version, connectionCorrelationId, connectionAuthContext,
                                     additionalHeaders, adapter);
                     return Right.apply(Right.apply(signal));
-                } catch (final Throwable throwable) {
+                } catch (final DittoRuntimeException dre) {
                     // This is a client error usually; log at level DEBUG without stack trace.
-                    LOGGER.debug("Error building signal from <{}>: <{}>", cmdString, throwable);
-                    final DittoRuntimeException dittoRuntimeException =
-                            throwable instanceof DittoRuntimeException
-                                    ? (DittoRuntimeException) throwable
-                                    : GatewayInternalErrorException.newBuilder().cause(throwable).build();
+                    LOGGER.debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
+                    return Left.apply(dre);
+                } catch (final Exception throwable) {
+                    LOGGER.warn("Error building signal from <{}>: {}: <{}>", cmdString,
+                            throwable.getClass().getSimpleName(), throwable.getMessage());
+                    final DittoRuntimeException dittoRuntimeException = GatewayInternalErrorException.newBuilder()
+                            .cause(throwable).build();
                     return Left.apply(dittoRuntimeException);
                 }
             }

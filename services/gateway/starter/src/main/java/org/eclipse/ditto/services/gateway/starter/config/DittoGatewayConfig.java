@@ -23,14 +23,14 @@ import org.eclipse.ditto.services.gateway.endpoints.config.DefaultCachesConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultClaimMessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultMessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultPublicHealthConfig;
-import org.eclipse.ditto.services.gateway.streaming.DefaultWebsocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.PublicHealthConfig;
-import org.eclipse.ditto.services.gateway.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.gateway.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.gateway.streaming.DefaultStreamingConfig;
+import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.config.WithConfigPath;
@@ -54,7 +54,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     private final MessageConfig messageConfig;
     private final MessageConfig claimMessageConfig;
     private final AuthenticationConfig authenticationConfig;
-    private final WebsocketConfig webSocketConfig;
+    private final StreamingConfig streamingConfig;
     private final PublicHealthConfig publicHealthConfig;
 
     private DittoGatewayConfig(final ScopedConfig dittoScopedConfig) {
@@ -67,7 +67,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
         messageConfig = DefaultMessageConfig.of(dittoServiceConfig);
         claimMessageConfig = DefaultClaimMessageConfig.of(dittoServiceConfig);
         authenticationConfig = DefaultAuthenticationConfig.of(dittoServiceConfig);
-        webSocketConfig = DefaultWebsocketConfig.of(dittoServiceConfig);
+        streamingConfig = DefaultStreamingConfig.of(dittoServiceConfig);
         publicHealthConfig = DefaultPublicHealthConfig.of(dittoServiceConfig);
     }
 
@@ -89,8 +89,8 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     }
 
     @Override
-    public WebsocketConfig getWebSocketConfig() {
-        return webSocketConfig;
+    public StreamingConfig getStreamingConfig() {
+        return streamingConfig;
     }
 
     @Override

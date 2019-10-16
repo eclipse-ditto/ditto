@@ -12,11 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ThrottlingConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
@@ -27,7 +24,6 @@ import com.typesafe.config.ConfigFactory;
 /**
  * Provides configuration settings of the web socket endpoint.
  */
-@Immutable
 public interface WebsocketConfig {
 
     /**
@@ -50,13 +46,6 @@ public interface WebsocketConfig {
      * @return the buffer size.
      */
     int getPublisherBackpressureBufferSize();
-
-    /**
-     * Returns the session counter update interval.
-     *
-     * @return the interval.
-     */
-    Duration getSessionCounterScrapeInterval();
 
     /**
      * Returns the factor of maximum throughput at which rejections were sent.
@@ -84,8 +73,6 @@ public interface WebsocketConfig {
                 getSubscriberBackpressureQueueSize());
         map.put(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE.getConfigPath(),
                 getPublisherBackpressureBufferSize());
-        map.put(WebsocketConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath(),
-                getSessionCounterScrapeInterval().toMillis() + "ms");
         map.put(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath(), getThrottlingRejectionFactor());
         return ConfigFactory.parseMap(map)
                 .withFallback(getThrottlingConfig().render())
@@ -109,11 +96,6 @@ public interface WebsocketConfig {
         PUBLISHER_BACKPRESSURE_BUFFER_SIZE("publisher.backpressure-buffer-size", 200),
 
         /**
-         * How often to update websocket session counter by counting child actors.
-         */
-        SESSION_COUNTER_SCRAPE_INTERVAL("session-counter-scrape-interval", Duration.ofSeconds(30L)),
-
-        /**
          * The factor of maximum throughput at which rejections were sent.
          */
         THROTTLING_REJECTION_FACTOR("throttling-rejection-factor", 1.25);
@@ -121,7 +103,7 @@ public interface WebsocketConfig {
         private final String path;
         private final Object defaultValue;
 
-        private WebsocketConfigValue(final String thePath, final Object theDefaultValue) {
+        WebsocketConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

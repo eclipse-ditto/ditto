@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
-import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -27,11 +26,10 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the web socket config.
  */
 @Immutable
-public final class DefaultWebsocketConfig implements WebsocketConfig {
+final class DefaultWebsocketConfig implements WebsocketConfig {
 
     private final int subscriberBackpressureQueueSize;
     private final int publisherBackpressureBufferSize;
-    private final Duration sessionCounterScrapeInterval;
     private final double throttlingRejectionFactor;
     private final ThrottlingConfig throttlingConfig;
 
@@ -40,8 +38,6 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
                 scopedConfig.getInt(WebsocketConfigValue.SUBSCRIBER_BACKPRESSURE_QUEUE_SIZE.getConfigPath());
         publisherBackpressureBufferSize =
                 scopedConfig.getInt(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE.getConfigPath());
-        sessionCounterScrapeInterval =
-                scopedConfig.getDuration(WebsocketConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath());
         throttlingRejectionFactor =
                 scopedConfig.getDouble(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath());
         throttlingConfig = ThrottlingConfig.of(scopedConfig);
@@ -54,7 +50,7 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultWebsocketConfig of(final Config config) {
+    public static WebsocketConfig of(final Config config) {
         return new DefaultWebsocketConfig(
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, WebsocketConfigValue.values()));
     }
@@ -67,11 +63,6 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
     @Override
     public int getPublisherBackpressureBufferSize() {
         return publisherBackpressureBufferSize;
-    }
-
-    @Override
-    public Duration getSessionCounterScrapeInterval() {
-        return sessionCounterScrapeInterval;
     }
 
     @Override
@@ -96,14 +87,13 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
         return subscriberBackpressureQueueSize == that.subscriberBackpressureQueueSize &&
                 publisherBackpressureBufferSize == that.publisherBackpressureBufferSize &&
                 Double.compare(throttlingRejectionFactor, that.throttlingRejectionFactor) == 0 &&
-                Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
                 Objects.equals(throttlingConfig, that.throttlingConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(subscriberBackpressureQueueSize, publisherBackpressureBufferSize,
-                sessionCounterScrapeInterval, throttlingRejectionFactor, throttlingConfig);
+                throttlingRejectionFactor, throttlingConfig);
     }
 
     @Override
@@ -111,7 +101,6 @@ public final class DefaultWebsocketConfig implements WebsocketConfig {
         return getClass().getSimpleName() + " [" +
                 "subscriberBackpressureQueueSize=" + subscriberBackpressureQueueSize +
                 ", publisherBackpressureBufferSize=" + publisherBackpressureBufferSize +
-                ", sessionCounterScrapeInterval=" + sessionCounterScrapeInterval +
                 ", throttlingRejectionFactor=" + throttlingRejectionFactor +
                 ", throttlingConfig=" + throttlingConfig +
                 "]";

@@ -62,7 +62,7 @@ public final class DefaultWebsocketConfigTest {
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultWebsocketConfig underTest = DefaultWebsocketConfig.of(ConfigFactory.empty());
+        final WebsocketConfig underTest = DefaultWebsocketConfig.of(ConfigFactory.empty());
 
         softly.assertThat(underTest.getSubscriberBackpressureQueueSize())
                 .as(WebsocketConfigValue.SUBSCRIBER_BACKPRESSURE_QUEUE_SIZE.getConfigPath())
@@ -70,9 +70,6 @@ public final class DefaultWebsocketConfigTest {
         softly.assertThat(underTest.getPublisherBackpressureBufferSize())
                 .as(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE.getConfigPath())
                 .isEqualTo(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE.getDefaultValue());
-        softly.assertThat(underTest.getSessionCounterScrapeInterval())
-                .as(WebsocketConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath())
-                .isEqualTo(WebsocketConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getDefaultValue());
         softly.assertThat(underTest.getThrottlingRejectionFactor())
                 .as(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath())
                 .isCloseTo((Double) WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getDefaultValue(),
@@ -81,7 +78,7 @@ public final class DefaultWebsocketConfigTest {
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultWebsocketConfig underTest = DefaultWebsocketConfig.of(webSocketTestConfig);
+        final WebsocketConfig underTest = DefaultWebsocketConfig.of(webSocketTestConfig);
 
         softly.assertThat(underTest.getSubscriberBackpressureQueueSize())
                 .as(WebsocketConfigValue.SUBSCRIBER_BACKPRESSURE_QUEUE_SIZE.getConfigPath())
@@ -89,9 +86,6 @@ public final class DefaultWebsocketConfigTest {
         softly.assertThat(underTest.getPublisherBackpressureBufferSize())
                 .as(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE.getConfigPath())
                 .isEqualTo(42);
-        softly.assertThat(underTest.getSessionCounterScrapeInterval())
-                .as(WebsocketConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(67L));
         softly.assertThat(underTest.getThrottlingRejectionFactor())
                 .as(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath())
                 .isCloseTo(1.875, Percentage.withPercentage(1.0));

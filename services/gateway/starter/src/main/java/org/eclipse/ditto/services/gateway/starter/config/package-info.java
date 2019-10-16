@@ -10,10 +10,5 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.streaming;
-
-/**
- * Supertype of messages that control websocket streaming. They are not a part of the Ditto protocol.
- */
-public interface StreamControlMessage {
-}
+@org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
+package org.eclipse.ditto.services.gateway.starter.config;

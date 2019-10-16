@@ -24,7 +24,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Provides configuration settings of the MQTT protocol.
+ * Provides configuration settings for throttling based on an {@code interval} and a {@code limit}.
  */
 @Immutable
 public interface ThrottlingConfig {
