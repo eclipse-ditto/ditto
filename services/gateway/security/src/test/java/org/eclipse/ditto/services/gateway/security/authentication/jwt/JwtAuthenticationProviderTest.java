@@ -55,14 +55,14 @@ public final class JwtAuthenticationProviderTest {
     private JwtAuthenticationProvider underTest;
 
     @Mock
-    private JwtValidator jwtValidator;
+    private JwtAuthorizationContextProvider authenticationContextProvider;
 
     @Mock
-    private JwtAuthorizationContextProvider authenticationContextProvider;
+    private JwtValidator jwtValidator;
 
     @Before
     public void setup() {
-        underTest = JwtAuthenticationProvider.getInstance(jwtValidator, authenticationContextProvider);
+        underTest = JwtAuthenticationProvider.newInstance(authenticationContextProvider, jwtValidator);
     }
 
     @Test
@@ -189,9 +189,6 @@ public final class JwtAuthenticationProviderTest {
 
     @Test
     public void getType() {
-        final JwtAuthenticationProvider underTest =
-                JwtAuthenticationProvider.getInstance(jwtValidator, authenticationContextProvider);
-
         assertThat(underTest.getType()).isEqualTo("JWT");
     }
 

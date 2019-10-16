@@ -49,12 +49,10 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
     private final JwtAuthorizationContextProvider jwtAuthorizationContextProvider;
     private final JwtValidator jwtValidator;
 
-    private JwtAuthenticationProvider(final JwtValidator jwtValidator,
-            final JwtAuthorizationContextProvider jwtAuthorizationContextProvider) {
-
-        this.jwtAuthorizationContextProvider =
-                checkNotNull(jwtAuthorizationContextProvider, "JwtAuthorizationContextProvider");
-        this.jwtValidator = checkNotNull(jwtValidator, "JWT Validator");
+    private JwtAuthenticationProvider(final JwtAuthorizationContextProvider jwtAuthorizationContextProvider,
+            final JwtValidator jwtValidator) {
+        this.jwtAuthorizationContextProvider = jwtAuthorizationContextProvider;
+        this.jwtValidator = jwtValidator;
     }
 
     /**
@@ -65,10 +63,11 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
      * @return the created instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static JwtAuthenticationProvider getInstance(final JwtValidator jwtValidator,
-            final JwtAuthorizationContextProvider jwtAuthorizationContextProvider) {
-
-        return new JwtAuthenticationProvider(jwtValidator, jwtAuthorizationContextProvider);
+    public static JwtAuthenticationProvider newInstance(final JwtAuthorizationContextProvider jwtAuthorizationContextProvider,
+            final JwtValidator jwtValidator) {
+        checkNotNull(jwtAuthorizationContextProvider, "jwtAuthorizationContextProvider");
+        checkNotNull(jwtValidator, "jwtValidator");
+        return new JwtAuthenticationProvider(jwtAuthorizationContextProvider, jwtValidator);
     }
 
     /**
@@ -149,7 +148,6 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
      * based on the given throwable.
      *
      * @param throwable the throwable that caused a failure.
-     * @param correlationId
      * @return a failed authentication result holding the extracted reason of failure.
      */
     @Override

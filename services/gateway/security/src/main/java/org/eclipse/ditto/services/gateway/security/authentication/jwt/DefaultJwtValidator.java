@@ -32,7 +32,7 @@ import io.jsonwebtoken.Jwts;
  * Default implementation of {@link org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator}.
  */
 @ThreadSafe
-final class DefaultJwtValidator implements JwtValidator {
+public final class DefaultJwtValidator implements JwtValidator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultJwtValidator.class);
 

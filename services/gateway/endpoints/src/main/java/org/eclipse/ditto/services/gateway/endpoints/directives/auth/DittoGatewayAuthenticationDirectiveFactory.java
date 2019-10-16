@@ -71,8 +71,9 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
             authenticationProviders.add(DummyAuthenticationProvider.getInstance());
         }
 
-        authenticationProviders.add(JwtAuthenticationProvider.getInstance(jwtAuthenticationFactory.getJwtValidator(),
-                jwtAuthenticationFactory.newJwtAuthorizationContextProvider()));
+        authenticationProviders.add(
+                JwtAuthenticationProvider.newInstance(jwtAuthenticationFactory.newJwtAuthorizationContextProvider(),
+                        jwtAuthenticationFactory.getJwtValidator()));
 
         final AuthenticationFailureAggregator authenticationFailureAggregator =
                 AuthenticationFailureAggregators.getDefault();
