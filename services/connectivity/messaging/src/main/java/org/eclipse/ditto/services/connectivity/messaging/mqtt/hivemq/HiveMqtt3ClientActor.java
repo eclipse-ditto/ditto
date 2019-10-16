@@ -62,7 +62,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     private HiveMqtt3ClientActor(final Connection connection,
             final ActorRef conciergeForwarder,
             final HiveMqtt3ClientFactory clientFactory) {
-        super(connection, connection.getConnectionStatus(), conciergeForwarder);
+        super(connection, conciergeForwarder);
         this.clientFactory = clientFactory;
 
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);

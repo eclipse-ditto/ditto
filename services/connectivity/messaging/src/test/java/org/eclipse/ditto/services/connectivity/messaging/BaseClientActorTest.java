@@ -54,6 +54,7 @@ import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -134,16 +135,22 @@ public final class BaseClientActorTest {
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
+            final TestProbe probe1 = TestProbe.apply(actorSystem);
+            final TestProbe probe2 = TestProbe.apply(actorSystem);
+
             whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
-                    getRef());
+                    probe1.ref());
             thenExpectConnectClientCalled();
 
             // send another OpenConnection command while connecting
             whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
-                    getRef());
-            thenExpectConnectClientCalledOnceAfterTimeout(Duration.ofSeconds(1));
+                    probe2.ref());
 
-            expectMsgClass(ConnectionSignalIllegalException.class);
+            andConnectionSuccessful(dummyClientActor, probe1.ref());
+
+            // both recipients get responses
+            probe1.expectMsg(CONNECTED_STATUS);
+            probe2.expectMsg(CONNECTED_STATUS);
         }};
     }
 
@@ -381,7 +388,7 @@ public final class BaseClientActorTest {
 
         public DummyClientActor(final Connection connection, final ConnectivityStatus desiredConnectionStatus,
                 final ActorRef conciergeForwarder, final ActorRef publisherActor, final BaseClientActor delegate) {
-            super(connection, desiredConnectionStatus, conciergeForwarder);
+            super(connection, conciergeForwarder);
             this.publisherActor = publisherActor;
             this.delegate = delegate;
         }
