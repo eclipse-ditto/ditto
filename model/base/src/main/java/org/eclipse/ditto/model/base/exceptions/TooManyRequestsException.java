@@ -37,17 +37,17 @@ public final class TooManyRequestsException extends DittoRuntimeException {
     /**
      * Retry-After header specified by RFC-6585 SS.4.
      */
-    public static final String RETRY_AFTER = "retry-after";
+    static final String RETRY_AFTER = "retry-after";
 
     private static final HttpStatusCode STATUS_CODE = HttpStatusCode.TOO_MANY_REQUESTS;
     private static final String MESSAGE = "You made too many requests.";
     private static final String DESCRIPTION = "Try again soon.";
 
     private TooManyRequestsException(final DittoHeaders dittoHeaders,
-            final String message,
-            final String description,
-            final Throwable cause,
-            final URI href) {
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
 
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
@@ -126,10 +126,10 @@ public final class TooManyRequestsException extends DittoRuntimeException {
 
         @Override
         protected TooManyRequestsException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description,
-                final Throwable cause,
-                final URI href) {
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
 
             final DittoHeaders headersWithRetryAfter;
             if (retryAfter == null) {
