@@ -32,3 +32,9 @@ The code of the showed live demo can be found in our [ditto-examples](https://gi
 Topic: Project status update of Eclipse Ditto
 
 The slides can be found here: [2018_10_22-eclipse-iot-wg-f2f-ludwigsburg](slides/2018_10_22-eclipse-iot-wg-f2f-ludwigsburg/index.html).
+
+## 21.10.2019 EclipseCon Europe 2019 in Ludwigsburg
+
+Topic: Project status update of Eclipse Ditto
+
+The slides can be found here: [2019_10_21-eclipse-iot-wg-f2f-ludwigsburg](slides/2019_10_21-eclipse-iot-wg-f2f-ludwigsburg/index.html).
