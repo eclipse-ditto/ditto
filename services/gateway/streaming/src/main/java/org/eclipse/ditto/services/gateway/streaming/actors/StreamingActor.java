@@ -187,7 +187,7 @@ public final class StreamingActor extends AbstractActorWithTimers
     }
 
     private void replyWebsocketConfig(final Control trigger) {
-        getSender().tell(streamingConfig, getSelf());
+        getSender().tell(streamingConfig.getWebsocketConfig(), getSelf());
     }
 
     private void updateStreamingSessionsCounter(final Control trigger) {
