@@ -21,6 +21,7 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
@@ -48,9 +49,10 @@ import org.slf4j.LoggerFactory;
  * the mapping configuration. The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
  * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
  */
-@PayloadMapper(alias = "status")
+@PayloadMapper(alias = ConnectionStatusMessageMapper.CONNECTION_STATUS_MAPPER_ALIAS, requiresMappingContext = true)
 public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
+    static final String CONNECTION_STATUS_MAPPER_ALIAS = "status";
     static final String HEADER_HUB_TTD = "ttd";
     static final String HEADER_HUB_CREATION_TIME = "creation-time";
 
@@ -101,9 +103,12 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
     private List<Adaptable> doMap(final ExternalMessage externalMessage) {
 
+        final String contentType = externalMessage.getHeaders().get(DittoHeaderDefinition.CONTENT_TYPE.getKey());
+
         if (mappingOptionThingId == null) {
             throw getMappingFailedException(
-                    String.format("Mapping option '%s' is not set.", MAPPING_OPTIONS_PROPERTIES_THING_ID));
+                    String.format("Mapping option '%s' is not set.", MAPPING_OPTIONS_PROPERTIES_THING_ID),
+                    contentType);
         }
 
         //Check if time is convertible
@@ -112,12 +117,12 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
         if (creationTime < 0) {
             throw getMappingFailedException(String.format("Invalid value in header '%s': %d.",
-                    HEADER_HUB_CREATION_TIME, creationTime));
+                    HEADER_HUB_CREATION_TIME, creationTime), contentType);
         }
 
         if (ttd < -1) {
             throw getMappingFailedException(String.format("Invalid value in header '%s': %d.",
-                    HEADER_HUB_TTD, ttd));
+                    HEADER_HUB_TTD, ttd), contentType);
         }
 
         //Read thingId
@@ -169,17 +174,20 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
         return ThingId.of(PlaceholderFilter.apply(mappingOptionThingId, expressionResolver, false));
     }
 
-    private MessageMappingFailedException getMappingFailedException(final String message) {
-        return MessageMappingFailedException.newBuilder("theContentType").message(message).build();
+    private MessageMappingFailedException getMappingFailedException(final String message, final String theContentType) {
+        return MessageMappingFailedException.newBuilder(theContentType).message(message).build();
     }
 
     private Long extractLongHeader(final Map<String, String> headers, final String key) {
+        final String contentType = headers.get(DittoHeaderDefinition.CONTENT_TYPE.getKey());
         try {
             return Optional.ofNullable(headers.get(key))
                     .map(Long::parseLong)
-                    .orElseThrow(() -> getMappingFailedException(String.format("Header '%s' is not set.", key)));
+                    .orElseThrow(() -> getMappingFailedException(String.format("Header '%s' is not set.", key),
+                            contentType));
         } catch (NumberFormatException e) {
-            throw getMappingFailedException(String.format("Header '%s' is not convertible to type long.", key));
+            throw getMappingFailedException(String.format("Header '%s' is not convertible to type long.", key),
+                    contentType);
         }
     }
 

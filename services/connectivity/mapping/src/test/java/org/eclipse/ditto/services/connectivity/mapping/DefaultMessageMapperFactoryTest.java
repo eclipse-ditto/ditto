@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -56,7 +57,7 @@ public final class DefaultMessageMapperFactoryTest {
     @BeforeClass
     public static void initTestFixture() {
         final Config testConfig = ConfigFactory.parseMap(
-                Collections.singletonMap("ditto.connectivity.mapping.factory", ""));
+                Collections.singletonMap("ditto.connectivity.mapping.dummy", ""));
         mappingConfig = DefaultMappingConfig.of(testConfig.getConfig("ditto.connectivity"));
 
         system = ActorSystem.create("test", testConfig);
@@ -151,6 +152,21 @@ public final class DefaultMessageMapperFactoryTest {
         final MappingContext ctx =
                 ConnectivityModelFactory.newMappingContext(MockMapper.class.getCanonicalName(), opts);
         assertThat(underTest.mapperOf("test", ctx)).isEmpty();
+    }
+
+    @Test
+    public void loadFallbackMappersByAlias() {
+
+        final MessageMapperRegistry registry = underTest.registryOf(DittoMessageMapper.CONTEXT,
+                ConnectivityModelFactory.emptyPayloadMappingDefinition());
+
+        final List<MessageMapper> dittoMappers =
+                registry.getMappers(ConnectivityModelFactory.newPayloadMapping(DittoMessageMapper.DITTO_MAPPER_ALIAS));
+        assertThat(dittoMappers).hasSize(1);
+        final MessageMapper dittoMapper = dittoMappers.get(0);
+        assertThat(dittoMapper).isInstanceOf(WrappingMessageMapper.class);
+        assertThat(dittoMapper.getId()).isEqualTo(DittoMessageMapper.DITTO_MAPPER_ALIAS);
+        assertThat(((WrappingMessageMapper) dittoMapper).getDelegate()).isInstanceOf(DittoMessageMapper.class);
     }
 
     @Test

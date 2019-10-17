@@ -260,7 +260,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     }
 
     private Predicate<? super Map.Entry<String, Class<?>>> requiresNoMappingContext() {
-        return e -> getPayloadMapperAnnotation(e).requiresMappingContext();
+        return e -> !getPayloadMapperAnnotation(e).requiresMappingContext();
     }
 
     @Nonnull
