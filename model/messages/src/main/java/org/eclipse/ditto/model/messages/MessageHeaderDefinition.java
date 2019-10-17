@@ -38,18 +38,18 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for the direction of a message.
      * <p>
-     * Key: {@code "direction"}, Java type: String.
+     * Key: {@code "ditto-message-direction"}, Java type: String.
      * </p>
      */
-    DIRECTION("direction", String.class, false, false),
+    DIRECTION("ditto-message-direction", String.class, false, false),
 
     /**
      * Header definitions for the subject of a message.
      * <p>
-     * Key: {@code "ditto-subject"}, Java type: String.
+     * Key: {@code "ditto-message-subject"}, Java type: String.
      * </p>
      */
-    SUBJECT("ditto-subject", String.class, false, false) {
+    SUBJECT("ditto-message-subject", String.class, false, false) {
         @Override
         public void validateValue(@Nullable final CharSequence value) {
             super.validateValue(value);
@@ -66,18 +66,18 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for the Thing ID of a message.
      * <p>
-     * Key: {@code "thing-id"}, Java type: String.
+     * Key: {@code "ditto-message-thing-id"}, Java type: String.
      * </p>
      */
-    THING_ID("thing-id", String.class, false, false),
+    THING_ID("ditto-message-thing-id", String.class, false, false),
 
     /**
      * Header definition for the Feature ID of a message, if sent to a Feature.
      * <p>
-     * Key: {@code "feature-id"}, Java type: String.
+     * Key: {@code "ditto-message-feature-id"}, Java type: String.
      * </p>
      */
-    FEATURE_ID("feature-id", String.class, false, false),
+    FEATURE_ID("ditto-message-feature-id", String.class, false, false),
 
     /**
      * Header definition for the timeout in seconds of a message.
@@ -135,15 +135,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
                 return new IllegalArgumentException(MessageFormat.format(msgTemplate, value));
             });
         }
-    },
-
-    /**
-     * Header definition for the validation URL of the message.
-     * <p>
-     * Key: {@code "validation-url"}, Java type: String.
-     * </p>
-     */
-    VALIDATION_URL("validation-url", String.class, true, false);
+    };
 
     /**
      * The regex pattern a Subject has to conform to. Defined by
