@@ -128,8 +128,7 @@ import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
-// TODO: investigate whether unnecessary stubbing is avoidable
-@RunWith(MockitoJUnitRunner.Silent.class)
+@RunWith(MockitoJUnitRunner.class)
 public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
@@ -175,6 +174,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     @Before
     public void init() throws JMSException {
+        Mockito.reset(mockConnection, mockSession, mockConsumer);
         when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
         listenerArgumentCaptor = ArgumentCaptor.forClass(JmsConnectionListener.class);
         doNothing().when(mockConnection).addConnectionListener(listenerArgumentCaptor.capture());

@@ -57,7 +57,7 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class MongoEventSourceITAssertions<I extends EntityId> {
 
-    private static final Duration EXPECT_MESSAGE_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration EXPECT_MESSAGE_TIMEOUT = Duration.ofSeconds(30);
     private static final Random RANDOM = new Random();
 
     protected static MongoDbConfig mongoDbConfig;
@@ -219,6 +219,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
         // - do not shutdown jvm on exit (breaks unit tests)
         // - make Mongo URI known to the persistence plugin and to the NamespaceOps actor
         final String testConfig = "akka.log-dead-letters=0\n" +
+                "akka.persistence.journal-plugin-fallback.circuit-breaker.call-timeout=30s\n" +
                 "akka.remote.artery.bind.port=0\n" +
                 "akka.cluster.seed-nodes=[]\n" +
                 "akka.coordinated-shutdown.exit-jvm=off\n" +

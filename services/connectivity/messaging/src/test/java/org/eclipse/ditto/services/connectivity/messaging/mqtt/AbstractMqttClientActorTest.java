@@ -66,6 +66,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.Terminated;
+import akka.stream.Attributes;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
@@ -352,8 +353,6 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
 
             mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
             controlProbe.expectMsg(DISCONNECTED_SUCCESS);
-
-            Thread.sleep(2000);
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
             controlProbe.expectMsg(CONNECTED_SUCCESS);
