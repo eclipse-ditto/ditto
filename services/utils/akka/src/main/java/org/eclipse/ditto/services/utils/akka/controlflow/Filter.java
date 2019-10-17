@@ -97,7 +97,8 @@ public final class Filter {
      * Multiplex messages by an optional mapper.
      *
      * @param mapper partial mapper of messages.
-     * @param <A> type of messages.
+     * @param <A> type of all messages.
+     * @param <B> type of accepted messages.
      * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages mapped successfully
      * and the second outlet for other messages.
      */
@@ -109,16 +110,33 @@ public final class Filter {
      * Multiplex messages by an Either mapper.
      *
      * @param mapper mapper of messages.
-     * @param <A> type of messages.
+     * @param <A> type of all messages.
+     * @param <B> type of accepted messages.
+     * @param <C> type of rejected messages.
      * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages mapped to the right
      * and the second outlet for messages mapped to the left.
      */
     public static <A, B, C> Graph<FanOutShape2<A, B, C>, NotUsed> multiplexByEither(
             final Function<A, Either<C, B>> mapper) {
+        return multiplexByEitherFlow(Flow.fromFunction(mapper::apply));
+    }
+
+    /**
+     * Multiplex messages by an Either flow.
+     *
+     * @param eitherFlow the filter implemented as a flow from messages to Either of accepted or rejected messages.
+     * @param <A> type of all messages.
+     * @param <B> type of accepted messages.
+     * @param <C> type of rejected messages.
+     * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages mapped to the right
+     * and the second outlet for messages mapped to the left.
+     */
+    public static <A, B, C> Graph<FanOutShape2<A, B, C>, NotUsed> multiplexByEitherFlow(
+            final Graph<FlowShape<A, Either<C, B>>, ?> eitherFlow) {
 
         return GraphDSL.create(builder -> {
             final FlowShape<A, Either<C, B>> testPredicate =
-                    builder.add(Flow.fromFunction(mapper::apply));
+                    builder.add(eitherFlow);
 
             final UniformFanOutShape<Either<C, B>, Either<C, B>> broadcast =
                     builder.add(Broadcast.create(2, true));
@@ -139,5 +157,4 @@ public final class Filter {
             return new FanOutShape2<>(testPredicate.in(), filterTrue.out(), filterFalse.out());
         });
     }
-
 }

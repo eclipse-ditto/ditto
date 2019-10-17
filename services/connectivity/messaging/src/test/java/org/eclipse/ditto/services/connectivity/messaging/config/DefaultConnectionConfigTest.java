@@ -50,10 +50,13 @@ public final class DefaultConnectionConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultConnectionConfig.class,
                 areImmutable(),
-                provided(DefaultSupervisorConfig.class).isAlsoImmutable(),
-                provided(SnapshotConfig.class).isAlsoImmutable(),
-                provided(MqttConfig.class).isAlsoImmutable(),
-                provided(DefaultKafkaConfig.class).isAlsoImmutable());
+                provided(DefaultSupervisorConfig.class,
+                        SnapshotConfig.class,
+                        DefaultMqttConfig.class,
+                        DefaultKafkaConfig.class,
+                        DefaultAmqp10Config.class
+                ).areAlsoImmutable()
+        );
     }
 
     @Test
@@ -95,7 +98,7 @@ public final class DefaultConnectionConfigTest {
 
         softly.assertThat(underTest.getMqttConfig())
                 .as("mqttConfig")
-                .satisfies(mqttConfig ->  {
+                .satisfies(mqttConfig -> {
                     softly.assertThat(mqttConfig.getSourceBufferSize())
                             .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
                             .isEqualTo(7);
