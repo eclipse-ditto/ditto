@@ -2,13 +2,16 @@
 # Note:
 # According to the used k8s namespace the pod-reader-role have to be created in the same namespace.
 
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: concierge
   labels:
     app: concierge
 spec:
+  selector:
+    matchLabels:
+      app: concierge
   replicas: 1
   template:
     metadata:
@@ -46,11 +49,10 @@ spec:
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
           valueFrom:
@@ -75,13 +77,16 @@ spec:
               name: mongodb-uri
               key: mongodb-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: connectivity
   labels:
     app: connectivity
 spec:
+  selector:
+    matchLabels:
+      app: connectivity
   replicas: 1
   template:
     metadata:
@@ -119,11 +124,10 @@ spec:
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
           valueFrom:
@@ -148,13 +152,16 @@ spec:
               name: mongodb-uri
               key: mongodb-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: things
   labels:
     app: things
 spec:
+  selector:
+    matchLabels:
+      app: things
   replicas: 1
   template:
     metadata:
@@ -192,11 +199,10 @@ spec:
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
           valueFrom:
@@ -221,13 +227,16 @@ spec:
               name: mongodb-uri
               key: mongodb-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: things-search
   labels:
     app: things-search
 spec:
+  selector:
+    matchLabels:
+      app: things-search
   replicas: 1
   template:
     metadata:
@@ -264,11 +273,10 @@ spec:
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
           valueFrom:
@@ -292,13 +300,16 @@ spec:
               name: mongodb-uri
               key: mongodb-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: policies
   labels:
     app: policies
 spec:
+  selector:
+    matchLabels:
+      app: policies
   replicas: 1
   template:
     metadata:
@@ -335,11 +346,10 @@ spec:
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
           valueFrom:
@@ -364,7 +374,7 @@ spec:
               name: mongodb-uri
               key: mongodb-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gateway
@@ -372,6 +382,10 @@ metadata:
   labels:
     app: gateway
 spec:
+  selector:
+    matchLabels:
+      app: gateway
+  replicas: 1
   template:
     metadata:
       labels:
@@ -407,11 +421,10 @@ spec:
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: ENABLE_DUMMY_AUTH
           value: "true"

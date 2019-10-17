@@ -22,7 +22,6 @@ import java.time.Duration;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultSnapshotConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -54,11 +53,13 @@ public final class DefaultConnectionConfigTest {
                 areImmutable(),
                 assumingFields("blacklistedHostnames")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(DefaultSupervisorConfig.class).isAlsoImmutable(),
-                provided(DefaultSnapshotConfig.class).isAlsoImmutable(),
-                provided(DefaultMqttConfig.class).isAlsoImmutable(),
-                provided(DefaultKafkaConfig.class).isAlsoImmutable(),
-                provided(DefaultHttpPushConfig.class).isAlsoImmutable());
+                provided(DefaultSupervisorConfig.class,
+                        SnapshotConfig.class,
+                        DefaultMqttConfig.class,
+                        DefaultKafkaConfig.class,
+                        DefaultAmqp10Config.class
+                ).areAlsoImmutable()
+        );
     }
 
     @Test
