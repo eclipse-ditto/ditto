@@ -128,7 +128,8 @@ import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
-@RunWith(MockitoJUnitRunner.class)
+// Silencing "unnecessary stubbing" - it happens only on Travis?
+@RunWith(MockitoJUnitRunner.Silent.class)
 public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
