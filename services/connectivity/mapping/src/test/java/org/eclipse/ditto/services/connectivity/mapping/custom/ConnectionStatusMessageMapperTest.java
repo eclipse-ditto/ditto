@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.custom;
 
+import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.DEFAULT_FEATURE_ID;
 import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.HEADER_HUB_CREATION_TIME;
 import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.HEADER_HUB_TTD;
 import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_FEATURE_ID;
@@ -23,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
@@ -33,7 +36,9 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguratio
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -61,10 +66,13 @@ public class ConnectionStatusMessageMapperTest {
 
         validHeader = new HashMap<>();
         validHeader.put(HEADER_HUB_DEVICE_ID, "headerNamespace:headerDeviceId");
-        validHeader.put(HEADER_HUB_TTD, "12");
-        validHeader.put(HEADER_HUB_CREATION_TIME, "1568816054");
+        validHeader.put(HEADER_HUB_TTD, "20");
+        validHeader.put(HEADER_HUB_CREATION_TIME, "1571214120");
         validMapperConfig = DefaultMessageMapperConfiguration.of("valid", validConfigProps);
     }
+
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void doForwardMapWithValidUseCase() {
@@ -145,7 +153,7 @@ public class ConnectionStatusMessageMapperTest {
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult.get(0).getPayload().getPath().getFeatureId().get())
-                .isEqualTo("ConnectionStatus");
+                .isEqualTo(DEFAULT_FEATURE_ID);
     }
 
     @Test
@@ -164,10 +172,18 @@ public class ConnectionStatusMessageMapperTest {
 
     @Test
     public void doForwardMappingContextWithoutThingId() {
+        exception.expect(MessageMapperConfigurationInvalidException.class);
         underTest.configure(mappingConfig, DefaultMessageMapperConfiguration.of("valid", Collections.emptyMap()));
-        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
-        final List<Adaptable> mappingResult = underTest.map(externalMessage);
-        Assertions.assertThat(mappingResult).isEmpty();
+    }
+
+    @Test
+    public void doForwardMappingContextWithWrongThingId() {
+        exception.expect(DittoRuntimeException.class);
+        final Map<String, String> props = new HashMap<>();
+        props.put(MAPPING_OPTIONS_PROPERTIES_THING_ID, "Invalid Value");
+        final MessageMapperConfiguration wrongThingId
+                = DefaultMessageMapperConfiguration.of("invalidThingId", props);
+        underTest.configure(mappingConfig, wrongThingId);
     }
 
     @Test
@@ -183,4 +199,17 @@ public class ConnectionStatusMessageMapperTest {
                 .isEqualTo(ThingId.of(validHeader.get(HEADER_HUB_DEVICE_ID)).getName());
     }
 
+    @Test
+    public void doForwardMappingContextWithWrongThingIdMapping() {
+        final Map<String, String> props = new HashMap<>();
+        props.put(MAPPING_OPTIONS_PROPERTIES_THING_ID, "{{ header:device_id }}");
+        final MessageMapperConfiguration thingIdWithPlaceholder
+                = DefaultMessageMapperConfiguration.of("placeholder", props);
+        underTest.configure(mappingConfig, thingIdWithPlaceholder);
+        final Map<String, String> invalidHeader = validHeader;
+        invalidHeader.replace(HEADER_HUB_DEVICE_ID, "Invalid Value");
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
+        Assertions.assertThat(mappingResult).isEmpty();
+    }
 }

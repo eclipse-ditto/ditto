@@ -96,13 +96,13 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
                         () -> MessageMapperConfigurationInvalidException.newBuilder(MAPPING_OPTIONS_PROPERTIES_THING_ID)
                                 .build());
         //Check if ThingId is valid when its not a placeholder
-        if (!Placeholders.containsAnyPlaceholder(
-                mappingOptionThingId)) { //true bei Placeholder --- false bei keinem Placeholder
-            LOGGER.info("Wrong ThingID format in context");
+        if (!Placeholders.containsAnyPlaceholder(mappingOptionThingId)) {
             try {
                 ThingId.of(mappingOptionThingId);
             } catch (ThingIdInvalidException e) {
-                throw MessageMapperConfigurationInvalidException.newBuilder(e).build();
+                throw MessageMapperConfigurationInvalidException.newBuilder(e)
+                        .message("Wrong ThingID format in connection context")
+                        .build();
             }
         }
 
@@ -131,6 +131,9 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
                     contentType);
         }
 
+        //Read thingId
+        final ThingId thingId = extractThingId(mappingOptionThingId, externalMessage.getHeaders());
+
         //Check if time is convertible
         final long creationTime = extractLongHeader(externalMessage.getHeaders(), HEADER_HUB_CREATION_TIME);
         final long ttd = extractLongHeader(externalMessage.getHeaders(), HEADER_HUB_TTD);
@@ -144,9 +147,6 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
             throw getMappingFailedException(String.format("Invalid value in header '%s': %d.",
                     HEADER_HUB_TTD, ttd), contentType);
         }
-
-        //Read thingId
-        final ThingId thingId = extractThingId(mappingOptionThingId, externalMessage.getHeaders());
 
         //Set time to ISO-8601 UTC
         final String readySince = Instant.ofEpochSecond(creationTime).toString();
