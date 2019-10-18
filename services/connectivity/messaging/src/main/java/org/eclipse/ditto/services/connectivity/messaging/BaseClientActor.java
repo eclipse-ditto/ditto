@@ -155,7 +155,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
         final BaseClientData startingData = new BaseClientData(connectionId, connection,
-                ConnectivityStatus.UNKNOWN, ConnectivityStatus.OPEN, "initialized", Instant.now(), null, null);
+                ConnectivityStatus.UNKNOWN, ConnectivityStatus.OPEN, "initialized", Instant.now());
 
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connectionId.toString())
