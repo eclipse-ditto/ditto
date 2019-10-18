@@ -128,7 +128,7 @@ import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
-// TODO: investigate whether unnecessary stubbing is avoidable
+// Silencing "unnecessary stubbing" - it happens only on Travis?
 @RunWith(MockitoJUnitRunner.Silent.class)
 public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
@@ -175,6 +175,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     @Before
     public void init() throws JMSException {
+        Mockito.reset(mockConnection, mockSession, mockConsumer);
         when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
         listenerArgumentCaptor = ArgumentCaptor.forClass(JmsConnectionListener.class);
         doNothing().when(mockConnection).addConnectionListener(listenerArgumentCaptor.capture());
@@ -258,13 +259,13 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), aggregator.ref());
-            final ResourceStatus resourceStatus1 = aggregator.expectMsgClass(ResourceStatus.class);
+            aggregator.expectMsgClass(ResourceStatus.class);
 
             amqpClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), aggregator.ref());
-            final ResourceStatus resourceStatus2 = aggregator.expectMsgClass(ResourceStatus.class);
+            aggregator.expectMsgClass(ResourceStatus.class);
         }};
     }
 
@@ -309,7 +310,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), aggregator.ref());
-            final ResourceStatus resourceStatus = aggregator.expectMsgClass(ResourceStatus.class);
+            aggregator.expectMsgClass(ResourceStatus.class);
 
             final JmsConnectionListener connectionListener = checkNotNull(listenerArgumentCaptor.getValue());
 

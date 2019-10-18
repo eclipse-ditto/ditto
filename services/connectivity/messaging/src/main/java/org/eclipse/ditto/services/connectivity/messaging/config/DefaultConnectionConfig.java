@@ -13,6 +13,9 @@
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -36,20 +39,26 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private static final String CONFIG_PATH = "connection";
 
     private final Duration clientActorAskTimeout;
+    private final Collection<String> blacklistedHostnames;
     private final SupervisorConfig supervisorConfig;
     private final SnapshotConfig snapshotConfig;
     private final Amqp10Config amqp10Config;
     private final MqttConfig mqttConfig;
     private final KafkaConfig kafkaConfig;
+    private final HttpPushConfig httpPushConfig;
     private final ActivityCheckConfig activityCheckConfig;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
+        final String blacklistedHostnamesStr =
+                config.getString(ConnectionConfigValue.BLACKLISTED_HOSTNAMES.getConfigPath());
+        blacklistedHostnames = Collections.unmodifiableCollection(Arrays.asList(blacklistedHostnamesStr.split(",")));
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
         amqp10Config = DefaultAmqp10Config.of(config);
         mqttConfig = DefaultMqttConfig.of(config);
         kafkaConfig = DefaultKafkaConfig.of(config);
+        httpPushConfig = DefaultHttpPushConfig.of(config);
         activityCheckConfig = DefaultActivityCheckConfig.of(config);
     }
 
@@ -68,6 +77,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public Duration getClientActorAskTimeout() {
         return clientActorAskTimeout;
+    }
+
+    @Override
+    public Collection<String> getBlacklistedHostnames() {
+        return blacklistedHostnames;
     }
 
     @Override
@@ -96,6 +110,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public HttpPushConfig getHttpPushConfig() {
+        return httpPushConfig;
+    }
+
+    @Override
     public ActivityCheckConfig getActivityCheckConfig() {
         return activityCheckConfig;
     }
@@ -110,29 +129,33 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         }
         final DefaultConnectionConfig that = (DefaultConnectionConfig) o;
         return Objects.equals(clientActorAskTimeout, that.clientActorAskTimeout) &&
+                Objects.equals(blacklistedHostnames, that.blacklistedHostnames) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(amqp10Config, that.amqp10Config) &&
                 Objects.equals(mqttConfig, that.mqttConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
-                Objects.equals(kafkaConfig, that.kafkaConfig);
+                Objects.equals(kafkaConfig, that.kafkaConfig) &&
+                Objects.equals(httpPushConfig, that.httpPushConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(clientActorAskTimeout, supervisorConfig, snapshotConfig, amqp10Config, mqttConfig,
-                kafkaConfig, activityCheckConfig);
+        return Objects.hash(clientActorAskTimeout, blacklistedHostnames, supervisorConfig, snapshotConfig, amqp10Config,
+                mqttConfig, kafkaConfig, activityCheckConfig, httpPushConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "clientActorAskTimeout=" + clientActorAskTimeout +
+                ", blacklistedHostnames=" + blacklistedHostnames +
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", amqp10Config=" + amqp10Config +
                 ", mqttConfig=" + mqttConfig +
                 ", kafkaConfig=" + kafkaConfig +
+                ", httpPushConfig=" + httpPushConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
                 "]";
     }

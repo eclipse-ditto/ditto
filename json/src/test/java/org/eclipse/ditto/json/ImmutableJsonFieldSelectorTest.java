@@ -103,13 +103,14 @@ public final class ImmutableJsonFieldSelectorTest {
         final Set<JsonPointer> jsonPointers = pointers.stream()
                 .map(JsonFactory::newPointer)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        final String jsonFieldSelector = pointers.stream().collect(Collectors.joining(","));
+        final String inputJsonFieldSelector = String.join(",", pointers);
 
         final JsonFieldSelector underTest1 = ImmutableJsonFieldSelector.of(jsonPointers);
-        final JsonFieldSelector underTest2 = JsonFactory.newFieldSelector(jsonFieldSelector,
+        final JsonFieldSelector underTest2 = JsonFactory.newFieldSelector(inputJsonFieldSelector,
                 JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build());
 
         assertThat(underTest1.toString()).isEqualTo(underTest2.toString());
+        assertThat(underTest1.toString()).isEqualTo(inputJsonFieldSelector);
     }
 
 }

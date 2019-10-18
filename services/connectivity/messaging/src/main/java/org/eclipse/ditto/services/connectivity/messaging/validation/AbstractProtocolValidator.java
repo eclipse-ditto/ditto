@@ -20,6 +20,7 @@ import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -27,10 +28,19 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
+import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
+import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+
+import akka.actor.ActorSystem;
 
 /**
  * Protocol-specific specification for {@link org.eclipse.ditto.model.connectivity.Connection} objects.
@@ -49,9 +59,10 @@ public abstract class AbstractProtocolValidator {
      *
      * @param connection the connection to check for errors.
      * @param dittoHeaders headers of the command that triggered the connection validation.
+     * @param actorSystem the ActorSystem to use for retrieving config.
      * @throws DittoRuntimeException if the connection has errors.
      */
-    public abstract void validate(final Connection connection, final DittoHeaders dittoHeaders);
+    public abstract void validate(Connection connection, DittoHeaders dittoHeaders, ActorSystem actorSystem);
 
     /**
      * Check whether the URI scheme of the connection belongs to an accepted scheme.
@@ -59,6 +70,7 @@ public abstract class AbstractProtocolValidator {
      * @param connection the connection to check.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      * @param acceptedSchemes valid URI schemes for the connection type.
+     * @param secureSchemes subset of valid URI schemes that supports traffic encryption.
      * @param protocolName protocol name of the connection type.
      * @throws DittoRuntimeException if the URI scheme is not accepted.
      */
@@ -113,8 +125,8 @@ public abstract class AbstractProtocolValidator {
      * @param sourceDescription a descriptive text of the source
      * @throws ConnectionConfigurationInvalidException in case the Source configuration is invalid
      */
-    protected abstract void validateSource(final Source source, final DittoHeaders dittoHeaders,
-            final Supplier<String> sourceDescription);
+    protected abstract void validateSource(Source source, DittoHeaders dittoHeaders,
+            Supplier<String> sourceDescription);
 
     /**
      * Validate protocol-specific configurations of targets.
@@ -122,9 +134,42 @@ public abstract class AbstractProtocolValidator {
      * @param connection the connection to check.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      */
-    protected void validateTargetConfigs(final Connection connection,
-            final DittoHeaders dittoHeaders) {
+    protected void validateTargetConfigs(final Connection connection, final DittoHeaders dittoHeaders) {
         connection.getTargets().forEach(target -> validateTarget(target, dittoHeaders, targetDescription(target, connection)));
+    }
+
+    /**
+     * Validate configurations of {@link MappingContext}.
+     *
+     * @param connection the connection to check the MappingContext in.
+     * @param dittoHeaders headers of the command that triggered the connection validation.
+     */
+    protected void validateMappingContext(final Connection connection, final ActorSystem actorSystem, final DittoHeaders dittoHeaders) {
+        connection.getMappingContext().ifPresent(mappingContext -> {
+            final MappingConfig mappingConfig = DittoConnectivityConfig.of(
+                    DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+            ).getMappingConfig();
+            final MessageMapperFactory messageMapperFactory =
+                    DefaultMessageMapperFactory.of(connection.getId(), actorSystem, mappingConfig, actorSystem.log());
+
+            try {
+                DittoJsonException.wrapJsonRuntimeException(mappingContext, dittoHeaders,
+                        (theMappingContext, theDittoHeaders) ->
+                                messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, theMappingContext)
+                );
+            } catch (final DittoRuntimeException e) {
+                throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
+                        .description(e.getDescription().orElse(null))
+                        .dittoHeaders(dittoHeaders)
+                        .cause(e)
+                        .build();
+            } catch (final RuntimeException e) {
+                throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
+                        .dittoHeaders(dittoHeaders)
+                        .cause(e)
+                        .build();
+            }
+        });
     }
 
     /**
@@ -148,8 +193,8 @@ public abstract class AbstractProtocolValidator {
      * @param targetDescription a descriptive text of the target
      * @throws ConnectionConfigurationInvalidException in case the Target configuration is invalid
      */
-    protected abstract void validateTarget(final Target target, final DittoHeaders dittoHeaders,
-            final Supplier<String> targetDescription);
+    protected abstract void validateTarget(Target target, DittoHeaders dittoHeaders,
+            Supplier<String> targetDescription);
 
     /**
      * Obtain a supplier of a description of a source of a connection.
