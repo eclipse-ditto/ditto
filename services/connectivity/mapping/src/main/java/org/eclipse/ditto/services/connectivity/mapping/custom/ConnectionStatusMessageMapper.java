@@ -21,8 +21,13 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
@@ -32,6 +37,7 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.mapping.AbstractMessageMapper;
@@ -40,6 +46,7 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguratio
 import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,11 +62,11 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     static final String CONNECTION_STATUS_MAPPER_ALIAS = "status";
     static final String HEADER_HUB_TTD = "ttd";
     static final String HEADER_HUB_CREATION_TIME = "creation-time";
+    static final String DEFAULT_FEATURE_ID = "ConnectionStatus";
 
     static final String MAPPING_OPTIONS_PROPERTIES_THING_ID = "thingId";
     static final String MAPPING_OPTIONS_PROPERTIES_FEATURE_ID = "featureId";
 
-    private static final String DEFAULT_FEATURE_ID = "ConnectionStatus";
     private static final String FEATURE_DEFINITION = "com.bosch.iot.suite.standard:ConnectionStatus:1.0.0";
     private static final String FEATURE_PROPERTY_READY_SINCE = "readySince";
     private static final String FEATURE_PROPERTY_READY_UNTIL = "readyUntil";
@@ -84,8 +91,21 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     @Override
     public void doConfigure(final MappingConfig mappingConfig,
             final MessageMapperConfiguration messageMapperConfiguration) {
-        mappingOptionThingId =
-                messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_THING_ID).orElse(null);
+        mappingOptionThingId = messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_THING_ID)
+                .orElseThrow(
+                        () -> MessageMapperConfigurationInvalidException.newBuilder(MAPPING_OPTIONS_PROPERTIES_THING_ID)
+                                .build());
+        //Check if ThingId is valid when its not a placeholder
+        if (!Placeholders.containsAnyPlaceholder(
+                mappingOptionThingId)) { //true bei Placeholder --- false bei keinem Placeholder
+            LOGGER.info("Wrong ThingID format in context");
+            try {
+                ThingId.of(mappingOptionThingId);
+            } catch (ThingIdInvalidException e) {
+                throw MessageMapperConfigurationInvalidException.newBuilder(e).build();
+            }
+        }
+
         featureId = messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_FEATURE_ID)
                 .orElse(DEFAULT_FEATURE_ID);
     }
@@ -129,21 +149,34 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
         final ThingId thingId = extractThingId(mappingOptionThingId, externalMessage.getHeaders());
 
         //Set time to ISO-8601 UTC
+        final String readySince = Instant.ofEpochSecond(creationTime).toString();
         final String readyUntil;
-        if (ttd != -1) {
-            readyUntil = Instant.ofEpochSecond(creationTime + ttd).toString();
-        } else {
+        final Adaptable adaptable;
+
+        if (ttd == 0) {
+            readyUntil = Instant.ofEpochSecond(creationTime).toString();
+            adaptable = getModifyFeaturePropertieAdoptable(thingId, readyUntil);
+        } else if (ttd == -1) {
             readyUntil = Instant.ofEpochSecond(Long.parseLong(FUTURE_INSTANT)).toString();
+            adaptable = getModifyFeatureAdaptable(thingId, readyUntil, readySince);
+        } else {
+            readyUntil = Instant.ofEpochSecond(creationTime + ttd).toString();
+            adaptable = getModifyFeatureAdaptable(thingId, readyUntil, readySince);
         }
 
-        final String readySince = Instant.ofEpochSecond(creationTime).toString();
-
-        //Build propertyPath of featureId
-        final Adaptable adaptable = getModifyFeatureAdaptable(thingId, readyUntil, readySince);
-
-        LOGGER.info("Feature '{}' of Thing '{}' is modified", featureId, thingId);
-
         return Collections.singletonList(adaptable);
+    }
+
+    @Nonnull
+    private Adaptable getModifyFeaturePropertieAdoptable(final ThingId thingId, final String readyUntil) {
+        LOGGER.debug("Propertie of feature {} for thing {} adjusted by mapping", featureId, thingId);
+
+        final JsonPointer propertyJsonPointer = JsonFactory.newPointer("readyUntil");
+        final ModifyFeatureProperty modifyFeatureProperty =
+                ModifyFeatureProperty.of(thingId, featureId, propertyJsonPointer, JsonValue.of(readyUntil),
+                        DittoHeaders.newBuilder().responseRequired(false).build());
+
+        return DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyFeatureProperty);
     }
 
     @Nonnull
@@ -164,7 +197,8 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
         LOGGER.debug("Feature created by mapping: {}", feature);
 
-        final ModifyFeature modifyFeature = ModifyFeature.of(thingId, feature, DittoHeaders.empty());
+        final ModifyFeature modifyFeature =
+                ModifyFeature.of(thingId, feature, DittoHeaders.newBuilder().responseRequired(false).build());
         return DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyFeature);
     }
 
