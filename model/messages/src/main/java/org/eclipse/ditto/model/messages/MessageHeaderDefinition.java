@@ -125,7 +125,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "status"}, Java type: {@code int}.
      * </p>
      */
-    STATUS_CODE("status", int.class, true, true) {
+    STATUS_CODE("status", int.class, true, false) {
         @SuppressWarnings({"squid:S2201"})
         @Override
         public void validateValue(@Nullable final CharSequence value) {
