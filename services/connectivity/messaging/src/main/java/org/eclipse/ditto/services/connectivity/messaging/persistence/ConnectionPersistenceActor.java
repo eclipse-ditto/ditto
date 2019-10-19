@@ -524,6 +524,8 @@ public final class ConnectionPersistenceActor
             origin.tell(TestConnectionResponse.alreadyCreated(entityId, command.getDittoHeaders()), self);
         } else {
             // no need to start more than 1 client for tests
+            // set connection status to CLOSED so that client actors will not try to connect on startup
+            setConnectionStatusClosedForTestConnection();
             startAndAskClientActors(command.getCommand(), 1)
                     .thenAccept(response -> self.tell(
                             command.withResponse(TestConnectionResponse.success(command.getConnectionEntityId(),
@@ -536,6 +538,12 @@ public final class ConnectionPersistenceActor
                                 ActorRef.noSender());
                         return null;
                     });
+        }
+    }
+
+    private void setConnectionStatusClosedForTestConnection() {
+        if (entity != null) {
+            entity = entity.toBuilder().connectionStatus(ConnectivityStatus.CLOSED).build();
         }
     }
 

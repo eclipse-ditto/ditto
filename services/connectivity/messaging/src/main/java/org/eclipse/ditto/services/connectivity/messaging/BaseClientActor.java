@@ -179,7 +179,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
         startWith(UNKNOWN, startingData);
-        getSelf().tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getSelf());
+
+        // Always open connection right away when desired---this actor may be deployed onto other instances and
+        // will not be directly controlled by the connection persistence actor.
+        if (connection.getConnectionStatus() == ConnectivityStatus.OPEN) {
+            getSelf().tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getSelf());
+        }
 
         onTransition(this::onTransition);
 
