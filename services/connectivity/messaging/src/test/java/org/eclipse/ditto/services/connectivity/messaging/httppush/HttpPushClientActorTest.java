@@ -278,7 +278,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     private Connection getConnectionToLocalBinding(final boolean isSecure) {
         return ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
                 ConnectionType.HTTP_PUSH,
-                ConnectivityStatus.OPEN,
+                ConnectivityStatus.CLOSED,
                 (isSecure ? "https" : "http") + "://127.0.0.1:" + binding.localAddress().getPort())
                 .targets(singletonList(TARGET))
                 .validateCertificate(isSecure)

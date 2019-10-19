@@ -161,7 +161,10 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connection = TestConstants.createConnection(CONNECTION_ID);
+        connection = TestConstants.createConnection(CONNECTION_ID)
+                .toBuilder()
+                .connectionStatus(ConnectivityStatus.CLOSED)
+                .build();
     }
 
     @AfterClass

@@ -83,7 +83,10 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connection = TestConstants.createConnection(CONNECTION_ID);
+        connection = TestConstants.createConnection(CONNECTION_ID)
+                .toBuilder()
+                .connectionStatus(ConnectivityStatus.CLOSED)
+                .build();
     }
 
     @AfterClass
@@ -101,10 +104,10 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_091,
-                ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
-                .targets(Collections.singletonList(ConnectivityModelFactory.newTarget("exchangeOnly",
-                        TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, null, Topic.TWIN_EVENTS)))
-                .build();
+                        ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
+                        .targets(Collections.singletonList(ConnectivityModelFactory.newTarget("exchangeOnly",
+                                TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, null, Topic.TWIN_EVENTS)))
+                        .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
                 () -> RabbitMQClientActor.propsForTests(connection,
