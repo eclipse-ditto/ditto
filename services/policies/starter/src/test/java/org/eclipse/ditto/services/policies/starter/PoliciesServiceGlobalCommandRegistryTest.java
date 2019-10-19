@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.policies.starter;
 
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
@@ -33,7 +32,6 @@ public class PoliciesServiceGlobalCommandRegistryTest extends GlobalCommandRegis
     public PoliciesServiceGlobalCommandRegistryTest() {
         super(
                 SudoStreamModifiedEntities.class,
-                SudoRetrieveThing.class,
                 SudoRetrievePolicy.class,
                 RetrieveFeature.class,
                 ModifyFeatureProperty.class,

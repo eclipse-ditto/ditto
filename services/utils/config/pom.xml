@@ -58,4 +58,23 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <resources>
+            <resource>
+                <filtering>true</filtering>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>ditto-service-base.conf</include>
+                </includes>
+            </resource>
+            <resource>
+                <filtering>false</filtering>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <exclude>ditto-service-base.conf</exclude>
+                </excludes>
+            </resource>
+        </resources>
+    </build>
+
 </project>

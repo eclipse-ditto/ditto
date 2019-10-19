@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
@@ -32,8 +30,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInval
 public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public ThingsServiceGlobalErrorRegistryTest() {
-        super(Arrays.asList(
-                DittoHeaderInvalidException.class,
+        super(DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AclEntryInvalidException.class,
                 CommandNotSupportedException.class,
@@ -46,6 +43,7 @@ public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegis
                 NamespacedEntityIdInvalidException.class,
                 ThingIdInvalidException.class,
                 PolicyIdInvalidException.class
-        ));
+        );
     }
+
 }

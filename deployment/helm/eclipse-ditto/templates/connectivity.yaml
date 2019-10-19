@@ -48,6 +48,12 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 4
+          resources:
+            requests:
+              memory: "{{ .Values.connectivity.memory }}"
+            limits:
+              # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+              memory: "{{ .Values.connectivity.memory }}"
           env:
             - name: K8S_NAMESPACE
               value: {{.Release.Namespace}}
@@ -65,7 +71,7 @@ spec:
               value: "kubernetes-api"
             - name: TZ
               value: "{{ .Values.global.timezone }}"
-            - name: IBM_JAVA_OPTIONS
+            - name: OPENJ9_JAVA_OPTIONS
               value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError{{ if .Values.mongodb.apps.connectivity.ssl }} -Dorg.mongodb.async.type=netty{{ end }}"
             - name: MONGO_DB_SSL_ENABLED
               value: "{{ if .Values.mongodb.apps.connectivity.ssl }}true{{ else }}false{{ end }}"

@@ -19,6 +19,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -45,16 +46,17 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final ModifySubject command) {
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
         final Subject subject = command.getSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(label);
+        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
-            final PoliciesValidator validator = PoliciesValidator.newInstance(policy.setSubjectFor(label, subject));
+            final PoliciesValidator validator =
+                    PoliciesValidator.newInstance(nonNullPolicy.setSubjectFor(label, subject));
 
             if (validator.isValid()) {
                 final PolicyEvent event;
@@ -70,7 +72,7 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
                             command.getDittoHeaders());
                 }
                 return ResultFactory.newMutationResult(command, event,
-                        appendETagHeaderIfProvided(command, rawResponse, policy));
+                        appendETagHeaderIfProvided(command, rawResponse, nonNullPolicy));
             } else {
                 return ResultFactory.newErrorResult(
                         policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders));
@@ -81,14 +83,15 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
     }
 
     @Override
-    public Optional<?> previousETagEntity(final ModifySubject command, @Nullable final Policy previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final ModifySubject command, @Nullable final Policy previousEntity) {
         return Optional.ofNullable(previousEntity)
                 .flatMap(p -> p.getEntryFor(command.getLabel()))
-                .flatMap(entry -> entry.getSubjects().getSubject(command.getSubject().getId()));
+                .flatMap(entry -> entry.getSubjects().getSubject(command.getSubject().getId()))
+                .flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final ModifySubject command, @Nullable final Policy newEntity) {
-        return Optional.of(command.getSubject());
+    public Optional<EntityTag> nextEntityTag(final ModifySubject command, @Nullable final Policy newEntity) {
+        return Optional.of(command.getSubject()).flatMap(EntityTag::fromEntity);
     }
 }

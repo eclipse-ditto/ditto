@@ -212,7 +212,7 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
     @Override
     public StagedCommand next() {
         final Queue<ConnectionAction> queue = getActionsAsQueue();
-        queue.poll();
+        queue.remove();
         return new StagedCommand(command, event, response, sender, queue);
     }
 

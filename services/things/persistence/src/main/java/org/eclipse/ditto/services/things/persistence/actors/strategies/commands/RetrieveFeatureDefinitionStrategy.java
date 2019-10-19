@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -74,14 +75,14 @@ final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrate
 
 
     @Override
-    public Optional<?> previousETagEntity(final RetrieveFeatureDefinition command,
+    public Optional<EntityTag> previousEntityTag(final RetrieveFeatureDefinition command,
             @Nullable final Thing previousEntity) {
-        return nextETagEntity(command, previousEntity);
+        return nextEntityTag(command, previousEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final RetrieveFeatureDefinition command,
+    public Optional<EntityTag> nextEntityTag(final RetrieveFeatureDefinition command,
             @Nullable final Thing newEntity) {
-        return extractFeature(command, newEntity).flatMap(Feature::getDefinition);
+        return extractFeature(command, newEntity).flatMap(Feature::getDefinition).flatMap(EntityTag::fromEntity);
     }
 }

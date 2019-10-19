@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -32,7 +33,7 @@ abstract class AbstractPolicyQueryCommandStrategy<C extends Command<C>> extends 
     }
 
     @Override
-    public Optional<?> previousETagEntity(final C command, @Nullable final Policy policy) {
-        return nextETagEntity(command, policy);
+    public Optional<EntityTag> previousEntityTag(final C command, @Nullable final Policy policy) {
+        return nextEntityTag(command, policy);
     }
 }

@@ -29,7 +29,9 @@ final class ConnectionClosedStrategy implements EventStrategy<ConnectionClosed, 
     @Override
     public Connection handle(final ConnectionClosed event, @Nullable final Connection connection,
             final long revision) {
-        checkNotNull(connection, "connection");
-        return connection.toBuilder().connectionStatus(ConnectivityStatus.CLOSED).build();
+        return checkNotNull(connection, "connection")
+                .toBuilder()
+                .connectionStatus(ConnectivityStatus.CLOSED)
+                .build();
     }
 }

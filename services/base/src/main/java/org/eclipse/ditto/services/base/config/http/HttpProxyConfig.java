@@ -10,11 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.config;
+package org.eclipse.ditto.services.base.config.http;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+
+import akka.http.javadsl.ClientTransport;
 
 /**
  * Provides configuration settings for the HTTP proxy.
@@ -56,6 +58,14 @@ public interface HttpProxyConfig {
      * @return the password.
      */
     String getPassword();
+
+    /**
+     * Converts the proxy settings to an Akka HTTP client transport object.
+     * Does not check whether the proxy is enabled.
+     *
+     * @return an Akka HTTP client transport object matching this config.
+     */
+    ClientTransport toClientTransport();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

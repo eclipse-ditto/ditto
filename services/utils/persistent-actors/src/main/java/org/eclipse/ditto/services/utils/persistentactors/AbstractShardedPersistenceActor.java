@@ -210,7 +210,7 @@ public abstract class AbstractShardedPersistenceActor<
 
     @Override
     public void postStop() throws Exception {
-        log.debug("Stopping PersistenceActor for Thing with ID <{}>.", entityId);
+        log.debug("Stopping PersistenceActor for entity with ID <{}>.", entityId);
         super.postStop();
     }
 
@@ -235,7 +235,7 @@ public abstract class AbstractShardedPersistenceActor<
                 })
                 // # Recovery timeout
                 .match(RecoveryTimedOut.class, rto ->
-                        log.warning("RecoveryTimeout occurred during recovery for Thing with ID {}", entityId)
+                        log.warning("RecoveryTimeout occurred during recovery for entity with ID {}", entityId)
                 )
                 // # Recovery handling
                 .match(RecoveryCompleted.class, this::recoveryCompleted)
@@ -243,9 +243,8 @@ public abstract class AbstractShardedPersistenceActor<
                 .build());
     }
 
-    /*
-     * Now as the {@code thing} reference is not {@code null} the strategies which act on this reference can
-     * be activated. In return the strategy for the CreateThing command is not needed anymore.
+    /**
+     * Start handling messages for an existing entity and schedule maintenance messages to self.
      */
     protected void becomeCreatedHandler() {
         final CommandStrategy<C, S, K, Result<E>> commandStrategy = getCreatedStrategy();
@@ -286,7 +285,7 @@ public abstract class AbstractShardedPersistenceActor<
 
         final E modifiedEvent;
         if (null != entity) {
-            // set version of event to the version of the thing
+            // set version of event to the version of the entity
             final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
                     .schemaVersion(getEntitySchemaVersion(entity))
                     .build();
@@ -314,17 +313,17 @@ public abstract class AbstractShardedPersistenceActor<
     protected void checkForActivity(final CheckForActivity message) {
         if (entityExistsAsDeleted() && lastSnapshotRevision < getRevisionNumber()) {
             // take a snapshot after a period of inactivity if:
-            // - thing is deleted,
+            // - entity is deleted,
             // - the latest snapshot is out of date or is still ongoing.
-            takeSnapshot("the thing is deleted and has no up-to-date snapshot");
+            takeSnapshot("the entity is deleted and has no up-to-date snapshot");
             scheduleCheckForActivity(getActivityCheckConfig().getDeletedInterval());
         } else if (accessCounter > message.accessCounter) {
-            // if the Thing was accessed in any way since the last check
+            // if the entity was accessed in any way since the last check
             scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
         } else {
             // safe to shutdown after a period of inactivity if:
-            // - thing is active (and taking regular snapshots of itself), or
-            // - thing is deleted and the latest snapshot is up to date
+            // - entity is active (and taking regular snapshots of itself), or
+            // - entity is deleted and the latest snapshot is up to date
             if (isEntityActive()) {
                 shutdown("Entity <{}> was not accessed in a while. Shutting Actor down ...", entityId);
             } else {
@@ -378,12 +377,14 @@ public abstract class AbstractShardedPersistenceActor<
         handleByStrategy(command, getCreatedStrategy());
     }
 
-    private <T extends Command> ReceiveBuilder handleByStrategyReceiveBuilder(final CommandStrategy<T, S, K, Result<E>> strategy) {
+    private <T extends Command> ReceiveBuilder handleByStrategyReceiveBuilder(
+            final CommandStrategy<T, S, K, Result<E>> strategy) {
         return ReceiveBuilder.create()
                 .match(strategy.getMatchingClass(), command -> handleByStrategy(command, strategy));
     }
 
-    private <T extends Command> void handleByStrategy(final T command, final CommandStrategy<T, S, K, Result<E>> strategy) {
+    private <T extends Command> void handleByStrategy(final T command,
+            final CommandStrategy<T, S, K, Result<E>> strategy) {
         log.debug("Handling by strategy: <{}>", command);
         accessCounter++;
         final Result<E> result;
@@ -449,7 +450,7 @@ public abstract class AbstractShardedPersistenceActor<
     private void takeSnapshot(final String reason) {
         final long revision = getRevisionNumber();
         if (entity != null && lastSnapshotRevision != revision) {
-            log.info("Taking snapshot for entity with ID <{}> and sequence number <{}> because {}.", entityId, revision,
+            log.debug("Taking snapshot for entity with ID <{}> and sequence number <{}> because {}.", entityId, revision,
                     reason);
 
             final Object snapshotSubject = snapshotAdapter.toSnapshotStore(entity);
@@ -487,7 +488,7 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     private void saveSnapshotSuccess(final SaveSnapshotSuccess s) {
-        log.info("Got {}", s);
+        log.debug("Got {}", s);
         confirmedSnapshotRevision = s.metadata().sequenceNr();
     }
 

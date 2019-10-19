@@ -11,6 +11,75 @@ Once you have successfully started Ditto, proceed with setting it up for continu
 
 This page shows the basics for operating Ditto.
 
+## Configuration
+
+Each service may be configured via it's java VM variables on service startup.
+
+The following example configures the devops password of the gateway-service started via docker-compose. In order
+to supply additional configuration one has to add the variable in the corresponding `entrypoint` section of the
+`docker-compose.yml` file.
+
+```yml
+    ...
+    entrypoint:
+      - java
+      # Alternative approach for configuration of the service
+      - -Dditto.gateway.authentication.devops.password=foobar
+      - -jar
+      - starter.jar
+```
+
+The executable for the microservice is called `starter.jar`. The configuration variables have to be set before
+the `-jar` option.
+
+For a list of available configuration options go to the respective configuration files under the services 
+directory. E.g. for the gateway service visit [/services/gateway/starter/src/main/resources/gateway.conf](https://github.com/eclipse/ditto/blob/master/services/gateway/starter/src/main/resources/gateway.conf).
+
+### OpenID Connect
+
+The authentication provider must be added to the ditto-gateway configuration.
+
+```java
+ditto.gateway.authentication {
+    oauth {
+      openid-connect-issuers = {
+        myprovider = "https://localhost:9000/"
+      }
+    }
+}
+```
+
+The configured subject-issuer will be used to prefix the value of the “sub” claim, e.g.
+
+```json
+{
+  "subjects": {
+    "<provider>:<sub-claim>": {
+    "type": "generated"
+    }
+  }
+}
+```
+
+As of the OAuth2.0 and OpenID Connect standards Ditto expects the headers `Authorization: Bearer <JWT>` and 
+`Content-Type: application/json`, containing the issued token of the provider. 
+
+**The token has to be issued beforehand. The required logic is not provided by ditto.** When using 
+the OIDC provider [keycloak](https://www.keycloak.org/), a project like [keycloak-gatekeeper](https://github.com/keycloak/keycloak-gatekeeper) 
+may be put infront of ditto to handle the token-logic.
+
+**If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for the 
+akka-http ssl configuration.
+
+```java
+ssl-config {
+  trustManager = {
+    stores = [
+      { type = "PEM", path = "/path/to/cert/globalsign.crt" }
+    ]
+  }
+}
+```
 
 ## Logging
 

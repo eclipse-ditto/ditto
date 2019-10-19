@@ -27,11 +27,9 @@ spec:
         image: registry.access.redhat.com/rhscl/mongodb-36-rhel7
         resources:
           requests:
-            cpu: "0.1"
             memory: "100Mi"
           limits:
-            cpu: "0.5"
-            memory: "250i"
+            memory: "250Mi"
         ports:
           - containerPort: 27017
         env:

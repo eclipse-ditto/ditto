@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
@@ -238,12 +239,12 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
     }
 
     @Override
-    public Optional<?> previousETagEntity(final ModifyThing command, @Nullable final Thing previousEntity) {
-        return Optional.ofNullable(previousEntity);
+    public Optional<EntityTag> previousEntityTag(final ModifyThing command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final ModifyThing thingCommand, @Nullable final Thing newEntity) {
-        return Optional.of(getEntityOrThrow(newEntity));
+    public Optional<EntityTag> nextEntityTag(final ModifyThing thingCommand, @Nullable final Thing newEntity) {
+        return Optional.of(getEntityOrThrow(newEntity)).flatMap(EntityTag::fromEntity);
     }
 }

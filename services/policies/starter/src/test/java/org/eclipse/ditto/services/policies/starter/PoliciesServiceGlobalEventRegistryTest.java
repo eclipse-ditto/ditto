@@ -14,12 +14,11 @@ package org.eclipse.ditto.services.policies.starter;
 
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
-import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 
 public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public PoliciesServiceGlobalEventRegistryTest() {
-        super(ResourceDeleted.class, FeatureDeleted.class);
+        super(ResourceDeleted.class);
     }
 
 }

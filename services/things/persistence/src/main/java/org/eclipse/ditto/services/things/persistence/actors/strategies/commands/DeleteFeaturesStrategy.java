@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -73,12 +74,12 @@ final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFe
     }
 
     @Override
-    public Optional<?> previousETagEntity(final DeleteFeatures command, @Nullable final Thing previousEntity) {
-        return extractFeatures(previousEntity);
+    public Optional<EntityTag> previousEntityTag(final DeleteFeatures command, @Nullable final Thing previousEntity) {
+        return extractFeatures(previousEntity).flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<?> nextETagEntity(final DeleteFeatures command, @Nullable final Thing newEntity) {
+    public Optional<EntityTag> nextEntityTag(final DeleteFeatures command, @Nullable final Thing newEntity) {
         return Optional.empty();
     }
 }

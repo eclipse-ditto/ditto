@@ -31,6 +31,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
+import akka.actor.ActorSystem;
+
 /**
  * Connection specification for Amqp protocol.
  */
@@ -75,9 +77,10 @@ public final class AmqpValidator extends AbstractProtocolValidator {
     }
 
     @Override
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
+    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "AMQP 1.0");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
+        validateMappingContext(connection, actorSystem, dittoHeaders);
     }
 }

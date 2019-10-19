@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -44,19 +45,19 @@ final class DeletePolicyEntryStrategy extends AbstractPolicyCommandStrategy<Dele
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final DeletePolicyEntry command) {
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Label label = command.getLabel();
         final PolicyId policyId = context.getState();
 
-        if (policy.contains(label)) {
-            final PoliciesValidator validator = PoliciesValidator.newInstance(policy.removeEntry(label));
+        if (nonNullPolicy.contains(label)) {
+            final PoliciesValidator validator = PoliciesValidator.newInstance(nonNullPolicy.removeEntry(label));
 
             if (validator.isValid()) {
                 final PolicyEntryDeleted policyEntryDeleted =
                         PolicyEntryDeleted.of(policyId, label, nextRevision, getEventTimestamp(), dittoHeaders);
                 final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                        DeletePolicyEntryResponse.of(policyId, label, dittoHeaders), policy);
+                        DeletePolicyEntryResponse.of(policyId, label, dittoHeaders), nonNullPolicy);
                 return ResultFactory.newMutationResult(command, policyEntryDeleted, response);
             } else {
                 return ResultFactory.newErrorResult(
@@ -68,12 +69,14 @@ final class DeletePolicyEntryStrategy extends AbstractPolicyCommandStrategy<Dele
     }
 
     @Override
-    public Optional<?> previousETagEntity(final DeletePolicyEntry command, @Nullable final Policy previousEntity) {
-        return Optional.ofNullable(previousEntity).flatMap(p -> p.getEntryFor(command.getLabel()));
+    public Optional<EntityTag> previousEntityTag(final DeletePolicyEntry command,
+            @Nullable final Policy previousEntity) {
+        return Optional.ofNullable(previousEntity)
+                .flatMap(p -> EntityTag.fromEntity(p.getEntryFor(command.getLabel()).orElse(null)));
     }
 
     @Override
-    public Optional<?> nextETagEntity(final DeletePolicyEntry command, @Nullable final Policy newEntity) {
+    public Optional<EntityTag> nextEntityTag(final DeletePolicyEntry command, @Nullable final Policy newEntity) {
         return Optional.empty();
     }
 }

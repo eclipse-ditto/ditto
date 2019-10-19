@@ -18,6 +18,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.CONNECTING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTED;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTING;
+import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.INITIATING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.TESTING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.UNKNOWN;
 
@@ -32,6 +33,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
@@ -139,7 +141,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected BaseClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder) {
+            @Nullable final ActorRef conciergeForwarder) {
 
         checkNotNull(connection, "connection");
 
@@ -150,7 +152,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
         this.clientConfig = this.connectivityConfig.getClientConfig();
-        this.conciergeForwarder = conciergeForwarder;
+        this.conciergeForwarder =
+                Optional.ofNullable(conciergeForwarder).orElse(getContext().getSystem().deadLetters());
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
@@ -177,7 +180,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         when(CONNECTING, inConnectingState());
         when(TESTING, inTestingState());
 
-        startWith(UNKNOWN, startingData, clientConfig.getInitTimeout());
+        // initial state. will always time out for client actors deployed on remote instances.
+        when(INITIATING, inUnknownState());
+        startWith(INITIATING, startingData, clientConfig.getInitTimeout());
 
         onTransition(this::onTransition);
 
@@ -413,11 +418,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             clientConnectingGauge.reset();
         }
         // cancel our own state timeout if target state is stable
-        switch (to) {
-            case UNKNOWN:
-            case CONNECTED:
-            case DISCONNECTED:
-                cancelStateTimeout();
+        if (to == CONNECTED || to == DISCONNECTED || to == UNKNOWN) {
+            cancelStateTimeout();
         }
     }
 
@@ -504,7 +506,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         if (getPublisherActor() != null) {
             getPublisherActor().forward(message.getOutboundSignal(), getContext());
         } else {
-            log.warning("No publisher actor available, dropping message.");
+            log.error("No publisher actor available, dropping message: {}", message);
         }
         return stay();
     }
@@ -1043,7 +1045,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
-    private boolean canConnectViaSocket(final Connection connection) {
+    protected boolean canConnectViaSocket(final Connection connection) {
         return checkHostAndPortForAvailability(connection.getHostname(), connection.getPort());
     }
 
@@ -1056,7 +1058,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             connectionLogger.failure("Socket could not be opened for {0}:{1,number,#} due to {2}", host, port,
                     ex.getMessage());
 
-            log.warning("Socket could not be opened for <{}:{}> due to <{}:{}>", host, port,
+            log.warning("Socket could not be opened for <{}:{}> due to {}: {}", host, port,
                     ex.getClass().getCanonicalName(), ex.getMessage());
         }
         return false;
@@ -1372,6 +1374,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         OutboundSignal.WithExternalMessage getOutboundSignal() {
             return outboundSignal;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "outboundSignal=" + outboundSignal +
+                    "]";
         }
     }
 
