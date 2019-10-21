@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.gateway.streaming.CloseWebSocket;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -46,6 +47,7 @@ public final class EventAndResponsePublisher
     private final int backpressureBufferSize;
     private final List<Jsonifiable.WithPredicate<JsonObject, JsonField>> buffer = new ArrayList<>();
     private final AtomicBoolean currentlyInMessageConsumedCheck = new AtomicBoolean(false);
+
     private String connectionCorrelationId;
 
     @SuppressWarnings("unused")
@@ -61,7 +63,6 @@ public final class EventAndResponsePublisher
      * @return the Akka configuration Props object.
      */
     public static Props props(final int backpressureBufferSize) {
-
         return Props.create(EventAndResponsePublisher.class, backpressureBufferSize);
     }
 
@@ -70,10 +71,9 @@ public final class EventAndResponsePublisher
         // Initially, this Actor can only receive the Connect message:
         return ReceiveBuilder.create()
                 .match(Connect.class, connect -> {
-                    final String connectionCorrelationId = connect.getConnectionCorrelationId();
-                    LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-                    logger.debug("Established new connection: {}", connectionCorrelationId);
-                    getContext().become(connected(connectionCorrelationId));
+                    LogUtil.enhanceLogWithCorrelationId(logger, connect.getConnectionCorrelationId());
+                    logger.debug("Established new connection: {}", connect.getConnectionCorrelationId());
+                    getContext().become(connected(connect.getConnectionCorrelationId()));
                 })
                 .matchAny(any -> {
                     logger.info("Got unknown message during init phase '{}' - stashing..", any);
@@ -97,6 +97,11 @@ public final class EventAndResponsePublisher
                         buffer.add((Signal<?>) signal);
                         deliverBuf();
                     }
+                })
+                .match(CloseWebSocket.class, closeWebSocket -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, closeWebSocket.getConnectionCorrelationId());
+                    onNext(closeWebSocket.getReason());
+                    onErrorThenStop(closeWebSocket.getReason());
                 })
                 .match(DittoRuntimeException.class, cre -> buffer.size() >= backpressureBufferSize, cre -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, cre.getDittoHeaders().getCorrelationId());

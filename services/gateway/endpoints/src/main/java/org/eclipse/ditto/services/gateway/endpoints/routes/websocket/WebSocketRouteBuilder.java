@@ -53,6 +53,16 @@ public interface WebSocketRouteBuilder {
     WebSocketRouteBuilder withAuthorizationEnforcer(WebSocketAuthorizationEnforcer enforcer);
 
     /**
+     * Sets the given supervisor.
+     * If this method is never called the WebSocket remains without supervision.
+     *
+     * @param webSocketSupervisor the supervisor to be used.
+     * @return this builder instance to allow method chaining.
+     * @throws NullPointerException if {@code webSocketSupervisor} is {@code null}.
+     */
+    WebSocketRouteBuilder withWebSocketSupervisor(WebSocketSupervisor webSocketSupervisor);
+
+    /**
      * Creates the Akka HTTP route for websocket.
      *
      * @param version
