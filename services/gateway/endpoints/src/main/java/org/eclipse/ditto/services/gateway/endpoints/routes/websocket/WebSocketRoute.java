@@ -148,13 +148,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     @Override
     public WebSocketRouteBuilder withIncomingEventSniffer(final EventSniffer<String> eventSniffer) {
-        incomingMessageSniffer = checkNotNull(incomingMessageSniffer, "incomingMessageSniffer");
+        incomingMessageSniffer = checkNotNull(eventSniffer, "eventSniffer");
         return this;
     }
 
     @Override
     public WebSocketRouteBuilder withOutgoingEventSniffer(final EventSniffer<String> eventSniffer) {
-        outgoingMessageSniffer = checkNotNull(outgoingMessageSniffer, "outgoingMessageSniffer");
+        outgoingMessageSniffer = checkNotNull(eventSniffer, "eventSniffer");
         return this;
     }
 
