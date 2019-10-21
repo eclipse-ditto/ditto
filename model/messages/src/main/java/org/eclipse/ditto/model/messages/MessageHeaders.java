@@ -207,11 +207,4 @@ public interface MessageHeaders extends DittoHeaders {
      */
     Optional<HttpStatusCode> getStatusCode();
 
-    /**
-     * Returns the URL to be used for message validation.
-     *
-     * @return the validation URL.
-     */
-    Optional<String> getValidationUrl();
-
 }

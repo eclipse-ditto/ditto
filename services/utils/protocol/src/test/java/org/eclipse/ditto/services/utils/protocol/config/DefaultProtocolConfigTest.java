@@ -64,9 +64,6 @@ public final class DefaultProtocolConfigTest {
         softly.assertThat(underTest.getBlacklistedHeaderKeys())
                 .as(ProtocolConfigValue.BLACKLIST.getConfigPath())
                 .containsOnlyElementsOf((Iterable) ProtocolConfigValue.BLACKLIST.getDefaultValue());
-        softly.assertThat(underTest.getIncompatibleBlacklist())
-                .as(ProtocolConfigValue.INCOMPATIBLE_BLACKLIST.getConfigPath())
-                .containsOnlyElementsOf((Iterable) ProtocolConfigValue.INCOMPATIBLE_BLACKLIST.getDefaultValue());
     }
 
     @Test
@@ -79,9 +76,6 @@ public final class DefaultProtocolConfigTest {
         softly.assertThat(underTest.getBlacklistedHeaderKeys())
                 .as(ProtocolConfigValue.BLACKLIST.getConfigPath())
                 .containsOnly("foo", "bar", "baz");
-        softly.assertThat(underTest.getIncompatibleBlacklist())
-                .as(ProtocolConfigValue.INCOMPATIBLE_BLACKLIST.getConfigPath())
-                .containsOnly("tick", "trick", "track");
     }
 
 }

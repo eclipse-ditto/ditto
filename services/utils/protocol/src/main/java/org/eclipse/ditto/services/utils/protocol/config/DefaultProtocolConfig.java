@@ -34,14 +34,11 @@ public final class DefaultProtocolConfig implements ProtocolConfig {
 
     private final String provider;
     private final Set<String> blacklist;
-    private final Set<String> incompatibleBlacklist;
 
     private DefaultProtocolConfig(final ScopedConfig scopedConfig) {
         provider = scopedConfig.getString(ProtocolConfigValue.PROVIDER.getConfigPath());
         blacklist = Collections.unmodifiableSet(
                 new HashSet<>(scopedConfig.getStringList(ProtocolConfigValue.BLACKLIST.getConfigPath())));
-        incompatibleBlacklist = Collections.unmodifiableSet(
-                new HashSet<>(scopedConfig.getStringList(ProtocolConfigValue.INCOMPATIBLE_BLACKLIST.getConfigPath())));
     }
 
     /**
@@ -67,11 +64,6 @@ public final class DefaultProtocolConfig implements ProtocolConfig {
     }
 
     @Override
-    public Set<String> getIncompatibleBlacklist() {
-        return incompatibleBlacklist;
-    }
-
-    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -81,13 +73,12 @@ public final class DefaultProtocolConfig implements ProtocolConfig {
         }
         final DefaultProtocolConfig that = (DefaultProtocolConfig) o;
         return provider.equals(that.provider) &&
-                blacklist.equals(that.blacklist) &&
-                incompatibleBlacklist.equals(that.incompatibleBlacklist);
+                blacklist.equals(that.blacklist);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(provider, blacklist, incompatibleBlacklist);
+        return Objects.hash(provider, blacklist);
     }
 
     @Override
@@ -95,7 +86,6 @@ public final class DefaultProtocolConfig implements ProtocolConfig {
         return getClass().getSimpleName() + " [" +
                 "provider=" + provider +
                 ", blacklist=" + blacklist +
-                ", incompatibleBlacklist=" + incompatibleBlacklist +
                 "]";
     }
 

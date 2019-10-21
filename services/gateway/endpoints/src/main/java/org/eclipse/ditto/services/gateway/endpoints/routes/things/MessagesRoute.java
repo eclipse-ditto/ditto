@@ -48,7 +48,6 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpCharset;
-import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.PathMatchers;
@@ -73,7 +72,6 @@ final class MessagesRoute extends AbstractRoute {
     private static final Pattern INBOX_OUTBOX_PATTERN = Pattern.compile(PATH_INBOX + "|" + PATH_OUTBOX);
 
     static final String TIMEOUT_PARAMETER = "timeout";
-    private static final String X_DITTO_VALIDATION_URL = "x-ditto-validation-url";
 
     private final Duration defaultMessageTimeout;
     private final Duration maxMessageTimeout;
@@ -316,9 +314,6 @@ final class MessagesRoute extends AbstractRoute {
                             .toString())
                     .timeout(timeout)
                     .timestamp(OffsetDateTime.now())
-                    .validationUrl(httpRequest.getHeader(X_DITTO_VALIDATION_URL)
-                            .map(HttpHeader::value)
-                            .orElse(null))
                     .putHeaders(dittoHeaders)
                     .build();
 
