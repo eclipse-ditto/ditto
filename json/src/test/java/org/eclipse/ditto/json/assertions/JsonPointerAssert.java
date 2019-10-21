@@ -141,7 +141,7 @@ public final class JsonPointerAssert extends AbstractAssert<JsonPointerAssert, J
     
     private boolean containsKey(final CharSequence expectedJsonKey) {
         for (final JsonKey existingJsonKey : actual) {
-            if (existingJsonKey.equals(expectedJsonKey)) {
+            if (existingJsonKey.equals(JsonKey.of(expectedJsonKey))) {
                 return true;
             }
         }

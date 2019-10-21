@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
@@ -238,7 +237,7 @@ public final class RootRoute extends AllDirectives {
      * @return route for API resource.
      */
     private Route api(final RequestContext ctx, final String correlationId) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(HTTP_PATH_API_PREFIX), () -> // /api
+        return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
                         customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
                                 apiAuthentication(correlationId,
@@ -270,7 +269,7 @@ public final class RootRoute extends AllDirectives {
     }
 
     private Route ensureSchemaVersion(final IntFunction<Route> inner) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.integerSegment()),
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.integerSegment()),
                 apiVersion -> { // /xx/<schemaVersion>
                     if (supportedSchemaVersions.contains(apiVersion)) {
                         try {
@@ -335,7 +334,7 @@ public final class RootRoute extends AllDirectives {
      * @return route for Websocket resource.
      */
     private Route ws(final RequestContext ctx, final String correlationId) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(WS_PATH_PREFIX), () -> // /ws
+        return rawPathPrefix(PathMatchers.slash().concat(WS_PATH_PREFIX), () -> // /ws
                 ensureSchemaVersion(wsVersion -> // /ws/<wsVersion>
                         wsAuthentication(correlationId, authContextWithPrefixedSubjects ->
                                 mapAuthorizationContext(correlationId, wsVersion, authContextWithPrefixedSubjects,

@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -71,8 +70,8 @@ public final class PoliciesRoute extends AbstractRoute {
      * @return the {@code /policies} route.
      */
     public Route buildPoliciesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_POLICIES), () ->
-                rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), policyId ->
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_POLICIES), () ->
+                rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), policyId ->
                         // /policies/<policyId>
                         policyRoute(ctx, dittoHeaders, PolicyId.of(policyId))
                 )
@@ -131,7 +130,7 @@ public final class PoliciesRoute extends AbstractRoute {
      */
     private Route policyEntryEntries(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ENTRIES), () -> // /policies/<policyId>/entries
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_ENTRIES), () -> // /policies/<policyId>/entries
                 policyEntriesRoute.buildPolicyEntriesRoute(ctx, dittoHeaders, policyId)
         );
     }

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
@@ -82,8 +81,7 @@ final class FeaturesRoute extends AbstractRoute {
     }
 
     private static String decodePath(final String attributePointerStr) {
-        final String duplicateSlashesEliminated = attributePointerStr.replace("//", "/");
-        return UriEncoding.decode(duplicateSlashesEliminated, UriEncoding.EncodingType.RFC3986);
+        return UriEncoding.decode(attributePointerStr, UriEncoding.EncodingType.RFC3986);
     }
 
     /**
@@ -92,7 +90,7 @@ final class FeaturesRoute extends AbstractRoute {
      * @return the {@code /features} route.
      */
     public Route buildFeaturesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_PREFIX), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_PREFIX), () ->
                 concat(
                         features(ctx, dittoHeaders, thingId),
                         featuresEntry(ctx, dittoHeaders, thingId),
@@ -141,7 +139,7 @@ final class FeaturesRoute extends AbstractRoute {
      * @return {@code /features/<featureId>} route.
      */
     private Route featuresEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 pathEndOrSingleSlash(() ->
                         concat(
                                 get(() -> // GET /features/{featureId}?fields=<fieldsString>
@@ -184,8 +182,8 @@ final class FeaturesRoute extends AbstractRoute {
     private Route featuresEntryDefinition(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
-                rawPathPrefix(mergeDoubleSlashes().concat(PATH_DEFINITION), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_DEFINITION), () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         get(() -> // GET /features/{featureId}/definition
@@ -221,8 +219,8 @@ final class FeaturesRoute extends AbstractRoute {
     private Route featuresEntryProperties(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
-                rawPathPrefix(mergeDoubleSlashes().concat(PATH_PROPERTIES), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_PROPERTIES), () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         get(() -> // GET /features/{featureId}/properties?fields=<fieldsString>
@@ -268,8 +266,8 @@ final class FeaturesRoute extends AbstractRoute {
     private Route featuresEntryPropertiesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
-                rawPathPrefix(mergeDoubleSlashes().concat(PATH_PROPERTIES), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_PROPERTIES), () ->
                         concat(
                                 get(() -> // GET /features/{featureId}/properties/<propertyJsonPointerStr>
                                         extractUnmatchedPath(propertyJsonPointerStr ->
@@ -323,7 +321,7 @@ final class FeaturesRoute extends AbstractRoute {
     private Route featuresEntryInboxOutbox(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 // POST /features/{featureId}/<inbox|outbox>
                 messagesRoute.buildFeaturesInboxOutboxRoute(ctx, dittoHeaders, thingId, featureId)
         );

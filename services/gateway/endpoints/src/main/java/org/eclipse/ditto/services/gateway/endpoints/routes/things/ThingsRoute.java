@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -106,8 +105,7 @@ public final class ThingsRoute extends AbstractRoute {
     }
 
     private static String decodePath(final String attributePointerStr) {
-        final String duplicateSlashesEliminated = attributePointerStr.replace("//", "/");
-        return UriEncoding.decode(duplicateSlashesEliminated, UriEncoding.EncodingType.RFC3986);
+        return UriEncoding.decode(attributePointerStr, UriEncoding.EncodingType.RFC3986);
     }
 
     /**
@@ -116,10 +114,10 @@ public final class ThingsRoute extends AbstractRoute {
      * @return the {@code /things} route.
      */
     public Route buildThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_THINGS), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS), () ->
                 concat(
                         things(ctx, dittoHeaders),
-                        rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()),
+                        rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()),
                                 // /things/<thingId>
                                 thingId -> buildThingEntryRoute(ctx, dittoHeaders, ThingId.of(thingId))
                         )
@@ -295,7 +293,7 @@ public final class ThingsRoute extends AbstractRoute {
      * @return {@code /things/<thingId>/acl} route.
      */
     private Route thingsEntryAcl(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ACL), () -> // /things/<thingId>/acl
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_ACL), () -> // /things/<thingId>/acl
                 pathEndOrSingleSlash(() ->
                         concat(
                                 get(() -> // GET /things/<thingId>/acl
@@ -321,8 +319,8 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryAclEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ACL), () ->
-                rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), subject ->
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_ACL), () ->
+                rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), subject ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         get(() -> // GET
@@ -369,7 +367,7 @@ public final class ThingsRoute extends AbstractRoute {
     private Route thingsEntryAttributes(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ATTRIBUTES), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_ATTRIBUTES), () ->
                 pathEndOrSingleSlash(() ->
                         concat(
                                 get(() -> // GET /things/<thingId>/attributes?fields=<fieldsString>
@@ -413,7 +411,7 @@ public final class ThingsRoute extends AbstractRoute {
     private Route thingsEntryAttributesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ATTRIBUTES), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_ATTRIBUTES), () ->
                 concat(
                         get(() -> // GET /things/<thingId>/attributes
                                 pathEnd(() -> // GET /things/<thingId>/attributes/
