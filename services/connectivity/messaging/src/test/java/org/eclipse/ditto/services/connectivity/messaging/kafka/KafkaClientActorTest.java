@@ -126,7 +126,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
         final String serverHost = "tcp://" + hostAndPort;
         final Map<String, String> specificConfig = specificConfigWithBootstrapServers(hostAndPort);
         connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.KAFKA,
-                ConnectivityStatus.OPEN, serverHost)
+                ConnectivityStatus.CLOSED, serverHost)
                 .targets(singletonList(TARGET))
                 .failoverEnabled(true)
                 .specificConfig(specificConfig)

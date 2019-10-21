@@ -113,7 +113,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
         connectionId = TestConstants.createRandomConnectionId();
         serverHost = "tcp://localhost:" + freePort.getPort();
         connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
-                ConnectivityStatus.OPEN, serverHost)
+                ConnectivityStatus.CLOSED, serverHost)
                 .sources(singletonList(MQTT_SOURCE))
                 .targets(singletonList(TARGET))
                 .failoverEnabled(true)

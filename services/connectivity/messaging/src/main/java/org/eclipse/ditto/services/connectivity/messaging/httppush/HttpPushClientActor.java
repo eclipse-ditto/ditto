@@ -31,7 +31,6 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -61,8 +60,8 @@ public final class HttpPushClientActor extends BaseClientActor {
     private final HttpPushConfig httpPushConfig;
 
     @SuppressWarnings("unused")
-    private HttpPushClientActor(final Connection connection, final ConnectivityStatus desiredConnectionStatus) {
-        super(connection, desiredConnectionStatus, ActorRef.noSender());
+    private HttpPushClientActor(final Connection connection) {
+        super(connection, ActorRef.noSender());
 
         httpPushConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -79,7 +78,7 @@ public final class HttpPushClientActor extends BaseClientActor {
      * @return the {@code Props} object.
      */
     public static Props props(final Connection connection) {
-        return Props.create(HttpPushClientActor.class, connection, connection.getConnectionStatus());
+        return Props.create(HttpPushClientActor.class, connection);
     }
 
     @Override
@@ -151,7 +150,8 @@ public final class HttpPushClientActor extends BaseClientActor {
                     hostWithoutLookup, port);
         } else {
             // check without HTTP proxy
-            final SSLContextCreator sslContextCreator = SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
+            final SSLContextCreator sslContextCreator =
+                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
             final SSLSocketFactory socketFactory = sslContextCreator.withoutClientCertificate().getSocketFactory();
             try (final SSLSocket socket = (SSLSocket) socketFactory.createSocket(hostWithoutLookup, port)) {
                 socket.startHandshake();

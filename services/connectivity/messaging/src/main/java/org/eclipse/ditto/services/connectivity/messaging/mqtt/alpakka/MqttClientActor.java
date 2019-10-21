@@ -28,7 +28,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
@@ -83,12 +82,10 @@ public final class MqttClientActor extends BaseClientActor {
     private ActorRef mqttPublisherActor;
 
     @SuppressWarnings("unused")
-    MqttClientActor(final Connection connection,
-            final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder,
+    MqttClientActor(final Connection connection, final ActorRef conciergeForwarder,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> connectionFactoryCreator) {
 
-        super(connection, desiredConnectionStatus, conciergeForwarder);
+        super(connection, conciergeForwarder);
         this.connectionFactoryCreator = connectionFactoryCreator;
         consumerByActorNameWithIndex = new HashMap<>();
         pendingStatusReportsFromStreams = new HashSet<>();
@@ -99,11 +96,9 @@ public final class MqttClientActor extends BaseClientActor {
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
-    private MqttClientActor(final Connection connection,
-            final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder) {
+    private MqttClientActor(final Connection connection, final ActorRef conciergeForwarder) {
 
-        this(connection, desiredConnectionStatus, conciergeForwarder, MqttConnectionFactory::of);
+        this(connection, conciergeForwarder, MqttConnectionFactory::of);
     }
 
     /**
@@ -115,8 +110,7 @@ public final class MqttClientActor extends BaseClientActor {
      */
     public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
 
-        return Props.create(MqttClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                conciergeForwarder);
+        return Props.create(MqttClientActor.class, validateConnection(connection), conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -206,7 +200,7 @@ public final class MqttClientActor extends BaseClientActor {
      * @param connection connection of the publisher and subscribers.
      */
     private void connectClient(final Connection connection) {
-        factory = connectionFactoryCreator.apply(connection, stateData().getSessionHeaders());
+        factory = connectionFactoryCreator.apply(connection, stateData().getLastSessionHeaders());
         getSelf().tell((ClientConnected) () -> null, ActorRef.noSender());
     }
 

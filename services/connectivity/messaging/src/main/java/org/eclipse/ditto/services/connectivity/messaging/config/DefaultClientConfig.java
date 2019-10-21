@@ -61,11 +61,6 @@ public final class DefaultClientConfig implements ClientConfig {
     }
 
     @Override
-    public Duration getInitTimeout() {
-        return initTimeout;
-    }
-
-    @Override
     public Duration getConnectingMinTimeout() {
         return connectingMinTimeout;
     }

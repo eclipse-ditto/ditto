@@ -61,9 +61,6 @@ public final class DefaultClientConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultClientConfig underTest = DefaultClientConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.getInitTimeout())
-                .as(ClientConfig.ClientConfigValue.INIT_TIMEOUT.getConfigPath())
-                .isEqualTo(ClientConfig.ClientConfigValue.INIT_TIMEOUT.getDefaultValue());
         softly.assertThat(underTest.getConnectingMinTimeout())
                 .as(ClientConfig.ClientConfigValue.CONNECTING_MIN_TIMEOUT.getConfigPath())
                 .isEqualTo(ClientConfig.ClientConfigValue.CONNECTING_MIN_TIMEOUT.getDefaultValue());
@@ -88,9 +85,6 @@ public final class DefaultClientConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultClientConfig underTest = DefaultClientConfig.of(clientTestConf);
 
-        softly.assertThat(underTest.getInitTimeout())
-                .as(ClientConfig.ClientConfigValue.INIT_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(1L));
         softly.assertThat(underTest.getConnectingMinTimeout())
                 .as(ClientConfig.ClientConfigValue.CONNECTING_MIN_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(30L));
