@@ -26,7 +26,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 /**
  * Message indicating a demand to receive entities of a specified {@link StreamingType} via a "streaming" connection.
  */
-public final class StartStreaming {
+public final class StartStreaming implements StreamControlMessage {
 
     private final StreamingType streamingType;
     private final String connectionCorrelationId;

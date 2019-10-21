@@ -48,6 +48,7 @@ import org.eclipse.paho.client.mqttv3.MqttTopic;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 
+import akka.actor.ActorSystem;
 import akka.stream.alpakka.mqtt.MqttQoS;
 
 /**
@@ -82,13 +83,14 @@ public final class MqttValidator extends AbstractProtocolValidator {
     }
 
     @Override
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
+    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "MQTT 3.1.1");
         validateUriByPaho(connection, dittoHeaders);
         validateClientCount(connection, dittoHeaders);
         validateAddresses(connection, dittoHeaders);
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
+        validateMappingContext(connection, actorSystem, dittoHeaders);
     }
 
     @Override

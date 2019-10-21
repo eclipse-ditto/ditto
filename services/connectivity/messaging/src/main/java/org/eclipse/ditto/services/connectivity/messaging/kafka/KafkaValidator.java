@@ -36,6 +36,8 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
+import akka.actor.ActorSystem;
+
 /**
  * Validator for Kafka connections.
  */
@@ -71,10 +73,11 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     }
 
     @Override
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
+    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "Kafka 2.1.1");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
+        validateMappingContext(connection, actorSystem, dittoHeaders);
         validateSpecificConfigs(connection, dittoHeaders);
     }
 

@@ -309,7 +309,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                 onSuccess.accept(jsonifiable);
             } catch (final DittoRuntimeException e) {
                 log.warning("Got DittoRuntimeException while parsing PiggybackCommand <{}>: {}!", piggybackCommandType,
-                        e.getMessage());
+                        e);
                 onError.accept(e);
             }
         } else {

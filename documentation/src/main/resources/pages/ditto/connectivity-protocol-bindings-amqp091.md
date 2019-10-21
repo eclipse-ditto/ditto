@@ -61,7 +61,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [Ditto protocol topics](protocol-specification-topic.html).
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-have READ permission on the Thing that is associated with a message.
+has READ permission on the Thing, that is associated with a message.
 
 
 ```json

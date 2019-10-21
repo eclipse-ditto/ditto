@@ -10,12 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.config;
+package org.eclipse.ditto.services.gateway.streaming;
 
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.ThrottlingConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
@@ -25,30 +26,33 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the web socket config.
  */
 @Immutable
-public final class DefaultWebSocketConfig implements WebSocketConfig {
-
-    private static final String CONFIG_PATH = "websocket";
+final class DefaultWebsocketConfig implements WebsocketConfig {
 
     private final int subscriberBackpressureQueueSize;
     private final int publisherBackpressureBufferSize;
+    private final double throttlingRejectionFactor;
+    private final ThrottlingConfig throttlingConfig;
 
-    private DefaultWebSocketConfig(final ScopedConfig scopedConfig) {
+    private DefaultWebsocketConfig(final ScopedConfig scopedConfig) {
         subscriberBackpressureQueueSize =
-                scopedConfig.getInt(WebSocketConfigValue.SUBSCRIBER_BACKPRESSURE_QUEUE_SIZE.getConfigPath());
+                scopedConfig.getInt(WebsocketConfigValue.SUBSCRIBER_BACKPRESSURE_QUEUE_SIZE.getConfigPath());
         publisherBackpressureBufferSize =
-                scopedConfig.getInt(WebSocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE.getConfigPath());
+                scopedConfig.getInt(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE.getConfigPath());
+        throttlingRejectionFactor =
+                scopedConfig.getDouble(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath());
+        throttlingConfig = ThrottlingConfig.of(scopedConfig);
     }
 
     /**
      * Returns an instance of {@code DefaultWebSocketConfig} based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the web socket config at {@value #CONFIG_PATH}.
+     * @param config is supposed to provide the settings of the web socket config at "websocket".
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultWebSocketConfig of(final Config config) {
-        return new DefaultWebSocketConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, WebSocketConfigValue.values()));
+    public static WebsocketConfig of(final Config config) {
+        return new DefaultWebsocketConfig(
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, WebsocketConfigValue.values()));
     }
 
     @Override
@@ -62,6 +66,16 @@ public final class DefaultWebSocketConfig implements WebSocketConfig {
     }
 
     @Override
+    public double getThrottlingRejectionFactor() {
+        return throttlingRejectionFactor;
+    }
+
+    @Override
+    public ThrottlingConfig getThrottlingConfig() {
+        return throttlingConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -69,14 +83,17 @@ public final class DefaultWebSocketConfig implements WebSocketConfig {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultWebSocketConfig that = (DefaultWebSocketConfig) o;
+        final DefaultWebsocketConfig that = (DefaultWebsocketConfig) o;
         return subscriberBackpressureQueueSize == that.subscriberBackpressureQueueSize &&
-                publisherBackpressureBufferSize == that.publisherBackpressureBufferSize;
+                publisherBackpressureBufferSize == that.publisherBackpressureBufferSize &&
+                Double.compare(throttlingRejectionFactor, that.throttlingRejectionFactor) == 0 &&
+                Objects.equals(throttlingConfig, that.throttlingConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(subscriberBackpressureQueueSize, publisherBackpressureBufferSize);
+        return Objects.hash(subscriberBackpressureQueueSize, publisherBackpressureBufferSize,
+                throttlingRejectionFactor, throttlingConfig);
     }
 
     @Override
@@ -84,6 +101,8 @@ public final class DefaultWebSocketConfig implements WebSocketConfig {
         return getClass().getSimpleName() + " [" +
                 "subscriberBackpressureQueueSize=" + subscriberBackpressureQueueSize +
                 ", publisherBackpressureBufferSize=" + publisherBackpressureBufferSize +
+                ", throttlingRejectionFactor=" + throttlingRejectionFactor +
+                ", throttlingConfig=" + throttlingConfig +
                 "]";
     }
 

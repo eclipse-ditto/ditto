@@ -12,21 +12,17 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.utils;
 
-import java.net.InetSocketAddress;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpProxyConfig;
+import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.gateway.util.HttpClientFacade;
-import org.eclipse.ditto.services.utils.config.DittoConfigError;
 
 import akka.actor.ActorSystem;
-import akka.http.javadsl.ClientTransport;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.headers.HttpCredentials;
 import akka.http.javadsl.settings.ConnectionPoolSettings;
 import akka.stream.ActorMaterializer;
 
@@ -56,7 +52,8 @@ public final class DefaultHttpClientFacade implements HttpClientFacade {
      * @param httpProxyConfig the config of the HTTP proxy.
      * @return the instance.
      */
-    public static DefaultHttpClientFacade getInstance(final ActorSystem actorSystem, final HttpProxyConfig httpProxyConfig) {
+    public static DefaultHttpClientFacade getInstance(final ActorSystem actorSystem,
+            final HttpProxyConfig httpProxyConfig) {
 
         // the HttpClientProvider is only configured at the very first invocation of getInstance(Config) as we can
         // assume that the config does not change during runtime
@@ -68,29 +65,13 @@ public final class DefaultHttpClientFacade implements HttpClientFacade {
         return result;
     }
 
-    private static DefaultHttpClientFacade createInstance(final ActorSystem actorSystem, final HttpProxyConfig proxyConfig) {
+    private static DefaultHttpClientFacade createInstance(final ActorSystem actorSystem,
+            final HttpProxyConfig proxyConfig) {
         ConnectionPoolSettings connectionPoolSettings = ConnectionPoolSettings.create(actorSystem);
         if (proxyConfig.isEnabled()) {
-            connectionPoolSettings = connectionPoolSettings.withTransport(getProxyClientTransport(proxyConfig));
+            connectionPoolSettings = connectionPoolSettings.withTransport(proxyConfig.toClientTransport());
         }
         return new DefaultHttpClientFacade(actorSystem, ActorMaterializer.create(actorSystem), connectionPoolSettings);
-    }
-
-    private static ClientTransport getProxyClientTransport(final HttpProxyConfig proxyConfig) {
-        final String hostname = proxyConfig.getHostname();
-        final int port = proxyConfig.getPort();
-        if (hostname.isEmpty() || 0 == port) {
-            throw new DittoConfigError("When HTTP proxy is enabled via config, at least proxy hostname and port must " +
-                    "be configured as well!");
-        }
-        final InetSocketAddress inetSocketAddress = InetSocketAddress.createUnresolved(hostname, port);
-
-        final String username = proxyConfig.getUsername();
-        final String password = proxyConfig.getPassword();
-        if (!username.isEmpty() && !password.isEmpty()) {
-            return ClientTransport.httpsProxy(inetSocketAddress, HttpCredentials.create(username, password));
-        }
-        return ClientTransport.httpsProxy(inetSocketAddress);
     }
 
     @Override
