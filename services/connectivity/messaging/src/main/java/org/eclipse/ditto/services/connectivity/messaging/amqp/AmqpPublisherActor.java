@@ -304,9 +304,13 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             final Destination target = cachedProducer.getKey();
             final MessageProducer producer = cachedProducer.getValue();
             log.debug("Closing AMQP Producer for '{}'", target);
-            producer.close();
+            if (producer != null) {
+                producer.close();
+            } else {
+                log.warning("Null producer in cache: connection=<{}>, address=<{}>", connectionId, target);
+            }
         } catch (final JMSException jmsException) {
-            log.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
+            log.debug("Closing producer failed (can be ignored if connection was closed already): {}",
                     jmsExceptionToString(jmsException));
         }
     }
