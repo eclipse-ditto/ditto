@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETE_AT;
 
 import java.util.List;
 import java.util.function.Function;
@@ -54,6 +55,7 @@ public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
      * @return the Bson object
      */
     public static Bson sudoApply(final Criteria criteria) {
+        // not adding the deleteAt filter here as this would cause a COLLSCAN for our stats-only sudoCount.
         return criteria.accept(new CreateBsonVisitor(null));
     }
 
@@ -69,11 +71,12 @@ public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
         checkNotNull(authorizationSubjectIds, "authorizationSubjectIds");
         final Bson baseFilter = criteria.accept(new CreateBsonVisitor(authorizationSubjectIds));
         final Bson globalReadableFilter = AbstractFieldBsonCreator.getGlobalReadBson(authorizationSubjectIds);
+        final Bson notDeletedFilter = Filters.exists(FIELD_DELETE_AT, false);
 
         // Put both per-attribute-filter and global-read filter in the query so that:
         // 1. Purely negated queries do not return results invisible to the authorization subjects, and
         // 2. MongoDB may choose to scan the global-read index when the key-value filter does not discriminate enough.
-        return Filters.and(baseFilter, globalReadableFilter);
+        return Filters.and(baseFilter, globalReadableFilter, notDeletedFilter);
     }
 
     @Override
