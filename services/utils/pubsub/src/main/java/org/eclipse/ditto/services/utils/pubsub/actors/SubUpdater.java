@@ -29,6 +29,8 @@ import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -85,6 +87,8 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
      * Prefix of this actor's name.
      */
     public static final String ACTOR_NAME_PREFIX = "subUpdater";
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SubUpdater.class);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -169,13 +173,13 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
     private void tick(final Clock tick) {
         final boolean forceUpdate = forceUpdate();
         if (state == State.UPDATING) {
-            log.debug("ignoring tick in state <{}> with changed=<{}>", state, localSubscriptionsChanged);
+            LOGGER.trace("Ignoring tick in state <{}> with changed=<{}>.", state, localSubscriptionsChanged);
         } else if (!localSubscriptionsChanged && !forceUpdate) {
-            log.debug("tick in state <{}> with changed=<{}>: flushing acks", state, localSubscriptionsChanged);
+            LOGGER.trace("Tick in state <{}> with changed=<{}>: flushing acks.", state, localSubscriptionsChanged);
             moveAwaitUpdateToAwaitAcknowledge();
             flushAcknowledgements();
         } else {
-            log.debug("updating");
+            LOGGER.trace("Updating.");
             final SubscriptionsReader snapshot;
             final CompletionStage<Void> ddataOp;
             if (subscriptions.isEmpty()) {
