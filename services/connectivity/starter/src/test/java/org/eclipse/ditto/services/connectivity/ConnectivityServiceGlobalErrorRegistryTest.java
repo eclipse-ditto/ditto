@@ -29,7 +29,6 @@ import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
-import org.eclipse.ditto.signals.commands.batch.exceptions.BatchAlreadyExecutingException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
@@ -52,7 +51,6 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 AclModificationInvalidException.class,
                 AuthorizationSubjectBlockedException.class,
                 JsonTypeNotParsableException.class,
-                BatchAlreadyExecutingException.class,
                 InvalidNamespacesException.class,
                 NamespaceBlockedException.class,
                 PlaceholderFunctionSignatureInvalidException.class,

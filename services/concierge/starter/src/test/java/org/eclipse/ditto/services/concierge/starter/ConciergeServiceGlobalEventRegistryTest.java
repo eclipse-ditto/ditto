@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.concierge.starter;
 
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
-import org.eclipse.ditto.signals.events.batch.BatchExecutionFinished;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
@@ -21,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 public final class ConciergeServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public ConciergeServiceGlobalEventRegistryTest() {
-        super(BatchExecutionFinished.class,
+        super(
                 ConnectionCreated.class,
                 ResourceDeleted.class,
                 FeatureDeleted.class
