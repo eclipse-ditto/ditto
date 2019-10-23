@@ -145,6 +145,7 @@ public abstract class AbstractProtocolValidator {
      * @param dittoHeaders headers of the command that triggered the connection validation.
      */
     protected void validateMappingContext(final Connection connection, final ActorSystem actorSystem, final DittoHeaders dittoHeaders) {
+        /* TODO: restore mapping context validation
         connection.getMappingContext().ifPresent(mappingContext -> {
             final MappingConfig mappingConfig = DittoConnectivityConfig.of(
                     DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
@@ -170,6 +171,7 @@ public abstract class AbstractProtocolValidator {
                         .build();
             }
         });
+         */
     }
 
     /**
