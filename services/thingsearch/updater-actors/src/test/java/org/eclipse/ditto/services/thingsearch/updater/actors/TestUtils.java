@@ -66,7 +66,7 @@ public final class TestUtils {
      * original shardRegionFactory.
      * @param searchUpdaterShardModifier The modifying function to use on the searchupdater shard region actor returned
      * by the  original shardRegionFactory.
-     * @param topologiesShardModifier The modifying function to use on the topologies shard region actor returned by the
+     * @param thingShardModifier The modifying function to use on the thing shard region actor returned by the
      * original shardRegionFactory.
      * @param originalShardRegionFactory The original {@link ShardRegionFactory}
      * used the generate the shard region Actors.
@@ -75,7 +75,7 @@ public final class TestUtils {
     private static ShardRegionFactory getMockedShardRegionFactory(
             final Function<ActorRef, ActorRef> policiesShardModifier,
             final Function<ActorRef, ActorRef> searchUpdaterShardModifier,
-            final Function<ActorRef, ActorRef> topologiesShardModifier,
+            final Function<ActorRef, ActorRef> thingShardModifier,
             final ShardRegionFactory originalShardRegionFactory) {
         final ShardRegionFactory shardRegionFactory = Mockito.mock(ShardRegionFactory.class);
         when(shardRegionFactory.getPoliciesShardRegion(anyInt()))
@@ -96,7 +96,7 @@ public final class TestUtils {
         when(shardRegionFactory.getThingsShardRegion(anyInt()))
                 .thenAnswer(invocation -> {
                     final int numberOfShards = invocation.getArgument(0);
-                    return topologiesShardModifier.apply(
+                    return thingShardModifier.apply(
                             originalShardRegionFactory.getThingsShardRegion(numberOfShards));
                 });
         return shardRegionFactory;

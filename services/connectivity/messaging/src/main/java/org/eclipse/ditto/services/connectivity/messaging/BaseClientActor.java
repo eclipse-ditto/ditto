@@ -18,7 +18,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.CONNECTING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTED;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTING;
-import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.INITIATING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.TESTING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.UNKNOWN;
 
@@ -33,6 +32,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
@@ -138,9 +138,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
 
-    protected BaseClientActor(final Connection connection,
-            final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder) {
+    protected BaseClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder) {
 
         checkNotNull(connection, "connection");
 
@@ -151,12 +149,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
         this.clientConfig = this.connectivityConfig.getClientConfig();
-        this.conciergeForwarder = conciergeForwarder;
+        this.conciergeForwarder =
+                Optional.ofNullable(conciergeForwarder).orElse(getContext().getSystem().deadLetters());
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
         final BaseClientData startingData = new BaseClientData(connectionId, connection,
-                ConnectivityStatus.UNKNOWN, desiredConnectionStatus, "initialized", Instant.now(), null, null);
+                ConnectivityStatus.UNKNOWN, ConnectivityStatus.OPEN, "initialized", Instant.now());
 
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connectionId.toString())
@@ -178,9 +177,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         when(CONNECTING, inConnectingState());
         when(TESTING, inTestingState());
 
-        // initial state. will always time out for client actors deployed on remote instances.
-        when(INITIATING, inUnknownState());
-        startWith(INITIATING, startingData, clientConfig.getInitTimeout());
+        // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
+        startWith(UNKNOWN, startingData);
+
+        // Always open connection right away when desired---this actor may be deployed onto other instances and
+        // will not be directly controlled by the connection persistence actor.
+        if (connection.getConnectionStatus() == ConnectivityStatus.OPEN) {
+            getSelf().tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getSelf());
+        }
 
         onTransition(this::onTransition);
 
@@ -442,23 +446,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
         return matchEvent(OpenConnection.class, BaseClientData.class, this::openConnection)
                 .event(CloseConnection.class, BaseClientData.class, this::closeConnection)
-                .event(TestConnection.class, BaseClientData.class, this::testConnection)
-                .eventEquals(StateTimeout(), BaseClientData.class, (state, data) -> {
-                    if (ConnectivityStatus.OPEN == data.getDesiredConnectionStatus()) {
-                        log.info("Did not receive connect command within init-timeout, connecting");
-                        final OpenConnection openConnection = OpenConnection.of(connectionId(), DittoHeaders.empty());
-                        getSelf().tell(openConnection, getSelf());
-                    } else if (ConnectivityStatus.CLOSED == data.getDesiredConnectionStatus()) {
-                        log.info(
-                                "Did not receive connect command within init-timeout, desired state is closed, going to disconnected state.");
-                        return goTo(DISCONNECTED);
-                    } else {
-                        log.info(
-                                "Did not receive connect command within init-timeout, desired state is {}, do nothing.",
-                                data.getDesiredConnectionStatus());
-                    }
-                    return stay(); // handle self-told commands later
-                });
+                .event(TestConnection.class, BaseClientData.class, this::testConnection);
     }
 
     /**
@@ -482,7 +470,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectingConnectionFailed)
                 .event(ClientConnected.class, BaseClientData.class, this::clientConnected)
                 .event(InitializationResult.class, BaseClientData.class, this::handleInitializationResult)
-                .event(CloseConnection.class, BaseClientData.class, this::closeConnection);
+                .event(CloseConnection.class, BaseClientData.class, this::closeConnection)
+                .event(OpenConnection.class, BaseClientData.class, this::openConnectionInConnectingState);
     }
 
     /**
@@ -528,19 +517,20 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
         return matchEvent(Status.Status.class, (e, d) -> Objects.equals(getSender(), getSelf()),
                 (status, data) -> {
-                    final Status.Status answerToPublish = getStatusToReport(status);
-                    data.getSessionSender().ifPresent(sender -> sender.tell(answerToPublish, getSelf()));
+                    log.info("{} failed: <{}>", stateName(), status);
+                    data.getSessionSenders().forEach(sender ->
+                            sender.first().tell(getStatusToReport(status, sender.second()), getSelf()));
                     return stop();
                 })
                 .eventEquals(StateTimeout(), BaseClientData.class, (stats, data) -> {
                     log.info("test timed out.");
-                    data.getSessionSender().ifPresent(sender -> {
+                    data.getSessionSenders().forEach(sender -> {
                         final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
                                 .description(String.format("Failed to open requested connection within <%d> seconds!",
                                         clientConfig.getTestingTimeout().getSeconds()))
-                                .dittoHeaders(data.getSessionHeaders())
+                                .dittoHeaders(sender.second())
                                 .build();
-                        sender.tell(new Status.Failure(error), getSelf());
+                        sender.first().tell(new Status.Failure(error), getSelf());
                     });
                     return stop();
                 });
@@ -626,10 +616,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private void reconnect(final BaseClientData data) {
         log.debug("Trying to reconnect.");
         connectionLogger.success("Trying to reconnect.");
-        final ActorRef sender = data.getSessionSender().orElse(null);
         final Connection connection = data.getConnection();
         if (canConnectViaSocket(connection)) {
-            doConnectClient(connection, sender);
+            doConnectClient(connection, null);
         } else {
             log.info("Socket is closed, scheduling a reconnect.");
             cleanupResourcesForConnection();
@@ -678,11 +667,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private FSM.State<BaseClientState, BaseClientData> connectionTimedOut(final BaseClientData data) {
 
-        data.getSessionSender().ifPresent(sender -> {
+        data.getSessionSenders().forEach(sender -> {
             final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
-                    .dittoHeaders(data.getSessionHeaders())
+                    .dittoHeaders(sender.second())
                     .build();
-            sender.tell(new Status.Failure(error), getSelf());
+            sender.first().tell(new Status.Failure(error), getSelf());
         });
         cleanupResourcesForConnection();
         cleanupFurtherResourcesOnConnectionTimeout(stateName());
@@ -715,6 +704,19 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .setConnectionStatusDetails(timeoutMessage));
     }
 
+    private State<BaseClientState, BaseClientData> openConnectionInConnectingState(
+            final OpenConnection openConnection,
+            final BaseClientData data) {
+
+        final ActorRef origin = getSender();
+        if (!getSelf().equals(origin) && !getContext().getSystem().deadLetters().equals(origin)) {
+            // add this sender to list of actors to respond to once connection succeeds.
+            return stay().using(data.addSessionSender(origin, openConnection.getDittoHeaders()));
+        } else {
+            return stay();
+        }
+    }
+
     private State<BaseClientState, BaseClientData> clientConnected(final ClientConnected clientConnected,
             final BaseClientData data) {
         return ifEventUpToDate(clientConnected, () -> {
@@ -743,7 +745,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
         if (initializationResult.getFailure() == null) {
             connectionLogger.success("Connection successful.");
-            data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
+            data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
                     .setConnectionStatusDetails("Connected at " + Instant.now()));
@@ -785,7 +787,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             connectionLogger.success("Disconnected successfully.");
 
             cleanupResourcesForConnection();
-            data.getSessionSender().ifPresent(sender -> sender.tell(new Status.Success(DISCONNECTED), getSelf()));
+            data.getSessionSenders()
+                    .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
             return goTo(DISCONNECTED).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.CLOSED)
                     .setConnectionStatusDetails("Disconnected at " + Instant.now()));
@@ -796,10 +799,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
         return ifEventUpToDate(event, () -> {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
-            final Status.Status statusToReport = getStatusToReport(event.getFailure());
+            log.info("{} failed: <{}>", stateName(), event.getFailure());
 
             cleanupResourcesForConnection();
-            data.getSessionSender().ifPresent(sender -> sender.tell(statusToReport, getSelf()));
+            data.getSessionSenders().forEach(sender ->
+                    sender.first().tell(getStatusToReport(event.getFailure(), sender.second()), getSelf()));
 
             return backoffAfterFailure(event, data);
         });
@@ -1043,7 +1047,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
-    private boolean canConnectViaSocket(final Connection connection) {
+    protected boolean canConnectViaSocket(final Connection connection) {
         return checkHostAndPortForAvailability(connection.getHostname(), connection.getPort());
     }
 
@@ -1056,7 +1060,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             connectionLogger.failure("Socket could not be opened for {0}:{1,number,#} due to {2}", host, port,
                     ex.getMessage());
 
-            log.warning("Socket could not be opened for <{}:{}> due to <{}:{}>", host, port,
+            log.warning("Socket could not be opened for <{}:{}> due to {}: {}", host, port,
                     ex.getClass().getCanonicalName(), ex.getMessage());
         }
         return false;
@@ -1165,10 +1169,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private BaseClientData setSession(final BaseClientData data, @Nullable final ActorRef sender,
-            @Nullable final DittoHeaders headers) {
+            final DittoHeaders headers) {
         if (!Objects.equals(sender, getSelf()) && !Objects.equals(sender, getContext().system().deadLetters())) {
-            return data.setSessionSender(sender)
-                    .setSessionHeaders(headers);
+            return data.resetSession().addSessionSender(sender, headers);
         } else {
             return data.resetSession();
         }
@@ -1188,15 +1191,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param status status to report.
      * @return status with meaningful message.
      */
-    private Status.Status getStatusToReport(final Status.Status status) {
+    private Status.Status getStatusToReport(final Status.Status status, final DittoHeaders dittoHeaders) {
         final Status.Status answerToPublish;
         if (status instanceof Status.Failure) {
             final Status.Failure failure = (Status.Failure) status;
-            log.info("{} failed: <{}>", stateName(), failure.cause());
             if (!(failure.cause() instanceof DittoRuntimeException)) {
                 final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
                         .description(describeEventualCause(failure.cause()))
-                        .dittoHeaders(stateData().getSessionHeaders())
+                        .dittoHeaders(dittoHeaders)
                         .build();
                 answerToPublish = new Status.Failure(error);
             } else {

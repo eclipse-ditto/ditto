@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.status;
 
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_STATUS;
 
 import java.util.concurrent.CompletionStage;
@@ -26,6 +25,7 @@ import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
+import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.directives.RouteDirectives;
 
@@ -68,14 +68,14 @@ public final class OverallStatusRoute extends RouteDirectives {
      * @return the {@code /status} route.
      */
     public Route buildOverallStatusRoute() {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_OVERALL), () -> {// /overall/*
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_OVERALL), () -> {// /overall/*
             final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
                     DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
             return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_STATUS, get(() -> // GET
                     // /overall/status
                     // /overall/status/health
                     // /overall/status/cluster
-                    rawPathPrefix(mergeDoubleSlashes().concat(PATH_STATUS), () -> concat(
+                    rawPathPrefix(PathMatchers.slash().concat(PATH_STATUS), () -> concat(
                             // /status
                             pathEndOrSingleSlash(() -> completeWithFuture(createOverallStatusResponse())),
                             // /status/health

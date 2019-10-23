@@ -99,11 +99,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
-            final ConnectivityStatus connectionStatus,
             final JmsConnectionFactory jmsConnectionFactory,
             final ActorRef conciergeForwarder) {
 
-        super(connection, connectionStatus, conciergeForwarder);
+        super(connection, conciergeForwarder);
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new StatusReportingListener(getSelf(), connection.getId(), log, connectionLogger);
         consumerByNamePrefix = new HashMap<>();
@@ -115,12 +114,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
     @SuppressWarnings("unused")
-    private AmqpClientActor(final Connection connection,
-            final ConnectivityStatus connectionStatus,
-            final ActorRef conciergeForwarder) {
+    private AmqpClientActor(final Connection connection, final ActorRef conciergeForwarder) {
 
-        this(connection, connectionStatus, ConnectionBasedJmsConnectionFactory.getInstance(),
-                conciergeForwarder);
+        this(connection, ConnectionBasedJmsConnectionFactory.getInstance(), conciergeForwarder);
     }
 
     /**
@@ -132,25 +128,22 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                conciergeForwarder);
+        return Props.create(AmqpClientActor.class, validateConnection(connection), conciergeForwarder);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connection connection parameters.
-     * @param connectionStatus the desired status of the connection.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param jmsConnectionFactory the JMS connection factory.
      * @return the Akka configuration Props object.
      */
     static Props propsForTests(final Connection connection,
-            final ConnectivityStatus connectionStatus,
             final ActorRef conciergeForwarder,
             final JmsConnectionFactory jmsConnectionFactory) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus,
+        return Props.create(AmqpClientActor.class, validateConnection(connection),
                 jmsConnectionFactory, conciergeForwarder);
     }
 

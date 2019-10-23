@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -27,7 +28,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
@@ -46,6 +46,7 @@ import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
@@ -57,6 +58,7 @@ import akka.stream.SinkShape;
 import akka.stream.UniformFanOutShape;
 import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.javadsl.Balance;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
@@ -75,16 +77,15 @@ public final class MqttClientActor extends BaseClientActor {
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
     private CompletableFuture<Status.Status> startConsumersFuture = null;
+    private CompletionStage<Done> allStreamsTerminatedFuture = null;
     private MqttConnectionFactory factory;
     private ActorRef mqttPublisherActor;
 
     @SuppressWarnings("unused")
-    MqttClientActor(final Connection connection,
-            final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder,
+    MqttClientActor(final Connection connection, final ActorRef conciergeForwarder,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> connectionFactoryCreator) {
 
-        super(connection, desiredConnectionStatus, conciergeForwarder);
+        super(connection, conciergeForwarder);
         this.connectionFactoryCreator = connectionFactoryCreator;
         consumerByActorNameWithIndex = new HashMap<>();
         pendingStatusReportsFromStreams = new HashSet<>();
@@ -95,24 +96,21 @@ public final class MqttClientActor extends BaseClientActor {
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
-    private MqttClientActor(final Connection connection,
-            final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder) {
+    private MqttClientActor(final Connection connection, final ActorRef conciergeForwarder) {
 
-        this(connection, desiredConnectionStatus, conciergeForwarder, MqttConnectionFactory::of);
+        this(connection, conciergeForwarder, MqttConnectionFactory::of);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param connection the connection.
+     * @param connection the connection
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
 
-        return Props.create(MqttClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                conciergeForwarder);
+        return Props.create(MqttClientActor.class, validateConnection(connection), conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -178,7 +176,16 @@ public final class MqttClientActor extends BaseClientActor {
 
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        self().tell((ClientDisconnected) () -> null, origin);
+        activateConsumerKillSwitch();
+        if (allStreamsTerminatedFuture != null) {
+            Patterns.pipe(
+                    allStreamsTerminatedFuture.thenApply(done ->
+                            (ClientDisconnected) () -> Optional.ofNullable(origin)),
+                    getContext().dispatcher()
+            ).to(getSelf());
+        } else {
+            self().tell((ClientDisconnected) () -> Optional.ofNullable(origin), origin);
+        }
     }
 
     @Override
@@ -193,7 +200,7 @@ public final class MqttClientActor extends BaseClientActor {
      * @param connection connection of the publisher and subscribers.
      */
     private void connectClient(final Connection connection) {
-        factory = connectionFactoryCreator.apply(connection, stateData().getSessionHeaders());
+        factory = connectionFactoryCreator.apply(connection, stateData().getLastSessionHeaders());
         getSelf().tell((ClientConnected) () -> null, ActorRef.noSender());
     }
 
@@ -216,11 +223,15 @@ public final class MqttClientActor extends BaseClientActor {
     protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
         // start consumers
         startConsumersFuture = new CompletableFuture<>();
+        allStreamsTerminatedFuture = CompletableFuture.completedFuture(Done.done());
         if (isConsuming()) {
             // start new KillSwitch for the next batch of consumers
             refreshConsumerKillSwitch(KillSwitches.shared("consumerKillSwitch"));
             connection().getSources().forEach(source ->
-                    startMqttConsumers(factory, getMessageMappingProcessorActor(), source, isDryRun()));
+                    allStreamsTerminatedFuture = allStreamsTerminatedFuture.thenCompose(done ->
+                            startMqttConsumers(factory, getMessageMappingProcessorActor(), source, isDryRun())
+                    )
+            );
         } else {
             log.info("Not starting consumption because there is no source.");
             startConsumersFuture.complete(DONE);
@@ -228,14 +239,16 @@ public final class MqttClientActor extends BaseClientActor {
         return startConsumersFuture;
     }
 
-    private void startMqttConsumers(final MqttConnectionFactory factory,
+    private CompletionStage<Done> startMqttConsumers(final MqttConnectionFactory factory,
             final ActorRef messageMappingProcessorActor,
             final Source source,
             final boolean dryRun) {
 
+        CompletionStage<Done> allStreamsTerminatedFuture = CompletableFuture.completedFuture(Done.done());
+
         if (source.getConsumerCount() <= 0) {
             log.info("source #{} has {} consumer - not starting stream", source.getIndex(), source.getConsumerCount());
-            return;
+            return allStreamsTerminatedFuture;
         }
 
         for (int i = 0; i < source.getConsumerCount(); i++) {
@@ -263,10 +276,20 @@ public final class MqttClientActor extends BaseClientActor {
         final Graph<SinkShape<MqttMessage>, NotUsed> consumerLoadBalancer =
                 createConsumerLoadBalancer(consumerByActorNameWithIndex.values());
 
-        final CompletionStage<Done> subscriptionInitialized =
+        final Sink<MqttMessage, CompletionStage<Done>> messageSinkWithCompletionReport =
+                Flow.fromSinkAndSourceCoupled(consumerLoadBalancer,
+                        akka.stream.javadsl.Source.fromCompletionStage(new CompletableFuture<>()))
+                        .toMat(Sink.ignore(), Keep.right());
+
+        final Pair<CompletionStage<Done>, CompletionStage<Done>> futurePair =
                 mqttStreamSource.viaMat(consumerKillSwitch.flow(), Keep.left())
-                        .toMat(consumerLoadBalancer, Keep.left())
+                        .toMat(messageSinkWithCompletionReport, Keep.both())
                         .run(ActorMaterializer.create(getContext()));
+
+        final CompletionStage<Done> subscriptionInitialized = futurePair.first();
+        // append stream completion to the future
+        allStreamsTerminatedFuture =
+                allStreamsTerminatedFuture.thenCompose(done -> futurePair.second().exceptionally(error -> Done.done()));
 
         // consumerCount > 0 because the early return did not trigger
         final ActorRef firstConsumer = consumerByActorNameWithIndex.values().iterator().next();
@@ -285,6 +308,8 @@ public final class MqttClientActor extends BaseClientActor {
             }
             return done;
         });
+
+        return allStreamsTerminatedFuture;
     }
 
     private static String getUniqueSourceSuffix(final int sourceIndex, final int consumerIndex) {
@@ -314,6 +339,7 @@ public final class MqttClientActor extends BaseClientActor {
     private void stopCommandConsumers() {
         consumerByActorNameWithIndex.forEach((actorNamePrefix, child) -> stopChildActor(child));
         consumerByActorNameWithIndex.clear();
+        allStreamsTerminatedFuture = null;
     }
 
     private FSM.State<BaseClientState, BaseClientData> handleStatusReportFromChildren(final Status.Status status,

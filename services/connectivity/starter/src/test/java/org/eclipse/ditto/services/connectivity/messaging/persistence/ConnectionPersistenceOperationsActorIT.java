@@ -87,7 +87,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
                 ConnectivityModelFactory.newSource(authorizationContext, "address");
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(id, ConnectionType.AMQP_091, ConnectivityStatus.CLOSED,
-                        "amqp://user:pass@localhost:5671")
+                        "amqp://user:pass@8.8.8.8:5671")
                         .sources(Collections.singletonList(source))
                         .build();
         return CreateConnection.of(connection, DittoHeaders.empty());

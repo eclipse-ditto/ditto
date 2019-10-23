@@ -17,6 +17,7 @@ import java.lang.reflect.Method;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -94,6 +95,8 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
 
             if (targetException instanceof DittoRuntimeException) {
                 throw (DittoRuntimeException) targetException;
+            } else if (targetException instanceof JsonRuntimeException) {
+                throw new DittoJsonException((JsonRuntimeException) targetException, dittoHeaders);
             }
 
             throw buildDittoJsonException(targetException, jsonObject, dittoHeaders);

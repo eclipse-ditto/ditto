@@ -61,7 +61,7 @@ public final class MessageHeadersBuilderTest {
     public void tryToCreateInstanceWithNullThingId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, null, SUBJECT))
-                .withMessage("The %s must not be null!", MessageHeaderDefinition.THING_ID.getKey())
+                .withMessage("The %s must not be null!", "thing-id")
                 .withNoCause();
     }
 
@@ -69,7 +69,7 @@ public final class MessageHeadersBuilderTest {
     public void tryToCreateInstanceWithNullSubject() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, null))
-                .withMessage("The %s must not be null!", MessageHeaderDefinition.SUBJECT.getKey())
+                .withMessage("The %s must not be null!", "subject")
                 .withNoCause();
     }
 
@@ -77,7 +77,7 @@ public final class MessageHeadersBuilderTest {
     public void tryToCreateInstanceWithEmptySubject() {
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, ""))
-                .withMessage("The argument '%s' must not be empty!", MessageHeaderDefinition.SUBJECT.getKey())
+                .withMessage("The argument '%s' must not be empty!", "subject")
                 .withNoCause();
     }
 

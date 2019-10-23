@@ -22,14 +22,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface ClientConfig {
 
     /**
-     * Returns the duration after the init process is triggered (in case no connect command was received by the
-     * client actor).
-     *
-     * @return the init timeout.
-     */
-    Duration getInitTimeout();
-
-    /**
      * Initial timeout when connecting to a remote system. If the connection could not be established after this time, the
      * service will try to reconnect. If a failure happened during connecting, then the service will wait for at least this
      * time until it will try to reconnect. The max timeout is defined in {@link ClientConfig#getConnectingMaxTimeout()}.

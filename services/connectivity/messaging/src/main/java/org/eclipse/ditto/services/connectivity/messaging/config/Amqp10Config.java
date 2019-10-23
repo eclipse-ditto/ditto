@@ -17,6 +17,7 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffConfig;
+import org.eclipse.ditto.services.base.config.ThrottlingConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
@@ -26,12 +27,21 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface Amqp10Config {
 
     /**
+     * Returns the consumer throttling config.
+     *
+     * @return the config.
+     */
+    ThrottlingConfig getConsumerThrottlingConfig();
+
+    /**
      * Returns the consumer throttling interval meaning in which duration may the configured
      * {@link #getConsumerThrottlingLimit() limit} be processed before throttling further messages.
      *
      * @return the consumer throttling interval.
      */
-    Duration getConsumerThrottlingInterval();
+    default Duration getConsumerThrottlingInterval() {
+        return getConsumerThrottlingConfig().getInterval();
+    }
 
     /**
      * Returns the consumer throttling limit defining processed messages per configured
@@ -39,7 +49,9 @@ public interface Amqp10Config {
      *
      * @return the consumer throttling limit.
      */
-    int getConsumerThrottlingLimit();
+    default int getConsumerThrottlingLimit() {
+        return getConsumerThrottlingConfig().getLimit();
+    }
 
     /**
      * Returns how many message producers to cache.
@@ -60,18 +72,6 @@ public interface Amqp10Config {
      * {@code Amqp10Config}.
      */
     enum Amqp10ConfigValue implements KnownConfigValue {
-
-        /**
-         * The consumer throttling interval meaning in which duration may the configured
-         * {@link #CONSUMER_THROTTLING_LIMIT limit} be processed before throttling further messages.
-         */
-        CONSUMER_THROTTLING_INTERVAL("consumer.throttling.interval", Duration.ofSeconds(1)),
-
-        /**
-         * The consumer throttling limit defining processed messages per configured
-         * {@link #CONSUMER_THROTTLING_INTERVAL interval}.
-         */
-        CONSUMER_THROTTLING_LIMIT("consumer.throttling.limit", 100),
 
         /**
          * How many message producers to cache per client actor.

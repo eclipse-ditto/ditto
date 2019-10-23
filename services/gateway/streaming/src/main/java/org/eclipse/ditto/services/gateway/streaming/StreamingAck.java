@@ -31,7 +31,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
  * Send for acknowledging that a subscription in the cluster for a {@link StreamingType} was either subscribed to
  * ({@link #subscribed} is {@code true}) or unsubscribed from ({@link #subscribed} is {@code false}).
  */
-public final class StreamingAck implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
+public final class StreamingAck implements Jsonifiable.WithPredicate<JsonObject, JsonField>, StreamControlMessage {
 
     private static final JsonFieldDefinition<String> JSON_STREAMING_TYPE =
             JsonFactory.newStringFieldDefinition("streamingType", FieldType.REGULAR, JsonSchemaVersion.V_1,

@@ -24,7 +24,6 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
-import org.eclipse.ditto.services.concierge.actors.batch.BatchSupervisorActor;
 import org.eclipse.ditto.services.concierge.actors.cleanup.CleanupStatusReporter;
 import org.eclipse.ditto.services.concierge.actors.cleanup.EventSnapshotCleanupCoordinator;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
@@ -142,9 +141,6 @@ public final class ConciergeRootActor extends AbstractActor {
 
         final ActorRef conciergeForwarder = context.findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
                 new IllegalStateException("ConciergeForwarder could not be found"));
-
-        startClusterSingletonActor(context, BatchSupervisorActor.ACTOR_NAME,
-                BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
 
         final ActorRef cleanupCoordinator = startClusterSingletonActor(context,
                 EventSnapshotCleanupCoordinator.ACTOR_NAME,

@@ -21,6 +21,5 @@ public enum BaseClientState {
     DISCONNECTING,
     DISCONNECTED,
     UNKNOWN,
-    TESTING,
-    INITIATING
+    TESTING
 }
