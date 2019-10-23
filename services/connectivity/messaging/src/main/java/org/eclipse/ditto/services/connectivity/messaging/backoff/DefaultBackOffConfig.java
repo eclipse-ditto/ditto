@@ -12,13 +12,12 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.backoff;
 
-import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -32,11 +31,9 @@ public final class DefaultBackOffConfig implements BackOffConfig {
     private static final String CONFIG_PATH = "backoff";
 
     private final TimeoutConfig timeoutConfig;
-    private final Duration askTimeout;
 
     private DefaultBackOffConfig(final ScopedConfig config) {
         timeoutConfig = DefaultTimeoutConfig.of(config);
-        askTimeout = config.getDuration(BackOffConfigValue.ASK_TIMEOUT.getConfigPath());
     }
 
     /**
@@ -47,7 +44,7 @@ public final class DefaultBackOffConfig implements BackOffConfig {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultBackOffConfig of(final Config config) {
-        return new DefaultBackOffConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, BackOffConfig.BackOffConfigValue.values()));
+        return new DefaultBackOffConfig(DefaultScopedConfig.newInstance(config, CONFIG_PATH));
     }
 
     @Override
@@ -55,16 +52,11 @@ public final class DefaultBackOffConfig implements BackOffConfig {
         return timeoutConfig;
     }
 
-    @Override
-    public Duration getAskTimeout() {
-        return askTimeout;
-    }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "timeoutConfig=" + timeoutConfig +
-                ", askTimeout=" + askTimeout +
                 "]";
     }
 
@@ -77,13 +69,12 @@ public final class DefaultBackOffConfig implements BackOffConfig {
             return false;
         }
         final DefaultBackOffConfig that = (DefaultBackOffConfig) o;
-        return Objects.equals(timeoutConfig, that.timeoutConfig) &&
-                Objects.equals(askTimeout, that.askTimeout);
+        return Objects.equals(timeoutConfig, that.timeoutConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(timeoutConfig, askTimeout);
+        return Objects.hash(timeoutConfig);
     }
 
 }

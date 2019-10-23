@@ -172,25 +172,15 @@ public final class BackOffActorTest {
     }
 
     private BackOffConfig createBackOffConfig(final Duration minTimeout, final Duration maxTimeout) {
-        return new BackOffConfig() {
+        return () -> new TimeoutConfig() {
             @Override
-            public TimeoutConfig getTimeoutConfig() {
-                return new TimeoutConfig() {
-                    @Override
-                    public Duration getMinTimeout() {
-                        return minTimeout;
-                    }
-
-                    @Override
-                    public Duration getMaxTimeout() {
-                        return maxTimeout;
-                    }
-                };
+            public Duration getMinTimeout() {
+                return minTimeout;
             }
 
             @Override
-            public Duration getAskTimeout() {
-                return Duration.ofSeconds(5L);
+            public Duration getMaxTimeout() {
+                return maxTimeout;
             }
         };
     }

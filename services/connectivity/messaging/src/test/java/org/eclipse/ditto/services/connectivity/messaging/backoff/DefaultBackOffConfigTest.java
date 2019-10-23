@@ -13,6 +13,7 @@
 
 package org.eclipse.ditto.services.connectivity.messaging.backoff;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -47,7 +48,7 @@ public final class DefaultBackOffConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultBackOffConfig underTest = DefaultBackOffConfig.of(backOffTestConf);
 
-        softly.assertThat(underTest.getTimeoutConfig())
+        assertThat(underTest.getTimeoutConfig())
                 .as("timeoutConfig")
                 .satisfies(timeoutConfig -> {
                             softly.assertThat(timeoutConfig.getMinTimeout())
@@ -57,9 +58,6 @@ public final class DefaultBackOffConfigTest {
                                     .as(TimeoutConfig.TimeoutConfigValue.MAX_TIMEOUT.getConfigPath())
                                     .isEqualTo(Duration.ofSeconds(600L));
                         });
-        softly.assertThat(underTest.getAskTimeout())
-                .as(BackOffConfig.BackOffConfigValue.ASK_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(5L));
     }
 
     @Test

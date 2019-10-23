@@ -17,14 +17,12 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.amqp.JmsExceptionThrowingBiConsumer.wrap;
 
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -64,7 +62,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
 
 /**
  * Responsible for creating JMS {@link MessageProducer}s and sending {@link ExternalMessage}s as JMSMessages to those.
@@ -101,7 +98,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final Map<Destination, MessageProducer> staticTargets;
     private final int producerCacheSize;
     private final ActorRef backOffActor;
-    private final Duration backOffAskTimeout;
+
+    private boolean isInBackOffMode = false;
 
     @SuppressWarnings("unused")
     private AmqpPublisherActor(final ConnectionId connectionId, final List<Target> targets, final Session session,
@@ -116,8 +114,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
         this.backOffActor =
                 getContext().actorOf(BackOffActor.props(connectionConfig.getAmqp10Config().getBackOffConfig()));
-        this.backOffAskTimeout = checkArgument(connectionConfig.getAmqp10Config().getBackOffConfig().getAskTimeout(),
-                d -> !d.isNegative(), () -> "backoff-ask-timeout must be positive.");
     }
 
     @Override
@@ -153,6 +149,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private void handleStartProducer(final Object startProducer) {
         try {
+            this.isInBackOffMode = false;
             createStaticTargetProducers(targets);
         } catch (final Exception e) {
             log.warning("Failed to create static target producers: {}", e.getMessage());
@@ -170,9 +167,13 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         findByValue(dynamicTargets, producer).map(Map.Entry::getKey).forEach(dynamicTargets::remove);
 
         connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
-        this.backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(START_PRODUCER), getSelf());
+        this.backOff();
     }
 
+    private void backOff() {
+        this.isInBackOffMode = true;
+        this.backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(START_PRODUCER), getSelf());
+    }
 
     @Override
     protected void postEnhancement(final ReceiveBuilder receiveBuilder) {
@@ -192,37 +193,11 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @Override
     protected void publishMessage(@Nullable final Target target, final AmqpTarget publishTarget,
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
-        this.isInBackOffMode()
-                .thenAccept(isInBackOffMode -> {
-                    if (Boolean.TRUE.equals(isInBackOffMode)) {
-                        this.handleMessageInBackOffMode(message, publishedMonitor, publishTarget.getJmsDestination());
-                    } else {
-                        this.tryToPublishMessage(publishTarget, message, publishedMonitor);
-                    }
-                });
-    }
-
-
-    private CompletionStage<Boolean> isInBackOffMode() {
-        return Patterns.ask(this.backOffActor, BackOffActor.createIsInBackOffMessage(), backOffAskTimeout)
-                .thenApply(this::mapToBackOffResponse)
-                .handle((backOffResponse, throwable) -> {
-                    if (null != throwable) {
-                        log.warning("Received exception when asking BackOffActor if in back-off mode. "
-                                + "Assuming it is not in back-off mode. Exception: {}", throwable);
-                        return false;
-                    }
-                    return backOffResponse;
-                });
-
-    }
-
-    private boolean mapToBackOffResponse(final Object o) {
-        if (o instanceof BackOffActor.IsInBackOffResponse) {
-            return ((BackOffActor.IsInBackOffResponse) o).isInBackOff();
+        if (!this.isInBackOffMode) {
+            this.tryToPublishMessage(publishTarget, message, publishedMonitor);
+        } else {
+            this.handleMessageInBackOffMode(message, publishedMonitor, publishTarget.getJmsDestination());
         }
-        // fallback to false if there are errors / strange behaviour in BackOffActor. Actually this should never happen
-        return false;
     }
 
     private void tryToPublishMessage(final AmqpTarget publishTarget,
