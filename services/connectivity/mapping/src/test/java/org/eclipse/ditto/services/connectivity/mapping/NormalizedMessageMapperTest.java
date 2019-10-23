@@ -150,8 +150,9 @@ public final class NormalizedMessageMapperTest {
                 DittoHeaders.empty());
 
         underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
-                DefaultMessageMapperConfiguration.of(Collections.singletonMap(NormalizedMessageMapper.FIELDS,
-                        "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer")));
+                DefaultMessageMapperConfiguration.of("normalized",
+                        Collections.singletonMap(NormalizedMessageMapper.FIELDS,
+                                "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer")));
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
         Assertions.assertThat(mapToJson(adaptable))
@@ -179,9 +180,10 @@ public final class NormalizedMessageMapperTest {
                 .build(), 1L, Instant.ofEpochSecond(1L), DittoHeaders.empty());
 
         underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
-                DefaultMessageMapperConfiguration.of(Collections.singletonMap(NormalizedMessageMapper.FIELDS,
-                        "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
-                                "_context/headers/correlation-id")));
+                DefaultMessageMapperConfiguration.of("normalized",
+                        Collections.singletonMap(NormalizedMessageMapper.FIELDS,
+                                "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
+                                        "_context/headers/correlation-id")));
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
         Assertions.assertThat(mapToJson(adaptable))
@@ -232,9 +234,10 @@ public final class NormalizedMessageMapperTest {
 
     private JsonObject mapToJson(final Adaptable message) {
         return underTest.map(message)
+                .stream()
+                .findAny()
                 .flatMap(ExternalMessage::getTextPayload)
                 .map(JsonObject::of)
                 .orElse(JsonObject.empty());
     }
-
 }

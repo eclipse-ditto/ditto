@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -68,6 +70,11 @@ public final class NormalizedMessageMapper implements MessageMapper {
     }
 
     @Override
+    public String getId() {
+        return "normalized";
+    }
+
+    @Override
     public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         final Optional<String> fields = configuration.findProperty(FIELDS);
         fields.ifPresent(s ->
@@ -82,17 +89,17 @@ public final class NormalizedMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Optional<Adaptable> map(final ExternalMessage message) {
+    public List<Adaptable> map(final ExternalMessage message) {
         // All incoming messages are dropped.
-        return Optional.empty();
+        return Collections.emptyList();
     }
 
     @Override
-    public Optional<ExternalMessage> map(final Adaptable adaptable) {
+    public List<ExternalMessage> map(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         return isCreatedOrModifiedThingEvent(topicPath)
-                ? Optional.of(flattenAsThingChange(adaptable))
-                : Optional.empty();
+                ? Collections.singletonList(flattenAsThingChange(adaptable))
+                : Collections.emptyList();
     }
 
     private ExternalMessage flattenAsThingChange(final Adaptable adaptable) {
