@@ -40,7 +40,12 @@ public enum ConnectionType implements CharSequence {
     /**
      * Indicates a Kafka connection.
      */
-    KAFKA("kafka");
+    KAFKA("kafka"),
+
+    /**
+     * Indicates an HTTP-connection with targets only.
+     */
+    HTTP_PUSH("http-push");
 
     private final String name;
 

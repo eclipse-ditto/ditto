@@ -79,7 +79,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [Ditto protocol topics](protocol-specification-topic.html).
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-have READ permission on the Thing that is associated with a message.
+has READ permission on the Thing, that is associated with a message.
 
 The additional field `"qos"` sets the Quality of Service with which messages are published.
 Its value can be `0` for at-most-once delivery, `1` for at-least-once delivery and `2` for exactly-once delivery.

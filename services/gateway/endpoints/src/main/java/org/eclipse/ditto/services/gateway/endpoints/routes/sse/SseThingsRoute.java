@@ -12,15 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.sse;
 
-import static akka.http.javadsl.server.Directives.completeOK;
-import static akka.http.javadsl.server.Directives.extractRequest;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.headerValuePF;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
-
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,7 +30,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
@@ -56,7 +46,6 @@ import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePubli
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
@@ -69,6 +58,7 @@ import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.headers.Accept;
 import akka.http.javadsl.model.sse.ServerSentEvent;
+import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.JavaPartialFunction;
@@ -148,7 +138,7 @@ public class SseThingsRoute extends AbstractRoute {
      */
     @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
     public Route buildThingsSseRoute(final RequestContext ctx, final Supplier<DittoHeaders> dittoHeadersSupplier) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_THINGS), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS), () ->
                 pathEndOrSingleSlash(() ->
                         get(() ->
                                 headerValuePF(AcceptHeaderExtractor.INSTANCE, accept ->

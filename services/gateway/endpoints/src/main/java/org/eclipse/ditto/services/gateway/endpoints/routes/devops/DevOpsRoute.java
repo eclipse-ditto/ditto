@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
 
 import java.util.Optional;
@@ -104,21 +103,21 @@ public final class DevOpsRoute extends AbstractRoute {
      * @return the {@code /devops} route.
      */
     public Route buildDevOpsRoute(final RequestContext ctx) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_DEVOPS), () -> {// /devops
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_DEVOPS), () -> {// /devops
             final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
                     DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
             return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS,
                     parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER, optionalTimeout ->
                             concat(
-                                    rawPathPrefix(mergeDoubleSlashes().concat(PATH_LOGGING),
+                                    rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
                                             () -> // /devops/logging
                                                     logging(ctx, createHeaders(optionalTimeout))
                                     ),
-                                    rawPathPrefix(mergeDoubleSlashes().concat(PATH_PIGGYBACK),
+                                    rawPathPrefix(PathMatchers.slash().concat(PATH_PIGGYBACK),
                                             () -> // /devops/piggyback
                                                     piggyback(ctx, createHeaders(optionalTimeout))
                                     ),
-                                    rawPathPrefix(mergeDoubleSlashes().concat(PATH_CONFIG),
+                                    rawPathPrefix(PathMatchers.slash().concat(PATH_CONFIG),
                                             () -> // /devops/config
                                                     config(ctx, createHeaders(optionalTimeout)))
                             )
@@ -168,7 +167,7 @@ public final class DevOpsRoute extends AbstractRoute {
     private Route buildRouteWithServiceNameAndOptionalInstance(final RequestContext ctx,
             final DittoHeaders dittoHeaders, final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), serviceName ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), serviceName ->
                 concat(
                         // /devops/<logging|piggyback>/<serviceName>/<instance>
                         buildRouteWithServiceNameAndInstance(ctx, serviceName, dittoHeaders, routeBuilder),
@@ -186,7 +185,7 @@ public final class DevOpsRoute extends AbstractRoute {
             final DittoHeaders dittoHeaders,
             final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), instance ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), instance ->
                 // /devops/<logging|piggyback>/<serviceName>/<instance>
                 routeBuilder.build(ctx, serviceName, instance, dittoHeaders)
         );

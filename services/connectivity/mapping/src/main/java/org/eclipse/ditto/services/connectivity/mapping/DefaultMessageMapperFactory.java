@@ -44,7 +44,7 @@ import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import akka.actor.ActorSystem;
 import akka.actor.DynamicAccess;
 import akka.actor.ExtendedActorSystem;
-import akka.event.DiagnosticLoggingAdapter;
+import akka.event.LoggingAdapter;
 import scala.collection.immutable.List$;
 import scala.reflect.ClassTag;
 import scala.util.Try;
@@ -82,13 +82,13 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private static final Map<String, Class<?>> registeredMappers = tryToLoadPayloadMappers();
 
-    private final DiagnosticLoggingAdapter log;
+    private final LoggingAdapter log;
 
     private DefaultMessageMapperFactory(final ConnectionId connectionId,
             final MappingConfig mappingConfig,
             final ExtendedActorSystem actorSystem,
             final List<MessageMapperExtension> messageMapperExtensions,
-            final DiagnosticLoggingAdapter log) {
+            final LoggingAdapter log) {
 
         this.connectionId = checkNotNull(connectionId);
         this.mappingConfig = checkNotNull(mappingConfig, "MappingConfig");
@@ -110,7 +110,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     public static DefaultMessageMapperFactory of(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final MappingConfig mappingConfig,
-            final DiagnosticLoggingAdapter log) {
+            final LoggingAdapter log) {
 
         final ExtendedActorSystem extendedActorSystem = (ExtendedActorSystem) actorSystem;
         final List<MessageMapperExtension> messageMapperExtensions =

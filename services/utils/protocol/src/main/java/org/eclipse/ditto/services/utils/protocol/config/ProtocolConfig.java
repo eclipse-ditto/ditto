@@ -39,13 +39,6 @@ public interface ProtocolConfig {
      */
     Set<String> getBlacklistedHeaderKeys();
 
-    /**
-     * Returns the keys of headers that are required by any previous version of Ditto protocol adapter.
-     *
-     * @return an unmodifiable unsorted Set containing the header keys.
-     */
-    Set<String> getIncompatibleBlacklist();
-
     enum ProtocolConfigValue implements KnownConfigValue {
 
         /**
@@ -57,13 +50,7 @@ public interface ProtocolConfig {
          * The keys of headers that should be ignored by Ditto.
          */
         BLACKLIST("blacklist",
-                Arrays.asList("authorization", "raw-request-uri", "cache-control", "connection", "timeout-access")),
-
-        /**
-         * The keys of headers that are required by any previous version of Ditto protocol adapter.
-         */
-        INCOMPATIBLE_BLACKLIST("incompatible-blacklist",
-                Arrays.asList("subject", "direction", "status", "thing-id", "feature-id"));
+                Arrays.asList("authorization", "raw-request-uri", "cache-control", "connection", "timeout-access"));
 
         private final String path;
         private final Object defaultValue;

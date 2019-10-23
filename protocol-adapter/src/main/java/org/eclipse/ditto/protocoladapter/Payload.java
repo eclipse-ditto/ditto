@@ -103,32 +103,32 @@ public interface Payload extends Jsonifiable<JsonObject> {
         /**
          * JSON field containing the path.
          */
-        static final JsonFieldDefinition<String> PATH = JsonFactory.newStringFieldDefinition("path");
+        public static final JsonFieldDefinition<String> PATH = JsonFactory.newStringFieldDefinition("path");
 
         /**
          * JSON field containing the value.
          */
-        static final JsonFieldDefinition<JsonValue> VALUE = JsonFactory.newJsonValueFieldDefinition("value");
+        public static final JsonFieldDefinition<JsonValue> VALUE = JsonFactory.newJsonValueFieldDefinition("value");
 
         /**
          * JSON field containing the status.
          */
-        static final JsonFieldDefinition<Integer> STATUS = JsonFactory.newIntFieldDefinition("status");
+        public static final JsonFieldDefinition<Integer> STATUS = JsonFactory.newIntFieldDefinition("status");
 
         /**
          * JSON field containing the revision.
          */
-        static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("revision");
+        public static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("revision");
 
         /**
          * JSON field containing the revision.
          */
-        static final JsonFieldDefinition<String> TIMESTAMP = JsonFactory.newStringFieldDefinition("timestamp");
+        public static final JsonFieldDefinition<String> TIMESTAMP = JsonFactory.newStringFieldDefinition("timestamp");
 
         /**
          * JSON field containing the fields.
          */
-        static final JsonFieldDefinition<String> FIELDS = JsonFactory.newStringFieldDefinition("fields");
+        public static final JsonFieldDefinition<String> FIELDS = JsonFactory.newStringFieldDefinition("fields");
 
         private JsonFields() {
             throw new AssertionError();

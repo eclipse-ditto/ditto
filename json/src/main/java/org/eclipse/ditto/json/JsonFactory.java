@@ -438,13 +438,11 @@ public final class JsonFactory {
      * {@link JsonPointer#toString()} with one exception: both strings {@code "/"} and {@code ""} lead to an empty
      * pointer while the string representation of an empty string is always {@code "/"}.
      * <p>
-     * As a JsonPointer is a hierarchy of JsonKeys it has to support JsonKeys containing slashes. Because of this, a
-     * JsonPointer string has to escape each slash of a JsonKey with {@code "~1"}. To support, tildes in JsonKeys,
-     * too, they have to be escaped with {@code "~0"}. For example, parsing the string
-     * {@code "/foo/~0dum~1~0die~1~0dum/baz"} would result in a JsonPointer consisting of the JsonKeys
+     * To support tildes in JsonKeys, they have to be escaped with {@code "~0"}. For example, parsing the string
+     * {@code "/foo/~0dum~0die~0dum/baz"} would result in a JsonPointer consisting of the JsonKeys
      * <ol>
      * <li>{@code "foo"},</li>
-     * <li>{@code "~dum/~die/~dum"} and</li>
+     * <li>{@code "~dum~die~dum"} and</li>
      * <li>{@code "baz"}.</li>
      * </ol>
      *

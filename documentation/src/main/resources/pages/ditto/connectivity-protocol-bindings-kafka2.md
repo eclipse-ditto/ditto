@@ -21,7 +21,7 @@ as well. Following are some specifics for Apache Kafka 2.x connections:
 
 ### Source format
 
-{% include warning.html content="Connecting to Kafka and consuming from topics via sources is not yet supported by Ditto." %}
+{% include note.html content="Connecting to Kafka and consuming from topics via sources is not yet supported by Ditto." %}
 
 ### Target format
 
@@ -40,7 +40,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [target topics and filtering](basic-connections.html#target-topics-and-filtering) for more information on that.
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-have READ permission on the Thing that is associated with a message.
+has READ permission on the Thing, that is associated with a message.
 
 ```json
 {
@@ -82,7 +82,7 @@ Example connection configuration to create a new Kafka 2.x connection in order t
     "failoverEnabled": true,
     "uri": "tcp://user:password@localhost:9092",
     "specificConfig": {
-      "bootstrapServers": "localhost:9092,other.host:9092"
+      "bootstrapServers": "localhost:9092,other.host:9092",
       "saslMechanism": "plain"
     },
     "sources": [],

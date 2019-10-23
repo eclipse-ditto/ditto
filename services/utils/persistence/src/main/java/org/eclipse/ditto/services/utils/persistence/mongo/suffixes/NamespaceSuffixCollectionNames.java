@@ -104,7 +104,7 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
         final String escaped = input.replaceAll(REPLACE_REGEX, "#");
         // the max length of a collection or index name (including the DB name) in MongoDB is 120 bytes
         // so we assume that we need ~66 characters for the longest "static" part of the collection/index name, e.g.:
-        // "concierge.batch_supervisor_journal@...$batch_supervisor_journal_index" and leave some spare
+        // "database.things_journal@...$things_journal_index" and leave some spare
         // characters for the added hash
         if (escaped.length() > MAX_SUFFIX_CHARS_LENGTH) {
             final String hash = Integer.toHexString(escaped.hashCode());

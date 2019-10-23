@@ -46,25 +46,25 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final DeleteSubject command) {
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
         final SubjectId subjectId = command.getSubjectId();
         final DittoHeaders headers = command.getDittoHeaders();
 
-        final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(label);
+        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
             if (policyEntry.getSubjects().getSubject(subjectId).isPresent()) {
                 final PoliciesValidator validator =
-                        PoliciesValidator.newInstance(policy.removeSubjectFor(label, subjectId));
+                        PoliciesValidator.newInstance(nonNullPolicy.removeSubjectFor(label, subjectId));
 
                 if (validator.isValid()) {
                     final SubjectDeleted subjectDeleted =
                             SubjectDeleted.of(policyId, label, subjectId, nextRevision, getEventTimestamp(),
                                     headers);
                     final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                            DeleteSubjectResponse.of(policyId, label, subjectId, headers), policy);
+                            DeleteSubjectResponse.of(policyId, label, subjectId, headers), nonNullPolicy);
                     return ResultFactory.newMutationResult(command, subjectDeleted, response);
                 } else {
                     return ResultFactory.newErrorResult(

@@ -46,36 +46,36 @@ final class DeleteResourceStrategy extends AbstractPolicyCommandStrategy<DeleteR
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final DeleteResource command) {
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
         final ResourceKey resourceKey = command.getResourceKey();
-        final DittoHeaders headerrs = command.getDittoHeaders();
+        final DittoHeaders headers = command.getDittoHeaders();
 
-        final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(label);
+        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
 
             if (policyEntry.getResources().getResource(resourceKey).isPresent()) {
                 final PoliciesValidator validator =
-                        PoliciesValidator.newInstance(policy.removeResourceFor(label, resourceKey));
+                        PoliciesValidator.newInstance(nonNullPolicy.removeResourceFor(label, resourceKey));
 
                 if (validator.isValid()) {
                     final ResourceDeleted resourceDeleted =
                             ResourceDeleted.of(policyId, label, resourceKey, nextRevision, getEventTimestamp(),
-                                    headerrs);
+                                    headers);
                     final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                            DeleteResourceResponse.of(policyId, label, resourceKey, headerrs), policy);
+                            DeleteResourceResponse.of(policyId, label, resourceKey, headers), nonNullPolicy);
                     return ResultFactory.newMutationResult(command, resourceDeleted, response);
                 } else {
                     return ResultFactory.newErrorResult(
-                            policyEntryInvalid(policyId, label, validator.getReason().orElse(null), headerrs));
+                            policyEntryInvalid(policyId, label, validator.getReason().orElse(null), headers));
                 }
             } else {
-                return ResultFactory.newErrorResult(resourceNotFound(policyId, label, resourceKey, headerrs));
+                return ResultFactory.newErrorResult(resourceNotFound(policyId, label, resourceKey, headers));
             }
         } else {
-            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, headerrs));
+            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, headers));
         }
     }
 

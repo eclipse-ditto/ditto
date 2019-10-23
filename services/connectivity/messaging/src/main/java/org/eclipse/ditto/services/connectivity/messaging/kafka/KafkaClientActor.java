@@ -51,11 +51,10 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
-            final ConnectivityStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder,
             final KafkaPublisherActorFactory factory) {
 
-        super(connection, desiredConnectionStatus, conciergeForwarder);
+        super(connection, conciergeForwarder);
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
         connectionFactory = DefaultKafkaConnectionFactory.getInstance(connection, kafkaConfig);
@@ -75,8 +74,7 @@ public final class KafkaClientActor extends BaseClientActor {
             final ActorRef conciergeForwarder,
             final KafkaPublisherActorFactory factory) {
 
-        return Props.create(KafkaClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                conciergeForwarder, factory);
+        return Props.create(KafkaClientActor.class, validateConnection(connection), conciergeForwarder, factory);
     }
 
     private static Connection validateConnection(final Connection connection) {

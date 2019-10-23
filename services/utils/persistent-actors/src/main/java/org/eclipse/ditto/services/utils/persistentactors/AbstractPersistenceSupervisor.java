@@ -161,7 +161,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
 
     private void startChild(final Control startChild) {
         if (null == child) {
-            log.debug("Starting persistence actor for Thing with ID <{}>.", entityId);
+            log.debug("Starting persistence actor for entity with ID <{}>.", entityId);
             final ActorRef childRef = getContext().actorOf(persistenceActorProps, "pa");
             child = getContext().watch(childRef);
         } else {
@@ -171,10 +171,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
 
     private void childTerminated(final Terminated message) {
         if (message.getAddressTerminated()) {
-            log.error("Persistence actor for Thing with ID <{}> terminated abnormally " +
+            log.error("Persistence actor for entity with ID <{}> terminated abnormally " +
                     "because it crashed or because of network failure!", entityId);
         } else {
-            log.warning("Persistence actor for Thing with ID <{}> terminated abnormally.", entityId);
+            log.warning("Persistence actor for entity with ID <{}> terminated abnormally.", entityId);
         }
         child = null;
         restartDelay = calculateRestartDelay();

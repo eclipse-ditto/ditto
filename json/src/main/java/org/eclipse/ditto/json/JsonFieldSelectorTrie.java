@@ -14,8 +14,8 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -59,7 +59,7 @@ final class JsonFieldSelectorTrie {
     private final Map<JsonKey, JsonFieldSelectorTrie> children;
 
     private JsonFieldSelectorTrie() {
-        children = new HashMap<>();
+        children = new LinkedHashMap<>();
     }
 
     /**

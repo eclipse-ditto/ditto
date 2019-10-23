@@ -41,9 +41,9 @@ final class RetrieveResourceStrategy extends AbstractPolicyQueryCommandStrategy<
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final RetrieveResource command) {
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
-        final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(command.getLabel());
+        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(command.getLabel());
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
 
@@ -54,7 +54,7 @@ final class RetrieveResourceStrategy extends AbstractPolicyQueryCommandStrategy<
                         RetrieveResourceResponse.of(policyId, command.getLabel(), optionalResource.get(),
                                 command.getDittoHeaders());
                 return ResultFactory.newQueryResult(command,
-                        appendETagHeaderIfProvided(command, rawResponse, policy));
+                        appendETagHeaderIfProvided(command, rawResponse, nonNullPolicy));
             } else {
                 return ResultFactory.newErrorResult(
                         resourceNotFound(policyId, command.getLabel(), command.getResourceKey(),

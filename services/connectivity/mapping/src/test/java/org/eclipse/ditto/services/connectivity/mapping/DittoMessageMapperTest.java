@@ -47,7 +47,7 @@ import org.junit.Test;
  */
 public final class DittoMessageMapperTest {
 
-    @SuppressWarnings("NullableProblems") private DittoMessageMapper underTest;
+    private DittoMessageMapper underTest;
 
     @Before
     public void setUp() {

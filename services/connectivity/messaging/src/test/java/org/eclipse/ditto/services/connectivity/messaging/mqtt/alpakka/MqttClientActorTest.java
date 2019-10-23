@@ -72,8 +72,7 @@ public final class MqttClientActorTest extends AbstractMqttClientActorTest<MqttM
     private static Props mqttClientActor(final Connection connection, final ActorRef conciergeForwarder,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> factoryCreator) {
 
-        return Props.create(MqttClientActor.class, connection, connection.getConnectionStatus(), conciergeForwarder,
-                factoryCreator);
+        return Props.create(MqttClientActor.class, connection, conciergeForwarder, factoryCreator);
     }
 
     @Override

@@ -27,7 +27,6 @@
 
     <modules>
         <module>base</module>
-        <module>batch</module>
         <module>connectivity</module>
         <module>policies</module>
         <module>things</module>

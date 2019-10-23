@@ -117,7 +117,6 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
 
         final CompletableFuture<Void> disconnectFuture = CompletableFuture.completedFuture(null);
 
-
         // mock connect
         when(async.connectWith()).thenReturn(send);
         when(send.send()).then(invocation -> {

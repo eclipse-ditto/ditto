@@ -17,6 +17,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -60,7 +61,8 @@ public final class JjwtSerializer<T> implements Serializer<T> {
         } catch (final SerializationException se) {
             throw se;
         } catch (final Exception e) {
-            throw new SerializationException("Unable to serialize object of type " + t.getClass().getName() +
+            throw new SerializationException("Unable to serialize object of type " +
+                    Optional.ofNullable(t).map(obj -> obj.getClass().getName()).orElse("<null>") +
                     " to JSON: " + e.getMessage(), e);
         }
     }
