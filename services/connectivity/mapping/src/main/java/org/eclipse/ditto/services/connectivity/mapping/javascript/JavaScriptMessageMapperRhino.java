@@ -15,15 +15,17 @@ package org.eclipse.ditto.services.connectivity.mapping.javascript;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.services.connectivity.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
@@ -33,7 +35,13 @@ import org.mozilla.javascript.Scriptable;
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.
  */
-final class JavaScriptMessageMapperRhino implements MessageMapper {
+@PayloadMapper(
+        alias = {JavaScriptMessageMapperRhino.ALIAS,
+                // legacy names
+                "org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperRhino",
+                "JavaScript"},
+        requiresMappingContext = true)
+final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
 
     private static final String WEBJARS_PATH = "/META-INF/resources/webjars";
 
@@ -44,11 +52,13 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     private static final String INCOMING_SCRIPT = "/javascript/incoming-mapping.js";
     private static final String OUTGOING_SCRIPT = "/javascript/outgoing-mapping.js";
 
+    static final String ALIAS = "javascript";
+
     @Nullable private ContextFactory contextFactory;
     @Nullable private JavaScriptMessageMapperConfiguration configuration;
 
-    private MappingFunction<ExternalMessage, Optional<Adaptable>> incomingMapping = DefaultIncomingMapping.get();
-    private MappingFunction<Adaptable, Optional<ExternalMessage>> outgoingMapping = DefaultOutgoingMapping.get();
+    private MappingFunction<ExternalMessage, List<Adaptable>> incomingMapping = DefaultIncomingMapping.get();
+    private MappingFunction<Adaptable, List<ExternalMessage>> outgoingMapping = DefaultOutgoingMapping.get();
 
     /**
      * Constructs a new {@code JavaScriptMessageMapper} object.
@@ -59,8 +69,10 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     }
 
     @Override
-    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration options) {
-        configuration = new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getProperties()).build();
+    public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration options) {
+        configuration =
+                new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getId(),
+                        options.getProperties()).build();
 
         final JavaScriptConfig javaScriptConfig = mappingConfig.getJavaScriptConfig();
         final int maxScriptSizeBytes = javaScriptConfig.getMaxScriptSizeBytes();
@@ -98,12 +110,12 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     }
 
     @Override
-    public Optional<Adaptable> map(final ExternalMessage message) {
+    public List<Adaptable> map(final ExternalMessage message) {
         return incomingMapping.apply(message);
     }
 
     @Override
-    public Optional<ExternalMessage> map(final Adaptable adaptable) {
+    public List<ExternalMessage> map(final Adaptable adaptable) {
         return outgoingMapping.apply(adaptable);
     }
 

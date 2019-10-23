@@ -14,9 +14,11 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -52,6 +54,11 @@ final class WrappingMessageMapper implements MessageMapper {
         return new WrappingMessageMapper(mapper);
     }
 
+    @Override
+    public String getId() {
+        return delegate.getId();
+    }
+
     /**
      * @return the MessageMapper delegate this instance wraps.
      */
@@ -65,26 +72,28 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Optional<Adaptable> map(final ExternalMessage message) {
+    public List<Adaptable> map(final ExternalMessage message) {
         final ExternalMessage enhancedMessage;
         final String correlationId;
         if (!message.getHeaders().containsKey(DittoHeaderDefinition.CORRELATION_ID.getKey())) {
             // if no correlation-id was provided in the ExternalMessage, generate one here:
             correlationId = UUID.randomUUID().toString();
             enhancedMessage = ExternalMessageFactory.newExternalMessageBuilder(message)
-                    .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(),
-                            correlationId)
+                    .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationId)
                     .build();
         } else {
             correlationId = message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
             enhancedMessage = message;
         }
 
-        final Optional<Adaptable> mappedOpt = delegate.map(enhancedMessage);
+        final List<Adaptable> mappedAdaptables = delegate.map(enhancedMessage);
 
-        return mappedOpt.map(mapped -> {
+        return mappedAdaptables.stream().map(mapped -> {
             final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
             headersBuilder.correlationId(correlationId);
+
+            // add mapper id to headers, this is required to resolve the correct mapper for responses
+            headersBuilder.mapper(getId());
 
             Optional.ofNullable(message.getHeaders().get(ExternalMessage.REPLY_TO_HEADER)).ifPresent(replyTo ->
                     headersBuilder.putHeader(ExternalMessage.REPLY_TO_HEADER, replyTo)
@@ -96,14 +105,13 @@ final class WrappingMessageMapper implements MessageMapper {
             return ProtocolFactory.newAdaptableBuilder(mapped)
                     .withHeaders(headersBuilder.build())
                     .build();
-        });
+        }).collect(Collectors.toList());
     }
 
     @Override
-    public Optional<ExternalMessage> map(final Adaptable adaptable) {
-        final Optional<ExternalMessage> mappedOpt = delegate.map(adaptable);
-
-        return mappedOpt.map(mapped -> {
+    public List<ExternalMessage> map(final Adaptable adaptable) {
+        final List<ExternalMessage> mappedMessages = delegate.map(adaptable);
+        return mappedMessages.stream().map(mapped -> {
             final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(mapped);
             messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
             adaptable.getHeaders()
@@ -111,7 +119,7 @@ final class WrappingMessageMapper implements MessageMapper {
                     .ifPresent(
                             replyTo -> messageBuilder.withAdditionalHeaders(ExternalMessage.REPLY_TO_HEADER, replyTo));
             return messageBuilder.build();
-        });
+        }).collect(Collectors.toList());
     }
 
     @Override

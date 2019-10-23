@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import static java.util.Collections.singletonList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -48,8 +49,8 @@ public class WrappingMessageMapperTest {
         mockMessage = mock(ExternalMessage.class);
         mockAdaptable = mock(Adaptable.class);
 
-        when(mockMapper.map(any(ExternalMessage.class))).thenReturn(Optional.of(mockAdaptable));
-        when(mockMapper.map(mockAdaptable)).thenReturn(Optional.of(mockMessage));
+        when(mockMapper.map(any(ExternalMessage.class))).thenReturn(singletonList(mockAdaptable));
+        when(mockMapper.map(mockAdaptable)).thenReturn(singletonList(mockMessage));
         when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
 
@@ -71,8 +72,7 @@ public class WrappingMessageMapperTest {
 
     @Test
     public void mapMessage() {
-
-        final Adaptable actual = underTest.map(mockMessage).get();
+        underTest.map(mockMessage);
         verify(mockMapper).map(any(ExternalMessage.class));
     }
 
@@ -81,7 +81,7 @@ public class WrappingMessageMapperTest {
         final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap(ExternalMessage.CONTENT_TYPE_HEADER, "contentType"));
         when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
 
-        final ExternalMessage actual = underTest.map(mockAdaptable).get();
+        underTest.map(mockAdaptable);
         verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getHeaders();
         verify(mockMapper).map(mockAdaptable);
     }

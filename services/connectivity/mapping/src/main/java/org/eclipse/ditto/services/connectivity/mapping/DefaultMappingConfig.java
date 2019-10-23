@@ -31,11 +31,9 @@ public final class DefaultMappingConfig implements MappingConfig {
 
     private static final String CONFIG_PATH = "mapping";
 
-    private final String factoryName;
     private final JavaScriptConfig javaScriptConfig;
 
     private DefaultMappingConfig(final ScopedConfig config, final JavaScriptConfig theJavaScriptConfig) {
-        factoryName = config.getString(MappingConfigValue.FACTORY.getConfigPath());
         javaScriptConfig = theJavaScriptConfig;
     }
 
@@ -54,11 +52,6 @@ public final class DefaultMappingConfig implements MappingConfig {
     }
 
     @Override
-    public String getFactoryName() {
-        return factoryName;
-    }
-
-    @Override
     public JavaScriptConfig getJavaScriptConfig() {
         return javaScriptConfig;
     }
@@ -72,20 +65,18 @@ public final class DefaultMappingConfig implements MappingConfig {
             return false;
         }
         final DefaultMappingConfig that = (DefaultMappingConfig) o;
-        return Objects.equals(factoryName, that.factoryName) &&
-                Objects.equals(javaScriptConfig, that.javaScriptConfig);
+        return Objects.equals(javaScriptConfig, that.javaScriptConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(factoryName, javaScriptConfig);
+        return Objects.hash(javaScriptConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "factoryName=" + factoryName +
-                ", javaScriptConfig=" + javaScriptConfig +
+                "javaScriptConfig=" + javaScriptConfig +
                 "]";
     }
 

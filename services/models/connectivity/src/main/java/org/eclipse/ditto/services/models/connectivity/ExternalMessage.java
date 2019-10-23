@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
@@ -137,6 +138,11 @@ public interface ExternalMessage {
      * @return the optional header mapping
      */
     Optional<HeaderMapping> getHeaderMapping();
+
+    /**
+     * @return the payload mapping that is applied for this message
+     */
+    Optional<PayloadMapping> getPayloadMapping();
 
     /**
      * @return optional source address, where this message was received

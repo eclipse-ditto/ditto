@@ -24,13 +24,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface MappingConfig {
 
     /**
-     * Returns the name of the class which is used for creating message mapping objects.
-     *
-     * @return the factory name.
-     */
-    String getFactoryName();
-
-    /**
      * Returns the config of the JavaScript message mapping.
      *
      * @return the config.
@@ -51,7 +44,7 @@ public interface MappingConfig {
         private final String path;
         private final Object defaultValue;
 
-        private MappingConfigValue(final String thePath, final Object theDefaultValue) {
+        MappingConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

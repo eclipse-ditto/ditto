@@ -40,6 +40,10 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
@@ -89,6 +93,8 @@ public final class MessageMappingProcessorActorTest {
     private static final ConnectionId CONNECTION_ID = ConnectionId.of("testConnection");
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
+    private static final String FAULTY_MAPPER = "faulty";
+    private static final String ADD_HEADER_MAPPER = "header";
 
     private static ActorSystem actorSystem;
     private static ProtocolAdapterProvider protocolAdapterProvider;
@@ -108,8 +114,13 @@ public final class MessageMappingProcessorActorTest {
     }
 
     @Test
-    public void testExternalMessageInDittoProtocolIsProcessed() {
-        testExternalMessageInDittoProtocolIsProcessed(null, true);
+    public void testExternalMessageInDittoProtocolIsProcessedWithDefaultMapper() {
+        testExternalMessageInDittoProtocolIsProcessed(null);
+    }
+
+    @Test
+    public void testExternalMessageInDittoProtocolIsProcessedWithCustomMapper() {
+        testExternalMessageInDittoProtocolIsProcessed(null, ADD_HEADER_MAPPER);
     }
 
     @Test
@@ -159,7 +170,7 @@ public final class MessageMappingProcessorActorTest {
         final EnforcementFilterFactory<String, CharSequence> factory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
         final EnforcementFilter<CharSequence> enforcementFilter = factory.getFilter("mqtt/topic/my/thing");
-        testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, true);
+        testExternalMessageInDittoProtocolIsProcessed(enforcementFilter);
     }
 
     @Test
@@ -171,15 +182,42 @@ public final class MessageMappingProcessorActorTest {
         final EnforcementFilterFactory<String, CharSequence> factory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
         final EnforcementFilter<CharSequence> enforcementFilter = factory.getFilter("some/invalid/target");
-        testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, false);
+        testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, false, null,
+                r -> assertThat(r.getDittoRuntimeException())
+                        .isInstanceOf(ConnectionSignalIdEnforcementFailedException.class)
+        );
+    }
+
+    @Test
+    public void testMappingFailedExpectErrorResponseWitMapperId() {
+        disableLogging(actorSystem);
+        testExternalMessageInDittoProtocolIsProcessed(null, false, FAULTY_MAPPER,
+                r -> {
+                    assertThat(r.getDittoRuntimeException()).isInstanceOf(MessageMappingFailedException.class);
+                    assertThat(r.getDittoRuntimeException().getDescription())
+                            .hasValueSatisfying(desc -> assertThat(desc).contains(FAULTY_MAPPER));
+                }
+        );
     }
 
     private void testExternalMessageInDittoProtocolIsProcessed(
-            @Nullable final EnforcementFilter<CharSequence> enforcement, final boolean expectSuccess) {
+            @Nullable final EnforcementFilter<CharSequence> enforcement) {
+        testExternalMessageInDittoProtocolIsProcessed(enforcement, null);
+    }
+
+    private void testExternalMessageInDittoProtocolIsProcessed(
+            @Nullable final EnforcementFilter<CharSequence> enforcement, @Nullable final String mapping) {
+        testExternalMessageInDittoProtocolIsProcessed(enforcement, true, mapping, r -> {});
+    }
+
+    private void testExternalMessageInDittoProtocolIsProcessed(
+            @Nullable final EnforcementFilter<CharSequence> enforcement, final boolean expectSuccess,
+            @Nullable final String mapping, final Consumer<ThingErrorResponse> verifyErrorResponse) {
 
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
             final ModifyAttribute modifyCommand = createModifyAttributeCommand();
+            final PayloadMapping mappings = ConnectivityModelFactory.newPayloadMapping(mapping);
             final ExternalMessage externalMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(modifyCommand.getDittoHeaders())
                             .withText(ProtocolFactory
@@ -187,6 +225,7 @@ public final class MessageMappingProcessorActorTest {
                                     .toJsonString())
                             .withAuthorizationContext(AUTHORIZATION_CONTEXT)
                             .withEnforcement(enforcement)
+                            .withPayloadMapping(mappings)
                             .build();
 
             messageMappingProcessorActor.tell(externalMessage, getRef());
@@ -196,18 +235,38 @@ public final class MessageMappingProcessorActorTest {
                 assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
                 assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(
                         modifyCommand.getDittoHeaders().getCorrelationId().orElse(null));
-                assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        AUTHORIZATION_CONTEXT);
+                assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext())
+                        .isEqualTo(AUTHORIZATION_CONTEXT);
                 // thing ID is included in the header for error reporting
                 assertThat(modifyAttribute.getDittoHeaders())
                         .extracting(headers -> headers.get(MessageHeaderDefinition.THING_ID.getKey()))
                         .isEqualTo(KNOWN_THING_ID.toString());
+
+                final String expectedMapperHeader = mapping == null ? "default" : mapping;
+                assertThat(modifyAttribute.getDittoHeaders().getMapper()).contains(expectedMapperHeader);
+
+                if (ADD_HEADER_MAPPER.equals(mapping)) {
+                    assertThat(modifyAttribute.getDittoHeaders()).contains(AddHeaderMessageMapper.INBOUND_HEADER);
+                }
+
+                final ModifyAttributeResponse commandResponse =
+                        ModifyAttributeResponse.modified(KNOWN_THING_ID, modifyAttribute.getAttributePointer(),
+                                modifyAttribute.getDittoHeaders());
+
+                messageMappingProcessorActor.tell(commandResponse, getRef());
+                final OutboundSignal.WithExternalMessage responseMessage =
+                        expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
+
+                if (ADD_HEADER_MAPPER.equals(mapping)) {
+                    final Map<String, String> headers = responseMessage.getExternalMessage().getHeaders();
+                    assertThat(headers).contains(AddHeaderMessageMapper.INBOUND_HEADER);
+                    assertThat(headers).contains(AddHeaderMessageMapper.OUTBOUND_HEADER);
+                }
             } else {
                 final OutboundSignal errorResponse = expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
                 assertThat(errorResponse.getSource()).isInstanceOf(ThingErrorResponse.class);
                 final ThingErrorResponse response = (ThingErrorResponse) errorResponse.getSource();
-                assertThat(response.getDittoRuntimeException()).isInstanceOf(
-                        ConnectionSignalIdEnforcementFailedException.class);
+                verifyErrorResponse.accept(response);
             }
         }};
     }
@@ -379,6 +438,7 @@ public final class MessageMappingProcessorActorTest {
         }};
     }
 
+
     @Test
     public void testThingNotAccessibleExceptionRetainsTopic() {
         new TestKit(actorSystem) {{
@@ -435,7 +495,13 @@ public final class MessageMappingProcessorActorTest {
     }
 
     private static MessageMappingProcessor getMessageMappingProcessor() {
-        return MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem, TestConstants.CONNECTIVITY_CONFIG,
+        final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
+        mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
+        mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
+        final PayloadMappingDefinition payloadMappingDefinition =
+                ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
+        return MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
+                TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 

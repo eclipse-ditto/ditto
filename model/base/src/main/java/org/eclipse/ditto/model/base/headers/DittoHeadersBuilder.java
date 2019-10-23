@@ -162,6 +162,14 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B ifNoneMatch(EntityTagMatchers entityTags);
 
     /**
+     * Sets the mapper value.
+     *
+     * @param mapper The mapper used to map the signal.
+     * @return this builder for Method Chaining
+     */
+    B mapper(String mapper);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.

@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping.javascript;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
-import java.util.Optional;
+import java.util.List;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -58,10 +58,10 @@ public class DefaultIncomingMappingTest {
         final MessagePath expectedPath = Payload.newBuilder(JsonPointer.of("/")).build().getPath();
         final TopicPath expectedTopicPath =
                 TopicPath.newBuilder(ThingId.of(NAMESPACE, THING_NAME)).things().twin().commands().retrieve().build();
-        final Optional<Adaptable> adaptableOptional = UNDER_TEST.apply(externalMessage);
+        final List<Adaptable> adaptableList = UNDER_TEST.apply(externalMessage);
 
-        assertThat(adaptableOptional).isPresent();
-        final Adaptable adaptable = adaptableOptional.get();
+        assertThat(adaptableList).isNotEmpty();
+        final Adaptable adaptable = adaptableList.get(0);
         assertThat(adaptable.getHeaders()).contains(DittoHeaders.newBuilder().contentType(CONTENT_TYPE).build());
         assertThat(adaptable.getTopicPath()).isEqualTo(expectedTopicPath);
         assertThat((CharSequence) adaptable.getPayload().getPath()).isEqualTo(expectedPath);
@@ -79,10 +79,10 @@ public class DefaultIncomingMappingTest {
         final MessagePath expectedPath = Payload.newBuilder(JsonPointer.of("/")).build().getPath();
         final TopicPath expectedTopicPath =
                 TopicPath.newBuilder(ThingId.of(NAMESPACE, THING_NAME)).things().twin().commands().retrieve().build();
-        final Optional<Adaptable> adaptableOptional = UNDER_TEST.apply(externalMessage);
+        final List<Adaptable> adaptableList = UNDER_TEST.apply(externalMessage);
 
-        assertThat(adaptableOptional).isPresent();
-        final Adaptable adaptable = adaptableOptional.get();
+        assertThat(adaptableList).isNotEmpty();
+        final Adaptable adaptable = adaptableList.get(0);
         assertThat(adaptable.getHeaders()).contains(DittoHeaders.newBuilder().contentType(CONTENT_TYPE).build());
         assertThat(adaptable.getTopicPath()).isEqualTo(expectedTopicPath);
         assertThat((CharSequence) adaptable.getPayload().getPath()).isEqualTo(expectedPath);

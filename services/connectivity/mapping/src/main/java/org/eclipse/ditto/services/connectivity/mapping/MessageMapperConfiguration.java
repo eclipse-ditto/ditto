@@ -26,6 +26,11 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 public interface MessageMapperConfiguration {
 
     /**
+     * @return the ID of the mapping
+     */
+    String getId();
+
+    /**
      * Returns the configuration properties as Map.
      *
      * @return an unmodifiable Map containing the configuration properties.
