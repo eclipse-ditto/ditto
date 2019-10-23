@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity;
 
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
-import org.eclipse.ditto.signals.events.batch.BatchExecutionFinished;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
@@ -21,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 public final class ConnectivityServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public ConnectivityServiceGlobalEventRegistryTest() {
-        super(BatchExecutionFinished.class,
+        super(
                 ConnectionCreated.class,
                 ResourceDeleted.class,
                 FeatureDeleted.class);

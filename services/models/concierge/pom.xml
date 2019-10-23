@@ -41,15 +41,6 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-signals-commands-batch</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-signals-events-batch</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-models-things</artifactId>
         </dependency>
         <dependency>
