@@ -16,7 +16,6 @@ node {
       mavenLocalRepo: theMvnRepo) {
 
       sh "mvn clean deploy javadoc:jar source:jar" +
-              " -DskipTests"
               " -T16 --batch-mode --errors" +
               " -Pbuild-documentation,internal-repos -DcreateJavadoc=true" +
               " -Drevision=${theVersion}"

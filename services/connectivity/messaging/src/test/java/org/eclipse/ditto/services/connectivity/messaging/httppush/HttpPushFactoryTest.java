@@ -36,7 +36,6 @@ import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -70,7 +69,6 @@ import scala.util.Try;
 /**
  * Tests {@link HttpPushFactory}.
  */
-@Ignore
 public final class HttpPushFactoryTest {
 
     private final Queue<CompletableFuture<Void>> killSwitchTrigger = new ConcurrentLinkedQueue<>();
