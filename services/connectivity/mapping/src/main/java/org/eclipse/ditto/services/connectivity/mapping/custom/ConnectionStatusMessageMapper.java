@@ -149,18 +149,18 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
         }
 
         //Set time to ISO-8601 UTC
-        final String readySince = Instant.ofEpochSecond(creationTime).toString();
+        final String readySince = Instant.ofEpochMilli(creationTime).toString();
         final String readyUntil;
         final Adaptable adaptable;
 
         if (ttd == 0) {
-            readyUntil = Instant.ofEpochSecond(creationTime).toString();
+            readyUntil = Instant.ofEpochMilli(creationTime).toString();
             adaptable = getModifyFeaturePropertieAdoptable(thingId, readyUntil);
         } else if (ttd == -1) {
-            readyUntil = Instant.ofEpochSecond(Long.parseLong(FUTURE_INSTANT)).toString();
+            readyUntil = Instant.ofEpochMilli(Long.parseLong(FUTURE_INSTANT)).toString();
             adaptable = getModifyFeatureAdaptable(thingId, readyUntil, readySince);
         } else {
-            readyUntil = Instant.ofEpochSecond(creationTime + ttd).toString();
+            readyUntil = Instant.ofEpochMilli(creationTime + ttd * 1000).toString();
             adaptable = getModifyFeatureAdaptable(thingId, readyUntil, readySince);
         }
 

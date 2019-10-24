@@ -67,7 +67,7 @@ public class ConnectionStatusMessageMapperTest {
         validHeader = new HashMap<>();
         validHeader.put(HEADER_HUB_DEVICE_ID, "headerNamespace:headerDeviceId");
         validHeader.put(HEADER_HUB_TTD, "20");
-        validHeader.put(HEADER_HUB_CREATION_TIME, "1571214120");
+        validHeader.put(HEADER_HUB_CREATION_TIME, "1571214120000");
         validMapperConfig = DefaultMessageMapperConfiguration.of("valid", validConfigProps);
     }
 

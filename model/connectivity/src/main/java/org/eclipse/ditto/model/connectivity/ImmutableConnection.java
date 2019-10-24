@@ -642,7 +642,7 @@ final class ImmutableConnection implements Connection {
             checkSourceAndTargetAreValid();
             checkAuthorizationContextsAreValid();
             migrateMappingContext();
-            validateMappingReferences();
+            // validateMappingReferences();
             return new ImmutableConnection(this);
         }
 
