@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.replies.ReplyTarget;
 
 /**
  * Immutable implementation of {@link Source}.
@@ -55,6 +56,7 @@ final class ImmutableSource implements Source {
     @Nullable private final Enforcement enforcement;
     @Nullable private final HeaderMapping headerMapping;
     private final PayloadMapping payloadMapping;
+    @Nullable private final ReplyTarget replyTarget;
 
     private ImmutableSource(final Builder builder) {
         this.addresses = Collections.unmodifiableSet(
@@ -66,6 +68,7 @@ final class ImmutableSource implements Source {
         this.enforcement = builder.enforcement;
         this.headerMapping = builder.headerMapping;
         this.payloadMapping = builder.payloadMapping;
+        this.replyTarget = builder.replyTarget;
     }
 
     @Override
@@ -109,6 +112,11 @@ final class ImmutableSource implements Source {
     }
 
     @Override
+    public Optional<ReplyTarget> getReplyTarget() {
+        return Optional.ofNullable(replyTarget);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -140,6 +148,10 @@ final class ImmutableSource implements Source {
 
         if (!payloadMapping.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.PAYLOAD_MAPPING, JsonArray.of(payloadMapping.getMappings()));
+        }
+
+        if (replyTarget != null) {
+            jsonObjectBuilder.set(JsonFields.REPLY_TARGET, replyTarget.toJson(schemaVersion, thePredicate));
         }
 
         return jsonObjectBuilder.build();
@@ -183,6 +195,9 @@ final class ImmutableSource implements Source {
                         .map(ImmutablePayloadMapping::fromJson)
                         .orElse(ConnectivityModelFactory.emptyPayloadMapping());
 
+        final ReplyTarget readReplyTarget =
+                jsonObject.getValue(JsonFields.REPLY_TARGET).map(ReplyTarget::fromJson).orElse(null);
+
         return new Builder()
                 .addresses(readSources)
                 .qos(readQos)
@@ -192,6 +207,7 @@ final class ImmutableSource implements Source {
                 .enforcement(readEnforcement)
                 .headerMapping(readHeaderMapping)
                 .payloadMapping(readPayloadMapping)
+                .replyTarget(readReplyTarget)
                 .build();
     }
 
@@ -207,13 +223,14 @@ final class ImmutableSource implements Source {
                 Objects.equals(enforcement, that.enforcement) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
                 Objects.equals(payloadMapping, that.payloadMapping) &&
-                Objects.equals(authorizationContext, that.authorizationContext);
+                Objects.equals(authorizationContext, that.authorizationContext) &&
+                Objects.equals(replyTarget, that.replyTarget);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement, headerMapping,
-                payloadMapping);
+                payloadMapping, replyTarget);
     }
 
     @Override
@@ -227,6 +244,7 @@ final class ImmutableSource implements Source {
                 ", enforcement=" + enforcement +
                 ", headerMapping=" + headerMapping +
                 ", mapping=" + payloadMapping +
+                ", replyTarget=" + replyTarget +
                 "]";
     }
 
@@ -244,6 +262,7 @@ final class ImmutableSource implements Source {
         @Nullable private Enforcement enforcement;
         @Nullable private HeaderMapping headerMapping;
         @Nullable private Integer qos = null;
+        @Nullable private ReplyTarget replyTarget;
 
         // optional with default:
         private PayloadMapping payloadMapping = ConnectivityModelFactory.emptyPayloadMapping();
@@ -317,6 +336,12 @@ final class ImmutableSource implements Source {
         @Override
         public SourceBuilder payloadMapping(final PayloadMapping payloadMapping) {
             this.payloadMapping = payloadMapping;
+            return this;
+        }
+
+        @Override
+        public SourceBuilder replyTarget(@Nullable final ReplyTarget replyTarget) {
+            this.replyTarget = replyTarget;
             return this;
         }
 

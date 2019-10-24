@@ -134,6 +134,15 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     IF_NONE_MATCH("If-None-Match", EntityTagMatchers.class, String.class, true, false),
 
     /**
+     * Header definition for the internal header "ditto-reply-target". This header is evaluated for responses to be
+     * published.
+     * <p>
+     * Key: {@code "ditto-reply-target"}, Java type: {@link java.lang.Integer}.
+     * </p>
+     */
+    REPLY_TARGET("ditto-reply-target", Integer.class, false, false),
+
+    /**
      * Header definition for "mapper".
      * <p>
      * Key: {@code "mapper"}, Java type: {@link String}.

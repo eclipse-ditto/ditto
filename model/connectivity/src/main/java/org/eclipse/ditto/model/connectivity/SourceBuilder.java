@@ -17,6 +17,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.connectivity.replies.ReplyTarget;
 
 /**
  * A mutable builder for a {@link Source} with a fluent API.
@@ -96,6 +97,14 @@ public interface SourceBuilder<T extends SourceBuilder> {
      * @return this builder
      */
     T payloadMapping(PayloadMapping payloadMapping);
+
+    /**
+     * Set the reply target.
+     *
+     * @param replyTarget the new reply-target, or null to remove the current reply-target.
+     * @return this builder.
+     */
+    T replyTarget(@Nullable ReplyTarget replyTarget);
 
     /**
      * Build the source instance.

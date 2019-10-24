@@ -28,6 +28,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.connectivity.replies.ImmutableReplyTargetTest;
+import org.eclipse.ditto.model.connectivity.replies.ReplyTarget;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -41,6 +43,7 @@ public final class ImmutableSourceTest {
             AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
 
     private static Map<String, String> mapping = new HashMap<>();
+
     static {
         mapping.put("correlation-id", "{{ header:message-id }}");
         mapping.put("thing-id", "{{ header:device_id }}");
@@ -58,6 +61,7 @@ public final class ImmutableSourceTest {
                     .address(AMQP_SOURCE1)
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(mapping))
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
+                    .replyTarget(ImmutableReplyTargetTest.REPLY_TARGET)
                     .build();
 
     private static final JsonObject SOURCE_JSON = JsonObject
@@ -73,6 +77,7 @@ public final class ImmutableSourceTest {
 
     private static final JsonObject SOURCE_JSON_WITH_AUTH_CONTEXT = SOURCE_JSON.toBuilder()
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
+            .set(Source.JsonFields.REPLY_TARGET, ImmutableReplyTargetTest.REPLY_TARGET_JSON)
             .build();
 
     private static final String MQTT_SOURCE1 = "mqtt/source1";
@@ -114,7 +119,8 @@ public final class ImmutableSourceTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableSource.class, areImmutable(),
                 provided(AuthorizationContext.class, Enforcement.class, HeaderMapping.class,
-                        PayloadMapping.class).isAlsoImmutable());
+                        PayloadMapping.class, ReplyTarget.class
+                ).areAlsoImmutable());
     }
 
     @Test

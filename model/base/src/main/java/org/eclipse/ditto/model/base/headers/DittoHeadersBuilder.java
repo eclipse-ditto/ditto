@@ -170,6 +170,14 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B mapper(String mapper);
 
     /**
+     * Set the reply-target.
+     *
+     * @param replyTarget the reply-target identifier.
+     * @return this builder.
+     */
+    B replyTarget(@Nullable Integer replyTarget);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.

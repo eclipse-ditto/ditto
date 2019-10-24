@@ -20,7 +20,6 @@ import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -33,12 +32,6 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
-import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 
@@ -96,7 +89,7 @@ public abstract class AbstractProtocolValidator {
         // insecure protocol + certificates configured
         if (!secureSchemes.contains(connection.getProtocol()) && connection.getTrustedCertificates().isPresent()) {
             final String description = MessageFormat.format("Either switch to a secure protocol ({0}) or remove the " +
-                            "trusted certificates.", secureSchemes);
+                    "trusted certificates.", secureSchemes);
             throw ConnectionUriInvalidException.newBuilder(connection.getUri())
                     .message("The connection has trusted certificates configured but uses an insecure protocol.")
                     .description(description)
@@ -135,7 +128,8 @@ public abstract class AbstractProtocolValidator {
      * @param dittoHeaders headers of the command that triggered the connection validation.
      */
     protected void validateTargetConfigs(final Connection connection, final DittoHeaders dittoHeaders) {
-        connection.getTargets().forEach(target -> validateTarget(target, dittoHeaders, targetDescription(target, connection)));
+        connection.getTargets()
+                .forEach(target -> validateTarget(target, dittoHeaders, targetDescription(target, connection)));
     }
 
     /**
@@ -144,7 +138,8 @@ public abstract class AbstractProtocolValidator {
      * @param connection the connection to check the MappingContext in.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      */
-    protected void validateMappingContext(final Connection connection, final ActorSystem actorSystem, final DittoHeaders dittoHeaders) {
+    protected void validateMappingContext(final Connection connection, final ActorSystem actorSystem,
+            final DittoHeaders dittoHeaders) {
         /* TODO: restore mapping context validation
         connection.getMappingContext().ifPresent(mappingContext -> {
             final MappingConfig mappingConfig = DittoConnectivityConfig.of(
@@ -183,7 +178,8 @@ public abstract class AbstractProtocolValidator {
      */
     protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
         headerMapping.getMapping().forEach((key, value)
-                -> validateTemplate(value, dittoHeaders, newHeadersPlaceholder(), newThingPlaceholder(), newTopicPathPlaceholder()));
+                -> validateTemplate(value, dittoHeaders, newHeadersPlaceholder(), newThingPlaceholder(),
+                newTopicPathPlaceholder()));
     }
 
     /**
@@ -257,9 +253,9 @@ public abstract class AbstractProtocolValidator {
      * @param headers the DittoHeaders to use in order for e.g. building DittoRuntimeExceptions
      * @param stringUsedInPlaceholderReplacement the dummy value used as a replacement for the found placeholders.
      * @param placeholders the {@link Placeholder}s to use for replacement
+     * @return the {@code template} with every placeholder replaced by {@code stringUsedInPlaceholderReplacement}.
      * @throws ConnectionConfigurationInvalidException in case the template's placeholders could not completely be
      * resolved
-     * @return the {@code template} with every placeholder replaced by {@code stringUsedInPlaceholderReplacement}.
      */
     protected String validateTemplateAndReplace(final String template, final DittoHeaders headers,
             final String stringUsedInPlaceholderReplacement, final Placeholder<?>... placeholders) {

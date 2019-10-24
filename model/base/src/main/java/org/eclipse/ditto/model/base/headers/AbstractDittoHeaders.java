@@ -178,6 +178,12 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Optional<Integer> getReplyTarget() {
+        // This is an internal header. If NumberFormatException occurs then there is a bug.
+        return getStringForDefinition(DittoHeaderDefinition.REPLY_TARGET).map(Integer::valueOf);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         forEach((key, value) -> {
@@ -269,9 +275,9 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Nonnull
     private List<Entry<String, String>> getSortedEntriesByLength() {
         return headers.entrySet()
-                    .stream()
-                    .sorted(Comparator.comparingInt(AbstractDittoHeaders::getEntryLength))
-                    .collect(Collectors.toList());
+                .stream()
+                .sorted(Comparator.comparingInt(AbstractDittoHeaders::getEntryLength))
+                .collect(Collectors.toList());
     }
 
     private static int getEntryLength(final Map.Entry<String, String> entry) {

@@ -148,6 +148,16 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         return myself;
     }
 
+    @Override
+    public S replyTarget(@Nullable final Integer replyTarget) {
+        if (replyTarget != null) {
+            putCharSequence(DittoHeaderDefinition.REPLY_TARGET, String.valueOf(replyTarget));
+        } else {
+            removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey());
+        }
+        return myself;
+    }
+
     protected void putStringCollection(final HeaderDefinition definition, final Collection<String> collection) {
         checkNotNull(collection, definition.getKey());
         putJsonValue(definition, toJsonValueArray(collection));

@@ -231,6 +231,11 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getMapper();
 
     /**
+     * @return the reply target of a command-response.
+     */
+    Optional<Integer> getReplyTarget();
+
+    /**
      * Indicates whether the size of the headers entries is greater than the specified size.
      *
      * @param size the size to compare to.

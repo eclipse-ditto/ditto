@@ -17,14 +17,12 @@ import static org.eclipse.ditto.model.connectivity.MetricType.MAPPED;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -81,9 +79,6 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.services.utils.tracing.TraceUtils;
-import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -106,8 +101,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     public static final String ACTOR_NAME = "messageMappingProcessor";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-    private final Map<String, StartedTimer> timers;
 
     private final ActorRef clientActor;
     private final MessageMappingProcessor messageMappingProcessor;
@@ -142,7 +135,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
 
-        timers = new ConcurrentHashMap<>();
         placeholderSubstitution = new PlaceholderSubstitution();
         adjustHeaders = new AdjustHeaders(connectionId);
         mapHeaders = new ApplyHeaderMapping(log);
@@ -236,7 +228,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                     mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
                     .andThen(signal::setDittoHeaders)
                     .apply(mappedInboundMessage);
-            startTrace(adjustedSignal);
+
             // This message is important to check if a command is accepted for a specific connection, as this happens
             // quite a lot this is going to the debug level. Use best with a connection-id filter.
             log.debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder",
@@ -271,7 +263,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         if (log.isDebugEnabled()) {
             final String stackTrace = stackTraceAsString(exception);
             log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
-                    exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
+                    exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""),
+                    stackTrace);
         }
 
         handleCommandResponse(errorResponse, exception);
@@ -312,7 +305,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void handleCommandResponse(final CommandResponse<?> response,
             @Nullable final DittoRuntimeException exception) {
         enhanceLogUtil(response);
-        finishTrace(response);
         recordResponse(response, exception);
 
         if (response.getDittoHeaders().isResponseRequired()) {
@@ -388,44 +380,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 }, outboundMapped, outboundDropped, InfoProviderFactory.forSignal(outbound.getSource()));
 
         messageMappingProcessor.process(outbound, outboundMappingResultHandler);
-    }
-
-    private void startTrace(final Signal<?> command) {
-        command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
-            final StartedTimer timer = TraceUtils
-                    .newAmqpRoundTripTimer(command)
-                    .expirationHandling(startedTimer -> timers.remove(correlationId))
-                    .build();
-            timers.put(correlationId, timer);
-        });
-    }
-
-    private void finishTrace(final WithDittoHeaders<? extends Signal> response) {
-        if (ThingErrorResponse.class.isAssignableFrom(response.getClass())) {
-            finishTrace(response, ((ThingErrorResponse) response).getDittoRuntimeException());
-        } else {
-            finishTrace(response, null);
-        }
-    }
-
-    private void finishTrace(final WithDittoHeaders<? extends Signal> response, @Nullable final Throwable cause) {
-        response.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
-            try {
-                finishTrace(correlationId, cause);
-            } catch (final IllegalArgumentException e) {
-                log.debug("Trace missing for response: '{}'", response);
-            }
-        });
-    }
-
-    private void finishTrace(final String correlationId, @Nullable final Throwable cause) {
-        final StartedTimer timer = timers.remove(correlationId);
-        if (null == timer) {
-            throw new IllegalArgumentException(
-                    MessageFormat.format("No trace found for correlation-id <{0}>!", correlationId));
-        }
-
-        timer.tag(TracingTags.MAPPING_SUCCESS, null == cause).stop();
     }
 
     private Set<ConnectionMonitor> getMonitorsForDroppedSignal(final OutboundSignal outbound,

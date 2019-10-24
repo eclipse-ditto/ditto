@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.connectivity.replies.ReplyTarget;
 
 /**
  * A {@link Connection} source contains several addresses to consume external messages from.
@@ -82,6 +83,15 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return the payload mappings to execute
      */
     PayloadMapping getPayloadMapping();
+
+    /**
+     * The target to handle Ditto command responses to commands sent by this source.
+     * If undefined, responses are published for commands with {@code response-required=true}
+     * at the address defined by the header {@code reply-to} without header or payload mapping.
+     *
+     * @return an optional reply-target.
+     */
+    Optional<ReplyTarget> getReplyTarget();
 
     /**
      * Returns all non hidden marked fields of this {@code Source}.
@@ -158,6 +168,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonArray> PAYLOAD_MAPPING =
                 JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the reply-target.
+         */
+        public static final JsonFieldDefinition<JsonObject> REPLY_TARGET =
+                JsonFactory.newJsonObjectFieldDefinition("replyTarget", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

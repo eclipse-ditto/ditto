@@ -154,8 +154,7 @@ public final class MessageMappingProcessor {
     }
 
     private void convertInboundMessage(final MessageMapper mapper, final ExternalMessage message,
-            final MappingTimer timer,
-            MappingResultHandler<MappedInboundExternalMessage> handler) {
+            final MappingTimer timer, final MappingResultHandler<MappedInboundExternalMessage> handler) {
         try {
             checkNotNull(message, "message");
             log.debug("Mapping message using mapper {}.", mapper.getId());

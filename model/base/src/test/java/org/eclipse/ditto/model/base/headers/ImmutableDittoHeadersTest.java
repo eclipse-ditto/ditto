@@ -64,6 +64,7 @@ public final class ImmutableDittoHeadersTest {
     private static final Collection<String> KNOWN_READ_SUBJECTS = Collections.singleton(KNOWN_READ_SUBJECT);
     private static final String KNOWN_CONTENT_TYPE = "application/json";
     private static final String KNOWN_ORIGIN = "knownOrigin";
+    private static final String KNOWN_REPLY_TARGET = "5";
     private static final String KNOWN_MAPPER = "knownMapper";
 
     @Test
@@ -96,6 +97,7 @@ public final class ImmutableDittoHeadersTest {
                 .ifNoneMatch(KNOWN_IF_NONE_MATCH)
                 .origin(KNOWN_ORIGIN)
                 .contentType(KNOWN_CONTENT_TYPE)
+                .replyTarget(Integer.valueOf(KNOWN_REPLY_TARGET))
                 .mapper(KNOWN_MAPPER)
                 .build();
 
@@ -222,6 +224,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG.toString())
                 .set(DittoHeaderDefinition.ORIGIN.getKey(), KNOWN_ORIGIN)
                 .set(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE)
+                .set(DittoHeaderDefinition.REPLY_TARGET.getKey(), Integer.parseInt(KNOWN_REPLY_TARGET))
                 .set(DittoHeaderDefinition.MAPPER.getKey(), KNOWN_MAPPER)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -381,6 +384,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG.toString());
         result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE);
         result.put(DittoHeaderDefinition.ORIGIN.getKey(), KNOWN_ORIGIN);
+        result.put(DittoHeaderDefinition.REPLY_TARGET.getKey(), KNOWN_REPLY_TARGET);
         result.put(DittoHeaderDefinition.MAPPER.getKey(), KNOWN_MAPPER);
 
         return result;
