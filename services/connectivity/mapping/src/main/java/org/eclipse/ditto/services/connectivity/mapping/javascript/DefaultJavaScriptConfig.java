@@ -28,7 +28,7 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultJavaScriptConfig implements JavaScriptConfig {
 
-    private static final String CONFIG_PATH = JavaScriptMessageMapperRhino.ALIAS;
+    private static final String CONFIG_PATH = "javascript";
 
     private final int maxScriptSizeBytes;
     private final Duration maxScriptExecutionTime;

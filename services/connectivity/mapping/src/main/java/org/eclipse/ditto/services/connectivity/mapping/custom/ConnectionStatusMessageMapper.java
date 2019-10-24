@@ -56,10 +56,9 @@ import org.slf4j.LoggerFactory;
  * the mapping configuration. The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
  * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
  */
-@PayloadMapper(alias = ConnectionStatusMessageMapper.CONNECTION_STATUS_MAPPER_ALIAS, requiresMappingContext = true)
+@PayloadMapper(alias = "ConnectionStatus", requiresMappingContext = true)
 public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
-    static final String CONNECTION_STATUS_MAPPER_ALIAS = "status";
     static final String HEADER_HUB_TTD = "ttd";
     static final String HEADER_HUB_CREATION_TIME = "creation-time";
     static final String DEFAULT_FEATURE_ID = "ConnectionStatus";
