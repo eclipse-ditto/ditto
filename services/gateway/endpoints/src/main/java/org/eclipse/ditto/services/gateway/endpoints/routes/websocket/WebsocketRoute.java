@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
-import static akka.http.javadsl.server.Directives.complete;
+import static akka.http.javadsl.server.Directives.completeWithFuture;
 import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
@@ -25,8 +25,10 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_MESSAGES;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -34,6 +36,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.exceptions.TooManyRequestsException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -48,16 +51,20 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
+import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
+import org.eclipse.ditto.services.gateway.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
+import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
+import org.eclipse.ditto.services.utils.akka.controlflow.LimitRateByRejection;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -84,19 +91,22 @@ import akka.http.javadsl.model.ws.TextMessage;
 import akka.http.javadsl.model.ws.UpgradeToWebSocket;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
+import akka.pattern.Patterns;
 import akka.japi.pf.PFBuilder;
 import akka.stream.Attributes;
+import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
+import akka.stream.SinkShape;
 import akka.stream.UniformFanInShape;
-import akka.stream.UniformFanOutShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
-import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Merge;
-import akka.stream.javadsl.Partition;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /ws}.
@@ -115,20 +125,33 @@ public final class WebsocketRoute {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketRoute.class);
 
+    private static final Duration CONFIG_ASK_TIMEOUT = Duration.ofSeconds(5L);
+
+    private static final String STREAMING_MESSAGES = "streaming_messages";
+    private static final String WS = "ws";
+    private static final String DIRECTION = "direction";
+    private static final String TYPE = "type";
+    private static final Counter IN_COUNTER = DittoMetrics.counter(STREAMING_MESSAGES)
+            .tag(TYPE, WS)
+            .tag(DIRECTION, "in");
+    private static final Counter OUT_COUNTER = DittoMetrics.counter(STREAMING_MESSAGES)
+            .tag(TYPE, WS)
+            .tag(DIRECTION, "out");
+    private static final Counter DROPPED_COUNTER = DittoMetrics.counter(STREAMING_MESSAGES)
+            .tag(TYPE, WS)
+            .tag(DIRECTION, "dropped");
+
     private final ActorRef streamingActor;
-    private final WebSocketConfig webSocketConfig;
     private final EventStream eventStream;
 
     private final EventSniffer<String> incomingMessageSniffer;
     private final EventSniffer<String> outgoingMessageSniffer;
 
     private WebsocketRoute(final ActorRef streamingActor,
-            final WebSocketConfig webSocketConfig,
             final EventStream eventStream,
             final EventSniffer<String> incomingMessageSniffer,
             final EventSniffer<String> outgoingMessageSniffer) {
         this.streamingActor = streamingActor;
-        this.webSocketConfig = webSocketConfig;
         this.eventStream = eventStream;
         this.incomingMessageSniffer = incomingMessageSniffer;
         this.outgoingMessageSniffer = outgoingMessageSniffer;
@@ -138,13 +161,11 @@ public final class WebsocketRoute {
      * Constructs the {@code /ws} route builder.
      *
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
-     * @param webSocketConfig the configuration of the web socket enpoint.
      * @param eventStream eventStream used to publish events within the actor system
      */
-    public WebsocketRoute(final ActorRef streamingActor, final WebSocketConfig webSocketConfig,
-            final EventStream eventStream) {
+    public WebsocketRoute(final ActorRef streamingActor, final EventStream eventStream) {
 
-        this(streamingActor, webSocketConfig, eventStream, EventSniffer.noOp(), EventSniffer.noOp());
+        this(streamingActor, eventStream, EventSniffer.noOp(), EventSniffer.noOp());
     }
 
     /**
@@ -157,7 +178,7 @@ public final class WebsocketRoute {
     public WebsocketRoute withMessageSniffers(final EventSniffer<String> incomingMessageSniffer,
             final EventSniffer<String> outgoingMessageSniffer) {
 
-        return new WebsocketRoute(streamingActor, webSocketConfig, eventStream, incomingMessageSniffer,
+        return new WebsocketRoute(streamingActor, eventStream, incomingMessageSniffer,
                 outgoingMessageSniffer);
     }
 
@@ -173,14 +194,19 @@ public final class WebsocketRoute {
             final ProtocolAdapter chosenProtocolAdapter) {
 
         return extractUpgradeToWebSocket(upgradeToWebSocket -> extractRequest(request ->
-                complete(
+                completeWithFuture(
                         createWebsocket(upgradeToWebSocket, version, correlationId, connectionAuthContext,
                                 additionalHeaders, chosenProtocolAdapter, request)
                 )
         ));
     }
 
-    private HttpResponse createWebsocket(final UpgradeToWebSocket upgradeToWebSocket,
+    private CompletionStage<WebsocketConfig> retrieveWebsocketConfig() {
+        return Patterns.ask(streamingActor, StreamingActor.Control.RETRIEVE_WEBSOCKET_CONFIG, CONFIG_ASK_TIMEOUT)
+                .thenApply(reply -> (WebsocketConfig) reply); // fail future with ClassCastException on type error
+    }
+
+    private CompletionStage<HttpResponse> createWebsocket(final UpgradeToWebSocket upgradeToWebSocket,
             final Integer version,
             final String connectionCorrelationId,
             final AuthorizationContext authContext,
@@ -191,31 +217,126 @@ public final class WebsocketRoute {
         LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
                 logger.info("Creating WebSocket for connection authContext: <{}>", authContext));
 
-        final Flow<Message, DittoRuntimeException, NotUsed> incoming =
-                createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request);
-        final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
-                createOutgoing(connectionCorrelationId, adapter, request);
+        return retrieveWebsocketConfig().thenApply(websocketConfig -> {
+            final Flow<Message, DittoRuntimeException, NotUsed> incoming =
+                    createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request,
+                            websocketConfig);
+            final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
+                    createOutgoing(connectionCorrelationId, adapter, request, websocketConfig);
 
-        return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing));
+            return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing));
+        });
     }
 
+    /* Incoming flow:
+     *
+     * Websocket message with streamed content
+     *                  +
+     *                  | strictify+sniffer
+     *                  v
+     *                String
+     *                  +
+     *                  |
+     *                  v                   bad cast/bad signal
+     * Extract stream control or signal +---------------+
+     *                  +                               |
+     *                  |                               |
+     *                  v                               |
+     * Either<StreamControlMessage, Signal>             |
+     *                  +                               |
+     *                  |                               |
+     *                  v            too many requests  |
+     *             Rate limiter +---------------------->+
+     *                  +                               |
+     *                  |                               |
+     *                  v                               |
+     *      Filter.multiplexByEither                    |
+     *       +                  +                       |
+     *       |                  |                       |
+     *       v                  |                       |
+     * Control Msg:             |                       |
+     * StreamSessionActor       |                       |
+     *                          |                       |
+     *                          v                       |
+     *                       Signal:                    |
+     *                       CommandSubscriber          |
+     *                                                  |
+     *                                                  |
+     *                  +-------------------------------+
+     *                  |
+     *                  v
+     *         DittoRuntimeException
+     */
+    @SuppressWarnings("unchecked")
     private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final Integer version,
             final String connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
-            final HttpRequest request) {
+            final HttpRequest request,
+            final WebsocketConfig websocketConfig) {
 
-        final Counter inCounter = DittoMetrics.counter("streaming_messages")
-                .tag("type", "ws")
-                .tag("direction", "in");
+        return Flow.fromGraph(GraphDSL.create(builder -> {
 
-        final ProtocolMessageExtractor protocolMessageExtractor = new ProtocolMessageExtractor(connectionAuthContext,
-                connectionCorrelationId);
+            final FlowShape<Message, String> strictify =
+                    builder.add(getStrictifyFlow(request, connectionCorrelationId).via(throttle(websocketConfig)));
 
-        final Flow<Message, String, NotUsed> extractStringFromMessage = Flow.<Message>create()
+            final FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException> select =
+                    builder.add(selectStreamControlOrSignal(version, connectionCorrelationId, connectionAuthContext,
+                            additionalHeaders, adapter));
+
+            final FanOutShape2<Either<StreamControlMessage, Signal>, Either<StreamControlMessage, Signal>,
+                    DittoRuntimeException> rateLimiter = builder.add(getRateLimiter(websocketConfig));
+
+            final FlowShape<DittoRuntimeException, DittoRuntimeException> droppedCounter =
+                    builder.add(Flow.fromFunction(e -> {
+                        DROPPED_COUNTER.increment();
+                        return e;
+                    }));
+
+            final SinkShape<Either<StreamControlMessage, Signal>> sink =
+                    builder.add(getStreamControlOrSignalSink(websocketConfig));
+
+            final UniformFanInShape<DittoRuntimeException, DittoRuntimeException> exceptionMerger =
+                    builder.add(Merge.create(2, true));
+
+            builder.from(strictify.out()).toInlet(select.in());
+            builder.from(select.out0()).toInlet(rateLimiter.in());
+            builder.from(select.out1()).toFanIn(exceptionMerger);
+            builder.from(rateLimiter.out0()).to(sink);
+            builder.from(rateLimiter.out1()).via(droppedCounter).toFanIn(exceptionMerger);
+
+            return FlowShape.of(strictify.in(), exceptionMerger.out());
+        }));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Graph<SinkShape<Either<StreamControlMessage, Signal>>, NotUsed> getStreamControlOrSignalSink(
+            final WebsocketConfig config) {
+        return GraphDSL.create(builder -> {
+            final FanOutShape2<Either<StreamControlMessage, Signal>, Signal, StreamControlMessage> multiplexer =
+                    builder.add(Filter.multiplexByEither(java.util.function.Function.identity()));
+            final SinkShape<Signal> signalSink = builder.add(getCommandSubscriberSink(config));
+            final SinkShape<StreamControlMessage> streamControlSink = builder.add(getStreamingActorSink());
+
+            builder.from(multiplexer.out0()).to(signalSink);
+            builder.from(multiplexer.out1()).to(streamControlSink);
+
+            return SinkShape.of(multiplexer.in());
+        });
+    }
+
+    private Sink<Signal, ActorRef> getCommandSubscriberSink(final WebsocketConfig websocketConfig) {
+        final Props commandSubscriberProps =
+                CommandSubscriber.props(streamingActor, websocketConfig.getSubscriberBackpressureQueueSize(),
+                        eventStream);
+        return Sink.actorSubscriber(commandSubscriberProps);
+    }
+
+    private Flow<Message, String, NotUsed> getStrictifyFlow(final HttpRequest request, final String correlationId) {
+        return Flow.<Message>create()
                 .via(Flow.fromFunction(msg -> {
-                    inCounter.increment();
+                    IN_COUNTER.increment();
                     return msg;
                 }))
                 .filter(Message::isText)
@@ -230,50 +351,63 @@ public final class WebsocketRoute {
                 .flatMapConcat(textMsg -> textMsg.fold("", (str1, str2) -> str1 + str2))
                 .via(incomingMessageSniffer.toAsyncFlow(request))
                 .via(Flow.fromFunction(result -> {
-                    LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
+                    LogUtil.logWithCorrelationId(LOGGER, correlationId, logger ->
                             logger.debug("Received incoming WebSocket message: {}", result));
                     return result;
                 }))
                 .withAttributes(Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(),
-                        Logging.WarningLevel()))
-                .filter(strictText -> processProtocolMessage(protocolMessageExtractor, strictText));
+                        Logging.WarningLevel()));
 
-        final Props commandSubscriberProps =
-                CommandSubscriber.props(streamingActor, webSocketConfig.getSubscriberBackpressureQueueSize(),
-                        eventStream);
-        final Sink<Signal, ActorRef> commandSubscriber = Sink.actorSubscriber(commandSubscriberProps);
-
-        final Flow<String, DittoRuntimeException, NotUsed> signalErrorFlow =
-                buildSignalErrorFlow(commandSubscriber, version, connectionCorrelationId, connectionAuthContext,
-                        additionalHeaders, adapter);
-
-        return extractStringFromMessage.via(signalErrorFlow);
     }
 
-    private boolean processProtocolMessage(final ProtocolMessageExtractor protocolMessageExtractor,
-            final String protocolMessage) {
+    private Sink<StreamControlMessage, ?> getStreamingActorSink() {
+        return Sink.foreach(streamControlMessage -> streamingActor.tell(streamControlMessage, ActorRef.noSender()));
+    }
 
-        final Object messageToTellStreamingActor = protocolMessageExtractor.apply(protocolMessage);
-        if (messageToTellStreamingActor != null) {
-            streamingActor.tell(messageToTellStreamingActor, null);
-            return false;
-        }
-        // let all other messages pass:
-        return true;
+    private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>, NotUsed>
+    selectStreamControlOrSignal(
+            final Integer version,
+            final String connectionCorrelationId,
+            final AuthorizationContext connectionAuthContext,
+            final DittoHeaders additionalHeaders,
+            final ProtocolAdapter adapter) {
+
+        final ProtocolMessageExtractor protocolMessageExtractor =
+                new ProtocolMessageExtractor(connectionAuthContext, connectionCorrelationId);
+
+        return Filter.multiplexByEither(cmdString -> {
+            final Optional<StreamControlMessage> streamControlMessage = protocolMessageExtractor.apply(cmdString);
+            if (streamControlMessage.isPresent()) {
+                return Right.apply(Left.apply(streamControlMessage.get()));
+            } else {
+                try {
+                    final Signal signal =
+                            buildSignal(cmdString, version, connectionCorrelationId, connectionAuthContext,
+                                    additionalHeaders, adapter);
+                    return Right.apply(Right.apply(signal));
+                } catch (final DittoRuntimeException dre) {
+                    // This is a client error usually; log at level DEBUG without stack trace.
+                    LOGGER.debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
+                    return Left.apply(dre);
+                } catch (final Exception throwable) {
+                    LOGGER.warn("Error building signal from <{}>: {}: <{}>", cmdString,
+                            throwable.getClass().getSimpleName(), throwable.getMessage());
+                    final DittoRuntimeException dittoRuntimeException = GatewayInternalErrorException.newBuilder()
+                            .cause(throwable).build();
+                    return Left.apply(dittoRuntimeException);
+                }
+            }
+        });
     }
 
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(final String connectionCorrelationId,
-            final ProtocolAdapter adapter, final HttpRequest request) {
-
-        final Counter outCounter = DittoMetrics.counter("streaming_messages")
-                .tag("type", "ws")
-                .tag("direction", "out");
+            final ProtocolAdapter adapter, final HttpRequest request, final WebsocketConfig websocketConfig) {
 
         final Optional<JsonWebToken> optJsonWebToken = extractJwtFromRequestIfPresent(request);
 
         final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
-                        EventAndResponsePublisher.props(webSocketConfig.getPublisherBackpressureBufferSize()))
+                        EventAndResponsePublisher.props(websocketConfig.getPublisherBackpressureBufferSize()))
                         .mapMaterializedValue(actorRef -> {
                             streamingActor.tell(
                                     new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_WS,
@@ -308,7 +442,7 @@ public final class WebsocketRoute {
                         .via(outgoingMessageSniffer.toAsyncFlow(request))
                         .<Message>map(TextMessage::create)
                         .via(Flow.fromFunction(msg -> {
-                            outCounter.increment();
+                            OUT_COUNTER.increment();
                             return msg;
                         }));
 
@@ -324,7 +458,7 @@ public final class WebsocketRoute {
         return Flow.fromGraph(GraphDSL.create3(eventAndResponseSource, errorFlow, messageFlow,
                 (notUsed1, notUsed2, notUsed3) -> notUsed1,
                 (builder, eventsAndResponses, errors, messages) -> {
-                    final UniformFanInShape<T, T> merge = builder.add(Merge.<T>create(2));
+                    final UniformFanInShape<T, T> merge = builder.add(Merge.create(2, true));
 
                     builder.from(eventsAndResponses).toFanIn(merge);
                     builder.from(errors).toFanIn(merge);
@@ -348,61 +482,26 @@ public final class WebsocketRoute {
         return jsonifiable;
     }
 
-    private static Flow<String, DittoRuntimeException, NotUsed> buildSignalErrorFlow(
-            final Sink<Signal, ActorRef> commandSubscriber,
-            final Integer version,
-            final String connectionCorrelationId,
-            final AuthorizationContext connectionAuthContext,
-            final DittoHeaders additionalHeaders,
-            final ProtocolAdapter adapter) {
-
-        final Flow<String, Object, NotUsed> resultOrErrorFlow =
-                Flow.fromFunction(cmdString -> {
-                    try {
-                        return buildSignal(cmdString, version, connectionCorrelationId, connectionAuthContext,
-                                additionalHeaders, adapter);
-                    } catch (final Exception e) {
-                        // This is a client error usually; log at level INFO without stack trace.
-                        LOGGER.info("Error building signal from <{}>: <{}:{}>", cmdString,
-                                e.getClass().getCanonicalName(), e.getMessage());
-                        return e;
-                    }
-                });
-
-        final Graph<UniformFanOutShape<Object, Object>, NotUsed> signalFilterGraph =
-                Partition.create(2, message -> message instanceof Signal ? 0 : 1);
-
-        final Flow<Object, DittoRuntimeException, NotUsed> castErrorFlow =
-                Flow.fromFunction(x -> x instanceof DittoRuntimeException
-                        ? (DittoRuntimeException) x
-                        : x instanceof Throwable
-                        ? GatewayInternalErrorException.newBuilder().cause((Throwable) x).build()
-                        : GatewayInternalErrorException.newBuilder().build());
-
-        final Sink<Object, NotUsed> signalSinkGraph =
-                Flow.fromFunction(Signal.class::cast).toMat(commandSubscriber, Keep.none());
-
-        return connectSignalErrorFlow(resultOrErrorFlow, signalFilterGraph, signalSinkGraph, castErrorFlow);
+    private static <T> Graph<FanOutShape2<Either<T, Signal>, Either<T, Signal>, DittoRuntimeException>, NotUsed>
+    getRateLimiter(final WebsocketConfig websocketConfig) {
+        final Duration rateLimitInterval = websocketConfig.getThrottlingConfig().getInterval();
+        final int throttlingLimit = websocketConfig.getThrottlingConfig().getLimit();
+        final int messagesPerInterval =
+                Math.max(throttlingLimit, (int) (throttlingLimit * websocketConfig.getThrottlingRejectionFactor()));
+        return LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, either -> {
+            final TooManyRequestsException.Builder builder =
+                    TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval);
+            if (either.isRight()) {
+                builder.dittoHeaders(either.right().get().getDittoHeaders());
+            }
+            return builder.build();
+        });
     }
 
-    @SuppressWarnings("unchecked")
-    private static Flow<String, DittoRuntimeException, NotUsed> connectSignalErrorFlow(
-            final Flow<String, Object, NotUsed> resultOrErrorFlow,
-            final Graph<UniformFanOutShape<Object, Object>, NotUsed> signalFilterGraph,
-            final Sink<Object, NotUsed> signalSinkGraph,
-            final Flow<Object, DittoRuntimeException, NotUsed> castErrorFlow) {
-
-        return Flow.fromGraph(GraphDSL.create(signalSinkGraph, (builder, signalSink) -> {
-            final FlowShape<String, Object> resultOrError = builder.add(resultOrErrorFlow);
-            final UniformFanOutShape<Object, Object> signalFilter = builder.add(signalFilterGraph);
-            final FlowShape<Object, DittoRuntimeException> castError = builder.add(castErrorFlow);
-
-            builder.from(resultOrError.out()).toInlet(signalFilter.in());
-            builder.from(signalFilter.out(0)).to(signalSink);
-            builder.from(signalFilter.out(1)).toInlet(castError.in());
-
-            return FlowShape.of(resultOrError.in(), castError.out());
-        }));
+    private static <T> Flow<T, T, NotUsed> throttle(final WebsocketConfig websocketConfig) {
+        return Flow.<T>create()
+                .throttle(websocketConfig.getThrottlingConfig().getLimit(),
+                        websocketConfig.getThrottlingConfig().getInterval());
     }
 
     private static Signal buildSignal(final String cmdString,

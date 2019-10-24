@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
@@ -190,7 +189,8 @@ final class GatewayRootActor extends AbstractActor {
                         gatewayConfig.getCachesConfig().getPublicKeysConfig(), httpClient);
 
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
-                StreamingActor.props(dittoProtocolSub, proxyActor, jwtAuthenticationFactory));
+                StreamingActor.props(dittoProtocolSub, proxyActor, jwtAuthenticationFactory,
+                        gatewayConfig.getStreamingConfig()));
 
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
@@ -286,8 +286,6 @@ final class GatewayRootActor extends AbstractActor {
                 ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
 
-        final WebSocketConfig webSocketConfig = gatewayConfig.getWebSocketConfig();
-
         final Supplier<ClusterStatus> clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier, healthCheckConfig);
@@ -312,7 +310,7 @@ final class GatewayRootActor extends AbstractActor {
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig(), httpConfig, headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(new WebsocketRoute(streamingActor, webSocketConfig, actorSystem.eventStream()))
+                .websocketRoute(new WebsocketRoute(streamingActor, actorSystem.eventStream()))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)

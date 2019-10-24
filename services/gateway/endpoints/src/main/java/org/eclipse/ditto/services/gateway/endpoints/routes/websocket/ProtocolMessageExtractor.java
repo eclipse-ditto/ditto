@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.services.gateway.streaming.JwtToken;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 
 /**
@@ -45,7 +46,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
  * {@link StopStreaming} instance or {@code null} if the payload did not contain one of the defined
  * {@link ProtocolMessages}.
  */
-final class ProtocolMessageExtractor implements Function<String, Object> {
+final class ProtocolMessageExtractor implements Function<String, Optional<StreamControlMessage>> {
 
     private static final String PARAM_FILTER = "filter";
     private static final String PARAM_NAMESPACES = "namespaces";
@@ -66,34 +67,34 @@ final class ProtocolMessageExtractor implements Function<String, Object> {
     }
 
     @Override
-    public Object apply(final String protocolMessage) {
+    public Optional<StreamControlMessage> apply(final String protocolMessage) {
         // twin events
         if (START_SEND_EVENTS.matches(protocolMessage)) {
-            return buildStartStreaming(START_SEND_EVENTS, protocolMessage);
+            return Optional.of(buildStartStreaming(START_SEND_EVENTS, protocolMessage));
         } else if (STOP_SEND_EVENTS.matches(protocolMessage)) {
-            return new StopStreaming(StreamingType.EVENTS, connectionCorrelationId);
+            return Optional.of(new StopStreaming(StreamingType.EVENTS, connectionCorrelationId));
         }
         // live events
         else if (START_SEND_LIVE_EVENTS.matches(protocolMessage)) {
-            return buildStartStreaming(START_SEND_LIVE_EVENTS, protocolMessage);
+            return Optional.of(buildStartStreaming(START_SEND_LIVE_EVENTS, protocolMessage));
         } else if (STOP_SEND_LIVE_EVENTS.matches(protocolMessage)) {
-            return new StopStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId);
+            return Optional.of(new StopStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId));
         }
         // live commands
         else if (START_SEND_LIVE_COMMANDS.matches(protocolMessage)) {
-            return buildStartStreaming(START_SEND_LIVE_COMMANDS, protocolMessage);
+            return Optional.of(buildStartStreaming(START_SEND_LIVE_COMMANDS, protocolMessage));
         } else if (STOP_SEND_LIVE_COMMANDS.matches(protocolMessage)) {
-            return new StopStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId);
+            return Optional.of(new StopStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId));
         }
         // messages
         else if (START_SEND_MESSAGES.matches(protocolMessage)) {
-            return buildStartStreaming(START_SEND_MESSAGES, protocolMessage);
+            return Optional.of(buildStartStreaming(START_SEND_MESSAGES, protocolMessage));
         } else if (STOP_SEND_MESSAGES.matches(protocolMessage)) {
-            return new StopStreaming(StreamingType.MESSAGES, connectionCorrelationId);
+            return Optional.of(new StopStreaming(StreamingType.MESSAGES, connectionCorrelationId));
         } else if (JWT_TOKEN.matchesWithParameters(protocolMessage)) {
             return buildJwtToken(protocolMessage);
         } else {
-            return null;
+            return Optional.empty();
         }
     }
 

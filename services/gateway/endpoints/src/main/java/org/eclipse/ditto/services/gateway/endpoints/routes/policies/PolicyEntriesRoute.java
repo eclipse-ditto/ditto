@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -131,7 +130,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
     private Route thingsEntryPolicyEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
                 pathEndOrSingleSlash(() ->
                         concat(
                                 get(() -> // GET /entries/<label>
@@ -176,8 +175,8 @@ final class PolicyEntriesRoute extends AbstractRoute {
     private Route thingsEntryPolicyEntrySubjects(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
-                rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_SUBJECTS), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_SUBJECTS), () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         get(() -> // GET /entries/<label>/subjects
@@ -209,9 +208,9 @@ final class PolicyEntriesRoute extends AbstractRoute {
     private Route thingsEntryPolicyEntrySubjectsEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
-                rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_SUBJECTS), () ->
-                        rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.remaining()), subjectId ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_SUBJECTS), () ->
+                        rawPathPrefix(PathMatchers.slash().concat(PathMatchers.remaining()), subjectId ->
                                 concat(
                                         get(() -> // GET /entries/<label>/subjects/<subjectId>
                                                 handlePerRequest(ctx, RetrieveSubject.of(policyId,
@@ -259,8 +258,8 @@ final class PolicyEntriesRoute extends AbstractRoute {
     private Route thingsEntryPolicyEntryResources(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
-                rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_RESOURCES), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_RESOURCES), () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         get(() -> // GET /entries/<label>/resources
@@ -294,8 +293,8 @@ final class PolicyEntriesRoute extends AbstractRoute {
     private Route thingsEntryPolicyEntryResourcesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
-                rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_RESOURCES), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_RESOURCES), () ->
                         extractUnmatchedPath(resource ->
                                 concat(
                                         get(() -> // GET /entries/<label>/resources/<resource>

@@ -34,7 +34,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
  * ({@link #subscribed} is {@code true}) or unsubscribed from ({@link #subscribed} is {@code false}).
  */
 @JsonParsableCommandResponse(type = StreamingAck.TYPE)
-public final class StreamingAck implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
+public final class StreamingAck implements Jsonifiable.WithPredicate<JsonObject, JsonField>, StreamControlMessage {
 
     static final String TYPE = "gateway:streaming.ack";
 

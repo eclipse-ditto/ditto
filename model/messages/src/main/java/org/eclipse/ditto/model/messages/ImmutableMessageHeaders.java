@@ -101,11 +101,6 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     }
 
     @Override
-    public Optional<String> getValidationUrl() {
-        return getStringForDefinition(MessageHeaderDefinition.VALIDATION_URL);
-    }
-
-    @Override
     protected Optional<HeaderDefinition> getSpecificDefinitionByKey(final CharSequence key) {
         return MessageHeaderDefinition.forKey(key);
     }

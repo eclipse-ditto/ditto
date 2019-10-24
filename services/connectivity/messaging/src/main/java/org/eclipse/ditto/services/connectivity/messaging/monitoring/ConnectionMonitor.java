@@ -85,6 +85,18 @@ public interface ConnectionMonitor {
     }
 
     /**
+     * Record a success event.
+     * @param externalMessage that was processed during the success event.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
+     */
+    default void success(final ExternalMessage externalMessage, final String message, final Object... messageArguments) {
+        getLogger().success(InfoProviderFactory.forExternalMessage(externalMessage), message, messageArguments);
+        getCounter().recordSuccess();
+    }
+
+    /**
      * Record a failure event.
      * @param signal that was processed during the failure.
      */

@@ -62,7 +62,6 @@ public final class ImmutableMessageHeadersTest {
     private static final String TIMESTAMP = "2017-09-22T09:47:23+01:00";
     private static final HttpStatusCode STATUS_CODE = HttpStatusCode.OK;
     private static final String CONTENT_TYPE = "application/json";
-    private static final String VALIDATION_URL = "https://example.com/message/validate";
 
     @Test
     public void assertImmutability() {
@@ -94,7 +93,6 @@ public final class ImmutableMessageHeadersTest {
                 .timestamp(TIMESTAMP)
                 .statusCode(STATUS_CODE)
                 .contentType(CONTENT_TYPE)
-                .validationUrl(VALIDATION_URL)
                 .build();
 
         assertThat(messageHeaders).isEqualTo(expectedHeaderMap);
@@ -227,15 +225,6 @@ public final class ImmutableMessageHeadersTest {
     }
 
     @Test
-    public void getValidationUrlReturnsExpected() {
-        final MessageHeaders underTest = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT)
-                .validationUrl(VALIDATION_URL)
-                .build();
-
-        assertThat(underTest.getValidationUrl()).contains(VALIDATION_URL);
-    }
-
-    @Test
     public void getDirectionAlthoughItIsNotSet() {
         final MessageHeaders underTest = ImmutableMessageHeaders.of(DittoHeaders.empty());
 
@@ -286,7 +275,6 @@ public final class ImmutableMessageHeadersTest {
         result.put(MessageHeaderDefinition.TIMESTAMP.getKey(), TIMESTAMP);
         result.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(STATUS_CODE.toInt()));
         result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
-        result.put(MessageHeaderDefinition.VALIDATION_URL.getKey(), VALIDATION_URL);
 
         return result;
     }

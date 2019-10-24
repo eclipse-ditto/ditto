@@ -31,16 +31,16 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultClaimMessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultMessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultPublicHealthConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.DefaultWebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.PublicHealthConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.gateway.security.config.AuthenticationConfig;
 import org.eclipse.ditto.services.gateway.security.config.DefaultAuthenticationConfig;
+import org.eclipse.ditto.services.gateway.streaming.DefaultStreamingConfig;
+import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -86,7 +86,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     protected static MessageConfig claimMessageConfig;
     protected static AuthenticationConfig authConfig;
     protected static CacheConfig cacheConfig;
-    protected static WebSocketConfig webSocketConfig;
+    protected static StreamingConfig streamingConfig;
     protected static PublicHealthConfig publicHealthConfig;
     protected static ProtocolConfig protocolConfig;
 
@@ -100,7 +100,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         claimMessageConfig = DefaultClaimMessageConfig.of(gatewayScopedConfig);
         authConfig = DefaultAuthenticationConfig.of(gatewayScopedConfig);
         cacheConfig = DefaultCacheConfig.of(gatewayScopedConfig, "cache.publickeys");
-        webSocketConfig = DefaultWebSocketConfig.of(gatewayScopedConfig);
+        streamingConfig = DefaultStreamingConfig.of(gatewayScopedConfig);
         publicHealthConfig = DefaultPublicHealthConfig.of(gatewayScopedConfig);
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
     }

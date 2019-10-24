@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -91,9 +92,10 @@ public class ProtocolMessageExtractorTest {
         Stream.of(ProtocolMessages.values())
                 .filter(protocolMessage -> protocolMessage.getIdentifier().startsWith("START"))
                 .forEach(protocolMessage -> {
-                    final Object extracted = extractor.apply(protocolMessage.getIdentifier() + parameters);
-                    assertThat(extracted).isInstanceOfAny(StartStreaming.class);
-                    final StartStreaming start = ((StartStreaming) extracted);
+                    final Optional<StreamControlMessage> extracted =
+                            extractor.apply(protocolMessage.getIdentifier() + parameters);
+                    assertThat(extracted.get()).isInstanceOfAny(StartStreaming.class);
+                    final StartStreaming start = ((StartStreaming) extracted.get());
                     assertThat(start.getStreamingType()).isEqualTo(protocolMessage.getStreamingType().get());
                     assertThat(start.getConnectionCorrelationId()).isEqualTo(correlationId);
                     assertThat(start.getAuthorizationContext()).isEqualTo(authorizationContext);
@@ -107,9 +109,9 @@ public class ProtocolMessageExtractorTest {
         Stream.of(ProtocolMessages.values())
                 .filter(protocolMessage -> protocolMessage.getIdentifier().startsWith("STOP"))
                 .forEach(protocolMessage -> {
-                    final Object extracted = extractor.apply(protocolMessage.getIdentifier());
-                    assertThat(extracted).isInstanceOfAny(StopStreaming.class);
-                    final StopStreaming stop = ((StopStreaming) extracted);
+                    final Optional<StreamControlMessage> extracted = extractor.apply(protocolMessage.getIdentifier());
+                    assertThat(extracted.get()).isInstanceOfAny(StopStreaming.class);
+                    final StopStreaming stop = ((StopStreaming) extracted.get());
                     assertThat(stop.getStreamingType()).isEqualTo(protocolMessage.getStreamingType().get());
                     assertThat(stop.getConnectionCorrelationId()).isEqualTo(correlationId);
                 });
@@ -117,8 +119,8 @@ public class ProtocolMessageExtractorTest {
 
     @Test
     public void noneProtocolMessagesMappedToNull() {
-        assertThat(extractor.apply(null)).isNull();
-        assertThat(extractor.apply("")).isNull();
-        assertThat(extractor.apply("{\"some\":\"json\"}")).isNull();
+        assertThat(extractor.apply(null)).isEmpty();
+        assertThat(extractor.apply("")).isEmpty();
+        assertThat(extractor.apply("{\"some\":\"json\"}")).isEmpty();
     }
 }

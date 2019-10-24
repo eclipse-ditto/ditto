@@ -65,8 +65,11 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.Terminated;
+import akka.stream.Attributes;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientActorTest {
 
@@ -110,7 +113,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
         connectionId = TestConstants.createRandomConnectionId();
         serverHost = "tcp://localhost:" + freePort.getPort();
         connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
-                ConnectivityStatus.OPEN, serverHost)
+                ConnectivityStatus.CLOSED, serverHost)
                 .sources(singletonList(MQTT_SOURCE))
                 .targets(singletonList(TARGET))
                 .failoverEnabled(true)
@@ -154,7 +157,10 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             expectDisconnectCalled();
 
             // client actor should be stopped after testing
-            expectTerminated(mqttClientActor);
+            fishForMessage(FiniteDuration.apply(5L, TimeUnit.SECONDS), "client actor should stop after test",
+                    msg -> msg instanceof Terminated && ((Terminated) msg).getActor().equals(mqttClientActor));
+
+            expectDisconnectCalled();
         }};
     }
 
@@ -348,8 +354,6 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
             controlProbe.expectMsg(DISCONNECTED_SUCCESS);
 
-            Thread.sleep(2000);
-
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
             controlProbe.expectMsg(CONNECTED_SUCCESS);
 
@@ -399,9 +403,11 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
 
     protected abstract M mqttMessage(final String topic, final String payload);
 
-    @Nullable protected abstract String extractPayload(M message);
+    @Nullable
+    protected abstract String extractPayload(M message);
 
-    @Nullable protected abstract String extractTopic(M message);
+    @Nullable
+    protected abstract String extractTopic(M message);
 
     protected abstract Class<M> getMessageClass();
 

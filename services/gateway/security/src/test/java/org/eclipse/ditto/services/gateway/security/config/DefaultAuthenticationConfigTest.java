@@ -17,6 +17,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

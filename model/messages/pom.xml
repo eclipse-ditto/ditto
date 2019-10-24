@@ -59,6 +59,21 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <excludes>
+                            <exclude>
+                                org.eclipse.ditto.model.messages.MessageHeaderDefinition#VALIDATION_URL
+                            </exclude>
+                            <exclude>
+                                org.eclipse.ditto.model.messages.MessageHeaders#getValidationUrl()
+                            </exclude>
+                            <exclude>
+                                org.eclipse.ditto.model.messages.MessageHeadersBuilder#validationUrl(java.lang.CharSequence)
+                            </exclude>
+                        </excludes>
+                    </parameter>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.sse;
 
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
-
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -60,6 +58,7 @@ import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.headers.Accept;
 import akka.http.javadsl.model.sse.ServerSentEvent;
+import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.JavaPartialFunction;
@@ -139,7 +138,7 @@ public class SseThingsRoute extends AbstractRoute {
      */
     @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
     public Route buildThingsSseRoute(final RequestContext ctx, final Supplier<DittoHeaders> dittoHeadersSupplier) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_THINGS), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS), () ->
                 pathEndOrSingleSlash(() ->
                         get(() ->
                                 headerValuePF(AcceptHeaderExtractor.INSTANCE, accept ->

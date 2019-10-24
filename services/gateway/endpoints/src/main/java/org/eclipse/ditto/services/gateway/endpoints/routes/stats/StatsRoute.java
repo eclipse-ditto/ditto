@@ -24,7 +24,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
-import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
@@ -38,6 +37,7 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.Directives;
+import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
@@ -87,7 +87,7 @@ public final class StatsRoute extends AbstractRoute {
      * @return route for /stats resource.
      */
     public Route buildStatsRoute(final CharSequence correlationId) {
-        return Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(STATISTICS_PATH_PREFIX),
+        return Directives.rawPathPrefix(PathMatchers.slash().concat(STATISTICS_PATH_PREFIX),
                 () -> // /stats/*
                         extractRequestContext(ctx ->
                                 get(() -> // GET

@@ -56,6 +56,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushValidator;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
@@ -109,6 +110,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
@@ -152,7 +154,8 @@ public final class ConnectionPersistenceActor
             RabbitMQValidator.newInstance(),
             AmqpValidator.newInstance(),
             MqttValidator.newInstance(),
-            KafkaValidator.getInstance());
+            KafkaValidator.getInstance(),
+            HttpPushValidator.newInstance());
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -187,8 +190,16 @@ public final class ConnectionPersistenceActor
         this.dittoProtocolSub = dittoProtocolSub;
         this.conciergeForwarder = conciergeForwarder;
         this.propsFactory = propsFactory;
+
+        final ActorSystem actorSystem = getContext().getSystem();
+        final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        );
+        config = connectivityConfig.getConnectionConfig();
+
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR);
+                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR,
+                        actorSystem);
 
         if (customCommandValidator != null) {
             commandValidator =
@@ -196,11 +207,6 @@ public final class ConnectionPersistenceActor
         } else {
             commandValidator = dittoCommandValidator;
         }
-
-        final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
-        config = connectivityConfig.getConnectionConfig();
 
         clientActorAskTimeout = config.getClientActorAskTimeout();
 
@@ -461,8 +467,6 @@ public final class ConnectionPersistenceActor
     }
 
     private void forwardSignalToClientActors(final Signal signal) {
-        // Do not flush pending responses - pub/sub may not be ready on all nodes
-
         enhanceLogUtil(signal);
         if (clientActorRouter == null) {
             logDroppedSignal(signal.getType(), "Client actor not ready.");
@@ -520,6 +524,8 @@ public final class ConnectionPersistenceActor
             origin.tell(TestConnectionResponse.alreadyCreated(entityId, command.getDittoHeaders()), self);
         } else {
             // no need to start more than 1 client for tests
+            // set connection status to CLOSED so that client actors will not try to connect on startup
+            setConnectionStatusClosedForTestConnection();
             startAndAskClientActors(command.getCommand(), 1)
                     .thenAccept(response -> self.tell(
                             command.withResponse(TestConnectionResponse.success(command.getConnectionEntityId(),
@@ -532,6 +538,12 @@ public final class ConnectionPersistenceActor
                                 ActorRef.noSender());
                         return null;
                     });
+        }
+    }
+
+    private void setConnectionStatusClosedForTestConnection() {
+        if (entity != null) {
+            entity = entity.toBuilder().connectionStatus(ConnectivityStatus.CLOSED).build();
         }
     }
 
