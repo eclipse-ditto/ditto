@@ -24,10 +24,10 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthent
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationContextProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
+import org.eclipse.ditto.services.gateway.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.InvalidJwtToken;
 import org.eclipse.ditto.services.gateway.streaming.JwtToken;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
-import org.eclipse.ditto.services.gateway.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
@@ -67,10 +67,8 @@ public final class StreamingActor extends AbstractActorWithTimers
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef commandRouter;
     private final Gauge streamingSessionsCounter;
-    private final Cancellable sessionCounterScheduler;
     private final JwtValidator jwtValidator;
     private final JwtAuthorizationContextProvider jwtAuthorizationContextProvider;
-    private final StreamingConfig streamingConfig;
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(Throwable.class, e -> {
@@ -80,6 +78,8 @@ public final class StreamingActor extends AbstractActorWithTimers
                 logger.error("Unknown message:'{}'! Escalating above actor!", e);
                 return SupervisorStrategy.escalate();
             }).build());
+
+    private StreamingConfig streamingConfig;
 
     @SuppressWarnings("unused")
     private StreamingActor(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter,
@@ -105,7 +105,8 @@ public final class StreamingActor extends AbstractActorWithTimers
     public static Props props(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter,
             final JwtAuthenticationFactory jwtAuthenticationFactory,
             final StreamingConfig streamingConfig) {
-        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtAuthenticationFactory, streamingConfig);
+        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtAuthenticationFactory,
+                streamingConfig);
     }
 
     @Override
