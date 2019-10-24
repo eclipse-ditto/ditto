@@ -323,17 +323,6 @@ public final class ImmutableConnectionTest {
                 .withNoCause();
     }
 
-
-    @Test
-    public void fromJsonWithInvalidMappingFails() {
-        final JsonObject INVALID_JSON = KNOWN_JSON.remove(Connection.JsonFields.MAPPING_DEFINITIONS.getPointer());
-        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> ImmutableConnection.fromJson(INVALID_JSON))
-                .withMessageContaining(STATUS_MAPPING)
-                .withMessageContaining(JAVA_SCRIPT_MAPPING)
-                .withNoCause();
-    }
-
     @Test
     public void toJsonReturnsExpected() {
         final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
