@@ -16,7 +16,7 @@ package org.eclipse.ditto.services.gateway.streaming;
 /**
  * Simple event which holds a JWT in string format.
  */
-public class JwtToken {
+public class JwtToken implements StreamControlMessage {
 
     private final String connectionCorrelationId;
     private final String jwt;

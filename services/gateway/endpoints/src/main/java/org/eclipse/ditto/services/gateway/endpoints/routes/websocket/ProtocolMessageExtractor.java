@@ -92,7 +92,7 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
         } else if (STOP_SEND_MESSAGES.matches(protocolMessage)) {
             return Optional.of(new StopStreaming(StreamingType.MESSAGES, connectionCorrelationId));
         } else if (JWT_TOKEN.matchesWithParameters(protocolMessage)) {
-            return buildJwtToken(protocolMessage);
+            return Optional.of(buildJwtToken(protocolMessage));
         } else {
             return Optional.empty();
         }
