@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -137,7 +138,8 @@ public class SseThingsRoute extends AbstractRoute {
      * @return {@code /things} SSE route.
      */
     @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
-    public Route buildThingsSseRoute(final RequestContext ctx, final Supplier<DittoHeaders> dittoHeadersSupplier) {
+    public Route buildThingsSseRoute(final RequestContext ctx,
+            final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS), () ->
                 pathEndOrSingleSlash(() ->
                         get(() ->
@@ -149,7 +151,7 @@ public class SseThingsRoute extends AbstractRoute {
         );
     }
 
-    private Route doBuildThingsSseRoute(final DittoHeaders dittoHeaders) {
+    private Route doBuildThingsSseRoute(final CompletionStage<DittoHeaders> dittoHeaders) {
         return parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                 parameterOptional(ThingsParameter.IDS.toString(),
                         idsString -> // "ids" is optional for SSE
@@ -184,7 +186,7 @@ public class SseThingsRoute extends AbstractRoute {
              console.log(e.data);
          }, false);
        */
-    private Route createSseRoute(final DittoHeaders dittoHeaders,
+    private Route createSseRoute(final CompletionStage<DittoHeaders> dittoHeaders,
             final JsonFieldSelector fieldSelector,
             final List<ThingId> targetThingIds,
             final List<String> namespaces,
@@ -196,64 +198,68 @@ public class SseThingsRoute extends AbstractRoute {
 
 
     private Route createSseRoute(final HttpRequest request,
-            final DittoHeaders dittoHeaders,
+            final CompletionStage<DittoHeaders> dittoHeadersStage,
             final JsonFieldSelector fieldSelector,
             final List<ThingId> targetThingIds,
             final List<String> namespaces,
             @Nullable final String filterString) {
 
-        final String connectionCorrelationId = dittoHeaders.getCorrelationId()
-                .orElseGet(() -> UUID.randomUUID().toString());
-        final JsonSchemaVersion jsonSchemaVersion =
-                dittoHeaders.getSchemaVersion().orElse(dittoHeaders.getImplementedSchemaVersion());
+        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
+                dittoHeadersStage.thenApply(dittoHeaders -> {
+                    final String connectionCorrelationId = dittoHeaders.getCorrelationId()
+                            .orElseGet(() -> UUID.randomUUID().toString());
+                    final JsonSchemaVersion jsonSchemaVersion =
+                            dittoHeaders.getSchemaVersion().orElse(dittoHeaders.getImplementedSchemaVersion());
 
-        final Counter messageCounter = DittoMetrics.counter("streaming_messages")
-                        .tag("type", "sse")
-                        .tag("direction", "out");
+                    final Counter messageCounter = DittoMetrics.counter("streaming_messages")
+                            .tag("type", "sse")
+                            .tag("direction", "out");
 
-        if (filterString != null) {
-            // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
-            queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
-        }
+                    if (filterString != null) {
+                        // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
+                        queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
+                    }
 
-        final Source<ServerSentEvent, NotUsed> sseSource =
-                Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
-                        EventAndResponsePublisher.props(10))
-                        .mapMaterializedValue(actorRef -> {
-                            streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_SSE),
-                                    null);
-                            streamingActor.tell(
-                                    new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
-                                            dittoHeaders.getAuthorizationContext(), namespaces, filterString),
-                                    null);
-                            return NotUsed.getInstance();
-                        })
-                        .filter(jsonifiable -> jsonifiable instanceof ThingEvent)
-                        .map(jsonifiable -> ((ThingEvent) jsonifiable))
-                        .filter(thingEvent -> targetThingIds.isEmpty() ||
-                                        targetThingIds.contains(thingEvent.getThingEntityId())
-                                // only Events of the target thingIds
-                        )
-                        .filter(thingEvent -> namespaces.isEmpty() || namespaces.contains(namespaceFromId(thingEvent)))
-                        .map(ThingEventToThingConverter::thingEventToThing)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .map(thing -> fieldSelector != null ? thing.toJson(jsonSchemaVersion, fieldSelector) :
-                                thing.toJson(jsonSchemaVersion))
-                        .filter(thingJson -> fieldSelector == null || fieldSelector.getPointers().stream()
-                                .filter(p -> !p.equals(Thing.JsonFields.ID.getPointer())) // ignore "thingId"
-                                .anyMatch(
-                                        thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
-                        .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
-                        .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
-                        .via(Flow.fromFunction(msg -> {
-                            messageCounter.increment();
-                            return msg;
-                        }))
-                        .viaMat(eventSniffer.toAsyncFlow(request), Keep.left()) // sniffer shouldn't sniff heartbeats
-                        .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
+                    return Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
+                            EventAndResponsePublisher.props(10))
+                            .mapMaterializedValue(actorRef -> {
+                                streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_SSE),
+                                        null);
+                                streamingActor.tell(
+                                        new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
+                                                dittoHeaders.getAuthorizationContext(), namespaces, filterString),
+                                        null);
+                                return NotUsed.getInstance();
+                            })
+                            .filter(jsonifiable -> jsonifiable instanceof ThingEvent)
+                            .map(jsonifiable -> ((ThingEvent) jsonifiable))
+                            .filter(thingEvent -> targetThingIds.isEmpty() ||
+                                            targetThingIds.contains(thingEvent.getThingEntityId())
+                                    // only Events of the target thingIds
+                            )
+                            .filter(thingEvent -> namespaces.isEmpty() ||
+                                    namespaces.contains(namespaceFromId(thingEvent)))
+                            .map(ThingEventToThingConverter::thingEventToThing)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .map(thing -> fieldSelector != null ? thing.toJson(jsonSchemaVersion, fieldSelector) :
+                                    thing.toJson(jsonSchemaVersion))
+                            .filter(thingJson -> fieldSelector == null || fieldSelector.getPointers().stream()
+                                    .filter(p -> !p.equals(Thing.JsonFields.ID.getPointer())) // ignore "thingId"
+                                    .anyMatch(
+                                            thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
+                            .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
+                            .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
+                            .via(Flow.fromFunction(msg -> {
+                                messageCounter.increment();
+                                return msg;
+                            }))
+                            .viaMat(eventSniffer.toAsyncFlow(request),
+                                    Keep.left()) // sniffer shouldn't sniff heartbeats
+                            .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
+                });
 
-        return completeOK(sseSource, EventStreamMarshalling.toEventStream());
+        return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
     }
 
     private static String namespaceFromId(final ThingEvent thingEvent) {
