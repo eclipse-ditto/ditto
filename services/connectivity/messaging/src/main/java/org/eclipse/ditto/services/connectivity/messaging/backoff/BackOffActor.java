@@ -102,13 +102,20 @@ public final class BackOffActor extends AbstractActorWithTimers {
     }
 
     private void backOff(final BackOffWithAnswer<?> backOffWithAnswer) {
-        final Duration backOffTimeout = this.retryTimeoutStrategy.getNextTimeout();
-        final Duration resetBackOffTimeout = backOffTimeout.multipliedBy(2L);
+        if (isInBackOff()) {
+            log.debug("Actor is already in backoff mode, not scheduling another one.");
+        } else {
+            final Duration backOffTimeout = this.retryTimeoutStrategy.getNextTimeout();
+            final Duration resetBackOffTimeout = backOffTimeout.multipliedBy(2L);
 
-        log.debug("Going to back off for <{}> until sending answer: <{}>", backOffTimeout, backOffWithAnswer.getAnswer());
+            log.debug("Going to back off for <{}> until sending answer: <{}>", backOffTimeout,
+                    backOffWithAnswer.getAnswer());
 
-        this.getTimers().startSingleTimer(InternalTimers.BACK_OFF, new BackOffWithSender<>(getSender(), backOffWithAnswer), backOffTimeout);
-        this.getTimers().startSingleTimer(InternalTimers.RESET_BACK_OFF, RESET_BACK_OFF, resetBackOffTimeout);
+            this.getTimers()
+                    .startSingleTimer(InternalTimers.BACK_OFF, new BackOffWithSender<>(getSender(), backOffWithAnswer),
+                            backOffTimeout);
+            this.getTimers().startSingleTimer(InternalTimers.RESET_BACK_OFF, RESET_BACK_OFF, resetBackOffTimeout);
+        }
     }
 
     private void afterBackOff(final BackOffWithSender backOffWithSender) {
