@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -42,6 +43,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseAuthorizationEnforcer;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -72,7 +74,8 @@ import akka.stream.javadsl.Source;
 /**
  * Builder for creating Akka HTTP routes for SSE (Server Sent Events) {@code /things} routes.
  */
-public final class ThingsSseRoute implements SseRouteBuilder {
+@NotThreadSafe
+public final class ThingsSseRouteBuilder implements SseRouteBuilder {
 
     private static final String PATH_THINGS = "things";
 
@@ -82,15 +85,18 @@ public final class ThingsSseRoute implements SseRouteBuilder {
     private static final String PARAM_NAMESPACES = "namespaces";
 
     private final ActorRef streamingActor;
-    private final EventSniffer<ServerSentEvent> eventSniffer;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
 
-    private ThingsSseRoute(final ActorRef streamingActor, final EventSniffer<ServerSentEvent> eventSniffer,
+    private SseAuthorizationEnforcer sseAuthorizationEnforcer;
+    private EventSniffer<ServerSentEvent> eventSniffer;
+
+    private ThingsSseRouteBuilder(final ActorRef streamingActor,
             final QueryFilterCriteriaFactory queryFilterCriteriaFactory) {
 
         this.streamingActor = streamingActor;
-        this.eventSniffer = eventSniffer;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
+        sseAuthorizationEnforcer = new NoOpSseAuthorizationEnforcer();
+        eventSniffer = EventSniffer.noOp();
     }
 
     /**
@@ -100,18 +106,24 @@ public final class ThingsSseRoute implements SseRouteBuilder {
      * @return the instance.
      * @throws NullPointerException if {@code streamingActor} is {@code null}.
      */
-    public static ThingsSseRoute getInstance(final ActorRef streamingActor) {
+    public static ThingsSseRouteBuilder getInstance(final ActorRef streamingActor) {
         checkNotNull(streamingActor, "streamingActor");
         final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
                 new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ModelBasedThingsFieldExpressionFactory());
 
-        return new ThingsSseRoute(streamingActor, EventSniffer.noOp(), queryFilterCriteriaFactory);
+        return new ThingsSseRouteBuilder(streamingActor, queryFilterCriteriaFactory);
     }
 
     @Override
-    public ThingsSseRoute withEventSniffer(final EventSniffer<ServerSentEvent> eventSniffer) {
-        return new ThingsSseRoute(streamingActor, checkNotNull(eventSniffer, "eventSniffer"),
-                queryFilterCriteriaFactory);
+    public SseRouteBuilder withAuthorizationEnforcer(final SseAuthorizationEnforcer enforcer) {
+        sseAuthorizationEnforcer = checkNotNull(enforcer, "enforcer");
+        return this;
+    }
+
+    @Override
+    public ThingsSseRouteBuilder withEventSniffer(final EventSniffer<ServerSentEvent> eventSniffer) {
+        this.eventSniffer = checkNotNull(eventSniffer, "eventSniffer");
+        return this;
     }
 
     /**
@@ -126,7 +138,22 @@ public final class ThingsSseRoute implements SseRouteBuilder {
                 () -> Directives.pathEndOrSingleSlash(
                         () -> Directives.get(
                                 () -> Directives.headerValuePF(AcceptHeaderExtractor.INSTANCE,
-                                        accept -> buildThingsSseRoute(ctx, dittoHeadersSupplier.get())))));
+                                        accept -> {
+                                            final DittoHeaders dittoHeaders =
+                                                    getDittoHeadersWithCorrelationId(dittoHeadersSupplier.get());
+                                            sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
+                                            return buildThingsSseRoute(ctx, dittoHeaders);
+                                        }))));
+    }
+
+    private static DittoHeaders getDittoHeadersWithCorrelationId(final DittoHeaders dittoHeaders) {
+        final Optional<String> correlationIdOptional = dittoHeaders.getCorrelationId();
+        if (correlationIdOptional.isPresent()) {
+            return dittoHeaders;
+        }
+        return dittoHeaders.toBuilder()
+                .correlationId(String.valueOf(UUID.randomUUID()))
+                .build();
     }
 
     private Route buildThingsSseRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
@@ -176,11 +203,6 @@ public final class ThingsSseRoute implements SseRouteBuilder {
             final List<String> namespaces,
             @Nullable final String filterString) {
 
-        final String connectionCorrelationId = dittoHeaders.getCorrelationId()
-                .orElseGet(() -> String.valueOf(UUID.randomUUID()));
-        final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
-                .orElse(dittoHeaders.getImplementedSchemaVersion());
-
         final Counter messageCounter = DittoMetrics.counter("streaming_messages")
                         .tag("type", "sse")
                         .tag("direction", "out");
@@ -194,6 +216,7 @@ public final class ThingsSseRoute implements SseRouteBuilder {
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                         EventAndResponsePublisher.props(10))
                         .mapMaterializedValue(actorRef -> {
+                            final String connectionCorrelationId = dittoHeaders.getCorrelationId().get();
                             streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_SSE),
                                     null);
                             streamingActor.tell(
@@ -212,8 +235,13 @@ public final class ThingsSseRoute implements SseRouteBuilder {
                         .map(ThingEventToThingConverter::thingEventToThing)
                         .filter(Optional::isPresent)
                         .map(Optional::get)
-                        .map(thing -> fieldSelector != null ? thing.toJson(jsonSchemaVersion, fieldSelector) :
-                                thing.toJson(jsonSchemaVersion))
+                        .map(thing -> {
+                            final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
+                                    .orElse(dittoHeaders.getImplementedSchemaVersion());
+                            return null != fieldSelector
+                                    ? thing.toJson(jsonSchemaVersion, fieldSelector)
+                                    : thing.toJson(jsonSchemaVersion);
+                        })
                         .filter(thingJson -> fieldSelector == null || fieldSelector.getPointers().stream()
                                 .filter(p -> !p.equals(Thing.JsonFields.ID.getPointer())) // ignore "thingId"
                                 .anyMatch(
@@ -258,6 +286,15 @@ public final class ThingsSseRoute implements SseRouteBuilder {
             return StreamSupport.stream(accept.getMediaRanges().spliterator(), false)
                     .filter(mr -> !"*".equals(mr.mainType()))
                     .anyMatch(mr -> mr.matches(MediaTypes.TEXT_EVENT_STREAM));
+        }
+
+    }
+
+    private static final class NoOpSseAuthorizationEnforcer implements SseAuthorizationEnforcer {
+
+        @Override
+        public void checkAuthorization(final RequestContext requestContext, final DittoHeaders dittoHeaders) {
+            // Does nothing
         }
 
     }

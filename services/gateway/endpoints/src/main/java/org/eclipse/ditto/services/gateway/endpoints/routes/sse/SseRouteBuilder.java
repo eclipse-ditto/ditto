@@ -27,6 +27,16 @@ import akka.http.javadsl.server.Route;
 public interface SseRouteBuilder {
 
     /**
+     * Sets the given object to enforce authorization in order to establish the SSE connection.
+     * If no enforcer is set no authorization enforcement is performed.
+     *
+     * @param enforcer the enforcer to be used.
+     * @return this builder instance to allow method chaining.
+     * @throws NullPointerException if {@code enforcer} is {@code null}.
+     */
+    SseRouteBuilder withAuthorizationEnforcer(SseAuthorizationEnforcer enforcer);
+
+    /**
      * Sets the given event sniffer.
      *
      * @param eventSniffer the new event sniffer.
