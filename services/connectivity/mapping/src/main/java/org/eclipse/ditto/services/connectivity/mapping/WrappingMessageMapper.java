@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -37,6 +38,9 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
  * </p>
  */
 final class WrappingMessageMapper implements MessageMapper {
+
+    private static final int MESSAGE_MAPPING_NUMBER_LIMIT_SOURCE = 10;
+    private static final int MESSAGE_MAPPING_NUMBER_LIMIT_TARGET = 10;
 
     private final MessageMapper delegate;
 
@@ -88,6 +92,9 @@ final class WrappingMessageMapper implements MessageMapper {
 
         final List<Adaptable> mappedAdaptables = delegate.map(enhancedMessage);
 
+        checkMessagesMappingNumber(mappedAdaptables, MESSAGE_MAPPING_NUMBER_LIMIT_SOURCE,
+                DittoHeaders.of(message.getHeaders()));
+
         return mappedAdaptables.stream().map(mapped -> {
             final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
             headersBuilder.correlationId(correlationId);
@@ -111,6 +118,7 @@ final class WrappingMessageMapper implements MessageMapper {
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         final List<ExternalMessage> mappedMessages = delegate.map(adaptable);
+        checkMessagesMappingNumber(mappedMessages, MESSAGE_MAPPING_NUMBER_LIMIT_TARGET, adaptable.getDittoHeaders());
         return mappedMessages.stream().map(mapped -> {
             final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(mapped);
             messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
@@ -120,6 +128,17 @@ final class WrappingMessageMapper implements MessageMapper {
                             replyTo -> messageBuilder.withAdditionalHeaders(ExternalMessage.REPLY_TO_HEADER, replyTo));
             return messageBuilder.build();
         }).collect(Collectors.toList());
+    }
+
+    private void checkMessagesMappingNumber(final List<?> mappedAdaptables,
+            final int messageMappingNumberLimit,
+            final DittoHeaders dittoHeaders) {
+        if (mappedAdaptables.size() > messageMappingNumberLimit) {
+            throw MessageMappingFailedException.newBuilder(dittoHeaders.getContentType().orElse(null))
+                    .dittoHeaders(dittoHeaders)
+                    .message("Number of messages from mapping exceeded")
+                    .build();
+        }
     }
 
     @Override
