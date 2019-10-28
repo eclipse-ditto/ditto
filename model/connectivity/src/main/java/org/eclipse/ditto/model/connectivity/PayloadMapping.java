@@ -14,16 +14,18 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.util.List;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
+
 /**
  * References multiple mappings from a {@link PayloadMappingDefinition} in a {@link Source} or a {@link Target}.
  */
-public interface PayloadMapping {
+public interface PayloadMapping extends Jsonifiable<JsonArray>  {
 
     /**
      * @return the payload mappings that should be applied for inbound/outbound messages
      */
     List<String> getMappings();
-
 
     /**
      * @return {@code true} if no mappings are defined

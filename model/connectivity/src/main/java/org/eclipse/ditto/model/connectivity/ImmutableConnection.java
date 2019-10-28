@@ -619,14 +619,8 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder lifecycle(final ConnectionLifecycle lifecycle) {
+        public ConnectionBuilder lifecycle(@Nullable final ConnectionLifecycle lifecycle) {
             this.lifecycle = lifecycle;
-            return this;
-        }
-
-        @Override
-        public ConnectionBuilder mappingDefinition(final String mappingId, final MappingContext mappingContext) {
-            this.payloadMappingDefinition = this.payloadMappingDefinition.withDefinition(mappingId, mappingContext);
             return this;
         }
 

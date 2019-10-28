@@ -132,7 +132,7 @@ final class ImmutableTarget implements Target {
         }
 
         if (!payloadMapping.isEmpty()) {
-            jsonObjectBuilder.set(Target.JsonFields.PAYLOAD_MAPPING, JsonArray.of(payloadMapping.getMappings()));
+            jsonObjectBuilder.set(Target.JsonFields.PAYLOAD_MAPPING, payloadMapping.toJson(), predicate);
         }
 
         return jsonObjectBuilder.build();
@@ -142,7 +142,7 @@ final class ImmutableTarget implements Target {
      * Creates a new {@code Target} object from the specified JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the Target to be created.
-     * @return a new Source which is initialised with the extracted data from {@code jsonObject}.
+     * @return a new Target which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
@@ -166,12 +166,12 @@ final class ImmutableTarget implements Target {
                 AuthorizationModelFactory.newAuthContext(authorizationSubjects);
 
         final HeaderMapping readHeaderMapping =
-                jsonObject.getValue(Source.JsonFields.HEADER_MAPPING)
+                jsonObject.getValue(Target.JsonFields.HEADER_MAPPING)
                         .map(ImmutableHeaderMapping::fromJson)
                         .orElse(null);
 
         final PayloadMapping readMapping =
-                jsonObject.getValue(Source.JsonFields.PAYLOAD_MAPPING)
+                jsonObject.getValue(Target.JsonFields.PAYLOAD_MAPPING)
                         .map(ImmutablePayloadMapping::fromJson)
                         .orElse(ConnectivityModelFactory.emptyPayloadMapping());
 
@@ -213,12 +213,12 @@ final class ImmutableTarget implements Target {
                 ", authorizationContext=" + authorizationContext +
                 ", originalAddress=" + originalAddress +
                 ", headerMapping=" + headerMapping +
-                ", mapping=" + payloadMapping +
+                ", payloadMapping=" + payloadMapping +
                 "]";
     }
 
     /**
-     * Builder for {@code ImmutableSource}.
+     * Builder for {@code ImmutableTarget}.
      */
     @NotThreadSafe
     static final class Builder implements TargetBuilder {

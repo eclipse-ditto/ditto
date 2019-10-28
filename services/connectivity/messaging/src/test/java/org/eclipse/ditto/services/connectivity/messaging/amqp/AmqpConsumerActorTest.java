@@ -219,8 +219,8 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
 
             final String correlationId = "cor-";
             final String plainPayload =
-                    "{ \"topic\": \"com.bosch.test/testThing/things/twin/commands/modify\"," +
-                            " \"headers\":{\"device_id\":\"com.bosch.test:testThing\"}," +
+                    "{ \"topic\": \"org.eclipse.ditto.test/testThing/things/twin/commands/modify\"," +
+                            " \"headers\":{\"device_id\":\"org.eclipse.ditto.test:testThing\"}," +
                             " \"path\": \"/features/point/properties/x\", \"value\": 42 }";
 
             final AmqpJmsTextMessageFacade messageFacade = new AmqpJmsTextMessageFacade();

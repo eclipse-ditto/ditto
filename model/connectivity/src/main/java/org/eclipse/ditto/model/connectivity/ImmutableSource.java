@@ -139,7 +139,7 @@ final class ImmutableSource implements Source {
         }
 
         if (!payloadMapping.isEmpty()) {
-            jsonObjectBuilder.set(JsonFields.PAYLOAD_MAPPING, JsonArray.of(payloadMapping.getMappings()));
+            jsonObjectBuilder.set(JsonFields.PAYLOAD_MAPPING, payloadMapping.toJson(), predicate);
         }
 
         return jsonObjectBuilder.build();
@@ -226,7 +226,7 @@ final class ImmutableSource implements Source {
                 ", authorizationContext=" + authorizationContext +
                 ", enforcement=" + enforcement +
                 ", headerMapping=" + headerMapping +
-                ", mapping=" + payloadMapping +
+                ", payloadMapping=" + payloadMapping +
                 "]";
     }
 

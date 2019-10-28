@@ -238,7 +238,7 @@ public final class ImmutableConnectionTest {
                 .validateCertificate(true)
                 .uri("amqps://some.amqp.org:5672")
                 .id(ID)
-                .mappingDefinition("test", KNOWN_JAVA_MAPPING_CONTEXT)
+                .payloadMappingDefinition(ConnectivityModelFactory.newPayloadMappingDefinition("test", KNOWN_JAVA_MAPPING_CONTEXT))
                 .build();
 
         assertThat(ImmutableConnection.getBuilder(connection).build()).isEqualTo(connection);

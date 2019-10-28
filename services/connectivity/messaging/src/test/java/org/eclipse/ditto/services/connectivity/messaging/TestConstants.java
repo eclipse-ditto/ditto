@@ -340,9 +340,9 @@ public final class TestConstants {
 
     }
 
-    private static PayloadMapping getPayloadMapping(final int NumberOfPayloadMappings) {
+    private static PayloadMapping getPayloadMapping(final int numberOfPayloadMappings) {
         ArrayList<String> newPayloadMappingInputString = new ArrayList<>();
-        for (int i = 0; i < NumberOfPayloadMappings; i++) {
+        for (int i = 0; i < numberOfPayloadMappings; i++) {
             newPayloadMappingInputString.add("ditto");
         }
         return ConnectivityModelFactory.newPayloadMapping(newPayloadMappingInputString);
