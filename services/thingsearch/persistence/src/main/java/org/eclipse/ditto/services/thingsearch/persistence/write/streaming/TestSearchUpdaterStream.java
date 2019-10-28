@@ -14,15 +14,21 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
 import java.time.Duration;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.EnforcedThingMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingDeleteModel;
 
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -83,4 +89,29 @@ public final class TestSearchUpdaterStream {
         final long policyRevision = thingWithAcl.getRevision().orElse(ThingRevision.newInstance(-1L)).toLong();
         return write(thingWithAcl, enforcer, policyRevision);
     }
+
+    /**
+     * Deletes a thing from the updater stream.
+     * @param thingId the thing id.
+     * @param revision the revision.
+     * @param policyId the policy id.
+     * @param policyRevision the policy revision.
+     * @return the write result.
+     */
+    public Source<BulkWriteResult, NotUsed> delete(final ThingId thingId, final long revision, @Nullable final PolicyId policyId, final long policyRevision) {
+        return delete(Metadata.of(thingId, revision, policyId != null ? policyId.toString() : null, policyRevision));
+    }
+
+    /**
+     * Delete a thing from the updater stream.
+     *
+     * @param metadata the metadata.
+     * @return source of write result.
+     */
+    private Source<BulkWriteResult, NotUsed> delete(final Metadata metadata) {
+        final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata);
+        return Source.single(Source.single(writeModel))
+                .via(mongoSearchUpdaterFlow.start(1, 1, Duration.ZERO));
+    }
+
 }
