@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.AbstractQueue;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -70,6 +71,7 @@ import org.eclipse.ditto.model.connectivity.LogLevel;
 import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricType;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -161,6 +163,9 @@ public final class TestConstants {
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
 
     public static final String CORRELATION_ID = "cid";
+
+    public static final int VALID_NUMBER_OF_PAYLOAD_MAPPINGS = 10;
+    public static final int INVALID_NUMBER_OF_PAYLOAD_MAPPINGS = 11;
 
     /**
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
@@ -275,7 +280,22 @@ public final class TestConstants {
                                 .consumerCount(1)
                                 .index(1)
                                 .build());
-
+        public static final List<Source> SOURCES_WITH_VALID_MAPPING_NUMBER =
+                singletonList(ConnectivityModelFactory.newSourceBuilder()
+                        .address("source1")
+                        .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
+                        .consumerCount(1)
+                        .index(0)
+                        .payloadMapping(getPayloadMapping(VALID_NUMBER_OF_PAYLOAD_MAPPINGS))
+                        .build());
+        public static final List<Source> SOURCES_WITH_INVALID_MAPPING_NUMBER =
+                singletonList(ConnectivityModelFactory.newSourceBuilder()
+                        .address("source1")
+                        .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
+                        .consumerCount(1)
+                        .index(0)
+                        .payloadMapping(getPayloadMapping(INVALID_NUMBER_OF_PAYLOAD_MAPPINGS))
+                        .build());
     }
 
     public static final class Targets {
@@ -299,6 +319,33 @@ public final class TestConstants {
                         Topic.LIVE_MESSAGES);
         public static final List<Target> TARGETS = asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
 
+        public static final List<Target> TARGET_WITH_VALID_MAPPING_NUMBER =
+                singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address("live/messages")
+                        .originalAddress("live/messages")
+                        .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                        .headerMapping(HEADER_MAPPING)
+                        .topics(Topic.LIVE_MESSAGES)
+                        .payloadMapping(getPayloadMapping(VALID_NUMBER_OF_PAYLOAD_MAPPINGS))
+                        .build());
+        public static final List<Target> TARGET_WITH_INVALID_MAPPING_NUMBER =
+                singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address("live/messages")
+                        .originalAddress("live/messages")
+                        .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                        .headerMapping(HEADER_MAPPING)
+                        .topics(Topic.LIVE_MESSAGES)
+                        .payloadMapping(getPayloadMapping(INVALID_NUMBER_OF_PAYLOAD_MAPPINGS))
+                        .build());
+
+    }
+
+    private static PayloadMapping getPayloadMapping(final int NumberOfPayloadMappings) {
+        ArrayList<String> newPayloadMappingInputString = new ArrayList<>();
+        for (int i = 0; i < NumberOfPayloadMappings; i++) {
+            newPayloadMappingInputString.add("ditto");
+        }
+        return ConnectivityModelFactory.newPayloadMapping(newPayloadMappingInputString);
     }
 
     public static final class Certificates {

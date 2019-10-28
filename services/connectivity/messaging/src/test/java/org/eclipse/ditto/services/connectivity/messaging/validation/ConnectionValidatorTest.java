@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -41,7 +42,9 @@ import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.typesafe.config.ConfigValueFactory;
 
@@ -72,6 +75,9 @@ public class ConnectionValidatorTest {
                     false);
         }
     }
+
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void testImmutability() {
@@ -259,4 +265,36 @@ public class ConnectionValidatorTest {
                 .build();
     }
 
+    @Test
+    public void acceptValidConnectionWithValidNumberPayloadMapping() {
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setSources(TestConstants.Sources.SOURCES_WITH_VALID_MAPPING_NUMBER)
+                .setTargets(TestConstants.Targets.TARGET_WITH_VALID_MAPPING_NUMBER)
+                .build();
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void acceptValidConnectionWithInvalidNumberSourcePayloadMapping() {
+        exception.expect(DittoRuntimeException.class);
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setSources(TestConstants.Sources.SOURCES_WITH_INVALID_MAPPING_NUMBER)
+                .build();
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void acceptValidConnectionWithInvalidNumberTargetPayloadMapping() {
+        exception.expect(DittoRuntimeException.class);
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(TestConstants.Targets.TARGET_WITH_INVALID_MAPPING_NUMBER)
+                .build();
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
 }

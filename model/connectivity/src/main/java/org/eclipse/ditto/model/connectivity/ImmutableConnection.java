@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -642,18 +641,7 @@ final class ImmutableConnection implements Connection {
             checkSourceAndTargetAreValid();
             checkAuthorizationContextsAreValid();
             migrateMappingContext();
-            // validateMappingReferences();
             return new ImmutableConnection(this);
-        }
-
-        private void validateMappingReferences() {
-            // validate that mappings referenced in sources and targets exist in the mapping definition
-            Stream.concat(sources.stream().flatMap(s -> s.getPayloadMapping().getMappings().stream()),
-                    targets.stream().flatMap(s -> s.getPayloadMapping().getMappings().stream()))
-                    .filter(key -> !payloadMappingDefinition.getDefinitions().containsKey(key))
-                    .distinct()
-                    .reduce((s1, s2) -> String.join(", ", s1, s2))
-                    .ifPresent(this::throwInvalidMappingException);
         }
 
         private void migrateMappingContext() {
@@ -674,12 +662,6 @@ final class ImmutableConnection implements Connection {
                                 .build())
                         .collect(Collectors.toList()));
             }
-        }
-
-        private void throwInvalidMappingException(final String invalidMappings) {
-            final String message =
-                    String.format("The mappings '%s' are not defined in the connection.", invalidMappings);
-            throw ConnectionConfigurationInvalidException.newBuilder(message).build();
         }
 
         private void checkSourceAndTargetAreValid() {
