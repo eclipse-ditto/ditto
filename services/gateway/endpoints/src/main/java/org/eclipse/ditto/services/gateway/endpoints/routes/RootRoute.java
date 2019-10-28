@@ -287,12 +287,8 @@ public final class RootRoute extends AllDirectives {
     private Route buildSseThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final AuthorizationContext authorizationContext) {
         return handleExceptions(exceptionHandler, () ->
-                javaFunctionToRoute(scalaRequestContext ->
-                        overwriteDittoHeadersForSse(ctx, dittoHeaders, authorizationContext).thenCompose(headers ->
-                                routeToJavaFunction(sseThingsRoute.buildThingsSseRoute(ctx, () -> headers))
-                                        .apply(scalaRequestContext)
-                        )
-                )
+                sseThingsRoute.buildThingsSseRoute(ctx, () ->
+                        overwriteDittoHeadersForSse(ctx, dittoHeaders, authorizationContext))
         );
     }
 
