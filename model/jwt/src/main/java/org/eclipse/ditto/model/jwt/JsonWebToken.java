@@ -121,33 +121,33 @@ public interface JsonWebToken {
     final class JsonFields {
 
         /**
-         * JSON field containing the key ID.
+         * JSON field containing the key identifier.
          */
-        public static final JsonFieldDefinition<String> KEY_ID =
+        public static final JsonFieldDefinition<String> KID =
                 JsonFactory.newStringFieldDefinition("kid", FieldType.REGULAR);
 
         /**
          * JSON field containing the issuer.
          */
-        public static final JsonFieldDefinition<String> ISSUER =
+        public static final JsonFieldDefinition<String> ISS =
                 JsonFactory.newStringFieldDefinition("iss", FieldType.REGULAR);
 
         /**
-         * JSON field containing the user id.
+         * JSON field containing the subject, e.g. user identifier.
          */
-        public static final JsonFieldDefinition<String> USER_ID =
+        public static final JsonFieldDefinition<String> SUB =
                 JsonFactory.newStringFieldDefinition("sub", FieldType.REGULAR);
 
         /**
          * JSON field containing the audience.
          */
-        public static final JsonFieldDefinition<JsonValue> AUDIENCE =
+        public static final JsonFieldDefinition<JsonValue> AUD =
                 JsonFactory.newJsonValueFieldDefinition("aud", FieldType.REGULAR);
 
         /**
          * JSON field containing the authorized party.
          */
-        public static final JsonFieldDefinition<String> AUTHORIZED_PARTY =
+        public static final JsonFieldDefinition<String> AZP =
                 JsonFactory.newStringFieldDefinition("azp", FieldType.REGULAR);
 
         /**

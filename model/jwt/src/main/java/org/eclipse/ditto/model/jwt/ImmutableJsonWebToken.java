@@ -32,7 +32,7 @@ public final class ImmutableJsonWebToken extends AbstractJsonWebToken {
     private ImmutableJsonWebToken(final String token) {
         super(token);
 
-        authorizationSubjects = getBody().getValue(JsonFields.USER_ID)
+        authorizationSubjects = getBody().getValue(JsonFields.SUB)
                 .map(Collections::singletonList)
                 .orElse(Collections.emptyList());
     }

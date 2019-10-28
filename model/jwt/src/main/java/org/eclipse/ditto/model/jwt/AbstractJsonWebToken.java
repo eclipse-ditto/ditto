@@ -100,12 +100,12 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
 
     @Override
     public String getKeyId() {
-        return header.getValueOrThrow(JsonFields.KEY_ID);
+        return header.getValueOrThrow(JsonFields.KID);
     }
 
     @Override
     public String getIssuer() {
-        return body.getValueOrThrow(JsonFields.ISSUER);
+        return body.getValueOrThrow(JsonFields.ISS);
     }
 
     @Override
@@ -115,13 +115,13 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
 
     @Override
     public Audience getAudience() {
-        final Optional<JsonValue> audience = body.getValue(JsonFields.AUDIENCE);
+        final Optional<JsonValue> audience = body.getValue(JsonFields.AUD);
         return audience.map(Audience::fromJson).orElseGet(Audience::empty);
     }
 
     @Override
     public String getAuthorizedParty() {
-        return body.getValue(JsonFields.AUTHORIZED_PARTY).orElseGet(String::new);
+        return body.getValue(JsonFields.AZP).orElseGet(String::new);
     }
 
     @Override
