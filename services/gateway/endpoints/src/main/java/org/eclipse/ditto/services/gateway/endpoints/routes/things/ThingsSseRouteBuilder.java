@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseAuthorizationEnforcer;
+import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseConnectionSupervisor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -88,6 +89,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
 
     private SseAuthorizationEnforcer sseAuthorizationEnforcer;
+    private SseConnectionSupervisor sseConnectionSupervisor;
     private EventSniffer<ServerSentEvent> eventSniffer;
 
     private ThingsSseRouteBuilder(final ActorRef streamingActor,
@@ -96,6 +98,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
         this.streamingActor = streamingActor;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
         sseAuthorizationEnforcer = new NoOpSseAuthorizationEnforcer();
+        sseConnectionSupervisor = new NoOpSseConnectionSupervisor();
         eventSniffer = EventSniffer.noOp();
     }
 
@@ -123,6 +126,12 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     @Override
     public ThingsSseRouteBuilder withEventSniffer(final EventSniffer<ServerSentEvent> eventSniffer) {
         this.eventSniffer = checkNotNull(eventSniffer, "eventSniffer");
+        return this;
+    }
+
+    @Override
+    public SseRouteBuilder withWebSocketSupervisor(final SseConnectionSupervisor sseConnectionSupervisor) {
+        this.sseConnectionSupervisor = checkNotNull(sseConnectionSupervisor, "sseConnectionSupervisor");
         return this;
     }
 
@@ -215,14 +224,14 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
         final Source<ServerSentEvent, NotUsed> sseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                         EventAndResponsePublisher.props(10))
-                        .mapMaterializedValue(actorRef -> {
+                        .mapMaterializedValue(publisherActor -> {
                             final String connectionCorrelationId = dittoHeaders.getCorrelationId().get();
-                            streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_SSE),
-                                    null);
+                            sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId, dittoHeaders);
+                            streamingActor.tell(
+                                    new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_SSE), null);
                             streamingActor.tell(
                                     new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
-                                            dittoHeaders.getAuthorizationContext(), namespaces, filterString),
-                                    null);
+                                            dittoHeaders.getAuthorizationContext(), namespaces, filterString), null);
                             return NotUsed.getInstance();
                         })
                         .filter(jsonifiable -> jsonifiable instanceof ThingEvent)
@@ -290,13 +299,30 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
 
     }
 
+    /**
+     * Null implementation for {@link SseAuthorizationEnforcer}.
+     */
     private static final class NoOpSseAuthorizationEnforcer implements SseAuthorizationEnforcer {
 
         @Override
         public void checkAuthorization(final RequestContext requestContext, final DittoHeaders dittoHeaders) {
-            // Does nothing
+            // Does nothing.
         }
 
     }
+
+    /**
+     * Null implementation for {@link SseConnectionSupervisor}.
+     */
+    private static final class NoOpSseConnectionSupervisor implements SseConnectionSupervisor {
+
+        @Override
+        public void supervise(final ActorRef sseConnectionActor, final CharSequence connectionCorrelationId,
+                final DittoHeaders dittoHeaders) {
+
+            // Does nothing.
+        }
+    }
+
 
 }

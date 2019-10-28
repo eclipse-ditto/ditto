@@ -46,6 +46,16 @@ public interface SseRouteBuilder {
     SseRouteBuilder withEventSniffer(EventSniffer<ServerSentEvent> eventSniffer);
 
     /**
+     * Sets the given supervisor.
+     * If this method is never called the SSE connection remains without supervision.
+     *
+     * @param sseConnectionSupervisor the supervisor to be used.
+     * @return this builder instance to allow method chaining.
+     * @throws NullPointerException if {@code sseConnectionSupervisor} is {@code null}.
+     */
+    SseRouteBuilder withWebSocketSupervisor(SseConnectionSupervisor sseConnectionSupervisor);
+
+    /**
      * Creates the Akka HTTP route for SSE.
      *
      * @param requestContext provides the HTTP request.
