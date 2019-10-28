@@ -17,8 +17,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 
-import java.util.Collections;
-
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -52,7 +50,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return RabbitMQPublisherActor.props(TestConstants.createRandomConnectionId(), Collections.emptyList());
+        return RabbitMQPublisherActor.props(TestConstants.createConnection());
     }
 
     @Override
@@ -81,6 +79,32 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(propertiesCaptor.getValue().getHeaders().get("eclipse")).isEqualTo("ditto");
         assertThat(propertiesCaptor.getValue().getHeaders().get("device_id"))
                 .isEqualTo(TestConstants.Things.THING_ID.toString());
+    }
+
+    @Override
+    protected void verifyPublishedMessageToReplyTarget() throws Exception {
+        final Channel channel = mock(Channel.class);
+
+        // omit first channel message
+        probe.expectMsgClass(ChannelMessage.class);
+        final ChannelMessage channelMessage = probe.expectMsgClass(ChannelMessage.class);
+
+        channelMessage.onChannel().apply(channel);
+
+        final ArgumentCaptor<AMQP.BasicProperties> propertiesCaptor =
+                ArgumentCaptor.forClass(AMQP.BasicProperties.class);
+        final ArgumentCaptor<byte[]> bodyCaptor = ArgumentCaptor.forClass(byte[].class);
+
+        Mockito.verify(channel, timeout(1000)).basicPublish(
+                eq("replyTarget"),
+                eq("thing:id"),
+                propertiesCaptor.capture(),
+                bodyCaptor.capture());
+
+        assertThat(propertiesCaptor.getValue().getHeaders().get("mappedHeader1")).isEqualTo("original-header-value");
+        assertThat(propertiesCaptor.getValue().getHeaders().get("mappedHeader2")).isEqualTo("thing:id");
+        assertThat(propertiesCaptor.getValue().getHeaders().get("mappedHeader3"))
+                .isEqualTo("{{header:ditto-reply-target}}");
     }
 
     protected String getOutboundAddress() {

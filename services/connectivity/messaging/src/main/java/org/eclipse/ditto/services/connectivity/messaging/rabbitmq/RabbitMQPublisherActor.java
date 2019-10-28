@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -25,7 +24,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -71,20 +69,19 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @Nullable private ActorRef channelActor;
 
     @SuppressWarnings("unused")
-    private RabbitMQPublisherActor(final List<Target> targets, final ConnectionId connectionId) {
-        super(connectionId, targets);
+    private RabbitMQPublisherActor(final Connection connection) {
+        super(connection);
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
      *
-     * @param connectionId the connectionId this publisher belongs to
-     * @param targets the targets to publish to
+     * @param connection the connection this publisher belongs to
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionId connectionId, final List<Target> targets) {
+    static Props props(final Connection connection) {
 
-        return Props.create(RabbitMQPublisherActor.class, targets, connectionId);
+        return Props.create(RabbitMQPublisherActor.class, connection);
     }
 
     @Override

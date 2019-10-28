@@ -540,8 +540,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 TestConstants.createConnection(CONNECTION_ID,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
-                c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        Authorization.SOURCE_SPECIFIC_CONTEXT));
+                c -> assertThat(c.getDittoHeaders().getAuthorizationContext())
+                        .isEqualTo(Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarder(final Connection connection,
@@ -744,8 +744,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         try {
             new TestKit(actorSystem) {{
                 final Props props =
-                        AmqpClientActor.propsForTests(singleConsumerConnection(), getRef(),
-                                (ac, el) -> mockConnection);
+                        AmqpClientActor.propsForTests(singleConsumerConnection(), getRef(), (ac, el) -> mockConnection);
                 final TestActorRef<AmqpClientActor> amqpClientActorRef = TestActorRef.apply(props, actorSystem);
                 final AmqpClientActor amqpClientActor = amqpClientActorRef.underlyingActor();
 

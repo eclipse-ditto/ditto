@@ -110,8 +110,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         super(connectionId,
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 messageMappingProcessor,
-                consumerData.getSource().getAuthorizationContext(),
-                consumerData.getSource().getHeaderMapping().orElse(null));
+                consumerData.getSource());
         final ConnectionConfig connectionConfig =
                 DittoConnectivityConfig.of(
                         DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
@@ -321,9 +320,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
-                    .withAuthorizationContext(authorizationContext)
+                    .withAuthorizationContext(source.getAuthorizationContext())
                     .withEnforcement(headerEnforcementFilterFactory.getFilter(headers))
-                    .withHeaderMapping(headerMapping)
+                    .withHeaderMapping(source.getHeaderMapping().orElse(null))
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(consumerData.getSource().getPayloadMapping())
                     .build();

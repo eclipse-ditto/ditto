@@ -73,6 +73,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConne
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -446,10 +447,19 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 }).collect(Collectors.toList());
                 final OutboundSignal modifiedOutboundSignal =
                         OutboundSignalFactory.newOutboundSignal(outboundSignal.getSource(), targets);
-                return OutboundSignalFactory.newMappedOutboundSignal(modifiedOutboundSignal, externalMessage);
+                return OutboundSignalFactory.newMappedOutboundSignal(modifiedOutboundSignal,
+                        setInternalHeaders(outboundSignal, externalMessage));
             } else {
-                return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
+                return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal,
+                        setInternalHeaders(outboundSignal, externalMessage));
             }
+        }
+
+        private static ExternalMessage setInternalHeaders(final OutboundSignal outboundSignal,
+                final ExternalMessage externalMessage) {
+            return ExternalMessageFactory.newExternalMessageBuilder(externalMessage)
+                    .withInternalHeaders(outboundSignal.getSource().getDittoHeaders())
+                    .build();
         }
 
     }

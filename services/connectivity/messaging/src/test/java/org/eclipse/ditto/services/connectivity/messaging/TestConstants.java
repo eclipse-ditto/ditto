@@ -52,8 +52,10 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -75,6 +77,7 @@ import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.connectivity.replies.ReplyTarget;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
@@ -261,6 +264,15 @@ public final class TestConstants {
                         .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
                         .consumerCount(2)
                         .index(0)
+                        .replyTarget(ReplyTarget.newBuilder()
+                                .address("replyTarget/{{thing:id}}")
+                                .headerMapping(ConnectivityModelFactory.newHeaderMapping(JsonFactory.newObjectBuilder()
+                                        .set("mappedHeader1", "{{header:original-header}}")
+                                        .set("mappedHeader2", "{{thing:id}}")
+                                        .set("mappedHeader3",
+                                                "{{header:" + DittoHeaderDefinition.REPLY_TARGET.getKey() + "}}")
+                                        .build()))
+                                .build())
                         .build());
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
                 asList(ConnectivityModelFactory.newSourceBuilder()

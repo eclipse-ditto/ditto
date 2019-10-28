@@ -29,11 +29,15 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.replies.ReplyTarget;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
@@ -81,10 +85,12 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected final ConnectionMonitor responsePublishedMonitor;
     protected final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
+    private final List<Optional<ReplyTarget>> replyTargets;
 
-    protected BasePublisherActor(final ConnectionId connectionId, final List<Target> targets) {
-        this.connectionId = checkNotNull(connectionId, "connectionId");
-        this.targets = checkNotNull(targets, "targets");
+    protected BasePublisherActor(final Connection connection) {
+        checkNotNull(connection, "connection");
+        this.connectionId = connection.getId();
+        this.targets = connection.getTargets();
         resourceStatusMap = new HashMap<>();
         final Instant now = Instant.now();
         targets.forEach(target ->
@@ -100,6 +106,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(this.connectionId);
         connectionLogger =
                 ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(this.connectionId);
+        replyTargets = connection.getSources().stream().map(Source::getReplyTarget).collect(Collectors.toList());
     }
 
     private static String getInstanceIdentifier() {
@@ -111,20 +118,28 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ReceiveBuilder receiveBuilder = receiveBuilder();
         preEnhancement(receiveBuilder);
 
-        receiveBuilder
-                .match(OutboundSignal.WithExternalMessage.class, BasePublisherActor::isResponseOrError, outbound -> {
+        receiveBuilder.match(OutboundSignal.WithExternalMessage.class, BasePublisherActor::isResponseOrError,
+                outbound -> {
                     final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
                     ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log(), correlationId, connectionId);
 
+                    final Optional<ReplyTarget> replyTargetOptional = response.getInternalHeaders()
+                            .getReplyTarget()
+                            .flatMap(this::getReplyTargetByIndex);
                     final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
-                    if (replyToFromHeader != null) {
-                        final T replyTarget = toReplyTarget(replyToFromHeader);
-                        log().info("Publishing mapped response/error message of type <{}> to reply target <{}>",
-                                outbound.getSource().getType(), replyTarget);
-                        log().debug("Publishing mapped response/error message of type <{}> to reply target <{}>: {}",
-                                outbound.getSource().getType(), replyTarget, response);
-                        publishMessage(null, replyTarget, response, responsePublishedMonitor);
+                    if (replyTargetOptional.isPresent()) {
+                        final ReplyTarget replyTarget = replyTargetOptional.get();
+                        final ExpressionResolver expressionResolver =
+                                getExpressionResolver(outbound.getExternalMessage(), outbound.getSource());
+                        final T replyTargetAddress =
+                                toPublishTarget(applyExpressionResolver(expressionResolver, replyTarget.getAddress()));
+                        final ExternalMessage responseWithMappedHeaders =
+                                applyHeaderMapping(expressionResolver, outbound,
+                                        replyTarget.getHeaderMapping().orElse(null), log(), this::withMappedHeaders);
+                        publishResponseOrError(replyTargetAddress, outbound, responseWithMappedHeaders);
+                    } else if (replyToFromHeader != null) {
+                        publishResponseOrError(toReplyTarget(replyToFromHeader), outbound, response);
                     } else {
                         log().info("Response dropped, missing replyTo address: {}", response);
                         responseDroppedMonitor.failure(outbound.getSource(),
@@ -149,7 +164,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         try {
                             final T publishTarget = toPublishTarget(target.getAddress());
                             final ExternalMessage messageWithMappedHeaders =
-                                    applyHeaderMapping(outbound, target, log(), this::withMappedHeaders);
+                                    applyHeaderMapping(outbound, target.getHeaderMapping().orElse(null), log(),
+                                            this::withMappedHeaders);
                             publishMessage(target, publishTarget, messageWithMappedHeaders, publishedMonitor);
                         } catch (final DittoRuntimeException e) {
                             // TODO: might there be private information in the exception message so we shouldn't be allowed to see them?
@@ -171,6 +187,22 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         postEnhancement(receiveBuilder);
         return receiveBuilder.build();
+    }
+
+    private void publishResponseOrError(final T address, final OutboundSignal outbound,
+            final ExternalMessage response) {
+
+        log().info("Publishing mapped response/error message of type <{}> to reply target <{}>",
+                outbound.getSource().getType(), address);
+        log().debug("Publishing mapped response/error message of type <{}> to reply target <{}>: {}",
+                outbound.getSource().getType(), address, response);
+        publishMessage(null, address, response, responsePublishedMonitor);
+    }
+
+    private Optional<ReplyTarget> getReplyTargetByIndex(final int replyTargetIndex) {
+        return 0 <= replyTargetIndex && replyTargetIndex < replyTargets.size()
+                ? replyTargets.get(replyTargetIndex)
+                : Optional.empty();
     }
 
     private Collection<ResourceStatus> getCurrentTargetStatus() {
@@ -253,12 +285,22 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      *
      * @param outboundSignal the OutboundSignal containing the {@link ExternalMessage} with headers potentially
      * containing placeholders.
-     * @param target the {@link Target} to extract the {@link org.eclipse.ditto.model.connectivity.HeaderMapping} from.
+     * @param mapping headerMappings to apply.
      * @param log the logger to use for logging.
      * @return the ExternalMessage with replaced headers
      */
     static ExternalMessage applyHeaderMapping(final OutboundSignal.WithExternalMessage outboundSignal,
-            final Target target, final DiagnosticLoggingAdapter log,
+            final @Nullable HeaderMapping mapping, final DiagnosticLoggingAdapter log,
+            final BiFunction<ExternalMessageBuilder, Map<String, String>, ExternalMessageBuilder> withMappedHeaders) {
+
+        return applyHeaderMapping(
+                getExpressionResolver(outboundSignal.getExternalMessage(), outboundSignal.getSource()),
+                outboundSignal, mapping, log, withMappedHeaders);
+    }
+
+    private static ExternalMessage applyHeaderMapping(final ExpressionResolver expressionResolver,
+            final OutboundSignal.WithExternalMessage outboundSignal,
+            final @Nullable HeaderMapping mapping, final DiagnosticLoggingAdapter log,
             final BiFunction<ExternalMessageBuilder, Map<String, String>, ExternalMessageBuilder> withMappedHeaders) {
 
         final ExternalMessage originalMessage = outboundSignal.getExternalMessage();
@@ -279,23 +321,12 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .ifPresent(r ->
                         messageBuilder.withAdditionalHeaders(ExternalMessage.REPLY_TO_HEADER, r));
 
-        return target.getHeaderMapping().map(mapping -> {
-            if (mapping.getMapping().isEmpty()) {
-                return messageBuilder.build();
-            }
+        if (mapping != null) {
             final Signal<?> sourceSignal = outboundSignal.getSource();
-
-            final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
-                    PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, originalHeaders),
-                    PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, sourceSignal.getEntityId()),
-                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER,
-                            originalMessage.getTopicPath().orElse(null))
-            );
 
             final Map<String, String> mappedHeaders = mapping.getMapping().entrySet().stream()
                     .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                            PlaceholderFilter.apply(e.getValue(), expressionResolver, true))
-                    )
+                            applyExpressionResolver(expressionResolver, e.getValue())))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             LogUtil.enhanceLogWithCorrelationId(log, sourceSignal);
@@ -303,6 +334,22 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
             // combine with external headers
             return withMappedHeaders.apply(messageBuilder, mappedHeaders).build();
-        }).orElseGet(messageBuilder::build);
+        } else {
+            return messageBuilder.build();
+        }
+    }
+
+    private static String applyExpressionResolver(final ExpressionResolver expressionResolver, final String value) {
+        return PlaceholderFilter.apply(value, expressionResolver, true);
+    }
+
+    private static ExpressionResolver getExpressionResolver(final ExternalMessage originalMessage,
+            final Signal sourceSignal) {
+        return PlaceholderFactory.newExpressionResolver(
+                PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, originalMessage.getHeaders()),
+                PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, sourceSignal.getEntityId()),
+                PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER,
+                        originalMessage.getTopicPath().orElse(null))
+        );
     }
 }

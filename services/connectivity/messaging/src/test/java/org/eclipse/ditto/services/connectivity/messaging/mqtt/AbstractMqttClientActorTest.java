@@ -21,6 +21,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.di
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -40,21 +41,23 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -66,7 +69,6 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.Terminated;
-import akka.stream.Attributes;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
@@ -79,8 +81,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     private static final TestConstants.FreePort freePort = new TestConstants.FreePort();
     private static final Target TARGET = newTarget("target", AUTHORIZATION_CONTEXT, null, 1, Topic.TWIN_EVENTS);
     private static final String SOURCE_ADDRESS = "source";
-    private static final Source MQTT_SOURCE = ConnectivityModelFactory
-            .newSourceBuilder()
+    private static final Source MQTT_SOURCE = ConnectivityModelFactory.newSourceBuilder()
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .index(1)
             .consumerCount(1)
@@ -88,7 +89,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             .qos(1)
             .build();
 
-    protected static ActorSystem actorSystem;
+    protected ActorSystem actorSystem;
 
     protected ConnectionId connectionId;
     private String serverHost;
@@ -97,19 +98,16 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     @ClassRule
     public static final MqttServerRule mqttServer = new MqttServerRule(freePort.getPort());
 
-    @BeforeClass
-    public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                false);
+    @After
+    public void tearDown() {
+        if (actorSystem != null) {
+            TestKit.shutdownActorSystem(actorSystem);
+        }
     }
 
     @Before
     public void initializeConnection() {
+        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         connectionId = TestConstants.createRandomConnectionId();
         serverHost = "tcp://localhost:" + freePort.getPort();
         connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
@@ -388,6 +386,39 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             final M receivedMessage = expectMsgClass(getMessageClass());
             assertThat(extractTopic(receivedMessage)).isEqualTo(TARGET.getAddress());
             assertThat(extractPayload(receivedMessage)).isEqualTo(expectedJson);
+
+            underTest.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(DISCONNECTED_SUCCESS);
+        }};
+    }
+
+    @Test
+    public void testPublishToReplyTarget() {
+        connection = connection.toBuilder()
+                .setSources(TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT)
+                .build();
+        new TestKit(actorSystem) {{
+            final TestProbe controlProbe = TestProbe.apply(actorSystem);
+            final Props props = createClientActor(getRef());
+            final ActorRef underTest = actorSystem.actorOf(props);
+
+            underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(CONNECTED_SUCCESS);
+
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .replyTarget(0)
+                    .build();
+            final DeleteThingResponse deleteThingResponse =
+                    DeleteThingResponse.of(ThingId.of("thing", "id"), dittoHeaders);
+
+            LOGGER.info("Sending DeleteThingResponse: {}", deleteThingResponse);
+            final Object outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(deleteThingResponse, Collections.emptyList());
+
+            underTest.tell(outboundSignal, getRef());
+
+            final M receivedMessage = expectMsgClass(getMessageClass());
+            assertThat(extractTopic(receivedMessage)).isEqualTo("replyTarget/thing:id");
 
             underTest.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
             controlProbe.expectMsg(DISCONNECTED_SUCCESS);

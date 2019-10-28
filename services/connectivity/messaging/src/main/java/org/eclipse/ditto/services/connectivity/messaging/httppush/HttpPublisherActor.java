@@ -24,7 +24,7 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
@@ -84,9 +84,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final Collection<InetAddress> blacklistedAddresses;
 
     @SuppressWarnings("unused")
-    private HttpPublisherActor(final ConnectionId connectionId, final List<Target> targets,
-            final HttpPushFactory factory) {
-        super(connectionId, targets);
+    private HttpPublisherActor(final Connection connection, final HttpPushFactory factory) {
+        super(connection);
         this.factory = factory;
 
         final ActorSystem system = getContext().getSystem();
@@ -105,8 +104,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .run(materializer);
     }
 
-    static Props props(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
-        return Props.create(HttpPublisherActor.class, connectionId, targets, factory);
+    static Props props(final Connection connection, final HttpPushFactory factory) {
+        return Props.create(HttpPublisherActor.class, connection, factory);
     }
 
     @Override

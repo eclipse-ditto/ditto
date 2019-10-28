@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -232,8 +231,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             }
 
             @Override
-            public Props props(final ConnectionId connectionId, final List<Target> targets,
-                    final KafkaConnectionFactory factory, final boolean dryRun) {
+            public Props props(final Connection c, final KafkaConnectionFactory factory, final boolean dryRun) {
                 return MockKafkaPublisherActor.props(ref, status);
             }
         });

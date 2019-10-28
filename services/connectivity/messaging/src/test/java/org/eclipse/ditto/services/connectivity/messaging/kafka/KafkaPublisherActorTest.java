@@ -18,14 +18,12 @@ import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -63,7 +61,8 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static ProducerMessage.Results<String, String, Object> createResult(final ProducerMessage.Message<String, String, Object> message) {
+    private static ProducerMessage.Results<String, String, Object> createResult(
+            final ProducerMessage.Message<String, String, Object> message) {
         final ProducerMessage.Results<String, String, Object> resultMock = Mockito.mock(ProducerMessage.Results.class);
         when(resultMock.passThrough()).thenReturn(message.passThrough());
         return resultMock;
@@ -71,11 +70,11 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return KafkaPublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), connectionFactory, false);
+        return KafkaPublisherActor.props(TestConstants.createConnection(), connectionFactory, false);
     }
 
     @Override
-    protected void verifyPublishedMessage() throws Exception {
+    protected void verifyPublishedMessage() {
         Awaitility.await().until(() -> !received.isEmpty());
         assertThat(received).hasSize(1);
         final ProducerMessage.Message<String, String, Object> message = received.get(0);
@@ -88,6 +87,19 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         shouldContainHeader(headers, "prefixed_thing_id", "some.prefix." + TestConstants.Things.THING_ID);
         shouldContainHeader(headers, "eclipse", "ditto");
         shouldContainHeader(headers, "device_id", TestConstants.Things.THING_ID.toString());
+    }
+
+    @Override
+    protected void verifyPublishedMessageToReplyTarget() {
+        Awaitility.await().until(() -> !received.isEmpty());
+        assertThat(received).hasSize(1);
+        final ProducerMessage.Message<String, String, Object> message = received.get(0);
+        assertThat(message.record().topic()).isEqualTo("replyTarget");
+        assertThat(message.record().key()).isEqualTo("thing:id");
+        final List<Header> headers = Arrays.asList(message.record().headers().toArray());
+        shouldContainHeader(headers, "mappedHeader1", "original-header-value");
+        shouldContainHeader(headers, "mappedHeader2", "thing:id");
+        shouldContainHeader(headers, "mappedHeader3", "{{header:ditto-reply-target}}");
     }
 
     @Override

@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
@@ -32,6 +31,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.HttpEntity;
+import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -94,8 +94,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return HttpPublisherActor.props(TestConstants.createRandomConnectionId(), Collections.emptyList(),
-                httpPushFactory);
+        return HttpPublisherActor.props(TestConstants.createConnection(), httpPushFactory);
     }
 
     @Override
@@ -133,6 +132,20 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(entity.getData().utf8String()).isEqualTo("payload");
     }
 
+    @Override
+    protected void verifyPublishedMessageToReplyTarget() throws Exception {
+        final HttpRequest request = received.take();
+        assertThat(received).hasSize(0);
+        assertThat(request.method()).isEqualTo(HttpMethods.POST);
+        assertThat(request.getUri().getPathString()).isEqualTo("/replyTarget/thing:id");
+        assertThat(request.getHeader("mappedHeader1"))
+                .contains(HttpHeader.parse("mappedHeader1", "original-header-value"));
+        assertThat(request.getHeader("mappedHeader2"))
+                .contains(HttpHeader.parse("mappedHeader2", "thing:id"));
+        assertThat(request.getHeader("mappedHeader3"))
+                .contains(HttpHeader.parse("mappedHeader3", "{{header:ditto-reply-target}}"));
+    }
+
     private static final class DummyHttpPushFactory implements HttpPushFactory {
 
         private final String hostname;
@@ -145,7 +158,9 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
         @Override
         public HttpRequest newRequest(final HttpPublishTarget httpPublishTarget) {
-            final Uri uri = Uri.create("http://" + hostname + ":12345/" + httpPublishTarget.getPathWithQuery());
+            final String separator = httpPublishTarget.getPathWithQuery().startsWith("/") ? "" : "/";
+            final Uri uri =
+                    Uri.create("http://" + hostname + ":12345" + separator + httpPublishTarget.getPathWithQuery());
             return HttpRequest.create().withMethod(httpPublishTarget.getMethod()).withUri(uri);
         }
 

@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
-import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -28,7 +27,7 @@ import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -69,12 +68,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private ActorRef sourceActor;
 
     @SuppressWarnings("unused")
-    private KafkaPublisherActor(final ConnectionId connectionId,
-            final List<Target> targets,
-            final KafkaConnectionFactory factory,
+    private KafkaPublisherActor(final Connection connection, final KafkaConnectionFactory factory,
             final boolean dryRun) {
 
-        super(connectionId, targets);
+        super(connection);
         this.dryRun = dryRun;
         connectionFactory = factory;
 
@@ -85,18 +82,14 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     /**
      * Creates Akka configuration object {@link akka.actor.Props} for this {@code BasePublisherActor}.
      *
-     * @param connectionId the connectionId this publisher belongs to.
-     * @param targets the targets to publish to.
+     * @param connection the connection this publisher belongs to.
      * @param factory the factory to create Kafka connections with.
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionId connectionId,
-            final List<Target> targets,
-            final KafkaConnectionFactory factory,
-            final boolean dryRun) {
+    static Props props(final Connection connection, final KafkaConnectionFactory factory, final boolean dryRun) {
 
-        return Props.create(KafkaPublisherActor.class, connectionId, targets, factory, dryRun);
+        return Props.create(KafkaPublisherActor.class, connection, factory, dryRun);
     }
 
     private static Sink<ProducerMessage.Results<String, String, PassThrough>, CompletionStage<Done>> publishSuccessSink() {

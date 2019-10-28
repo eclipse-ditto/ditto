@@ -34,7 +34,6 @@ import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -99,8 +98,12 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final OutboundSignal.WithExternalMessage mappedOutboundSignal =
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
 
-            final Props props = AmqpPublisherActor.props(ConnectionId.generateRandom(),
-                    Collections.singletonList(TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())),
+            final Props props = AmqpPublisherActor.props(TestConstants.createConnection()
+                            .toBuilder()
+                            .setSources(Collections.emptyList())
+                            .setTargets(Collections.singletonList(
+                                    TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
+                            .build(),
                     session,
                     loadConnectionConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -120,8 +123,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), session,
-                loadConnectionConfig());
+        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig());
     }
 
     @Override
@@ -140,6 +142,17 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(message.getStringProperty("eclipse")).isEqualTo("ditto");
         assertThat(message.getStringProperty("device_id"))
                 .isEqualTo(TestConstants.Things.THING_ID.toString());
+    }
+
+    @Override
+    protected void verifyPublishedMessageToReplyTarget() throws Exception {
+        final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
+        verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
+        final Message message = messageCaptor.getValue();
+
+        assertThat(message.getStringProperty("mappedHeader1")).isEqualTo("original-header-value");
+        assertThat(message.getStringProperty("mappedHeader2")).isEqualTo("thing:id");
+        assertThat(message.getStringProperty("mappedHeader3")).isEqualTo("{{header:ditto-reply-target}}");
     }
 
     @Override

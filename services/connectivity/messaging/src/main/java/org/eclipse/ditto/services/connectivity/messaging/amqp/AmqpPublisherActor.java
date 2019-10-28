@@ -44,7 +44,7 @@ import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
@@ -97,9 +97,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final int producerCacheSize;
 
     @SuppressWarnings("unused")
-    private AmqpPublisherActor(final ConnectionId connectionId, final List<Target> targets, final Session session,
+    private AmqpPublisherActor(final Connection connection, final Session session,
             final ConnectionConfig connectionConfig) {
-        super(connectionId, targets);
+        super(connection);
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         this.session = checkNotNull(session, "session");
         this.staticTargets = new HashMap<>();
@@ -123,16 +123,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     /**
      * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
-     * @param connectionId the id of the connection this publisher belongs to
-     * @param targets the targets configured for the connection
+     * @param connection the connection this publisher belongs to
      * @param session the jms session
      * @param connectionConfig configuration for all connections.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionId connectionId, final List<Target> targets, final Session session,
-            final ConnectionConfig connectionConfig) {
+    static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig) {
 
-        return Props.create(AmqpPublisherActor.class, connectionId, targets, session, connectionConfig);
+        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig);
     }
 
     @Override
@@ -168,7 +166,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         try {
             final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
             if (producer != null) {
-                final Message jmsMessage = toJmsMessage(message, publishTarget);
+                final Message jmsMessage = toJmsMessage(message);
 
                 final ActorRef origin = getSender();
                 log.debug("Attempt to send message {} with producer {}.", message, producer);
@@ -224,8 +222,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         }
     }
 
-    private Message toJmsMessage(final ExternalMessage externalMessage, final AmqpTarget amqpTarget)
-            throws JMSException {
+    private Message toJmsMessage(final ExternalMessage externalMessage) throws JMSException {
         final Message message;
         final Optional<String> optTextPayload = externalMessage.getTextPayload();
         if (optTextPayload.isPresent()) {

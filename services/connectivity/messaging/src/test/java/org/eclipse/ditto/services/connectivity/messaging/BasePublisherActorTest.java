@@ -43,6 +43,7 @@ import akka.event.DiagnosticLoggingAdapter;
 public class BasePublisherActorTest {
 
     private static Map<String, String> headerMappingMap = new HashMap<>();
+
     static {
         headerMappingMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "{{ header:my-cor-id-important }}");
         headerMappingMap.put("thing-id", "{{ header:device_id }}");
@@ -86,14 +87,18 @@ public class BasePublisherActorTest {
                 OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
 
         // when
-        final ExternalMessage headerMappedExternalMessage = BasePublisherActor.applyHeaderMapping(mappedOutboundSignal, target,
-                Mockito.mock(DiagnosticLoggingAdapter.class), ExternalMessageBuilder::withAdditionalHeaders);
+        final ExternalMessage headerMappedExternalMessage = BasePublisherActor.applyHeaderMapping(mappedOutboundSignal,
+                target.getHeaderMapping().orElse(null),
+                Mockito.mock(DiagnosticLoggingAdapter.class),
+                ExternalMessageBuilder::withAdditionalHeaders);
 
         // then
         final Map<String, String> expectedHeaders = new HashMap<>();
-        expectedHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType); // content-type must be always preserved
+        expectedHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
+                contentType); // content-type must be always preserved
         expectedHeaders.put("reply-to", replyTo); // reply-to must be always preserved
-        expectedHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationIdImportant); // the overwritten correlation-id from the headerMapping
+        expectedHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(),
+                correlationIdImportant); // the overwritten correlation-id from the headerMapping
         expectedHeaders.put("thing-id", deviceId); // as defined in headerMappingMap
         expectedHeaders.put("eclipse", "ditto"); // as defined in headerMappingMap
 

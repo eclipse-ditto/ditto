@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -45,8 +44,7 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return MqttPublisherActor.props(TestConstants.createRandomConnectionId(), Collections.emptyList(),
-                mqttConnectionFactory, false);
+        return MqttPublisherActor.props(TestConstants.createConnection(), mqttConnectionFactory, false);
     }
 
     @Override
@@ -56,12 +54,20 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void verifyPublishedMessage() {
-        Awaitility.await().until(() -> received.size()>0);
+        Awaitility.await().until(() -> received.size() > 0);
         assertThat(received).hasSize(1);
         final MqttMessage mqttMessage = received.get(0);
         assertThat(mqttMessage.topic()).isEqualTo(getOutboundAddress());
         assertThat(mqttMessage.payload().utf8String()).isEqualTo("payload");
         // MQTT 3.1.1 does not support headers - the workaround with property bag is not (yet) implemented
+    }
+
+    @Override
+    protected void verifyPublishedMessageToReplyTarget() {
+        Awaitility.await().until(() -> received.size() > 0);
+        assertThat(received).hasSize(1);
+        final MqttMessage mqttMessage = received.get(0);
+        assertThat(mqttMessage.topic()).isEqualTo("replyTarget/thing:id");
     }
 
     protected String getOutboundAddress() {

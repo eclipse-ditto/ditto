@@ -209,7 +209,7 @@ public final class MqttClientActor extends BaseClientActor {
         // ensure no previous publisher stays in memory
         stopChildActor(mqttPublisherActor);
         return startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
-                MqttPublisherActor.props(connectionId(), getTargetsOrEmptyList(), factory, dryRun));
+                MqttPublisherActor.props(connection(), factory, dryRun));
     }
 
     @Override
@@ -260,10 +260,8 @@ public final class MqttClientActor extends BaseClientActor {
             final String actorNamePrefix = MqttConsumerActor.ACTOR_NAME_PREFIX + uniqueSuffix;
 
             final Props mqttConsumerActorProps =
-                    MqttConsumerActor.props(connectionId(), messageMappingProcessorActor,
-                            source.getAuthorizationContext(),
-                            source.getEnforcement().orElse(null),
-                            dryRun, String.join(";", source.getAddresses()));
+                    MqttConsumerActor.props(connectionId(), messageMappingProcessorActor, source, dryRun,
+                            String.join(";", source.getAddresses()));
             final ActorRef mqttConsumerActor = startChildActorConflictFree(actorNamePrefix, mqttConsumerActorProps);
 
             consumerByActorNameWithIndex.put(actorNamePrefix, mqttConsumerActor);

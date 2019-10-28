@@ -54,8 +54,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
     @SuppressWarnings("unused")
     private HiveMqtt3ConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final Source source, final boolean dryRun) {
-        super(connectionId, String.join(";", source.getAddresses()), messageMappingProcessor,
-                source.getAuthorizationContext(), null);
+        super(connectionId, String.join(";", source.getAddresses()), messageMappingProcessor, source);
         this.dryRun = dryRun;
         topicEnforcementFilterFactory = source.getEnforcement()
                 .map(enforcement -> EnforcementFactoryFactory
@@ -115,7 +114,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
             final ExternalMessage externalMessage = ExternalMessageFactory
                     .newExternalMessageBuilder(headers)
                     .withTextAndBytes(textPayload, payload)
-                    .withAuthorizationContext(authorizationContext)
+                    .withAuthorizationContext(source.getAuthorizationContext())
                     .withEnforcement(getEnforcementFilter(topic))
                     .withSourceAddress(sourceAddress)
                     .build();

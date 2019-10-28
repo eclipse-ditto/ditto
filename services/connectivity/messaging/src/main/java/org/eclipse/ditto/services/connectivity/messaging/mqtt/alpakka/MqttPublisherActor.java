@@ -14,13 +14,12 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -63,10 +62,8 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     private Status.Status initStatus;
 
     @SuppressWarnings("unused")
-    private MqttPublisherActor(final ConnectionId connectionId, final List<Target> targets,
-            final MqttConnectionFactory factory,
-            final boolean dryRun) {
-        super(connectionId, targets);
+    private MqttPublisherActor(final Connection connection, final MqttConnectionFactory factory, final boolean dryRun) {
+        super(connection);
         this.dryRun = dryRun;
 
         final Pair<ActorRef, CompletionStage<Done>> materializedValues =
@@ -84,16 +81,14 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     /**
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
      *
-     * @param connectionId the connectionId this publisher belongs to.
-     * @param targets the targets to publish to.
+     * @param connection the connection this publisher belongs to.
      * @param factory the factory to create MqttConnections with.
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionId connectionId, final List<Target> targets,
-            final MqttConnectionFactory factory, final boolean dryRun) {
+    static Props props(final Connection connection, final MqttConnectionFactory factory, final boolean dryRun) {
 
-        return Props.create(MqttPublisherActor.class, connectionId, targets, factory, dryRun);
+        return Props.create(MqttPublisherActor.class, connection, factory, dryRun);
     }
 
     @Override

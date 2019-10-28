@@ -22,13 +22,15 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.base.Signal;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -45,18 +47,18 @@ import akka.testkit.javadsl.TestKit;
 public abstract class AbstractPublisherActorTest {
 
     protected static final Config CONFIG = ConfigFactory.load("test");
-    protected static ActorSystem actorSystem;
+    protected ActorSystem actorSystem;
 
     @Rule
     public TestName name = new TestName();
 
-    @BeforeClass
-    public static void setUp() {
+    @Before
+    public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
                     false);
@@ -82,6 +84,26 @@ public abstract class AbstractPublisherActorTest {
             verifyPublishedMessage();
         }};
 
+    }
+
+    @Test
+    public void testPublishResponseToReplyTarget() throws Exception {
+
+        new TestKit(actorSystem) {{
+
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+            final OutboundSignal.WithExternalMessage mappedOutboundSignal = getResponseWithReplyTarget();
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+
+            publisherCreated(this, publisherActor);
+
+            publisherActor.tell(mappedOutboundSignal, getRef());
+
+            verifyPublishedMessageToReplyTarget();
+        }};
 
     }
 
@@ -109,6 +131,8 @@ public abstract class AbstractPublisherActorTest {
 
     protected abstract void verifyPublishedMessage() throws Exception;
 
+    protected abstract void verifyPublishedMessageToReplyTarget() throws Exception;
+
     protected OutboundSignal.WithExternalMessage getMockOutboundSignal() {
         final OutboundSignal outboundSignal = mock(OutboundSignal.class);
         final Signal source = mock(Signal.class);
@@ -121,6 +145,24 @@ public abstract class AbstractPublisherActorTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders).withText("payload").build();
+        return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
+    }
+
+    private OutboundSignal.WithExternalMessage getResponseWithReplyTarget() {
+        final DittoHeaders externalHeaders = DittoHeaders.newBuilder()
+                .putHeader("original-header", "original-header-value")
+                .build();
+        final DittoHeaders internalHeaders = externalHeaders.toBuilder()
+                .replyTarget(0)
+                .build();
+        final Signal source = DeleteThingResponse.of(ThingId.of("thing", "id"), internalHeaders);
+        final ExternalMessage externalMessage =
+                ExternalMessageFactory.newExternalMessageBuilder(externalHeaders)
+                        .withText("payload")
+                        .withInternalHeaders(internalHeaders)
+                        .asResponse(true)
+                        .build();
+        final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(source, Collections.emptyList());
         return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
     }
 
