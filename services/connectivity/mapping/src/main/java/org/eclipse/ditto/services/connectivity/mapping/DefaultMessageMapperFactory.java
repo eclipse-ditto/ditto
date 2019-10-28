@@ -15,21 +15,17 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -140,7 +136,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
         final Map<String, MessageMapper> fallbackMappers =
                 instantiateMappers(registeredMappers.entrySet().stream()
-                        .filter(requiresNoMappingContext())
+                        .filter(requiresNoMandatoryConfiguration())
                         .map(Map.Entry::getKey)
                         .map(this::getEmptyMappingContextForAlias));
 
@@ -169,7 +165,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         try {
             final Iterable<Class<?>> payloadMappers = ClassIndex.getAnnotated(PayloadMapper.class);
             final Map<String, Class<?>> mappers = new HashMap<>();
-            for (Class<?> payloadMapper : payloadMappers) {
+            for (final Class<?> payloadMapper : payloadMappers) {
                 if (!MessageMapper.class.isAssignableFrom(payloadMapper)) {
                     throw new IllegalStateException("The class " + payloadMapper.getName() + " does not implement " +
                             MessageMapper.class.getName());
@@ -184,7 +180,13 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                     throw new IllegalStateException("No alias configured for " + payloadMapper.getName());
                 }
 
-                Stream.of(aliases).forEach(alias -> mappers.put(alias, payloadMapper));
+                Stream.of(aliases).forEach(alias -> {
+                    if (null != mappers.get(alias)) {
+                        throw new IllegalStateException("Mapper alias <" + alias + "> was already registered and is " +
+                                "tried to register again for " + payloadMapper.getName());
+                    }
+                    mappers.put(alias, payloadMapper);
+                });
             }
             return mappers;
         } catch (final Exception e) {
@@ -226,7 +228,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             final Class<?> messageMapperClass = registeredMappers.get(mappingEngine);
             MessageMapper result = createAnyMessageMapper(messageMapperClass,
                     actorSystem.dynamicAccess());
-            for (MessageMapperExtension extension : messageMapperExtensions) {
+            for (final MessageMapperExtension extension : messageMapperExtensions) {
                 if (null == result) {
                     return Optional.empty();
                 }
@@ -259,17 +261,8 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         return mapperTry.get();
     }
 
-    private Predicate<? super Map.Entry<String, Class<?>>> requiresNoMappingContext() {
-        return e -> !getPayloadMapperAnnotation(e).requiresMappingContext();
-    }
-
-    @Nonnull
-    private Predicate<Map.Entry<String, Class<?>>> idIsNotUsedInCustomMapping(final Set<String> existingMappers) {
-        return e -> {
-            final PayloadMapper payloadMapper = getPayloadMapperAnnotation(e);
-            final Set<String> predefinedMappers = new HashSet<>(Arrays.asList(payloadMapper.alias()));
-            return Collections.disjoint(existingMappers, predefinedMappers);
-        };
+    private Predicate<? super Map.Entry<String, Class<?>>> requiresNoMandatoryConfiguration() {
+        return e -> !getPayloadMapperAnnotation(e).requiresMandatoryConfiguration();
     }
 
     private static PayloadMapper getPayloadMapperAnnotation(final Map.Entry<String, Class<?>> entry) {

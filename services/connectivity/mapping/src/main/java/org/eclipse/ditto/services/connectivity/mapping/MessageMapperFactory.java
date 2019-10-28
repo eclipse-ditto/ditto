@@ -37,7 +37,7 @@ public interface MessageMapperFactory {
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
      * the {@code context} failed for a mapper specific reason
      */
-    Optional<MessageMapper> mapperOf(final String mapperId, MappingContext context);
+    Optional<MessageMapper> mapperOf(String mapperId, MappingContext context);
 
     /**
      * Creates a {@link MessageMapperRegistry}. Mappers that are not available will not be added to the registry.

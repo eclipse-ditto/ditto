@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.mapping.custom;
+package org.eclipse.ditto.services.connectivity.mapping;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -21,9 +21,6 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -40,13 +37,8 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.services.connectivity.mapping.AbstractMessageMapper;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
-import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,11 +48,14 @@ import org.slf4j.LoggerFactory;
  * the mapping configuration. The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
  * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
  */
-@PayloadMapper(alias = "ConnectionStatus", requiresMappingContext = true)
+@PayloadMapper(
+        alias = "ConnectionStatus",
+        requiresMandatoryConfiguration = true // "thingId" is mandatory configuration
+)
 public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
-    static final String HEADER_HUB_TTD = "ttd";
-    static final String HEADER_HUB_CREATION_TIME = "creation-time";
+    static final String HEADER_HONO_TTD = "ttd";
+    static final String HEADER_HONO_CREATION_TIME = "creation-time";
     static final String DEFAULT_FEATURE_ID = "ConnectionStatus";
 
     static final String MAPPING_OPTIONS_PROPERTIES_THING_ID = "thingId";
@@ -98,9 +93,10 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
         if (!Placeholders.containsAnyPlaceholder(mappingOptionThingId)) {
             try {
                 ThingId.of(mappingOptionThingId);
-            } catch (ThingIdInvalidException e) {
-                throw MessageMapperConfigurationInvalidException.newBuilder(e)
-                        .message("Wrong ThingID format in connection context")
+            } catch (final ThingIdInvalidException e) {
+                throw MessageMapperConfigurationInvalidException.newBuilder(MAPPING_OPTIONS_PROPERTIES_THING_ID)
+                        .message(e.getMessage())
+                        .description(e.getDescription().orElse("Make sure to use a valid Thing ID."))
                         .build();
             }
         }
@@ -134,17 +130,17 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
         final ThingId thingId = extractThingId(mappingOptionThingId, externalMessage.getHeaders());
 
         //Check if time is convertible
-        final long creationTime = extractLongHeader(externalMessage.getHeaders(), HEADER_HUB_CREATION_TIME);
-        final long ttd = extractLongHeader(externalMessage.getHeaders(), HEADER_HUB_TTD);
+        final long creationTime = extractLongHeader(externalMessage.getHeaders(), HEADER_HONO_CREATION_TIME);
+        final long ttd = extractLongHeader(externalMessage.getHeaders(), HEADER_HONO_TTD);
 
         if (creationTime < 0) {
             throw getMappingFailedException(String.format("Invalid value in header '%s': %d.",
-                    HEADER_HUB_CREATION_TIME, creationTime), contentType);
+                    HEADER_HONO_CREATION_TIME, creationTime), contentType);
         }
 
         if (ttd < -1) {
             throw getMappingFailedException(String.format("Invalid value in header '%s': %d.",
-                    HEADER_HUB_TTD, ttd), contentType);
+                    HEADER_HONO_TTD, ttd), contentType);
         }
 
         //Set time to ISO-8601 UTC
@@ -154,7 +150,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
         if (ttd == 0) {
             readyUntil = Instant.ofEpochMilli(creationTime).toString();
-            adaptable = getModifyFeaturePropertieAdoptable(thingId, readyUntil);
+            adaptable = getModifyFeatureAdaptable(thingId, readyUntil, null);
         } else if (ttd == -1) {
             readyUntil = Instant.ofEpochMilli(Long.parseLong(FUTURE_INSTANT)).toString();
             adaptable = getModifyFeatureAdaptable(thingId, readyUntil, readySince);
@@ -167,20 +163,8 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     }
 
     @Nonnull
-    private Adaptable getModifyFeaturePropertieAdoptable(final ThingId thingId, final String readyUntil) {
-        LOGGER.debug("Propertie of feature {} for thing {} adjusted by mapping", featureId, thingId);
-
-        final JsonPointer propertyJsonPointer = JsonFactory.newPointer("readyUntil");
-        final ModifyFeatureProperty modifyFeatureProperty =
-                ModifyFeatureProperty.of(thingId, featureId, propertyJsonPointer, JsonValue.of(readyUntil),
-                        DittoHeaders.newBuilder().responseRequired(false).build());
-
-        return DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyFeatureProperty);
-    }
-
-    @Nonnull
     private Adaptable getModifyFeatureAdaptable(final ThingId thingId, final String readyUntil,
-            final String readySince) {
+            @Nullable final String readySince) {
         final FeatureProperties featureProperties = FeatureProperties.newBuilder()
                 .set(FEATURE_PROPERTY_READY_SINCE, readySince)
                 .set(FEATURE_PROPERTY_READY_UNTIL, readyUntil)

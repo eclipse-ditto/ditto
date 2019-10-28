@@ -39,7 +39,8 @@ import org.mozilla.javascript.Scriptable;
         alias = {"JavaScript",
                 // legacy full qualified name
                 "org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperRhino"},
-        requiresMappingContext = true)
+        requiresMandatoryConfiguration = true // "incomingScript" and "outgoingScript" are mandatory configuration
+)
 final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
 
     private static final String WEBJARS_PATH = "/META-INF/resources/webjars";

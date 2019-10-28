@@ -10,13 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.mapping.custom;
+package org.eclipse.ditto.services.connectivity.mapping;
 
-import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.DEFAULT_FEATURE_ID;
-import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.HEADER_HUB_CREATION_TIME;
-import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.HEADER_HUB_TTD;
-import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_FEATURE_ID;
-import static org.eclipse.ditto.services.connectivity.mapping.custom.ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID;
+import static org.eclipse.ditto.services.connectivity.mapping.ConnectionStatusMessageMapper.DEFAULT_FEATURE_ID;
+import static org.eclipse.ditto.services.connectivity.mapping.ConnectionStatusMessageMapper.HEADER_HONO_CREATION_TIME;
+import static org.eclipse.ditto.services.connectivity.mapping.ConnectionStatusMessageMapper.HEADER_HONO_TTD;
+import static org.eclipse.ditto.services.connectivity.mapping.ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_FEATURE_ID;
+import static org.eclipse.ditto.services.connectivity.mapping.ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,11 +28,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
-import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperConfiguration;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.junit.Before;
@@ -43,7 +38,7 @@ import org.junit.rules.ExpectedException;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Tests {@link ConnectionStatusMessageMapper}.
+ * Tests {@link org.eclipse.ditto.services.connectivity.mapping.ConnectionStatusMessageMapper}.
  */
 public class ConnectionStatusMessageMapperTest {
 
@@ -66,8 +61,8 @@ public class ConnectionStatusMessageMapperTest {
 
         validHeader = new HashMap<>();
         validHeader.put(HEADER_HUB_DEVICE_ID, "headerNamespace:headerDeviceId");
-        validHeader.put(HEADER_HUB_TTD, "20");
-        validHeader.put(HEADER_HUB_CREATION_TIME, "1571214120000");
+        validHeader.put(HEADER_HONO_TTD, "20");
+        validHeader.put(HEADER_HONO_CREATION_TIME, "1571214120000");
         validMapperConfig = DefaultMessageMapperConfiguration.of("valid", validConfigProps);
     }
 
@@ -87,7 +82,7 @@ public class ConnectionStatusMessageMapperTest {
     public void doForwardMapWithMissingHeaderTTD() {
         underTest.configure(mappingConfig, validMapperConfig);
         final Map<String, String> invalidHeader = validHeader;
-        invalidHeader.remove(HEADER_HUB_TTD);
+        invalidHeader.remove(HEADER_HONO_TTD);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
@@ -97,7 +92,7 @@ public class ConnectionStatusMessageMapperTest {
     public void doForwardMapWithMissingHeaderCreationTime() {
         underTest.configure(mappingConfig, validMapperConfig);
         final Map<String, String> invalidHeader = validHeader;
-        invalidHeader.remove(HEADER_HUB_CREATION_TIME);
+        invalidHeader.remove(HEADER_HONO_CREATION_TIME);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
@@ -119,7 +114,7 @@ public class ConnectionStatusMessageMapperTest {
     public void doForwardMapWithInvalidHeaderTTD() {
         underTest.configure(mappingConfig, validMapperConfig);
         final Map<String, String> invalidHeader = validHeader;
-        invalidHeader.replace(HEADER_HUB_TTD, "Invalid Value");
+        invalidHeader.replace(HEADER_HONO_TTD, "Invalid Value");
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
@@ -129,7 +124,7 @@ public class ConnectionStatusMessageMapperTest {
     public void doForwardMapWithInvalidHeaderCreationTime() {
         underTest.configure(mappingConfig, validMapperConfig);
         final Map<String, String> invalidHeader = validHeader;
-        invalidHeader.replace(HEADER_HUB_CREATION_TIME, "Invalid Value");
+        invalidHeader.replace(HEADER_HONO_CREATION_TIME, "Invalid Value");
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
@@ -140,7 +135,7 @@ public class ConnectionStatusMessageMapperTest {
         underTest.configure(mappingConfig, validMapperConfig);
         final Map<String, String> invalidHeader = validHeader;
         final String invalidTTDValue = "-5625";
-        invalidHeader.replace(HEADER_HUB_TTD, invalidTTDValue);
+        invalidHeader.replace(HEADER_HONO_TTD, invalidTTDValue);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();

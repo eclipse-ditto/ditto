@@ -86,7 +86,8 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     static Props props(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext,
             @Nullable final Enforcement enforcement,
-            final boolean dryRun, final String topic,
+            final boolean dryRun,
+            final String topic,
             final PayloadMapping payloadMapping) {
 
         return Props.create(MqttConsumerActor.class, connectionId, messageMappingProcessor, sourceAuthorizationContext,

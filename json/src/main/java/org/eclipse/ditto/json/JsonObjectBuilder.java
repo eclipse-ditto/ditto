@@ -145,7 +145,7 @@ public interface JsonObjectBuilder extends JsonValueContainer<JsonField> {
      * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
      * value with slash as JsonKey object explicitly works.
      */
-    JsonObjectBuilder set(CharSequence key, String value, Predicate<JsonField> predicate);
+    JsonObjectBuilder set(CharSequence key, @Nullable String value, Predicate<JsonField> predicate);
 
     /**
      * Sets a new string value field to the JSON object to be built.
@@ -157,7 +157,7 @@ public interface JsonObjectBuilder extends JsonValueContainer<JsonField> {
      * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
      * value with slash as JsonKey object explicitly works.
      */
-    default JsonObjectBuilder set(final CharSequence key, final String value) {
+    default JsonObjectBuilder set(final CharSequence key, @Nullable final String value) {
         return set(key, value, field -> true);
     }
 
