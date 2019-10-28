@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -171,8 +172,7 @@ public final class ImmutableConnectionTest {
             .build();
 
     private static final JsonObject KNOWN_LEGACY_JSON = KNOWN_JSON
-            .set(Connection.JsonFields.MAPPING_CONTEXT, KNOWN_MAPPING_CONTEXT.toJson())
-            .remove(Connection.JsonFields.MAPPING_DEFINITIONS.getPointer());
+            .set(Connection.JsonFields.MAPPING_CONTEXT, KNOWN_MAPPING_CONTEXT.toJson());
 
     @Test
     public void testHashCodeAndEquals() {
@@ -287,8 +287,6 @@ public final class ImmutableConnectionTest {
                 .tags(KNOWN_TAGS)
                 .build();
 
-        System.out.println(KNOWN_JSON);
-
         final Connection actual = ImmutableConnection.fromJson(KNOWN_JSON);
 
         assertThat(actual).isEqualTo(expected);
@@ -296,18 +294,20 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void fromJsonWithLegacyMappingContextReturnsExpected() {
+
+        final Map<String, MappingContext> definitions = new HashMap<>(KNOWN_MAPPING_DEFINITIONS.getDefinitions());
+        definitions.putAll(LEGACY_MAPPINGS.getDefinitions());
         final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                 .credentials(CREDENTIALS)
                 .name(NAME)
-                .setSources(addSourceMapping(SOURCES, "migrated"))
-                .setTargets(addTargetMapping(TARGETS, "migrated"))
+                .setSources(addSourceMapping(SOURCES, JAVA_SCRIPT_MAPPING, "migrated"))
+                .setTargets(addTargetMapping(TARGETS, STATUS_MAPPING, "migrated"))
                 .clientCount(2)
-                .payloadMappingDefinition(LEGACY_MAPPINGS)
+                .payloadMappingDefinition(ConnectivityModelFactory.newPayloadMappingDefinition(definitions))
                 .tags(KNOWN_TAGS)
                 .build();
 
         final Connection actual = ImmutableConnection.fromJson(KNOWN_LEGACY_JSON);
-
         assertThat(actual).isEqualTo(expected);
     }
 

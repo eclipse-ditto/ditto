@@ -652,16 +652,22 @@ final class ImmutableConnection implements Connection {
                 // add migrated mapping to all sources and targets
                 setSources(sources.stream()
                         .map(source -> new ImmutableSource.Builder(source)
-                                .payloadMapping(ConnectivityModelFactory.newPayloadMapping(MIGRATED_MAPPER_ID))
+                                .payloadMapping(addMigratedPayloadMappings(source.getPayloadMapping()))
                                 .build())
                         .collect(Collectors.toList()));
 
                 setTargets(targets.stream()
                         .map(target -> new ImmutableTarget.Builder(target)
-                                .payloadMapping(ConnectivityModelFactory.newPayloadMapping(MIGRATED_MAPPER_ID))
+                                .payloadMapping(addMigratedPayloadMappings(target.getPayloadMapping()))
                                 .build())
                         .collect(Collectors.toList()));
             }
+        }
+
+        private PayloadMapping addMigratedPayloadMappings(final PayloadMapping payloadMapping) {
+            final ArrayList<String> merged = new ArrayList<>(payloadMapping.getMappings());
+            merged.add(MIGRATED_MAPPER_ID);
+            return ConnectivityModelFactory.newPayloadMapping(merged);
         }
 
         private void checkSourceAndTargetAreValid() {

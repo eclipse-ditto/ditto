@@ -14,11 +14,11 @@
 
     <!-- Akka and Ditto log levels are reduced to reduce log verbosity. Increase them to debug tests. -->
     <logger name="akka" level="WARN"/>
-    <logger name="org.eclipse.ditto" level="INFO"/>
+    <logger name="org.eclipse.ditto" level="DEBUG"/>
     <logger name="org.apache.qpid.jms.provider.ProviderFactory" level="OFF"/>
     <logger name="org.apache.kafka" level="WARN"/>
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="CONSOLE"/>
     </root>
 
