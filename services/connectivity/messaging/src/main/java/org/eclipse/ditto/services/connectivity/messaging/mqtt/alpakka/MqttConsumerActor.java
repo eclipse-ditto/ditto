@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
@@ -50,14 +51,16 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef deadLetters;
     private final boolean dryRun;
+    private final PayloadMapping payloadMapping;
     @Nullable private final EnforcementFilterFactory<String, CharSequence> topicEnforcementFilterFactory;
 
     @SuppressWarnings("unused")
     private MqttConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext, @Nullable final Enforcement enforcement,
-            final boolean dryRun, final String sourceAddress) {
+            final boolean dryRun, final String sourceAddress, final PayloadMapping payloadMapping) {
         super(connectionId, sourceAddress, messageMappingProcessor, sourceAuthorizationContext, null);
         this.dryRun = dryRun;
+        this.payloadMapping = payloadMapping;
         deadLetters = getContext().system().deadLetters();
 
         if (enforcement != null) {
@@ -77,15 +80,17 @@ public final class MqttConsumerActor extends BaseConsumerActor {
      * @param enforcement the optional Enforcement to apply
      * @param dryRun whether this is a dry-run/connection test or not
      * @param topic the topic for which this consumer receives messages
+     * @param payloadMapping the payload mapping that is configured for this source
      * @return the Akka configuration Props object.
      */
     static Props props(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext,
             @Nullable final Enforcement enforcement,
-            final boolean dryRun, final String topic) {
+            final boolean dryRun, final String topic,
+            final PayloadMapping payloadMapping) {
 
         return Props.create(MqttConsumerActor.class, connectionId, messageMappingProcessor, sourceAuthorizationContext,
-                        enforcement, dryRun, topic);
+                enforcement, dryRun, topic, payloadMapping);
     }
 
     @Override
@@ -108,7 +113,8 @@ public final class MqttConsumerActor extends BaseConsumerActor {
         try {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
             final String textPayload = message.payload().utf8String();
-            log.debug("Received MQTT message on topic <{}>: {}", message.topic(), textPayload);
+            log.debug("Received MQTT message on topic <{}>: {}. will be mapped: {}", message.topic(), textPayload,
+                    payloadMapping);
 
             headers.put(MQTT_TOPIC_HEADER, message.topic());
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
@@ -116,6 +122,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                     .withAuthorizationContext(authorizationContext)
                     .withEnforcement(getEnforcementFilter(message.topic()))
                     .withSourceAddress(sourceAddress)
+                    .withPayloadMapping(payloadMapping)
                     .build();
             inboundMonitor.success(externalMessage);
 
