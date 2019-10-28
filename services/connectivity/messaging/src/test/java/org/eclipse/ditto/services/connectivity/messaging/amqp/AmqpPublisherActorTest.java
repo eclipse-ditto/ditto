@@ -138,6 +138,48 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     }
 
+    @Test
+    public void producerClosedDuringBackOffIsIgnored() throws Exception {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+
+            final OutboundSignal outboundSignal = mock(OutboundSignal.class);
+            final Signal source = mock(Signal.class);
+            when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
+            when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+            when(outboundSignal.getSource()).thenReturn(source);
+            final Target target = createTestTarget();
+            when(outboundSignal.getTargets()).thenReturn(Collections.singletonList(decorateTarget(target)));
+
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders).withText("payload").build();
+            final OutboundSignal.WithExternalMessage mappedOutboundSignal =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
+
+            final Props props = AmqpPublisherActor.props(ConnectionId.generateRandom(),
+                    Collections.singletonList(TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())),
+                    session,
+                    loadConnectionConfig());
+            final ActorRef publisherActor = actorSystem.actorOf(props);
+
+            publisherActor.tell(mappedOutboundSignal, getRef());
+            publisherActor.tell(mappedOutboundSignal, getRef());
+
+            // producer is cached so created only once
+            verify(session, timeout(1_000)).createProducer(any(Destination.class));
+
+            // and trigger closing of producer multiple times
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
+
+            // check that createProducer is called only twice in the next 10 seconds (once for the initial create, once for the backoff)
+            verify(session, after(10_000).times(2)).createProducer(any(Destination.class));
+        }};
+    }
+
     @Override
     protected Props getPublisherActorProps() {
         return AmqpPublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), session,

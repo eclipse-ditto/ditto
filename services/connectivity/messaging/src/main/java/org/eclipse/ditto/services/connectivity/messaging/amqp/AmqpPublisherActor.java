@@ -160,14 +160,19 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     private void handleProducerClosedStatusReport(final ProducerClosedStatusReport report) {
-        final MessageProducer producer = report.getMessageProducer();
-        final String genericLogInfo = "Will try to re-establish the targets after some cool-down period.";
-        log.info("Got closed JMS producer '{}'. {}", producer, genericLogInfo);
+        if (!this.isInBackOffMode) {
+            final MessageProducer producer = report.getMessageProducer();
+            final String genericLogInfo = "Will try to re-establish the targets after some cool-down period.";
+            log.info("Got closed JMS producer '{}'. {}", producer, genericLogInfo);
 
-        findByValue(dynamicTargets, producer).map(Map.Entry::getKey).forEach(dynamicTargets::remove);
+            findByValue(dynamicTargets, producer).map(Map.Entry::getKey).forEach(dynamicTargets::remove);
 
-        connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
-        this.backOff();
+            connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
+            this.backOff();
+        } else {
+            log.info("Got closed JMS producer while already in backOff mode '{}'. Will ignore the closed info as this should" +
+                    " never happen (and also the backOff mechanism will create a producer soon)");
+        }
     }
 
     private void backOff() {
