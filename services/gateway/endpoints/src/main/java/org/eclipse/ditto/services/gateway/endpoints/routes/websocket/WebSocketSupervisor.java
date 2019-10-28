@@ -24,12 +24,12 @@ public interface WebSocketSupervisor {
     /**
      * Supervises the given WebSocket actor.
      *
-     * @param webSocketActorProps the WebSocket actor to be supervised.
+     * @param webSocketActor the WebSocket actor to be supervised.
      * @param connectionCorrelationId the correlation ID of the WebSocket connection to be supervised.
      * @param dittoHeaders provide information which may be useful for supervision.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code connectionCorrelationId} is empty.
      */
-    void supervise(ActorRef webSocketActorProps, CharSequence connectionCorrelationId, DittoHeaders dittoHeaders);
+    void supervise(ActorRef webSocketActor, CharSequence connectionCorrelationId, DittoHeaders dittoHeaders);
 
 }

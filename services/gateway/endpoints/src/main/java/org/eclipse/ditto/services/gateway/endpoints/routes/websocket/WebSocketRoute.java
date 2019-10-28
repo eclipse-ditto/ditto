@@ -564,7 +564,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final class NoOpWebSocketSupervisor implements WebSocketSupervisor {
 
         @Override
-        public void supervise(final ActorRef webSocketActorProps, final CharSequence connectionCorrelationId,
+        public void supervise(final ActorRef webSocketActor, final CharSequence connectionCorrelationId,
                 final DittoHeaders dittoHeaders) {
 
             // Does nothing.
