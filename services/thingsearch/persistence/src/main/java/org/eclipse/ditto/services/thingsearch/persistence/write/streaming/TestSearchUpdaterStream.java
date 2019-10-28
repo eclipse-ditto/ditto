@@ -100,7 +100,9 @@ public final class TestSearchUpdaterStream {
      */
     public Source<BulkWriteResult, NotUsed> delete(final ThingId thingId, final long revision, @Nullable final PolicyId policyId, final long policyRevision) {
         return delete(Metadata.of(thingId, revision, policyId != null ? policyId.toString() : null, policyRevision));
-    }/**
+    }
+
+    /**
      * Delete a thing from the updater stream.
      *
      * @param metadata the metadata.
