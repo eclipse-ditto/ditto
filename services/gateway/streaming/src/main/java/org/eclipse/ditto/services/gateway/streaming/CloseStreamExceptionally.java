@@ -20,14 +20,14 @@ import java.util.Objects;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 
 /**
- * Command for triggering the closing of a WebSocket connection.
+ * Command for triggering the closing of a streaming connection (e. g. WebSocket) because of an exception.
  */
-public final class CloseWebSocket {
+public final class CloseStreamExceptionally {
 
     private final DittoRuntimeException reason;
     private final String connectionCorrelationId;
 
-    private CloseWebSocket(final DittoRuntimeException reason, final CharSequence connectionCorrelationId) {
+    private CloseStreamExceptionally(final DittoRuntimeException reason, final CharSequence connectionCorrelationId) {
         this.reason = checkNotNull(reason, "reason");
         this.connectionCorrelationId = argumentNotEmpty(connectionCorrelationId, "connectionCorrelationId").toString();
     }
@@ -41,10 +41,10 @@ public final class CloseWebSocket {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if any argument is empty.
      */
-    public static CloseWebSocket getInstance(final DittoRuntimeException reason,
+    public static CloseStreamExceptionally getInstance(final DittoRuntimeException reason,
             final CharSequence connectionCorrelationId) {
 
-        return new CloseWebSocket(reason, connectionCorrelationId);
+        return new CloseStreamExceptionally(reason, connectionCorrelationId);
     }
 
     /**
@@ -73,7 +73,7 @@ public final class CloseWebSocket {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final CloseWebSocket that = (CloseWebSocket) o;
+        final CloseStreamExceptionally that = (CloseStreamExceptionally) o;
         return Objects.equals(reason, that.reason) &&
                 Objects.equals(connectionCorrelationId, that.connectionCorrelationId);
     }

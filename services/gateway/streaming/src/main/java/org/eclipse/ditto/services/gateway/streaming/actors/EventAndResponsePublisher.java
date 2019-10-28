@@ -21,7 +21,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.gateway.streaming.CloseWebSocket;
+import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -98,10 +98,12 @@ public final class EventAndResponsePublisher
                         deliverBuf();
                     }
                 })
-                .match(CloseWebSocket.class, closeWebSocket -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, closeWebSocket.getConnectionCorrelationId());
-                    onNext(closeWebSocket.getReason());
-                    onErrorThenStop(closeWebSocket.getReason());
+                .match(CloseStreamExceptionally.class, closeStreamExceptionally -> {
+                    final DittoRuntimeException reason = closeStreamExceptionally.getReason();
+                    LogUtil.enhanceLogWithCorrelationId(logger, closeStreamExceptionally.getConnectionCorrelationId());
+                    logger.info("Closing stream exceptionally because of <{}>.", reason);
+                    onNext(reason);
+                    onErrorThenStop(reason);
                 })
                 .match(DittoRuntimeException.class, cre -> buffer.size() >= backpressureBufferSize, cre -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, cre.getDittoHeaders().getCorrelationId());

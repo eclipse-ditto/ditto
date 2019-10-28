@@ -25,9 +25,9 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link CloseWebSocket}.
+ * Unit test for {@link CloseStreamExceptionally}.
  */
-public final class CloseWebSocketTest {
+public final class CloseStreamExceptionallyTest {
 
     private static final String CONNECTION_CORRELATION_ID ="my-correlation-id";
 
@@ -44,7 +44,7 @@ public final class CloseWebSocketTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(CloseWebSocket.class)
+        EqualsVerifier.forClass(CloseStreamExceptionally.class)
                 .usingGetClass()
                 .verify();
     }
@@ -52,7 +52,7 @@ public final class CloseWebSocketTest {
     @Test
     public void tryToGetInstanceWithNullReason() {
         assertThatNullPointerException()
-                .isThrownBy(() -> CloseWebSocket.getInstance(null, CONNECTION_CORRELATION_ID))
+                .isThrownBy(() -> CloseStreamExceptionally.getInstance(null, CONNECTION_CORRELATION_ID))
                 .withMessage("The reason must not be null!")
                 .withNoCause();
     }
@@ -60,7 +60,7 @@ public final class CloseWebSocketTest {
     @Test
     public void tryToGetInstanceWithNullConnectionCorrelationId() {
         assertThatNullPointerException()
-                .isThrownBy(() -> CloseWebSocket.getInstance(reason, null))
+                .isThrownBy(() -> CloseStreamExceptionally.getInstance(reason, null))
                 .withMessage("The connectionCorrelationId must not be null!")
                 .withNoCause();
     }
@@ -68,14 +68,15 @@ public final class CloseWebSocketTest {
     @Test
     public void tryToGetInstanceWithEmptyConnectionCorrelationId() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> CloseWebSocket.getInstance(reason, ""))
+                .isThrownBy(() -> CloseStreamExceptionally.getInstance(reason, ""))
                 .withMessage("The argument 'connectionCorrelationId' must not be empty!")
                 .withNoCause();
     }
 
     @Test
     public void gettersReturnExpected() {
-        final CloseWebSocket underTest = CloseWebSocket.getInstance(reason, CONNECTION_CORRELATION_ID);
+        final CloseStreamExceptionally
+                underTest = CloseStreamExceptionally.getInstance(reason, CONNECTION_CORRELATION_ID);
 
         final SoftAssertions softly = new SoftAssertions();
         softly.assertThat(underTest.getReason()).isEqualTo(reason);
