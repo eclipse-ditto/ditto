@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -278,7 +277,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void acceptValidConnectionWithInvalidNumberSourcePayloadMapping() {
-        exception.expect(DittoRuntimeException.class);
+        exception.expect(ConnectionConfigurationInvalidException.class);
         final Connection connection = createConnection(CONNECTION_ID)
                 .toBuilder()
                 .setSources(TestConstants.Sources.SOURCES_WITH_INVALID_MAPPING_NUMBER)
@@ -289,7 +288,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void acceptValidConnectionWithInvalidNumberTargetPayloadMapping() {
-        exception.expect(DittoRuntimeException.class);
+        exception.expect(ConnectionConfigurationInvalidException.class);
         final Connection connection = createConnection(CONNECTION_ID)
                 .toBuilder()
                 .setTargets(TestConstants.Targets.TARGET_WITH_INVALID_MAPPING_NUMBER)

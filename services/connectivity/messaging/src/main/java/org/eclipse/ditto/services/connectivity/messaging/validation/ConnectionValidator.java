@@ -56,8 +56,8 @@ public final class ConnectionValidator {
     private final Map<ConnectionType, AbstractProtocolValidator> specMap;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
 
-    private final int MAPPING_NUMBER_LIMIT_SOURCE = 10;
-    private final int MAPPING_NUMBER_LIMIT_TARGET = 10;
+    private static final int MAPPING_NUMBER_LIMIT_SOURCE = 10;
+    private static final int MAPPING_NUMBER_LIMIT_TARGET = 10;
 
     private ConnectionValidator(final AbstractProtocolValidator... connectionSpecs) {
         final Map<ConnectionType, AbstractProtocolValidator> specMap = Arrays.stream(connectionSpecs)
@@ -155,6 +155,7 @@ public final class ConnectionValidator {
 
     /**
      * Check if number of mappings are valid
+     * @throws ConnectionConfigurationInvalidException if payload number is over predefined limit
      */
     private void checkMappingNumberOfSourcesAndTargets(final DittoHeaders dittoHeaders, final Connection connection) {
 
