@@ -42,7 +42,7 @@ import com.typesafe.config.ConfigFactory;
  */
 public class ConnectionStatusMessageMapperTest {
 
-    private static final String HEADER_HUB_DEVICE_ID = "device_id";
+    private static final String HEADER_HONO_DEVICE_ID = "device_id";
     private static MappingConfig mappingConfig;
 
     private Map<String, String> validHeader;
@@ -60,7 +60,7 @@ public class ConnectionStatusMessageMapperTest {
                 "configNamespace:configDeviceId");
 
         validHeader = new HashMap<>();
-        validHeader.put(HEADER_HUB_DEVICE_ID, "headerNamespace:headerDeviceId");
+        validHeader.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId");
         validHeader.put(HEADER_HONO_TTD, "20");
         validHeader.put(HEADER_HONO_CREATION_TIME, "1571214120000");
         validMapperConfig = DefaultMessageMapperConfiguration.of("valid", validConfigProps);
@@ -191,7 +191,7 @@ public class ConnectionStatusMessageMapperTest {
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult.get(0).getTopicPath().getId())
-                .isEqualTo(ThingId.of(validHeader.get(HEADER_HUB_DEVICE_ID)).getName());
+                .isEqualTo(ThingId.of(validHeader.get(HEADER_HONO_DEVICE_ID)).getName());
     }
 
     @Test
@@ -202,7 +202,7 @@ public class ConnectionStatusMessageMapperTest {
                 = DefaultMessageMapperConfiguration.of("placeholder", props);
         underTest.configure(mappingConfig, thingIdWithPlaceholder);
         final Map<String, String> invalidHeader = validHeader;
-        invalidHeader.replace(HEADER_HUB_DEVICE_ID, "Invalid Value");
+        invalidHeader.replace(HEADER_HONO_DEVICE_ID, "Invalid Value");
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isEmpty();
