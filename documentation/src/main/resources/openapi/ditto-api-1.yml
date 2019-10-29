@@ -868,7 +868,7 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/things/{thingId}/attributes/{attributePath}':
     get:
-      ummary: Retrieve a specific Attribute of a specific Thing
+      summary: Retrieve a specific Attribute of a specific Thing
       description: |-
         Returns a specific Attribute of the Thing identified by the `thingId` path parameter. The Attribute (JSON) can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
         `/things/{thingId}/attributes/address/city` in order to retrieve the `city` field of an `address` object.
@@ -2434,7 +2434,7 @@ components:
         - message
     Attributes:
       type: object
-      description: An arbitrary JSON object.
+      description: "Attributes of a Thing: an arbitrary JSON object."
     FeatureDefinition:
       type: array
       items:
@@ -2445,16 +2445,14 @@ components:
       pattern: ([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)
     FeatureProperties:
       type: object
-      description: An arbitrary JSON object.
+      description: "Properties of a Feature: an arbitrary JSON object."
     Feature:
       type: object
       properties:
         definition:
           $ref: '#/components/schemas/FeatureDefinition'
-          description: The Definition of this Feature
         properties:
           $ref: '#/components/schemas/FeatureProperties'
-          description: The Properties of this Feature
     SearchResultThings:
       properties:
         items:
@@ -2470,13 +2468,10 @@ components:
       properties:
         acl:
           $ref: '#/components/schemas/Acl'
-          description: The Access Control List of this Thing containing one AclEntry for each
         attributes:
           $ref: '#/components/schemas/Attributes'
-          description: The attributes of this Thing
         features:
           $ref: '#/components/schemas/Features'
-          description: The Features of this Thing
     Thing:
       type: object
       required:
@@ -2492,17 +2487,13 @@ components:
             (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
         acl:
           $ref: '#/components/schemas/Acl'
-          description: The Access Control List of this Thing containing one AclEntry for each arbitrary `authorizationSubject` key
         attributes:
           $ref: '#/components/schemas/Attributes'
-          description: The attributes of this Thing
         features:
           $ref: '#/components/schemas/Features'
-          description: The Features of this Thing
     Acl:
       type: object
       description: Access Control List containing one AclEntry for each arbitrary `authorizationSubject` key
-      properties:
       additionalProperties:
         $ref: '#/components/schemas/AclEntry'
     AclEntry:
@@ -2525,7 +2516,6 @@ components:
     Features:
       type: object
       description: List of Features where the key represents the `featureId` of each Feature. The `featureId` key must be unique in the list.
-      properties:
       additionalProperties:
         $ref: '#/components/schemas/Feature'
   responses:
