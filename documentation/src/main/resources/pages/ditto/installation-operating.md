@@ -55,7 +55,7 @@ The authentication provider must be added to the ditto-gateway configuration.
 ditto.gateway.authentication {
     oauth {
       openid-connect-issuers = {
-        myprovider = "https://localhost:9000/"
+        myprovider = "localhost:9000"
       }
     }
 }
@@ -64,7 +64,7 @@ ditto.gateway.authentication {
 In order to do this by specifying a Java system property, use the following:
 
 ```
--Dditto.gateway.authentication.oauth.openid-connect-issuers.myprovider=https://localhost:9000/
+-Dditto.gateway.authentication.oauth.openid-connect-issuers.myprovider=localhost:9000
 ```
 
 The configured subject-issuer will be used to prefix the value of the “sub” claim, e.g.
