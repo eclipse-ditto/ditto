@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceBuilder;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -326,10 +327,13 @@ public class ConnectionValidatorTest {
     }
 
     private void rejectInvalidPayloadMappingReferenceInTarget(List<Source> sources, List<Target> targets) {
+        final PayloadMappingDefinition payloadMappingDefinition =
+                ConnectivityModelFactory.newPayloadMappingDefinition("status",
+                        ConnectivityModelFactory.newMappingContext("ConnectionStatus",
+                                singletonMap("thingId", "{{ header:device_id }}")));
         final Connection connection = createConnection(CONNECTION_ID)
                 .toBuilder()
-                .mappingDefinition("status", ConnectivityModelFactory.newMappingContext("ConnectionStatus",
-                        singletonMap("thingId", "{{ header:device_id }}")))
+                .payloadMappingDefinition(payloadMappingDefinition)
                 .setTargets(targets)
                 .setSources(sources)
                 .build();
