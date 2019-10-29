@@ -81,6 +81,6 @@ public final class AmqpValidator extends AbstractProtocolValidator {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "AMQP 1.0");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validateMappingContext(connection, actorSystem, dittoHeaders);
+        validatePayloadMappings(connection, actorSystem, dittoHeaders);
     }
 }

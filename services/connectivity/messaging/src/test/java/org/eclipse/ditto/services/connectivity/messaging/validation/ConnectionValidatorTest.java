@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
@@ -23,8 +25,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -33,6 +37,9 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.SourceBuilder;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
@@ -295,5 +302,41 @@ public class ConnectionValidatorTest {
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void rejectInvalidPayloadMappingReferenceInTarget() {
+        final List<Target> targetWithInvalidMapping = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET).payloadMapping(
+                        ConnectivityModelFactory.newPayloadMapping("invalid")).build());
+
+        rejectInvalidPayloadMappingReferenceInTarget(emptyList(), targetWithInvalidMapping);
+
+    }
+
+    @Test
+    public void rejectInvalidPayloadMappingReferenceInSource() {
+        final List<Source> sourceWithInvalidMapping =
+                TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT.stream()
+                        .map(ConnectivityModelFactory::newSourceBuilder)
+                        .map(b -> b.payloadMapping(ConnectivityModelFactory.newPayloadMapping("invalid")))
+                        .map(SourceBuilder::build)
+                        .collect(Collectors.toList());
+        rejectInvalidPayloadMappingReferenceInTarget(sourceWithInvalidMapping, emptyList());
+    }
+
+    private void rejectInvalidPayloadMappingReferenceInTarget(List<Source> sources, List<Target> targets) {
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .mappingDefinition("status", ConnectivityModelFactory.newMappingContext("ConnectionStatus",
+                        singletonMap("thingId", "{{ header:device_id }}")))
+                .setTargets(targets)
+                .setSources(sources)
+                .build();
+
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("invalid");
     }
 }

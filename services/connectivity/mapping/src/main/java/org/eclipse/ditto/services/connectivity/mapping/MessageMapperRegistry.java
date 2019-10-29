@@ -36,4 +36,12 @@ public interface MessageMapperRegistry {
      */
     List<MessageMapper> getMappers(PayloadMapping payloadMapping);
 
+    /**
+     * Checks if the defined {@link PayloadMapping} can be resolved using this registry.
+     *
+     * @param payloadMapping the payload mapping
+     * @throws org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException if one or more mappers
+     * cannot be resolved by the registry
+     */
+    void validatePayloadMapping(final PayloadMapping payloadMapping);
 }
