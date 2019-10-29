@@ -49,10 +49,9 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
     private static final String MESSAGE_TEMPLATE = "Namespaced entity ID ''{0}'' is not valid!";
 
     private static final String NAMESPACED_ENTITY_ID_DESCRIPTION =
-            "It must contain a namespace prefix (java package notation + a colon ':') + ID and must be a valid URI " +
-                    "path segment according to RFC-2396";
+            "It must conform to the namespaced entity ID notation (see Ditto documentation)";
 
-    private static final long serialVersionUID = -2426810319409279256L;
+    private static final URI DEFAULT_HREF = URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
 
     private final CharSequence entityId;
 
@@ -92,7 +91,7 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(""))
-                .href(readHRef(jsonObject).orElse(null))
+                .href(readHRef(jsonObject).orElse(DEFAULT_HREF))
                 .build();
     }
 
@@ -116,6 +115,7 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
         private Builder(@Nullable final CharSequence entityId) {
             this.entityId = entityId;
             message(MessageFormat.format(MESSAGE_TEMPLATE, entityId));
+            href(DEFAULT_HREF);
         }
 
         private Builder(@Nullable final CharSequence entityId, final String description) {
