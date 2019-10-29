@@ -409,7 +409,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
-          (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -3485,7 +3485,7 @@ components:
         - message
     Attributes:
       type: object
-      description: An arbitrary JSON object.
+      description: "Attributes of a Thing: an arbitrary JSON object."
     FeatureDefinition:
       type: array
       items:
@@ -3494,16 +3494,14 @@ components:
         pattern: ([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)
     FeatureProperties:
       type: object
-      description: An arbitrary JSON object.
+      description: "Properties of a Feature: an arbitrary JSON object."
     Feature:
       type: object
       properties:
         definition:
           $ref: '#/components/schemas/FeatureDefinition'
-          description: The Definition of this Feature
         properties:
           $ref: '#/components/schemas/FeatureProperties'
-          description: The Properties of this Feature
     SearchResultThings:
       properties:
         items:
@@ -3518,12 +3516,7 @@ components:
       type: object
       properties:
         _policy:
-          $ref: '#/components/schemas/Policy'
-          description: |-
-            The initial Policy to create for this Thing. This will create a separate Policy entity managed by resource `/policies/{thingId}`.
-
-
-            Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+          $ref: '#/components/schemas/InitialPolicy'
         _copyPolicyFrom:
           type: string
           description: |-
@@ -3543,10 +3536,8 @@ components:
             resource `/policies/{policyId}`.
         attributes:
           $ref: '#/components/schemas/Attributes'
-          description: The attributes of this Thing
         features:
           $ref: '#/components/schemas/Features'
-          description: The Features of this Thing
     Thing:
       type: object
       required:
@@ -3563,13 +3554,19 @@ components:
           description: The policy ID used for controlling access to this thing, managed by resource `/policies/{policyId}`
         attributes:
           $ref: '#/components/schemas/Attributes'
-          description: The attributes of this thing
         features:
           $ref: '#/components/schemas/Features'
-          description: The features of this thing
     Policy:
       type: object
       description: Policy consisting of PolicyEntries
+      properties:
+        entries:
+          $ref: '#/components/schemas/PolicyEntries'
+    InitialPolicy:
+      type: object
+      description: |-
+        The initial Policy when creating a Thing. This will create a separate Policy entity managed by resource `/policies/{thingId}`.
+        Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
       properties:
         entries:
           $ref: '#/components/schemas/PolicyEntries'
