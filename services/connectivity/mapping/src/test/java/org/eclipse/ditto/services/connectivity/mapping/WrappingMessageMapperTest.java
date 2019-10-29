@@ -73,7 +73,7 @@ public class WrappingMessageMapperTest {
 
     @Test
     public void configure() {
-        when(mockConfiguration.findContentType()).thenReturn(Optional.of("contentType"));
+        when(mockConfiguration.getContentTypeBlacklist()).thenReturn(Collections.singletonList("blacklistedContentType"));
 
         underTest.configure(null, mockConfiguration);
 

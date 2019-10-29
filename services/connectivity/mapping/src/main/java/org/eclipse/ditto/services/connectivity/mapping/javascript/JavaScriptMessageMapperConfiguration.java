@@ -45,7 +45,7 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
         final Map<String, String> properties = getProperties();
         @Nullable final String v = properties.get(JavaScriptMessageMapperConfigurationProperties.LOAD_BYTEBUFFER_JS);
         if (null != v) {
-            return Boolean.valueOf(v);
+            return Boolean.parseBoolean(v);
         }
         return false;
     }
@@ -57,7 +57,7 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
         final Map<String, String> properties = getProperties();
         @Nullable final String v = properties.get(JavaScriptMessageMapperConfigurationProperties.LOAD_LONG_JS);
         if (null != v) {
-            return Boolean.valueOf(v);
+            return Boolean.parseBoolean(v);
         }
         return false;
     }
@@ -65,7 +65,7 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
     /**
      * Specific builder for {@link JavaScriptMessageMapperConfiguration}.
      */
-    interface Builder extends MessageMapperConfiguration.Builder<Builder, JavaScriptMessageMapperConfiguration> {
+    interface Builder extends MessageMapperConfiguration.Builder<JavaScriptMessageMapperConfiguration> {
 
         /**
          * Configures the mappingScript responsible for mapping incoming messages.

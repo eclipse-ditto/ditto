@@ -21,6 +21,7 @@ import java.util.stream.LongStream;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.services.connectivity.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
@@ -32,7 +33,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
  * Implementation of {@link MessageMapper} that always duplicates the incoming message.
  */
 @PayloadMapper(alias = DuplicatingMessageMapper.ALIAS)
-public class DuplicatingMessageMapper implements MessageMapper {
+public class DuplicatingMessageMapper extends AbstractMessageMapper {
 
     static final String ALIAS = "duplicating";
 
@@ -46,12 +47,7 @@ public class DuplicatingMessageMapper implements MessageMapper {
     private Long n;
 
     @Override
-    public String getId() {
-        return "duplicating";
-    }
-
-    @Override
-    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         n = configuration.findProperty("n").map(Long::valueOf).orElse(2L);
     }
 

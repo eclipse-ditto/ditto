@@ -142,7 +142,6 @@ public class Test3FormatJsonPayloadToDitto implements MapToDittoProtocolScenario
         javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("format", Collections.emptyMap())
-                        .contentType(CONTENT_TYPE)
                         .incomingScript(MAPPING_INCOMING_PLAIN)
                         .build()
         );

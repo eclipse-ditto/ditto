@@ -324,7 +324,6 @@ public final class JavaScriptMessageMapperRhinoTest {
         javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("plain", Collections.emptyMap())
-                        .contentType(CONTENT_TYPE_PLAIN)
                         .incomingScript(MAPPING_INCOMING_PLAIN)
                         .outgoingScript(MAPPING_OUTGOING_PLAIN)
                         .build()
@@ -334,7 +333,6 @@ public final class JavaScriptMessageMapperRhinoTest {
         javaScriptRhinoMapperEmpty.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("empty", Collections.emptyMap())
-                        .contentType(CONTENT_TYPE_PLAIN)
                         .incomingScript(MAPPING_INCOMING_EMPTY)
                         .outgoingScript(MAPPING_OUTGOING_EMPTY)
                         .build()
@@ -344,7 +342,6 @@ public final class JavaScriptMessageMapperRhinoTest {
         javaScriptRhinoMapperBinary.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("binary", Collections.emptyMap())
-                        .contentType(CONTENT_TYPE_BINARY)
                         .incomingScript(MAPPING_INCOMING_BINARY)
                         .outgoingScript(MAPPING_OUTGOING_BINARY)
                         .build()
@@ -354,7 +351,6 @@ public final class JavaScriptMessageMapperRhinoTest {
         javaScriptRhinoMapperDefault.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("default", Collections.emptyMap())
-                        .contentType(CONTENT_TYPE_BINARY)
                         .incomingScript(MAPPING_INCOMING_DEFAULT)
                         .outgoingScript(MAPPING_OUTGOING_DEFAULT)
                         .build()

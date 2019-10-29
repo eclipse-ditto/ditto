@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -61,6 +62,11 @@ final class WrappingMessageMapper implements MessageMapper {
     @Override
     public String getId() {
         return delegate.getId();
+    }
+
+    @Override
+    public Collection<String> getContentTypeBlacklist() {
+        return delegate.getContentTypeBlacklist();
     }
 
     /**

@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.connectivity.mapping.test;
 
 import static java.util.Collections.emptyList;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -38,6 +40,11 @@ public final class MockMapper implements MessageMapper {
     @Override
     public String getId() {
         return "mock";
+    }
+
+    @Override
+    public Collection<String> getContentTypeBlacklist() {
+        return Collections.emptyList();
     }
 
     @Override

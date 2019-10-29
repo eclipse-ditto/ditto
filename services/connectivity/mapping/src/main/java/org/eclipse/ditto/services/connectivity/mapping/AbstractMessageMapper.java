@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import java.util.Collection;
+
 /**
  * Abstract implementation of {@link MessageMapper} which adds an id field and also its initialization from mapping
  * configuration (id is not passed as constructor argument because the mappers are created by reflection).
@@ -19,6 +21,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 public abstract class AbstractMessageMapper implements MessageMapper {
 
     private String id;
+    private Collection<String> contentTypeBlacklist;
 
     @Override
     public String getId() {
@@ -26,11 +29,23 @@ public abstract class AbstractMessageMapper implements MessageMapper {
     }
 
     @Override
+    public Collection<String> getContentTypeBlacklist() {
+        return contentTypeBlacklist;
+    }
+
+    @Override
     public final void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         this.id = configuration.getId();
+        this.contentTypeBlacklist = configuration.getContentTypeBlacklist();
         doConfigure(mappingConfig, configuration);
     }
 
+    /**
+     * Applies the mapper specific configuration.
+     *
+     * @param mappingConfig the service configuration for the mapping.
+     * @param configuration the mapper specific configuration configured in scope of a single connection.
+     */
     protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         // noop default
     }

@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELA
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -156,19 +157,30 @@ public final class MessageMappingProcessor {
     private void convertInboundMessage(final MessageMapper mapper, final ExternalMessage message,
             final MappingTimer timer,
             MappingResultHandler<MappedInboundExternalMessage> handler) {
+
+        checkNotNull(message, "message");
         try {
-            checkNotNull(message, "message");
-            log.debug("Mapping message using mapper {}.", mapper.getId());
-            final List<Adaptable> adaptables = timer.payload(mapper.getId(), () -> mapper.map(message));
-            if (isNullOrEmpty(adaptables)) {
-                handler.onMessageDropped();
+            final boolean shouldMapMessage = message.findContentType()
+                    .map(filterByContentTypeBlacklist(mapper))
+                    .orElse(true); // if no content-type was present, map the message!
+
+            if (shouldMapMessage) {
+                log.debug("Mapping message using mapper {}.", mapper.getId());
+                final List<Adaptable> adaptables = timer.payload(mapper.getId(), () -> mapper.map(message));
+                if (isNullOrEmpty(adaptables)) {
+                    handler.onMessageDropped();
+                } else {
+                    adaptables.forEach(adaptable -> {
+                        enhanceLogFromAdaptable(adaptable);
+                        final Signal<?> signal = timer.protocol(() -> protocolAdapter.fromAdaptable(adaptable));
+                        dittoHeadersSizeChecker.check(signal.getDittoHeaders());
+                        handler.onMessageMapped(MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal));
+                    });
+                }
             } else {
-                adaptables.forEach(adaptable -> {
-                    enhanceLogFromAdaptable(adaptable);
-                    final Signal<?> signal = timer.protocol(() -> protocolAdapter.fromAdaptable(adaptable));
-                    dittoHeadersSizeChecker.check(signal.getDittoHeaders());
-                    handler.onMessageMapped(MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal));
-                });
+                handler.onMessageDropped();
+                log.debug("Not mapping message with mapper <{}> as content-type <{}> was blacklisted.",
+                        mapper.getId(), message.findContentType());
             }
         } catch (final DittoRuntimeException e) {
             handler.onException(e);
@@ -177,6 +189,10 @@ public final class MessageMappingProcessor {
                     message.findContentType().orElse(""), mapper.getId(), DittoHeaders.of(message.getHeaders()), e);
             handler.onException(mappingFailedException);
         }
+    }
+
+    private static Function<String, Boolean> filterByContentTypeBlacklist(final MessageMapper mapper) {
+        return contentType -> !mapper.getContentTypeBlacklist().contains(contentType);
     }
 
     private void convertOutboundMessage(final Adaptable adaptable, final MessageMapper mapper,
@@ -218,22 +234,11 @@ public final class MessageMappingProcessor {
         return messages == null ? Stream.empty() : messages.stream();
     }
 
-    private static boolean isNullOrEmpty(final List<?> messages) {
+    private static boolean isNullOrEmpty(@Nullable final List<?> messages) {
         return messages == null || messages.isEmpty();
     }
 
     private List<MessageMapper> getMappers(final ExternalMessage message) {
-        final Optional<String> contentTypeOpt = message.findContentType();
-        if (contentTypeOpt.isPresent()) {
-            final String contentType = contentTypeOpt.get();
-            if (registry.getDefaultMapper().getContentType().filter(contentType::equals).isPresent()) {
-                log.info("Selected Default MessageMapper for mapping ExternalMessage as content-type matched <{}>",
-                        contentType);
-                // TODO check why we ignore any custom mapping in this case. keep this behavior?
-                return Collections.singletonList(registry.getDefaultMapper());
-            }
-        }
-
         final List<MessageMapper> mappings =
                 message.getPayloadMapping().map(registry::getMappers).orElseGet(Collections::emptyList);
         if (mappings.isEmpty()) {
