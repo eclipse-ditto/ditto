@@ -18,16 +18,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.internal.verification.VerificationModeFactory;
 
 /**
@@ -35,12 +40,17 @@ import org.mockito.internal.verification.VerificationModeFactory;
  */
 public class WrappingMessageMapperTest {
 
+    private static final int limitOfIncommingMessages = 10;
+    private static final int limitOfOutgoingMessages = 10;
 
     private MessageMapper mockMapper;
     private MessageMapper underTest;
     private MessageMapperConfiguration mockConfiguration;
     private ExternalMessage mockMessage;
     private Adaptable mockAdaptable;
+
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
     @Before
     public void setUp() {
@@ -86,4 +96,30 @@ public class WrappingMessageMapperTest {
         verify(mockMapper).map(mockAdaptable);
     }
 
+    @Test
+    public void mapMessageWithInvalidNumberOfMessages() {
+        exception.expect(MessageMappingFailedException.class);
+        List<Adaptable> listOfMockAdaptable = listWithInvalideNumberOfElements(mockAdaptable, limitOfIncommingMessages);
+        when(mockMapper.map(any(ExternalMessage.class))).thenReturn(listOfMockAdaptable);
+
+        underTest.map(mockMessage);
+    }
+
+    @Test
+    public void mapAdaptableWithInvalidNumberOfMessages() {
+        exception.expect(MessageMappingFailedException.class);
+        List<ExternalMessage> listOfMockAdaptable =
+                listWithInvalideNumberOfElements(mockMessage, limitOfOutgoingMessages);
+        when(mockMapper.map(any(Adaptable.class))).thenReturn(listOfMockAdaptable);
+
+        underTest.map(mockAdaptable);
+    }
+
+    private <T> List<T> listWithInvalideNumberOfElements(T elementInList, final int invalidLimitNumber) {
+        List<T> listOfMockAdaptable = new ArrayList<>();
+        for (int i = 0; i < invalidLimitNumber + 1; i++) {
+            listOfMockAdaptable.add(elementInList);
+        }
+        return listOfMockAdaptable;
+    }
 }

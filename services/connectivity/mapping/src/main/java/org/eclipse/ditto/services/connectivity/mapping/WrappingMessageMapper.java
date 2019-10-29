@@ -92,8 +92,7 @@ final class WrappingMessageMapper implements MessageMapper {
 
         final List<Adaptable> mappedAdaptables = delegate.map(enhancedMessage);
 
-        checkMessagesMappingNumber(mappedAdaptables, MESSAGE_MAPPING_NUMBER_LIMIT_SOURCE,
-                DittoHeaders.of(message.getHeaders()));
+        checkMessagesMappingNumber(mappedAdaptables, MESSAGE_MAPPING_NUMBER_LIMIT_SOURCE);
 
         return mappedAdaptables.stream().map(mapped -> {
             final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
@@ -118,7 +117,7 @@ final class WrappingMessageMapper implements MessageMapper {
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         final List<ExternalMessage> mappedMessages = delegate.map(adaptable);
-        checkMessagesMappingNumber(mappedMessages, MESSAGE_MAPPING_NUMBER_LIMIT_TARGET, adaptable.getDittoHeaders());
+        checkMessagesMappingNumber(mappedMessages, MESSAGE_MAPPING_NUMBER_LIMIT_TARGET);
         return mappedMessages.stream().map(mapped -> {
             final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(mapped);
             messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
@@ -131,12 +130,16 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     private void checkMessagesMappingNumber(final List<?> mappedAdaptables,
-            final int messageMappingNumberLimit,
-            final DittoHeaders dittoHeaders) {
+            final int messageMappingNumberLimit) {
         if (mappedAdaptables.size() > messageMappingNumberLimit) {
-            throw MessageMappingFailedException.newBuilder(dittoHeaders.getContentType().orElse(null))
-                    .dittoHeaders(dittoHeaders)
+            throw MessageMappingFailedException.newBuilder((String) null)
                     .message("Number of messages from mapping exceeded")
+                    .description(
+                            "Check invoked messages produced by your payload mapping. Maximum number of invoked messages are "
+                                    + messageMappingNumberLimit
+                                    + ". Processed mapping invoked "
+                                    + mappedAdaptables.size()
+                                    + " messages")
                     .build();
         }
     }
