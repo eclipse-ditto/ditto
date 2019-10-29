@@ -36,10 +36,7 @@ public interface MappingConfig {
      */
     enum MappingConfigValue implements KnownConfigValue {
 
-        /**
-         * The name of the class which is used for creating message mapping objects.
-         */
-        FACTORY("factory", "org.eclipse.ditto.services.connectivity.mapping.MessageMappers");
+        /* for now there are no config keys with defaults */;
 
         private final String path;
         private final Object defaultValue;

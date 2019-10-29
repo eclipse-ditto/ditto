@@ -45,7 +45,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
  * Create- and modify-events are mapped to nested sparse JSON.
  * All other signals and incoming messages are dropped.
  */
-public final class NormalizedMessageMapper implements MessageMapper {
+@PayloadMapper(alias = "Normalized")
+public final class NormalizedMessageMapper extends AbstractMessageMapper {
 
     /**
      * Config property to project parts from the mapping result.
@@ -75,7 +76,7 @@ public final class NormalizedMessageMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         final Optional<String> fields = configuration.findProperty(FIELDS);
         fields.ifPresent(s ->
                 jsonFieldSelector =

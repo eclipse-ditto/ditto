@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
@@ -51,14 +52,17 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef deadLetters;
     private final boolean dryRun;
+    private final PayloadMapping payloadMapping;
     @Nullable private final EnforcementFilterFactory<String, CharSequence> topicEnforcementFilterFactory;
 
     @SuppressWarnings("unused")
     private MqttConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final Source source,
-            final boolean dryRun, final String sourceAddress) {
+            final boolean dryRun,
+            final String sourceAddress) {
         super(connectionId, sourceAddress, messageMappingProcessor, source);
         this.dryRun = dryRun;
+        this.payloadMapping = source.getPayloadMapping();
         deadLetters = getContext().system().deadLetters();
 
         final Optional<Enforcement> enforcement = source.getEnforcement();
@@ -83,7 +87,8 @@ public final class MqttConsumerActor extends BaseConsumerActor {
      */
     static Props props(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final Source source,
-            final boolean dryRun, final String topic) {
+            final boolean dryRun,
+            final String topic) {
 
         return Props.create(MqttConsumerActor.class, connectionId, messageMappingProcessor, source, dryRun, topic);
     }
@@ -108,7 +113,8 @@ public final class MqttConsumerActor extends BaseConsumerActor {
         try {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
             final String textPayload = message.payload().utf8String();
-            log.debug("Received MQTT message on topic <{}>: {}", message.topic(), textPayload);
+            log.debug("Received MQTT message on topic <{}>: {}. will be mapped: {}", message.topic(), textPayload,
+                    payloadMapping);
 
             headers.put(MQTT_TOPIC_HEADER, message.topic());
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
@@ -116,6 +122,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                     .withAuthorizationContext(source.getAuthorizationContext())
                     .withEnforcement(getEnforcementFilter(message.topic()))
                     .withSourceAddress(sourceAddress)
+                    .withPayloadMapping(payloadMapping)
                     .build();
             inboundMonitor.success(externalMessage);
 

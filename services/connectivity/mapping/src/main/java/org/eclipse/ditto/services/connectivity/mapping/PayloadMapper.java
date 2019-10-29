@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.connectivity.mapping;
 
 import java.lang.annotation.ElementType;
@@ -22,7 +21,7 @@ import org.atteo.classindex.IndexAnnotated;
 
 /**
  * Classes annotated with {@link PayloadMapper} are indexed and loaded on startup to be referenced by its alias in
- * payload mapping definitions of a {@link org.eclipse.ditto.model.connectivity.Connection}
+ * payload mapping definitions of a {@link org.eclipse.ditto.model.connectivity.Connection}.
  * If the mapper requires no {@link org.eclipse.ditto.model.connectivity.MappingContext} for initialization it can also
  * be directly used in the list of mappings of a {@link org.eclipse.ditto.model.connectivity.Source} or a
  * {@link org.eclipse.ditto.model.connectivity.Target} using one of the defined aliases.
@@ -38,8 +37,9 @@ public @interface PayloadMapper {
     String[] alias();
 
     /**
-     * @return {@code true} if the mapper requires the mapping context for initialization i.e. it cannot be used
-     * directly as a mapping without providing the {@link org.eclipse.ditto.model.connectivity.MappingContext}.
+     * @return {@code true} if the mapper requires mandatory {@code config} options for initialization,
+     * i.e. it cannot be used directly as a mapping without providing the
+     * {@link org.eclipse.ditto.model.connectivity.MappingContext#getOptions()}.
      */
-    boolean requiresMappingContext() default false;
+    boolean requiresMandatoryConfiguration() default false;
 }

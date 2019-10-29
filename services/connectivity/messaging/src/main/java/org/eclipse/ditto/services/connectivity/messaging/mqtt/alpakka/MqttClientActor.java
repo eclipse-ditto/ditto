@@ -253,8 +253,9 @@ public final class MqttClientActor extends BaseClientActor {
 
         for (int i = 0; i < source.getConsumerCount(); i++) {
 
-            log.debug("Starting {}. consumer actor for source <{}> on connection <{}>.", i, source.getIndex(),
-                    factory.connectionId());
+            log.debug("Starting {}. consumer actor for source <{}> on connection <{}> with payload mapping {}.", i,
+                    source.getIndex(),
+                    factory.connectionId(), source.getPayloadMapping());
 
             final String uniqueSuffix = getUniqueSourceSuffix(source.getIndex(), i);
             final String actorNamePrefix = MqttConsumerActor.ACTOR_NAME_PREFIX + uniqueSuffix;

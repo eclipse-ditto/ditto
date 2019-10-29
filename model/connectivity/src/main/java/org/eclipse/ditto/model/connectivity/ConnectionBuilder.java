@@ -205,18 +205,9 @@ public interface ConnectionBuilder {
     ConnectionBuilder lifecycle(@Nullable ConnectionLifecycle lifecycle);
 
     /**
-     * Adds a mapping definition to the connection.
+     * Sets the payload mapping definition of the connection.
      *
-     * @param mappingId the ID of the new mapping
-     * @param mappingContext the mapping definition
-     * @return this builder
-     */
-    ConnectionBuilder mappingDefinition(String mappingId, MappingContext mappingContext);
-
-    /**
-     * Sets the mapping definitions of the connection.
-     *
-     * @param payloadMappingDefinition the mapping definitions
+     * @param payloadMappingDefinition the payload mapping definition.
      * @return this builder
      */
     ConnectionBuilder payloadMappingDefinition(PayloadMappingDefinition payloadMappingDefinition);

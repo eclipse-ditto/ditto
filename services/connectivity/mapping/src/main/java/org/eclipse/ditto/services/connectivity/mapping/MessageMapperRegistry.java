@@ -34,6 +34,6 @@ public interface MessageMapperRegistry {
      * @param payloadMapping the payload mapping
      * @return the list of resolved mappers
      */
-    List<MessageMapper> getMappers(final PayloadMapping payloadMapping);
+    List<MessageMapper> getMappers(PayloadMapping payloadMapping);
 
 }

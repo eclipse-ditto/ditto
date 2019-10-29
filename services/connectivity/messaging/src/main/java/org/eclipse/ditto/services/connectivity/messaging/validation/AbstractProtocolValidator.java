@@ -20,6 +20,7 @@ import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -27,11 +28,16 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
+import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
+import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 
@@ -133,40 +139,36 @@ public abstract class AbstractProtocolValidator {
     }
 
     /**
-     * Validate configurations of {@link MappingContext}.
+     * Validate configurations of {@link org.eclipse.ditto.model.connectivity.PayloadMappingDefinition}.
      *
      * @param connection the connection to check the MappingContext in.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      */
     protected void validateMappingContext(final Connection connection, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
-        /* TODO: restore mapping context validation
-        connection.getMappingContext().ifPresent(mappingContext -> {
-            final MappingConfig mappingConfig = DittoConnectivityConfig.of(
-                    DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-            ).getMappingConfig();
-            final MessageMapperFactory messageMapperFactory =
-                    DefaultMessageMapperFactory.of(connection.getId(), actorSystem, mappingConfig, actorSystem.log());
+        final MappingConfig mappingConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        ).getMappingConfig();
+        final MessageMapperFactory messageMapperFactory =
+                DefaultMessageMapperFactory.of(connection.getId(), actorSystem, mappingConfig, actorSystem.log());
 
-            try {
-                DittoJsonException.wrapJsonRuntimeException(mappingContext, dittoHeaders,
-                        (theMappingContext, theDittoHeaders) ->
-                                messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, theMappingContext)
-                );
-            } catch (final DittoRuntimeException e) {
-                throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
-                        .description(e.getDescription().orElse(null))
-                        .dittoHeaders(dittoHeaders)
-                        .cause(e)
-                        .build();
-            } catch (final RuntimeException e) {
-                throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
-                        .dittoHeaders(dittoHeaders)
-                        .cause(e)
-                        .build();
-            }
-        });
-         */
+        try {
+            DittoJsonException.wrapJsonRuntimeException(connection.getPayloadMappingDefinition(), dittoHeaders,
+                    (definition, theDittoHeaders) ->
+                            messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, definition)
+            );
+        } catch (final DittoRuntimeException e) {
+            throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
+                    .description(e.getDescription().orElse(null))
+                    .dittoHeaders(dittoHeaders)
+                    .cause(e)
+                    .build();
+        } catch (final RuntimeException e) {
+            throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
+                    .dittoHeaders(dittoHeaders)
+                    .cause(e)
+                    .build();
+        }
     }
 
     /**
@@ -245,9 +247,11 @@ public abstract class AbstractProtocolValidator {
     }
 
     /**
-     * Validates that the passed {@code template} is both valid and that the placeholders in the passed {@code template}
+     * Validates that the passed {@code template} is both valid and that the placeholders in the passed {@code
+     * template}
      * are completely replaceable by the provided {@code placeholders}. Each placeholder will be replaced by
-     * {@code stringUsedInPlaceholderReplacement} and the resolved template without any remaining placeholders will be returned.
+     * {@code stringUsedInPlaceholderReplacement} and the resolved template without any remaining placeholders will be
+     * returned.
      *
      * @param template a string potentially containing placeholders to replace
      * @param headers the DittoHeaders to use in order for e.g. building DittoRuntimeExceptions

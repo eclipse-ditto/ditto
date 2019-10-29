@@ -57,6 +57,12 @@ final class ImmutablePayloadMapping implements PayloadMapping {
         return mappings.isEmpty();
     }
 
+    @Override
+    @SuppressWarnings("squid:S3252")
+    public JsonArray toJson() {
+        return JsonArray.of(mappings);
+    }
+
     /**
      * Creates a new {@code PayloadMapping} object from the specified JSON object.
      *

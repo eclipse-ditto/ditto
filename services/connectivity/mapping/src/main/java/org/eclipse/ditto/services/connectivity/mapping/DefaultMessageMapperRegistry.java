@@ -45,7 +45,7 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
      *
      * @param defaultMapper the default mapper.
      * @param customMappers the list of custom mappers.
-     * @param fallbackMappers fallback mappers
+     * @param fallbackMappers fallback mappers.
      * @return the instance.
      */
     public static DefaultMessageMapperRegistry of(final MessageMapper defaultMapper,
@@ -105,7 +105,7 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "defaultMapper=" + defaultMapper +
-                ", mappers=" + customMappers +
+                ", customMappers=" + customMappers +
                 ", fallbackMappers=" + fallbackMappers +
                 "]";
     }

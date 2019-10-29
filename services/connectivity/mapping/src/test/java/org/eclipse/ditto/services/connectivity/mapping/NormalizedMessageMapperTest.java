@@ -150,7 +150,7 @@ public final class NormalizedMessageMapperTest {
                 DittoHeaders.empty());
 
         underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
-                DefaultMessageMapperConfiguration.of("normalized",
+                DefaultMessageMapperConfiguration.of("normalizer",
                         Collections.singletonMap(NormalizedMessageMapper.FIELDS,
                                 "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer")));
 
@@ -180,7 +180,7 @@ public final class NormalizedMessageMapperTest {
                 .build(), 1L, Instant.ofEpochSecond(1L), DittoHeaders.empty());
 
         underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
-                DefaultMessageMapperConfiguration.of("normalized",
+                DefaultMessageMapperConfiguration.of("normalizer",
                         Collections.singletonMap(NormalizedMessageMapper.FIELDS,
                                 "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
                                         "_context/headers/correlation-id")));
@@ -235,7 +235,7 @@ public final class NormalizedMessageMapperTest {
     private JsonObject mapToJson(final Adaptable message) {
         return underTest.map(message)
                 .stream()
-                .findAny()
+                .findFirst()
                 .flatMap(ExternalMessage::getTextPayload)
                 .map(JsonObject::of)
                 .orElse(JsonObject.empty());

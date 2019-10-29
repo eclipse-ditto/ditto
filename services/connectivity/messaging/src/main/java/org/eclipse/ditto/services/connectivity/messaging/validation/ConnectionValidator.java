@@ -56,6 +56,9 @@ public final class ConnectionValidator {
     private final Map<ConnectionType, AbstractProtocolValidator> specMap;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
 
+    private static final int MAPPING_NUMBER_LIMIT_SOURCE = 10;
+    private static final int MAPPING_NUMBER_LIMIT_TARGET = 10;
+
     private ConnectionValidator(final AbstractProtocolValidator... connectionSpecs) {
         final Map<ConnectionType, AbstractProtocolValidator> specMap = Arrays.stream(connectionSpecs)
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
@@ -89,6 +92,8 @@ public final class ConnectionValidator {
     void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
+        // check size of mappings
+        checkMappingNumberOfSourcesAndTargets(dittoHeaders, connection);
         validateFormatOfCertificates(connection, dittoHeaders);
         validateBlacklistedHostnames(connection, dittoHeaders, actorSystem);
         if (spec != null) {
@@ -146,6 +151,35 @@ public final class ConnectionValidator {
                                     requestAddress.isAnyLocalAddress() ||
                                     blacklistedAddresses.contains(requestAddress));
         }
+    }
+
+    /**
+     * Check if number of mappings are valid
+     * @throws ConnectionConfigurationInvalidException if payload number is over predefined limit
+     */
+    private void checkMappingNumberOfSourcesAndTargets(final DittoHeaders dittoHeaders, final Connection connection) {
+
+        final String errorMessage = "Payloadmapping number exceeded";
+
+        connection.getSources().forEach(source -> {
+                    if (source.getPayloadMapping().getMappings().size() > MAPPING_NUMBER_LIMIT_SOURCE) {
+                        throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                                .description("Payloadmapping number of source with address " + source.getAddresses() +
+                                        " is over the limit of " + MAPPING_NUMBER_LIMIT_SOURCE)
+                                .dittoHeaders(dittoHeaders)
+                                .build();
+                    }
+                }
+        );
+        connection.getTargets().forEach(target -> {
+            if (target.getPayloadMapping().getMappings().size() > MAPPING_NUMBER_LIMIT_TARGET) {
+                throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                        .description("Payloadmapping number of target with address " + target.getAddress() +
+                                " is over the limit of " + MAPPING_NUMBER_LIMIT_TARGET)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
+        });
     }
 
     private void validateSourceAndTargetAddressesAreNonempty(final Connection connection,

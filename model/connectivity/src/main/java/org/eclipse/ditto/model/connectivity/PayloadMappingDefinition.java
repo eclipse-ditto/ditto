@@ -33,11 +33,14 @@ public interface PayloadMappingDefinition extends Jsonifiable.WithFieldSelectorA
     Map<String, MappingContext> getDefinitions();
 
     /**
+     * Constructs a new copy of this PayloadMappingDefinition instance with the passed new mapping ID and mapping
+     * context.
+     *
      * @param id the ID of the new mapping
      * @param mappingContext the new mapping context to be added
      * @return new instance of {@link PayloadMappingDefinition} with the given mapping definition
      */
-    PayloadMappingDefinition withDefinition(final String id, final MappingContext mappingContext);
+    PayloadMappingDefinition withDefinition(String id, MappingContext mappingContext);
 
     /**
      * @return {@code true} if no mappings are defined

@@ -161,11 +161,11 @@ public final class DefaultMessageMapperFactoryTest {
                 ConnectivityModelFactory.emptyPayloadMappingDefinition());
 
         final List<MessageMapper> dittoMappers =
-                registry.getMappers(ConnectivityModelFactory.newPayloadMapping(DittoMessageMapper.DITTO_MAPPER_ALIAS));
+                registry.getMappers(ConnectivityModelFactory.newPayloadMapping("Ditto"));
         assertThat(dittoMappers).hasSize(1);
         final MessageMapper dittoMapper = dittoMappers.get(0);
         assertThat(dittoMapper).isInstanceOf(WrappingMessageMapper.class);
-        assertThat(dittoMapper.getId()).isEqualTo(DittoMessageMapper.DITTO_MAPPER_ALIAS);
+        assertThat(dittoMapper.getId()).isEqualTo("Ditto");
         assertThat(((WrappingMessageMapper) dittoMapper).getDelegate()).isInstanceOf(DittoMessageMapper.class);
     }
 

@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
@@ -50,12 +51,14 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final boolean dryRun;
     @Nullable private final EnforcementFilterFactory<String, CharSequence> topicEnforcementFilterFactory;
+    private final PayloadMapping payloadMapping;
 
     @SuppressWarnings("unused")
     private HiveMqtt3ConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final Source source, final boolean dryRun) {
         super(connectionId, String.join(";", source.getAddresses()), messageMappingProcessor, source);
         this.dryRun = dryRun;
+        this.payloadMapping = source.getPayloadMapping();
         topicEnforcementFilterFactory = source.getEnforcement()
                 .map(enforcement -> EnforcementFactoryFactory
                         .newEnforcementFilterFactory(enforcement, PlaceholderFactory.newSourceAddressPlaceholder()))
@@ -117,6 +120,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
                     .withAuthorizationContext(source.getAuthorizationContext())
                     .withEnforcement(getEnforcementFilter(topic))
                     .withSourceAddress(sourceAddress)
+                    .withPayloadMapping(payloadMapping)
                     .build();
             inboundMonitor.success(externalMessage);
 
