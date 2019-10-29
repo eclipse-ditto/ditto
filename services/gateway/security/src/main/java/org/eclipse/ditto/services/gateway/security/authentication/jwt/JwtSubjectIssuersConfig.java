@@ -33,6 +33,8 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 @Immutable
 public final class JwtSubjectIssuersConfig {
 
+    private static final String HTTPS = "https://";
+
     private final Map<String, JwtSubjectIssuerConfig> subjectIssuerConfigMap;
 
     /**
@@ -44,9 +46,14 @@ public final class JwtSubjectIssuersConfig {
         requireNonNull(configItems);
         final Map<String, JwtSubjectIssuerConfig> modifiableSubjectIssuerConfigMap = new HashMap<>();
 
-        configItems.forEach(configItem ->
-                modifiableSubjectIssuerConfigMap.put(configItem.getIssuer(), configItem));
+        configItems.forEach(configItem -> addConfigToMap(configItem, modifiableSubjectIssuerConfigMap));
         subjectIssuerConfigMap = Collections.unmodifiableMap(modifiableSubjectIssuerConfigMap);
+    }
+
+    private static void addConfigToMap(final JwtSubjectIssuerConfig config,
+            final Map<String, JwtSubjectIssuerConfig> map) {
+        map.put(config.getIssuer(), config);
+        map.put(HTTPS + config.getIssuer(), config);
     }
 
     /**
