@@ -3548,10 +3548,13 @@ components:
       properties:
         thingId:
           type: string
-          description: Unique identifier representing the thing
+          description: Unique identifier representing the Thing, has to conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
         policyId:
           type: string
-          description: The policy ID used for controlling access to this thing, managed by resource `/policies/{policyId}`
+          description: The policy ID used for controlling access to this thing, managed by resource `/policies/{policyId}`,
+            has to conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
         attributes:
           $ref: '#/components/schemas/Attributes'
         features:
