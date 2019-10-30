@@ -775,6 +775,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
                 // THEN: connection gets restarted
                 verify(mockConnection).createSession(anyInt());
+                latch.countDown();
                 final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
                 verify(mockConsumer2, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
                 final MessageListener messageListener = captor.getValue();
