@@ -188,6 +188,19 @@
                 "type": "string"
               }
             }
+          },
+          "payloadMapping": {
+            "$id": "/properties/sources/items/properties/payloadMapping",
+            "type": "array",
+            "title": "Payload mapping reference",
+            "description": "References the IDs of payload mappers defined in the payload mapping definitions that are applied to messages received via this source.",
+            "patternProperties": {
+              "^.+$": {
+                "title": "Payload mapping reference",
+                "description": "References the IDs of payload mappers defined in the payload mapping definitions that are applied to messages received via this source.",
+                "type": "string"
+              }
+            }
           }
         }
       }
@@ -264,6 +277,19 @@
                 "type": "string"
               }
             }
+          },
+          "payloadMapping": {
+            "$id": "/properties/targets/items/properties/payloadMapping",
+            "type": "array",
+            "title": "Payload mapping reference",
+            "description": "References the IDs of payload mappers defined in the payload mapping definitions that are applied to messages received via this target.",
+            "patternProperties": {
+              "^.+$": {
+                "title": "Payload mapping reference",
+                "description": "References the IDs of payload mappers defined in the payload mapping definitions that are applied to messages received via this source.",
+                "type": "string"
+              }
+            }
           }
         }
       }
@@ -321,35 +347,35 @@
         }
       }
     },
-    "mappingContext": {
-      "$id": "/properties/mappingContext",
+    "mappingDefinitions": {
+      "$id": "/properties/mappingDefinitions",
       "type": "object",
-      "title": "The mapping context for this connection",
-      "properties": {
-        "mappingEngine": {
-          "$id": "/properties/mappingContext/properties/mappingEngine",
-          "type": "string",
-          "title": "Mapping engine",
-          "description": "The Mapping engine defines which kind of mapping processor is instantiated for this connection. Currently you can choose between \"javascript\" and a full qualified java class name implementing the MessageMapper interface. If you go for the second option, make sure the implementation class is available in CLASSPATH."
-        },
-        "options": {
-          "$id": "/properties/mappingContext/properties/options",
-          "type": "object",
-          "title": "Options",
-          "description": "The mapping options contain specific configuration settings for the selected mapping engine. The options object is interpreted as a key value based map of setting properties.",
-          "additionalProperties": false,
-          "patternProperties":
-          {
-            "^.+$":
-            {
-              "title": "Setting value",
-              "description": "Setting value",
-              "type": "string"
+      "additionalProperties": {
+        "type": "object",
+        "description": "The payload mapping definitions.",
+        "properties": {
+          "mappingEngine": {
+            "$id": "/properties/mappingDefinitions/properties/mappingEngine",
+            "type": "string",
+            "title": "Mapping engine",
+            "description": "The Mapping engine defines which kind of mapping processor is instantiated for this connection. Currently you can choose between `Ditto`, `JavaScript`, `Normalized` and `ConnectionStatus`. The payload mapper documentation provides a detailed description of available mappers or how to bring your own mapper."
+          },
+          "options": {
+            "$id": "/properties/mappingDefinitions/properties/options",
+            "type": "object",
+            "title": "Options",
+            "description": "The mapping options contain specific configuration settings for the selected mapping engine. The options object is interpreted as a key value based map of setting properties.",
+            "additionalProperties": false,
+            "patternProperties": {
+              "^.+$": {
+                "title": "Setting value",
+                "description": "Setting value",
+                "type": "string"
+              }
             }
           }
         }
-      },
-      "required": [ "mappingEngine", "options"]
+      }
     }
   },
   "additionalProperties": false,

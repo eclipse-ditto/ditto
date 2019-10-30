@@ -127,7 +127,7 @@ Ditto comes with a few helper functions, which makes writing the mapping scripts
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
- * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the message could/should not be mapped
+ * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message, an array of mapped Ditto Protocol Messages or <code>null</code> if the message could/should not be mapped
  */
 let buildDittoProtocolMsg = function(namespace, id, group, channel, criterion, action, path, dittoHeaders, value) {
 
@@ -145,7 +145,7 @@ let buildDittoProtocolMsg = function(namespace, id, group, channel, criterion, a
  * @param {string} [textPayload] - The external mapped String
  * @param {ArrayBuffer} [bytePayload] - The external mapped bytes as ArrayBuffer
  * @param {string} [contentType] - The returned Content-Type
- * @returns {ExternalMessage} externalMessage - the mapped external message or <code>null</code> if the message could/should not be mapped
+ * @returns {ExternalMessage} externalMessage - the mapped external message, an array of mapped external messages or <code>null</code> if the message could/should not be mapped
  */
 let buildExternalMsg = function(headers, textPayload, bytePayload, contentType) {
 
@@ -210,7 +210,7 @@ Incoming external messages can be mapped to Ditto Protocol conform messages by i
  * @param {string} [textPayload] - The String to be mapped
  * @param {ArrayBuffer} [bytePayload] - The bytes to be mapped as ArrayBuffer
  * @param {string} [contentType] - The received Content-Type, e.g. "application/json"
- * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the message could/should not be mapped
+ * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message, an array of mapped external messages or <code>null</code> if the message could/should not be mapped
  */
 function mapToDittoProtocolMsg(
     headers,
@@ -237,9 +237,9 @@ function mapToDittoProtocolMsg(
 }
 ```
 
-The result of the function has to be an JavaScript object in [Ditto Protocol](protocol-overview.html), that's where the helper
-method `Ditto.buildDittoProtocolMsg` can help: it explicitly defines which parameters are required for the Ditto Protocol
-message.
+The result of the function has to be an JavaScript object in [Ditto Protocol](protocol-overview.html) or an array of 
+such JavaScript objects. That's where the helper method `Ditto.buildDittoProtocolMsg` is useful: it explicitly 
+defines which parameters are required for the Ditto Protocol message.
 
 ### Mapping outgoing messages
 
@@ -258,7 +258,7 @@ can be mapped to external messages by implementing the following JavaScript func
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
- * @returns {ExternalMessage} externalMessage - The mapped external message or <code>null</code> if the message could/should not be mapped
+ * @returns {ExternalMessage} externalMessage - The mapped external message, ana array of external messages or <code >null</code> if the message could/should not be mapped
  */
 function mapFromDittoProtocolMsg(
     namespace,
@@ -285,9 +285,9 @@ function mapFromDittoProtocolMsg(
 }
 ```
 
-The result of the function has to be an JavaScript object with the fields `headers`, `textPayload`, `bytePayload` and `contentType`.
-That's where the helper method `Ditto.buildExternalMsg` can help: it explicitly defines which parameters are required for the external
-message.
+The result of the function has to be an JavaScript object or an array of Javascript objcets with the fields `headers`, 
+`textPayload`, `bytePayload` and `contentType`. That's where the helper method `Ditto.buildExternalMsg` is useful: it
+ explicitly defines which parameters are required for the external message.
 
 
 ## JavaScript payload types
@@ -581,9 +581,9 @@ public interface MessageMapper {
     
     void configure(MessageMapperConfiguration configuration);
     
-    Optional<Adaptable> map(ExternalMessage message);
+    List<Adaptable> map(ExternalMessage message);
     
-    Optional<ExternalMessage> map(Adaptable adaptable);
+    List<ExternalMessage> map(Adaptable adaptable);
 }
 ```
 
@@ -593,12 +593,141 @@ in order to pass in configurations, thresholds, etc.
 
 Then, simply implement both of the `map` methods:
 
-* `Optional<Adaptable> map(ExternalMessage message)` maps from an incoming external message to a [Ditto Protocol](protocol-overview.html) `Adaptable`
-* `Optional<ExternalMessage> map(Adaptable adaptable)` maps from an outgoing [Ditto Protocol](protocol-overview.html) `Adaptable` to an external message
+* `List<Adaptable> map(ExternalMessage message)` maps from an incoming external message to
+  * an empty list of `Adaptable`s if the incoming message should be dropped
+  * a list of one or many [Ditto Protocol](protocol-overview.html) `Adaptable`s
+* `List<ExternalMessage> map(Adaptable adaptable)` maps from an outgoing [Ditto Protocol](protocol-overview.html) `Adaptable` to
+  * an empty list of `ExternalMessage`s if the outgoing message should be dropped
+  * a list of one or many external messages
 
-In order to use this custom Java based mapper implementation, two steps are required:
+In order to use this custom Java based mapper implementation, the following steps are required:
 
+* the implementing Class must be annotated with `@PayloadMapper(alias="customMapper")` and define at least one alias
+* if the custom mapper requires mandatory options then specify `@PayloadMapper(alias="customMapper ", requiresMandatoryConfiguration=true)`
 * the Class needs obviously to be on the classpath of the [connectivity](architecture-services-connectivity.html) microservice 
   in order to be loaded
-* when creating a new connection you have to specify the full qualified classname of your class as `mappingEngine` in the
-  connection's `mappingContext`
+* when creating a new connection you have to specify the alias of your mapper as the `mappingEngine` in the
+  connection's `payloadMappingDefinition` and reference the ID of your mapper in a source or a target
+
+{% include tip.html content="If your mapper does not require any options (`requiresMandatoryConfiguration=false`), you can
+ directly reference the alias in a source or a target." %} 
+
+The following example connection defines a `ConnectionStatus` mapping with the ID `status` and references it in a
+ source. Messages received via this source will be mapped by the `Ditto` mapping and the `ConnectionStatus` mapping
+ . The `Ditto` mapping requires no options to be configured, so you can directly use its alias `Ditto`.  
+```json
+{ 
+  ...  
+  "name": "exampleConnection",
+  "sources": [{
+      "addresses": ["<source>"],
+      "authorizationContext": ["ditto:inbound"],
+      "payloadMapping": ["Ditto", "status"]
+    }
+  ],
+  "mappingDefinitions": {
+    "status": {
+      "mappingEngine": "ConnectionStatus",
+      "options": {
+        "thingId": "{%raw%}{{ header:device_id }}{%endraw%}"
+      }
+    }
+  }
+}
+```
+
+{% include note.html content="Starting aliases with an uppercase character and IDs with a lowercase character is
+ encouraged to avoid confusion but this is not enforced. "%}
+
+### Builtin Java mappers
+
+The following message mappers are included in the Ditto codebase:
+
+| Mapper Alias | Description                    | Inbound           | Outbound           |
+|------------|--------------------------------|---------------------------|---------------------------|
+| [Ditto](connectivity-mapping.html#ditto-mapper) | Converts messages from and to the [Ditto Protocol](protocol-overview.html) format. | ✓ | ✓ |
+| [Normalized](connectivity-mapping.html#normalized-mapper) | Transforms the payload of events to a normalized view. |  | ✓ |
+| [ConnectionStatus](connectivity-mapping.html#connectionstatus-mapper) | This mapper transforms a message to a ModifyFeature command. | ✓ |  |
+
+#### Ditto mapper
+
+This is the default [Ditto Protocol](protocol-overview .html) mapper. If you do not specify any payload mapping this
+ mapper is used to map inbound and outbound messages. The mapper requires has no mandatory options, so its alias can
+ be directly used as a mapper reference.   
+
+##### Configuration options
+* `incomingScript` (required): the mapping script for incoming message
+* `outgoingScript` (required):  the mapping script for outgoing messages
+* `loadBytebufferJS` (optional, default: `false`): whether to load ByteBufferJS library
+* `loadLongJS` (optional, default: `false`): whether to load LongJS library
+
+#### Normalized Mapper
+This mapper transforms `created` and `modified` events (other type of messages are dropped) to a normalized view. 
+Events are mapped to a nested sparse JSON.
+```json
+{
+  "topic": "thing/id/things/twin/events/modified",
+  "headers": { "content-type": "application/vnd.eclipse.ditto+json" },
+  "path": "/features/sensors/properties/temperature/indoor/value",
+  "value": 42
+}
+```
+would result in the following normalized JSON representation:
+```json
+{
+  "thingId": "thing:id",
+  "features": {
+    "sensors": {
+      "properties": {
+        "temperature": {
+          "indoor": {
+            "value": 42
+          }
+        }
+      }
+    }
+  },
+  "_context": {
+    "topic": "thing/id/things/twin/events/modified",
+    "path": "/features/sensors/properties/temperature/indoor/value",
+    "headers": {
+      "content-type": "application/vnd.eclipse.ditto+json"
+    }
+  }
+}
+```
+The `_context` field contains the original message content excluding the `value`.
+
+##### Configuration options
+* `fields` (optional, default: all fields): comma separated list of fields that are contained in the result (see also
+ chapter about [field selectors](httpapi-concepts.html#with-field-selector))
+ 
+#### ConnectionStatus Mapper
+This mapper transforms the information from the `ttd` and `creation-time` message headers (see Eclipse Hono [device
+ notifications](https://www.eclipse.org/hono/docs/concepts/device-notifications/)) into a ModifyFeature
+ command that complies with the [Vorto definition](https://vorto.eclipse.org/#/details/org.eclipse.ditto:ConnectionStatus:1.0.0) `{%raw%}org.eclipse.ditto:ConnectionStatus{%endraw%}`. The
+  connectivity state of the 
+ device is then represented in a Feature. It is mostly used in conjunction with another mapper that transforms the 
+ payload e.g . `payloadMapping: ["Ditto","connectionStatus"]`.
+ 
+Example of a resulting `ConnectionStatus` Feature:
+```json
+{
+  "thingId": "eclipse:ditto",
+  "features": {
+    "ConnectionStatus": {
+      "definition": [ "org.eclipse.ditto:ConnectionStatus:1.0.0" ],
+      "properties": {
+        "readySince": "+2019-10-29T14:16:18Z",
+        "readyUntil": "+2019-10-29T14:16:28Z"
+      }
+    }
+  }
+}
+```
+ 
+##### Configuration options
+* `thingId` (required): The ID of the Thing that is updated with the connectivity state. It can either be a fixed value
+ or a header placeholder (e.g. `{%raw%}{{ header:device_id }}{%endraw%}`).
+* `featureId` (optional, default: `ConnectionStatus`): The ID of the Feature that is updated.
+ 

@@ -299,16 +299,32 @@ Clears all currently stored connection logs.
 
 ## Payload mapping configuration
 
-To enable a custom [payload mapping](connectivity-mapping.html) for a specific connection, you have to configure a
-mapping context in the connection configuration object. The following snippet shows an example `mappingContext`. This
-configuration must be embedded in the connection configuration as shown in the [Connections](basic-connections.html) section.
+To enable a custom [payload mapping](connectivity-mapping.html) for a specific source or target of a connection, you 
+have to configure a payload mapping definition in the connection configuration object. The following snippet shows an 
+example `mappingDefinitions`. This configuration must be embedded in the connection configuration as shown in the 
+[Connections](basic-connections.html) section. These payload mapping definitions are then referenced by its ID 
+(the key of the JSON object) in the sources and targets of the connection using the field `payloadMapping`. 
+If no payload mapping or definition is provided, the [Ditto message mapping](connectivity-mapping.html#ditto-mapper) 
+is used as the default.  
 
 ```json
-"mappingContext": {
-    "mappingEngine": "JavaScript",
-    "options": {
+"mappingDefinitions": {
+  "customJs": { // (1)
+    "mappingEngine": "JavaScript", // (2)
+    "options": { // (3)
       "incomingScript": "..",
       "outgoingScript": ".."
     }
   }
+},
+"sources": [
+  {
+    "addresses": "source",
+    "payloadMapping": ["customJs"]  
+  }
+] 
 ```
+
+- (1) This ID can be used in sources and targets of the connection to reference this payload mapping definition.
+- (2) The `mappingEngine` defines the underlying `MessageMapper` implementation.
+- (3) The `options` are used to configure the mapper instance to your needs.

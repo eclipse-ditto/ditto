@@ -219,9 +219,9 @@ A connection source can only receive data for Things to which it has WRITE right
 Some [connection types](#connection-types) require specific configuration which are not supported for other connection types.
 Those are put into the `specificConfig` field.
 
-### Mapping context
+### Payload Mapping
 
-For more information on the `mappingContext` see the corresponding [Payload Mapping Documentation](connectivity-mapping.html).
+For more information on mapping message payloads see the corresponding [Payload Mapping Documentation](connectivity-mapping.html).
 
 ## Placeholders
 
