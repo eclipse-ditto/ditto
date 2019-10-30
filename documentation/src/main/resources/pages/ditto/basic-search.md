@@ -16,6 +16,18 @@ optimized representation of the `Thing` data into its own database.
 No custom indexes have to be defined as the structure in the database is "flattened" so that all data contained in 
 [Things](basic-thing.html) can be searched for efficiently.
 
+## Consistency
+
+Ditto's search index provides **eventual consistency**.
+
+In order to reduce load to the database when processing updates in a high frequency, the search index is updated in 
+small batches with an default interval of 1 second (configurable via environment variable 
+`THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL`).
+
+That means that when a thing is updated and the API (e.g. the HTTP endpoint) returns a success response, the search index
+will not reflect that change in that instant. The change will most likely be reflected in the search index within
+1-2 seconds. In rare cases the duration until consistency is reached again might be higher.
+
 
 ## Search queries
 
