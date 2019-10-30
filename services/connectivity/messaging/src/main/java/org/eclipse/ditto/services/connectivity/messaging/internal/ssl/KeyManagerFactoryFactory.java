@@ -31,15 +31,15 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.net.ssl.KeyManager;
+import javax.annotation.Nonnull;
 import javax.net.ssl.KeyManagerFactory;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
-import org.eclipse.ditto.model.connectivity.credentials.CredentialsVisitor;
+import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
 
 /**
  * Factory class to create {@link javax.net.ssl.KeyManagerFactory}s.
@@ -171,14 +171,16 @@ public final class KeyManagerFactoryFactory implements CredentialsVisitor<KeyMan
     }
 
     @Override
-    public KeyManagerFactory clientCertificate(final ClientCertificateCredentials credentials) {
+    @Nonnull
+    public KeyManagerFactory clientCertificate(@Nonnull final ClientCertificateCredentials credentials) {
         final String clientKeyPem = credentials.getClientKey().orElse(null);
         final String clientCertificatePem = credentials.getClientCertificate().orElse(null);
 
         if (clientKeyPem != null && clientCertificatePem != null) {
             return newKeyManagerFactory(clientKeyPem, clientCertificatePem);
         } else {
-            return null;
+            throw exceptionMapper.fatalError("Either client key or certificate were missing")
+                    .build();
         }
     }
 }

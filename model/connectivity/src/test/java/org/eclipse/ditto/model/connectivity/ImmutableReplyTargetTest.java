@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity.replies;
+package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -19,15 +19,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.HeaderMapping;
-import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.model.connectivity.replies.ImmutableReplyTarget}.
+ * Unit test for {@link org.eclipse.ditto.model.connectivity.ImmutableReplyTarget}.
  */
 public class ImmutableReplyTargetTest {
 
@@ -39,13 +36,13 @@ public class ImmutableReplyTargetTest {
             .set("eclipse", "ditto")
             .build();
 
-    public static final ReplyTarget REPLY_TARGET =
+    static final ReplyTarget REPLY_TARGET =
             ReplyTarget.newBuilder()
                     .address(ADDRESS)
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(MAPPING))
                     .build();
 
-    public static final JsonObject REPLY_TARGET_JSON = JsonObject
+    static final JsonObject REPLY_TARGET_JSON = JsonObject
             .newBuilder()
             .set(ReplyTarget.JsonFields.ADDRESS, ADDRESS)
             .set(ReplyTarget.JsonFields.HEADER_MAPPING, MAPPING)

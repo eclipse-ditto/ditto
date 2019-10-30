@@ -17,7 +17,6 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.connectivity.replies.ReplyTarget;
 
 /**
  * A mutable builder for a {@link Source} with a fluent API.

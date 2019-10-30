@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity.replies;
+package org.eclipse.ditto.model.connectivity;
 
 import java.util.Optional;
 
@@ -25,7 +25,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.connectivity.HeaderMapping;
 
 /**
  * A target to handle outbound Ditto command responses to commands sent by a source or reply-source.

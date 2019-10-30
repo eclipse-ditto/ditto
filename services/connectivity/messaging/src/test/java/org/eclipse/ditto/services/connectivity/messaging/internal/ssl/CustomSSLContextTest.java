@@ -20,7 +20,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.eclipse.ditto.model.connectivity.credentials.Credentials;
+import org.eclipse.ditto.model.connectivity.Credentials;
 
 /**
  * Tests an {@link SSLContext} created from a {@link TrustManagerFactory} and {@link KeyManagerFactory} using the
