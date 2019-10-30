@@ -47,6 +47,7 @@ public interface ExpressionResolver {
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
+    // TODO change signature
     String resolve(String expressionTemplate, boolean allowUnresolved);
 
     /**

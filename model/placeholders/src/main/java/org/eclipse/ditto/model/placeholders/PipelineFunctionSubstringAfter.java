@@ -40,16 +40,16 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
     }
 
     @Override
-    public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
+    public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
         final String splitValue = parseAndResolve(paramsIncludingParentheses, expressionResolver);
 
-        return value.map(previousStage -> {
+        return value.onResolved(previousStage -> {
             if (previousStage.contains(splitValue)) {
-                return previousStage.substring(previousStage.indexOf(splitValue) + 1);
+                return PipelineElement.resolved(previousStage.substring(previousStage.indexOf(splitValue) + 1));
             } else {
-                return null;
+                return PipelineElement.unresolved();
             }
         });
     }
@@ -78,14 +78,6 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
         @Override
         public List<ParameterDefinition> getParameterDefinitions() {
             return Collections.singletonList(givenStringDescription);
-        }
-
-        @Override
-        public <T> ParameterDefinition<T> getParameterDefinition(final int index) {
-            if (index == 0) {
-                return (ParameterDefinition<T>) givenStringDescription;
-            }
-            throw new IllegalArgumentException("Signature does not define a parameter at index '" + index + "'");
         }
 
         @Override

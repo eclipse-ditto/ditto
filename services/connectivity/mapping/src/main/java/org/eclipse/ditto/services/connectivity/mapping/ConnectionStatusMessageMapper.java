@@ -188,7 +188,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     private ThingId extractThingId(final String mappingOptionThingId, final Map<String, String> headers) {
         final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headers));
-        return ThingId.of(PlaceholderFilter.apply(mappingOptionThingId, expressionResolver, false));
+        return ThingId.of(PlaceholderFilter.apply(mappingOptionThingId, expressionResolver));
     }
 
     private MessageMappingFailedException getMappingFailedException(final String message, final String theContentType) {

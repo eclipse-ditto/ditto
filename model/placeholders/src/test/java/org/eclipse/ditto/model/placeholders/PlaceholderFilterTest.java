@@ -43,18 +43,18 @@ public class PlaceholderFilterTest {
             .twin().things().commands().modify().build();
     private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT1 =
             TopicPath.newBuilder(ThingId.of(KNOWN_NAMESPACE, KNOWN_ID))
-            .live().things().messages().subject(KNOWN_SUBJECT).build();
+                    .live().things().messages().subject(KNOWN_SUBJECT).build();
     private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT2 =
             TopicPath.newBuilder(ThingId.of(KNOWN_NAMESPACE, KNOWN_ID))
-            .live().things().messages().subject(KNOWN_SUBJECT2).build();
+                    .live().things().messages().subject(KNOWN_SUBJECT2).build();
 
     private static final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
     private static final ThingPlaceholder thingPlaceholder = PlaceholderFactory.newThingPlaceholder();
     private static final TopicPathPlaceholder topicPlaceholder = PlaceholderFactory.newTopicPathPlaceholder();
 
-    private static final FilterTuple[] filterChain = new FilterTuple[]{
-            FilterTuple.of(HEADERS, headersPlaceholder),
-            FilterTuple.of(THING_ID, thingPlaceholder)
+    private static final PlaceholderResolver[] filterChain = new PlaceholderResolver[]{
+            PlaceholderFactory.newPlaceholderResolver(headersPlaceholder, HEADERS),
+            PlaceholderFactory.newPlaceholderResolver(thingPlaceholder, THING_ID)
     };
     private static final Placeholder[] placeholders = new Placeholder[]{
             headersPlaceholder,
@@ -69,7 +69,8 @@ public class PlaceholderFilterTest {
 
     @Test
     public void testHeadersPlaceholder() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> headersPlaceholder.resolve(HEADERS, null));
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(
+                () -> headersPlaceholder.resolve(HEADERS, null));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
                 () -> headersPlaceholder.resolve(HEADERS, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
@@ -85,7 +86,8 @@ public class PlaceholderFilterTest {
 
     @Test
     public void testThingPlaceholder() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> thingPlaceholder.resolve(THING_ID, null));
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(
+                () -> thingPlaceholder.resolve(THING_ID, null));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
                 () -> thingPlaceholder.resolve(THING_ID, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
@@ -106,14 +108,16 @@ public class PlaceholderFilterTest {
 
     @Test
     public void testTopicPlaceholder() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> topicPlaceholder.resolve(KNOWN_TOPIC_PATH, null));
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(
+                () -> topicPlaceholder.resolve(KNOWN_TOPIC_PATH, null));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
                 () -> topicPlaceholder.resolve(KNOWN_TOPIC_PATH, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ topic:unknown }}", KNOWN_TOPIC_PATH, topicPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ {{  topic:name  }} }}", KNOWN_TOPIC_PATH, topicPlaceholder));
-        assertThat(PlaceholderFilter.apply("eclipse:ditto", KNOWN_TOPIC_PATH, topicPlaceholder)).isEqualTo("eclipse:ditto");
+        assertThat(PlaceholderFilter.apply("eclipse:ditto", KNOWN_TOPIC_PATH, topicPlaceholder)).isEqualTo(
+                "eclipse:ditto");
         assertThat(PlaceholderFilter.apply("prefix:{{ topic:channel }}:{{ topic:group }}:suffix", KNOWN_TOPIC_PATH,
                 topicPlaceholder)).isEqualTo("prefix:twin:things:suffix");
 
@@ -208,87 +212,88 @@ public class PlaceholderFilterTest {
         PlaceholderFilter.validate("  {{thing:namespace }}{{  thing:name }}{{header:device-id }}  ", placeholders);
 
         // pre/postfix
-        PlaceholderFilter.validate("-----{{thing:namespace }}{{  thing:name }}{{header:device-id }}-----", placeholders);
+        PlaceholderFilter.validate("-----{{thing:namespace }}{{  thing:name }}{{header:device-id }}-----",
+                placeholders);
 
         // pre/postfix and separators
-        PlaceholderFilter.validate("-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----", placeholders);
+        PlaceholderFilter.validate("-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----",
+                placeholders);
     }
 
     @Test
     public void testValidateFails() {
         // illegal braces combinations
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.validate("{{th{{ing:namespace }}{{  thing:name }}{{header:device-id }}", placeholders));
+                () -> PlaceholderFilter.validate("{{th{{ing:namespace }}{{  thing:name }}{{header:device-id }}",
+                        placeholders));
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.validate("{{th}}ing:namespace }}{{  thing:name }}{{header:device-id }}", placeholders));
+                () -> PlaceholderFilter.validate("{{th}}ing:namespace }}{{  thing:name }}{{header:device-id }}",
+                        placeholders));
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.validate("{{thing:nam{{espace }}{{  thing:name }}{{header:device-id }}", placeholders));
+                () -> PlaceholderFilter.validate("{{thing:nam{{espace }}{{  thing:name }}{{header:device-id }}",
+                        placeholders));
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.validate("{{thing:nam}}espace }}{{  thing:name }}{{header:device-id }}", placeholders));
+                () -> PlaceholderFilter.validate("{{thing:nam}}espace }}{{  thing:name }}{{header:device-id }}",
+                        placeholders));
 
         assertThatExceptionOfType(PlaceholderFunctionTooComplexException.class).isThrownBy(
-                () -> PlaceholderFilter.validate("{{ header:unknown | fn:default('fallback') | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() }}", placeholders));
+                () -> PlaceholderFilter.validate(
+                        "{{ header:unknown | fn:default('fallback') | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() }}",
+                        placeholders));
     }
 
     @Test
     public void testValidateAndReplace() {
         final String replacement = UUID.randomUUID().toString();
         // no whitespace
-        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace}}/{{thing:name}}:{{header:device-id}}", replacement, placeholders))
-            .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
+        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace}}/{{thing:name}}:{{header:device-id}}",
+                replacement, placeholders))
+                .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
 
         // multi whitespace
-        assertThat(PlaceholderFilter.validateAndReplace("{{  thing:namespace  }}/{{  thing:name  }}:{{  header:device-id  }}", replacement, placeholders))
-            .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
+        assertThat(PlaceholderFilter.validateAndReplace(
+                "{{  thing:namespace  }}/{{  thing:name  }}:{{  header:device-id  }}", replacement, placeholders))
+                .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
 
         // mixed whitespace
-        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace }}/{{  thing:name }}:{{header:device-id }}", replacement, placeholders))
-            .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
+        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace }}/{{  thing:name }}:{{header:device-id }}",
+                replacement, placeholders))
+                .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
 
         // no separators
-        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace }}{{  thing:name }}{{header:device-id }}", replacement, placeholders))
-            .isEqualTo(String.format("%s%s%s", replacement, replacement, replacement));
+        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace }}{{  thing:name }}{{header:device-id }}",
+                replacement, placeholders))
+                .isEqualTo(String.format("%s%s%s", replacement, replacement, replacement));
 
         // whitespace separators
-        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace }}  {{  thing:name }}  {{header:device-id }}", replacement, placeholders))
-            .isEqualTo(String.format("%s  %s  %s", replacement, replacement, replacement));
+        assertThat(
+                PlaceholderFilter.validateAndReplace("{{thing:namespace }}  {{  thing:name }}  {{header:device-id }}",
+                        replacement, placeholders))
+                .isEqualTo(String.format("%s  %s  %s", replacement, replacement, replacement));
 
         // pre/postfix whitespace
-        assertThat(PlaceholderFilter.validateAndReplace("  {{thing:namespace }}{{  thing:name }}{{header:device-id }}  ", replacement, placeholders))
-            .isEqualTo(String.format("  %s%s%s  ", replacement, replacement, replacement));
+        assertThat(
+                PlaceholderFilter.validateAndReplace("  {{thing:namespace }}{{  thing:name }}{{header:device-id }}  ",
+                        replacement, placeholders))
+                .isEqualTo(String.format("  %s%s%s  ", replacement, replacement, replacement));
 
         // pre/postfix
-        assertThat(PlaceholderFilter.validateAndReplace("-----{{thing:namespace }}{{  thing:name }}{{header:device-id }}-----", replacement, placeholders))
-            .isEqualTo(String.format("-----%s%s%s-----", replacement, replacement, replacement));
+        assertThat(PlaceholderFilter.validateAndReplace(
+                "-----{{thing:namespace }}{{  thing:name }}{{header:device-id }}-----", replacement, placeholders))
+                .isEqualTo(String.format("-----%s%s%s-----", replacement, replacement, replacement));
 
         // pre/postfix and separators
-        assertThat(PlaceholderFilter.validateAndReplace("-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----", replacement, placeholders))
-            .isEqualTo(String.format("-----%s///%s///%s-----", replacement, replacement, replacement));
+        assertThat(PlaceholderFilter.validateAndReplace(
+                "-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----", replacement,
+                placeholders))
+                .isEqualTo(String.format("-----%s///%s///%s-----", replacement, replacement, replacement));
     }
 
-    private static String filterChain(final String template, final FilterTuple... tuples) {
-        String result = template;
-        for (final FilterTuple tuple : tuples) {
-            result = PlaceholderFilter.apply(result, tuple.value, tuple.placeholder, true);
-        }
-        return PlaceholderFilter.checkAllPlaceholdersResolved(result);
+    private static String filterChain(final String template, final PlaceholderResolver... tuples) {
+        return PlaceholderFilter.apply(template, PlaceholderFactory.newExpressionResolver(tuples));
     }
 
-    static class FilterTuple {
-
-        final Object value;
-        final Placeholder placeholder;
-
-        private FilterTuple(final Object value, final Placeholder placeholder) {
-            this.value = value;
-            this.placeholder = placeholder;
-        }
-
-        static FilterTuple of(final Object value, final Placeholder placeholder) {
-            return new FilterTuple(value, placeholder);
-        }
-    }
 }

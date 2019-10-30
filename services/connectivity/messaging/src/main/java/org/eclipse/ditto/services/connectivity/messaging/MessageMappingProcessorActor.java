@@ -441,8 +441,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 );
 
                 final List<Target> targets = outboundSignal.getTargets().stream().map(t -> {
-                    final String address =
-                            PlaceholderFilter.apply(t.getAddress(), expressionResolver, true);
+                    final String address = PlaceholderFilter.apply(t.getAddress(), expressionResolver);
                     return ConnectivityModelFactory.newTarget(t, address, t.getQos().orElse(null));
                 }).collect(Collectors.toList());
                 final OutboundSignal modifiedOutboundSignal =
@@ -588,7 +587,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
                 mapping.getMapping().entrySet().stream()
                         .map(e -> newEntry(e.getKey(),
-                                PlaceholderFilter.apply(e.getValue(), expressionResolver, true))
+                                PlaceholderFilter.applyWithDeletion(e.getValue(), expressionResolver))
                         )
                         .forEach(e -> dittoHeadersBuilder.putHeader(e.getKey(), e.getValue()));
 

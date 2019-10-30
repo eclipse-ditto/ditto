@@ -18,7 +18,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,10 +46,10 @@ public class ImmutablePipelineTest {
             "fn:substring-before(':')",
             "fn:unknown('foo')"
     );
-    private static final Optional<String> PIPELINE_INPUT = Optional.of("my-gateway:my-thing");
-    private static final List<Optional<String>> RESPONSES = Arrays.asList(
-            Optional.of("my-gateway"),
-            Optional.of("my-gateway")
+    private static final PipelineElement PIPELINE_INPUT = PipelineElement.resolved("my-gateway:my-thing");
+    private static final List<PipelineElement> RESPONSES = Arrays.asList(
+            PipelineElement.resolved("my-gateway"),
+            PipelineElement.resolved("my-gateway")
     );
 
     @Mock
@@ -76,7 +75,7 @@ public class ImmutablePipelineTest {
         prepareFunctionExpressionResponses();
 
         final ImmutablePipeline pipeline = new ImmutablePipeline(functionExpression, STAGES);
-        final Optional<String> result = pipeline.execute(PIPELINE_INPUT, expressionResolver);
+        final PipelineElement result = pipeline.execute(PIPELINE_INPUT, expressionResolver);
 
         verifyResultEqualsLastResponse(result);
         verifyFunctionExpressionWasCalledWithIntermediateValues();
@@ -91,11 +90,11 @@ public class ImmutablePipelineTest {
     }
 
     private void prepareFunctionExpressionResponses() {
-        Mockito.when(functionExpression.resolve(anyString(), any(Optional.class), any(ExpressionResolver.class)))
+        Mockito.when(functionExpression.resolve(anyString(), any(PipelineElement.class), any(ExpressionResolver.class)))
                 .thenReturn(RESPONSES.get(0), RESPONSES.get(1));
     }
 
-    private void verifyResultEqualsLastResponse(final Optional<String> result) {
+    private void verifyResultEqualsLastResponse(final PipelineElement result) {
         assertThat(result).isEqualTo(RESPONSES.get(1));
     }
 

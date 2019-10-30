@@ -18,12 +18,12 @@ import java.util.List;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Provides the {@code fn:upper()} function implementation.
+ * Provides the {@code fn:delete()} function implementation.
  */
 @Immutable
-final class PipelineFunctionUpper implements PipelineFunction {
+final class PipelineFunctionDelete implements PipelineFunction {
 
-    private static final String FUNCTION_NAME = "upper";
+    private static final String FUNCTION_NAME = "delete";
 
     private final PipelineFunctionParameterResolverFactory.EmptyParameterResolver parameterResolver =
             PipelineFunctionParameterResolverFactory.forEmptyParameters();
@@ -34,8 +34,8 @@ final class PipelineFunctionUpper implements PipelineFunction {
     }
 
     @Override
-    public UpperFunctionSignature getSignature() {
-        return UpperFunctionSignature.INSTANCE;
+    public DeleteFunctionSignature getSignature() {
+        return DeleteFunctionSignature.INSTANCE;
     }
 
     @Override
@@ -44,7 +44,7 @@ final class PipelineFunctionUpper implements PipelineFunction {
 
         // check if signature matches (empty params!)
         validateOrThrow(paramsIncludingParentheses);
-        return value.map(String::toUpperCase);
+        return PipelineElement.deleted();
     }
 
     private void validateOrThrow(final String paramsIncludingParentheses) {
@@ -57,11 +57,11 @@ final class PipelineFunctionUpper implements PipelineFunction {
     /**
      * Describes the signature of the {@code upper()} function.
      */
-    private static final class UpperFunctionSignature implements Signature {
+    private static final class DeleteFunctionSignature implements Signature {
 
-        private static final UpperFunctionSignature INSTANCE = new UpperFunctionSignature();
+        private static final DeleteFunctionSignature INSTANCE = new DeleteFunctionSignature();
 
-        private UpperFunctionSignature() {
+        private DeleteFunctionSignature() {
         }
 
         @Override

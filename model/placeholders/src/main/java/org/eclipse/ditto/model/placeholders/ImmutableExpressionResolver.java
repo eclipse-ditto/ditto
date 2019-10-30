@@ -122,15 +122,21 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
 
             final Optional<String> placeholderWithoutPrefix =
                     resolvePlaceholderWithoutPrefixIfSupported(placeholderResolver, placeholderTemplate);
-            return placeholderWithoutPrefix
-                    .map(p -> resolvePlaceholder(placeholderResolver, p))
+            return placeholderWithoutPrefix.map(p -> resolvePlaceholder(placeholderResolver, p))
                     .flatMap(pipelineInput -> {
-                        if (Optional.of(placeholderReplacementInValidation).equals(pipelineInput)) {
+                        if (pipelineInput.filter(placeholderReplacementInValidation::equals).isPresent()) {
                             pipeline.validate();
                             // let the input pass if validation succeeded:
                             return pipelineInput;
                         }
-                        return pipeline.execute(pipelineInput, this);
+                        final PipelineElement element = pipelineInput.map(PipelineElement::resolved)
+                                .orElse(PipelineElement.unresolved());
+                        return pipeline.execute(element, this)
+                                .accept(PipelineElement.<Optional<String>>newVisitorBuilder()
+                                        .deleted(Optional.empty()) // TODO: distinguish
+                                        .unresolved(Optional.empty())
+                                        .resolved(Optional::of)
+                                        .build());
                     });
 
         };

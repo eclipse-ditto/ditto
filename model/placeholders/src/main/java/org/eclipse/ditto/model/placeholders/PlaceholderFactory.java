@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.placeholders;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -114,27 +115,33 @@ public final class PlaceholderFactory {
     }
 
     /**
-     * Creates a new ExpressionResolver instance for validation initialized with a single {@code placeholder}.
+     * Creates a new ExpressionResolver instance for validation initialized with 0 or more placeholders.
      *
-     * @param placeholder the placeholder.
+     * @param placeholders the placeholders.
      * @return the created ExpressionResolver instance
      */
-    public static ExpressionResolver newExpressionResolverForValidation(final Placeholder<?> placeholder) {
-        return newExpressionResolver(Collections.singletonList(newPlaceholderResolverForValidation(placeholder)));
+    public static ExpressionResolver newExpressionResolverForValidation(final Placeholder<?>... placeholders) {
+        return newExpressionResolverForValidation("", placeholders);
     }
 
     /**
-     * Creates a new ExpressionResolver instance for validation initialized with a single {@code placeholder}.
+     * Creates a new ExpressionResolver instance for validation initialized with 0 or more placeholders.
      *
-     * @param placeholder the placeholder.
      * @param stringUsedInPlaceholderReplacement the dummy value used as a replacement for the found placeholders.
+     * @param placeholders the placeholders.
      * @return the created ExpressionResolver instance
      */
-    public static ExpressionResolver newExpressionResolverForValidation(final Placeholder<?> placeholder, final String stringUsedInPlaceholderReplacement) {
-        return newExpressionResolver(Collections.singletonList(newPlaceholderResolverForValidation(placeholder)), stringUsedInPlaceholderReplacement);
+    public static ExpressionResolver newExpressionResolverForValidation(final String stringUsedInPlaceholderReplacement,
+            final Placeholder<?>... placeholders) {
+        return newExpressionResolver(
+                Arrays.stream(placeholders)
+                        .map(PlaceholderFactory::newPlaceholderResolverForValidation)
+                        .collect(Collectors.toList()),
+                stringUsedInPlaceholderReplacement);
     }
 
-    private static ExpressionResolver newExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers, final String stringUsedInPlaceholderValidation) {
+    private static ExpressionResolver newExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers,
+            final String stringUsedInPlaceholderValidation) {
         return new ImmutableExpressionResolver(placeholderResolvers, stringUsedInPlaceholderValidation);
     }
 

@@ -340,7 +340,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     private static String applyExpressionResolver(final ExpressionResolver expressionResolver, final String value) {
-        return PlaceholderFilter.apply(value, expressionResolver, true);
+        return PlaceholderFilter.applyWithDeletion(value, expressionResolver);
     }
 
     private static ExpressionResolver getExpressionResolver(final ExternalMessage originalMessage,

@@ -15,7 +15,6 @@ package org.eclipse.ditto.model.placeholders;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
@@ -32,11 +31,12 @@ final class ImmutableFunctionExpression implements FunctionExpression {
     static final ImmutableFunctionExpression INSTANCE = new ImmutableFunctionExpression();
 
     private static final List<PipelineFunction> SUPPORTED = Collections.unmodifiableList(Arrays.asList(
-            new PipelineFunctionDefault(), // fn:default('fallback value')
+            new PipelineFunctionDefault(),         // fn:default('fallback value')
             new PipelineFunctionSubstringBefore(), // fn:substring-before(':')
-            new PipelineFunctionSubstringAfter(), // fn:substring-after(':')
-            new PipelineFunctionLower(), // fn:lower()
-            new PipelineFunctionUpper() // fn:upper()
+            new PipelineFunctionSubstringAfter(),  // fn:substring-after(':')
+            new PipelineFunctionLower(),           // fn:lower()
+            new PipelineFunctionUpper(),           // fn:upper()
+            new PipelineFunctionDelete()           // fn:delete()
     ));
 
     @Override
@@ -63,7 +63,7 @@ final class ImmutableFunctionExpression implements FunctionExpression {
     }
 
     @Override
-    public Optional<String> resolve(final String expression, final Optional<String> resolvedInputValue,
+    public PipelineElement resolve(final String expression, final PipelineElement resolvedInputValue,
             final ExpressionResolver expressionResolver) {
 
         if (!supports(expression.replaceFirst(getPrefix() + ":", ""))) {
@@ -77,7 +77,7 @@ final class ImmutableFunctionExpression implements FunctionExpression {
                         expressionResolver)
                 )
                 .findFirst()
-                .flatMap(o -> o);
+                .orElse(PipelineElement.unresolved());
     }
 
 }

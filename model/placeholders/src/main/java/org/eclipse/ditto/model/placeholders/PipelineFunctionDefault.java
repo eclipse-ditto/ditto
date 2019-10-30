@@ -40,25 +40,24 @@ final class PipelineFunctionDefault implements PipelineFunction {
     }
 
     @Override
-    public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
+    public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        if (value.isPresent()) {
-            // if previous stage was non-empty: proceed with that
-            return value;
-        } else {
-            // parse + resolve the specified default value:
-            return parseAndResolveThrow(paramsIncludingParentheses, expressionResolver);
-        }
+        // parse + resolve the specified default value for unresolved placeholders
+        // if previous stage does not resolve to a value. deleted pipeline elements remain deleted.
+        return value.onUnresolved(() ->
+                PipelineElement.resolved(parseAndResolveThrow(paramsIncludingParentheses, expressionResolver)));
     }
 
-    private Optional<String> parseAndResolveThrow(final String paramsIncludingParentheses, final ExpressionResolver expressionResolver) {
-        final Optional<String> resolved = this.parameterResolver.apply(paramsIncludingParentheses, expressionResolver);
-        if(!resolved.isPresent()) {
+    private String parseAndResolveThrow(final String paramsIncludingParentheses, final ExpressionResolver resolver) {
+        final Optional<String> parameterOptional =
+                this.parameterResolver.apply(paramsIncludingParentheses, resolver);
+        if (!parameterOptional.isPresent()) {
             throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                     .build();
+        } else {
+            return parameterOptional.get();
         }
-        return resolved;
     }
 
     /**
@@ -77,14 +76,6 @@ final class PipelineFunctionDefault implements PipelineFunction {
         @Override
         public List<ParameterDefinition> getParameterDefinitions() {
             return Collections.singletonList(defaultValueDescription);
-        }
-
-        @Override
-        public <T> ParameterDefinition<T> getParameterDefinition(final int index) {
-            if (index == 0) {
-                return (ParameterDefinition<T>) defaultValueDescription;
-            }
-            throw new IllegalArgumentException("Signature does not define a parameter at index '" + index + "'");
         }
 
         @Override
