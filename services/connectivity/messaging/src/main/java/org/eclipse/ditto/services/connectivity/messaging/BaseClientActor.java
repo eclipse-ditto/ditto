@@ -516,7 +516,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
         return matchEvent(Status.Status.class, (e, d) -> Objects.equals(getSender(), getSelf()),
                 (status, data) -> {
-                    log.info("{} failed: <{}>", stateName(), status);
+                    log.info("{} status: <{}>", stateName(), status);
                     data.getSessionSenders().forEach(sender ->
                             sender.first().tell(getStatusToReport(status, sender.second()), getSelf()));
                     return stop();
