@@ -41,8 +41,9 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
     private static final String MESSAGE_TEMPLATE = "Thing ID ''{0}'' is not valid!";
 
     private static final String DEFAULT_DESCRIPTION =
-            "It must contain a namespace prefix (java package notation + a colon ':') + a name and must be a valid " +
-                    "URI path segment according to RFC-3986";
+            "It must conform to the namespaced entity ID notation (see Ditto documentation)";
+
+    private static final URI DEFAULT_HREF = URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
 
     private static final long serialVersionUID = -2026814719409279158L;
 
@@ -52,7 +53,7 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * @param thingId the invalid Thing ID.
      */
     public ThingIdInvalidException(final String thingId) {
-        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, thingId), DEFAULT_DESCRIPTION, null, null);
+        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, thingId), DEFAULT_DESCRIPTION, null, DEFAULT_HREF);
     }
 
     private ThingIdInvalidException(final DittoHeaders dittoHeaders,
@@ -101,7 +102,7 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
+                .href(readHRef(jsonObject).orElse(DEFAULT_HREF))
                 .build();
     }
 
@@ -113,6 +114,7 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
+            href(DEFAULT_HREF);
         }
 
         private Builder(@Nullable final CharSequence thingId) {

@@ -14,8 +14,11 @@ package org.eclipse.ditto.services.connectivity.messaging.config;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffConfig;
+import org.eclipse.ditto.services.connectivity.messaging.backoff.DefaultBackOffConfig;
 import org.eclipse.ditto.services.base.config.ThrottlingConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
@@ -33,10 +36,12 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     private static final String CONSUMER_PATH = "consumer";
 
     private final int producerCacheSize;
+    private final BackOffConfig backOffConfig;
     private final ThrottlingConfig consumerThrottlingConfig;
 
     private DefaultAmqp10Config(final ScopedConfig config) {
         producerCacheSize = config.getInt(Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath());
+        backOffConfig = DefaultBackOffConfig.of(config);
         consumerThrottlingConfig = ThrottlingConfig.of(config.hasPath(CONSUMER_PATH)
                 ? config.getConfig(CONSUMER_PATH)
                 : ConfigFactory.empty());
@@ -64,28 +69,36 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public BackOffConfig getBackOffConfig() {
+        return backOffConfig;
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof DefaultAmqp10Config)) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         final DefaultAmqp10Config that = (DefaultAmqp10Config) o;
         return producerCacheSize == that.producerCacheSize &&
+                Objects.equals(backOffConfig, that.backOffConfig) &&
                 Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(consumerThrottlingConfig, producerCacheSize);
+        return Objects.hash(producerCacheSize, backOffConfig, consumerThrottlingConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "producerCacheSize=" + producerCacheSize +
+                ", backOffConfig=" + backOffConfig +
                 ", consumerThrottlingConfig=" + consumerThrottlingConfig +
                 "]";
     }
+
 }
