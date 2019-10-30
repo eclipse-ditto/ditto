@@ -43,5 +43,5 @@ public interface MessageMapperRegistry {
      * @throws org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException if one or more mappers
      * cannot be resolved by the registry
      */
-    void validatePayloadMapping(final PayloadMapping payloadMapping);
+    void validatePayloadMapping(PayloadMapping payloadMapping);
 }

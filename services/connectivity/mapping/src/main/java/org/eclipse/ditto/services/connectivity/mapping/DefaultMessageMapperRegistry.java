@@ -14,10 +14,10 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -104,10 +104,19 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
     }
 
     private void validateMessageMapper(final String mapper) {
-        Optional.ofNullable(customMappers.get(mapper))
-                .orElseGet(() -> Optional.ofNullable(fallbackMappers.get(mapper))
-                        .orElseThrow(() -> ConnectionConfigurationInvalidException.newBuilder(
-                                "The mapper '" + mapper + "' could not be loaded.").build()));
+        @Nullable MessageMapper resolvedMapper = customMappers.get(mapper);
+        if (null == resolvedMapper) {
+            resolvedMapper = fallbackMappers.get(mapper);
+        }
+
+        if (null == resolvedMapper) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder("The mapper <" + mapper + "> could not be loaded.")
+                    .description(MessageFormat.format(
+                            "Make sure to only use either the specified mappingDefinitions names {0} or fallback mapper names {1}.",
+                            customMappers.keySet(), fallbackMappers.keySet()))
+                    .build();
+        }
     }
 
     @Override
