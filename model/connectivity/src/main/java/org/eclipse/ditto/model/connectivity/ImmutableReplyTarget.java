@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity.replies;
+package org.eclipse.ditto.model.connectivity;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -27,8 +27,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.HeaderMapping;
 
 /**
  * Immutable implementation of {@link ReplyTarget}.

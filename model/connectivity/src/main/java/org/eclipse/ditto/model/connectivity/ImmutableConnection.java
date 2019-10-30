@@ -46,7 +46,6 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 
 /**
  * Immutable implementation of {@link Connection}.

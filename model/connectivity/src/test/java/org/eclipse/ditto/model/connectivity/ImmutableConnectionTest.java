@@ -36,8 +36,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
-import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

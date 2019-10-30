@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.connectivity.replies.ReplyTarget;
 
 /**
  * A {@link Connection} source contains several addresses to consume external messages from.

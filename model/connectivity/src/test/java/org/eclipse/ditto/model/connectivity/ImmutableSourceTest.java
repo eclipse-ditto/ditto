@@ -28,8 +28,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.connectivity.replies.ImmutableReplyTargetTest;
-import org.eclipse.ditto.model.connectivity.replies.ReplyTarget;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

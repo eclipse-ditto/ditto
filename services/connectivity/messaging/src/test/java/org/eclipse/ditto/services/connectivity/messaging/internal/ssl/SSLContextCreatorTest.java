@@ -17,7 +17,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Ce
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 
-import org.eclipse.ditto.model.connectivity.credentials.Credentials;
+import org.eclipse.ditto.model.connectivity.Credentials;
 
 /**
  * Tests {@link SSLContextCreator}.
