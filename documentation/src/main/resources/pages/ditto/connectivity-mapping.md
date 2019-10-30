@@ -729,5 +729,6 @@ Example of a resulting `ConnectionStatus` Feature:
 ##### Configuration options
 * `thingId` (required): The ID of the Thing that is updated with the connectivity state. It can either be a fixed value
  or a header placeholder (e.g. `{%raw%}{{ header:device_id }}{%endraw%}`).
-* `featureId` (optional, default: `ConnectionStatus`): The ID of the Feature that is updated.
+* `featureId` (optional, default: `ConnectionStatus`): The ID of the Feature that is updated. It can either be a
+ fixed value or resolved from a message header (e.g. `{%raw%}{{ header:feature_id }}{%endraw%}`).
  
