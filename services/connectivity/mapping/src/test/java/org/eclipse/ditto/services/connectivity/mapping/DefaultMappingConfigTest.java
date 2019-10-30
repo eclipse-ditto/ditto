@@ -61,7 +61,7 @@ public final class DefaultMappingConfigTest {
         final DefaultMappingConfig underTest = DefaultMappingConfig.of(mappingTestConfig);
 
         softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
-                .contains("javaScriptConfig");
+                .contains("javaScriptConfig", "mapperLimitsConfig");
     }
 
 }
