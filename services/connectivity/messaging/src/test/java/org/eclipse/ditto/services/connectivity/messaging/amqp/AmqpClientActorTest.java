@@ -112,6 +112,7 @@ import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -739,6 +740,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
+    @Ignore
     public void testConsumerRecreationFailureWhenConnected() throws JMSException {
         final CountDownLatch latch = new CountDownLatch(1);
         try {
