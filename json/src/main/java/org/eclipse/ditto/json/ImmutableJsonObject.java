@@ -212,8 +212,9 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         } else {
             result = pointer.getRoot()
                     .flatMap(this::getValueForKey)
-                    .map(jsonValue -> !jsonValue.isObject() ||
-                            jsonValue.asObject().contains(pointer.nextLevel())) // Recursion
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(jsonObject -> jsonObject.contains(pointer.nextLevel()))
                     .orElse(false);
         }
 
