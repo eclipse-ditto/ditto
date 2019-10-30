@@ -69,6 +69,7 @@ public class MessageMappingProcessorTest {
     private MessageMappingProcessor underTest;
 
     private static final String DITTO_MAPPER = "ditto";
+    private static final String DITTO_MAPPER_CUSTOM_HEADER_BLACKLIST = "ditto-cust-header";
     private static final String DROPPING_MAPPER = "dropping";
     private static final String FAILING_MAPPER = "faulty";
     private static final String DUPLICATING_MAPPER = "duplicating";
@@ -95,6 +96,15 @@ public class MessageMappingProcessorTest {
     public void init() {
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put(DITTO_MAPPER, DittoMessageMapper.CONTEXT);
+
+        final Map<String, String> dittoCustomMapperHeaders = new HashMap<>();
+        dittoCustomMapperHeaders.put(
+                MessageMapperConfiguration.CONTENT_TYPE_BLACKLIST,
+                "foo/bar"
+        );
+        final MappingContext dittoCustomMappingContext =
+                ConnectivityModelFactory.newMappingContext("Ditto", dittoCustomMapperHeaders);
+        mappings.put(DITTO_MAPPER_CUSTOM_HEADER_BLACKLIST, dittoCustomMappingContext);
         mappings.put(FAILING_MAPPER, FaultyMessageMapper.CONTEXT);
         mappings.put(DROPPING_MAPPER, DroppingMessageMapper.CONTEXT);
 
@@ -185,6 +195,17 @@ public class MessageMappingProcessorTest {
                 .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER))
                 .build();
         testInbound(message, 0, 1, 0);
+    }
+
+    @Test
+    public void testInboundFailedForHonoEmptyNotificationMessagesWithCustomDittoMapper() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/vnd.eclipse-hono-empty-notification");
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER_CUSTOM_HEADER_BLACKLIST))
+                .build();
+        // should fail because no payload was present:
+        testInbound(message, 0, 0, 1);
     }
 
     @Test
