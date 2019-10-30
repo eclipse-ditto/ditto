@@ -57,6 +57,8 @@ import org.slf4j.LoggerFactory;
 )
 public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
+
     static final String HEADER_HONO_TTD = "ttd";
     static final String HEADER_HONO_CREATION_TIME = "creation-time";
     static final String DEFAULT_FEATURE_ID = "ConnectionStatus";
@@ -64,14 +66,14 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     static final String MAPPING_OPTIONS_PROPERTIES_THING_ID = "thingId";
     static final String MAPPING_OPTIONS_PROPERTIES_FEATURE_ID = "featureId";
 
-    private static final String FEATURE_DEFINITION = "org.eclipse.ditto:ConnectionStatus:1.0.0";
-    private static final String FEATURE_PROPERTY_READY_SINCE = "readySince";
-    private static final String FEATURE_PROPERTY_READY_UNTIL = "readyUntil";
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
+    static final String FEATURE_DEFINITION = "org.eclipse.ditto:ConnectionStatus:1.0.0";
+    static final String FEATURE_PROPERTY_CATEGORY_STATUS = "status";
+    static final String FEATURE_PROPERTY_READY_SINCE = "readySince";
+    static final String FEATURE_PROPERTY_READY_UNTIL = "readyUntil";
 
     // (unix time) 253402300799 = (ISO-8601) 9999-12-31T23:59:59
-    private static final Instant DISTANT_FUTURE_INSTANT = Instant.ofEpochMilli(253402300799L);
+    static final Instant DISTANT_FUTURE_INSTANT = Instant.ofEpochMilli(253402300799L);
+
     private static final List<Adaptable> EMPTY_RESULT = Collections.emptyList();
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
@@ -164,7 +166,8 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
             final Instant readyUntil, final DittoHeaders dittoHeaders) {
         LOGGER.debug("Property of feature {} for thing {} adjusted by mapping", featureId, thingId);
 
-        final JsonPointer propertyJsonPointer = JsonFactory.newPointer(FEATURE_PROPERTY_READY_UNTIL);
+        final JsonPointer propertyJsonPointer = JsonFactory.newPointer(
+                FEATURE_PROPERTY_CATEGORY_STATUS + "/" + FEATURE_PROPERTY_READY_UNTIL);
 
         final DittoHeaders newDittoHeaders = dittoHeaders.toBuilder()
                 .responseRequired(false) // we never expect a response when updating the ConnectionState
@@ -183,8 +186,11 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
             @Nullable final Instant readySince, final DittoHeaders dittoHeaders) {
 
         final FeatureProperties featureProperties = FeatureProperties.newBuilder()
-                .set(FEATURE_PROPERTY_READY_SINCE, readySince != null ? readySince.toString() : null)
-                .set(FEATURE_PROPERTY_READY_UNTIL, readyUntil.toString())
+                .set(FEATURE_PROPERTY_CATEGORY_STATUS, JsonFactory.newObjectBuilder()
+                        .set(FEATURE_PROPERTY_READY_SINCE, readySince != null ? readySince.toString() : null)
+                        .set(FEATURE_PROPERTY_READY_UNTIL, readyUntil.toString())
+                        .build()
+                )
                 .build();
         final FeatureDefinition featureDefinition = FeatureDefinition.fromIdentifier(FEATURE_DEFINITION);
         final Feature feature = Feature.newBuilder()

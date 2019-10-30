@@ -18,18 +18,25 @@ import static org.eclipse.ditto.services.connectivity.mapping.ConnectionStatusMe
 import static org.eclipse.ditto.services.connectivity.mapping.ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_FEATURE_ID;
 import static org.eclipse.ditto.services.connectivity.mapping.ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,6 +50,10 @@ import com.typesafe.config.ConfigFactory;
 public class ConnectionStatusMessageMapperTest {
 
     private static final String HEADER_HONO_DEVICE_ID = "device_id";
+    private static final String CREATION_TIME_STR = "1571214120000";
+    private static final Instant CREATION_TIME = Instant.ofEpochMilli(Long.parseLong(CREATION_TIME_STR));
+    private static final String TTD_STR = "20";
+
     private static MappingConfig mappingConfig;
 
     private Map<String, String> validHeader;
@@ -61,8 +72,8 @@ public class ConnectionStatusMessageMapperTest {
 
         validHeader = new HashMap<>();
         validHeader.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId");
-        validHeader.put(HEADER_HONO_TTD, "20");
-        validHeader.put(HEADER_HONO_CREATION_TIME, "1571214120000");
+        validHeader.put(HEADER_HONO_TTD, TTD_STR);
+        validHeader.put(HEADER_HONO_CREATION_TIME, CREATION_TIME_STR);
         validMapperConfig = DefaultMessageMapperConfiguration.of("valid", validConfigProps);
     }
 
@@ -75,6 +86,59 @@ public class ConnectionStatusMessageMapperTest {
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         Assertions.assertThat(mappingResult).isNotEmpty();
+        final Adaptable adaptable = mappingResult.get(0);
+        final Signal<?> signal = DittoProtocolAdapter.newInstance().fromAdaptable(adaptable);
+        Assertions.assertThat(signal).isInstanceOf(ModifyFeature.class);
+        final ModifyFeature modifyFeature = (ModifyFeature) signal;
+        Assertions.assertThat(modifyFeature.getFeature().getDefinition()
+                .map(FeatureDefinition::getFirstIdentifier).map(FeatureDefinition.Identifier::toString)
+        ).contains(ConnectionStatusMessageMapper.FEATURE_DEFINITION);
+        Assertions.assertThat(modifyFeature.getFeature()
+                .getProperty(ConnectionStatusMessageMapper.FEATURE_PROPERTY_CATEGORY_STATUS + "/" +
+                        ConnectionStatusMessageMapper.FEATURE_PROPERTY_READY_SINCE)
+        ).contains(JsonValue.of(CREATION_TIME.toString()));
+        Assertions.assertThat(modifyFeature.getFeature()
+                .getProperty(ConnectionStatusMessageMapper.FEATURE_PROPERTY_CATEGORY_STATUS + "/" +
+                        ConnectionStatusMessageMapper.FEATURE_PROPERTY_READY_UNTIL)
+        ).contains(JsonValue.of(CREATION_TIME.plusSeconds(Long.parseLong(TTD_STR)).toString()));
+    }
+
+    @Test
+    public void doForwardMapWithValidUseCaseTtdZero() {
+        underTest.configure(mappingConfig, validMapperConfig);
+        validHeader.put(HEADER_HONO_TTD, "0");
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
+        Assertions.assertThat(mappingResult).isNotEmpty();
+        final Adaptable adaptable = mappingResult.get(0);
+        final Signal<?> signal = DittoProtocolAdapter.newInstance().fromAdaptable(adaptable);
+        Assertions.assertThat(signal).isInstanceOf(ModifyFeatureProperty.class);
+        final ModifyFeatureProperty modifyFeatureProperty = (ModifyFeatureProperty) signal;
+        Assertions.assertThat(modifyFeatureProperty.getPropertyValue())
+                .isEqualTo(JsonValue.of(CREATION_TIME.toString()));
+    }
+
+    @Test
+    public void doForwardMapWithValidUseCaseTtdMinusOne() {
+        underTest.configure(mappingConfig, validMapperConfig);
+        validHeader.put(HEADER_HONO_TTD, "-1");
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
+        final Adaptable adaptable = mappingResult.get(0);
+        final Signal<?> signal = DittoProtocolAdapter.newInstance().fromAdaptable(adaptable);
+        Assertions.assertThat(signal).isInstanceOf(ModifyFeature.class);
+        final ModifyFeature modifyFeature = (ModifyFeature) signal;
+        Assertions.assertThat(modifyFeature.getFeature().getDefinition()
+                .map(FeatureDefinition::getFirstIdentifier).map(FeatureDefinition.Identifier::toString)
+        ).contains(ConnectionStatusMessageMapper.FEATURE_DEFINITION);
+        Assertions.assertThat(modifyFeature.getFeature()
+                .getProperty(ConnectionStatusMessageMapper.FEATURE_PROPERTY_CATEGORY_STATUS + "/" +
+                        ConnectionStatusMessageMapper.FEATURE_PROPERTY_READY_SINCE)
+        ).contains(JsonValue.of(CREATION_TIME.toString()));
+        Assertions.assertThat(modifyFeature.getFeature()
+                .getProperty(ConnectionStatusMessageMapper.FEATURE_PROPERTY_CATEGORY_STATUS + "/" +
+                        ConnectionStatusMessageMapper.FEATURE_PROPERTY_READY_UNTIL)
+        ).contains(JsonValue.of(ConnectionStatusMessageMapper.DISTANT_FUTURE_INSTANT.toString()));
     }
 
     //Validate external message header
