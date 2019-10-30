@@ -15,8 +15,11 @@ package org.eclipse.ditto.services.thingsearch.persistence.read;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
@@ -96,6 +99,26 @@ public final class CountIT extends AbstractReadPersistenceITBase {
                         cf.eq(nonExistingThingId.toString())));
 
         assertThat(actualCount).isEqualTo(0);
+    }
+
+    @Test
+    public void countIgnoresDeletedThings() {
+        final Random random = new Random();
+        final long count = random.nextInt(100) + 10;
+        final long expectedCount = count - 1;
+
+        final List<Thing> thingsToCreate = Stream.iterate(0, i -> i + 1)
+                .limit(count)
+                .map(i -> createThingV2(ThingId.of(THING_BASE_ID.getNamespace(), THING_BASE_ID.getName() + i)))
+                .collect(Collectors.toList());
+        thingsToCreate.forEach(this::persistThingV2);
+
+        // delete one of the things
+        deleteThing(thingsToCreate.get(0), 0L);
+
+        final long actualCount = executeCount(cf.any());
+
+        assertThat(actualCount).isEqualTo(expectedCount);
     }
 
     private void insertThingWithAttribute(final ThingId thingId, final String attributeValue) {

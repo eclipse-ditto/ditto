@@ -107,6 +107,9 @@ entries:
         - title: Policy
           url: /basic-policy.html
           output: web
+        - title: Namespaces and Names
+          url: /basic-namespaces-and-names.html
+          output: web
 
     - title: Authentication and Authorization
       url: /basic-auth.html

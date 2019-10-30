@@ -9,7 +9,8 @@
     "status": 400,
     "error": "things:id.invalid",
     "message": "Thing ID 'invalid id' is not valid!",
-    "description": "It must contain a namespace prefix (java package notation + a colon ':') + ID and must be a valid URI path segment according to RFC-3986"
+    "description": "It must conform to the namespaced entity ID notation (see Ditto documentation)",
+    "url": "https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id"
   },
   "status": 400
 }

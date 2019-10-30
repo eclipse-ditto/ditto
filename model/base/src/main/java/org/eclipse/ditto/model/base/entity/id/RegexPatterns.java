@@ -80,8 +80,7 @@ public final class RegexPatterns {
     public static final String URI_PATH_SEGMENT_INCLUDING_DOLLAR =
             "(?:[" + ALLOWED_CHARACTERS_IN_NAME_INCLUDING_DOLLAR + "]|" + URL_ESCAPES + ")";
     /**
-     * The regex pattern for an Entity Name. Has to be conform to
-     * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
+     * The regex pattern for an Entity Name.
      */
     public static final String ENTITY_NAME_REGEX = "(?<" + ENTITY_NAME_GROUP_NAME +
             ">" + URI_PATH_SEGMENT + URI_PATH_SEGMENT_INCLUDING_DOLLAR + "*+)";

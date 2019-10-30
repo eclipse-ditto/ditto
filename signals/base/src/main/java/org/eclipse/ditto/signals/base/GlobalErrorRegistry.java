@@ -99,10 +99,9 @@ public final class GlobalErrorRegistry
                             dittoHeaders));
         }
 
+        @Nullable
         private static String getMessage(final JsonObject jsonObject) {
-            return jsonObject.getValue(DittoJsonException.JsonFields.MESSAGE)
-                    .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                            .fieldName(DittoRuntimeException.JsonFields.MESSAGE.getPointer().toString()).build());
+            return jsonObject.getValue(DittoJsonException.JsonFields.MESSAGE).orElse(null);
         }
 
         @Nullable
