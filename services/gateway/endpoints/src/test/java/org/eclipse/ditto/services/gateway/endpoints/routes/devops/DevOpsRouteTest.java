@@ -15,8 +15,8 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
-import org.eclipse.ditto.services.gateway.endpoints.config.DefaultDevOpsConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.security.config.DefaultDevOpsConfig;
+import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
