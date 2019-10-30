@@ -82,9 +82,6 @@ public class MongoReadJournal {
     // pattern that matches nothing
     private static final Pattern MATCH_NOTHING = Pattern.compile(".\\A");
 
-    // group name of collection name suffix
-    private static final String SUFFIX = "suffix";
-
     private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START =
             "akka.persistence.journal.auto-start-journals";
     private static final String AKKA_PERSISTENCE_SNAPS_AUTO_START =
@@ -320,11 +317,11 @@ public class MongoReadJournal {
     private JournalAndSnaps toJournalAndSnaps(final String collectionName) {
         final Matcher matcher1 = journalCollectionPrefix.matcher(collectionName);
         if (matcher1.matches()) {
-            return new JournalAndSnaps(matcher1.group(SUFFIX), collectionName, null);
+            return new JournalAndSnaps(collectionName, null);
         } else {
             final Matcher matcher2 = snapsCollectionPrefix.matcher(collectionName);
             if (matcher2.matches()) {
-                return new JournalAndSnaps(matcher2.group(SUFFIX), null, collectionName);
+                return new JournalAndSnaps(null, collectionName);
             } else {
                 throw new IllegalArgumentException(String.format(
                         "Collection is neither journal nor snapshot-store: <%s>", collectionName));
@@ -408,7 +405,7 @@ public class MongoReadJournal {
      */
     private static Pattern getOverrideCollectionNamePattern(final Config journalOrSnapsConfig, final String key) {
         final String collectionPrefix = journalOrSnapsConfig.getString(key);
-        return Pattern.compile("^" + collectionPrefix + String.format("(?<%s>.*)", SUFFIX));
+        return Pattern.compile("^" + collectionPrefix);
     }
 
     /**
@@ -449,23 +446,12 @@ public class MongoReadJournal {
     private static final class JournalAndSnaps {
 
         @Nullable
-        private final String suffix;
-
-        @Nullable
         private final String journal;
 
         @Nullable
         private final String snaps;
 
-        private JournalAndSnaps() {
-            this.suffix = null;
-            journal = null;
-            snaps = null;
-        }
-
-        private JournalAndSnaps(@Nullable final String suffix, @Nullable final String journal,
-                @Nullable final String snaps) {
-            this.suffix = suffix;
+        private JournalAndSnaps(@Nullable final String journal, @Nullable final String snaps) {
             this.journal = journal;
             this.snaps = snaps;
         }
@@ -475,17 +461,6 @@ public class MongoReadJournal {
             return "JournalAndSnapshot[journal=" + journal + ",snaps=" + snaps + "]";
         }
 
-        @Nullable
-        private String getSuffix() {
-            return suffix;
-        }
-
-        private static JournalAndSnaps merge(final JournalAndSnaps js1, final JournalAndSnaps js2) {
-            final String suffix = js1.suffix != null ? js1.suffix : js2.suffix;
-            final String journal = js1.journal != null ? js1.journal : js2.journal;
-            final String snaps = js1.snaps != null ? js1.snaps : js2.snaps;
-            return new JournalAndSnaps(suffix, journal, snaps);
-        }
     }
 
 }
