@@ -308,21 +308,25 @@ If no payload mapping or definition is provided, the [Ditto message mapping](con
 is used as the default.  
 
 ```json
-"mappingDefinitions": {
-  "customJs": { // (1)
-    "mappingEngine": "JavaScript", // (2)
-    "options": { // (3)
-      "incomingScript": "..",
-      "outgoingScript": ".."
+{
+  ...
+  "mappingDefinitions": {
+    "customJs": {                     // (1)
+      "mappingEngine": "JavaScript",  // (2)
+      "options": {                    // (3)
+        "incomingScript": "..",
+        "outgoingScript": ".."
+      }
     }
-  }
-},
-"sources": [
-  {
-    "addresses": "source",
-    "payloadMapping": ["customJs"]  
-  }
-] 
+  },
+  "sources": [
+    {
+      "addresses": "source",
+      "payloadMapping": ["customJs"]  
+    }
+  ]
+  ...
+}
 ```
 
 - (1) This ID can be used in sources and targets of the connection to reference this payload mapping definition.

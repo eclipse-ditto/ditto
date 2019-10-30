@@ -179,10 +179,8 @@
             "title": "Header mapping configuration",
             "description": "Headers to map for each incoming message (after the optional payload transformation) from the source's protocol headers to internal DittoHeaders.",
             "additionalProperties": false,
-            "patternProperties":
-            {
-              "^.+$":
-              {
+            "patternProperties": {
+              "^.+$": {
                 "title": "header value",
                 "description": "The key is the internal DittoHeader key to set, the value can make use of placeholders in order to access external header values via `{{ header:[any-header-name] }}`, the Thing ID via `{{ thing:id }}` or to access the DittoProtocol topic via `{{ topic:[topic-placeholder-attr] }}`.",
                 "type": "string"
@@ -192,14 +190,10 @@
           "payloadMapping": {
             "$id": "/properties/sources/items/properties/payloadMapping",
             "type": "array",
-            "title": "Payload mapping reference",
             "description": "References the IDs of payload mappers defined in the payload mapping definitions that are applied to messages received via this source.",
-            "patternProperties": {
-              "^.+$": {
-                "title": "Payload mapping reference",
-                "description": "References the IDs of payload mappers defined in the payload mapping definitions that are applied to messages received via this source.",
-                "type": "string"
-              }
+            "items": {
+              "title": "Payload definition reference",
+              "type": "string"
             }
           }
         }
@@ -268,10 +262,8 @@
             "title": "Header mapping configuration",
             "description": "Headers to map for each outgoing message (after the optional payload transformation) from the internal DittoHeaders to the targets's protocol headers.",
             "additionalProperties": false,
-            "patternProperties":
-            {
-              "^.+$":
-              {
+            "patternProperties": {
+              "^.+$": {
                 "title": "header value",
                 "description": "The key is the external header key to set, the value can make use of placeholder in order to access DittoHeader values via `{{ header:[any-header-name] }}`, the Thing ID via `{{ thing:id }}` or to access the DittoProtocol topic via `{{ topic:[topic-placeholder-attr] }}`.",
                 "type": "string"
@@ -281,14 +273,10 @@
           "payloadMapping": {
             "$id": "/properties/targets/items/properties/payloadMapping",
             "type": "array",
-            "title": "Payload mapping reference",
             "description": "References the IDs of payload mappers defined in the payload mapping definitions that are applied to messages received via this target.",
-            "patternProperties": {
-              "^.+$": {
-                "title": "Payload mapping reference",
-                "description": "References the IDs of payload mappers defined in the payload mapping definitions that are applied to messages received via this source.",
-                "type": "string"
-              }
+            "items": {
+              "title": "Payload definition reference",
+              "type": "string"
             }
           }
         }
@@ -337,10 +325,8 @@
       "title": "Specific config",
       "description": "Depending on the configured connection type, there might be protocol specific configuration options or tuning settings available. These can be configured in the specific config object. The specific config object is interpreted as a key value based map of setting properties.",
       "additionalProperties": false,
-      "patternProperties":
-      {
-        "^.+$":
-        {
+      "patternProperties": {
+        "^.+$": {
           "title": "Setting value",
           "description": "Setting value",
           "type": "string"
@@ -374,7 +360,9 @@
               }
             }
           }
-        }
+        },
+        "additionalProperties": false,
+        "required": [ "mappingEngine" ]
       }
     }
   },
