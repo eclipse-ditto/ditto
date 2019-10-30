@@ -14,6 +14,8 @@ package org.eclipse.ditto.model.base.common;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -32,13 +34,14 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 @Immutable
 public final class Placeholders {
 
-    private static final String PLACEHOLDER_GROUP_NAME = "ph";
+    private static final String PLACEHOLDER_GROUP_NAME = "p";
+    private static final String LEGACY_PLACEHOLDER_GROUP_NAME = "l";
 
-    private static final String PLACEHOLDER_START = "\\{{2}(?!\\s*\\{)";
+    private static final String PLACEHOLDER_START = "\\{\\{";
     private static final String PLACEHOLDER_END = "}}";
 
-    private static final String PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">(([^}]|}[^}])*+))";
-    private static final String LEGACY_PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">([^}]*+))";
+    private static final String PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">((}[^}]|[^}])*+))";
+    private static final String LEGACY_PLACEHOLDER_GROUP = "(?<" + LEGACY_PLACEHOLDER_GROUP_NAME + ">([^}]*+))";
     private static final String ANY_NUMBER_OF_SPACES = "\\s*+";
     private static final String PLACEHOLDER_REGEX = PLACEHOLDER_START
             + ANY_NUMBER_OF_SPACES // allow arbitrary number of spaces
@@ -48,7 +51,7 @@ public final class Placeholders {
 
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
 
-    private static final String LEGACY_PLACEHOLDER_START = "${";
+    private static final String LEGACY_PLACEHOLDER_START = "$\\{";
     private static final String LEGACY_PLACEHOLDER_END = "}";
     private static final String LEGACY_PLACEHOLDER_REGEX =
             Pattern.quote(LEGACY_PLACEHOLDER_START) + LEGACY_PLACEHOLDER_GROUP + Pattern.quote(LEGACY_PLACEHOLDER_END);
@@ -60,8 +63,29 @@ public final class Placeholders {
             Pattern.quote(LEGACY_PLACEHOLDER_START) + LEGACY_REQUEST_SUBJECT_ID + Pattern.quote(LEGACY_PLACEHOLDER_END);
     private static final Pattern LEGACY_REQUEST_SUBJECT_ID_PATTERN = Pattern.compile(LEGACY_REQUEST_SUBJECT_ID_REGEX);
 
+    private static final Pattern ANY_PLACEHOLDER_PATTERN =
+            Pattern.compile("(?:" + PLACEHOLDER_REGEX + "|" + LEGACY_PLACEHOLDER_REGEX + ")");
+
     private Placeholders() {
         throw new AssertionError();
+    }
+
+    /**
+     * Get the pattern for any placeholder.
+     *
+     * @return the pattern.
+     */
+    public static Pattern pattern() {
+        return ANY_PLACEHOLDER_PATTERN;
+    }
+
+    /**
+     * Get the group names of the placeholder in a match.
+     *
+     * @return the group name.
+     */
+    public static List<String> groupNames() {
+        return Arrays.asList(PLACEHOLDER_GROUP_NAME, LEGACY_PLACEHOLDER_GROUP_NAME);
     }
 
     /**
@@ -109,26 +133,6 @@ public final class Placeholders {
     }
 
     /**
-     * Substitutes any placeholder contained in the input not allowing unresolved placeholders.
-     *
-     * @param input the input.
-     * @param placeholderReplacerFunction a function defining how a placeholder will be replaced. It must not return
-     * null, instead it should throw a specific exception if a placeholder cannot be replaced.
-     * @param unresolvedInputHandler exception handler providing a exception which is thrown when placeholders
-     * remain unresolved, e.g. when brackets have the wrong order.
-     * @return the replaced input, if the input contains placeholders; the (same) input object, if no placeholders were
-     * contained in the input.
-     * @throws IllegalStateException if {@code placeholderReplacerFunction} returns null
-     * @throws DittoRuntimeException the passed in {@code unresolvedInputHandler} will be used in order to throw the
-     * DittoRuntimeException which was defined by the caller
-     */
-    public static String substitute(final String input,
-            final Function<String, Optional<String>> placeholderReplacerFunction,
-            final Function<String, DittoRuntimeException> unresolvedInputHandler) {
-        return substitute(input, placeholderReplacerFunction, unresolvedInputHandler, false);
-    }
-
-    /**
      * Substitutes any placeholder contained in the input.
      *
      * @param input the input.
@@ -136,8 +140,6 @@ public final class Placeholders {
      * null, instead it should throw a specific exception if a placeholder cannot be replaced.
      * @param unresolvedInputHandler exception handler providing a exception which is thrown when placeholders
      * remain unresolved, e.g. when brackets have the wrong order.
-     * @param allowUnresolved if {@code false} this method throws an exception if there are any unresolved
-     * placeholders after applying the given placeholder
      * @return the replaced input, if the input contains placeholders; the (same) input object, if no placeholders were
      * contained in the input.
      * @throws IllegalStateException if {@code placeholderReplacerFunction} returns null
@@ -147,27 +149,27 @@ public final class Placeholders {
      */
     public static String substitute(final String input,
             final Function<String, Optional<String>> placeholderReplacerFunction,
-            final Function<String, DittoRuntimeException> unresolvedInputHandler,
-            final boolean allowUnresolved) {
+            final Function<String, DittoRuntimeException> unresolvedInputHandler) {
         requireNonNull(input);
         requireNonNull(placeholderReplacerFunction);
         requireNonNull(unresolvedInputHandler);
 
         final String substitutedStandardPlaceholder = substituteStandardPlaceholder(input, placeholderReplacerFunction,
-                unresolvedInputHandler, allowUnresolved);
+                unresolvedInputHandler);
         return substituteLegacyPlaceholder(substitutedStandardPlaceholder, placeholderReplacerFunction,
-                unresolvedInputHandler, allowUnresolved);
+                unresolvedInputHandler);
     }
 
     private static String substituteLegacyPlaceholder(final String input,
             final Function<String, Optional<String>> placeholderReplacerFunction,
-            final Function<String, DittoRuntimeException> unresolvedInputHandler, final boolean allowUnresolved) {
+            final Function<String, DittoRuntimeException> unresolvedInputHandler) {
         if (containsLegacyPlaceholder(input)) {
             // for legacy placeholder we only allow request.subjectId, all other placeholders are unresolved
             if (containsLegacyRequestSubjectIdPlaceholder(input)) {
                 final String substituted =
-                        substitute(input, LEGACY_REQUEST_SUBJECT_ID_PATTERN, placeholderReplacerFunction);
-                if (!allowUnresolved && containsLegacyPlaceholder(substituted)) {
+                        substitute(input, LEGACY_REQUEST_SUBJECT_ID_PATTERN, LEGACY_PLACEHOLDER_GROUP,
+                                placeholderReplacerFunction);
+                if (containsLegacyPlaceholder(substituted)) {
                     throw unresolvedInputHandler.apply(substituted);
                 } else {
                     return substituted;
@@ -181,11 +183,12 @@ public final class Placeholders {
 
     private static String substituteStandardPlaceholder(final String input,
             final Function<String, Optional<String>> placeholderReplacerFunction,
-            final Function<String, DittoRuntimeException> unresolvedInputHandler, final boolean allowUnresolved) {
+            final Function<String, DittoRuntimeException> unresolvedInputHandler) {
 
         if (containsPlaceholder(input)) {
-            final String substituted = substitute(input, PLACEHOLDER_PATTERN, placeholderReplacerFunction);
-            if (!allowUnresolved && containsPlaceholder(substituted)) {
+            final String substituted = substitute(input, PLACEHOLDER_PATTERN, PLACEHOLDER_GROUP_NAME,
+                    placeholderReplacerFunction);
+            if (containsPlaceholder(substituted)) {
                 throw unresolvedInputHandler.apply(substituted);
             }
             return substituted;
@@ -195,12 +198,13 @@ public final class Placeholders {
     }
 
     private static String substitute(final String input, final Pattern pattern,
+            final String groupName,
             final Function<String, Optional<String>> replacerFunction) {
         final Matcher matcher = pattern.matcher(input);
         // replace with StringBuilder with JDK9
         final AtomicReference<StringBuffer> bufferReference = new AtomicReference<>();
         while (matcher.find()) {
-            final String placeholder = matcher.group(PLACEHOLDER_GROUP_NAME).trim();
+            final String placeholder = matcher.group(groupName).trim();
             replacerFunction.apply(placeholder)
                     .map(Matcher::quoteReplacement)
                     .ifPresent(replacement -> matcher.appendReplacement(lazyGet(bufferReference, StringBuffer::new),

@@ -24,6 +24,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -66,6 +67,7 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
     private final String placeholderReplacementInValidation;
 
     private final List<PlaceholderResolver<?>> placeholderResolvers;
+    private final List<Function<String, PipelineElement>> placeholderResolverFunctions;
 
     ImmutableExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers) {
         this(placeholderResolvers, DEFAULT_VALIDATION_STRING_ID);
@@ -75,44 +77,63 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
             final String stringUsedInPlaceholderValidation) {
         this.placeholderResolvers = Collections.unmodifiableList(new ArrayList<>(placeholderResolvers));
         this.placeholderReplacementInValidation = stringUsedInPlaceholderValidation;
+        placeholderResolverFunctions = placeholderResolvers.stream()
+                .map(this::makePlaceholderReplacerFunction)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public String resolve(final String expressionTemplate, final boolean allowUnresolved) {
+    public PipelineElement resolve(final String expressionTemplate, final boolean allowUnresolved) {
 
-        String templateInWork = expressionTemplate;
-        int placeholdersIdx = 0;
-        while (Placeholders.containsAnyPlaceholder(templateInWork) && placeholdersIdx < placeholderResolvers.size()) {
-            final PlaceholderResolver<?> placeholderResolver = placeholderResolvers.get(placeholdersIdx);
+        final Matcher matcher = Placeholders.pattern().matcher(expressionTemplate);
+        final StringBuffer resultBuilder = new StringBuffer();
 
-            final Function<String, Optional<String>> placeholderReplacerFunction =
-                    makePlaceholderReplacerFunction(placeholderResolver);
-
-            placeholdersIdx++;
-            final boolean isLastPlaceholderResolver = placeholdersIdx == placeholderResolvers.size();
-            templateInWork = Placeholders.substitute(templateInWork, placeholderReplacerFunction,
-                    UNRESOLVED_INPUT_HANDLER, !isLastPlaceholderResolver || allowUnresolved);
-        }
-
-        return templateInWork;
-    }
-
-    @Override
-    public Optional<String> resolveSinglePlaceholder(final String placeholder) {
-
-        for (final PlaceholderResolver<?> resolver : placeholderResolvers) {
-
-            final Optional<String> resolvedOpt = makePlaceholderReplacerFunction(resolver).apply(placeholder);
-            if (resolvedOpt.isPresent()) {
-                return resolvedOpt;
+        for (int i = 0; matcher.find(); i = matcher.end()) {
+            final String placeholderExpression = Placeholders.groupNames()
+                    .stream()
+                    .map(matcher::group)
+                    .filter(Objects::nonNull)
+                    .findAny()
+                    .orElse("");
+            final PipelineElement element = resolveAsPipelineElement(placeholderExpression);
+            switch (element.getType()) {
+                case DELETED:
+                    // abort pipeline execution: the string has been deleted.
+                    return element;
+                case UNRESOLVED:
+                    // abort pipeline execution: resolution failed where unresolved placeholders are forbidden.
+                    if (!allowUnresolved) {
+                        return element;
+                    }
             }
+            // append resolved placeholder
+            element.map(resolvedValue -> {
+                // increment counter inside matcher
+                matcher.appendReplacement(resultBuilder, "");
+                // append resolved value literally - do not attempt to interpret as regex
+                resultBuilder.append(resolvedValue);
+                return resolvedValue;
+            });
         }
 
-        return Optional.empty();
+        matcher.appendTail(resultBuilder);
+        return PipelineElement.resolved(resultBuilder.toString());
     }
 
-    private Function<String, Optional<String>> makePlaceholderReplacerFunction(
-            final PlaceholderResolver<?> placeholderResolver) {
+    @Override
+    public Optional<String> resolveSinglePlaceholder(final String placeholderExpression) {
+        return placeholderResolverFunctions.stream()
+                .flatMap(f -> StreamSupport.stream(f.apply(placeholderExpression).spliterator(), false))
+                .findAny();
+    }
+
+    private PipelineElement resolveAsPipelineElement(final String placeholderExpression) {
+        return placeholderResolverFunctions.stream()
+                .map(f -> f.apply(placeholderExpression))
+                .reduce(PipelineElement.unresolved(), PipelineElement::orElse, PipelineElement::orElse);
+    }
+
+    private Function<String, PipelineElement> makePlaceholderReplacerFunction(final PlaceholderResolver<?> resolver) {
 
         return template -> {
 
@@ -121,24 +142,15 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
             final Pipeline pipeline = getPipelineFromExpressions(pipelineStagesExpressions);
 
             final Optional<String> placeholderWithoutPrefix =
-                    resolvePlaceholderWithoutPrefixIfSupported(placeholderResolver, placeholderTemplate);
-            return placeholderWithoutPrefix.map(p -> resolvePlaceholder(placeholderResolver, p))
-                    .flatMap(pipelineInput -> {
-                        if (pipelineInput.filter(placeholderReplacementInValidation::equals).isPresent()) {
-                            pipeline.validate();
-                            // let the input pass if validation succeeded:
-                            return pipelineInput;
-                        }
-                        final PipelineElement element = pipelineInput.map(PipelineElement::resolved)
-                                .orElse(PipelineElement.unresolved());
-                        return pipeline.execute(element, this)
-                                .accept(PipelineElement.<Optional<String>>newVisitorBuilder()
-                                        .deleted(Optional.empty()) // TODO: distinguish
-                                        .unresolved(Optional.empty())
-                                        .resolved(Optional::of)
-                                        .build());
-                    });
+                    resolvePlaceholderWithoutPrefixIfSupported(resolver, placeholderTemplate);
 
+            return placeholderWithoutPrefix.map(p -> resolvePlaceholder(resolver, p))
+                    .map(pipelineInput -> {
+                        return pipeline.execute(
+                                pipelineInput.map(PipelineElement::resolved).orElse(PipelineElement.unresolved()),
+                                this);
+                    })
+                    .orElse(PipelineElement.unresolved());
         };
     }
 

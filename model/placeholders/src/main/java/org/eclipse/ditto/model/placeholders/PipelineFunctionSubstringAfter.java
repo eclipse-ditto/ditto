@@ -26,9 +26,6 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
 
     private static final String FUNCTION_NAME = "substring-after";
 
-    private final PipelineFunctionParameterResolverFactory.SingleParameterResolver parameterResolver =
-            PipelineFunctionParameterResolverFactory.forStringParameter();
-
     @Override
     public String getName() {
         return FUNCTION_NAME;
@@ -56,7 +53,8 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
 
     private String parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
-        final Optional<String> resolved = parameterResolver.apply(paramsIncludingParentheses, expressionResolver);
+        final Optional<String> resolved = PipelineFunctionParameterResolverFactory.forStringParameter()
+                .apply(paramsIncludingParentheses, expressionResolver);
         return resolved.orElseThrow(() ->
                 PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                         .build());

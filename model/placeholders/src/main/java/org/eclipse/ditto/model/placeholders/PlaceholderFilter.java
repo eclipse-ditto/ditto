@@ -16,7 +16,10 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -124,7 +127,7 @@ public final class PlaceholderFilter {
      * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
      */
     public static String apply(final String template, final ExpressionResolver expressionResolver) {
-        return doApply(template, expressionResolver, false);
+        return doApply(template, expressionResolver);
     }
 
     /**
@@ -142,10 +145,16 @@ public final class PlaceholderFilter {
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code template} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
-    // TODO: change signature to actuially apply deletion
-    public static String applyWithDeletion(final String template, final ExpressionResolver resolver) {
-
-        return resolver.resolve(template, true);
+    public static Optional<String> applyWithDeletion(final String template, final ExpressionResolver resolver) {
+        final Supplier<String> throwUnresolvedPlaceholderException = () -> {
+            throw UnresolvedPlaceholderException.newBuilder(template).build();
+        };
+        return resolver.resolve(template, true)
+                .accept(PipelineElement.<Optional<String>>newVisitorBuilder()
+                        .resolved(Optional::of)
+                        .unresolved(() -> Optional.of(template))
+                        .deleted(Optional::empty)
+                        .build());
     }
 
     /**
@@ -159,7 +168,7 @@ public final class PlaceholderFilter {
      * function chain which is too complex (e.g. too much chained function calls)
      */
     public static void validate(final String template, final Placeholder<?>... placeholders) {
-        doApply(template, PlaceholderFactory.newExpressionResolverForValidation(placeholders), false);
+        doApply(template, PlaceholderFactory.newExpressionResolverForValidation(placeholders));
     }
 
     /**
@@ -178,15 +187,20 @@ public final class PlaceholderFilter {
     public static String validateAndReplace(final String template, final String stringUsedInPlaceholderReplacement,
             final Placeholder<?>... placeholders) {
         return doApply(template,
-                PlaceholderFactory.newExpressionResolverForValidation(stringUsedInPlaceholderReplacement, placeholders),
-                false);
+                PlaceholderFactory.newExpressionResolverForValidation(stringUsedInPlaceholderReplacement, placeholders)
+        );
     }
 
-    private static String doApply(final String template,
-            final ExpressionResolver expressionResolver,
-            final boolean allowUnresolved) {
-
-        return expressionResolver.resolve(template, allowUnresolved);
+    private static String doApply(final String template, final ExpressionResolver expressionResolver) {
+        final Supplier<String> throwUnresolvedPlaceholderException = () -> {
+            throw UnresolvedPlaceholderException.newBuilder(template).build();
+        };
+        return expressionResolver.resolve(template, false)
+                .accept(PipelineElement.<String>newVisitorBuilder()
+                        .resolved(Function.identity())
+                        .unresolved(throwUnresolvedPlaceholderException)
+                        .deleted(throwUnresolvedPlaceholderException)
+                        .build());
     }
 
     static String checkAllPlaceholdersResolved(final String input) {

@@ -25,9 +25,6 @@ final class PipelineFunctionUpper implements PipelineFunction {
 
     private static final String FUNCTION_NAME = "upper";
 
-    private final PipelineFunctionParameterResolverFactory.EmptyParameterResolver parameterResolver =
-            PipelineFunctionParameterResolverFactory.forEmptyParameters();
-
     @Override
     public String getName() {
         return FUNCTION_NAME;
@@ -48,7 +45,7 @@ final class PipelineFunctionUpper implements PipelineFunction {
     }
 
     private void validateOrThrow(final String paramsIncludingParentheses) {
-        if (!parameterResolver.test(paramsIncludingParentheses)) {
+        if (!PipelineFunctionParameterResolverFactory.forEmptyParameters().test(paramsIncludingParentheses)) {
             throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                     .build();
         }

@@ -52,8 +52,8 @@ public class ExpressionResolverTest {
 
         assertThat(
                 expressionResolver.resolve("{{ header:nonexisting | fn:default('fallback-val') }}",
-                true)
-        ).isEqualTo("fallback-val");
+                        true)
+        ).contains("fallback-val");
     }
 
     @Test
@@ -62,7 +62,7 @@ public class ExpressionResolverTest {
         assertThat(
                 expressionResolver.resolve("{{ header:nonexisting | fn:default(header:header-name) }}",
                         true)
-        ).isEqualTo("header-val");
+        ).contains("header-val");
     }
 
     @Test
@@ -71,7 +71,7 @@ public class ExpressionResolverTest {
         assertThat(
                 expressionResolver.resolve("{{ header:nonexisting | fn:default(header:alsoNotThere) }}",
                         true)
-        ).isEqualTo("header:alsoNotThere");
+        ).contains("header:alsoNotThere");
     }
 
     @Test
@@ -80,7 +80,7 @@ public class ExpressionResolverTest {
         assertThat(
                 expressionResolver.resolve("{{ thing:namespace }}:{{thing:name | fn:substring-before(':') }}",
                         true)
-        ).isEqualTo(THING_NS + ":" + "the.id");
+        ).contains(THING_NS + ":" + "the.id");
     }
 
     @Test
@@ -88,7 +88,7 @@ public class ExpressionResolverTest {
 
         assertThat(expressionResolver.resolve(
                 "{{ thing:namespace }}:{{thing:name | fn:substring-before('_') | fn:default(thing:name)}}", true)
-        ).isEqualTo(THING_ID.toString());
+        ).contains(THING_ID.toString());
     }
 
     @Test
@@ -97,7 +97,7 @@ public class ExpressionResolverTest {
         assertThat(
                 expressionResolver.resolve("{{ thing:name | fn:substring-after(':') | fn:upper() }}",
                         true)
-        ).isEqualTo("the-rest".toUpperCase());
+        ).contains("the-rest".toUpperCase());
     }
 
 }

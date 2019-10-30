@@ -28,6 +28,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -586,8 +587,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
                 final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
                 mapping.getMapping().entrySet().stream()
-                        .map(e -> newEntry(e.getKey(),
-                                PlaceholderFilter.applyWithDeletion(e.getValue(), expressionResolver))
+                        .flatMap(e -> PlaceholderFilter.applyWithDeletion(e.getValue(), expressionResolver)
+                                .map(resolvedValue -> Stream.of(newEntry(e.getKey(), resolvedValue)))
+                                .orElseGet(Stream::empty)
                         )
                         .forEach(e -> dittoHeadersBuilder.putHeader(e.getKey(), e.getValue()));
 

@@ -21,6 +21,13 @@ import java.util.function.Supplier;
 public interface PipelineElement extends Iterable<String> {
 
     /**
+     * Get the type of this pipeline element.
+     *
+     * @return the type.
+     */
+    Type getType();
+
+    /**
      * Advance a resolved value to the next stage. Other elements are unchanged.
      *
      * @param stringProcessor What to do for resolved values.
@@ -64,6 +71,23 @@ public interface PipelineElement extends Iterable<String> {
     }
 
     /**
+     * Combine 2 pipeline elements such that unresolved elements are replaced by resolved elements, which is in turn
+     * replaced by the deletion signifier.
+     * <p>
+     * Consider all pipeline elements as a simple lattice with PipelineElementDeleted as top and
+     * PipelineElementUnresolved as bottom. This function computes a maximal of 2 elements in the lattice.
+     * </p>
+     *
+     * @param other the other element.
+     * @return the combined element.
+     */
+    default PipelineElement orElse(final PipelineElement other) {
+        return onDeleted(() -> this)
+                .onResolved(s -> this)
+                .onUnresolved(() -> other);
+    }
+
+    /**
      * Create a builder of a visitor to evaluate pipeline elements.
      *
      * @param <T> the type of results.
@@ -99,5 +123,26 @@ public interface PipelineElement extends Iterable<String> {
      */
     static PipelineElement unresolved() {
         return PipelineElementUnresolved.INSTANCE;
+    }
+
+    /**
+     * Types of pipeline element.
+     */
+    enum Type {
+
+        /**
+         * Type of the signifier for deletion.
+         */
+        DELETED,
+
+        /**
+         * Type of resolved values.
+         */
+        RESOLVED,
+
+        /**
+         * Type of the signifier for resolution failure.
+         */
+        UNRESOLVED
     }
 }

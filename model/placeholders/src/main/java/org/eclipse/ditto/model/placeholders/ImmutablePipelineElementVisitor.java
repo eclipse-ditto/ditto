@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.placeholders;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -26,13 +27,13 @@ import javax.annotation.Nullable;
 final class ImmutablePipelineElementVisitor<T> implements PipelineElementVisitor<T> {
 
     private final Function<String, T> onResolution;
-    private final T onIrresolution;
-    private final T onDeletion;
+    private final Supplier<T> onIrresolution;
+    private final Supplier<T> onDeletion;
 
     private ImmutablePipelineElementVisitor(
             final Function<String, T> onResolution,
-            final T onIrresolution,
-            final T onDeletion) {
+            final Supplier<T> onIrresolution,
+            final Supplier<T> onDeletion) {
         this.onResolution = onResolution;
         this.onIrresolution = onIrresolution;
         this.onDeletion = onDeletion;
@@ -49,19 +50,19 @@ final class ImmutablePipelineElementVisitor<T> implements PipelineElementVisitor
 
     @Override
     public T unresolved() {
-        return onIrresolution;
+        return onIrresolution.get();
     }
 
     @Override
     public T deleted() {
-        return onDeletion;
+        return onDeletion.get();
     }
 
     private static final class Builder<T> implements PipelineElementVisitor.Builder<T> {
 
         @Nullable private Function<String, T> onResolution;
-        @Nullable private T onIrresolution;
-        @Nullable private T onDeletion;
+        @Nullable private Supplier<T> onIrresolution;
+        @Nullable private Supplier<T> onDeletion;
 
         private Builder() {}
 
@@ -80,13 +81,13 @@ final class ImmutablePipelineElementVisitor<T> implements PipelineElementVisitor
         }
 
         @Override
-        public PipelineElementVisitor.Builder<T> unresolved(final T onIrresolution) {
+        public PipelineElementVisitor.Builder<T> unresolved(final Supplier<T> onIrresolution) {
             this.onIrresolution = onIrresolution;
             return this;
         }
 
         @Override
-        public PipelineElementVisitor.Builder<T> deleted(final T onDeletion) {
+        public PipelineElementVisitor.Builder<T> deleted(final Supplier<T> onDeletion) {
             this.onDeletion = onDeletion;
             return this;
         }

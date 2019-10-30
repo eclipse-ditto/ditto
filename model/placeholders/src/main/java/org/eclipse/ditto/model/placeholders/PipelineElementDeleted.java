@@ -30,6 +30,11 @@ final class PipelineElementDeleted implements PipelineElement {
     private PipelineElementDeleted() {}
 
     @Override
+    public Type getType() {
+        return Type.DELETED;
+    }
+
+    @Override
     public PipelineElement onResolved(final Function<String, PipelineElement> stringProcessor) {
         return this;
     }
@@ -52,5 +57,10 @@ final class PipelineElementDeleted implements PipelineElement {
     @Override
     public Iterator<String> iterator() {
         return Collections.emptyIterator();
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName();
     }
 }

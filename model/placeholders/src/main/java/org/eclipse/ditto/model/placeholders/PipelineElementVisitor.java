@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.placeholders;
 
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Visitor to evaluate pipeline elements.
@@ -43,14 +44,42 @@ public interface PipelineElementVisitor<T> {
      */
     T deleted();
 
+    /**
+     * Builder of a visitor to evaluate pipeline elements.
+     *
+     * @param <T> the type of results.
+     */
     interface Builder<T> {
 
+        /**
+         * Create the visitor.
+         *
+         * @return the visitor.
+         */
         PipelineElementVisitor<T> build();
 
+        /**
+         * Set callback to handle resolved values.
+         *
+         * @param onResolution what to do on resolved values.
+         * @return this builder.
+         */
         Builder<T> resolved(Function<String, T> onResolution);
 
-        Builder<T> unresolved(T onIrresolution);
+        /**
+         * Set callback to handle resolution failure.
+         *
+         * @param onIrresolution what to do on resolution failure.
+         * @return this builder.
+         */
+        Builder<T> unresolved(Supplier<T> onIrresolution);
 
-        Builder<T> deleted(T onDeletion);
+        /**
+         * Set callback to handle deletion.
+         *
+         * @param onDeletion what to do when deletion is signalled.
+         * @return this builder.
+         */
+        Builder<T> deleted(Supplier<T> onDeletion);
     }
 }

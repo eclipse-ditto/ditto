@@ -37,18 +37,14 @@ public interface ExpressionResolver {
      * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
      * (e.g. functions).
      *
-     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and and execute optional
+     * @param expressionTemplate the expressionTemplate to resolve {@link org.eclipse.ditto.model.placeholders.Placeholder}s and and execute optional
      * pipeline stages
-     * @param allowUnresolved whether it should be allowed that unresolved placeholder may be present after processing
-     * @return the resolved String or the original {@code expressionTemplate} if {@code allowUnresolved} was set to
-     * {@code true} and placeholders could not be resolved.
-     * @throws org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException thrown if {@code allowUnresolved} was
-     * set to {@code false} and the passed in {@code expressionTemplate} could not be resolved
+     * @param allowUnresolved whether unresolved placeholder expressions are allowed to remain in the result.
+     * @return the resolved String, a signifier for resolution failure, or one for deletion.
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
-    // TODO change signature
-    String resolve(String expressionTemplate, boolean allowUnresolved);
+    PipelineElement resolve(String expressionTemplate, final boolean allowUnresolved);
 
     /**
      * Resolves a single {@link Placeholder} with the passed full {@code placeholder} name (e.g.: {@code thing:id} or

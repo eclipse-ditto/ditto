@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -133,7 +134,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         final ExpressionResolver expressionResolver =
                                 getExpressionResolver(outbound.getExternalMessage(), outbound.getSource());
                         final T replyTargetAddress =
-                                toPublishTarget(applyExpressionResolver(expressionResolver, replyTarget.getAddress()));
+                                toPublishTarget(applyForTargetAddress(expressionResolver, replyTarget.getAddress()));
                         final ExternalMessage responseWithMappedHeaders =
                                 applyHeaderMapping(expressionResolver, outbound,
                                         replyTarget.getHeaderMapping().orElse(null), log(), this::withMappedHeaders);
@@ -325,8 +326,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final Signal<?> sourceSignal = outboundSignal.getSource();
 
             final Map<String, String> mappedHeaders = mapping.getMapping().entrySet().stream()
-                    .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                            applyExpressionResolver(expressionResolver, e.getValue())))
+                    .flatMap(e -> applyExpressionResolver(expressionResolver, e.getValue())
+                            .map(resolvedValue -> Stream.of(new AbstractMap.SimpleEntry<>(e.getKey(), resolvedValue)))
+                            .orElseGet(Stream::empty))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             LogUtil.enhanceLogWithCorrelationId(log, sourceSignal);
@@ -339,8 +341,13 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         }
     }
 
-    private static String applyExpressionResolver(final ExpressionResolver expressionResolver, final String value) {
-        return PlaceholderFilter.applyWithDeletion(value, expressionResolver);
+    private static Optional<String> applyExpressionResolver(final ExpressionResolver resolver, final String value) {
+        return PlaceholderFilter.applyWithDeletion(value, resolver);
+    }
+
+    // For target address: Leave it as-is if resolution fails or results in deletion.
+    private static String applyForTargetAddress(final ExpressionResolver resolver, final String value) {
+        return PlaceholderFilter.applyWithDeletion(value, resolver).orElse(value);
     }
 
     private static ExpressionResolver getExpressionResolver(final ExternalMessage originalMessage,

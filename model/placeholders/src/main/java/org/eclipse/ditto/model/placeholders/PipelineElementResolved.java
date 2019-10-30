@@ -36,6 +36,11 @@ final class PipelineElementResolved implements PipelineElement {
     }
 
     @Override
+    public Type getType() {
+        return Type.RESOLVED;
+    }
+
+    @Override
     public PipelineElement onResolved(final Function<String, PipelineElement> stringProcessor) {
         return stringProcessor.apply(value);
     }
@@ -58,5 +63,10 @@ final class PipelineElementResolved implements PipelineElement {
     @Override
     public Iterator<String> iterator() {
         return Collections.singletonList(value).iterator();
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + value + "]";
     }
 }

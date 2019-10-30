@@ -26,9 +26,6 @@ final class PipelineFunctionDefault implements PipelineFunction {
 
     private static final String FUNCTION_NAME = "default";
 
-    private final PipelineFunctionParameterResolverFactory.SingleParameterResolver parameterResolver =
-            PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
-
     @Override
     public String getName() {
         return FUNCTION_NAME;
@@ -51,7 +48,8 @@ final class PipelineFunctionDefault implements PipelineFunction {
 
     private String parseAndResolveThrow(final String paramsIncludingParentheses, final ExpressionResolver resolver) {
         final Optional<String> parameterOptional =
-                this.parameterResolver.apply(paramsIncludingParentheses, resolver);
+                PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter()
+                        .apply(paramsIncludingParentheses, resolver);
         if (!parameterOptional.isPresent()) {
             throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                     .build();

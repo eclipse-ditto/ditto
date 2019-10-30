@@ -26,8 +26,18 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class PipelineFunctionParameterResolverFactory {
 
+    private static final EmptyParameterResolver EMPTY_PARAMETER_RESOLVER = new EmptyParameterResolver();
+
+    private static final SingleParameterResolver STRING_PARAMETER_RESOLVER =
+            new SingleParameterResolver(SingleParameterResolver.STRING_CONSTANT_PATTERN_STR);
+
+    private static final SingleParameterResolver STRING_OR_PLACEHOLDER_PARAMETER_RESOLVER =
+            new SingleParameterResolver(SingleParameterResolver.STRING_CONSTANT_PATTERN_STR + "|" +
+                    SingleParameterResolver.PLACEHOLDER_PATTERN_STR);
+
+
     /**
-     * Use this to create a parameter resolver that validates for empty parameters.
+     * Get a parameter resolver that validates for empty parameters.
      * <p>
      * E.g.
      * <ul>
@@ -35,11 +45,11 @@ final class PipelineFunctionParameterResolverFactory {
      * </ul>
      */
     static EmptyParameterResolver forEmptyParameters() {
-        return new EmptyParameterResolver();
+        return EMPTY_PARAMETER_RESOLVER;
     }
 
     /**
-     * Use this to create a parameter resolver that resolves a string constant.
+     * Get a parameter resolver that resolves a string constant.
      * <p>
      * E.g.
      * <ul>
@@ -48,11 +58,11 @@ final class PipelineFunctionParameterResolverFactory {
      * </ul>
      */
     static SingleParameterResolver forStringParameter() {
-        return new SingleParameterResolver(SingleParameterResolver.STRING_CONSTANT_PATTERN_STR);
+        return STRING_PARAMETER_RESOLVER;
     }
 
     /**
-     * Use this to create a parameter resolver that resolves a string constant or a placeholder.
+     * Get a parameter resolver that resolves a string constant or a placeholder.
      * <p>
      * E.g.
      * <ul>
@@ -62,8 +72,7 @@ final class PipelineFunctionParameterResolverFactory {
      * </ul>
      */
     static SingleParameterResolver forStringOrPlaceholderParameter() {
-        return new SingleParameterResolver(SingleParameterResolver.STRING_CONSTANT_PATTERN_STR + "|" +
-                SingleParameterResolver.PLACEHOLDER_PATTERN_STR);
+        return STRING_OR_PLACEHOLDER_PARAMETER_RESOLVER;
     }
 
     private PipelineFunctionParameterResolverFactory() {
@@ -99,7 +108,10 @@ final class PipelineFunctionParameterResolverFactory {
 
                 final String placeholder = matcher.group("placeholder");
                 if (placeholder != null) {
-                    return Optional.of(expressionResolver.resolveSinglePlaceholder(placeholder).orElse(placeholder));
+                    // if resolution fails, interpret the placeholder string as string literal.
+                    final String resolutionWithFallback =
+                            expressionResolver.resolveSinglePlaceholder(placeholder).orElse(placeholder);
+                    return Optional.of(resolutionWithFallback);
                 }
             }
 
