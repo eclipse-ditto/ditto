@@ -103,9 +103,9 @@ public class WrappingMessageMapperTest {
     @Test
     public void mapMessageWithInvalidNumberOfMessages() {
         exception.expect(MessageMappingFailedException.class);
-        List<Adaptable> listOfMockAdaptable = listWithInvalideNumberOfElements(mockAdaptable,
+        final List<Adaptable> adaptables = listOfElements(mockAdaptable,
                 mapperLimitsConfig.getMapperLimitsConfig().getMaxMappedInboundMessages());
-        when(mockMapper.map(any(ExternalMessage.class))).thenReturn(listOfMockAdaptable);
+        when(mockMapper.map(any(ExternalMessage.class))).thenReturn(adaptables);
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockMessage);
@@ -115,10 +115,10 @@ public class WrappingMessageMapperTest {
     @Test
     public void mapAdaptableWithInvalidNumberOfMessages() {
         exception.expect(MessageMappingFailedException.class);
-        List<ExternalMessage> listOfMockAdaptable =
-                listWithInvalideNumberOfElements(mockMessage,
+        final List<ExternalMessage> externalMessages =
+                listOfElements(mockMessage,
                         mapperLimitsConfig.getMapperLimitsConfig().getMaxMappedOutboundMessages());
-        when(mockMapper.map(any(Adaptable.class))).thenReturn(listOfMockAdaptable);
+        when(mockMapper.map(any(Adaptable.class))).thenReturn(externalMessages);
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockAdaptable);
@@ -126,11 +126,11 @@ public class WrappingMessageMapperTest {
         verify(mockMapper).map(mockAdaptable);
     }
 
-    private <T> List<T> listWithInvalideNumberOfElements(T elementInList, final int invalidLimitNumber) {
-        List<T> listOfMockAdaptable = new ArrayList<>();
-        for (int i = 0; i < invalidLimitNumber + 1; i++) {
-            listOfMockAdaptable.add(elementInList);
+    private <T> List<T> listOfElements(final T elementInList, final int numberOfElements) {
+        final List<T> list = new ArrayList<>();
+        for (int i = 0; i < numberOfElements + 1; i++) {
+            list.add(elementInList);
         }
-        return listOfMockAdaptable;
+        return list;
     }
 }
