@@ -15,9 +15,9 @@ node {
       jdk: 'JDK11',
       mavenLocalRepo: theMvnRepo) {
 
-      sh "mvn clean deploy javadoc:jar source:jar" +
+      sh "mvn clean deploy source:jar" +
               " -T16 --batch-mode --errors" +
-              " -Pbuild-documentation,internal-repos -DcreateJavadoc=true" +
+              " -Pbuild-documentation,internal-repos" +
               " -Drevision=${theVersion}"
     }
   }
