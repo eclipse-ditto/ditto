@@ -80,11 +80,14 @@ public final class JavaScriptMessageMapperRhinoTest {
             MAPPING_INCOMING_PAYLOAD_STRING.getBytes(StandardCharsets.UTF_8));
 
     private static final MappingConfig MAPPING_CONFIG =
-            DefaultMappingConfig.of(ConfigFactory.parseString("javascript {\n" +
-                    "        maxScriptSizeBytes = 50000 # 50kB\n" +
-                    "        maxScriptExecutionTime = 500ms\n" +
-                    "        maxScriptStackDepth = 10\n" +
-                    "      }"));
+            DefaultMappingConfig.of(ConfigFactory.parseString(
+                    "mapping {\n" +
+                            "  javascript {\n" +
+                            "    maxScriptSizeBytes = 50000 # 50kB\n" +
+                            "    maxScriptExecutionTime = 500ms\n" +
+                            "    maxScriptStackDepth = 10\n" +
+                            "  }\n" +
+                            "}"));
 
     private static final String MAPPING_INCOMING_PLAIN =
             "function mapToDittoProtocolMsg(\n" +

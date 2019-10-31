@@ -83,18 +83,18 @@ public class DefaultMapperLimitsConfigTest {
 
         softly.assertThat(underTest.getMaxSourceMappers())
                 .as(MapperLimitsConfig.MapperLimitsConfigValue.MAX_SOURCE_MAPPERS.getConfigPath())
-                .isEqualTo(1);
+                .isEqualTo(2);
 
         softly.assertThat(underTest.getMaxMappedInboundMessages())
                 .as(MapperLimitsConfig.MapperLimitsConfigValue.MAX_MAPPED_INBOUND_MESSAGE.getConfigPath())
-                .isEqualTo(1);
+                .isEqualTo(3);
 
         softly.assertThat(underTest.getMaxTargetMappers())
                 .as(MapperLimitsConfig.MapperLimitsConfigValue.MAX_TARGET_MAPPERS.getConfigPath())
-                .isEqualTo(1);
+                .isEqualTo(4);
 
         softly.assertThat(underTest.getMaxMappedOutboundMessages())
                 .as(MapperLimitsConfig.MapperLimitsConfigValue.MAX_MAPPED_OUTBOUND_MESSAGE.getConfigPath())
-                .isEqualTo(1);
+                .isEqualTo(5);
     }
 }

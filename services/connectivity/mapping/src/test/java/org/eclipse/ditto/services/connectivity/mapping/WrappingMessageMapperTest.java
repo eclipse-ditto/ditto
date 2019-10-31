@@ -35,19 +35,20 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.internal.verification.VerificationModeFactory;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Tests for {@link WrappingMessageMapper}.
  */
 public class WrappingMessageMapperTest {
-
-    private static final int limitOfIncommingMessages = 10;
-    private static final int limitOfOutgoingMessages = 10;
 
     private MessageMapper mockMapper;
     private MessageMapper underTest;
     private MessageMapperConfiguration mockConfiguration;
     private ExternalMessage mockMessage;
     private Adaptable mockAdaptable;
+
+    private MappingConfig mapperLimitsConfig;
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
@@ -63,7 +64,7 @@ public class WrappingMessageMapperTest {
         when(mockMapper.map(mockAdaptable)).thenReturn(singletonList(mockMessage));
         when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
-
+        mapperLimitsConfig = DefaultMappingConfig.of(ConfigFactory.load("mapper-limits-test"));
         underTest = WrappingMessageMapper.wrap(mockMapper);
     }
 
@@ -75,13 +76,13 @@ public class WrappingMessageMapperTest {
     public void configure() {
         when(mockConfiguration.getContentTypeBlacklist()).thenReturn(Collections.singletonList("blacklistedContentType"));
 
-        underTest.configure(null, mockConfiguration);
-
-        verify(mockMapper).configure(null, mockConfiguration);
+        underTest.configure(mapperLimitsConfig, mockConfiguration);
+        verify(mockMapper).configure(mapperLimitsConfig, mockConfiguration);
     }
 
     @Test
     public void mapMessage() {
+        underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockMessage);
         verify(mockMapper).map(any(ExternalMessage.class));
     }
@@ -91,6 +92,7 @@ public class WrappingMessageMapperTest {
         final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap(ExternalMessage.CONTENT_TYPE_HEADER, "contentType"));
         when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
 
+        underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockAdaptable);
         verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getHeaders();
         verify(mockMapper).map(mockAdaptable);
@@ -99,20 +101,27 @@ public class WrappingMessageMapperTest {
     @Test
     public void mapMessageWithInvalidNumberOfMessages() {
         exception.expect(MessageMappingFailedException.class);
-        List<Adaptable> listOfMockAdaptable = listWithInvalideNumberOfElements(mockAdaptable, limitOfIncommingMessages);
+        List<Adaptable> listOfMockAdaptable = listWithInvalideNumberOfElements(mockAdaptable,
+                mapperLimitsConfig.getMapperLimitsConfig().getMaxMappedInboundMessages());
         when(mockMapper.map(any(ExternalMessage.class))).thenReturn(listOfMockAdaptable);
 
+        underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockMessage);
+        verify(mockMapper).map(any(ExternalMessage.class));
     }
 
     @Test
     public void mapAdaptableWithInvalidNumberOfMessages() {
         exception.expect(MessageMappingFailedException.class);
         List<ExternalMessage> listOfMockAdaptable =
-                listWithInvalideNumberOfElements(mockMessage, limitOfOutgoingMessages);
+                listWithInvalideNumberOfElements(mockMessage,
+                        mapperLimitsConfig.getMapperLimitsConfig().getMaxMappedOutboundMessages());
         when(mockMapper.map(any(Adaptable.class))).thenReturn(listOfMockAdaptable);
 
+        underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockAdaptable);
+        verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getHeaders();
+        verify(mockMapper).map(mockAdaptable);
     }
 
     private <T> List<T> listWithInvalideNumberOfElements(T elementInList, final int invalidLimitNumber) {

@@ -284,7 +284,7 @@ public class ConnectionValidatorTest {
     }
 
     @Test
-    public void acceptValidConnectionWithInvalidNumberSourcePayloadMapping() {
+    public void rejectValidConnectionWithInvalidNumberSourcePayloadMapping() {
         exception.expect(ConnectionConfigurationInvalidException.class);
         final Connection connection = createConnection(CONNECTION_ID)
                 .toBuilder()
@@ -295,7 +295,7 @@ public class ConnectionValidatorTest {
     }
 
     @Test
-    public void acceptValidConnectionWithInvalidNumberTargetPayloadMapping() {
+    public void rejectValidConnectionWithInvalidNumberTargetPayloadMapping() {
         exception.expect(ConnectionConfigurationInvalidException.class);
         final Connection connection = createConnection(CONNECTION_ID)
                 .toBuilder()

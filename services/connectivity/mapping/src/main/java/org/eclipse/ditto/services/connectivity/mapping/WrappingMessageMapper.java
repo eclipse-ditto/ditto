@@ -40,8 +40,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
  */
 final class WrappingMessageMapper implements MessageMapper {
 
-    private static final int MESSAGE_MAPPING_NUMBER_LIMIT_SOURCE = 10;
-    private static final int MESSAGE_MAPPING_NUMBER_LIMIT_TARGET = 10;
+    private int limitInboundMessages;
+    private int limitOutboundMessages;
 
     private final MessageMapper delegate;
 
@@ -78,6 +78,9 @@ final class WrappingMessageMapper implements MessageMapper {
 
     @Override
     public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+        final MapperLimitsConfig mapperLimitsConfig = mappingConfig.getMapperLimitsConfig();
+        limitInboundMessages = mapperLimitsConfig.getMaxMappedInboundMessages();
+        limitOutboundMessages = mapperLimitsConfig.getMaxMappedOutboundMessages();
         delegate.configure(mappingConfig, configuration);
     }
 
@@ -98,7 +101,7 @@ final class WrappingMessageMapper implements MessageMapper {
 
         final List<Adaptable> mappedAdaptables = delegate.map(enhancedMessage);
 
-        checkMessagesMappingNumber(mappedAdaptables, MESSAGE_MAPPING_NUMBER_LIMIT_SOURCE);
+        checkMessagesMappingNumber(mappedAdaptables, limitInboundMessages);
 
         return mappedAdaptables.stream().map(mapped -> {
             final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
@@ -123,7 +126,7 @@ final class WrappingMessageMapper implements MessageMapper {
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         final List<ExternalMessage> mappedMessages = delegate.map(adaptable);
-        checkMessagesMappingNumber(mappedMessages, MESSAGE_MAPPING_NUMBER_LIMIT_TARGET);
+        checkMessagesMappingNumber(mappedMessages, limitOutboundMessages);
         return mappedMessages.stream().map(mapped -> {
             final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(mapped);
             messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
@@ -137,7 +140,7 @@ final class WrappingMessageMapper implements MessageMapper {
 
     private void checkMessagesMappingNumber(final List<?> mappedAdaptables,
             final int messageMappingNumberLimit) {
-        if (mappedAdaptables.size() > messageMappingNumberLimit) {
+        if (mappedAdaptables.size() > messageMappingNumberLimit && messageMappingNumberLimit != 0) {
             throw MessageMappingFailedException.newBuilder((String) null)
                     .message("Number of messages from mapping exceeded")
                     .description(
@@ -146,6 +149,11 @@ final class WrappingMessageMapper implements MessageMapper {
                                     + ". Processed mapping invoked "
                                     + mappedAdaptables.size()
                                     + " messages")
+                    .build();
+        } else if (messageMappingNumberLimit == 0) {
+            throw MessageMappingFailedException.newBuilder((String) null)
+                    .message("According to configuration no messages can be sent")
+                    .description("Check configuration settings to enable sending of messages")
                     .build();
         }
     }

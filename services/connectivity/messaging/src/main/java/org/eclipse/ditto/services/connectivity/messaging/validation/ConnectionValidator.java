@@ -56,8 +56,8 @@ public final class ConnectionValidator {
     private final Map<ConnectionType, AbstractProtocolValidator> specMap;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
 
-    private static final int MAPPING_NUMBER_LIMIT_SOURCE = 10;
-    private static final int MAPPING_NUMBER_LIMIT_TARGET = 10;
+    private int mappingNumberLimitSource;
+    private int mappingNumberLimitTarget;
 
     private ConnectionValidator(final AbstractProtocolValidator... connectionSpecs) {
         final Map<ConnectionType, AbstractProtocolValidator> specMap = Arrays.stream(connectionSpecs)
@@ -93,6 +93,16 @@ public final class ConnectionValidator {
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
         // check size of mappings
+        mappingNumberLimitSource =
+                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
+                        .getMappingConfig()
+                        .getMapperLimitsConfig()
+                        .getMaxSourceMappers();
+        mappingNumberLimitTarget =
+                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
+                        .getMappingConfig()
+                        .getMapperLimitsConfig()
+                        .getMaxTargetMappers();
         checkMappingNumberOfSourcesAndTargets(dittoHeaders, connection);
         validateFormatOfCertificates(connection, dittoHeaders);
         validateBlacklistedHostnames(connection, dittoHeaders, actorSystem);
@@ -155,6 +165,7 @@ public final class ConnectionValidator {
 
     /**
      * Check if number of mappings are valid
+     *
      * @throws ConnectionConfigurationInvalidException if payload number is over predefined limit
      */
     private void checkMappingNumberOfSourcesAndTargets(final DittoHeaders dittoHeaders, final Connection connection) {
@@ -162,20 +173,20 @@ public final class ConnectionValidator {
         final String errorMessage = "Payloadmapping number exceeded";
 
         connection.getSources().forEach(source -> {
-                    if (source.getPayloadMapping().getMappings().size() > MAPPING_NUMBER_LIMIT_SOURCE) {
+            if (source.getPayloadMapping().getMappings().size() > mappingNumberLimitSource) {
                         throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                                 .description("Payloadmapping number of source with address " + source.getAddresses() +
-                                        " is over the limit of " + MAPPING_NUMBER_LIMIT_SOURCE)
+                                        " is over the limit of " + mappingNumberLimitSource)
                                 .dittoHeaders(dittoHeaders)
                                 .build();
                     }
                 }
         );
         connection.getTargets().forEach(target -> {
-            if (target.getPayloadMapping().getMappings().size() > MAPPING_NUMBER_LIMIT_TARGET) {
+            if (target.getPayloadMapping().getMappings().size() > mappingNumberLimitTarget) {
                 throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                         .description("Payloadmapping number of target with address " + target.getAddress() +
-                                " is over the limit of " + MAPPING_NUMBER_LIMIT_TARGET)
+                                " is over the limit of " + mappingNumberLimitTarget)
                         .dittoHeaders(dittoHeaders)
                         .build();
             }
