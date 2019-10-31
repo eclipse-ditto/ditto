@@ -26,6 +26,11 @@
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: JSON</name>
 
+    <properties>
+        <javac.source>1.8</javac.source>
+        <javac.target>1.8</javac.target>
+    </properties>
+
     <dependencies>
         <!-- ### Compile ### -->
         <dependency>

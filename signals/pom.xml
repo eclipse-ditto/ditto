@@ -34,6 +34,11 @@
         <module>events</module>
     </modules>
 
+    <properties>
+        <javac.source>1.8</javac.source>
+        <javac.target>1.8</javac.target>
+    </properties>
+
     <dependencies>
         <!-- ### Compile ### -->
         <dependency>

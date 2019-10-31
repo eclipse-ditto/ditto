@@ -24,6 +24,21 @@
     <artifactId>ditto-services-connectivity-messaging</artifactId>
     <name>Eclipse Ditto :: Services :: Connectivity :: Messaging</name>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <!-- needed for HostnameChecker -->
+                        <arg>--add-exports</arg><arg>java.base/sun.security.util=ALL-UNNAMED</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <!-- ### COMPILE ### -->
         <dependency>
@@ -205,4 +220,5 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
 </project>

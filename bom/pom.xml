@@ -29,8 +29,8 @@
         <scala.version>2.12</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
         <scala.full.version>2.12.8</scala.full.version>
 
-        <javac.source>1.8</javac.source>
-        <javac.target>1.8</javac.target>
+        <javac.source>11</javac.source>
+        <javac.target>11</javac.target>
 
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
@@ -86,15 +86,15 @@
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.12</junit.version>
-        <assertj.version>3.11.1</assertj.version>
-        <mutability-detector.version>0.9.6</mutability-detector.version>
-        <equals-verifier.version>3.0.3</equals-verifier.version>
-        <mockito.version>2.9.0</mockito.version>
+        <assertj.version>3.12.0</assertj.version>
+        <mutability-detector.version>0.10.1</mutability-detector.version>
+        <equals-verifier.version>3.1.10</equals-verifier.version>
+        <mockito.version>3.1.0</mockito.version>
         <jsonassert.version>1.2.3</jsonassert.version>
         <awaitility.version>3.1.0</awaitility.version>
         <akka-persistence-inmemory.version>2.5.15.2</akka-persistence-inmemory.version>
 
-        <jmh.version>1.4.1</jmh.version>
+        <jmh.version>1.21</jmh.version>
 
         <scalatest.version>3.0.0</scalatest.version>
         <flapdoodle.version>2.2.0</flapdoodle.version>
