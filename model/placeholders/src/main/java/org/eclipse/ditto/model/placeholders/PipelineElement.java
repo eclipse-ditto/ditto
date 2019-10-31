@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.placeholders;
 
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -85,6 +86,19 @@ public interface PipelineElement extends Iterable<String> {
         return onDeleted(() -> this)
                 .onResolved(s -> this)
                 .onUnresolved(() -> other);
+    }
+
+    /**
+     * Convert this into an optional string, conflating deletion and resolution failure.
+     *
+     * @return the optional string.
+     */
+    default Optional<String> toOptional() {
+        return accept(PipelineElement.<Optional<String>>newVisitorBuilder()
+                .deleted(Optional::empty)
+                .unresolved(Optional::empty)
+                .resolved(Optional::of)
+                .build());
     }
 
     /**

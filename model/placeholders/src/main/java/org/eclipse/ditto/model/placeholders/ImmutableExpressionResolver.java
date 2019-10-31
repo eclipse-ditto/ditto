@@ -29,7 +29,6 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 
@@ -84,40 +83,7 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
 
     @Override
     public PipelineElement resolve(final String expressionTemplate, final boolean allowUnresolved) {
-
-        final Matcher matcher = Placeholders.pattern().matcher(expressionTemplate);
-        final StringBuffer resultBuilder = new StringBuffer();
-
-        for (int i = 0; matcher.find(); i = matcher.end()) {
-            final String placeholderExpression = Placeholders.groupNames()
-                    .stream()
-                    .map(matcher::group)
-                    .filter(Objects::nonNull)
-                    .findAny()
-                    .orElse("");
-            final PipelineElement element = resolveAsPipelineElement(placeholderExpression);
-            switch (element.getType()) {
-                case DELETED:
-                    // abort pipeline execution: the string has been deleted.
-                    return element;
-                case UNRESOLVED:
-                    // abort pipeline execution: resolution failed where unresolved placeholders are forbidden.
-                    if (!allowUnresolved) {
-                        return element;
-                    }
-            }
-            // append resolved placeholder
-            element.map(resolvedValue -> {
-                // increment counter inside matcher
-                matcher.appendReplacement(resultBuilder, "");
-                // append resolved value literally - do not attempt to interpret as regex
-                resultBuilder.append(resolvedValue);
-                return resolvedValue;
-            });
-        }
-
-        matcher.appendTail(resultBuilder);
-        return PipelineElement.resolved(resultBuilder.toString());
+        return ExpressionResolver.substitute(expressionTemplate, allowUnresolved, this::resolveAsPipelineElement);
     }
 
     @Override

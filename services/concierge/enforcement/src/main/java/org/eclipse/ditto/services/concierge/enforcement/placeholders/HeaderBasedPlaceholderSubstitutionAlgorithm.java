@@ -24,10 +24,10 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.PipelineElement;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderNotResolvableException;
 
 /**
@@ -39,15 +39,16 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
     private final Map<String, Function<DittoHeaders, String>> replacementDefinitions;
     private final List<CharSequence> knownPlaceHolders;
 
-    private HeaderBasedPlaceholderSubstitutionAlgorithm(final Map<String, Function<DittoHeaders, String>> replacementDefinitions) {
+    private HeaderBasedPlaceholderSubstitutionAlgorithm(
+            final Map<String, Function<DittoHeaders, String>> replacementDefinitions) {
         this.replacementDefinitions = Collections.unmodifiableMap(new LinkedHashMap<>(replacementDefinitions));
         this.knownPlaceHolders = Collections.unmodifiableList(new ArrayList<>(replacementDefinitions.keySet()));
     }
 
     /**
      * Creates a new instance based on the given replacement definitions.
-     * @param replacementDefinitions the replacement definitions.
      *
+     * @param replacementDefinitions the replacement definitions.
      * @return the created instance.
      */
     public static HeaderBasedPlaceholderSubstitutionAlgorithm newInstance(
@@ -85,29 +86,25 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
         requireNonNull(input);
         requireNonNull(dittoHeaders);
 
-        final Function<String, Optional<String>> placeholderReplacerFunction = createReplacerFunction(dittoHeaders);
-        final Function<String, DittoRuntimeException> unresolvedInputHandler = createUnresolvedInputHandler(dittoHeaders);
-
-        return Placeholders.substitute(input, placeholderReplacerFunction, unresolvedInputHandler);
+        return ExpressionResolver.substitute(input, false, createReplacerFunction(dittoHeaders))
+                .toOptional()
+                .orElse(input);
     }
 
-    private Function<String, Optional<String>> createReplacerFunction(final DittoHeaders dittoHeaders) {
-        return placeholder -> {
+    private Function<String, PipelineElement> createReplacerFunction(final DittoHeaders dittoHeaders) {
+        return placeholderWithSpaces -> {
+            final String placeholder = placeholderWithSpaces.trim();
             final Function<DittoHeaders, String> placeholderResolver = replacementDefinitions.get(placeholder);
             if (placeholderResolver == null) {
-                throw GatewayPlaceholderNotResolvableException.newUnknownPlaceholderBuilder(placeholder, knownPlaceHolders)
+                throw GatewayPlaceholderNotResolvableException.newUnknownPlaceholderBuilder(placeholder,
+                        knownPlaceHolders)
                         .dittoHeaders(dittoHeaders)
                         .build();
             }
-            return Optional.ofNullable(placeholderResolver.apply(dittoHeaders));
+            return Optional.ofNullable(placeholderResolver.apply(dittoHeaders))
+                    .map(PipelineElement::resolved)
+                    .orElse(PipelineElement.unresolved());
         };
-    }
-
-    private Function<String, DittoRuntimeException> createUnresolvedInputHandler(
-            final DittoHeaders dittoHeaders) {
-        return input -> GatewayPlaceholderNotResolvableException.newNotResolvableInputBuilder(input)
-                .dittoHeaders(dittoHeaders)
-                .build();
     }
 
 }

@@ -13,7 +13,12 @@
 package org.eclipse.ditto.model.placeholders;
 
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+
+import org.eclipse.ditto.model.base.common.Placeholders;
 
 /**
  * The ExpressionResolver is able to:
@@ -54,5 +59,54 @@ public interface ExpressionResolver {
      * @return the resolved placeholder if it could be resolved, empty Optional otherwise.
      */
     Optional<String> resolveSinglePlaceholder(String placeholder);
+
+    /**
+     * Perform simple substitution on a string based on a template function.
+     *
+     * @param input the input string.
+     * @param allowUnresolved whether unresolved placeholders are allowed.
+     * @param substitutionFunction the substitution function turning the content of each placeholder into a result.
+     * @return the substitution result.
+     */
+    static PipelineElement substitute(
+            final String input,
+            final boolean allowUnresolved,
+            final Function<String, PipelineElement> substitutionFunction) {
+
+        final Matcher matcher = Placeholders.pattern().matcher(input);
+        final StringBuffer resultBuilder = new StringBuffer();
+
+        while (matcher.find()) {
+            final String placeholderExpression = Placeholders.groupNames()
+                    .stream()
+                    .map(matcher::group)
+                    .filter(Objects::nonNull)
+                    .findAny()
+                    .orElse("");
+            final PipelineElement element = substitutionFunction.apply(placeholderExpression);
+            switch (element.getType()) {
+                case DELETED:
+                    // abort pipeline execution: the string has been deleted.
+                    return element;
+                case UNRESOLVED:
+                    // abort pipeline execution: resolution failed where unresolved placeholders are forbidden.
+                    if (!allowUnresolved) {
+                        return element;
+                    }
+            }
+            // append resolved placeholder
+            element.map(resolvedValue -> {
+                // increment counter inside matcher for "matcher.appendTail" later
+                matcher.appendReplacement(resultBuilder, "");
+                // actually append resolved value - do not attempt to interpret as regex
+                resultBuilder.append(resolvedValue);
+                return resolvedValue;
+            });
+        }
+
+        matcher.appendTail(resultBuilder);
+        return PipelineElement.resolved(resultBuilder.toString());
+
+    }
 
 }
