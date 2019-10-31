@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.mapping;
 
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -62,7 +63,9 @@ public class WrappingMessageMapperTest {
 
         when(mockMapper.map(any(ExternalMessage.class))).thenReturn(singletonList(mockAdaptable));
         when(mockMapper.map(mockAdaptable)).thenReturn(singletonList(mockMessage));
+        when(mockMapper.getId()).thenReturn("mockMapper");
         when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
+        when(mockAdaptable.getHeaders()).thenReturn(Optional.of(DittoHeaders.empty()));
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
         mapperLimitsConfig = DefaultMappingConfig.of(ConfigFactory.load("mapper-limits-test"));
         underTest = WrappingMessageMapper.wrap(mockMapper);
@@ -83,8 +86,9 @@ public class WrappingMessageMapperTest {
     @Test
     public void mapMessage() {
         underTest.configure(mapperLimitsConfig, mockConfiguration);
-        underTest.map(mockMessage);
+        final List<Adaptable> adaptables = underTest.map(mockMessage);
         verify(mockMapper).map(any(ExternalMessage.class));
+        assertThat(adaptables).allSatisfy(a -> assertThat(a.getDittoHeaders().getMapper()).contains("mockMapper"));
     }
 
     @Test

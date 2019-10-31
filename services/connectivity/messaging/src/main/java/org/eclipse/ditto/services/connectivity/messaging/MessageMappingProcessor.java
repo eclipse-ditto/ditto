@@ -174,7 +174,11 @@ public final class MessageMappingProcessor {
                         enhanceLogFromAdaptable(adaptable);
                         final Signal<?> signal = timer.protocol(() -> protocolAdapter.fromAdaptable(adaptable));
                         dittoHeadersSizeChecker.check(signal.getDittoHeaders());
-                        handler.onMessageMapped(MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal));
+                        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+                        final DittoHeaders headersWithMapper = dittoHeaders.toBuilder().mapper(mapper.getId()).build();
+                        final Signal signalWithMapperHeader = signal.setDittoHeaders(headersWithMapper);
+                        handler.onMessageMapped(MappedInboundExternalMessage.of(message, adaptable.getTopicPath(),
+                                signalWithMapperHeader));
                     });
                 }
             } else {

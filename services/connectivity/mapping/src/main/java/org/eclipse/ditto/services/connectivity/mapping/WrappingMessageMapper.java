@@ -107,9 +107,6 @@ final class WrappingMessageMapper implements MessageMapper {
             final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
             headersBuilder.correlationId(correlationId);
 
-            // add mapper id to headers, this is required to resolve the correct mapper for responses
-            headersBuilder.mapper(getId());
-
             Optional.ofNullable(message.getHeaders().get(ExternalMessage.REPLY_TO_HEADER)).ifPresent(replyTo ->
                     headersBuilder.putHeader(ExternalMessage.REPLY_TO_HEADER, replyTo)
             );
