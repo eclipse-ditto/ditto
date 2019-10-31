@@ -286,13 +286,15 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             return new ThrottleState(interval, nextMessages);
         });
         if (state.currentMessagePerInterval >= throttlingLimit) {
-            // TODO: add monitoring logs after merge
             log.info("Stopping message consumer, message limit of {}/{} exceeded.", throttlingLimit,
                     throttlingInterval);
             stopMessageConsumer();
             // calculate timestamp of next interval when the consumer should be restarted
             final long restartConsumerAt = (interval + 1) * throttlingInterval.toMillis();
             getSelf().tell(new RestartMessageConsumer(restartConsumerAt), ActorRef.noSender());
+            inboundMonitor.getCounter().recordFailure();
+            inboundMonitor.getLogger()
+                    .failure("Source <{0}> is rate-limited due to excessive messaging.", sourceAddress);
         }
     }
 
