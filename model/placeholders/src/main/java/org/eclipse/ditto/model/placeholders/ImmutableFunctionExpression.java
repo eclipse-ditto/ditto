@@ -41,7 +41,7 @@ final class ImmutableFunctionExpression implements FunctionExpression {
 
     @Override
     public String getPrefix() {
-        return "fn";
+        return PREFIX;
     }
 
     @Override

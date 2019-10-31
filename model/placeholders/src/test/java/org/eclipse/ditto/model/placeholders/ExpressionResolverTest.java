@@ -40,6 +40,7 @@ public class ExpressionResolverTest {
     public void setupExpressionResolver() {
         final Map<String, String> headersMap = new HashMap<>();
         headersMap.put("header-name", "header-val");
+        headersMap.put("header:with:colon", "value:with:colon");
         expressionResolver = PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headersMap),
                 PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, THING_ID),
@@ -50,54 +51,62 @@ public class ExpressionResolverTest {
     @Test
     public void testPlaceholderFunctionDefaultWithConstant() {
 
-        assertThat(
-                expressionResolver.resolve("{{ header:nonexisting | fn:default('fallback-val') }}",
-                        true)
-        ).contains("fallback-val");
+        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default('fallback-val') }}", true))
+                .contains("fallback-val");
+    }
+
+    @Test
+    public void testHeaderWithColon() {
+        assertThat(expressionResolver.resolve("{{ header:header:with:colon }}", true))
+                .contains("value:with:colon");
     }
 
     @Test
     public void testPlaceholderFunctionDefaultWithPlaceholder() {
-
-        assertThat(
-                expressionResolver.resolve("{{ header:nonexisting | fn:default(header:header-name) }}",
-                        true)
-        ).contains("header-val");
+        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(header:header-name) }}", true))
+                .contains("header-val");
     }
 
     @Test
     public void testPlaceholderFunctionDefaultWithPlaceholderNonExistingDefault() {
-
-        assertThat(
-                expressionResolver.resolve("{{ header:nonexisting | fn:default(header:alsoNotThere) }}",
-                        true)
-        ).contains("header:alsoNotThere");
+        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(header:alsoNotThere) }}", true))
+                .contains("header:alsoNotThere");
     }
 
     @Test
     public void testPlaceholderFunctionSubstringBefore() {
-
-        assertThat(
-                expressionResolver.resolve("{{ thing:namespace }}:{{thing:name | fn:substring-before(':') }}",
-                        true)
-        ).contains(THING_NS + ":" + "the.id");
+        assertThat(expressionResolver.resolve("{{ thing:namespace }}:{{thing:name | fn:substring-before(':') }}", true))
+                .contains(THING_NS + ":" + "the.id");
     }
 
     @Test
     public void testPlaceholderFunctionSubstringBeforeWithDefaultFallback() {
-
         assertThat(expressionResolver.resolve(
-                "{{ thing:namespace }}:{{thing:name | fn:substring-before('_') | fn:default(thing:name)}}", true)
-        ).contains(THING_ID.toString());
+                "{{ thing:namespace }}:{{thing:name | fn:substring-before('_') | fn:default(thing:name)}}", true))
+                .contains(THING_ID.toString());
     }
 
     @Test
     public void testPlaceholderFunctionSubstringAfterWithUpper() {
+        assertThat(expressionResolver.resolve("{{ thing:name | fn:substring-after(':') | fn:upper() }}", true))
+                .contains("the-rest".toUpperCase());
+    }
 
-        assertThat(
-                expressionResolver.resolve("{{ thing:name | fn:substring-after(':') | fn:upper() }}",
-                        true)
-        ).contains("the-rest".toUpperCase());
+    @Test
+    public void testLoneDelete() {
+        assertThat(expressionResolver.resolve("{{ fn:delete() }}", true)).isEmpty();
+    }
+
+    @Test
+    public void testLoneDefault() {
+        assertThat(expressionResolver.resolve("{{ fn:default(header:header-name) }}", true))
+                .contains("header-val");
+    }
+
+    @Test
+    public void testPipelineStartingWithDefault() {
+        assertThat(expressionResolver.resolve("{{ fn:default(header:header-name) | fn:upper() }}", true))
+                .contains("HEADER-VAL");
     }
 
 }

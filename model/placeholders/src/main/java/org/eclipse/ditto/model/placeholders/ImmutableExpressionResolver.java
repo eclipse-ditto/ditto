@@ -104,19 +104,21 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         return template -> {
 
             final List<String> pipelineStagesExpressions = getPipelineStagesExpressions(template);
-            final String placeholderTemplate = getFirstPlaceholderInPipe(pipelineStagesExpressions);
-            final Pipeline pipeline = getPipelineFromExpressions(pipelineStagesExpressions);
+            final String firstPlaceholderInPipe = getFirstPlaceholderInPipe(pipelineStagesExpressions);
+            if (isFirstPlaceholderFunction(firstPlaceholderInPipe)) {
+                return getPipelineFromExpressions(pipelineStagesExpressions, 0)
+                        .execute(PipelineElement.unresolved(), this);
+            } else {
+                final PipelineElement pipelineInput =
+                        resolvePlaceholderWithoutPrefixIfSupported(resolver, firstPlaceholderInPipe)
+                                .flatMap(p -> resolvePlaceholder(resolver, p))
+                                .map(PipelineElement::resolved)
+                                .orElse(PipelineElement.unresolved());
 
-            final Optional<String> placeholderWithoutPrefix =
-                    resolvePlaceholderWithoutPrefixIfSupported(resolver, placeholderTemplate);
+                return getPipelineFromExpressions(pipelineStagesExpressions, 1)
+                        .execute(pipelineInput, this);
 
-            return placeholderWithoutPrefix.map(p -> resolvePlaceholder(resolver, p))
-                    .map(pipelineInput -> {
-                        return pipeline.execute(
-                                pipelineInput.map(PipelineElement::resolved).orElse(PipelineElement.unresolved()),
-                                this);
-                    })
-                    .orElse(PipelineElement.unresolved());
+            }
         };
     }
 
@@ -147,9 +149,9 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         return pipelineStagesExpressions.get(0); // the first pipeline stage has to start with a placeholder
     }
 
-    private Pipeline getPipelineFromExpressions(final List<String> pipelineStagesExpressions) {
+    private Pipeline getPipelineFromExpressions(final List<String> pipelineStagesExpressions, final int skip) {
         final List<String> pipelineStages = pipelineStagesExpressions.stream()
-                .skip(1) // ignore first, as the first one is a placeholder that will be used as the input for the pipeline
+                .skip(skip) // ignore pre-processed expressions
                 .collect(Collectors.toList());
         return new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
     }
@@ -204,6 +206,10 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
                 ", placeholderReplacementInValidation=" + placeholderReplacementInValidation +
                 ", placeholderResolvers=" + placeholderResolvers +
                 "]";
+    }
+
+    private static boolean isFirstPlaceholderFunction(final String firstPlaceholderInPipeline) {
+        return firstPlaceholderInPipeline.startsWith(FunctionExpression.PREFIX + SEPARATOR);
     }
 
 }

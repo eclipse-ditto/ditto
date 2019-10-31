@@ -25,6 +25,11 @@ package org.eclipse.ditto.model.placeholders;
 interface FunctionExpression extends Expression {
 
     /**
+     * Prefix of function expressions.
+     */
+    static final String PREFIX = "fn";
+
+    /**
      * Executes the Stage by passing in a value and returning a resolved result.
      *
      * @param expression the expression string of this stage including prefix, e.g.: {@code fn:substring-before(':')}.
