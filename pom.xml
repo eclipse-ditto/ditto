@@ -201,9 +201,6 @@
     <properties>
         <revision>0-SNAPSHOT</revision>
 
-        <javac.source>1.8</javac.source>
-        <javac.target>1.8</javac.target>
-
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -391,7 +388,7 @@
                     <artifactId>docker-maven-plugin</artifactId>
                     <version>0.26.0</version>
                 </plugin>
-                <plugin>
+                <!-- TODO: enable again <plugin>
                     <groupId>com.github.siom79.japicmp</groupId>
                     <artifactId>japicmp-maven-plugin</artifactId>
                     <version>${japicmp-maven-plugin.version}</version>
@@ -420,7 +417,6 @@
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                             <excludes>
-                                <!--<exclude></exclude>-->
                             </excludes>
                         </parameter>
                     </configuration>
@@ -432,7 +428,7 @@
                             </goals>
                         </execution>
                     </executions>
-                </plugin>
+                </plugin> -->
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>

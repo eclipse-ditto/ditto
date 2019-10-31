@@ -50,7 +50,7 @@
         <mongo-reactivestreams.version>1.12.0</mongo-reactivestreams.version>
 
         <jjwt.version>0.10.7</jjwt.version>
-        <asm.version>5.2</asm.version>
+        <asm.version>7.2</asm.version>
         <qpid-jms-client.version>0.45.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
         <amqp-client.version>5.4.2</amqp-client.version>
@@ -87,7 +87,7 @@
         <!-- ### Testing dependencies versions -->
         <junit.version>4.12</junit.version>
         <assertj.version>3.12.0</assertj.version>
-        <mutability-detector.version>0.10.1</mutability-detector.version>
+        <mutability-detector.version>0.10.2</mutability-detector.version>
         <equals-verifier.version>3.1.10</equals-verifier.version>
         <mockito.version>3.1.0</mockito.version>
         <jsonassert.version>1.2.3</jsonassert.version>
