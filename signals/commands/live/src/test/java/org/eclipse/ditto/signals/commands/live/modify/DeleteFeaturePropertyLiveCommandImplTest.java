@@ -83,8 +83,7 @@ public final class DeleteFeaturePropertyLiveCommandImplTest {
 
         assertThatExceptionOfType(ClassCastException.class)
                 .isThrownBy(() -> DeleteFeaturePropertyLiveCommandImpl.of(commandMock))
-                .withMessageContaining(MessageFormat.format("cannot be cast to class {0}",
-                        DeleteFeatureProperty.class.getName()))
+                .withMessageContaining(DeleteFeatureProperty.class.getName())
                 .withNoCause();
     }
 

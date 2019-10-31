@@ -80,7 +80,7 @@ public final class CreateThingLiveCommandImplTest {
 
         assertThatExceptionOfType(ClassCastException.class)
                 .isThrownBy(() -> CreateThingLiveCommandImpl.of(commandMock))
-                .withMessageContaining(MessageFormat.format("cannot be cast to class {0}", CreateThing.class.getName()))
+                .withMessageContaining(CreateThing.class.getName())
                 .withNoCause();
     }
 

@@ -83,7 +83,7 @@ public final class RetrieveAttributesLiveCommandImplTest {
         assertThatExceptionOfType(ClassCastException.class)
                 .isThrownBy(() -> RetrieveAttributesLiveCommandImpl.of(commandMock))
                 .withMessageContaining(
-                        MessageFormat.format("cannot be cast to class {0}", RetrieveAttributes.class.getName()))
+                        RetrieveAttributes.class.getName())
                 .withNoCause();
     }
 

@@ -81,7 +81,7 @@ public final class ModifyThingLiveCommandImplTest {
 
         assertThatExceptionOfType(ClassCastException.class)
                 .isThrownBy(() -> ModifyThingLiveCommandImpl.of(commandMock))
-                .withMessageContaining(MessageFormat.format("cannot be cast to class {0}", ModifyThing.class.getName()))
+                .withMessageContaining(ModifyThing.class.getName())
                 .withNoCause();
     }
 
