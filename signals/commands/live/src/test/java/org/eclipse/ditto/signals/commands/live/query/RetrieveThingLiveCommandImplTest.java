@@ -79,7 +79,7 @@ public final class RetrieveThingLiveCommandImplTest {
 
         assertThatExceptionOfType(ClassCastException.class)
                 .isThrownBy(() -> RetrieveThingLiveCommandImpl.of(commandMock))
-                .withMessageEndingWith(MessageFormat.format("cannot be cast to {0}", RetrieveThing.class.getName()))
+                .withMessageContaining(MessageFormat.format("cannot be cast to class {0}", RetrieveThing.class.getName()))
                 .withNoCause();
     }
 

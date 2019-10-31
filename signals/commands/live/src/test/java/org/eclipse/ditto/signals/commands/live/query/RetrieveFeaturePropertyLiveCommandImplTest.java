@@ -84,7 +84,7 @@ public final class RetrieveFeaturePropertyLiveCommandImplTest {
 
         assertThatExceptionOfType(ClassCastException.class)
                 .isThrownBy(() -> RetrieveFeaturePropertyLiveCommandImpl.of(commandMock))
-                .withMessageEndingWith(MessageFormat.format("cannot be cast to {0}",
+                .withMessageContaining(MessageFormat.format("cannot be cast to class {0}",
                         RetrieveFeatureProperty.class.getName()))
                 .withNoCause();
     }

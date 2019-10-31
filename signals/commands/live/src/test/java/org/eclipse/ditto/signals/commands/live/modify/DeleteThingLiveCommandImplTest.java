@@ -77,7 +77,7 @@ public final class DeleteThingLiveCommandImplTest {
 
         assertThatExceptionOfType(ClassCastException.class)
                 .isThrownBy(() -> DeleteThingLiveCommandImpl.of(commandMock))
-                .withMessageEndingWith(MessageFormat.format("cannot be cast to {0}", DeleteThing.class.getName()))
+                .withMessageContaining(MessageFormat.format("cannot be cast to class {0}", DeleteThing.class.getName()))
                 .withNoCause();
     }
 
