@@ -20,7 +20,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.SortDirection;
@@ -161,6 +163,26 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
     @Test(expected = IllegalArgumentException.class)
     public void limitValueExceedsMaximum() {
         executeVersionedQueryWithChangeOptions(query -> query.limit(maxPageSizeFromConfig + 1));
+    }
+
+    @Test
+    public void pageSkipsDeletedItems() {
+        // prepare
+        insertThings(THING_IDS);
+
+        // delete Thing from first page
+        final int limit = 3;
+        final ThingId thingToDelete = THING_IDS.get(limit - 1);
+        deleteThing(thingToDelete, 1L, PolicyId.of(thingToDelete.toString()), 1L);
+
+        final ResultList<ThingId> result = executeVersionedQueryWithChangeOptions(query -> query.limit(limit));
+
+        // verify
+        final List<ThingId> expectedList = THING_IDS.stream()
+                .filter(id -> !thingToDelete.equals(id))
+                .limit(limit)
+                .collect(Collectors.toList());
+        assertPaging(result, expectedList, limit);
     }
 
     private static void assertPaging(final ResultList<ThingId> actualResult, final List<ThingId> expectedList,

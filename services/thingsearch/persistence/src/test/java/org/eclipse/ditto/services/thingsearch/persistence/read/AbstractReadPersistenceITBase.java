@@ -17,6 +17,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
@@ -91,6 +93,17 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
                 .collect(Collectors.toList());
     }
 
+    void deleteThing(final Thing thing, final long policyRevision) {
+        deleteThing(thing.getEntityId().orElseThrow(() -> new IllegalArgumentException("Thing should contain an entity id.")),
+                thing.getRevision().orElseThrow(() -> new IllegalArgumentException("Thing should have a revision.")).toLong(),
+                thing.getPolicyEntityId().orElse(null),
+                policyRevision);
+    }
+
+    void deleteThing(final ThingId thingId, final long revision, @Nullable final PolicyId policyId, final long policyRevision) {
+        runBlockingWithReturn(writePersistence.delete(thingId, revision, policyId, policyRevision));
+    }
+
 
     /**
      * Create a thing v1 with {@link Permission#READ} for {@link #KNOWN_SUBJECTS}.
@@ -120,13 +133,9 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing createThingV2(final ThingId id) {
-        return createThingV2(id, POLICY_ID.toString());
-    }
-
-    Thing createThingV2(final ThingId id, final String policyId) {
         return Thing.newBuilder()
                 .setId(id)
-                .setPolicyId(policyId)
+                .setPolicyId(POLICY_ID)
                 .setRevision(0L)
                 .build();
     }

@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
 
-import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

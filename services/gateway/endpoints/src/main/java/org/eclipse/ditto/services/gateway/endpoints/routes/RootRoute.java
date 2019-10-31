@@ -287,12 +287,8 @@ public final class RootRoute extends AllDirectives {
     private Route buildSseThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final AuthorizationContext authorizationContext) {
         return handleExceptions(exceptionHandler, () ->
-                javaFunctionToRoute(scalaRequestContext ->
-                        overwriteDittoHeadersForSse(ctx, dittoHeaders, authorizationContext).thenCompose(headers ->
-                                routeToJavaFunction(sseThingsRoute.buildThingsSseRoute(ctx, () -> headers))
-                                        .apply(scalaRequestContext)
-                        )
-                )
+                sseThingsRoute.buildThingsSseRoute(ctx, () ->
+                        overwriteDittoHeadersForSse(ctx, dittoHeaders, authorizationContext))
         );
     }
 
@@ -342,15 +338,16 @@ public final class RootRoute extends AllDirectives {
                                                 wsVersion, correlationId, ctx, null,
                                                 CustomHeadersHandler.RequestType.WS, dittoHeaders -> {
 
-                                                    final String userAgent = extractUserAgent(ctx).orElse(null);
-                                                    final ProtocolAdapter chosenProtocolAdapter =
-                                                            protocolAdapterProvider.getProtocolAdapter(
-                                                                    userAgent);
-                                                    return websocketRoute.buildWebsocketRoute(wsVersion,
-                                                            correlationId,
-                                                            authContext, dittoHeaders, chosenProtocolAdapter);
-                                                }
-                                        )
+                                                            final String userAgent = extractUserAgent(ctx).orElse(null);
+                                                            final ProtocolAdapter chosenProtocolAdapter =
+                                                                    protocolAdapterProvider.getProtocolAdapter(userAgent);
+                                                            return websocketRoute.buildWebsocketRoute(wsVersion,
+                                                                    correlationId,
+                                                                    authContext,
+                                                                    dittoHeaders,
+                                                                    chosenProtocolAdapter);
+                                                        }
+                                                )
                                 )
                         )
                 )

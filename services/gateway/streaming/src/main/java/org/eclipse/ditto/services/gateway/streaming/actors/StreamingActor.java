@@ -15,10 +15,19 @@ package org.eclipse.ditto.services.gateway.streaming.actors;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationContextProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.DefaultStreamingConfig;
+import org.eclipse.ditto.services.gateway.streaming.InvalidJwtToken;
+import org.eclipse.ditto.services.gateway.streaming.JwtToken;
+import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
@@ -57,6 +66,9 @@ public final class StreamingActor extends AbstractActorWithTimers
 
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef commandRouter;
+    private final Gauge streamingSessionsCounter;
+    private final JwtValidator jwtValidator;
+    private final JwtAuthorizationContextProvider jwtAuthorizationContextProvider;
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(Throwable.class, e -> {
@@ -67,19 +79,18 @@ public final class StreamingActor extends AbstractActorWithTimers
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private final Gauge streamingSessionsCounter;
-
     private StreamingConfig streamingConfig;
 
     @SuppressWarnings("unused")
     private StreamingActor(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter,
+            final JwtAuthenticationFactory jwtAuthenticationFactory,
             final StreamingConfig streamingConfig) {
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
-        streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
         this.streamingConfig = streamingConfig;
-
-        // requires this.websocketConfig to be initialized
+        streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
+        jwtValidator = jwtAuthenticationFactory.getJwtValidator();
+        jwtAuthorizationContextProvider = jwtAuthenticationFactory.newJwtAuthorizationContextProvider();
         scheduleScrapeStreamSessionsCounter();
     }
 
@@ -92,8 +103,10 @@ public final class StreamingActor extends AbstractActorWithTimers
      * @return the Akka configuration Props object.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub, final ActorRef commandRouter,
+            final JwtAuthenticationFactory jwtAuthenticationFactory,
             final StreamingConfig streamingConfig) {
-        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, streamingConfig);
+        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtAuthenticationFactory,
+                streamingConfig);
     }
 
     @Override
@@ -111,7 +124,8 @@ public final class StreamingActor extends AbstractActorWithTimers
                     final String connectionCorrelationId = connect.getConnectionCorrelationId();
                     getContext().actorOf(
                             StreamingSessionActor.props(connectionCorrelationId, connect.getType(), dittoProtocolSub,
-                                    eventAndResponsePublisher), connectionCorrelationId);
+                                    eventAndResponsePublisher, connect.getSessionExpirationTime()),
+                            connectionCorrelationId);
                 })
                 .match(StartStreaming.class,
                         startStreaming -> forwardToSessionActor(startStreaming.getConnectionCorrelationId(),
@@ -121,6 +135,7 @@ public final class StreamingActor extends AbstractActorWithTimers
                         stopStreaming -> forwardToSessionActor(stopStreaming.getConnectionCorrelationId(),
                                 stopStreaming)
                 )
+                .match(JwtToken.class, this::refreshWebsocketSession)
                 .build()
                 .orElse(retrieveConfigBehavior())
                 .orElse(modifyConfigBehavior())
@@ -169,6 +184,24 @@ public final class StreamingActor extends AbstractActorWithTimers
         // reschedule scrapes: interval may have changed.
         scheduleScrapeStreamSessionsCounter();
         return streamingConfig.render();
+    }
+
+
+    private void refreshWebsocketSession(final JwtToken jwtToken) {
+        final String connectionCorrelationId = jwtToken.getConnectionCorrelationId();
+        final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(jwtToken.getJwtTokenAsString());
+        jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
+            if (binaryValidationResult.isValid()) {
+                final AuthorizationContext authorizationContext =
+                        jwtAuthorizationContextProvider.getAuthorizationContext(jsonWebToken);
+                forwardToSessionActor(connectionCorrelationId,
+                        new RefreshSession(connectionCorrelationId, jsonWebToken.getExpirationTime(),
+                                authorizationContext));
+            }
+            final String reasonForInvalidity = binaryValidationResult.getReasonForInvalidity().getMessage();
+            forwardToSessionActor(connectionCorrelationId,
+                    new InvalidJwtToken(connectionCorrelationId, reasonForInvalidity));
+        });
     }
 
     private void forwardToSessionActor(final String connectionCorrelationId, final Object object) {

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
+import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReportResponse;
@@ -59,7 +60,8 @@ public final class GatewayServiceGlobalCommandResponseRegistryTest extends Globa
                 RetrieveConfigResponse.class,
                 RetrieveHealthResponse.class,
                 CleanupPersistenceResponse.class,
-                PurgeEntitiesResponse.class
+                PurgeEntitiesResponse.class,
+                StreamingAck.class
         );
     }
 

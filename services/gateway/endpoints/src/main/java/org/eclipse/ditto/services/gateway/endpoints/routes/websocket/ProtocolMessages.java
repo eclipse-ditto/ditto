@@ -12,12 +12,16 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 
 /**
  * Defines the protocol messages used to control emitting of events and messages via WebSocket.
  */
-enum ProtocolMessages {
+public enum ProtocolMessages {
 
     /**
      * Message indicating that the Websocket should start emitting twin events.
@@ -49,23 +53,28 @@ enum ProtocolMessages {
     /**
      * Message indicating that the Websocket should start emitting live events.
      */
-    START_SEND_LIVE_EVENTS("START-SEND-LIVE-EVENTS", StreamingType.LIVE_EVENTS),
+    START_SEND_LIVE_EVENTS("START-SEND-LIVE-EVENTS",StreamingType.LIVE_EVENTS),
     /**
      * Message indicating that the Websocket should stop emitting live events.
      */
-    STOP_SEND_LIVE_EVENTS("STOP-SEND-LIVE-EVENTS", StreamingType.LIVE_EVENTS);
+    STOP_SEND_LIVE_EVENTS("STOP-SEND-LIVE-EVENTS", StreamingType.LIVE_EVENTS),
+
+    /**
+     * Message indicating that a new JWT token was send.
+     */
+    JWT_TOKEN("JWT-TOKEN", null);
 
     static final String PARAMETER_SEPARATOR = "?";
 
     private final String identifier;
-    private final StreamingType streamingType;
+    @Nullable private final StreamingType streamingType;
 
     /**
      * Constructor.
      * @param identifier the string identifier that is sent over the wire
      * @param streamingType the associated {@link StreamingType}
      */
-    ProtocolMessages(final String identifier, final StreamingType streamingType) {
+    ProtocolMessages(final String identifier, @Nullable final StreamingType streamingType) {
         this.identifier = identifier;
         this.streamingType = streamingType;
     }
@@ -74,8 +83,8 @@ enum ProtocolMessages {
         return identifier;
     }
 
-    StreamingType getStreamingType() {
-        return streamingType;
+    Optional<StreamingType> getStreamingType() {
+        return Optional.ofNullable(streamingType);
     }
 
     /**

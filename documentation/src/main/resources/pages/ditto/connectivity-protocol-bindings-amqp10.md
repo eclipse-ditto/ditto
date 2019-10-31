@@ -58,6 +58,13 @@ identifier. The target address may contain placeholders; see
 [placeholders](basic-connections.html#placeholder-for-target-addresses) section for more 
 information.
 
+Target addresses for AMQP 1.0 are by default handled as AMQP 1.0 "queues". There is however the possibility to also 
+configure AMQP 1.0 "topics" as well. In order to be more specific, the following formats for the `address` are 
+supported:
+* `the-queue-name` (when configuring w/o prefix, the `address` is handled as "queue")
+* `queue://the-queue-name`
+* `topic://the-topic-name`
+
 Further, `"topics"` is a list of strings, each list entry representing a subscription of
 [Ditto protocol topics](protocol-specification-topic.html), see 
 [target topics and filtering](basic-connections.html#target-topics-and-filtering) for more information on that.
