@@ -2,7 +2,7 @@ dist: trusty
 sudo: required
 language: java
 jdk:
-  - oraclejdk8
+  - oraclejdk11
 services:
   - docker
 before_install:
