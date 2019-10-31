@@ -92,11 +92,11 @@ public class ProtocolMessageExtractorTest {
         Stream.of(ProtocolMessages.values())
                 .filter(protocolMessage -> protocolMessage.getIdentifier().startsWith("START"))
                 .forEach(protocolMessage -> {
-                    final Optional<StreamControlMessage> extracted = 
+                    final Optional<StreamControlMessage> extracted =
                             extractor.apply(protocolMessage.getIdentifier() + parameters);
                     assertThat(extracted.get()).isInstanceOfAny(StartStreaming.class);
                     final StartStreaming start = ((StartStreaming) extracted.get());
-                    assertThat(start.getStreamingType()).isEqualTo(protocolMessage.getStreamingType());
+                    assertThat(start.getStreamingType()).isEqualTo(protocolMessage.getStreamingType().get());
                     assertThat(start.getConnectionCorrelationId()).isEqualTo(correlationId);
                     assertThat(start.getAuthorizationContext()).isEqualTo(authorizationContext);
                     assertThat(start.getNamespaces()).isEqualTo(expectedNamespaces);
@@ -112,7 +112,7 @@ public class ProtocolMessageExtractorTest {
                     final Optional<StreamControlMessage> extracted = extractor.apply(protocolMessage.getIdentifier());
                     assertThat(extracted.get()).isInstanceOfAny(StopStreaming.class);
                     final StopStreaming stop = ((StopStreaming) extracted.get());
-                    assertThat(stop.getStreamingType()).isEqualTo(protocolMessage.getStreamingType());
+                    assertThat(stop.getStreamingType()).isEqualTo(protocolMessage.getStreamingType().get());
                     assertThat(stop.getConnectionCorrelationId()).isEqualTo(correlationId);
                 });
     }

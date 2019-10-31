@@ -223,7 +223,7 @@ public class SseThingsRoute extends AbstractRoute {
                     return Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                             EventAndResponsePublisher.props(10))
                             .mapMaterializedValue(actorRef -> {
-                                streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_SSE),
+                                streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_SSE, null),
                                         null);
                                 streamingActor.tell(
                                         new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,

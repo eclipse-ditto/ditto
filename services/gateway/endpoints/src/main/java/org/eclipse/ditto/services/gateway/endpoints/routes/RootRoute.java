@@ -338,15 +338,16 @@ public final class RootRoute extends AllDirectives {
                                                 wsVersion, correlationId, ctx, null,
                                                 CustomHeadersHandler.RequestType.WS, dittoHeaders -> {
 
-                                                    final String userAgent = extractUserAgent(ctx).orElse(null);
-                                                    final ProtocolAdapter chosenProtocolAdapter =
-                                                            protocolAdapterProvider.getProtocolAdapter(
-                                                                    userAgent);
-                                                    return websocketRoute.buildWebsocketRoute(wsVersion,
-                                                            correlationId,
-                                                            authContext, dittoHeaders, chosenProtocolAdapter);
-                                                }
-                                        )
+                                                            final String userAgent = extractUserAgent(ctx).orElse(null);
+                                                            final ProtocolAdapter chosenProtocolAdapter =
+                                                                    protocolAdapterProvider.getProtocolAdapter(userAgent);
+                                                            return websocketRoute.buildWebsocketRoute(wsVersion,
+                                                                    correlationId,
+                                                                    authContext,
+                                                                    dittoHeaders,
+                                                                    chosenProtocolAdapter);
+                                                        }
+                                                )
                                 )
                         )
                 )
