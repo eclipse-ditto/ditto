@@ -347,7 +347,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     // For target address: Leave it as-is if resolution fails or results in deletion.
     private static String applyForTargetAddress(final ExpressionResolver resolver, final String value) {
-        return PlaceholderFilter.applyWithDeletion(value, resolver).orElse(value);
+        return PlaceholderFilter.applyOrElseRetain(value, resolver);
     }
 
     private static ExpressionResolver getExpressionResolver(final ExternalMessage originalMessage,

@@ -442,7 +442,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 );
 
                 final List<Target> targets = outboundSignal.getTargets().stream().map(t -> {
-                    final String address = PlaceholderFilter.apply(t.getAddress(), expressionResolver);
+                    final String address = PlaceholderFilter.applyOrElseRetain(t.getAddress(), expressionResolver);
                     return ConnectivityModelFactory.newTarget(t, address, t.getQos().orElse(null));
                 }).collect(Collectors.toList());
                 final OutboundSignal modifiedOutboundSignal =

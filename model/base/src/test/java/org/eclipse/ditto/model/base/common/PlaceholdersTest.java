@@ -29,7 +29,7 @@ import org.junit.Test;
 /**
  * Tests {@link Placeholders}.
  */
-public class PlaceholdersTest {
+public final class PlaceholdersTest {
 
     private static final String REPLACER_KEY_1 = "my:arbitrary:replacer1";
     private static final String REPLACER_1 = "{{ " + REPLACER_KEY_1 + " }}";
@@ -176,11 +176,10 @@ public class PlaceholdersTest {
     @Test
     public void substituteThrowsForUnknownLegacyPlaceholder() {
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> Placeholders.substitute(UNKNOWN_LEGACY_REPLACER, (placeholder) -> Optional.empty(),
+                .isThrownBy(() -> Placeholders.substitute(UNKNOWN_LEGACY_REPLACER, placeholder -> Optional.empty(),
                         unresolvedInputHandler))
                 .withMessage(UNKNOWN_LEGACY_REPLACER)
                 .matches(e -> "test".equals(e.getErrorCode()));
-
     }
 
     @Test
@@ -188,8 +187,7 @@ public class PlaceholdersTest {
         final String nestedPlaceholder = "{{ " + REPLACER_1 + " }}";
 
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> Placeholders.substitute(nestedPlaceholder, replacerFunction, unresolvedInputHandler))
-                .withMessageContaining("{{ " + REPLACED_1 + " }}");
+                .isThrownBy(() -> Placeholders.substitute(nestedPlaceholder, replacerFunction, unresolvedInputHandler));
     }
 
     /**
