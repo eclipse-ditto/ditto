@@ -61,7 +61,7 @@ public final class ImmutableConnectionTest {
 
     private static final String STATUS_MAPPING = "ConnectionStatus";
     private static final String JAVA_SCRIPT_MAPPING = "JavaScript";
-    private static final String MIGRATED_MAPPER_ID = "migrated";
+    private static final String MIGRATED_MAPPER_ID = "javascript";
 
     private static final Source SOURCE1 = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "amqp/source1");
     private static final Source SOURCE2 = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "amqp/source2", 1);
@@ -300,8 +300,8 @@ public final class ImmutableConnectionTest {
         final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                 .credentials(CREDENTIALS)
                 .name(NAME)
-                .setSources(addSourceMapping(SOURCES, JAVA_SCRIPT_MAPPING, "migrated"))
-                .setTargets(addTargetMapping(TARGETS, STATUS_MAPPING, "migrated"))
+                .setSources(addSourceMapping(SOURCES, JAVA_SCRIPT_MAPPING, "javascript"))
+                .setTargets(addTargetMapping(TARGETS, STATUS_MAPPING, "javascript"))
                 .clientCount(2)
                 .payloadMappingDefinition(ConnectivityModelFactory.newPayloadMappingDefinition(definitions))
                 .tags(KNOWN_TAGS)
