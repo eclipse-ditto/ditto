@@ -345,7 +345,7 @@ public final class TestConstants {
     }
 
     private static PayloadMapping getPayloadMapping(final int numberOfPayloadMappings) {
-        ArrayList<String> newPayloadMappingInputString = new ArrayList<>();
+        final ArrayList<String> newPayloadMappingInputString = new ArrayList<>();
         for (int i = 0; i < numberOfPayloadMappings; i++) {
             newPayloadMappingInputString.add("Ditto");
         }

@@ -21,7 +21,6 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
 import java.util.Collections;
 
 import javax.jms.CompletionListener;
@@ -49,10 +48,8 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.base.Signal;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +83,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     @Test
-    @Ignore
     public void testRecoverPublisher() throws Exception {
 
         new TestKit(actorSystem) {{

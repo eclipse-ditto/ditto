@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.services.connectivity.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.services.connectivity.mapping.NormalizedMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
@@ -65,6 +66,8 @@ import akka.testkit.javadsl.TestKit;
 public class ConnectionValidatorTest {
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    protected static final MapperLimitsConfig MAPPER_LIMITS_CONFIG =
+            TestConstants.MAPPING_CONFIG.getMapperLimitsConfig();
 
     private static ActorSystem actorSystem;
 
@@ -98,7 +101,9 @@ public class ConnectionValidatorTest {
     @Test
     public void acceptValidConnection() {
         final Connection connection = createConnection(CONNECTION_ID);
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(
+                MAPPER_LIMITS_CONFIG,
+                AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
@@ -115,7 +120,7 @@ public class ConnectionValidatorTest {
                                         .build()))
                         .build();
 
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
@@ -134,7 +139,7 @@ public class ConnectionValidatorTest {
                                         .build()))
                         .build();
 
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
@@ -151,7 +156,7 @@ public class ConnectionValidatorTest {
                                         Topic.LIVE_MESSAGES)))
                         .build();
 
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
@@ -171,7 +176,7 @@ public class ConnectionValidatorTest {
                         ))
                         .build();
 
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
@@ -181,7 +186,7 @@ public class ConnectionValidatorTest {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
                 .trustedCertificates("Wurst")
                 .build();
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
@@ -196,7 +201,7 @@ public class ConnectionValidatorTest {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
                 .trustedCertificates(trustedCertificates)
                 .build();
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
@@ -208,7 +213,7 @@ public class ConnectionValidatorTest {
                         .clientCertificate("Wurst")
                         .build())
                 .build();
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
@@ -221,7 +226,7 @@ public class ConnectionValidatorTest {
                         .clientCertificate(Certificates.CLIENT_CRT)
                         .build())
                 .build();
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
 
@@ -235,13 +240,13 @@ public class ConnectionValidatorTest {
                         .clientCertificate(Certificates.CLIENT_CRT)
                         .build())
                 .build();
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
     @Test
     public void testInvalidHosts() {
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         // wildcard
         expectConnectionConfigurationInvalid(underTest, getConnectionWithHost("0.0.0.0"));
         // blacklisted
@@ -279,7 +284,7 @@ public class ConnectionValidatorTest {
                 .setSources(TestConstants.Sources.SOURCES_WITH_VALID_MAPPING_NUMBER)
                 .setTargets(TestConstants.Targets.TARGET_WITH_VALID_MAPPING_NUMBER)
                 .build();
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
@@ -290,7 +295,7 @@ public class ConnectionValidatorTest {
                 .toBuilder()
                 .setSources(TestConstants.Sources.SOURCES_WITH_INVALID_MAPPING_NUMBER)
                 .build();
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
@@ -301,7 +306,7 @@ public class ConnectionValidatorTest {
                 .toBuilder()
                 .setTargets(TestConstants.Targets.TARGET_WITH_INVALID_MAPPING_NUMBER)
                 .build();
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
@@ -312,7 +317,6 @@ public class ConnectionValidatorTest {
                         ConnectivityModelFactory.newPayloadMapping("invalid")).build());
 
         rejectInvalidPayloadMappingReferenceInTarget(emptyList(), targetWithInvalidMapping);
-
     }
 
     @Test
@@ -338,7 +342,7 @@ public class ConnectionValidatorTest {
                 .setSources(sources)
                 .build();
 
-        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
                 .withMessageContaining("invalid");
