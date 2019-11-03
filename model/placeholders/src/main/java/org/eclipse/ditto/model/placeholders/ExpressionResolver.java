@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.placeholders;
 
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 
@@ -39,6 +38,14 @@ import org.eclipse.ditto.model.base.common.Placeholders;
 public interface ExpressionResolver {
 
     /**
+     * Resolve a single pipeline expression.
+     *
+     * @param pipelineExpression the pipeline expression.
+     * @return the pipeline element after evaluation.
+     */
+    PipelineElement resolveAsPipelineElement(String pipelineExpression);
+
+    /**
      * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
      * (e.g. functions).
      *
@@ -49,16 +56,9 @@ public interface ExpressionResolver {
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
-    PipelineElement resolve(String expressionTemplate, final boolean allowUnresolved);
-
-    /**
-     * Resolves a single {@link Placeholder} with the passed full {@code placeholder} name (e.g.: {@code thing:id} or
-     * {@code header:correlation-id}.
-     *
-     * @param placeholder the placeholder to resolve.
-     * @return the resolved placeholder if it could be resolved, empty Optional otherwise.
-     */
-    Optional<String> resolveSinglePlaceholder(String placeholder);
+    default PipelineElement resolve(String expressionTemplate, final boolean allowUnresolved) {
+        return ExpressionResolver.substitute(expressionTemplate, allowUnresolved, this::resolveAsPipelineElement);
+    }
 
     /**
      * Perform simple substitution on a string based on a template function.

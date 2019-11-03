@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.model.placeholders;
 
-import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -79,7 +77,7 @@ final class PipelineFunctionParameterResolverFactory {
         throw new AssertionError();
     }
 
-    static class SingleParameterResolver implements BiFunction<String, ExpressionResolver, Optional<String>> {
+    static class SingleParameterResolver {
 
         static final String STRING_CONSTANT_PATTERN_STR = String.format(
                 "(\\(\\s*+'(?<singleQuotedConstant>%s)'\\s*+\\))|(\\(\\s*+\"(?<doubleQuotedConstant>%s)\"\\s*+\\))",
@@ -94,28 +92,27 @@ final class PipelineFunctionParameterResolverFactory {
             this.pattern = Pattern.compile(patternStr);
         }
 
-        @Override
-        public Optional<String> apply(final String paramsIncludingParentheses,
-                final ExpressionResolver expressionResolver) {
+        public PipelineElement apply(final String paramsIncludingParentheses,
+                final ExpressionResolver resolver,
+                final PipelineFunction pipelineFunction) {
             final Matcher matcher = this.pattern.matcher(paramsIncludingParentheses);
             if (matcher.matches()) {
 
                 String constant = matcher.group("singleQuotedConstant");
                 constant = constant != null ? constant : matcher.group("doubleQuotedConstant");
                 if (constant != null) {
-                    return Optional.of(constant);
+                    return PipelineElement.resolved(constant);
                 }
 
                 final String placeholder = matcher.group("placeholder");
                 if (placeholder != null) {
                     // if resolution fails, interpret the placeholder string as string literal.
-                    final String resolutionWithFallback =
-                            expressionResolver.resolveSinglePlaceholder(placeholder).orElse(placeholder);
-                    return Optional.of(resolutionWithFallback);
+                    return resolver.resolveAsPipelineElement(placeholder);
                 }
             }
 
-            return Optional.empty();
+            throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, pipelineFunction)
+                    .build();
         }
 
     }

@@ -56,9 +56,10 @@ final class PipelineFunctionSubstringBefore implements PipelineFunction {
     private String parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        return parameterResolver.apply(paramsIncludingParentheses, expressionResolver)
-                .orElseThrow(() ->
-                        PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
+        return parameterResolver.apply(paramsIncludingParentheses, expressionResolver, this)
+                .toOptional()
+                .orElseThrow(
+                        () -> PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                                 .build());
     }
 

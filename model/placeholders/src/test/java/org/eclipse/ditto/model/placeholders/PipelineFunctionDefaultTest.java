@@ -59,12 +59,12 @@ public class PipelineFunctionDefaultTest {
     public void applyReturnsDefaultPlaceholder() {
         final PipelineElement input = PipelineElement.unresolved();
         final String params = "(" + KNOWN_PLACEHOLDER + ")";
-        when(expressionResolver.resolveSinglePlaceholder(anyString()))
-                .thenReturn(Optional.of(KNOWN_VALUE));
+        when(expressionResolver.resolveAsPipelineElement(anyString()))
+                .thenReturn(PipelineElement.resolved(KNOWN_VALUE));
 
         assertThat(function.apply(input, params, expressionResolver)).contains(KNOWN_VALUE);
 
-        verify(expressionResolver).resolveSinglePlaceholder(KNOWN_PLACEHOLDER);
+        verify(expressionResolver).resolveAsPipelineElement(KNOWN_PLACEHOLDER);
     }
 
 }

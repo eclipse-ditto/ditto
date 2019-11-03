@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.placeholders;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -42,20 +41,13 @@ final class PipelineFunctionDefault implements PipelineFunction {
 
         // parse + resolve the specified default value for unresolved placeholders
         // if previous stage does not resolve to a value. deleted pipeline elements remain deleted.
-        return value.onUnresolved(() ->
-                PipelineElement.resolved(parseAndResolveThrow(paramsIncludingParentheses, expressionResolver)));
+        return value.onUnresolved(() -> parseAndResolveThrow(paramsIncludingParentheses, expressionResolver));
     }
 
-    private String parseAndResolveThrow(final String paramsIncludingParentheses, final ExpressionResolver resolver) {
-        final Optional<String> parameterOptional =
-                PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter()
-                        .apply(paramsIncludingParentheses, resolver);
-        if (!parameterOptional.isPresent()) {
-            throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
-                    .build();
-        } else {
-            return parameterOptional.get();
-        }
+    private PipelineElement parseAndResolveThrow(final String paramsIncludingParentheses,
+            final ExpressionResolver expressionResolver) {
+        return PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter()
+                .apply(paramsIncludingParentheses, expressionResolver, this);
     }
 
     /**

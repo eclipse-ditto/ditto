@@ -58,7 +58,6 @@ public class ImmutableExpressionResolverTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableExpressionResolver.class)
-                .withIgnoredFields("placeholderResolverFunctions") // is cache for placeholderResolvers
                 .usingGetClass()
                 .verify();
     }
@@ -171,19 +170,17 @@ public class ImmutableExpressionResolverTest {
 
     @Test
     public void testSuccessfulSinglePlaceholderResolution() {
-        assertThat(underTest.resolveSinglePlaceholder("header:one"))
+        assertThat(underTest.resolveAsPipelineElement("header:one"))
                 .contains(KNOWN_HEADERS.get("one"));
-        assertThat(underTest.resolveSinglePlaceholder("thing:id"))
+        assertThat(underTest.resolveAsPipelineElement("thing:id"))
                 .contains(THING_ID.toString());
     }
 
     @Test
     public void testUnsuccessfulSinglePlaceholderResolution() {
-        assertThat(underTest.resolveSinglePlaceholder("header:unknown"))
+        assertThat(underTest.resolveAsPipelineElement("header:unknown"))
                 .isEmpty();
-        assertThat(underTest.resolveSinglePlaceholder("fn:default('fallback')"))
-                .isEmpty();
-        assertThat(underTest.resolveSinglePlaceholder("fn:substring-before()"))
+        assertThat(underTest.resolveAsPipelineElement("fn:substring-before('')"))
                 .isEmpty();
     }
 

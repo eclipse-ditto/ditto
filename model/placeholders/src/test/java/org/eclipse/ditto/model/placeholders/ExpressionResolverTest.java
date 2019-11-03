@@ -69,8 +69,8 @@ public class ExpressionResolverTest {
 
     @Test
     public void testPlaceholderFunctionDefaultWithPlaceholderNonExistingDefault() {
-        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(header:alsoNotThere) }}", true))
-                .contains("header:alsoNotThere");
+        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(header:alsoNotThere) }}", false))
+                .isEmpty();
     }
 
     @Test
@@ -94,7 +94,8 @@ public class ExpressionResolverTest {
 
     @Test
     public void testLoneDelete() {
-        assertThat(expressionResolver.resolve("{{ fn:delete() }}", true)).isEmpty();
+        assertThat(expressionResolver.resolve("{{ fn:delete() }}", true))
+                .isEqualTo(PipelineElement.deleted());
     }
 
     @Test
@@ -107,6 +108,15 @@ public class ExpressionResolverTest {
     public void testPipelineStartingWithDefault() {
         assertThat(expressionResolver.resolve("{{ fn:default(header:header-name) | fn:upper() }}", true))
                 .contains("HEADER-VAL");
+    }
+
+    @Test
+    public void testDeleteIfUnresolved() {
+        assertThat(expressionResolver.resolve("{{ header:nonexistent }}", true))
+                .contains("{{ header:nonexistent }}");
+
+        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(fn:delete()) }}", true))
+                .isEqualTo(PipelineElement.deleted());
     }
 
 }

@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.placeholders;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -53,9 +52,9 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
 
     private String parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
-        final Optional<String> resolved = PipelineFunctionParameterResolverFactory.forStringParameter()
-                .apply(paramsIncludingParentheses, expressionResolver);
-        return resolved.orElseThrow(() ->
+        final PipelineElement resolved = PipelineFunctionParameterResolverFactory.forStringParameter()
+                .apply(paramsIncludingParentheses, expressionResolver, this);
+        return resolved.toOptional().orElseThrow(() ->
                 PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                         .build());
     }
