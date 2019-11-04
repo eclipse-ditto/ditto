@@ -292,32 +292,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         } else {
             message = session.createMessage();
         }
-
-        // some headers must be handled differently to be passed to amqp message
-        final Map<String, String> headers = externalMessage.getHeaders();
-        JMS_HEADER_MAPPING.entrySet().stream()
-                .filter(entry -> headers.containsKey(entry.getKey()))
-                .forEach(entry -> entry.getValue().accept(message, headers.get(entry.getKey())));
-
-        if (message instanceof JmsMessage) {
-            final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
-            if (facade instanceof AmqpJmsMessageFacade) {
-                final AmqpJmsMessageFacade amqpJmsMessageFacade = (AmqpJmsMessageFacade) facade;
-                externalMessage.getHeaders()
-                        .entrySet()
-                        .stream()
-                        // skip special jms properties in generic mapping
-                        .filter(h -> !JMS_HEADER_MAPPING.containsKey(h.getKey()))
-                        .forEach(entry -> {
-                            try {
-                                amqpJmsMessageFacade.setApplicationProperty(entry.getKey(), entry.getValue());
-                            } catch (final JMSException ex) {
-                                log.warning("Could not set application-property <{}>: {}",
-                                        entry.getKey(), jmsExceptionToString(ex));
-                            }
-                        });
-            }
-        }
+        JMSPropertyMapper.setPropertiesAndApplicationProperties(message, externalMessage.getHeaders());
         return message;
     }
 

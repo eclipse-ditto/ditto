@@ -156,13 +156,9 @@ public abstract class AbstractConsumerActorTest<M> {
         testInboundMessage(header("useless", "header"), false,
                 msg -> {},
                 response -> {
-                    final UnresolvedPlaceholderException exception =
-                            UnresolvedPlaceholderException.fromMessage(
-                                    response.getExternalMessage().getTextPayload().orElse(""),
-                                    response.getSource().getDittoHeaders());
-                    assertThat(exception.getErrorCode()).isEqualTo(UnresolvedPlaceholderException.ERROR_CODE);
-                    assertThat(exception.getDittoHeaders()).contains(REPLY_TO_HEADER);
-                    assertThat(exception.getMessage()).contains("{{ header:device_id }}");
+                    assertThat(response.getExternalMessage().getHeaders()).contains(REPLY_TO_HEADER);
+                    assertThat(response.getExternalMessage().getTextPayload().orElse(""))
+                            .contains("{{ header:device_id }}");
                 }
         );
     }

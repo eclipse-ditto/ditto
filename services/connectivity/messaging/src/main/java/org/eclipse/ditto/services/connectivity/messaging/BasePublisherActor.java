@@ -142,9 +142,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     } else if (replyToFromHeader != null) {
                         publishResponseOrError(toReplyTarget(replyToFromHeader), outbound, response);
                     } else {
-                        log().info("Response dropped, missing replyTo address: {}", response);
+                        log().info("Response dropped, missing reply-to or reply-target address: {}", response);
                         responseDroppedMonitor.failure(outbound.getSource(),
-                                "Response dropped since it was missing a replyTo address.");
+                                "Response dropped since it was missing a reply-to or reply-target address.");
                     }
                 })
                 .match(OutboundSignal.WithExternalMessage.class, outbound -> {
