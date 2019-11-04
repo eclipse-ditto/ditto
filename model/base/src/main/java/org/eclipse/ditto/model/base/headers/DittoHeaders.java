@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -109,7 +108,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      */
     @Deprecated
     static String readSubjectsToString(final Set<String> readSubjects) {
-        return readSubjects.stream().collect(Collectors.joining(","));
+        return String.join(",", readSubjects);
     }
 
     /**
@@ -226,9 +225,11 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<EntityTagMatchers> getIfNoneMatch();
 
     /**
-     * @return the mapper used to map the signal
+     * Returns the inbound {@code MessageMapper} ID which mapped incoming arbitrary payload from external sources.
+     *
+     * @return the {@code MessageMapper} which mapped incoming payload.
      */
-    Optional<String> getMapper();
+    Optional<String> getInboundPayloadMapper();
 
     /**
      * Indicates whether the size of the headers entries is greater than the specified size.

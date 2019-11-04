@@ -175,7 +175,7 @@ public final class MessageMappingProcessor {
                         final Signal<?> signal = timer.protocol(() -> protocolAdapter.fromAdaptable(adaptable));
                         dittoHeadersSizeChecker.check(signal.getDittoHeaders());
                         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-                        final DittoHeaders headersWithMapper = dittoHeaders.toBuilder().mapper(mapper.getId()).build();
+                        final DittoHeaders headersWithMapper = dittoHeaders.toBuilder().inboundPayloadMapper(mapper.getId()).build();
                         final Signal signalWithMapperHeader = signal.setDittoHeaders(headersWithMapper);
                         handler.onMessageMapped(MappedInboundExternalMessage.of(message, adaptable.getTopicPath(),
                                 signalWithMapperHeader));
@@ -260,7 +260,7 @@ public final class MessageMappingProcessor {
             // responses/errors do not have a target assigned, read mapper from internal header
             payloadMapping = outboundSignal.getSource()
                     .getDittoHeaders()
-                    .getMapper()
+                    .getInboundPayloadMapper()
                     .map(ConnectivityModelFactory::newPayloadMapping)
                     .orElseGet(ConnectivityModelFactory::emptyPayloadMapping);
         } else {
