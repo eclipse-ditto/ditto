@@ -63,7 +63,7 @@ public final class CommandWithOptionalEntityValidatorTest {
     }
 
     private WithDittoHeaders createTestCommand(final JsonValue jsonValue) {
-        final ThingId thingId = ThingId.of("com.bosch.iot.things.test:myThing");
+        final ThingId thingId = ThingId.of("org.eclipse.ditto.test:myThing");
         final String featureId = "myFeature";
         final JsonPointer propertyJsonPointer = JsonPointer.of("/bumlux");
         return ModifyFeatureProperty.of(thingId, featureId, propertyJsonPointer, jsonValue, DittoHeaders.empty());

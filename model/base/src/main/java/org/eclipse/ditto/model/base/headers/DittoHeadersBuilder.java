@@ -162,6 +162,14 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B ifNoneMatch(EntityTagMatchers entityTags);
 
     /**
+     * Sets the inbound {@code MessageMapper} ID value.
+     *
+     * @param inboundPayloadMapperId the inbound {@code MessageMapper} ID which mapped incoming arbitrary payload from external sources.
+     * @return this builder for Method Chaining
+     */
+    B inboundPayloadMapper(String inboundPayloadMapperId);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.

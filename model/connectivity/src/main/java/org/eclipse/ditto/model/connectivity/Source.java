@@ -76,6 +76,14 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Optional<HeaderMapping> getHeaderMapping();
 
     /**
+     * The payload mappings that should be applied for messages received on this source. Each
+     * mapping can produce multiple signals on its own that are then forwarded independently.
+     *
+     * @return the payload mappings to execute
+     */
+    PayloadMapping getPayloadMapping();
+
+    /**
      * Returns all non hidden marked fields of this {@code Source}.
      *
      * @return a JSON object representation of this Source including only non hidden marked fields.
@@ -143,6 +151,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
                 JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Source} payload mapping.
+         */
+        public static final JsonFieldDefinition<JsonArray> PAYLOAD_MAPPING =
+                JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

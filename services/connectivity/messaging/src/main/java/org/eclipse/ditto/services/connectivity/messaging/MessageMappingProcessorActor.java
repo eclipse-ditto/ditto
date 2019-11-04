@@ -72,9 +72,11 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivit
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -197,12 +199,20 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         log.debug("Handling ExternalMessage: {}", externalMessage);
         try {
             mapExternalMessageToSignalAndForwardToConcierge(externalMessage);
-        } catch (final DittoRuntimeException e) {
-            responseMappedMonitor.getLogger()
-                    .failure("Got exception {0} when processing external message: {1}", e.getErrorCode(),
-                            e.getMessage());
-            handleDittoRuntimeException(e, externalMessage.getHeaders());
         } catch (final Exception e) {
+            handleException(e, externalMessage.getHeaders());
+        }
+    }
+
+    private void handleException(final Exception e, final Map<String, String> headers) {
+        if (e instanceof DittoRuntimeException) {
+            final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) e;
+            responseMappedMonitor.getLogger()
+                    .failure("Got exception {0} when processing external message: {1}",
+                            dittoRuntimeException.getErrorCode(),
+                            e.getMessage());
+            handleDittoRuntimeException(dittoRuntimeException, headers);
+        } else {
             responseMappedMonitor.getLogger()
                     .failure("Got unknown exception when processing external message: {1}", e.getMessage());
             log.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
@@ -212,39 +222,32 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void mapExternalMessageToSignalAndForwardToConcierge(final ExternalMessage externalMessage) {
         final String source = externalMessage.getSourceAddress().orElse("unknown");
         final ExternalMessage messageWithAuthSubject = placeholderSubstitution.apply(externalMessage);
-
-        final Optional<InboundExternalMessage> inboundMessageOpt =
-                connectionMonitorRegistry.forInboundMapped(connectionId, source)
-                        .wrapExecution(messageWithAuthSubject)
-                        .execute(() -> messageMappingProcessor.process(messageWithAuthSubject));
-
-        if (inboundMessageOpt.isPresent()) {
-            final InboundExternalMessage inboundMessage = inboundMessageOpt.get();
-            final Signal<?> signal = inboundMessage.getSignal();
+        final ConnectionMonitor inboundMapped = connectionMonitorRegistry.forInboundMapped(connectionId, source);
+        final ConnectionMonitor inboundDropped = connectionMonitorRegistry.forInboundDropped(connectionId, source);
+        final MappingResultHandler<MappedInboundExternalMessage> inboundMappingHandlers
+                = new InboundMappingResultHandler(mappedInboundMessage -> {
+            final Signal<?> signal = mappedInboundMessage.getSignal();
             enhanceLogUtil(signal);
-
             connectionMonitorRegistry.forInboundEnforced(connectionId, source)
                     .wrapExecution(signal)
                     .execute(() -> applySignalIdEnforcement.accept(messageWithAuthSubject, signal));
             // the above throws an exception if signal id enforcement fails
-
-            final Signal<?> adjustedSignal = mapHeaders
-                    .andThen(mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
+            final Signal<?> adjustedSignal = mapHeaders.andThen(
+                    mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
                     .andThen(signal::setDittoHeaders)
-                    .apply(inboundMessage);
-
+                    .apply(mappedInboundMessage);
             startTrace(adjustedSignal);
-            // This message is important to check if a command is accepted for a specific connection, as this
-            // happens quite a lot this is going to the debug level. Use best with a connection-id filter.
+            // This message is important to check if a command is accepted for a specific connection, as this happens
+            // quite a lot this is going to the debug level. Use best with a connection-id filter.
             log.debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder",
                     adjustedSignal.getType());
             conciergeForwarder.tell(adjustedSignal, getSelf());
-        } else {
-            log.debug("Message mapping returned null, message is dropped.");
-            final ConnectionMonitor inboundDroppedMonitor =
-                    connectionMonitorRegistry.forInboundDropped(connectionId, source);
-            inboundDroppedMonitor.success(messageWithAuthSubject);
-        }
+        },
+                () -> log.debug("Message mapping returned null, message is dropped."),
+                exception -> this.handleException(exception, externalMessage.getHeaders()),
+                inboundMapped, inboundDropped, InfoProviderFactory.forExternalMessage(externalMessage));
+
+        messageMappingProcessor.process(messageWithAuthSubject, inboundMappingHandlers);
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
@@ -345,17 +348,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void handleOutboundSignal(final OutboundSignal outbound) {
         enhanceLogUtil(outbound.getSource());
         log.debug("Handling outbound signal: {}", outbound.getSource());
-
-        final Optional<OutboundSignal.WithExternalMessage> mappedOutboundSignal = mapToExternalMessage(outbound)
-                .map(externalMessage -> replaceTargetAddressPlaceholders.apply(outbound, externalMessage));
-
-        if (mappedOutboundSignal.isPresent()) {
-            forwardToPublisherActor(mappedOutboundSignal.get());
-        } else {
-            log.debug("Message mapping returned null, message is dropped.");
-            getMonitorsForDroppedSignal(outbound, connectionId)
-                    .forEach(monitor -> monitor.success(outbound.getSource()));
-        }
+        mapToExternalMessage(outbound);
     }
 
     private void forwardToPublisherActor(final OutboundSignal.WithExternalMessage mappedOutboundSignal) {
@@ -373,18 +366,28 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptyList()));
     }
 
-    private Optional<ExternalMessage> mapToExternalMessage(final OutboundSignal outbound) {
-        try {
-            final Set<ConnectionMonitor> monitors = getMonitorsForMappedSignal(outbound, connectionId);
-            return ConnectionMonitor.wrapExecution(monitors, outbound.getSource())
-                    .execute(() -> messageMappingProcessor.process(outbound.getSource()));
-        } catch (final DittoRuntimeException e) {
-            log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
-                    e.getDescription().orElse(""));
-        } catch (final Exception e) {
-            log.warning("Got unexpected exception during processing Signal: {}", e.getMessage());
-        }
-        return Optional.empty();
+    private void mapToExternalMessage(final OutboundSignal outbound) {
+        final Set<ConnectionMonitor> outboundMapped = getMonitorsForMappedSignal(outbound, connectionId);
+        final Set<ConnectionMonitor> outboundDropped = getMonitorsForDroppedSignal(outbound, connectionId);
+
+        final MappingResultHandler<ExternalMessage> outboundMappingResultHandler = new OutboundMappingResultHandler(
+                mappedOutboundMessage -> {
+                    final OutboundSignal.WithExternalMessage withExternalMessage =
+                            replaceTargetAddressPlaceholders.apply(outbound, mappedOutboundMessage);
+                    forwardToPublisherActor(withExternalMessage);
+                },
+                () -> log.debug("Message mapping returned null, message is dropped."),
+                exception -> {
+                    if (exception instanceof DittoRuntimeException) {
+                        final DittoRuntimeException e = (DittoRuntimeException) exception;
+                        log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
+                                e.getDescription().orElse(""));
+                    } else {
+                        log.warning("Got unexpected exception during processing Signal: {}", exception.getMessage());
+                    }
+                }, outboundMapped, outboundDropped, InfoProviderFactory.forSignal(outbound.getSource()));
+
+        messageMappingProcessor.process(outbound, outboundMappingResultHandler);
     }
 
     private void startTrace(final Signal<?> command) {
@@ -489,11 +492,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 }).collect(Collectors.toList());
                 final OutboundSignal modifiedOutboundSignal =
                         OutboundSignalFactory.newOutboundSignal(outboundSignal.getSource(), targets);
-                return OutboundSignalFactory.newMappedOutboundSignal(modifiedOutboundSignal,
-                        externalMessage);
+                return OutboundSignalFactory.newMappedOutboundSignal(modifiedOutboundSignal, externalMessage);
             } else {
-                return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal,
-                        externalMessage);
+                return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
             }
         }
 

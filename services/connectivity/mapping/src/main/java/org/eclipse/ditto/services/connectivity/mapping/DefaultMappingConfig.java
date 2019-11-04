@@ -31,12 +31,17 @@ public final class DefaultMappingConfig implements MappingConfig {
 
     private static final String CONFIG_PATH = "mapping";
 
-    private final String factoryName;
     private final JavaScriptConfig javaScriptConfig;
+    private final MapperLimitsConfig mapperLimitsConfig;
+
+    private DefaultMappingConfig(final ScopedConfig config) {
+        mapperLimitsConfig = DefaultMapperLimitsConfig.of(config);
+        javaScriptConfig = DefaultJavaScriptConfig.of(config);
+    }
 
     private DefaultMappingConfig(final ScopedConfig config, final JavaScriptConfig theJavaScriptConfig) {
-        factoryName = config.getString(MappingConfigValue.FACTORY.getConfigPath());
         javaScriptConfig = theJavaScriptConfig;
+        mapperLimitsConfig = DefaultMapperLimitsConfig.of(config);
     }
 
     /**
@@ -50,17 +55,17 @@ public final class DefaultMappingConfig implements MappingConfig {
         final ConfigWithFallback mappingScopedConfig =
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, MappingConfigValue.values());
 
-        return new DefaultMappingConfig(mappingScopedConfig, DefaultJavaScriptConfig.of(mappingScopedConfig));
-    }
-
-    @Override
-    public String getFactoryName() {
-        return factoryName;
+        return new DefaultMappingConfig(mappingScopedConfig);
     }
 
     @Override
     public JavaScriptConfig getJavaScriptConfig() {
         return javaScriptConfig;
+    }
+
+    @Override
+    public MapperLimitsConfig getMapperLimitsConfig() {
+        return mapperLimitsConfig;
     }
 
     @Override
@@ -72,20 +77,20 @@ public final class DefaultMappingConfig implements MappingConfig {
             return false;
         }
         final DefaultMappingConfig that = (DefaultMappingConfig) o;
-        return Objects.equals(factoryName, that.factoryName) &&
-                Objects.equals(javaScriptConfig, that.javaScriptConfig);
+        return Objects.equals(javaScriptConfig, that.javaScriptConfig) &&
+                Objects.equals(mapperLimitsConfig, that.mapperLimitsConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(factoryName, javaScriptConfig);
+        return Objects.hash(javaScriptConfig, mapperLimitsConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "factoryName=" + factoryName +
-                ", javaScriptConfig=" + javaScriptConfig +
+                "javaScriptConfig=" + javaScriptConfig +
+                "mapperLimitsConfig=" + mapperLimitsConfig +
                 "]";
     }
 

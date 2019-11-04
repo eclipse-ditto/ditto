@@ -79,7 +79,7 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
     }
 
     @Override
-    public ImmutableJsonObjectBuilder set(final CharSequence key, final String value,
+    public ImmutableJsonObjectBuilder set(final CharSequence key, @Nullable final String value,
             final Predicate<JsonField> predicate) {
 
         return set(key, JsonFactory.newValue(value), predicate);

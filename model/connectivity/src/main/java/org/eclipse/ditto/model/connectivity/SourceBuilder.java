@@ -90,6 +90,14 @@ public interface SourceBuilder<T extends SourceBuilder> {
     T headerMapping(@Nullable HeaderMapping headerMapping);
 
     /**
+     * Sets the payload mappings for this source.
+     *
+     * @param payloadMapping the payload mappings for this source
+     * @return this builder
+     */
+    T payloadMapping(PayloadMapping payloadMapping);
+
+    /**
      * Build the source instance.
      *
      * @return the new source instance
