@@ -587,7 +587,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse() throws JMSException {
         testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
                 connection, (id, headers) -> ModifyThingResponse.modified(id, DittoHeaders.of(headers)),
-                "replies",
+                "replyTarget/",
                 message -> message.contains("\"status\":2"));
     }
 
@@ -602,7 +602,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
                 connectionWithoutTargets,
                 (id, headers) -> ModifyThingResponse.modified(id, DittoHeaders.of(headers)),
-                "replies",
+                "replyTarget/",
                 message -> message.contains("\"status\":2"));
     }
 
@@ -611,14 +611,14 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
                 connection, (id, headers) -> ThingErrorResponse.of(id,
                         ThingNotModifiableException.newBuilder(id).dittoHeaders(headers).build()),
-                "replies",
+                "replyTarget/",
                 message -> message.contains("ditto/thing/things/twin/errors"));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
             final Connection connection,
             final BiFunction<ThingId, DittoHeaders, CommandResponse> responseSupplier,
-            final String expectedAddress,
+            final String expectedAddressPrefix,
             final Predicate<String> messageTextPredicate) throws JMSException {
 
         new TestKit(actorSystem) {{
@@ -644,7 +644,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
             // verify that the message is published via the producer with the correct destination
-            final MessageProducer messageProducer = getProducerForAddress(expectedAddress);
+            final MessageProducer messageProducer =
+                    getProducerForAddress(expectedAddressPrefix + command.getEntityId());
             verify(messageProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
 
             final Message message = messageCaptor.getValue();
@@ -973,7 +974,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 .atMost(Duration.TWO_SECONDS)
                 .pollInterval(Duration.TWO_HUNDRED_MILLISECONDS)
                 .until(() -> mockProducers.stream()
-                        .filter(p -> address.equals(wrapThrowable(() -> p.getDestination()).toString()))
+                        .filter(p -> address.equals(wrapThrowable(p::getDestination).toString()))
                         // we only want the latest producer (required to test session recovery)
                         .reduce((first, second) -> second)
                         .orElse(null), Matchers.notNullValue());

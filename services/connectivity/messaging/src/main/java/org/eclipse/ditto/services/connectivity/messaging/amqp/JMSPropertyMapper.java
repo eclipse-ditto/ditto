@@ -26,7 +26,6 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
-import javax.jms.JMSException;
 import javax.jms.JMSRuntimeException;
 import javax.jms.Message;
 
@@ -74,16 +73,16 @@ final class JMSPropertyMapper {
 
     private static Map<String, BiConsumer<Message, String>> createAmqpPropertySetter() {
         final HashMap<String, BiConsumer<Message, String>> map = new HashMap<>();
-        map.put(AMQP.MESSAGE_ID, wrap(Message::setJMSMessageID));
-        map.put(AMQP.USER_ID, wrap(JMSPropertyMapper::setUserId));
-        map.put(AMQP.TO, wrap(JMSPropertyMapper::setTo));
-        map.put(AMQP.SUBJECT, wrap(Message::setJMSType));
-        map.put(AMQP.REPLY_TO, wrap(JMSPropertyMapper::setReplyTo));
-        map.put(AMQP.CORRELATION_ID, wrap(Message::setJMSCorrelationID));
+        map.put(AMQP.MESSAGE_ID, JMSPropertyMapper::setMessageId);
+        map.put(AMQP.USER_ID, JMSPropertyMapper::setUserId);
+        map.put(AMQP.TO, JMSPropertyMapper::setTo);
+        map.put(AMQP.SUBJECT, JMSPropertyMapper::setSubject);
+        map.put(AMQP.REPLY_TO, JMSPropertyMapper::setReplyTo);
+        map.put(AMQP.CORRELATION_ID, JMSPropertyMapper::setCorrelationId);
         map.put(AMQP.CONTENT_TYPE, JMSPropertyMapper::setContentType);
         map.put(AMQP.CONTENT_ENCODING, JMSPropertyMapper::setContentEncoding);
-        map.put(AMQP.ABSOLUTE_EXPIRY_TIME, wrap(JMSPropertyMapper::setAbsoluteExpiryTime));
-        map.put(AMQP.CREATION_TIME, wrap(JMSPropertyMapper::setCreationTime));
+        map.put(AMQP.ABSOLUTE_EXPIRY_TIME, JMSPropertyMapper::setAbsoluteExpiryTime);
+        map.put(AMQP.CREATION_TIME, JMSPropertyMapper::setCreationTime);
         map.put(AMQP.GROUP_ID, JMSPropertyMapper::setGroupId);
         map.put(AMQP.GROUP_SEQUENCE, JMSPropertyMapper::setGroupSequence);
         map.put(AMQP.REPLY_TO_GROUP_ID, JMSPropertyMapper::setReplyToGroupId);
@@ -130,28 +129,52 @@ final class JMSPropertyMapper {
         return Collections.unmodifiableMap(headers);
     }
 
-    private static void setUserId(final Message message, final String userId) throws JMSException {
+    private static void setMessageId(final Message message, final String messageId) {
+        wrap(Message::setJMSMessageID).accept(message, messageId);
+    }
+
+    private static Optional<String> getMessageId(final Message message) {
+        return Optional.ofNullable(wrap(Message::getJMSMessageID).apply(message));
+    }
+
+    private static void setUserId(final Message message, final String userId) {
         wrapFacadeBiConsumer(message, userId, AmqpJmsMessageFacade::setUserId);
     }
 
-    private static Optional<String> getUserId(final Message message) throws JMSException {
+    private static Optional<String> getUserId(final Message message) {
         return Optional.ofNullable(wrapFacadeFunction(message, AmqpJmsMessageFacade::getUserId));
     }
 
-    private static void setTo(final Message message, final String to) throws JMSException {
-        message.setJMSDestination(asDestination(to));
+    private static void setTo(final Message message, final String to) {
+        wrap(Message::setJMSDestination).accept(message, asDestination(to));
     }
 
-    private static Optional<String> getTo(final Message message) throws JMSException {
-        return Optional.ofNullable(message.getJMSDestination()).map(Destination::toString);
+    private static void setSubject(final Message message, final String subject) {
+        wrap(Message::setJMSType).accept(message, subject);
     }
 
-    private static void setReplyTo(final Message message, final String replyTo) throws JMSException {
-        message.setJMSReplyTo(asDestination(replyTo));
+    private static Optional<String> getSubject(final Message message) {
+        return Optional.ofNullable(wrap(Message::getJMSType).apply(message));
     }
 
-    private static Optional<String> getReplyTo(final Message message) throws JMSException {
-        return Optional.ofNullable(message.getJMSReplyTo()).map(Destination::toString);
+    private static Optional<String> getTo(final Message message) {
+        return Optional.ofNullable(wrap(Message::getJMSDestination).apply(message)).map(Destination::toString);
+    }
+
+    private static void setReplyTo(final Message message, final String replyTo) {
+        wrap(Message::setJMSReplyTo).accept(message, asDestination(replyTo));
+    }
+
+    private static Optional<String> getReplyTo(final Message message) {
+        return Optional.ofNullable(wrap(Message::getJMSReplyTo).apply(message)).map(Destination::toString);
+    }
+
+    private static void setCorrelationId(final Message message, final String correlationId) {
+        wrap(Message::setJMSCorrelationID).accept(message, correlationId);
+    }
+
+    private static Optional<String> getCorrelationId(final Message message) {
+        return Optional.ofNullable(wrap(Message::getJMSCorrelationID).apply(message));
     }
 
     private static void setContentType(final Message message, final String contentType) {
@@ -172,21 +195,20 @@ final class JMSPropertyMapper {
                 .flatMap(Function.identity());
     }
 
-    private static void setAbsoluteExpiryTime(final Message message, final String absoluteExpiryTime)
-            throws JMSException {
-        message.setJMSExpiration(Long.parseLong(absoluteExpiryTime));
+    private static void setAbsoluteExpiryTime(final Message message, final String absoluteExpiryTime) {
+        wrap(Message::setJMSExpiration).accept(message, Long.valueOf(absoluteExpiryTime));
     }
 
-    private static Optional<String> getAbsoluteExpiryTime(final Message message) throws JMSException {
-        return nonZeroToString(message.getJMSExpiration());
+    private static Optional<String> getAbsoluteExpiryTime(final Message message) {
+        return nonZeroToString(wrap(Message::getJMSExpiration).apply(message));
     }
 
-    private static void setCreationTime(final Message message, final String creationTime) throws JMSException {
-        message.setJMSTimestamp(Long.parseLong(creationTime));
+    private static void setCreationTime(final Message message, final String creationTime) {
+        wrap(Message::setJMSTimestamp).accept(message, Long.valueOf(creationTime));
     }
 
-    private static Optional<String> getCreationTime(final Message message) throws JMSException {
-        return nonZeroToString(message.getJMSTimestamp());
+    private static Optional<String> getCreationTime(final Message message) {
+        return nonZeroToString(wrap(Message::getJMSTimestamp).apply(message));
     }
 
     private static void setGroupId(final Message message, final String groupId) {
@@ -276,18 +298,16 @@ final class JMSPropertyMapper {
     // precondition: headers are mutable
     private static void readDefinedAmqpPropertiesFromMessage(final Message message, final Map<String, String> headers) {
         // 13 properties in total
-        Optional.ofNullable(wrap(Message::getJMSMessageID).apply(message)).ifPresent(set(headers, AMQP.MESSAGE_ID));
-        wrap(JMSPropertyMapper::getUserId).apply(message).ifPresent(set(headers, AMQP.USER_ID));
-        wrap(JMSPropertyMapper::getTo).apply(message).ifPresent(set(headers, AMQP.TO));
-        Optional.ofNullable(wrap(Message::getJMSType).apply(message)).ifPresent(set(headers, AMQP.SUBJECT));
-        wrap(JMSPropertyMapper::getReplyTo).apply(message).ifPresent(set(headers, AMQP.REPLY_TO));
-        Optional.ofNullable(wrap(Message::getJMSCorrelationID).apply(message))
-                .ifPresent(set(headers, AMQP.CORRELATION_ID));
+        getMessageId(message).ifPresent(set(headers, AMQP.MESSAGE_ID));
+        getUserId(message).ifPresent(set(headers, AMQP.USER_ID));
+        getTo(message).ifPresent(set(headers, AMQP.TO));
+        getSubject(message).ifPresent(set(headers, AMQP.SUBJECT));
+        getReplyTo(message).ifPresent(set(headers, AMQP.REPLY_TO));
+        getCorrelationId(message).ifPresent(set(headers, AMQP.CORRELATION_ID));
         getContentType(message).ifPresent(set(headers, AMQP.CONTENT_TYPE));
         getContentEncoding(message).ifPresent(set(headers, AMQP.CONTENT_ENCODING));
-        wrap(JMSPropertyMapper::getAbsoluteExpiryTime).apply(message)
-                .ifPresent(set(headers, AMQP.ABSOLUTE_EXPIRY_TIME));
-        wrap(JMSPropertyMapper::getCreationTime).apply(message).ifPresent(set(headers, AMQP.CREATION_TIME));
+        getAbsoluteExpiryTime(message).ifPresent(set(headers, AMQP.ABSOLUTE_EXPIRY_TIME));
+        getCreationTime(message).ifPresent(set(headers, AMQP.CREATION_TIME));
         getGroupId(message).ifPresent(set(headers, AMQP.GROUP_ID));
         getGroupSequence(message).ifPresent(set(headers, AMQP.GROUP_SEQUENCE));
         getReplyToGroupId(message).ifPresent(set(headers, AMQP.REPLY_TO_GROUP_ID));

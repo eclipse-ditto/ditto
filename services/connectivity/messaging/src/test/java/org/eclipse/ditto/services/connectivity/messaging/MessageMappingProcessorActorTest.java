@@ -223,6 +223,9 @@ public final class MessageMappingProcessorActorTest {
                             .withAuthorizationContext(AUTHORIZATION_CONTEXT)
                             .withEnforcement(enforcement)
                             .withPayloadMapping(mappings)
+                            .withInternalHeaders(DittoHeaders.newBuilder()
+                                    .replyTarget(0)
+                                    .build())
                             .build();
 
             messageMappingProcessorActor.tell(externalMessage, getRef());
@@ -238,6 +241,8 @@ public final class MessageMappingProcessorActorTest {
                 assertThat(modifyAttribute.getDittoHeaders())
                         .extracting(headers -> headers.get(MessageHeaderDefinition.THING_ID.getKey()))
                         .isEqualTo(KNOWN_THING_ID.toString());
+                // internal headers added by consumer actors are appended
+                assertThat(modifyAttribute.getDittoHeaders()).containsEntry("ditto-reply-target", "0");
 
                 final String expectedMapperHeader = mapping == null ? "default" : mapping;
                 assertThat(modifyAttribute.getDittoHeaders().getMapper()).contains(expectedMapperHeader);

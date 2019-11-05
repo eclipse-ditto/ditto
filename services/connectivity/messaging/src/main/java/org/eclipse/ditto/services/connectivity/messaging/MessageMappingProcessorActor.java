@@ -228,6 +228,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             // the above throws an exception if signal id enforcement fails
             final Signal<?> adjustedSignal = mapHeaders.andThen(
                     mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
+                    .andThen(adjustedHeaders -> adjustedHeaders.toBuilder()
+                            // add all internal headers added by consumer actors
+                            .putHeaders(externalMessage.getInternalHeaders())
+                            .build())
                     .andThen(signal::setDittoHeaders)
                     .apply(mappedInboundMessage);
 

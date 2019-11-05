@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.connectivity.messaging.amqp.JmsExceptionThrowingBiConsumer.wrap;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -35,14 +33,8 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
-import org.apache.qpid.jms.JmsQueue;
-import org.apache.qpid.jms.message.JmsMessage;
-import org.apache.qpid.jms.message.facade.JmsMessageFacade;
-import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
-import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
@@ -74,23 +66,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     static final String ACTOR_NAME_PREFIX = "amqpPublisherActor";
 
     private static final Object START_PRODUCER = new Object();
-    private static final Map<String, BiConsumer<Message, String>> JMS_HEADER_MAPPING = new HashMap<>();
-
-    static {
-        JMS_HEADER_MAPPING.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), wrap(Message::setJMSCorrelationID));
-        JMS_HEADER_MAPPING.put("message-id", wrap(Message::setJMSMessageID));
-        JMS_HEADER_MAPPING.put("reply-to", wrap((message, value) -> message.setJMSReplyTo(new JmsQueue(value))));
-        JMS_HEADER_MAPPING.put("subject", wrap(Message::setJMSType));
-        JMS_HEADER_MAPPING.put("to", wrap(Message::setJMSType));
-        JMS_HEADER_MAPPING.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), wrap((message, value) -> {
-            if (message instanceof JmsMessage) {
-                final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
-                if (facade instanceof AmqpJmsMessageFacade) {
-                    ((AmqpJmsMessageFacade) facade).setContentType(Symbol.getSymbol(value));
-                }
-            }
-        }));
-    }
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
