@@ -55,7 +55,7 @@ AuthenticationProvider authenticationProvider =
         .clientSecret("my-oauth-client-secret")
         .scopes("offline_access email")
         .tokenEndpoint("https://my-oauth-provider/oauth/token")
-        // optionally configure a proxy server or a truststore containing the trusted CAs for SSL connection establishment
+        // optionally configure a proxy server
         .proxyConfiguration(proxyConfiguration)
         .build());
 
