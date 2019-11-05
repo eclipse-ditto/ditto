@@ -36,6 +36,8 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.JMSPropertyWorkaround;
 import org.apache.qpid.proton.amqp.Symbol;
 
+import akka.event.LoggingAdapter;
+
 /**
  * Converts between headers and AMQP 1.0 properties and application properties.
  * <ul>
@@ -94,13 +96,23 @@ final class JMSPropertyMapper {
      *
      * @param message the message.
      * @param headers the mapped headers.
+     * @param log the logger.
      */
-    static void setPropertiesAndApplicationProperties(final Message message, final Map<String, String> headers) {
+    static void setPropertiesAndApplicationProperties(final Message message,
+            final Map<String, String> headers,
+            final LoggingAdapter log) {
+
         headers.forEach((headerName, headerValue) -> {
-            if (isDefinedAmqpProperty(headerName)) {
-                setDefinedAmqpProperty(message, headerName, headerValue);
-            } else {
-                setAmqpApplicationProperty(message, headerName, headerValue);
+            try {
+                if (isDefinedAmqpProperty(headerName)) {
+                    setDefinedAmqpProperty(message, headerName, headerValue);
+                } else {
+                    setAmqpApplicationProperty(message, headerName, headerValue);
+                }
+            } catch (final Exception e) {
+                // errors are mostly user error; log them at debug level, then proceed with other properties.
+                log.debug("Error setting AMQP property/application property <{}>=<{}>: <{}>",
+                        headerName, headerValue, e);
             }
         });
     }
@@ -162,7 +174,6 @@ final class JMSPropertyMapper {
 
     private static void setAbsoluteExpiryTime(final Message message, final String absoluteExpiryTime)
             throws JMSException {
-        // TODO: test NumberFormatException.
         message.setJMSExpiration(Long.parseLong(absoluteExpiryTime));
     }
 
@@ -171,7 +182,6 @@ final class JMSPropertyMapper {
     }
 
     private static void setCreationTime(final Message message, final String creationTime) throws JMSException {
-        // TODO: test NumberFormatException.
         message.setJMSTimestamp(Long.parseLong(creationTime));
     }
 
@@ -188,7 +198,6 @@ final class JMSPropertyMapper {
     }
 
     private static void setGroupSequence(final Message message, final String groupSequence) {
-        // TODO: testNumberFormatException
         wrapFacadeBiConsumer(message, Integer.valueOf(groupSequence), AmqpJmsMessageFacade::setGroupSequence);
     }
 

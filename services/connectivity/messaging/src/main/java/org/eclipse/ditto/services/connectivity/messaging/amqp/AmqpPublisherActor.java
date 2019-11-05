@@ -292,7 +292,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         } else {
             message = session.createMessage();
         }
-        JMSPropertyMapper.setPropertiesAndApplicationProperties(message, externalMessage.getHeaders());
+        JMSPropertyMapper.setPropertiesAndApplicationProperties(message, externalMessage.getHeaders(), log);
         return message;
     }
 

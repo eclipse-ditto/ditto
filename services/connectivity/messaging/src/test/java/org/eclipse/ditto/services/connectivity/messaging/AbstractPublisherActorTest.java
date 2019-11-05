@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -133,18 +134,25 @@ public abstract class AbstractPublisherActorTest {
 
     protected abstract void verifyPublishedMessageToReplyTarget() throws Exception;
 
-    protected OutboundSignal.WithExternalMessage getMockOutboundSignal() {
-        final OutboundSignal outboundSignal = mock(OutboundSignal.class);
+    protected OutboundSignal.WithExternalMessage getMockOutboundSignal(final String... extraHeaders) {
+        return getMockOutboundSignal(decorateTarget(createTestTarget()), extraHeaders);
+    }
+
+    protected OutboundSignal.WithExternalMessage getMockOutboundSignal(final Target target,
+            final String... extraHeaders) {
+
         final Signal source = mock(Signal.class);
         when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
         when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-        when(outboundSignal.getSource()).thenReturn(source);
-        final Target target = createTestTarget();
-        when(outboundSignal.getTargets()).thenReturn(Collections.singletonList(decorateTarget(target)));
+        final OutboundSignal outboundSignal =
+                OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
 
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
+        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing");
+        for (int i = 0; 2*i+1 < extraHeaders.length; ++i) {
+            headersBuilder.putHeader(extraHeaders[2*i], extraHeaders[2*i+1]);
+        }
         final ExternalMessage externalMessage =
-                ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders).withText("payload").build();
+                ExternalMessageFactory.newExternalMessageBuilder(headersBuilder.build()).withText("payload").build();
         return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
     }
 

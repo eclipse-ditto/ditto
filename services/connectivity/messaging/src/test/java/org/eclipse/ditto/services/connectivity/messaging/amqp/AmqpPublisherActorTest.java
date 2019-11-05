@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.Map;
 
 import javax.jms.CompletionListener;
 import javax.jms.Destination;
@@ -34,7 +35,9 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -185,6 +188,58 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             // check that createProducer is called only twice in the next 10 seconds (once for the initial create, once for the backoff)
             verify(session, after(10_000).times(2)).createProducer(any(Destination.class));
         }};
+    }
+
+    @Test
+    public void testPublishMessageWithAmqpProperties() throws Exception {
+
+        new TestKit(actorSystem) {{
+
+            // GIVEN: a message is published with headers matching AMQP properties.
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+            final OutboundSignal.WithExternalMessage mappedOutboundSignal = getMockOutboundSignal(
+                    ConnectivityModelFactory.newTargetBuilder(createTestTarget())
+                            .headerMapping(ConnectivityModelFactory.newHeaderMapping(
+                                    JsonFactory.newObjectBuilder()
+                                            .set("creation-time", "-1")
+                                            .set("absolute-expiry-time", "1234")
+                                            .set("group-sequence", "abc")
+                                            .set("group-id", "hello")
+                                            .set("subject", "subjective")
+                                            .set("not-an-application-property", "value0")
+                                            .set("amqp.application.property:to", "value1")
+                                            .set("amqp.application.property:anotherApplicationProperty", "value2")
+                                            .build()
+                            ))
+                            .build()
+            );
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+
+            // WHEN: the publisher sends the message to an AMQP target address
+            publisherCreated(this, publisherActor);
+
+            publisherActor.tell(mappedOutboundSignal, getRef());
+
+            final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
+            verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
+            final Message message = messageCaptor.getValue();
+            final Map<String, String> receivedHeaders =
+                    JMSPropertyMapper.getPropertiesAndApplicationProperties(message);
+
+            // THEN: valid AMQP properties and application properties are set and invalid ones are dropped.
+            assertThat(receivedHeaders).containsEntry("group-id", "hello");
+            assertThat(receivedHeaders).containsEntry("subject", "subjective");
+            assertThat(receivedHeaders).containsEntry("creation-time", "-1");
+            assertThat(receivedHeaders).containsEntry("absolute-expiry-time", "1234");
+            assertThat(receivedHeaders).containsEntry("amqp.application.property:to", "value1");
+            assertThat(receivedHeaders).containsEntry("anotherApplicationProperty", "value2");
+            assertThat(receivedHeaders).doesNotContainKey("group-sequence");
+            assertThat(receivedHeaders).doesNotContainKey("not-an-application-property");
+        }};
+
     }
 
     @Override

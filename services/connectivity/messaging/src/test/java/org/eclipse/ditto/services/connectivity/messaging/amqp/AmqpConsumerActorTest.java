@@ -52,6 +52,7 @@ import org.mockito.Mockito;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.event.LoggingAdapter;
 import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
 import akka.routing.DefaultResizer;
@@ -174,7 +175,8 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final JmsMessage message = messageFacade.asJmsMessage();
             JMSPropertyMapper.setPropertiesAndApplicationProperties(messageFacade.asJmsMessage(),
                     Arrays.stream(headers)
-                            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())),
+                    Mockito.mock(LoggingAdapter.class));
             return message;
         } catch (final JMSException e) {
             throw new JMSRuntimeException(e.getMessage(), e.getErrorCode(), e.getCause());
