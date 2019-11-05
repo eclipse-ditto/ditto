@@ -118,9 +118,20 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     @Override
     public Optional<MessageMapper> mapperOf(final String mapperId, final MappingContext mappingContext) {
         final Optional<MessageMapper> mapper = createMessageMapperInstance(mappingContext.getMappingEngine());
+        final Map<String, String> defaultOptions =
+                mapper.map(MessageMapper::getDefaultOptions).orElse(Collections.emptyMap());
+        final Map<String, String> configuredAndDefaultOptions =
+                mergeMappingOptions(defaultOptions, mappingContext.getOptions());
         final MessageMapperConfiguration options =
-                DefaultMessageMapperConfiguration.of(mapperId, mappingContext.getOptions());
+                DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions);
         return mapper.flatMap(m -> configureInstance(m, options));
+    }
+
+    private Map<String, String> mergeMappingOptions(final Map<String, String> defaultOptions,
+            final Map<String, String> configuredOptions) {
+        final HashMap<String, String> mergedOptions = new HashMap<>(defaultOptions);
+        mergedOptions.putAll(configuredOptions);
+        return mergedOptions;
     }
 
     @Override

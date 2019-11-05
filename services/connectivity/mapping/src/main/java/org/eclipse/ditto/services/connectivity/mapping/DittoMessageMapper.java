@@ -97,6 +97,11 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
                         .build());
     }
 
+    @Override
+    public Map<String, String> getDefaultOptions() {
+        return DEFAULT_OPTIONS;
+    }
+
     private static String extractPayloadAsString(final ExternalMessage message) {
         final Optional<String> payload;
         if (message.isTextMessage()) {
