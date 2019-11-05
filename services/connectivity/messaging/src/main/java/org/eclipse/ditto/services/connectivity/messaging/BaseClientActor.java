@@ -938,9 +938,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received ResetConnectionMetrics message, resetting metrics.");
-        //  TODO: think about just clearing the counters instead of completely rebuilding them
         connectionCounterRegistry.resetForConnection(data.getConnection());
-        connectionCounterRegistry.initForConnection(data.getConnection());
 
         return stay();
     }
