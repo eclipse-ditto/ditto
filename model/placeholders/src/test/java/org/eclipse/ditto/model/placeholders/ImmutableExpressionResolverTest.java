@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -67,11 +68,11 @@ public class ImmutableExpressionResolverTest {
         final TopicPath topic = ProtocolFactory.newTopicPath(KNOWN_TOPIC);
 
         final ImmutablePlaceholderResolver<Map<String, String>> headersResolver =
-                new ImmutablePlaceholderResolver<>(PlaceholderFactory.newHeadersPlaceholder(), KNOWN_HEADERS, false);
+                new ImmutablePlaceholderResolver<>(PlaceholderFactory.newHeadersPlaceholder(), KNOWN_HEADERS);
         final ImmutablePlaceholderResolver<CharSequence> thingResolver = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newThingPlaceholder(), THING_ID, false);
+                PlaceholderFactory.newThingPlaceholder(), THING_ID);
         final ImmutablePlaceholderResolver<TopicPath> topicPathResolver = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newTopicPathPlaceholder(), topic, false);
+                PlaceholderFactory.newTopicPathPlaceholder(), topic);
 
         underTest = new ImmutableExpressionResolver(Arrays.asList(headersResolver, thingResolver, topicPathResolver));
     }
@@ -103,20 +104,20 @@ public class ImmutableExpressionResolverTest {
 
     @Test
     public void testPlaceholderResolutionAllowingUnresolvedPlaceholders() {
-
+        // supported unresolved placeholders are retained
         assertThat(underTest.resolve(UNKNOWN_HEADER_EXPRESSION, true))
                 .contains(UNKNOWN_HEADER_EXPRESSION);
-        assertThat(underTest.resolve(UNKNOWN_THING_EXPRESSION, true))
-                .contains(UNKNOWN_THING_EXPRESSION);
-        assertThat(underTest.resolve(UNKNOWN_TOPIC_EXPRESSION, true))
-                .contains(UNKNOWN_TOPIC_EXPRESSION);
+
+        // unsupported placeholders cause error
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class)
+                .isThrownBy(() -> underTest.resolve(UNKNOWN_THING_EXPRESSION, true));
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class)
+                .isThrownBy(() -> underTest.resolve(UNKNOWN_TOPIC_EXPRESSION, true));
     }
 
     @Test
     public void testUnsuccessfulPlaceholderResolution() {
         assertThat(underTest.resolve(UNKNOWN_HEADER_EXPRESSION, false)).isEmpty();
-        assertThat(underTest.resolve(UNKNOWN_THING_EXPRESSION, false)).isEmpty();
-        assertThat(underTest.resolve(UNKNOWN_TOPIC_EXPRESSION, false)).isEmpty();
     }
 
     @Test
@@ -124,7 +125,7 @@ public class ImmutableExpressionResolverTest {
 
         assertThat(underTest.resolve("{{ header:unknown | fn:default('fallback') }}", false))
                 .contains("fallback");
-        assertThat(underTest.resolve("{{ thing:bar | fn:default('bar') | fn:upper() }}", false))
+        assertThat(underTest.resolve("{{ header:unknown | fn:default('bar') | fn:upper() }}", false))
                 .contains("BAR");
         assertThat(underTest.resolve("{{ thing:id | fn:substring-before(':') }}", false))
                 .contains(THING_NAMESPACE);
@@ -136,11 +137,11 @@ public class ImmutableExpressionResolverTest {
                 .contains(" fallback-spaces  ");
 
         // verify different whitespace
-        assertThat(underTest.resolve("{{thing:bar |fn:default('bar')| fn:upper() }}", false))
+        assertThat(underTest.resolve("{{header:unknown |fn:default('bar')| fn:upper() }}", false))
                 .contains("BAR");
-        assertThat(underTest.resolve("{{    thing:bar |     fn:default('bar')    |fn:upper()}}", false))
+        assertThat(underTest.resolve("{{    header:unknown |     fn:default('bar')    |fn:upper()}}", false))
                 .contains("BAR");
-        assertThat(underTest.resolve("{{ thing:bar | fn:default(  'bar'  ) |fn:upper(  ) }}", false))
+        assertThat(underTest.resolve("{{ header:unknown | fn:default(  'bar'  ) |fn:upper(  ) }}", false))
                 .contains("BAR");
         assertThat(underTest.resolve(
                 "{{ thing:id | fn:substring-before(\"|\") | fn:default('bAz') | fn:lower() }}", false))
@@ -149,23 +150,23 @@ public class ImmutableExpressionResolverTest {
 
     @Test
     public void testSpecialCharactersInStrings() {
-        assertThat(underTest.resolve("{{ thing:bar | fn:default( ' \\s%!@/*+\"\\'上手カキクケコ' ) | fn:upper( ) }}", false))
+        assertThat(underTest.resolve("{{ header:unknown | fn:default( ' \\s%!@/*+\"\\'上手カキクケコ' ) | fn:upper( ) }}", false))
                 .contains(" \\S%!@/*+\"\\'上手カキクケコ");
 
-        assertThat(underTest.resolve("{{ thing:bar | fn:default( \" \\s%!@/*+'\\\"上手カキクケコ\" ) | fn:upper( ) }}", false))
+        assertThat(underTest.resolve("{{ header:unknown | fn:default( \" \\s%!@/*+'\\\"上手カキクケコ\" ) | fn:upper( ) }}", false))
                 .contains(" \\S%!@/*+'\\\"上手カキクケコ");
     }
 
     @Test
     public void rejectUnsupportedPlaceholdersWithSpecialCharacters() {
-        assertThat(underTest.resolve("{{ thing:id\\s%!@/*+上手カキクケコ }}", false)).isEmpty();
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class)
+                .isThrownBy(() -> underTest.resolve("{{ thing:id\\s%!@/*+上手カキクケコ }}", false));
     }
 
     @Test
     public void testUnsuccessfulFunctionBasedOnPlaceholderInput() {
-
         assertThat(underTest.resolve("{{ header:unknown }}", false)).isEmpty();
-        assertThat(underTest.resolve("{{ thing:bar | fn:upper() }}", false)).isEmpty();
+        assertThat(underTest.resolve("{{ header:unknown | fn:default(header:unknown) }}", false)).isEmpty();
     }
 
     @Test

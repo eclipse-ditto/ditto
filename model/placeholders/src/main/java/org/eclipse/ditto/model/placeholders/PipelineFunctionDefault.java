@@ -41,7 +41,9 @@ final class PipelineFunctionDefault implements PipelineFunction {
 
         // parse + resolve the specified default value for unresolved placeholders
         // if previous stage does not resolve to a value. deleted pipeline elements remain deleted.
-        return value.onUnresolved(() -> parseAndResolveThrow(paramsIncludingParentheses, expressionResolver));
+        // evaluate parameter first to fail fast.
+        final PipelineElement parameter = parseAndResolveThrow(paramsIncludingParentheses, expressionResolver);
+        return value.onUnresolved(() -> parameter);
     }
 
     private PipelineElement parseAndResolveThrow(final String paramsIncludingParentheses,

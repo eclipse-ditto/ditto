@@ -129,7 +129,6 @@ public final class MessageMappingProcessorActorTest {
             final String prefix = "some/topic/";
             final String subject = "some-subject";
             final String addressWithTopicPlaceholder = prefix + "{{ topic:action-subject }}";
-            final String addressWithSomeOtherPlaceholder = prefix + "{{ eclipse:ditto }}";
             final String expectedTargetAddress = prefix + subject;
             final String fixedAddress = "fixedAddress";
             final Command command = createSendMessageCommand();
@@ -138,7 +137,6 @@ public final class MessageMappingProcessorActorTest {
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(command, Arrays.asList(
                             newTarget(addressWithTopicPlaceholder, addressWithTopicPlaceholder),
-                            newTarget(addressWithSomeOtherPlaceholder, addressWithSomeOtherPlaceholder),
                             newTarget(fixedAddress, fixedAddress)));
 
             messageMappingProcessorActor.tell(outboundSignal, getRef());
@@ -147,7 +145,6 @@ public final class MessageMappingProcessorActorTest {
 
             assertThat(externalMessage.getOutboundSignal().getTargets()).containsExactlyInAnyOrder(
                     newTarget(fixedAddress, fixedAddress),
-                    newTarget(addressWithSomeOtherPlaceholder, addressWithSomeOtherPlaceholder),
                     newTarget(expectedTargetAddress, addressWithTopicPlaceholder));
         }};
     }

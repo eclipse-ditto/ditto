@@ -218,10 +218,19 @@ public class PlaceholderFilterTest {
         // pre/postfix and separators
         PlaceholderFilter.validate("-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----",
                 placeholders);
+
+        // placeholders with pipeline functions
+        PlaceholderFilter.validate("{{ thing:namespace }}:{{thing:id | fn:substring-after(':')}}",
+                placeholders);
     }
 
     @Test
     public void testValidateFails() {
+        // unsupported placeholder in parameter position
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
+                () -> PlaceholderFilter.validate("{{  header:xxx | fn:default(ing:namespace) }}",
+                        placeholders));
+
         // illegal braces combinations
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.validate("{{th{{ing:namespace }}{{  thing:name }}{{header:device-id }}",

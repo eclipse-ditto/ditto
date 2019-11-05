@@ -63,7 +63,7 @@ public final class PlaceholderFactory {
      */
     public static <T> PlaceholderResolver<T> newPlaceholderResolver(final Placeholder<T> placeholder,
             @Nullable final T placeholderSource) {
-        return new ImmutablePlaceholderResolver<>(placeholder, placeholderSource, false);
+        return new ImmutablePlaceholderResolver<>(placeholder, placeholderSource);
     }
 
     /**
@@ -75,7 +75,7 @@ public final class PlaceholderFactory {
      * @return the created PlaceholderResolver instance
      */
     public static <T> PlaceholderResolver<T> newPlaceholderResolverForValidation(final Placeholder<T> placeholder) {
-        return new ImmutablePlaceholderResolver<>(placeholder, null, true);
+        return new ImmutablePlaceholderResolver<>(placeholder, null);
     }
 
     /**

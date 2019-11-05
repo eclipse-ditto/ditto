@@ -189,7 +189,7 @@ public final class PlaceholderFilter {
      * function chain which is too complex (e.g. too much chained function calls)
      */
     public static void validate(final String template, final Placeholder<?>... placeholders) {
-        doApply(template, PlaceholderFactory.newExpressionResolverForValidation(placeholders));
+        applyOrElseRetain(template, PlaceholderFactory.newExpressionResolverForValidation(placeholders));
     }
 
     /**
