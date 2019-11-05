@@ -43,27 +43,33 @@ To configure your Ditto client instance, use the `org.eclipse.ditto.client.confi
 For example:
 
 ```java
+ProxyConfiguration proxyConfiguration =
+    ProxyConfiguration.newBuilder()
+        .proxyHost("localhost")
+        .proxyPort(3128)
+        .build();
+
 AuthenticationProvider authenticationProvider =
     AuthenticationProviders.clientCredentials(ClientCredentialsAuthenticationConfiguration.newBuilder()
         .clientId("my-oauth-client-id")
         .clientSecret("my-oauth-client-secret")
         .scopes("offline_access email")
         .tokenEndpoint("https://my-oauth-provider/oauth/token")
+        // optionally configure a proxy server or a truststore containing the trusted CAs for SSL connection establishment
+        .proxyConfiguration(proxyConfiguration)
         .build());
 
-MessagingProvider messagingProvider = MessagingProviders.webSocket(WebSocketMessagingConfiguration.newBuilder()
-    .endpoint("wss://ditto.eclipse.org")
-    .jsonSchemaVersion(JsonSchemaVersion.V_1)
-    // optionally configure a proxy server or a truststore containing the trusted CAs for SSL connection establishment
-    .proxyConfiguration(ProxyConfiguration.newBuilder()
-        .proxyHost("localhost")
-        .proxyPort(3128)
-        .build())
-    .trustStoreConfiguration(TrustStoreConfiguration.newBuilder()
-        .location(TRUSTSTORE_LOCATION)
-        .password(TRUSTSTORE_PASSWORD)
-        .build())
-    .build(), authenticationProvider);
+MessagingProvider messagingProvider =
+    MessagingProviders.webSocket(WebSocketMessagingConfiguration.newBuilder()
+        .endpoint("wss://ditto.eclipse.org")
+        .jsonSchemaVersion(JsonSchemaVersion.V_1)
+        // optionally configure a proxy server or a truststore containing the trusted CAs for SSL connection establishment
+        .proxyConfiguration(proxyConfiguration)
+        .trustStoreConfiguration(TrustStoreConfiguration.newBuilder()
+            .location(TRUSTSTORE_LOCATION)
+            .password(TRUSTSTORE_PASSWORD)
+            .build())
+        .build(), authenticationProvider);
 
 DittoClient client = DittoClients.newInstance(messagingProvider);
 ```
