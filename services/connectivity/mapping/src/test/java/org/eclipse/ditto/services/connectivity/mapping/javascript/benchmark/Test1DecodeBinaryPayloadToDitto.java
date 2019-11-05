@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -94,11 +93,11 @@ public class Test1DecodeBinaryPayloadToDitto implements MapToDittoProtocolScenar
 
     @Override
     public MessageMapper getMessageMapper() {
-        final MessageMapper javaScriptRhinoMapperPlain = MessageMappers.createJavaScriptMessageMapper();
+        final MessageMapper javaScriptRhinoMapperPlain =
+                JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
         javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
-                        .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
-                        .contentType(CONTENT_TYPE)
+                        .createJavaScriptMessageMapperConfigurationBuilder("binary", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_PLAIN)
                         .loadBytebufferJS(true)
                         .build()

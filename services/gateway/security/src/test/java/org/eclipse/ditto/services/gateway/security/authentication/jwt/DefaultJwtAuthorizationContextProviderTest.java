@@ -23,6 +23,7 @@ import java.util.Collections;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -47,7 +48,7 @@ public final class DefaultJwtAuthorizationContextProviderTest {
     @Test
     public void getAuthorizationContext() {
         final DefaultJwtAuthorizationContextProvider underTest =
-                DefaultJwtAuthorizationContextProvider.getInstance(authorizationSubjectsProvider);
+                DefaultJwtAuthorizationContextProvider.of(authorizationSubjectsProvider);
         final JsonWebToken jsonWebToken = mock(JsonWebToken.class);
         final AuthorizationSubject myTestSubj = AuthorizationSubject.newInstance("myTestSubj");
         when(authorizationSubjectsProvider.getAuthorizationSubjects(jsonWebToken)).thenReturn(

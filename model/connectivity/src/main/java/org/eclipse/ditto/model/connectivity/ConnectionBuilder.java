@@ -196,7 +196,21 @@ public interface ConnectionBuilder {
      */
     ConnectionBuilder tag(String tag);
 
+    /**
+     * Sets the {@link ConnectionLifecycle} of the connection.
+     *
+     * @param lifecycle the connection lifecycle
+     * @return this builder
+     */
     ConnectionBuilder lifecycle(@Nullable ConnectionLifecycle lifecycle);
+
+    /**
+     * Sets the payload mapping definition of the connection.
+     *
+     * @param payloadMappingDefinition the payload mapping definition.
+     * @return this builder
+     */
+    ConnectionBuilder payloadMappingDefinition(PayloadMappingDefinition payloadMappingDefinition);
 
     /**
      * Builds a new {@link Connection}.

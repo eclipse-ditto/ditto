@@ -9,7 +9,10 @@
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
- * @returns {ExternalMessage} externalMessage - The mapped external message or <code>null</code> if the message could/should not be mapped
+ * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage -
+ *  The mapped external message,
+ *  an array of external messages or
+ *  <code>null</code> if the message could/should not be mapped
  */
 function mapFromDittoProtocolMsg(
     namespace,
@@ -43,7 +46,10 @@ function mapFromDittoProtocolMsg(
 /**
  * Maps the passed Ditto Protocol message to an external message.
  * @param {DittoProtocolMessage} dittoProtocolMsg - The Ditto Protocol message to map
- * @returns {ExternalMessage} externalMessage - The mapped external message or <code>null</code> if the message could/should not be mapped
+ * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage -
+ *  The mapped external message,
+ *  an array of external messages or
+ *  <code>null</code> if the message could/should not be mapped
  */
 function mapFromDittoProtocolMsgWrapper(dittoProtocolMsg) {
 

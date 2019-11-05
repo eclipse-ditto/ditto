@@ -86,7 +86,8 @@ final class ImmutableAttributesBuilder implements AttributesBuilder {
     }
 
     @Override
-    public AttributesBuilder set(final CharSequence key, final String value, final Predicate<JsonField> predicate) {
+    public AttributesBuilder set(final CharSequence key, @Nullable final String value,
+            final Predicate<JsonField> predicate) {
         jsonObjectBuilder.set(key, value, predicate);
         return this;
     }

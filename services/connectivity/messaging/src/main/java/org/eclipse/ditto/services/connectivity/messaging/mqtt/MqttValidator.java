@@ -90,7 +90,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
         validateAddresses(connection, dittoHeaders);
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validateMappingContext(connection, actorSystem, dittoHeaders);
+        validatePayloadMappings(connection, actorSystem, dittoHeaders);
     }
 
     @Override

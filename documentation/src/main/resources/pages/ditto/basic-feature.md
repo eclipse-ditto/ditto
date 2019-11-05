@@ -56,16 +56,18 @@ The following snippet shows a Feature with the ID "arbitrary-feature" and a defi
 
 ```json
 {
-    "arbitrary-feature": {
-        "definition": [ "org.eclipse.ditto:complex-type:1.0.0" ],
-        "properties": {
-            "connected": true,
-            "complexProperty": {
-                "street": "my street",
-                "house no": 42
-            }
+  "arbitrary-feature": {
+    "definition": [ "org.eclipse.ditto:complex-type:1.0.0" ],
+    "properties": {
+      "status": {
+        "connected": true,
+        "complexProperty": {
+          "street": "my street",
+          "house no": 42
         }
+      }
     }
+  }
 }
 ```
 

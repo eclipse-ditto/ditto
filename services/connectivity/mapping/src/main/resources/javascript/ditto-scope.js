@@ -31,7 +31,9 @@ let Ditto = (function () {
      * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
      * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
      * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
-     * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the message could/should not be mapped
+     * @returns {DittoProtocolMessage} dittoProtocolMessage(s) -
+     *  The mapped Ditto Protocol message or
+     *  <code>null</code> if the message could/should not be mapped
      */
     let buildDittoProtocolMsg = function(namespace, id, group, channel, criterion, action, path, dittoHeaders, value) {
 
@@ -49,7 +51,9 @@ let Ditto = (function () {
      * @param {string} [textPayload] - The external mapped String
      * @param {ArrayBuffer} [bytePayload] - The external mapped bytes as ArrayBuffer
      * @param {string} [contentType] - The returned Content-Type
-     * @returns {ExternalMessage} externalMessage - the mapped external message or <code>null</code> if the message could/should not be mapped
+     * @returns {ExternalMessage} externalMessage -
+     *  The mapped external message or
+     *  <code>null</code> if the message could/should not be mapped
      */
     let buildExternalMsg = function(headers, textPayload, bytePayload, contentType) {
 
