@@ -4,7 +4,10 @@
  * @param {string} [textPayload] - The String to be mapped
  * @param {ArrayBuffer} [bytePayload] - The bytes to be mapped as ArrayBuffer
  * @param {string} [contentType] - The received Content-Type, e.g. "application/json"
- * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the message could/should not be mapped
+ * @returns {(DittoProtocolMessage|Array<DittoProtocolMessage>)} dittoProtocolMessage(s) -
+ *  The mapped Ditto Protocol message,
+ *  an array of Ditto Protocol messages or
+ *  <code>null</code> if the message could/should not be mapped
  */
 function mapToDittoProtocolMsg(
     headers,
@@ -42,7 +45,10 @@ function mapToDittoProtocolMsg(
 /**
  * Maps the passed external message to a Ditto Protocol message.
  * @param {ExternalMessage} externalMsg - The external message to map to a Ditto Protocol message
- * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the message could/should not be mapped
+ * @returns {(DittoProtocolMessage|Array<DittoProtocolMessage>)} dittoProtocolMessage(s) -
+ *  The mapped Ditto Protocol message,
+ *  an array of Ditto Protocol messages or
+ *  <code>null</code> if the message could/should not be mapped
  */
 function mapToDittoProtocolMsgWrapper(externalMsg) {
 

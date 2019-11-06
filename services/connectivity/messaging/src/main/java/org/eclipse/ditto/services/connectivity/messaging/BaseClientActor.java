@@ -516,7 +516,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
         return matchEvent(Status.Status.class, (e, d) -> Objects.equals(getSender(), getSelf()),
                 (status, data) -> {
-                    log.info("{} failed: <{}>", stateName(), status);
+                    log.info("{} status: <{}>", stateName(), status);
                     data.getSessionSenders().forEach(sender ->
                             sender.first().tell(getStatusToReport(status, sender.second()), getSelf()));
                     return stop();
@@ -938,9 +938,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received ResetConnectionMetrics message, resetting metrics.");
-        //  TODO: think about just clearing the counters instead of completely rebuilding them
         connectionCounterRegistry.resetForConnection(data.getConnection());
-        connectionCounterRegistry.initForConnection(data.getConnection());
 
         return stay();
     }

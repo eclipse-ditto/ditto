@@ -167,8 +167,12 @@ public final class TestConstants {
 
     public static final String CORRELATION_ID = "cid";
 
-    public static final int VALID_NUMBER_OF_PAYLOAD_MAPPINGS = 10;
-    public static final int INVALID_NUMBER_OF_PAYLOAD_MAPPINGS = 11;
+    public static final int VALID_NUMBER_OF_SOURCE_PAYLOAD_MAPPINGS =
+            MAPPING_CONFIG.getMapperLimitsConfig().getMaxSourceMappers();
+    public static final int INVALID_NUMBER_OF_SOURCE_PAYLOAD_MAPPINGS = VALID_NUMBER_OF_SOURCE_PAYLOAD_MAPPINGS + 1;
+    public static final int VALID_NUMBER_OF_TARGET_PAYLOAD_MAPPINGS =
+            MAPPING_CONFIG.getMapperLimitsConfig().getMaxTargetMappers();
+    public static final int INVALID_NUMBER_OF_TARGET_PAYLOAD_MAPPINGS = VALID_NUMBER_OF_TARGET_PAYLOAD_MAPPINGS + 1;
 
     /**
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
@@ -298,7 +302,7 @@ public final class TestConstants {
                         .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
                         .consumerCount(1)
                         .index(0)
-                        .payloadMapping(getPayloadMapping(VALID_NUMBER_OF_PAYLOAD_MAPPINGS))
+                        .payloadMapping(getPayloadMapping(VALID_NUMBER_OF_SOURCE_PAYLOAD_MAPPINGS))
                         .build());
         public static final List<Source> SOURCES_WITH_INVALID_MAPPING_NUMBER =
                 singletonList(ConnectivityModelFactory.newSourceBuilder()
@@ -306,7 +310,7 @@ public final class TestConstants {
                         .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
                         .consumerCount(1)
                         .index(0)
-                        .payloadMapping(getPayloadMapping(INVALID_NUMBER_OF_PAYLOAD_MAPPINGS))
+                        .payloadMapping(getPayloadMapping(INVALID_NUMBER_OF_SOURCE_PAYLOAD_MAPPINGS))
                         .build());
     }
 
@@ -338,7 +342,7 @@ public final class TestConstants {
                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                         .headerMapping(HEADER_MAPPING)
                         .topics(Topic.LIVE_MESSAGES)
-                        .payloadMapping(getPayloadMapping(VALID_NUMBER_OF_PAYLOAD_MAPPINGS))
+                        .payloadMapping(getPayloadMapping(VALID_NUMBER_OF_TARGET_PAYLOAD_MAPPINGS))
                         .build());
         public static final List<Target> TARGET_WITH_INVALID_MAPPING_NUMBER =
                 singletonList(ConnectivityModelFactory.newTargetBuilder()
@@ -347,15 +351,15 @@ public final class TestConstants {
                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                         .headerMapping(HEADER_MAPPING)
                         .topics(Topic.LIVE_MESSAGES)
-                        .payloadMapping(getPayloadMapping(INVALID_NUMBER_OF_PAYLOAD_MAPPINGS))
+                        .payloadMapping(getPayloadMapping(INVALID_NUMBER_OF_TARGET_PAYLOAD_MAPPINGS))
                         .build());
 
     }
 
     private static PayloadMapping getPayloadMapping(final int numberOfPayloadMappings) {
-        ArrayList<String> newPayloadMappingInputString = new ArrayList<>();
+        final ArrayList<String> newPayloadMappingInputString = new ArrayList<>();
         for (int i = 0; i < numberOfPayloadMappings; i++) {
-            newPayloadMappingInputString.add("ditto");
+            newPayloadMappingInputString.add("Ditto");
         }
         return ConnectivityModelFactory.newPayloadMapping(newPayloadMappingInputString);
     }

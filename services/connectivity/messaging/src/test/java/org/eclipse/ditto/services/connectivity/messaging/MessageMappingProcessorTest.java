@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
+import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -68,6 +69,8 @@ public class MessageMappingProcessorTest {
     private MessageMappingProcessor underTest;
 
     private static final String DITTO_MAPPER = "ditto";
+    private static final String DITTO_MAPPER_BY_ALIAS = "ditto-by-alias";
+    private static final String DITTO_MAPPER_CUSTOM_HEADER_BLACKLIST = "ditto-cust-header";
     private static final String DROPPING_MAPPER = "dropping";
     private static final String FAILING_MAPPER = "faulty";
     private static final String DUPLICATING_MAPPER = "duplicating";
@@ -94,9 +97,29 @@ public class MessageMappingProcessorTest {
     public void init() {
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put(DITTO_MAPPER, DittoMessageMapper.CONTEXT);
+        mappings.put(DITTO_MAPPER_BY_ALIAS,
+                ConnectivityModelFactory.newMappingContext("Ditto", Collections.emptyMap()));
+
+        final Map<String, String> dittoCustomMapperHeaders = new HashMap<>();
+        dittoCustomMapperHeaders.put(
+                MessageMapperConfiguration.CONTENT_TYPE_BLACKLIST,
+                "foo/bar"
+        );
+        final MappingContext dittoCustomMappingContext =
+                ConnectivityModelFactory.newMappingContext("Ditto", dittoCustomMapperHeaders);
+        mappings.put(DITTO_MAPPER_CUSTOM_HEADER_BLACKLIST, dittoCustomMappingContext);
         mappings.put(FAILING_MAPPER, FaultyMessageMapper.CONTEXT);
         mappings.put(DROPPING_MAPPER, DroppingMessageMapper.CONTEXT);
-        mappings.put(DUPLICATING_MAPPER, DuplicatingMessageMapper.CONTEXT);
+
+        final Map<String, String> duplicatingMapperHeaders = new HashMap<>();
+        duplicatingMapperHeaders.put(
+                MessageMapperConfiguration.CONTENT_TYPE_BLACKLIST,
+                "text/custom-plain,application/custom-json"
+        );
+        final MappingContext duplicatingMappingContext =
+                ConnectivityModelFactory.newMappingContext(DuplicatingMessageMapper.ALIAS, duplicatingMapperHeaders);
+        mappings.put(DUPLICATING_MAPPER, duplicatingMappingContext);
+
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
 
@@ -157,6 +180,57 @@ public class MessageMappingProcessorTest {
                 DROPPING_MAPPER, FAILING_MAPPER, DITTO_MAPPER, DUPLICATING_MAPPER);
     }
 
+    @Test
+    public void testInboundMessageDroppedForHonoEmptyNotificationMessagesWithDefaultMapper() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/vnd.eclipse-hono-empty-notification");
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping())
+                .build();
+        testInbound(message, 0, 1, 0);
+    }
+
+    @Test
+    public void testInboundMessageDroppedForHonoEmptyNotificationMessagesWithDittoMapper() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/vnd.eclipse-hono-empty-notification");
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER))
+                .build();
+        testInbound(message, 0, 1, 0);
+    }
+
+    @Test
+    public void testInboundMessageDroppedForHonoEmptyNotificationMessagesWithDittoByAliasMapper() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/vnd.eclipse-hono-empty-notification");
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER_BY_ALIAS))
+                .build();
+        testInbound(message, 0, 1, 0);
+    }
+
+    @Test
+    public void testInboundFailedForHonoEmptyNotificationMessagesWithCustomDittoMapper() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/vnd.eclipse-hono-empty-notification");
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER_CUSTOM_HEADER_BLACKLIST))
+                .build();
+        // should fail because no payload was present:
+        testInbound(message, 0, 0, 1);
+    }
+
+    @Test
+    public void testInboundMessageDroppedForCustomContentType() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/custom-json");
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DUPLICATING_MAPPER))
+                .build();
+        testInbound(message, 0, 1, 0);
+    }
+
     private static Target targetWithMapping(final String... mappings) {
         return ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                 .payloadMapping(ConnectivityModelFactory.newPayloadMapping(mappings))
@@ -181,12 +255,17 @@ public class MessageMappingProcessorTest {
     }
 
     private void testInbound(final int mapped, final int dropped, final int failed, final String... mappers) {
+        final ExternalMessage externalMessage = ExternalMessageFactory
+                .newExternalMessageBuilder(Collections.emptyMap())
+                .withText(TestConstants.modifyThing())
+                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(mappers))
+                .build();
+        testInbound(externalMessage, mapped, dropped, failed);
+    }
+
+    private void testInbound(final ExternalMessage externalMessage, final int mapped, final int dropped,
+            final int failed) {
         new TestKit(actorSystem) {{
-            final ExternalMessage externalMessage = ExternalMessageFactory
-                    .newExternalMessageBuilder(Collections.emptyMap())
-                    .withText(TestConstants.modifyThing())
-                    .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(mappers))
-                    .build();
             final MappingResultHandler<MappedInboundExternalMessage> mock = Mockito.mock(MappingResultHandler.class);
             underTest.process(externalMessage, mock);
             final ArgumentCaptor<MappedInboundExternalMessage> captor =

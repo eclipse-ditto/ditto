@@ -14,10 +14,12 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -39,8 +41,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
  */
 final class WrappingMessageMapper implements MessageMapper {
 
-    private static final int MESSAGE_MAPPING_NUMBER_LIMIT_SOURCE = 10;
-    private static final int MESSAGE_MAPPING_NUMBER_LIMIT_TARGET = 10;
+    private int inboundMessageLimit;
+    private int outboundMessageLimit;
 
     private final MessageMapper delegate;
 
@@ -63,6 +65,11 @@ final class WrappingMessageMapper implements MessageMapper {
         return delegate.getId();
     }
 
+    @Override
+    public Collection<String> getContentTypeBlacklist() {
+        return delegate.getContentTypeBlacklist();
+    }
+
     /**
      * @return the MessageMapper delegate this instance wraps.
      */
@@ -72,6 +79,9 @@ final class WrappingMessageMapper implements MessageMapper {
 
     @Override
     public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+        final MapperLimitsConfig mapperLimitsConfig = mappingConfig.getMapperLimitsConfig();
+        inboundMessageLimit = mapperLimitsConfig.getMaxMappedInboundMessages();
+        outboundMessageLimit = mapperLimitsConfig.getMaxMappedOutboundMessages();
         delegate.configure(mappingConfig, configuration);
     }
 
@@ -90,17 +100,12 @@ final class WrappingMessageMapper implements MessageMapper {
             enhancedMessage = message;
         }
 
-        final List<Adaptable> mappedAdaptables = delegate.map(enhancedMessage);
-
-        checkMessagesMappingNumber(mappedAdaptables, MESSAGE_MAPPING_NUMBER_LIMIT_SOURCE,
-                DittoHeaders.of(message.getHeaders()));
+        final List<Adaptable> mappedAdaptables =
+                checkMaxMappedMessagesLimit(delegate.map(enhancedMessage), inboundMessageLimit);
 
         return mappedAdaptables.stream().map(mapped -> {
             final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
             headersBuilder.correlationId(correlationId);
-
-            // add mapper id to headers, this is required to resolve the correct mapper for responses
-            headersBuilder.mapper(getId());
 
             Optional.ofNullable(message.getHeaders().get(ExternalMessage.REPLY_TO_HEADER)).ifPresent(replyTo ->
                     headersBuilder.putHeader(ExternalMessage.REPLY_TO_HEADER, replyTo)
@@ -117,8 +122,8 @@ final class WrappingMessageMapper implements MessageMapper {
 
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
-        final List<ExternalMessage> mappedMessages = delegate.map(adaptable);
-        checkMessagesMappingNumber(mappedMessages, MESSAGE_MAPPING_NUMBER_LIMIT_TARGET, adaptable.getDittoHeaders());
+        final List<ExternalMessage> mappedMessages = checkMaxMappedMessagesLimit(delegate.map(adaptable),
+                outboundMessageLimit);
         return mappedMessages.stream().map(mapped -> {
             final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(mapped);
             messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
@@ -130,15 +135,18 @@ final class WrappingMessageMapper implements MessageMapper {
         }).collect(Collectors.toList());
     }
 
-    private void checkMessagesMappingNumber(final List<?> mappedAdaptables,
-            final int messageMappingNumberLimit,
-            final DittoHeaders dittoHeaders) {
-        if (mappedAdaptables.size() > messageMappingNumberLimit) {
-            throw MessageMappingFailedException.newBuilder(dittoHeaders.getContentType().orElse(null))
-                    .dittoHeaders(dittoHeaders)
-                    .message("Number of messages from mapping exceeded")
+    private <T> List<T> checkMaxMappedMessagesLimit(final List<T> mappingResult, final int maxMappedMessages) {
+        if (mappingResult.size() > maxMappedMessages && maxMappedMessages > 0) {
+            final String descriptionTemplate =
+                    "The payload mapping '%s' produced %d messages, which exceeds the limit of %d.";
+            final Supplier<String> description =
+                    () -> String.format(descriptionTemplate, getId(), mappingResult.size(), maxMappedMessages);
+            throw MessageMappingFailedException.newBuilder((String) null)
+                    .message("The number of messages produced by the payload mapping exceeded the limits.")
+                    .description(description)
                     .build();
         }
+        return mappingResult;
     }
 
     @Override

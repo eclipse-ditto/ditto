@@ -72,7 +72,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "HTTP");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validateMappingContext(connection, actorSystem, dittoHeaders);
+        validatePayloadMappings(connection, actorSystem, dittoHeaders);
         validateParallelism(connection.getSpecificConfig(), dittoHeaders);
     }
 

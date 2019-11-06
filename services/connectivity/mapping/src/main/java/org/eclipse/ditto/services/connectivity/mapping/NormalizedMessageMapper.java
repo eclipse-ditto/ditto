@@ -62,14 +62,6 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     @Nullable
     private JsonFieldSelector jsonFieldSelector;
 
-    /**
-     * Constructs a new {@code MessageMapper} object.
-     */
-    @SuppressWarnings("unused")
-    public NormalizedMessageMapper() {
-        // This constructor is required as the the instance is created via reflection
-    }
-
     @Override
     public String getId() {
         return "normalized";
@@ -81,12 +73,6 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         fields.ifPresent(s ->
                 jsonFieldSelector =
                         JsonFactory.newFieldSelector(s, JsonParseOptions.newBuilder().withoutUrlDecoding().build()));
-    }
-
-    @Override
-    public Optional<String> getContentType() {
-        // No content type loads this mapper automatically.
-        return Optional.empty();
     }
 
     @Override

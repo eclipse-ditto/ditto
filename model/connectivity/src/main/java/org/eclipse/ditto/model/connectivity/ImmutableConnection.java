@@ -476,7 +476,7 @@ final class ImmutableConnection implements Connection {
     @NotThreadSafe
     private static final class Builder implements ConnectionBuilder {
 
-        private static final String MIGRATED_MAPPER_ID = "migrated";
+        private static final String MIGRATED_MAPPER_ID = "javascript";
         private final ConnectionType connectionType;
 
         // required but changeable:

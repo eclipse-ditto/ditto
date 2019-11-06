@@ -50,7 +50,6 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.base.Signal;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
@@ -86,7 +85,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     @Test
-    @Ignore
     public void testRecoverPublisher() throws Exception {
 
         new TestKit(actorSystem) {{

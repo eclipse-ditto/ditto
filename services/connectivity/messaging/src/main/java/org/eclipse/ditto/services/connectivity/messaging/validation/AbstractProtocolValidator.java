@@ -36,6 +36,7 @@ import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFacto
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
+import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
@@ -144,7 +145,7 @@ public abstract class AbstractProtocolValidator {
      * @param connection the connection to check the MappingContext in.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      */
-    protected void validateMappingContext(final Connection connection, final ActorSystem actorSystem,
+    protected void validatePayloadMappings(final Connection connection, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
         final MappingConfig mappingConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
@@ -153,10 +154,17 @@ public abstract class AbstractProtocolValidator {
                 DefaultMessageMapperFactory.of(connection.getId(), actorSystem, mappingConfig, actorSystem.log());
 
         try {
-            DittoJsonException.wrapJsonRuntimeException(connection.getPayloadMappingDefinition(), dittoHeaders,
-                    (definition, theDittoHeaders) ->
-                            messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, definition)
-            );
+            final MessageMapperRegistry messageMapperRegistry =
+                    DittoJsonException.wrapJsonRuntimeException(connection.getPayloadMappingDefinition(), dittoHeaders,
+                            (definition, theDittoHeaders) ->
+                                    messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, definition)
+                    );
+
+            connection.getSources().stream()
+                    .map(Source::getPayloadMapping).forEach(messageMapperRegistry::validatePayloadMapping);
+            connection.getTargets().stream()
+                    .map(Target::getPayloadMapping).forEach(messageMapperRegistry::validatePayloadMapping);
+
         } catch (final DittoRuntimeException e) {
             throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
                     .description(e.getDescription().orElse(null))

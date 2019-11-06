@@ -147,18 +147,13 @@ public final class ConnectionPersistenceActor
 
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
 
-    /**
-     * Validator of all supported connections.
-     */
-    private static final ConnectionValidator CONNECTION_VALIDATOR = ConnectionValidator.of(
-            RabbitMQValidator.newInstance(),
-            AmqpValidator.newInstance(),
-            MqttValidator.newInstance(),
-            KafkaValidator.getInstance(),
-            HttpPushValidator.newInstance());
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+    /**
+     * Validator of all supported connections.
+     */
+    private final ConnectionValidator connectionValidator;
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef conciergeForwarder;
     private final ClientActorPropsFactory propsFactory;
@@ -197,8 +192,15 @@ public final class ConnectionPersistenceActor
         );
         config = connectivityConfig.getConnectionConfig();
 
+        connectionValidator = ConnectionValidator.of(connectivityConfig.getMappingConfig().getMapperLimitsConfig(),
+                RabbitMQValidator.newInstance(),
+                AmqpValidator.newInstance(),
+                MqttValidator.newInstance(),
+                KafkaValidator.getInstance(),
+                HttpPushValidator.newInstance());
+
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR,
+                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, connectionValidator,
                         actorSystem);
 
         if (customCommandValidator != null) {

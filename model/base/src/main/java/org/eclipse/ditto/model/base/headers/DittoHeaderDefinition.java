@@ -143,12 +143,12 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     REPLY_TARGET("ditto-reply-target", Integer.class, false, false),
 
     /**
-     * Header definition for "mapper".
+     * Header definition for "ditto-inbound-payload-mapper".
      * <p>
-     * Key: {@code "mapper"}, Java type: {@link String}.
+     * Key: {@code "ditto-inbound-payload-mapper"}, Java type: {@link String}.
      * </p>
      */
-    MAPPER("mapper", String.class, true, false);
+    INBOUND_PAYLOAD_MAPPER("ditto-inbound-payload-mapper", String.class, false, false);
 
     /**
      * Map to speed up lookup of header definition by key.

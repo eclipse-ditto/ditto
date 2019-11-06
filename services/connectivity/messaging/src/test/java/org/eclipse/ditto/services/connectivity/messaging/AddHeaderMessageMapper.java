@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,11 @@ public class AddHeaderMessageMapper implements MessageMapper {
     @Override
     public String getId() {
         return "header";
+    }
+
+    @Override
+    public Collection<String> getContentTypeBlacklist() {
+        return Collections.emptyList();
     }
 
     @Override

@@ -17,9 +17,12 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -77,6 +80,62 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
                 ExceptionFactory.attributeNotFound(context.getState(), attrPointer, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeAttribute(attrPointer), command, expectedException);
+    }
+
+    /**
+     * Having attributes:
+     * <code>
+     * "attributes": {
+     *     "complex": {
+     *         "nested": "foo"
+     *     }
+     * }
+     * </code>
+     * a delete on <code>/complex/nested/non/existent/path</code> should result in an error
+     */
+    @Test
+    public void deleteFromComplexNestedAttributeWithoutThatPath() {
+        // the last known object key must be still part of the pointer, or the test will not work. Since "nested"
+        // is the last known part of the pointer that is part of the attributes, it has to be a primitive value.
+        // if it was an object and the object did not contain "non", then the test would fail trivially.
+        final JsonPointer attrPointer = JsonFactory.newPointer("/complex/nested/non/existent/path");
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
+        final DittoRuntimeException expectedException =
+                ExceptionFactory.attributeNotFound(context.getState(), attrPointer, command.getDittoHeaders());
+
+        final Thing thing = THING_V2.toBuilder()
+                .removeAllAttributes()
+                .setAttribute(JsonPointer.of("/complex"), JsonObject.of("{\"nested\": \"foo\"}"))
+                .build();
+
+        assertErrorResult(underTest, thing, command, expectedException);
+    }
+
+    /**
+     * Having attributes:
+     * <code>
+     * "attributes": {
+     *     "flat":"foobar"
+     * }
+     * </code>
+     * a delete on <code>/flat/non/existent/path</code> should result in an error
+     */
+    @Test
+    public void deleteFromFlatAttributeWithoutThatPath() {
+
+        final JsonPointer attrPointer = JsonFactory.newPointer("/flat/non/existent/path");
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
+        final DittoRuntimeException expectedException =
+                ExceptionFactory.attributeNotFound(context.getState(), attrPointer, command.getDittoHeaders());
+
+        final Thing thing = THING_V2.toBuilder()
+                .removeAllAttributes()
+                .setAttribute(JsonPointer.of("/flat"), JsonValue.of("foobar"))
+                .build();
+
+        assertErrorResult(underTest, thing, command, expectedException);
     }
 
 }

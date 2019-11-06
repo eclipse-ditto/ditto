@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 
 /**
@@ -94,6 +96,27 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
         return Objects.equals(defaultMapper, that.defaultMapper) &&
                 Objects.equals(customMappers, that.customMappers) &&
                 Objects.equals(fallbackMappers, that.fallbackMappers);
+    }
+
+    @Override
+    public void validatePayloadMapping(final PayloadMapping payloadMapping) {
+        payloadMapping.getMappings().forEach(this::validateMessageMapper);
+    }
+
+    private void validateMessageMapper(final String mapper) {
+        @Nullable MessageMapper resolvedMapper = customMappers.get(mapper);
+        if (null == resolvedMapper) {
+            resolvedMapper = fallbackMappers.get(mapper);
+        }
+
+        if (null == resolvedMapper) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder("The mapper <" + mapper + "> could not be loaded.")
+                    .description(MessageFormat.format(
+                            "Make sure to only use either the specified mappingDefinitions names {0} or fallback mapper names {1}.",
+                            customMappers.keySet(), fallbackMappers.keySet()))
+                    .build();
+        }
     }
 
     @Override

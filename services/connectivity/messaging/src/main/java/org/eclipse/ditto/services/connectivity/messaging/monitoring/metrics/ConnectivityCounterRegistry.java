@@ -105,9 +105,9 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     public void resetForConnection(final Connection connection) {
 
         final ConnectionId connectionId = connection.getId();
-        counters.keySet().stream()
-                .filter(key -> key.connectionId.equals(connectionId))
-                .forEach(counters::remove);
+        counters.entrySet().stream()
+                .filter(entry -> entry.getKey().connectionId.equals(connectionId))
+                .forEach(entry -> entry.getValue().reset());
     }
 
     private static void initCounter(final ConnectionId connectionId, final MetricDirection metricDirection,

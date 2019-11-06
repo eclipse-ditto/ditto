@@ -77,7 +77,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "Kafka 2.1.1");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validateMappingContext(connection, actorSystem, dittoHeaders);
+        validatePayloadMappings(connection, actorSystem, dittoHeaders);
         validateSpecificConfigs(connection, dittoHeaders);
     }
 

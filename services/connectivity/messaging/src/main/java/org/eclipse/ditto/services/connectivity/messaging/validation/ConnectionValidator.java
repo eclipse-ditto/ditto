@@ -33,11 +33,13 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Credentials;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
+import org.eclipse.ditto.services.connectivity.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -56,10 +58,12 @@ public final class ConnectionValidator {
     private final Map<ConnectionType, AbstractProtocolValidator> specMap;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
 
-    private static final int MAPPING_NUMBER_LIMIT_SOURCE = 10;
-    private static final int MAPPING_NUMBER_LIMIT_TARGET = 10;
+    private final int mappingNumberLimitSource;
+    private final int mappingNumberLimitTarget;
 
-    private ConnectionValidator(final AbstractProtocolValidator... connectionSpecs) {
+    private ConnectionValidator(
+            final MapperLimitsConfig mapperLimitsConfig,
+            final AbstractProtocolValidator... connectionSpecs) {
         final Map<ConnectionType, AbstractProtocolValidator> specMap = Arrays.stream(connectionSpecs)
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
         this.specMap = Collections.unmodifiableMap(specMap);
@@ -68,16 +72,20 @@ public final class ConnectionValidator {
         final ThingsFieldExpressionFactory fieldExpressionFactory =
                 new ModelBasedThingsFieldExpressionFactory();
         queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+        mappingNumberLimitSource = mapperLimitsConfig.getMaxSourceMappers();
+        mappingNumberLimitTarget = mapperLimitsConfig.getMaxTargetMappers();
     }
 
     /**
      * Create a connection validator from connection specs.
      *
+     * @param mapperLimitsConfig the mapper limits configuration
      * @param connectionSpecs specs of supported connection types.
      * @return a connection validator.
      */
-    public static ConnectionValidator of(final AbstractProtocolValidator... connectionSpecs) {
-        return new ConnectionValidator(connectionSpecs);
+    public static ConnectionValidator of(final MapperLimitsConfig mapperLimitsConfig,
+            final AbstractProtocolValidator... connectionSpecs) {
+        return new ConnectionValidator(mapperLimitsConfig, connectionSpecs);
     }
 
     /**
@@ -92,7 +100,6 @@ public final class ConnectionValidator {
     void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
-        // check size of mappings
         checkMappingNumberOfSourcesAndTargets(dittoHeaders, connection);
         validateFormatOfCertificates(connection, dittoHeaders);
         validateBlacklistedHostnames(connection, dittoHeaders, actorSystem);
@@ -155,31 +162,28 @@ public final class ConnectionValidator {
 
     /**
      * Check if number of mappings are valid
+     *
      * @throws ConnectionConfigurationInvalidException if payload number is over predefined limit
      */
     private void checkMappingNumberOfSourcesAndTargets(final DittoHeaders dittoHeaders, final Connection connection) {
+        connection.getSources().forEach(source -> checkPayloadMappingLimit(source.getPayloadMapping(),
+                mappingNumberLimitSource, "source", String.join(",", source.getAddresses()), dittoHeaders));
+        connection.getTargets().forEach(target -> checkPayloadMappingLimit(target.getPayloadMapping(),
+                mappingNumberLimitTarget, "target", target.getAddress(), dittoHeaders));
+    }
 
-        final String errorMessage = "Payloadmapping number exceeded";
+    private void checkPayloadMappingLimit(final PayloadMapping mapping, final int limit, final String entity,
+            final String address, final DittoHeaders dittoHeaders) {
+        final String errorMessage = "The number of configured payload mappings exceeded the limit.";
 
-        connection.getSources().forEach(source -> {
-                    if (source.getPayloadMapping().getMappings().size() > MAPPING_NUMBER_LIMIT_SOURCE) {
-                        throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                                .description("Payloadmapping number of source with address " + source.getAddresses() +
-                                        " is over the limit of " + MAPPING_NUMBER_LIMIT_SOURCE)
-                                .dittoHeaders(dittoHeaders)
-                                .build();
-                    }
-                }
-        );
-        connection.getTargets().forEach(target -> {
-            if (target.getPayloadMapping().getMappings().size() > MAPPING_NUMBER_LIMIT_TARGET) {
-                throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                        .description("Payloadmapping number of target with address " + target.getAddress() +
-                                " is over the limit of " + MAPPING_NUMBER_LIMIT_TARGET)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-        });
+        if (mapping.getMappings().size() > limit) {
+            throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                    .description(
+                            "The number of configured payload mappings for the " + entity + " with address " + address +
+                                    " is above the limit of " + limit + ".")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     private void validateSourceAndTargetAddressesAreNonempty(final Connection connection,

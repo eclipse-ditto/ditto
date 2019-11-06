@@ -80,11 +80,14 @@ public final class JavaScriptMessageMapperRhinoTest {
             MAPPING_INCOMING_PAYLOAD_STRING.getBytes(StandardCharsets.UTF_8));
 
     private static final MappingConfig MAPPING_CONFIG =
-            DefaultMappingConfig.of(ConfigFactory.parseString("javascript {\n" +
-                    "        maxScriptSizeBytes = 50000 # 50kB\n" +
-                    "        maxScriptExecutionTime = 500ms\n" +
-                    "        maxScriptStackDepth = 10\n" +
-                    "      }"));
+            DefaultMappingConfig.of(ConfigFactory.parseString(
+                    "mapping {\n" +
+                            "  javascript {\n" +
+                            "    maxScriptSizeBytes = 50000 # 50kB\n" +
+                            "    maxScriptExecutionTime = 500ms\n" +
+                            "    maxScriptStackDepth = 10\n" +
+                            "  }\n" +
+                            "}"));
 
     private static final String MAPPING_INCOMING_PLAIN =
             "function mapToDittoProtocolMsg(\n" +
@@ -324,7 +327,6 @@ public final class JavaScriptMessageMapperRhinoTest {
         javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("plain", Collections.emptyMap())
-                        .contentType(CONTENT_TYPE_PLAIN)
                         .incomingScript(MAPPING_INCOMING_PLAIN)
                         .outgoingScript(MAPPING_OUTGOING_PLAIN)
                         .build()
@@ -334,7 +336,6 @@ public final class JavaScriptMessageMapperRhinoTest {
         javaScriptRhinoMapperEmpty.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("empty", Collections.emptyMap())
-                        .contentType(CONTENT_TYPE_PLAIN)
                         .incomingScript(MAPPING_INCOMING_EMPTY)
                         .outgoingScript(MAPPING_OUTGOING_EMPTY)
                         .build()
@@ -344,7 +345,6 @@ public final class JavaScriptMessageMapperRhinoTest {
         javaScriptRhinoMapperBinary.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("binary", Collections.emptyMap())
-                        .contentType(CONTENT_TYPE_BINARY)
                         .incomingScript(MAPPING_INCOMING_BINARY)
                         .outgoingScript(MAPPING_OUTGOING_BINARY)
                         .build()
@@ -354,7 +354,6 @@ public final class JavaScriptMessageMapperRhinoTest {
         javaScriptRhinoMapperDefault.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("default", Collections.emptyMap())
-                        .contentType(CONTENT_TYPE_BINARY)
                         .incomingScript(MAPPING_INCOMING_DEFAULT)
                         .outgoingScript(MAPPING_OUTGOING_DEFAULT)
                         .build()

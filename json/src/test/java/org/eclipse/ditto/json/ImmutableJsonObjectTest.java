@@ -985,6 +985,16 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest.contains(jsonPointer)).isTrue();
     }
 
+    @Test
+    public void containsShouldReturnFalseOnPointerDeeperThanObject() {
+        // When JsonObject
+        final ImmutableJsonObject underTest = ImmutableJsonObject.of(toMap(KNOWN_KEY_FOO, KNOWN_VALUE_BAR));
+        // pointer that goes deeper
+        final JsonPointer deeperThanObject = KNOWN_KEY_FOO.asPointer().append(JsonPointer.of("/foo/not/known/path"));
+
+        assertThat(underTest.contains(deeperThanObject)).isFalse();
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToGetJsonObjectWithNullJsonPointer() {
         final JsonObject underTest = ImmutableJsonObject.empty();

@@ -173,8 +173,8 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
-    public Optional<String> getMapper() {
-        return getStringForDefinition(DittoHeaderDefinition.MAPPER);
+    public Optional<String> getInboundPayloadMapper() {
+        return getStringForDefinition(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER);
     }
 
     @Override

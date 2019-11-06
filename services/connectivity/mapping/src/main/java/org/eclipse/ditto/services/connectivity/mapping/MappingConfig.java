@@ -31,6 +31,13 @@ public interface MappingConfig {
     JavaScriptConfig getJavaScriptConfig();
 
     /**
+     * Returns the config of mapper-limits
+     *
+     * @return the config.
+     */
+    MapperLimitsConfig getMapperLimitsConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code MappingConfig}.
      */

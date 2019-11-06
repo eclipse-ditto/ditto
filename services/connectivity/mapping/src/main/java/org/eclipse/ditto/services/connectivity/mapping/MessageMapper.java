@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,8 +36,19 @@ public interface MessageMapper {
 
     /**
      * Returns a unique ID of this mapper that can be used in sources and targets to reference this mapper.
+     *
+     * @return a unique ID of this mapper.
      */
     String getId();
+
+    /**
+     * Returns a blacklist of content-types which shall not be handled by this message mapper.
+     * Is determined from the passed in {@code MessageMapperConfiguration} in
+     * {@link #configure(MappingConfig, MessageMapperConfiguration)}.
+     *
+     * @return a blacklist of content-types which shall not be handled by this message mapper.
+     */
+    Collection<String> getContentTypeBlacklist();
 
     /**
      * Applies configuration for this MessageMapper.
@@ -47,15 +60,6 @@ public interface MessageMapper {
      * failed for a mapper specific reason.
      */
     void configure(MappingConfig mappingConfig, MessageMapperConfiguration configuration);
-
-    /**
-     * Returns the content type of this mapper. This can be used as a hint for mapper selection.
-     *
-     * @return the content type
-     */
-    default Optional<String> getContentType() {
-        return Optional.empty();
-    }
 
     /**
      * Maps an {@link ExternalMessage} to an {@link Adaptable}
@@ -76,6 +80,13 @@ public interface MessageMapper {
      * @throws org.eclipse.ditto.model.connectivity.MessageMappingFailedException if the given adaptable can not be mapped
      */
     List<ExternalMessage> map(Adaptable adaptable);
+
+    /**
+     * @return a map of default options for this mapper
+     */
+    default Map<String, String> getDefaultOptions() {
+        return Collections.emptyMap();
+    }
 
     /**
      * Finds the content-type header from the passed ExternalMessage.

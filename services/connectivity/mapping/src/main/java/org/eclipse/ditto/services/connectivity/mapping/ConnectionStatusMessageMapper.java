@@ -18,11 +18,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
@@ -38,7 +39,9 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +57,8 @@ import org.slf4j.LoggerFactory;
 )
 public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
+
     static final String HEADER_HONO_TTD = "ttd";
     static final String HEADER_HONO_CREATION_TIME = "creation-time";
     static final String DEFAULT_FEATURE_ID = "ConnectionStatus";
@@ -61,26 +66,20 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     static final String MAPPING_OPTIONS_PROPERTIES_THING_ID = "thingId";
     static final String MAPPING_OPTIONS_PROPERTIES_FEATURE_ID = "featureId";
 
-    private static final String FEATURE_DEFINITION = "com.bosch.iot.suite.standard:ConnectionStatus:1.0.0";
-    private static final String FEATURE_PROPERTY_READY_SINCE = "readySince";
-    private static final String FEATURE_PROPERTY_READY_UNTIL = "readyUntil";
-
-    public static final Logger LOGGER = LoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
+    static final String FEATURE_DEFINITION = "org.eclipse.ditto:ConnectionStatus:1.0.0";
+    static final String FEATURE_PROPERTY_CATEGORY_STATUS = "status";
+    static final String FEATURE_PROPERTY_READY_SINCE = "readySince";
+    static final String FEATURE_PROPERTY_READY_UNTIL = "readyUntil";
 
     // (unix time) 253402300799 = (ISO-8601) 9999-12-31T23:59:59
-    private static final String FUTURE_INSTANT = "253402300799";
+    private static final Instant DISTANT_FUTURE_INSTANT = Instant.ofEpochSecond(253402300799L);
+
     private static final List<Adaptable> EMPTY_RESULT = Collections.emptyList();
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
-    private String featureId;
-    @Nullable private String mappingOptionThingId;
-
-    /**
-     * Constructs a new {@code ConnectionStatusMessageMapper} instance.
-     * This constructor is required as the the instance is created via reflection.
-     */
-    public ConnectionStatusMessageMapper() {}
+    private String mappingOptionFeatureId;
+    private String mappingOptionThingId;
 
     @Override
     public void doConfigure(final MappingConfig mappingConfig,
@@ -101,7 +100,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
             }
         }
 
-        featureId = messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_FEATURE_ID)
+        mappingOptionFeatureId = messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_FEATURE_ID)
                 .orElse(DEFAULT_FEATURE_ID);
     }
 
@@ -111,100 +110,135 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
             return doMap(externalMessage);
         } catch (final Exception e) {
             // we don't want to throw an exception in case something went wrong during the mapping
-            LOGGER.info("Error occurred during mapping: {}", e.getMessage());
+            LogUtil.logWithCorrelationId(LOGGER, externalMessage.getInternalHeaders(), logger ->
+                    logger.info("Error occurred during mapping: <{}>: {}",
+                            e.getClass().getSimpleName(), e.getMessage())
+            );
             return EMPTY_RESULT;
         }
     }
 
     private List<Adaptable> doMap(final ExternalMessage externalMessage) {
 
-        final String contentType = externalMessage.getHeaders().get(DittoHeaderDefinition.CONTENT_TYPE.getKey());
+        final Map<String, String> externalHeaders = externalMessage.getHeaders();
 
-        if (mappingOptionThingId == null) {
-            throw getMappingFailedException(
-                    String.format("Mapping option '%s' is not set.", MAPPING_OPTIONS_PROPERTIES_THING_ID),
-                    contentType);
-        }
-
-        //Read thingId
-        final ThingId thingId = extractThingId(mappingOptionThingId, externalMessage.getHeaders());
+        final ExpressionResolver expressionResolver = getExpressionResolver(externalHeaders);
+        final ThingId thingId = ThingId.of(applyPlaceholderReplacement(mappingOptionThingId, expressionResolver));
+        final String featureId = applyPlaceholderReplacement(mappingOptionFeatureId, expressionResolver);
 
         //Check if time is convertible
-        final long creationTime = extractLongHeader(externalMessage.getHeaders(), HEADER_HONO_CREATION_TIME);
-        final long ttd = extractLongHeader(externalMessage.getHeaders(), HEADER_HONO_TTD);
+        final long creationTime = extractLongHeader(externalHeaders, HEADER_HONO_CREATION_TIME,
+                externalMessage.getInternalHeaders());
+        final long ttd = extractLongHeader(externalHeaders, HEADER_HONO_TTD,
+                externalMessage.getInternalHeaders());
 
         if (creationTime < 0) {
-            throw getMappingFailedException(String.format("Invalid value in header '%s': %d.",
-                    HEADER_HONO_CREATION_TIME, creationTime), contentType);
+            throw getMappingFailedException(String.format("Invalid value in header <%s>: %d.",
+                    HEADER_HONO_CREATION_TIME, creationTime),
+                    "The creation-time in milliseconds since Epoch has to be " +
+                            "a positive number.", externalMessage.getInternalHeaders());
         }
-
         if (ttd < -1) {
-            throw getMappingFailedException(String.format("Invalid value in header '%s': %d.",
-                    HEADER_HONO_TTD, ttd), contentType);
+            throw getMappingFailedException(String.format("Invalid value in header <%s>: %d.",
+                    HEADER_HONO_TTD, ttd), "The time until disconnect in milliseconds has to be -1, 0 or greater 0.",
+                    externalMessage.getInternalHeaders());
         }
 
-        //Set time to ISO-8601 UTC
-        final String readySince = Instant.ofEpochMilli(creationTime).toString();
-        final String readyUntil;
+        final Instant readySince = Instant.ofEpochMilli(creationTime);
         final Adaptable adaptable;
-
         if (ttd == 0) {
-            readyUntil = Instant.ofEpochMilli(creationTime).toString();
-            adaptable = getModifyFeatureAdaptable(thingId, readyUntil, null);
+            final Instant readyUntil = Instant.ofEpochMilli(creationTime);
+            adaptable = getModifyFeaturePropertyAdaptable(thingId, featureId, readyUntil,
+                    externalMessage.getInternalHeaders());
         } else if (ttd == -1) {
-            readyUntil = Instant.ofEpochMilli(Long.parseLong(FUTURE_INSTANT)).toString();
-            adaptable = getModifyFeatureAdaptable(thingId, readyUntil, readySince);
+            adaptable = getModifyFeatureAdaptable(thingId, featureId, DISTANT_FUTURE_INSTANT, readySince,
+                    externalMessage.getInternalHeaders());
         } else {
-            readyUntil = Instant.ofEpochMilli(creationTime + ttd * 1000).toString();
-            adaptable = getModifyFeatureAdaptable(thingId, readyUntil, readySince);
+            final Instant readyUntil = Instant.ofEpochMilli(creationTime + ttd * 1000);
+            adaptable = getModifyFeatureAdaptable(thingId, featureId, readyUntil, readySince,
+                    externalMessage.getInternalHeaders());
         }
 
         return Collections.singletonList(adaptable);
     }
 
-    @Nonnull
-    private Adaptable getModifyFeatureAdaptable(final ThingId thingId, final String readyUntil,
-            @Nullable final String readySince) {
-        final FeatureProperties featureProperties = FeatureProperties.newBuilder()
-                .set(FEATURE_PROPERTY_READY_SINCE, readySince)
-                .set(FEATURE_PROPERTY_READY_UNTIL, readyUntil)
+    private Adaptable getModifyFeaturePropertyAdaptable(final ThingId thingId, final String featureId,
+            final Instant readyUntil, final DittoHeaders dittoHeaders) {
+        LOGGER.debug("Property of feature {} for thing {} adjusted by mapping", featureId, thingId);
+
+        final JsonPointer propertyJsonPointer = JsonFactory.newPointer(
+                FEATURE_PROPERTY_CATEGORY_STATUS + "/" + FEATURE_PROPERTY_READY_UNTIL);
+
+        final DittoHeaders newDittoHeaders = dittoHeaders.toBuilder()
+                .responseRequired(false) // we never expect a response when updating the ConnectionState
                 .build();
+        final ModifyFeatureProperty modifyFeatureProperty =
+                ModifyFeatureProperty.of(thingId, featureId, propertyJsonPointer, JsonValue.of(readyUntil.toString()),
+                        newDittoHeaders);
 
+        LogUtil.logWithCorrelationId(LOGGER, newDittoHeaders, logger ->
+                logger.debug("ModifyFeatureProperty for ConnectionStatus created by mapper: {}", modifyFeatureProperty)
+        );
+        return DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyFeatureProperty);
+    }
+
+    private Adaptable getModifyFeatureAdaptable(final ThingId thingId, final String featureId, final Instant readyUntil,
+            @Nullable final Instant readySince, final DittoHeaders dittoHeaders) {
+
+        final FeatureProperties featureProperties = FeatureProperties.newBuilder()
+                .set(FEATURE_PROPERTY_CATEGORY_STATUS, JsonFactory.newObjectBuilder()
+                        .set(FEATURE_PROPERTY_READY_SINCE, readySince != null ? readySince.toString() : null)
+                        .set(FEATURE_PROPERTY_READY_UNTIL, readyUntil.toString())
+                        .build()
+                )
+                .build();
         final FeatureDefinition featureDefinition = FeatureDefinition.fromIdentifier(FEATURE_DEFINITION);
-
         final Feature feature = Feature.newBuilder()
                 .definition(featureDefinition)
                 .properties(featureProperties)
                 .withId(featureId)
                 .build();
 
-        LOGGER.debug("Feature created by mapping: {}", feature);
+        final DittoHeaders newDittoHeaders = dittoHeaders.toBuilder()
+                .responseRequired(false) // we never expect a response when updating the ConnectionState
+                .build();
+        final ModifyFeature modifyFeature = ModifyFeature.of(thingId, feature, newDittoHeaders);
 
-        final ModifyFeature modifyFeature =
-                ModifyFeature.of(thingId, feature, DittoHeaders.newBuilder().responseRequired(false).build());
+        LogUtil.logWithCorrelationId(LOGGER, newDittoHeaders, logger ->
+                logger.debug("ModifyFeature for ConnectionStatus created by mapper: {}", modifyFeature)
+        );
         return DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyFeature);
     }
 
-    private ThingId extractThingId(final String mappingOptionThingId, final Map<String, String> headers) {
-        final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+    private String applyPlaceholderReplacement(final String template, final ExpressionResolver expressionResolver) {
+        return PlaceholderFilter.apply(template, expressionResolver);
+    }
+
+    private static ExpressionResolver getExpressionResolver(final Map<String, String> headers) {
+        return PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headers));
-        return ThingId.of(PlaceholderFilter.apply(mappingOptionThingId, expressionResolver));
     }
 
-    private MessageMappingFailedException getMappingFailedException(final String message, final String theContentType) {
-        return MessageMappingFailedException.newBuilder(theContentType).message(message).build();
+    private MessageMappingFailedException getMappingFailedException(final String message,
+            final String description, final DittoHeaders dittoHeaders) {
+        return MessageMappingFailedException.newBuilder((String) null)
+                .message(message)
+                .description(description)
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
-    private Long extractLongHeader(final Map<String, String> headers, final String key) {
-        final String contentType = headers.get(DittoHeaderDefinition.CONTENT_TYPE.getKey());
+    private Long extractLongHeader(final Map<String, String> headers, final String key,
+            final DittoHeaders dittoHeaders) {
         try {
             return Optional.ofNullable(headers.get(key))
                     .map(Long::parseLong)
-                    .orElseThrow(() -> getMappingFailedException(String.format("Header '%s' is not set.", key),
-                            contentType));
-        } catch (NumberFormatException e) {
-            throw getMappingFailedException(String.format("Header '%s' is not convertible to type long.", key),
-                    contentType);
+                    .orElseThrow(() -> getMappingFailedException(String.format("Header <%s> is not set.", key),
+                            "Make sure to include the header or only activate the mapping for messages containing " +
+                                    "the header.", dittoHeaders));
+        } catch (final NumberFormatException e) {
+            throw getMappingFailedException(String.format("Header <%s> is not convertible to type long.", key),
+                    "Make sure that the header is in the right format.", dittoHeaders);
         }
     }
 

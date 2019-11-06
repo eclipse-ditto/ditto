@@ -245,7 +245,7 @@ public final class MessageMappingProcessorActorTest {
                 assertThat(modifyAttribute.getDittoHeaders()).containsEntry("ditto-reply-target", "0");
 
                 final String expectedMapperHeader = mapping == null ? "default" : mapping;
-                assertThat(modifyAttribute.getDittoHeaders().getMapper()).contains(expectedMapperHeader);
+                assertThat(modifyAttribute.getDittoHeaders().getInboundPayloadMapper()).contains(expectedMapperHeader);
 
                 if (ADD_HEADER_MAPPER.equals(mapping)) {
                     assertThat(modifyAttribute.getDittoHeaders()).contains(AddHeaderMessageMapper.INBOUND_HEADER);
@@ -325,7 +325,6 @@ public final class MessageMappingProcessorActorTest {
             // THEN: resulting error response retains the correlation ID
             final ExternalMessage outboundMessage =
                     expectMsgClass(PublishMappedMessage.class).getOutboundSignal().getExternalMessage();
-            ;
             assertThat(outboundMessage)
                     .extracting(e -> e.getHeaders().get("correlation-id"))
                     .isEqualTo(correlationId);
