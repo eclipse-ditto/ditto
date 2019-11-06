@@ -12,7 +12,7 @@ node {
   stage('Build') {
     withMaven(
       maven: 'maven-3.6.0',
-      jdk: 'JDK11',
+      jdk: 'JDK11_0_5',
       mavenLocalRepo: theMvnRepo) {
 
       sh "mvn clean deploy source:jar" +

@@ -227,7 +227,17 @@
         </ditto.thirdPartyLicences.excludedGroups>
 
         <japicmp-maven-plugin.version>0.14.1</japicmp-maven-plugin.version>
+        <!-- required dependency of maven-bungle-plugin -->
+        <maven-plugin-tools.version>3.4</maven-plugin-tools.version>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.maven.plugin-tools</groupId>
+            <artifactId>maven-plugin-annotations</artifactId>
+            <version>${maven-plugin-tools.version}</version>
+        </dependency>
+    </dependencies>
 
     <build>
         <pluginManagement>
@@ -438,6 +448,7 @@
                             <Bundle-Vendor>Eclipse Ditto</Bundle-Vendor>
                             <Bundle-DocURL>https://eclipse.org/ditto/</Bundle-DocURL>
                             <_noee>true</_noee>
+                            <!-- stays at 1.8 as all exported bundles (json, model, protocol-adapter, signals, ...) are 1.8 -->
                             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
                             <Include-Resource>META-INF=${project.build.outputDirectory}/META-INF</Include-Resource>
                             <!--<Include-Resource>{maven-resources},META-INF=${project.build.outputDirectory}/META-INF</Include-Resource>-->
