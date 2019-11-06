@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.apache.qpid.jms.message;
+package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import java.util.Enumeration;
 
@@ -19,6 +19,7 @@ import javax.jms.JMSException;
 
 import org.apache.qpid.jms.JmsAcknowledgeCallback;
 import org.apache.qpid.jms.JmsConnection;
+import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 
 /**
@@ -45,6 +46,11 @@ public final class JMSMessageWorkaround extends JmsMessage {
      */
     public static JmsMessage wrap(final JmsMessage jmsMessage) {
         return new JMSMessageWorkaround(jmsMessage);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + message.toString() + "]";
     }
 
     @Override
@@ -98,7 +104,7 @@ public final class JMSMessageWorkaround extends JmsMessage {
 
     @Override
     public void setJMSCorrelationIDAsBytes(final byte[] correlationID) throws JMSException {
-        if (getJMSCorrelationID() == null) {
+        if (message.getJMSCorrelationID() == null) {
             message.setJMSCorrelationIDAsBytes(correlationID);
         }
     }
@@ -122,7 +128,7 @@ public final class JMSMessageWorkaround extends JmsMessage {
 
     @Override
     public void setJMSReplyTo(final Destination replyTo) throws JMSException {
-        if (getJMSReplyTo() == null) {
+        if (message.getJMSReplyTo() == null) {
             message.setJMSReplyTo(replyTo);
         }
     }
@@ -219,7 +225,7 @@ public final class JMSMessageWorkaround extends JmsMessage {
 
     @Override
     protected <T> T doGetBody(final Class<T> asType) throws JMSException {
-        return message.doGetBody(asType);
+        return message.getBody(asType);
     }
 
     @Override
@@ -234,7 +240,7 @@ public final class JMSMessageWorkaround extends JmsMessage {
 
     @Override
     public void setValidatePropertyNames(boolean validatePropertyNames) {
-        message.validatePropertyNames = validatePropertyNames;
+        message.setValidatePropertyNames(validatePropertyNames);
     }
 
     @Override

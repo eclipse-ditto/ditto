@@ -33,7 +33,6 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
-import org.apache.qpid.jms.message.JMSMessageWorkaround;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;

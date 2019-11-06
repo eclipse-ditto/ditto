@@ -32,7 +32,6 @@ import javax.jms.Message;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
-import org.apache.qpid.jms.provider.amqp.message.JMSPropertyWorkaround;
 import org.apache.qpid.proton.amqp.Symbol;
 
 import akka.event.LoggingAdapter;
@@ -187,12 +186,14 @@ final class JMSPropertyMapper {
     }
 
     private static void setContentEncoding(final Message message, final String contentEncoding) {
-        wrapFacadeBiConsumer(message, contentEncoding, JMSPropertyWorkaround::setContentEncoding);
+        // do nothing---not supported by Qpid client.
+        // TODO: introduce the function when Qpid client supports content encoding.
     }
 
     private static Optional<String> getContentEncoding(final Message message) {
-        return Optional.ofNullable(wrapFacadeFunction(message, JMSPropertyWorkaround::getContentEncoding))
-                .flatMap(Function.identity());
+        // return nothing---not supported by Qpid client.
+        // TODO: introduce the functionality when Qpid client supports content encoding.
+        return Optional.empty();
     }
 
     private static void setAbsoluteExpiryTime(final Message message, final String absoluteExpiryTime) {
