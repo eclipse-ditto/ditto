@@ -201,6 +201,9 @@
     <properties>
         <revision>0-SNAPSHOT</revision>
 
+        <javac.source>11</javac.source>
+        <javac.target>11</javac.target>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -227,17 +230,7 @@
         </ditto.thirdPartyLicences.excludedGroups>
 
         <japicmp-maven-plugin.version>0.14.1</japicmp-maven-plugin.version>
-        <!-- required dependency of maven-bungle-plugin -->
-        <maven-plugin-tools.version>3.4</maven-plugin-tools.version>
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.maven.plugin-tools</groupId>
-            <artifactId>maven-plugin-annotations</artifactId>
-            <version>${maven-plugin-tools.version}</version>
-        </dependency>
-    </dependencies>
 
     <build>
         <pluginManagement>
