@@ -291,8 +291,8 @@ final class JMSPropertyMapper {
                 ? name.substring(AMQP.APPLICATION_PROPERTY_PREFIX.length())
                 : name;
 
-        JmsExceptionThrowingBiConsumer.<String>wrap((msg, theValue) ->
-                msg.setStringProperty(applicationPropertyName, theValue)).accept(message, value);
+        wrapFacadeBiConsumer(message, value, (facade, v) -> wrap((x, y) ->
+                facade.setApplicationProperty(applicationPropertyName, value)).accept(message, value));
     }
 
     // precondition: headers are mutable

@@ -207,7 +207,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                             .set("group-sequence", "abc")
                                             .set("group-id", "hello")
                                             .set("subject", "subjective")
-                                            .set("not-an-application-property", "value0")
+                                            .set("application-property-with-dash", "value0")
                                             .set("amqp.application.property:to", "value1")
                                             .set("amqp.application.property:anotherApplicationProperty", "value2")
                                             .build()
@@ -234,10 +234,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             assertThat(receivedHeaders).containsEntry("subject", "subjective");
             assertThat(receivedHeaders).containsEntry("creation-time", "-1");
             assertThat(receivedHeaders).containsEntry("absolute-expiry-time", "1234");
+            assertThat(receivedHeaders).containsEntry("application-property-with-dash", "value0");
             assertThat(receivedHeaders).containsEntry("amqp.application.property:to", "value1");
             assertThat(receivedHeaders).containsEntry("anotherApplicationProperty", "value2");
             assertThat(receivedHeaders).doesNotContainKey("group-sequence");
-            assertThat(receivedHeaders).doesNotContainKey("not-an-application-property");
         }};
 
     }

@@ -33,6 +33,8 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
+import org.apache.qpid.jms.message.JMSMessageWorkaround;
+import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -268,7 +270,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             message = session.createMessage();
         }
         JMSPropertyMapper.setPropertiesAndApplicationProperties(message, externalMessage.getHeaders(), log);
-        return message;
+
+        // wrap the message to prevent Qpid client from setting properties willy-nilly.
+        return JMSMessageWorkaround.wrap((JmsMessage) message);
     }
 
     @Nullable
