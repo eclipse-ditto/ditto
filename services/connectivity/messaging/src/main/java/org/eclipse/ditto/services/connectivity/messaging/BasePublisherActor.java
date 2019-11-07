@@ -22,14 +22,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -128,22 +126,24 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     final Optional<ReplyTarget> replyTargetOptional = response.getInternalHeaders()
                             .getReplyTarget()
                             .flatMap(this::getReplyTargetByIndex);
-                    final Optional<String> replyAddress = replyTargetOptional.map(ReplyTarget::getAddress)
-                            .map(Optional::of)
-                            .orElseGet(() ->
-                                    Optional.ofNullable(response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER))
-                            );
-                    if (replyAddress.isPresent()) {
+                    final Optional<String> replyAddressFromHeader =
+                            Optional.ofNullable(response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER));
+                    if (replyTargetOptional.isPresent()) {
+                        final ReplyTarget replyTarget = replyTargetOptional.get();
                         final ExpressionResolver expressionResolver =
                                 getExpressionResolver(outbound.getExternalMessage(), outbound.getSource());
                         final T replyTargetAddress =
-                                toPublishTarget(applyForTargetAddress(expressionResolver, replyAddress.get()));
+                                toPublishTarget(applyForTargetAddress(expressionResolver, replyTarget.getAddress()));
                         final HeaderMapping headerMapping =
-                                replyTargetOptional.flatMap(ReplyTarget::getHeaderMapping).orElse(null);
+                                replyTargetOptional.flatMap(ReplyTarget::getHeaderMapping)
+                                        .orElse(getDefaultHeaderMapping());
                         final ExternalMessage responseWithMappedHeaders =
-                                applyHeaderMapping(expressionResolver, outbound, headerMapping, log(),
-                                        this::withMappedHeaders);
+                                applyHeaderMapping(expressionResolver, outbound, headerMapping, log());
                         publishResponseOrError(replyTargetAddress, outbound, responseWithMappedHeaders);
+                    } else if (replyAddressFromHeader.isPresent()) {
+                        final T replyToAddress = toReplyToTarget(replyAddressFromHeader.get());
+                        final ExternalMessage responseWithMappedHeaders = applyHeaderMappingForReplyToAddress(response);
+                        publishResponseOrError(replyToAddress, outbound, responseWithMappedHeaders);
                     } else {
                         log().info("Response dropped, missing reply-to or reply-target address: {}", response);
                         responseDroppedMonitor.failure(outbound.getSource(),
@@ -168,8 +168,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         try {
                             final T publishTarget = toPublishTarget(target.getAddress());
                             final ExternalMessage messageWithMappedHeaders =
-                                    applyHeaderMapping(outbound, target.getHeaderMapping().orElse(null), log(),
-                                            this::withMappedHeaders);
+                                    applyHeaderMapping(outbound,
+                                            target.getHeaderMapping().orElse(getDefaultHeaderMapping()), log());
                             publishMessage(target, publishTarget, messageWithMappedHeaders, publishedMonitor);
                         } catch (final DittoRuntimeException e) {
                             // TODO: might there be private information in the exception message so we shouldn't be allowed to see them?
@@ -191,6 +191,21 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         postEnhancement(receiveBuilder);
         return receiveBuilder.build();
+    }
+
+    @Nullable
+    protected HeaderMapping getDefaultHeaderMapping() {
+        return null;
+    }
+
+    /**
+     * By default, keep all headers in the mapped outbound signal.
+     * Override this method for protocol-specific handling.
+     *
+     * @param response the outbound signal.
+     */
+    protected ExternalMessage applyHeaderMappingForReplyToAddress(final ExternalMessage response) {
+        return response;
     }
 
     private void publishResponseOrError(final T address, final OutboundSignal outbound,
@@ -241,7 +256,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param replyToAddress the replyTo address to convert to a {@link PublishTarget} of type {@code <T>}.
      * @return the instance of type {@code <T>}
      */
-    protected abstract T toReplyTarget(final String replyToAddress);
+    protected abstract T toReplyToTarget(final String replyToAddress);
 
     /**
      * Publishes the passed {@code message} to the passed {@code publishTarget}.
@@ -258,20 +273,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @return the logger to use.
      */
     protected abstract DiagnosticLoggingAdapter log();
-
-    /**
-     * Control how mapped headers are added to external messages. Append the mapped headers by default.
-     * Override in subclasses to change the behavior.
-     *
-     * @param builder the builder of the external message to send.
-     * @param mappedHeaders result of header mapping.
-     * @return builder incorporating the mapped headers.
-     */
-    protected ExternalMessageBuilder withMappedHeaders(final ExternalMessageBuilder builder,
-            final Map<String, String> mappedHeaders) {
-
-        return builder.withAdditionalHeaders(mappedHeaders);
-    }
 
     /**
      * Checks whether the passed in {@code outboundSignal} is a response or an error.
@@ -294,36 +295,23 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @return the ExternalMessage with replaced headers
      */
     static ExternalMessage applyHeaderMapping(final OutboundSignal.WithExternalMessage outboundSignal,
-            final @Nullable HeaderMapping mapping, final DiagnosticLoggingAdapter log,
-            final BiFunction<ExternalMessageBuilder, Map<String, String>, ExternalMessageBuilder> withMappedHeaders) {
+            final @Nullable HeaderMapping mapping, final DiagnosticLoggingAdapter log) {
 
         return applyHeaderMapping(
                 getExpressionResolver(outboundSignal.getExternalMessage(), outboundSignal.getSource()),
-                outboundSignal, mapping, log, withMappedHeaders);
+                outboundSignal, mapping, log);
     }
 
     private static ExternalMessage applyHeaderMapping(final ExpressionResolver expressionResolver,
             final OutboundSignal.WithExternalMessage outboundSignal,
-            final @Nullable HeaderMapping mapping, final DiagnosticLoggingAdapter log,
-            final BiFunction<ExternalMessageBuilder, Map<String, String>, ExternalMessageBuilder> withMappedHeaders) {
+            final @Nullable HeaderMapping mapping,
+            final DiagnosticLoggingAdapter log) {
 
         final ExternalMessage originalMessage = outboundSignal.getExternalMessage();
-        final Map<String, String> originalHeaders = new HashMap<>(originalMessage.getHeaders());
 
         // clear all existing headers in the builder which is used for building the ExternalMessage to be returned:
         final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(originalMessage)
                 .clearHeaders();
-
-        // keep correlation-id, content-type and reply-to:
-        Optional.ofNullable(originalHeaders.get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
-                .ifPresent(c ->
-                        messageBuilder.withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(), c));
-        Optional.ofNullable(originalHeaders.get(ExternalMessage.CONTENT_TYPE_HEADER))
-                .ifPresent(c ->
-                        messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, c));
-        Optional.ofNullable(originalHeaders.get(ExternalMessage.REPLY_TO_HEADER))
-                .ifPresent(r ->
-                        messageBuilder.withAdditionalHeaders(ExternalMessage.REPLY_TO_HEADER, r));
 
         if (mapping != null) {
             final Signal<?> sourceSignal = outboundSignal.getSource();
@@ -337,11 +325,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             LogUtil.enhanceLogWithCorrelationId(log, sourceSignal);
             log.debug("Result of header mapping <{}> are these headers to be published: {}", mapping, mappedHeaders);
 
-            // combine with external headers
-            return withMappedHeaders.apply(messageBuilder, mappedHeaders).build();
-        } else {
-            return messageBuilder.build();
+            // set headers to mapped headers---original headers from payload mapping were cleared.
+            messageBuilder.withHeaders(mappedHeaders);
         }
+
+        return messageBuilder.build();
     }
 
     private static Optional<String> applyExpressionResolver(final ExpressionResolver resolver, final String value) {

@@ -35,7 +35,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
@@ -124,7 +123,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Override
-    protected HttpPublishTarget toReplyTarget(final String replyToAddress) {
+    protected HttpPublishTarget toReplyToTarget(final String replyToAddress) {
         return HttpPublishTarget.of(replyToAddress);
     }
 
@@ -147,13 +146,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     @Override
     protected DiagnosticLoggingAdapter log() {
         return log;
-    }
-
-    @Override
-    protected ExternalMessageBuilder withMappedHeaders(final ExternalMessageBuilder builder,
-            final Map<String, String> mappedHeaders) {
-        // instead of appending mapped headers, remove all but the mapped headers.
-        return builder.withHeaders(mappedHeaders);
     }
 
     private HttpRequest createRequest(final HttpPublishTarget publishTarget, final ExternalMessage message) {

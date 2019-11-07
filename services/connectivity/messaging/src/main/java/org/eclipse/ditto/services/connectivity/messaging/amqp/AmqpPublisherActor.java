@@ -34,10 +34,13 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 
 import org.apache.qpid.jms.message.JmsMessage;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
@@ -49,6 +52,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.ActorRef;
@@ -61,6 +65,15 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
+    /**
+     * Legacy header mapping for responses to "reply-to" addresses without header mapping.
+     */
+    private static final HeaderMapping LEGACY_DEFAULT_HEADER_MAPPER =
+            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
+                    .set("correlation-id", "{{header:correlation-id}}")
+                    .set("reply-to", "{{header:correlation-id}}")
+                    .set("content-type", "{{header:content-type}}")
+                    .build());
     /**
      * The name prefix of this Actor in the ActorSystem.
      */
@@ -122,6 +135,12 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 .matchEquals(START_PRODUCER, this::handleStartProducer);
     }
 
+    // use the previous 3-entry header mapper if none exists
+    @Override
+    protected HeaderMapping getDefaultHeaderMapping() {
+        return LEGACY_DEFAULT_HEADER_MAPPER;
+    }
+
     private void handleStartProducer(final Object startProducer) {
         try {
             this.isInBackOffMode = false;
@@ -167,7 +186,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Override
-    protected AmqpTarget toReplyTarget(final String replyToAddress) {
+    protected AmqpTarget toReplyToTarget(final String replyToAddress) {
         return AmqpTarget.fromTargetAddress(replyToAddress);
     }
 
@@ -179,6 +198,17 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         } else {
             this.handleMessageInBackOffMode(message, publishedMonitor, publishTarget.getJmsDestination());
         }
+    }
+
+    // Override header-mapping for reply-to addresses by mapping all headers to application properties.
+    @Override
+    protected ExternalMessage applyHeaderMappingForReplyToAddress(final ExternalMessage response) {
+        return ExternalMessageFactory.newExternalMessageBuilder(response)
+                .withHeaders(JMSPropertyMapper.mapAsApplicationProperties(
+                        response.getHeaders(),
+                        LEGACY_DEFAULT_HEADER_MAPPER.getMapping().keySet()
+                ))
+                .build();
     }
 
     private void tryToPublishMessage(final AmqpTarget publishTarget,

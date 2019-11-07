@@ -92,7 +92,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
     }
 
     @Override
-    protected MqttPublishTarget toReplyTarget(final String replyToAddress) {
+    protected MqttPublishTarget toReplyToTarget(final String replyToAddress) {
         return MqttPublishTarget.of(replyToAddress);
     }
 

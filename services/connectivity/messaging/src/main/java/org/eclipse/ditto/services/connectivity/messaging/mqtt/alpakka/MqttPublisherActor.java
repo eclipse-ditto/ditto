@@ -111,7 +111,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     }
 
     @Override
-    protected MqttPublishTarget toReplyTarget(final String replyToAddress) {
+    protected MqttPublishTarget toReplyToTarget(final String replyToAddress) {
         return MqttPublishTarget.of(replyToAddress);
     }
 

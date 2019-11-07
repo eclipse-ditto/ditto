@@ -134,7 +134,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     @Override
-    protected RabbitMQTarget toReplyTarget(final String replyToAddress) {
+    protected RabbitMQTarget toReplyToTarget(final String replyToAddress) {
         return RabbitMQTarget.of(DEFAULT_EXCHANGE, replyToAddress);
     }
 

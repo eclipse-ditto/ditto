@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
@@ -89,14 +88,11 @@ public class BasePublisherActorTest {
         // when
         final ExternalMessage headerMappedExternalMessage = BasePublisherActor.applyHeaderMapping(mappedOutboundSignal,
                 target.getHeaderMapping().orElse(null),
-                Mockito.mock(DiagnosticLoggingAdapter.class),
-                ExternalMessageBuilder::withAdditionalHeaders);
+                Mockito.mock(DiagnosticLoggingAdapter.class)
+        );
 
         // then
         final Map<String, String> expectedHeaders = new HashMap<>();
-        expectedHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
-                contentType); // content-type must be always preserved
-        expectedHeaders.put("reply-to", replyTo); // reply-to must be always preserved
         expectedHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(),
                 correlationIdImportant); // the overwritten correlation-id from the headerMapping
         expectedHeaders.put("thing-id", deviceId); // as defined in headerMappingMap
