@@ -128,19 +128,22 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     final Optional<ReplyTarget> replyTargetOptional = response.getInternalHeaders()
                             .getReplyTarget()
                             .flatMap(this::getReplyTargetByIndex);
-                    final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
-                    if (replyTargetOptional.isPresent()) {
-                        final ReplyTarget replyTarget = replyTargetOptional.get();
+                    final Optional<String> replyAddress = replyTargetOptional.map(ReplyTarget::getAddress)
+                            .map(Optional::of)
+                            .orElseGet(() ->
+                                    Optional.ofNullable(response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER))
+                            );
+                    if (replyAddress.isPresent()) {
                         final ExpressionResolver expressionResolver =
                                 getExpressionResolver(outbound.getExternalMessage(), outbound.getSource());
                         final T replyTargetAddress =
-                                toPublishTarget(applyForTargetAddress(expressionResolver, replyTarget.getAddress()));
+                                toPublishTarget(applyForTargetAddress(expressionResolver, replyAddress.get()));
+                        final HeaderMapping headerMapping =
+                                replyTargetOptional.flatMap(ReplyTarget::getHeaderMapping).orElse(null);
                         final ExternalMessage responseWithMappedHeaders =
-                                applyHeaderMapping(expressionResolver, outbound,
-                                        replyTarget.getHeaderMapping().orElse(null), log(), this::withMappedHeaders);
+                                applyHeaderMapping(expressionResolver, outbound, headerMapping, log(),
+                                        this::withMappedHeaders);
                         publishResponseOrError(replyTargetAddress, outbound, responseWithMappedHeaders);
-                    } else if (replyToFromHeader != null) {
-                        publishResponseOrError(toReplyTarget(replyToFromHeader), outbound, response);
                     } else {
                         log().info("Response dropped, missing reply-to or reply-target address: {}", response);
                         responseDroppedMonitor.failure(outbound.getSource(),
@@ -193,9 +196,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private void publishResponseOrError(final T address, final OutboundSignal outbound,
             final ExternalMessage response) {
 
-        log().info("Publishing mapped response/error message of type <{}> to reply target <{}>",
+        log().info("Publishing mapped response/error message of type <{}> to reply address <{}>",
                 outbound.getSource().getType(), address);
-        log().debug("Publishing mapped response/error message of type <{}> to reply target <{}>: {}",
+        log().debug("Publishing mapped response/error message of type <{}> to reply address <{}>: {}",
                 outbound.getSource().getType(), address, response);
         publishMessage(null, address, response, responsePublishedMonitor);
     }
