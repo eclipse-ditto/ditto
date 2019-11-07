@@ -49,14 +49,24 @@ public final class DefaultConnectionMetricsCounter implements ConnectionMetricsC
 
     @Override
     public void recordSuccess() {
-        LOGGER.trace("Increment success counter ({},{},{})", metricDirection, address, metricType);
+        logAction("Increment success counter");
         counter.increment();
     }
 
     @Override
     public void recordFailure() {
-        LOGGER.trace("Increment failure counter ({},{},{})", metricDirection, address, metricType);
+        logAction("Increment failure counter");
         counter.increment(false);
+    }
+
+    @Override
+    public void reset() {
+        logAction("Reset counter");
+        counter.reset();
+    }
+
+    private void logAction(final String action) {
+        LOGGER.trace("{} ({},{},{})", action, metricDirection, address, metricType);
     }
 
     @Override

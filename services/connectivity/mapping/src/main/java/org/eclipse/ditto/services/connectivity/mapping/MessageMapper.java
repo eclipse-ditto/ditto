@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -79,6 +80,13 @@ public interface MessageMapper {
      * @throws org.eclipse.ditto.model.connectivity.MessageMappingFailedException if the given adaptable can not be mapped
      */
     List<ExternalMessage> map(Adaptable adaptable);
+
+    /**
+     * @return a map of default options for this mapper
+     */
+    default Map<String, String> getDefaultOptions() {
+        return Collections.emptyMap();
+    }
 
     /**
      * Finds the content-type header from the passed ExternalMessage.

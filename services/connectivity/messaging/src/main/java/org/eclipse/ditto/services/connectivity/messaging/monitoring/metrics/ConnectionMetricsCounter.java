@@ -34,4 +34,9 @@ public interface ConnectionMetricsCounter {
      * @return the metricType of this collector.
      */
     MetricType getMetricType();
+
+    /**
+     * Resets the counter.
+     */
+    void reset();
 }

@@ -72,7 +72,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     static final String FEATURE_PROPERTY_READY_UNTIL = "readyUntil";
 
     // (unix time) 253402300799 = (ISO-8601) 9999-12-31T23:59:59
-    static final Instant DISTANT_FUTURE_INSTANT = Instant.ofEpochMilli(253402300799L);
+    private static final Instant DISTANT_FUTURE_INSTANT = Instant.ofEpochSecond(253402300799L);
 
     private static final List<Adaptable> EMPTY_RESULT = Collections.emptyList();
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
