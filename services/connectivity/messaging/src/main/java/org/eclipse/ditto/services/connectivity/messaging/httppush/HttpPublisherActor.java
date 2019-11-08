@@ -25,6 +25,7 @@ import java.util.function.BiFunction;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
@@ -146,6 +147,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     @Override
     protected DiagnosticLoggingAdapter log() {
         return log;
+    }
+
+    @Override
+    protected HeaderMapping getDefaultHeaderMapping() {
+        // HTTP-push connections do not include any headers by default.
+        return null;
     }
 
     private HttpRequest createRequest(final HttpPublishTarget publishTarget, final ExternalMessage message) {
