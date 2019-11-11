@@ -24,6 +24,7 @@ import javax.annotation.concurrent.Immutable;
 import org.bson.BsonRegularExpression;
 import org.bson.BsonString;
 import org.bson.Document;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 
@@ -61,12 +62,8 @@ final class MongoPersistenceOperationsSelectionProvider {
      * in the EventSource.
      * @throws NullPointerException if {@code entityId} is {@code null}.
      */
-    public Collection<MongoPersistenceOperationsSelection> selectEntity(final String entityId) {
+    public Collection<MongoPersistenceOperationsSelection> selectEntity(final EntityId entityId) {
         checkNotNull(entityId, "entity ID");
-
-        if (settings.isSupportsNamespaces()) {
-            validateAndExtractNamespace(entityId);
-        }
 
         return Collections.unmodifiableList(Arrays.asList(
                 selectEntityByPid(settings.getMetadataCollectionName(), entityId),
@@ -105,20 +102,11 @@ final class MongoPersistenceOperationsSelectionProvider {
         return new Document(PID, new BsonRegularExpression(pidRegex));
     }
 
-    private static void validateAndExtractNamespace(final String entityId) {
-        final int separatorIndex = entityId.indexOf(':');
-        if (-1 == separatorIndex) {
-            throw new IllegalArgumentException(
-                    MessageFormat.format("Entity ID <{0}> does not have namespace!", entityId));
-        }
-
-    }
-
-    private MongoPersistenceOperationsSelection selectEntityByPid(final String collection, final String entityId) {
+    private MongoPersistenceOperationsSelection selectEntityByPid(final String collection, final EntityId entityId) {
         return MongoPersistenceOperationsSelection.of(collection, filterByPid(entityId));
     }
 
-    private Document filterByPid(final String entityId) {
+    private Document filterByPid(final EntityId entityId) {
         final String pid = String.format("%s%s", settings.getPersistenceIdPrefix(), entityId);
         return new Document(PID, new BsonString(pid));
     }

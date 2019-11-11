@@ -21,6 +21,9 @@ import java.util.Collection;
 
 import org.bson.BsonString;
 import org.bson.Document;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.junit.Test;
 
 /**
@@ -61,8 +64,8 @@ public class MongoPersistenceOperationsSelectionProviderTest {
         final MongoPersistenceOperationsSelectionProvider underTest =
                 MongoPersistenceOperationsSelectionProvider.of(settings);
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> underTest.selectEntity(ENTITY_NAME));
+        assertThatExceptionOfType(NamespacedEntityIdInvalidException.class)
+                .isThrownBy(() -> underTest.selectEntity(DefaultNamespacedEntityId.of(ENTITY_NAME)));
     }
 
     @Test
@@ -72,10 +75,11 @@ public class MongoPersistenceOperationsSelectionProviderTest {
         final MongoPersistenceOperationsSelectionProvider underTest =
                 MongoPersistenceOperationsSelectionProvider.of(settings);
 
-        final Collection<MongoPersistenceOperationsSelection> selections = underTest.selectEntity(ENTITY_NAME);
+        final Collection<MongoPersistenceOperationsSelection> selections =
+                underTest.selectEntity(DefaultEntityId.of(ENTITY_NAME));
 
         final String pid = PERSISTENCE_ID_PREFIX + ENTITY_NAME;
-        final Document pidFilter = new Document(KEY_PID, new BsonString(pid));
+        final Document pidFilter = new Document().append(KEY_PID, new BsonString(pid));
         final MongoPersistenceOperationsSelection expectedMetadataSelection =
                 MongoPersistenceOperationsSelection.of(METADATA_COLLECTION_NAME, pidFilter);
         final MongoPersistenceOperationsSelection expectedJournalSelection =
