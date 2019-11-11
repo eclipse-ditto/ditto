@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedE
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -238,10 +239,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     public void testConsumeFromTopicWithIdEnforcementExpectErrorResponse() {
         disableLogging(actorSystem);
 
-        final Source mqttSource = newFilteredMqttSource(
-                "eclipse/{{ thing:namespace }}/{{ thing:name }}", // enforcement filter
-                "eclipse/+/+" // subscribed topic
-        );
+        final Source mqttSource =
+                newFilteredMqttSource("eclipse/{{ thing:namespace }}/{{ thing:name }}", "eclipse/+/+");
 
         final Connection connectionWithEnforcement =
                 ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
@@ -271,10 +270,12 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     private static Source newFilteredMqttSource(final String filter, final String... sources) {
         return ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(AUTHORIZATION_CONTEXT)
-                .index(1)
                 .consumerCount(1)
                 .addresses(TestConstants.asSet(sources))
                 .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(filter))
+                .replyTarget(ReplyTarget.newBuilder()
+                        .address("{{ header:reply-to }}")
+                        .build())
                 .qos(1)
                 .build();
     }

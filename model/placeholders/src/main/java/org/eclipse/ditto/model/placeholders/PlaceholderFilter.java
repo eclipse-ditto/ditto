@@ -224,13 +224,6 @@ public final class PlaceholderFilter {
                         .build());
     }
 
-    static String checkAllPlaceholdersResolved(final String input) {
-        if (Placeholders.containsAnyPlaceholder(input)) {
-            throw UnresolvedPlaceholderException.newBuilder(input).build();
-        }
-        return input;
-    }
-
     private PlaceholderFilter() {
         throw new AssertionError();
     }

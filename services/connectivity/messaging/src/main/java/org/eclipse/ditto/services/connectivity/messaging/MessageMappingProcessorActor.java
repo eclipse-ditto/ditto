@@ -194,18 +194,21 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         try {
             mapExternalMessageToSignalAndForwardToConcierge(externalMessage);
         } catch (final Exception e) {
-            handleException(e, externalMessage.getHeaders());
+            handleException(e, externalMessage);
         }
     }
 
-    private void handleException(final Exception e, final Map<String, String> headers) {
+    private void handleException(final Exception e, final ExternalMessage message) {
         if (e instanceof DittoRuntimeException) {
             final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) e;
             responseMappedMonitor.getLogger()
                     .failure("Got exception {0} when processing external message: {1}",
                             dittoRuntimeException.getErrorCode(),
                             e.getMessage());
-            handleDittoRuntimeException(dittoRuntimeException, headers);
+            handleDittoRuntimeException(dittoRuntimeException, DittoHeaders.newBuilder()
+                    .putHeaders(message.getHeaders())
+                    .putHeaders(message.getInternalHeaders())
+                    .build());
         } else {
             responseMappedMonitor.getLogger()
                     .failure("Got unknown exception when processing external message: {1}", e.getMessage());
@@ -242,7 +245,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             conciergeForwarder.tell(adjustedSignal, getSelf());
         },
                 () -> log.debug("Message mapping returned null, message is dropped."),
-                exception -> this.handleException(exception, externalMessage.getHeaders()),
+                exception -> this.handleException(exception, externalMessage),
                 inboundMapped, inboundDropped, InfoProviderFactory.forExternalMessage(externalMessage));
 
         messageMappingProcessor.process(messageWithAuthSubject, inboundMappingHandlers);

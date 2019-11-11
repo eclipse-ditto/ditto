@@ -182,17 +182,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         }
     }
 
-    // Override header-mapping for reply-to addresses by mapping all headers to application properties.
-    @Override
-    protected ExternalMessage applyHeaderMappingForReplyToAddress(final ExternalMessage response) {
-        return ExternalMessageFactory.newExternalMessageBuilder(response)
-                .withHeaders(JMSPropertyMapper.mapAsApplicationProperties(
-                        response.getHeaders(),
-                        LEGACY_DEFAULT_HEADER_MAPPER.getMapping().keySet()
-                ))
-                .build();
-    }
-
     private void tryToPublishMessage(final AmqpTarget publishTarget,
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
         try {

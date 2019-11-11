@@ -27,7 +27,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -72,16 +71,6 @@ import akka.japi.pf.ReceiveBuilder;
  * @param <T> the type of targets for this actor
  */
 public abstract class BasePublisherActor<T extends PublishTarget> extends AbstractActor {
-
-    /**
-     * Legacy header mapping for responses to "reply-to" addresses without header mapping.
-     */
-    protected static final HeaderMapping LEGACY_DEFAULT_HEADER_MAPPER =
-            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
-                    .set("correlation-id", "{{header:correlation-id|fn:default(fn:delete())}}")
-                    .set("reply-to", "{{header:correlation-id|fn:default(fn:delete())}}")
-                    .set("content-type", "{{header:content-type|fn:default(fn:delete())}}")
-                    .build());
 
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
     private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
@@ -137,28 +126,31 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     final Optional<ReplyTarget> replyTargetOptional = response.getInternalHeaders()
                             .getReplyTarget()
                             .flatMap(this::getReplyTargetByIndex);
-                    final Optional<String> replyAddressFromHeader =
-                            Optional.ofNullable(response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER));
                     if (replyTargetOptional.isPresent()) {
                         final ReplyTarget replyTarget = replyTargetOptional.get();
                         final ExpressionResolver expressionResolver =
                                 getExpressionResolver(outbound.getExternalMessage(), outbound.getSource());
-                        final T replyTargetAddress =
-                                toPublishTarget(applyForTargetAddress(expressionResolver, replyTarget.getAddress()));
-                        final HeaderMapping headerMapping =
-                                replyTargetOptional.flatMap(ReplyTarget::getHeaderMapping)
-                                        .orElse(getDefaultHeaderMapping());
-                        final ExternalMessage responseWithMappedHeaders =
-                                applyHeaderMapping(expressionResolver, outbound, headerMapping, log());
-                        publishResponseOrError(replyTargetAddress, outbound, responseWithMappedHeaders);
-                    } else if (replyAddressFromHeader.isPresent()) {
-                        final T replyToAddress = toReplyToTarget(replyAddressFromHeader.get());
-                        final ExternalMessage responseWithMappedHeaders = applyHeaderMappingForReplyToAddress(response);
-                        publishResponseOrError(replyToAddress, outbound, responseWithMappedHeaders);
+                        final String address = replyTarget.getAddress();
+                        final Optional<T> resolvedAddress =
+                                applyForReplyTargetAddress(expressionResolver, address).map(this::toPublishTarget);
+
+                        if (resolvedAddress.isPresent()) {
+                            final HeaderMapping headerMapping =
+                                    replyTargetOptional.flatMap(ReplyTarget::getHeaderMapping).orElse(null);
+                            final ExternalMessage responseWithMappedHeaders =
+                                    applyHeaderMapping(expressionResolver, outbound, headerMapping, log());
+                            publishResponseOrError(resolvedAddress.get(), outbound, responseWithMappedHeaders);
+                        } else {
+                            log().debug("Response dropped, reply-target address unresolved: <{}>", address);
+                            responseDroppedMonitor.failure(outbound.getSource(),
+                                    "Response dropped since its reply-target's address " +
+                                            "cannot be resolved to a value: {0}",
+                                    address);
+                        }
                     } else {
-                        log().info("Response dropped, missing reply-to or reply-target address: {}", response);
+                        log().debug("Response dropped, missing reply-target: {}", response);
                         responseDroppedMonitor.failure(outbound.getSource(),
-                                "Response dropped since it was missing a reply-to or reply-target address.");
+                                "Response dropped since it was missing a reply-target.");
                     }
                 })
                 .match(OutboundSignal.WithExternalMessage.class, outbound -> {
@@ -170,7 +162,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     log().debug("Publishing mapped message of type <{}> to targets <{}>: {}",
                             outboundSource.getType(), outbound.getTargets(), message);
                     outbound.getTargets().forEach(target -> {
-                        log().info("Publishing mapped message of type <{}> to target address <{}>",
+                        log().debug("Publishing mapped message of type <{}> to target address <{}>",
                                 outboundSource.getType(), target.getAddress());
 
                         final ConnectionMonitor publishedMonitor =
@@ -179,8 +171,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         try {
                             final T publishTarget = toPublishTarget(target.getAddress());
                             final ExternalMessage messageWithMappedHeaders =
-                                    applyHeaderMapping(outbound,
-                                            target.getHeaderMapping().orElse(getDefaultHeaderMapping()), log());
+                                    applyHeaderMapping(outbound, target.getHeaderMapping().orElse(null), log());
                             publishMessage(target, publishTarget, messageWithMappedHeaders, publishedMonitor);
                         } catch (final DittoRuntimeException e) {
                             // TODO: might there be private information in the exception message so we shouldn't be allowed to see them?
@@ -202,21 +193,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         postEnhancement(receiveBuilder);
         return receiveBuilder.build();
-    }
-
-    @Nullable
-    protected HeaderMapping getDefaultHeaderMapping() {
-        return LEGACY_DEFAULT_HEADER_MAPPER;
-    }
-
-    /**
-     * By default, keep all headers in the mapped outbound signal.
-     * Override this method for protocol-specific handling.
-     *
-     * @param response the outbound signal.
-     */
-    protected ExternalMessage applyHeaderMappingForReplyToAddress(final ExternalMessage response) {
-        return response;
     }
 
     private void publishResponseOrError(final T address, final OutboundSignal outbound,
@@ -347,9 +323,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return PlaceholderFilter.applyWithDeletion(value, resolver);
     }
 
-    // For target address: Leave it as-is if resolution fails or results in deletion.
-    private static String applyForTargetAddress(final ExpressionResolver resolver, final String value) {
-        return PlaceholderFilter.applyOrElseRetain(value, resolver);
+    /**
+     * Resolve target address. If not resolvable,
+     */
+    private static Optional<String> applyForReplyTargetAddress(final ExpressionResolver resolver, final String value) {
+        return resolver.resolve(value, false).toOptional();
     }
 
     private static ExpressionResolver getExpressionResolver(final ExternalMessage originalMessage,
