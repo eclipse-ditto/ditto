@@ -79,6 +79,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
      * Creates a new {@code DittoProtocolAdapter} instance with the given header translator.
      *
      * @param headerTranslator translator between external and Ditto headers.
+     * @return new DittoProtocolAdapter
      */
     public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
         checkNotNull(headerTranslator, "headerTranslator");
