@@ -276,6 +276,7 @@ final class ImmutableSource implements Source {
                     .enforcement(source.getEnforcement().orElse(null))
                     .headerMapping(source.getHeaderMapping().orElse(null))
                     .qos(source.getQos().orElse(null))
+                    .replyTarget(source.getReplyTarget().orElse(null))
                     .payloadMapping(source.getPayloadMapping())
                     .index(source.getIndex())
                     .consumerCount(source.getConsumerCount());
