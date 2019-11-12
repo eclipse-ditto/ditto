@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,13 +10,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders;
+package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.model.placeholders.Expression;
 
 /**
  * Simple placeholder that currently only supports {@code {{ source:address }}} as a placeholder.
@@ -34,7 +36,7 @@ final class ImmutableSourceAddressPlaceholder implements SourceAddressPlaceholde
     private static final String VALUE = "address";
 
     private static final List<String> VALID_VALUES = Collections.unmodifiableList(
-            Collections.singletonList(PREFIX + Placeholder.SEPARATOR + VALUE));
+            Collections.singletonList(PREFIX + Expression.SEPARATOR + VALUE));
 
     @Override
     public String getPrefix() {

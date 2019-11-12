@@ -30,7 +30,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 
 /**
  * Immutable implementation of {@link ExpressionResolver} containing the logic of how an expression is resolved.

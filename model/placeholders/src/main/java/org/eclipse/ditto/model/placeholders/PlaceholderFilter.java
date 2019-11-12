@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
@@ -112,7 +111,7 @@ public final class PlaceholderFilter {
      * @param <T> the type of the placeholderSource
      * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
      */
-    static <T> String apply(final String template, final T placeholderSource, final Placeholder<T> placeholder) {
+    public static <T> String apply(final String template, final T placeholderSource, final Placeholder<T> placeholder) {
         return apply(template, PlaceholderFactory.newExpressionResolver(placeholder, placeholderSource));
     }
 

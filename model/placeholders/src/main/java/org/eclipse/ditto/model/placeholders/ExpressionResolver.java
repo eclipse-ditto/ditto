@@ -42,7 +42,7 @@ public interface ExpressionResolver {
      *
      * @param pipelineExpression the pipeline expression.
      * @return the pipeline element after evaluation.
-     * @throws org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException if not all placeholders were resolved
+     * @throws UnresolvedPlaceholderException if not all placeholders were resolved
      */
     PipelineElement resolveAsPipelineElement(String pipelineExpression);
 

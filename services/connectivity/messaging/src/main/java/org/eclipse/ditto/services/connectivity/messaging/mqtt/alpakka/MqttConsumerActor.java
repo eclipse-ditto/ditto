@@ -22,13 +22,13 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
+import org.eclipse.ditto.model.connectivity.EnforcementFilter;
+import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
-import org.eclipse.ditto.model.placeholders.EnforcementFilter;
-import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
@@ -69,7 +69,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
         if (enforcement.isPresent()) {
             this.topicEnforcementFilterFactory =
                     EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement.get(),
-                            PlaceholderFactory.newSourceAddressPlaceholder());
+                            ConnectivityModelFactory.newSourceAddressPlaceholder());
         } else {
             topicEnforcementFilterFactory = null;
         }

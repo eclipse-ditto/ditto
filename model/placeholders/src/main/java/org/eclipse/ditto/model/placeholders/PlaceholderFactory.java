@@ -39,13 +39,6 @@ public final class PlaceholderFactory {
     }
 
     /**
-     * @return new instance of the {@link SourceAddressPlaceholder}
-     */
-    public static SourceAddressPlaceholder newSourceAddressPlaceholder() {
-        return ImmutableSourceAddressPlaceholder.INSTANCE;
-    }
-
-    /**
      * @return new instance of the {@link TopicPathPlaceholder}
      */
     public static TopicPathPlaceholder newTopicPathPlaceholder() {
