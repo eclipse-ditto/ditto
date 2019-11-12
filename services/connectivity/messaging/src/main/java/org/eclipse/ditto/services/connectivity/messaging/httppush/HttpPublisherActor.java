@@ -123,11 +123,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Override
-    protected HttpPublishTarget toReplyToTarget(final String replyToAddress) {
-        return HttpPublishTarget.of(replyToAddress);
-    }
-
-    @Override
     protected void publishMessage(@Nullable final Target target, final HttpPublishTarget publishTarget,
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
 

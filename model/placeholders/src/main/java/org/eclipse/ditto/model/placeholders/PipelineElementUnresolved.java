@@ -27,7 +27,9 @@ final class PipelineElementUnresolved implements PipelineElement {
 
     static final PipelineElement INSTANCE = new PipelineElementUnresolved();
 
-    private PipelineElementUnresolved() {}
+    private PipelineElementUnresolved() {
+        // no-op
+    }
 
     @Override
     public Type getType() {

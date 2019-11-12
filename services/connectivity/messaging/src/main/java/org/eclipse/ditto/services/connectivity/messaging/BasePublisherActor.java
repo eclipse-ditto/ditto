@@ -135,8 +135,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                 applyForReplyTargetAddress(expressionResolver, address).map(this::toPublishTarget);
 
                         if (resolvedAddress.isPresent()) {
-                            final HeaderMapping headerMapping =
-                                    replyTargetOptional.flatMap(ReplyTarget::getHeaderMapping).orElse(null);
+                            final HeaderMapping headerMapping = replyTarget.getHeaderMapping().orElse(null);
                             final ExternalMessage responseWithMappedHeaders =
                                     applyHeaderMapping(expressionResolver, outbound, headerMapping, log());
                             publishResponseOrError(resolvedAddress.get(), outbound, responseWithMappedHeaders);
@@ -174,7 +173,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                     applyHeaderMapping(outbound, target.getHeaderMapping().orElse(null), log());
                             publishMessage(target, publishTarget, messageWithMappedHeaders, publishedMonitor);
                         } catch (final DittoRuntimeException e) {
-                            // TODO: might there be private information in the exception message so we shouldn't be allowed to see them?
                             publishedMonitor.failure(outboundSource,
                                     "Ran into a failure when applying header mapping: {0}",
                                     e.getMessage());
@@ -220,14 +218,14 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      *
      * @param receiveBuilder the ReceiveBuilder to add other matchers to.
      */
-    protected abstract void preEnhancement(final ReceiveBuilder receiveBuilder);
+    protected abstract void preEnhancement(ReceiveBuilder receiveBuilder);
 
     /**
      * Provides the possibility to add custom matchers after applying the default matchers of the BasePublisherActor.
      *
      * @param receiveBuilder the ReceiveBuilder to add other matchers to.
      */
-    protected abstract void postEnhancement(final ReceiveBuilder receiveBuilder);
+    protected abstract void postEnhancement(ReceiveBuilder receiveBuilder);
 
     /**
      * Converts the passed {@code address} to a {@link PublishTarget} of type {@code <T>}.
@@ -238,14 +236,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected abstract T toPublishTarget(final String address);
 
     /**
-     * Converts the passed {@code replyToAddress} to a {@link PublishTarget} of type {@code <T>}.
-     *
-     * @param replyToAddress the replyTo address to convert to a {@link PublishTarget} of type {@code <T>}.
-     * @return the instance of type {@code <T>}
-     */
-    protected abstract T toReplyToTarget(final String replyToAddress);
-
-    /**
      * Publishes the passed {@code message} to the passed {@code publishTarget}.
      *
      * @param target the nullable Target for getting even more information about the configured Target to publish to.
@@ -253,8 +243,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
      * @param publishedMonitor the monitor that can be used for monitoring purposes.
      */
-    protected abstract void publishMessage(@Nullable final Target target, final T publishTarget,
-            final ExternalMessage message, final ConnectionMonitor publishedMonitor);
+    protected abstract void publishMessage(@Nullable Target target, T publishTarget,
+            ExternalMessage message, ConnectionMonitor publishedMonitor);
 
     /**
      * @return the logger to use.
@@ -324,7 +314,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     /**
-     * Resolve target address. If not resolvable,
+     * Resolve target address.
+     * If not resolvable, the returned Optional will be empty.
      */
     private static Optional<String> applyForReplyTargetAddress(final ExpressionResolver resolver, final String value) {
         return resolver.resolve(value, false).toOptional();

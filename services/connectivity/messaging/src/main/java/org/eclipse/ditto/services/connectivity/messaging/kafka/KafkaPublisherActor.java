@@ -120,11 +120,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     @Override
-    protected KafkaPublishTarget toReplyToTarget(final String replyToAddress) {
-        return KafkaPublishTarget.fromTargetAddress(replyToAddress);
-    }
-
-    @Override
     protected void publishMessage(@Nullable final Target target,
             final KafkaPublishTarget publishTarget,
             final ExternalMessage message,

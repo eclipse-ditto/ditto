@@ -42,6 +42,7 @@ public interface ExpressionResolver {
      *
      * @param pipelineExpression the pipeline expression.
      * @return the pipeline element after evaluation.
+     * @throws org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException if not all placeholders were resolved
      */
     PipelineElement resolveAsPipelineElement(String pipelineExpression);
 
@@ -56,7 +57,7 @@ public interface ExpressionResolver {
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
-    default PipelineElement resolve(String expressionTemplate, final boolean allowUnresolved) {
+    default PipelineElement resolve(final String expressionTemplate, final boolean allowUnresolved) {
         return ExpressionResolver.substitute(expressionTemplate, allowUnresolved, this::resolveAsPipelineElement);
     }
 
@@ -93,6 +94,8 @@ public interface ExpressionResolver {
                     if (!allowUnresolved) {
                         return element;
                     }
+                default:
+                    // no-op
             }
             // append resolved placeholder
             element.map(resolvedValue -> {

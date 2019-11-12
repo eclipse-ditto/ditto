@@ -27,7 +27,9 @@ final class PipelineElementDeleted implements PipelineElement {
 
     static final PipelineElement INSTANCE = new PipelineElementDeleted();
 
-    private PipelineElementDeleted() {}
+    private PipelineElementDeleted() {
+        // no-op
+    }
 
     @Override
     public Type getType() {

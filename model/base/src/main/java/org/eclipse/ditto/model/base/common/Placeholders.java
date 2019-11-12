@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Supports substitution of placeholders in the format {@code {{ prefix:key }}}
+ * Supports checking for presence of placeholders in the format {@code {{ prefix:key }}}
  * or the legacy-format {@code ${prefix.key}}.
  */
 @Immutable
@@ -50,12 +50,6 @@ public final class Placeholders {
     private static final String LEGACY_PLACEHOLDER_REGEX =
             LEGACY_PLACEHOLDER_START + LEGACY_PLACEHOLDER_GROUP + LEGACY_PLACEHOLDER_END;
     private static final Pattern LEGACY_PLACEHOLDER_PATTERN = Pattern.compile(LEGACY_PLACEHOLDER_REGEX);
-
-    private static final String LEGACY_REQUEST_SUBJECT_ID =
-            "(?<" + LEGACY_PLACEHOLDER_SUBJECT_ID_GROUP_NAME + ">" + Pattern.quote("request.subjectId") + ")";
-    private static final String LEGACY_REQUEST_SUBJECT_ID_REGEX =
-            LEGACY_PLACEHOLDER_START + LEGACY_REQUEST_SUBJECT_ID + LEGACY_PLACEHOLDER_END;
-    private static final Pattern LEGACY_REQUEST_SUBJECT_ID_PATTERN = Pattern.compile(LEGACY_REQUEST_SUBJECT_ID_REGEX);
 
     private static final Pattern ANY_PLACEHOLDER_PATTERN =
             Pattern.compile("(?:" + PLACEHOLDER_REGEX + "|" + LEGACY_PLACEHOLDER_REGEX + ")");

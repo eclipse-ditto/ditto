@@ -49,7 +49,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.ActorRef;
@@ -165,11 +164,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @Override
     protected AmqpTarget toPublishTarget(final String address) {
         return AmqpTarget.fromTargetAddress(address);
-    }
-
-    @Override
-    protected AmqpTarget toReplyToTarget(final String replyToAddress) {
-        return AmqpTarget.fromTargetAddress(replyToAddress);
     }
 
     @Override

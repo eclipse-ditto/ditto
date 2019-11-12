@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.placeholders.Expression.SEPARATOR;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -72,8 +73,9 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
     ImmutableExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers,
             @Nullable final String stringUsedInPlaceholderValidation) {
         this.placeholderReplacementInValidation = stringUsedInPlaceholderValidation;
-        this.placeholderResolvers = placeholderResolvers.stream()
-                .collect(Collectors.toMap(PlaceholderResolver::getPrefix, Function.identity()));
+        this.placeholderResolvers = Collections.unmodifiableMap(placeholderResolvers.stream()
+                .collect(Collectors.toMap(PlaceholderResolver::getPrefix, Function.identity()))
+        );
     }
 
     @Override
@@ -155,9 +157,7 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         if (separatorIndex == -1) {
             return Optional.empty();
         }
-        {
-            return Optional.of(placeholder.substring(0, separatorIndex).trim());
-        }
+        return Optional.of(placeholder.substring(0, separatorIndex).trim());
     }
 
     @Override

@@ -27,7 +27,7 @@ interface FunctionExpression extends Expression {
     /**
      * Prefix of function expressions.
      */
-    static final String PREFIX = "fn";
+    String PREFIX = "fn";
 
     /**
      * Executes the Stage by passing in a value and returning a resolved result.

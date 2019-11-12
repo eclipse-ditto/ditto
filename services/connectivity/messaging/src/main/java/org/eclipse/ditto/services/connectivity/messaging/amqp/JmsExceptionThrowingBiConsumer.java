@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 import javax.jms.JMSException;
 import javax.jms.JMSRuntimeException;

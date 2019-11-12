@@ -67,7 +67,7 @@ public interface PipelineElement extends Iterable<String> {
      * @param mapper what to do about the resolved value.
      * @return the mapped resolved value.
      */
-    default PipelineElement map(Function<String, String> mapper) {
+    default PipelineElement map(final Function<String, String> mapper) {
         return onResolved(mapper.andThen(PipelineElement::resolved));
     }
 

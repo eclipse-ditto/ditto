@@ -140,8 +140,7 @@ public final class PlaceholderFilter {
      * (functions).
      * @return a template string if resolution succeeds with a result,
      * or an empty optional if the template string is deleted.
-     * @throws UnresolvedPlaceholderException if {@code allowUnresolved} is true and not all
-     * placeholders were resolved
+     * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code template} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
@@ -164,8 +163,7 @@ public final class PlaceholderFilter {
      * (functions).
      * @return a template string if resolution succeeds with a result,
      * or an empty optional if the template string is deleted.
-     * @throws UnresolvedPlaceholderException if {@code allowUnresolved} is true and not all
-     * placeholders were resolved
+     * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code template} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
