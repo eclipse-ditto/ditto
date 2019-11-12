@@ -32,12 +32,13 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = PlaceholderFunctionTooComplexException.ERROR_CODE)
-public final class PlaceholderFunctionTooComplexException extends DittoRuntimeException {
+public final class PlaceholderFunctionTooComplexException extends DittoRuntimeException
+        implements PlaceholderException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "placeholder.function.too.complex";
+    public static final String ERROR_CODE = PlaceholderException.ERROR_CODE_PREFIX + "function.too.complex";
 
     private static final String MESSAGE = "The placeholder functions are not accepted as they are too complex.";
 
