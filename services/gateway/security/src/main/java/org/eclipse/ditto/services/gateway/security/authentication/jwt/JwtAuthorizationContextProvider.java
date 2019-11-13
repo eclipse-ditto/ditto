@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 
 /**
  * Responsible for extraction of an {@link AuthorizationContext authorization context} out of a

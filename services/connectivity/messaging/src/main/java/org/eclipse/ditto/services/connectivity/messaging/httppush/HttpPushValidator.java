@@ -31,7 +31,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
-import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpMethod;
@@ -73,7 +72,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "HTTP");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validateMappingContext(connection, actorSystem, dittoHeaders);
+        validatePayloadMappings(connection, actorSystem, dittoHeaders);
         validateParallelism(connection.getSpecificConfig(), dittoHeaders);
     }
 

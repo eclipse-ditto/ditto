@@ -71,7 +71,7 @@ final class ImmutableConnection implements Connection {
     private final boolean validateCertificate;
     private final int processorPoolSize;
     private final Map<String, String> specificConfig;
-    @Nullable private final MappingContext mappingContext;
+    private final PayloadMappingDefinition payloadMappingDefinition;
     private final Set<String> tags;
 
     private ImmutableConnection(final Builder builder) {
@@ -89,7 +89,7 @@ final class ImmutableConnection implements Connection {
         validateCertificate = builder.validateCertificate;
         processorPoolSize = builder.processorPoolSize;
         specificConfig = Collections.unmodifiableMap(new HashMap<>(builder.specificConfig));
-        mappingContext = builder.mappingContext;
+        payloadMappingDefinition = builder.payloadMappingDefinition;
         tags = Collections.unmodifiableSet(new HashSet<>(builder.tags));
         lifecycle = builder.lifecycle;
     }
@@ -138,7 +138,7 @@ final class ImmutableConnection implements Connection {
                 .targets(connection.getTargets())
                 .clientCount(connection.getClientCount())
                 .specificConfig(connection.getSpecificConfig())
-                .mappingContext(connection.getMappingContext().orElse(null))
+                .payloadMappingDefinition(connection.getPayloadMappingDefinition())
                 .name(connection.getName().orElse(null))
                 .tags(connection.getTags())
                 .lifecycle(connection.getLifecycle().orElse(null));
@@ -154,6 +154,15 @@ final class ImmutableConnection implements Connection {
      */
     public static Connection fromJson(final JsonObject jsonObject) {
         final ConnectionType type = getConnectionTypeOrThrow(jsonObject);
+        final MappingContext mappingContext = jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
+                .map(ConnectivityModelFactory::mappingContextFromJson)
+                .orElse(null);
+
+        final PayloadMappingDefinition payloadMappingDefinition =
+                jsonObject.getValue(JsonFields.MAPPING_DEFINITIONS)
+                        .map(ImmutablePayloadMappingDefinition::fromJson)
+                        .orElse(ConnectivityModelFactory.emptyPayloadMappingDefinition());
+
         final ConnectionBuilder builder = new Builder(type)
                 .id(ConnectionId.of(jsonObject.getValueOrThrow(JsonFields.ID)))
                 .connectionStatus(getConnectionStatusOrThrow(jsonObject))
@@ -161,9 +170,8 @@ final class ImmutableConnection implements Connection {
                 .sources(getSources(jsonObject))
                 .targets(getTargets(jsonObject))
                 .name(jsonObject.getValue(JsonFields.NAME).orElse(null))
-                .mappingContext(jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
-                        .map(ConnectivityModelFactory::mappingContextFromJson)
-                        .orElse(null))
+                .mappingContext(mappingContext)
+                .payloadMappingDefinition(payloadMappingDefinition)
                 .specificConfig(getSpecificConfiguration(jsonObject))
                 .tags(getTags(jsonObject));
 
@@ -342,8 +350,8 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public Optional<MappingContext> getMappingContext() {
-        return Optional.ofNullable(mappingContext);
+    public PayloadMappingDefinition getPayloadMappingDefinition() {
+        return payloadMappingDefinition;
     }
 
     @Override
@@ -376,7 +384,7 @@ final class ImmutableConnection implements Connection {
                 .map(source -> source.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
         jsonObjectBuilder.set(JsonFields.TARGETS, targets.stream()
-                .map(source -> source.toJson(schemaVersion, thePredicate))
+                .map(target -> target.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
         jsonObjectBuilder.set(JsonFields.CLIENT_COUNT, clientCount, predicate);
         jsonObjectBuilder.set(JsonFields.FAILOVER_ENABLED, failOverEnabled, predicate);
@@ -388,9 +396,9 @@ final class ImmutableConnection implements Connection {
                     .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
                     .collect(JsonCollectors.fieldsToObject()), predicate);
         }
-        if (mappingContext != null) {
-            jsonObjectBuilder.set(JsonFields.MAPPING_CONTEXT, mappingContext.toJson(schemaVersion, thePredicate),
-                    predicate);
+        if (!payloadMappingDefinition.isEmpty()) {
+            jsonObjectBuilder.set(JsonFields.MAPPING_DEFINITIONS,
+                    payloadMappingDefinition.toJson(schemaVersion, thePredicate));
         }
         if (credentials != null) {
             jsonObjectBuilder.set(JsonFields.CREDENTIALS, credentials.toJson());
@@ -428,7 +436,7 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(processorPoolSize, that.processorPoolSize) &&
                 Objects.equals(validateCertificate, that.validateCertificate) &&
                 Objects.equals(specificConfig, that.specificConfig) &&
-                Objects.equals(mappingContext, that.mappingContext) &&
+                Objects.equals(payloadMappingDefinition, that.payloadMappingDefinition) &&
                 Objects.equals(lifecycle, that.lifecycle) &&
                 Objects.equals(tags, that.tags);
     }
@@ -437,7 +445,7 @@ final class ImmutableConnection implements Connection {
     public int hashCode() {
         return Objects.hash(id, name, connectionType, connectionStatus, sources, targets, clientCount, failOverEnabled,
                 credentials, trustedCertificates, uri, validateCertificate, processorPoolSize, specificConfig,
-                mappingContext, tags, lifecycle);
+                payloadMappingDefinition, tags, lifecycle);
     }
 
     @Override
@@ -457,7 +465,7 @@ final class ImmutableConnection implements Connection {
                 ", validateCertificate=" + validateCertificate +
                 ", processorPoolSize=" + processorPoolSize +
                 ", specificConfig=" + specificConfig +
-                ", mappingContext=" + mappingContext +
+                ", payloadMappingDefinition=" + payloadMappingDefinition +
                 ", tags=" + tags +
                 ", lifecycle=" + lifecycle +
                 "]";
@@ -469,6 +477,7 @@ final class ImmutableConnection implements Connection {
     @NotThreadSafe
     private static final class Builder implements ConnectionBuilder {
 
+        private static final String MIGRATED_MAPPER_ID = "javascript";
         private final ConnectionType connectionType;
 
         // required but changeable:
@@ -491,6 +500,8 @@ final class ImmutableConnection implements Connection {
         private final List<Target> targets = new ArrayList<>();
         private int clientCount = 1;
         private int processorPoolSize = 5;
+        private PayloadMappingDefinition payloadMappingDefinition =
+                ConnectivityModelFactory.emptyPayloadMappingDefinition();
         private final Map<String, String> specificConfig = new HashMap<>();
 
         private Builder(final ConnectionType connectionType) {
@@ -608,8 +619,14 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder lifecycle(final ConnectionLifecycle lifecycle) {
+        public ConnectionBuilder lifecycle(@Nullable final ConnectionLifecycle lifecycle) {
             this.lifecycle = lifecycle;
+            return this;
+        }
+
+        @Override
+        public ConnectionBuilder payloadMappingDefinition(final PayloadMappingDefinition payloadMappingDefinition) {
+            this.payloadMappingDefinition = payloadMappingDefinition;
             return this;
         }
 
@@ -617,7 +634,34 @@ final class ImmutableConnection implements Connection {
         public Connection build() {
             checkSourceAndTargetAreValid();
             checkAuthorizationContextsAreValid();
+            migrateMappingContext();
             return new ImmutableConnection(this);
+        }
+
+        private void migrateMappingContext() {
+            // migrate legacy mapping context on the fly
+            if (mappingContext != null) {
+                this.payloadMappingDefinition =
+                        payloadMappingDefinition.withDefinition(MIGRATED_MAPPER_ID, mappingContext);
+                // add migrated mapping to all sources and targets
+                setSources(sources.stream()
+                        .map(source -> new ImmutableSource.Builder(source)
+                                .payloadMapping(addMigratedPayloadMappings(source.getPayloadMapping()))
+                                .build())
+                        .collect(Collectors.toList()));
+
+                setTargets(targets.stream()
+                        .map(target -> new ImmutableTarget.Builder(target)
+                                .payloadMapping(addMigratedPayloadMappings(target.getPayloadMapping()))
+                                .build())
+                        .collect(Collectors.toList()));
+            }
+        }
+
+        private PayloadMapping addMigratedPayloadMappings(final PayloadMapping payloadMapping) {
+            final ArrayList<String> merged = new ArrayList<>(payloadMapping.getMappings());
+            merged.add(MIGRATED_MAPPER_ID);
+            return ConnectivityModelFactory.newPayloadMapping(merged);
         }
 
         private void checkSourceAndTargetAreValid() {

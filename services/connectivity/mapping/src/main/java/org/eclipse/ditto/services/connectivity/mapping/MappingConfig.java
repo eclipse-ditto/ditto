@@ -24,13 +24,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface MappingConfig {
 
     /**
-     * Returns the name of the class which is used for creating message mapping objects.
-     *
-     * @return the factory name.
-     */
-    String getFactoryName();
-
-    /**
      * Returns the config of the JavaScript message mapping.
      *
      * @return the config.
@@ -38,20 +31,24 @@ public interface MappingConfig {
     JavaScriptConfig getJavaScriptConfig();
 
     /**
+     * Returns the config of mapper-limits
+     *
+     * @return the config.
+     */
+    MapperLimitsConfig getMapperLimitsConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code MappingConfig}.
      */
     enum MappingConfigValue implements KnownConfigValue {
 
-        /**
-         * The name of the class which is used for creating message mapping objects.
-         */
-        FACTORY("factory", "org.eclipse.ditto.services.connectivity.mapping.MessageMappers");
+        /* for now there are no config keys with defaults */;
 
         private final String path;
         private final Object defaultValue;
 
-        private MappingConfigValue(final String thePath, final Object theDefaultValue) {
+        MappingConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

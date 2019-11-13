@@ -42,6 +42,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -50,6 +52,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
+import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
@@ -69,6 +72,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.slf4j.Logger;
@@ -87,6 +92,7 @@ import akka.http.javadsl.model.ws.UpgradeToWebSocket;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
 import akka.pattern.Patterns;
+import akka.japi.pf.PFBuilder;
 import akka.stream.Attributes;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
@@ -114,6 +120,8 @@ public final class WebsocketRoute {
     private static final String PROTOCOL_CMD_ACK_SUFFIX = ":ACK";
 
     private static final String STREAMING_TYPE_WS = "WS";
+
+    private static final String BEARER = "Bearer";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketRoute.class);
 
@@ -395,15 +403,31 @@ public final class WebsocketRoute {
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(final String connectionCorrelationId,
             final ProtocolAdapter adapter, final HttpRequest request, final WebsocketConfig websocketConfig) {
 
+        final Optional<JsonWebToken> optJsonWebToken = extractJwtFromRequestIfPresent(request);
+
         final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                         EventAndResponsePublisher.props(websocketConfig.getPublisherBackpressureBufferSize()))
                         .mapMaterializedValue(actorRef -> {
-                            streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_WS),
-                                    null);
+                            streamingActor.tell(
+                                    new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_WS,
+                                            optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null)), null);
                             return NotUsed.getInstance();
                         })
-                        .map(this::publishResponsePublishedEvent);
+                        .map(this::publishResponsePublishedEvent)
+                        .recoverWithRetries(1, new PFBuilder().match(GatewayWebsocketSessionExpiredException.class,
+                                ex -> {
+                                    LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
+                                            logger.info("WebSocket connection terminated because JWT expired!"));
+                                    return Source.empty();
+                                }).match(GatewayWebsocketSessionClosedException.class,
+                                ex -> {
+                                    LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
+                                            logger.info("WebSocket connection terminated because authorization " +
+                                                    "context changed!"));
+                                    return Source.empty();
+                                })
+                                .build());
 
         final Flow<DittoRuntimeException, Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> errorFlow =
                 Flow.fromFunction(x -> x);
@@ -618,6 +642,13 @@ public final class WebsocketRoute {
                     + " Event nor DittoRuntimeException: " + jsonifiable.getClass().getSimpleName());
         }
         return adaptable;
+    }
+
+    private static Optional<JsonWebToken> extractJwtFromRequestIfPresent(final HttpRequest request) {
+        return request.getHeader(HttpHeader.AUTHORIZATION.toString())
+                .map(akka.http.javadsl.model.HttpHeader::value)
+                .filter(s -> s.startsWith(BEARER))
+                .map(ImmutableJsonWebToken::fromAuthorization);
     }
 
 }

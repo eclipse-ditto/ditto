@@ -18,8 +18,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -80,14 +80,14 @@ public final class DittoMessageMapperTest {
                 () -> underTest.map(in)));
     }
 
-    private static Map<ExternalMessage, Optional<Adaptable>> createValidIncomingMappings() {
+    private static Map<ExternalMessage, List<Adaptable>> createValidIncomingMappings() {
         return Stream.of(
                 valid1(),
                 valid2()
         ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private static Map.Entry<ExternalMessage, Optional<Adaptable>> valid1() {
+    private static Map.Entry<ExternalMessage, List<Adaptable>> valid1() {
         final Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
@@ -106,12 +106,13 @@ public final class DittoMessageMapperTest {
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build();
-        final Optional<Adaptable> expected = Optional.of(ProtocolFactory.newAdaptableBuilder(adaptable).build());
+        final List<Adaptable> expected =
+                Collections.singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).build());
 
         return new AbstractMap.SimpleEntry<>(message, expected);
     }
 
-    private static Map.Entry<ExternalMessage, Optional<Adaptable>> valid2() {
+    private static Map.Entry<ExternalMessage, List<Adaptable>> valid2() {
         final Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
@@ -120,7 +121,7 @@ public final class DittoMessageMapperTest {
                 .set("path","/some/path")
                 .build();
 
-        final Optional<Adaptable> expected = Optional.ofNullable(
+        final List<Adaptable> expected = Collections.singletonList(
                 ProtocolFactory.newAdaptableBuilder(ProtocolFactory.jsonifiableAdaptableFromJson(json))
                         .withHeaders(DittoHeaders.of(headers))
                         .build());
@@ -154,8 +155,8 @@ public final class DittoMessageMapperTest {
         return mappings;
     }
 
-    private static Map<Adaptable, Optional<ExternalMessage>> createValidOutgoingMappings() {
-        final Map<Adaptable, Optional<ExternalMessage>> mappings = new HashMap<>();
+    private static Map<Adaptable, List<ExternalMessage>> createValidOutgoingMappings() {
+        final Map<Adaptable, List<ExternalMessage>> mappings = new HashMap<>();
 
         final Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
@@ -171,8 +172,8 @@ public final class DittoMessageMapperTest {
                         .build())
                 .build());
 
-        Optional<ExternalMessage> message =
-                Optional.of(ExternalMessageFactory.newExternalMessageBuilder(headers)
+        List<ExternalMessage> message =
+                Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(headers)
                         .withTopicPath(adaptable.getTopicPath())
                         .withText(adaptable.toJsonString())
                         .build());
@@ -186,7 +187,7 @@ public final class DittoMessageMapperTest {
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withHeaders(DittoHeaders.of(headers)).build());
 
-        message = Optional.of(ExternalMessageFactory.newExternalMessageBuilder(headers)
+        message = Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build());

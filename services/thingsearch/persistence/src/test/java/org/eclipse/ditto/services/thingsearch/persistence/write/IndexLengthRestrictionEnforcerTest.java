@@ -27,7 +27,7 @@ import org.junit.Test;
  */
 public final class IndexLengthRestrictionEnforcerTest {
 
-    private static final String NAMESPACE = "com.bosch.iot.test";
+    private static final String NAMESPACE = "org.eclipse.ditto.test";
     private static final String THING_ID = NAMESPACE + ":" + "myThingId";
 
     /**

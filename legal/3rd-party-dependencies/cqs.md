@@ -182,16 +182,4 @@ Manual step by sending mail to Eclipse IP team - this is a collection of depende
 
 | Group ID  | Artifact ID  | Version  | CQ |
 |-----------|--------------|----------|----|
-|org.atteo.classindex|classindex|3.6| [18906](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18906) |
-|com.github.ben-manes.caffeine|caffeine|2.6.2| [16300](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16300) |
-|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.2.9| [18708](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18708) |
-|com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.2.9| [18709](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18709) |
-|nl.grons|metrics-scala_2.12|3.5.5_a2.4| [14491](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14491) |
-|org.apache.qpid|qpid-jms-client|0.42.0| [19001](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19001) |
-|org.mongodb|bson|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
-|org.mongodb|mongodb-driver-async|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
-|org.mongodb|mongodb-driver-core|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
-|org.mongodb|mongodb-driver-reactivestreams|1.9.2| [18674](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18674) |
-|org.mongodb|mongo-java-driver|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
-|org.mongodb.scala|mongo-scala-bson_2.12|2.4.2| [18675](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18675) |
-|org.mongodb.scala|mongo-scala-driver_2.12|2.4.2| [18675](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18675) |
+|           |              |          |    |

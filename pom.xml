@@ -614,7 +614,7 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
                 <configuration>
-                    <flattenMode>oss</flattenMode>
+                    <flattenMode>ossrh</flattenMode>
                     <updatePomFile>true</updatePomFile>
                 </configuration>
                 <executions>

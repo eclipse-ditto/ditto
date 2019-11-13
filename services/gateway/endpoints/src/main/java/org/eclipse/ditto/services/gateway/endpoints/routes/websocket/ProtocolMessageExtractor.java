@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.JWT_TOKEN;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_EVENTS;
@@ -34,6 +35,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.services.gateway.streaming.JwtToken;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
@@ -48,6 +50,7 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
 
     private static final String PARAM_FILTER = "filter";
     private static final String PARAM_NAMESPACES = "namespaces";
+    private static final String PARAM_JWT_TOKEN = "jwtToken";
 
     private final AuthorizationContext connectionAuthContext;
     private final String connectionCorrelationId;
@@ -88,6 +91,8 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
             return Optional.of(buildStartStreaming(START_SEND_MESSAGES, protocolMessage));
         } else if (STOP_SEND_MESSAGES.matches(protocolMessage)) {
             return Optional.of(new StopStreaming(StreamingType.MESSAGES, connectionCorrelationId));
+        } else if (JWT_TOKEN.matchesWithParameters(protocolMessage)) {
+            return Optional.of(buildJwtToken(protocolMessage));
         } else {
             return Optional.empty();
         }
@@ -102,12 +107,23 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
                     .map(Arrays::asList)
                     .orElse(Collections.emptyList());
             final String filter = params.get(PARAM_FILTER);
-            return new StartStreaming(message.getStreamingType(), connectionCorrelationId, connectionAuthContext,
-                    namespaces, filter);
+            return new StartStreaming(message.getStreamingType()
+                    .orElseThrow(() -> new IllegalStateException("StreamingType should be present but wasn't")),
+                    connectionCorrelationId, connectionAuthContext, namespaces, filter);
         } else {
-            return new StartStreaming(message.getStreamingType(), connectionCorrelationId, connectionAuthContext,
-                    Collections.emptyList(), null);
+            return new StartStreaming(message.getStreamingType()
+                    .orElseThrow(() -> new IllegalStateException("StreamingType should be present but wasn't")),
+                    connectionCorrelationId, connectionAuthContext, Collections.emptyList(), null);
         }
+    }
+
+    private JwtToken buildJwtToken(final String protocolMessage) {
+        final Map<String, String> params = determineParams(protocolMessage);
+        final String jwtToken = Optional.ofNullable(params.get(PARAM_JWT_TOKEN))
+                .filter(token -> !token.isEmpty())
+                .map(String::new)
+                .orElse("");
+        return new JwtToken(connectionCorrelationId, jwtToken);
     }
 
     /**

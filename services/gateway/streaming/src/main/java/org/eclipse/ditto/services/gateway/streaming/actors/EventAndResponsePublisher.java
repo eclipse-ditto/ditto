@@ -25,6 +25,8 @@ import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.Props;
@@ -98,6 +100,16 @@ public final class EventAndResponsePublisher
                         deliverBuf();
                     }
                 })
+                .match(GatewayWebsocketSessionExpiredException.class, gwsee -> {
+                    onNext(gwsee);
+                    // throw exception via onErrorAndStop to close the ws session and afterwards stop the actor
+                    onErrorThenStop(gwsee);
+                })
+                .match(GatewayWebsocketSessionClosedException.class, gwsce -> {
+                    onNext(gwsce);
+                    // throw exception via onErrorAndStop to close the ws session and afterwards stop the actor
+                    onErrorThenStop(gwsce);
+                })
                 .match(DittoRuntimeException.class, cre -> buffer.size() >= backpressureBufferSize, cre -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, cre.getDittoHeaders().getCorrelationId());
                     handleBackpressureFor(cre);
@@ -159,10 +171,10 @@ public final class EventAndResponsePublisher
     private void deliverBuf() {
         LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
         while (totalDemand() > 0) {
-        /*
-         * totalDemand is a Long and could be larger than
-         * what buffer.splitAt can accept
-         */
+            /*
+             * totalDemand is a Long and could be larger than
+             * what buffer.splitAt can accept
+             */
             if (totalDemand() <= Integer.MAX_VALUE) {
                 final List<Jsonifiable.WithPredicate<JsonObject, JsonField>> took =
                         buffer.subList(0, Math.min(buffer.size(), (int) totalDemand()));

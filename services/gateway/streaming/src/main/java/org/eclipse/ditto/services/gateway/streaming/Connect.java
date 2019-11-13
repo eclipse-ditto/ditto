@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
+import java.time.Instant;
 import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
@@ -27,6 +30,7 @@ public final class Connect {
     private final ActorRef eventAndResponsePublisher;
     private final String connectionCorrelationId;
     private final String type;
+    @Nullable private final Instant sessionExpirationTime;
 
     /**
      * Constructs a new {@link Connect} instance.
@@ -36,10 +40,11 @@ public final class Connect {
      * @param type the type of the "streaming" connection to establish.
      */
     public Connect(final ActorRef eventAndResponsePublisher, final String connectionCorrelationId,
-            final String type) {
+            final String type, @Nullable final Instant sessionExpirationTime) {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         this.connectionCorrelationId = connectionCorrelationId;
         this.type = type;
+        this.sessionExpirationTime = sessionExpirationTime;
     }
 
     public ActorRef getEventAndResponsePublisher() {
@@ -54,6 +59,9 @@ public final class Connect {
         return type;
     }
 
+    @Nullable
+    public Instant getSessionExpirationTime() { return sessionExpirationTime; }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -65,12 +73,13 @@ public final class Connect {
         final Connect connect = (Connect) o;
         return Objects.equals(eventAndResponsePublisher, connect.eventAndResponsePublisher) &&
                 Objects.equals(connectionCorrelationId, connect.connectionCorrelationId) &&
-                Objects.equals(type, connect.type);
+                Objects.equals(type, connect.type) &&
+                Objects.equals(sessionExpirationTime, connect.sessionExpirationTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(eventAndResponsePublisher, connectionCorrelationId, type);
+        return Objects.hash(eventAndResponsePublisher, connectionCorrelationId, type, sessionExpirationTime);
     }
 
     @Override
@@ -79,6 +88,7 @@ public final class Connect {
                 "eventAndResponsePublisher=" + eventAndResponsePublisher +
                 ", connectionCorrelationId=" + connectionCorrelationId +
                 ", type=" + type +
+                ", sessionExpirationTime=" + sessionExpirationTime +
                 "]";
     }
 }

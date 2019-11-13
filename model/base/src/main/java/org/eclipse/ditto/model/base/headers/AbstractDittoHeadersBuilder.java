@@ -245,6 +245,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S inboundPayloadMapper(final String inboundPayloadMapperId) {
+        putCharSequence(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER, inboundPayloadMapperId);
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");

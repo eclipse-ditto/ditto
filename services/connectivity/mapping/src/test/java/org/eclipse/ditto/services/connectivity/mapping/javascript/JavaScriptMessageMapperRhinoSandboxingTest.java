@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.junit.Test;
@@ -92,7 +91,7 @@ public final class JavaScriptMessageMapperRhinoSandboxingTest {
     }
 
     private static MessageMapper createMapper(final String maliciousStuff) {
-        final MessageMapper mapper = MessageMappers.createJavaScriptMessageMapper();
+        final MessageMapper mapper = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
         final MappingConfig mappingConfig =
                 DefaultMappingConfig.of(ConfigFactory.parseString("javascript {\n" +
                         "        maxScriptSizeBytes = 50000 # 50kB\n" +
@@ -102,8 +101,7 @@ public final class JavaScriptMessageMapperRhinoSandboxingTest {
 
         mapper.configure(mappingConfig,
                 JavaScriptMessageMapperFactory
-                        .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
-                        .contentType("text/plain")
+                        .createJavaScriptMessageMapperConfigurationBuilder("malicious", Collections.emptyMap())
                         .incomingScript(getMappingWrapperScript(maliciousStuff))
                         .build()
         );

@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMappingStrategies;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
@@ -44,8 +43,6 @@ public final class GatewayMappingStrategies extends AbstractGlobalMappingStrateg
         combinedStrategy.putAll(new ThingSearchMappingStrategies().getStrategies());
         combinedStrategy.putAll(new ConnectivityMappingStrategies(thingsMappingStrategy).getStrategies());
         combinedStrategy.putAll(thingsMappingStrategy.getStrategies());
-        combinedStrategy.put(StreamingAck.class.getSimpleName(),
-                (jsonObject, dittoHeaders) -> StreamingAck.fromJson(jsonObject));
 
         return combinedStrategy;
     }

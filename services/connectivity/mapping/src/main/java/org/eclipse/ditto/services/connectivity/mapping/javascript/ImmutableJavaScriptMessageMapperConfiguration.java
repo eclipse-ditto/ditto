@@ -35,6 +35,11 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     }
 
     @Override
+    public String getId() {
+        return delegationTarget.getId();
+    }
+
+    @Override
     public Map<String, String> getProperties() {
         return delegationTarget.getProperties();
     }
@@ -69,9 +74,11 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     @NotThreadSafe
     static final class Builder implements JavaScriptMessageMapperConfiguration.Builder {
 
+        private final String id;
         private final Map<String, String> properties;
 
-        Builder(final Map<String, String> properties) {
+        Builder(final String id, final Map<String, String> properties) {
+            this.id = id;
             this.properties = new HashMap<>(properties); // mutable map!
         }
 
@@ -82,7 +89,8 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
 
         @Override
         public JavaScriptMessageMapperConfiguration build() {
-            return new ImmutableJavaScriptMessageMapperConfiguration(DefaultMessageMapperConfiguration.of(properties));
+            return new ImmutableJavaScriptMessageMapperConfiguration(
+                    DefaultMessageMapperConfiguration.of(id, properties));
         }
 
     }
