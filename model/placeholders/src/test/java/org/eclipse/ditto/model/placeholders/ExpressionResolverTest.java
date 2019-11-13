@@ -117,6 +117,9 @@ public class ExpressionResolverTest {
 
         assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(fn:delete()) }}", true))
                 .isEqualTo(PipelineElement.deleted());
+
+        assertThat(expressionResolver.resolve("{{ header:header-name | fn:delete() }}", true))
+                .isEqualTo(PipelineElement.deleted());
     }
 
 }

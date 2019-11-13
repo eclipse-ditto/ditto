@@ -52,7 +52,7 @@ final class PipelineFunctionDelete implements PipelineFunction {
     }
 
     /**
-     * Describes the signature of the {@code upper()} function.
+     * Describes the signature of the {@code delete()} function.
      */
     private static final class DeleteFunctionSignature implements Signature {
 
