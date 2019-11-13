@@ -15,8 +15,6 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 import static org.eclipse.ditto.services.connectivity.messaging.amqp.JmsExceptionThrowingBiConsumer.wrap;
 import static org.eclipse.ditto.services.connectivity.messaging.amqp.JmsExceptionThrowingFunction.wrap;
 
-import java.util.AbstractMap;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,7 +23,6 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
@@ -129,29 +126,6 @@ final class JMSPropertyMapper {
         readDefinedAmqpPropertiesFromMessage(message, headers);
         readAmqpApplicationPropertiesFromMessage(message, headers);
         return Collections.unmodifiableMap(headers);
-    }
-
-    /**
-     * Map headers such that all are treated as application properties.
-     *
-     * @param headers headers of an outbound signal.
-     * @param legacyNonMappedHeaders headers that should not be changed.
-     * @return mapped headers containing no AMQP property.
-     */
-    static Map<String, String> mapAsApplicationProperties(final Map<String, String> headers,
-            final Collection<String> legacyNonMappedHeaders) {
-        return headers.entrySet()
-                .stream()
-                .map(entry -> {
-                    final String key = entry.getKey();
-                    if (isDefinedAmqpProperty(key) && !legacyNonMappedHeaders.contains(key)) {
-                        final String value = entry.getValue();
-                        return new AbstractMap.SimpleEntry<>(AMQP.APPLICATION_PROPERTY_PREFIX + key, value);
-                    } else {
-                        return entry;
-                    }
-                })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private static void setMessageId(final Message message, final String messageId) {

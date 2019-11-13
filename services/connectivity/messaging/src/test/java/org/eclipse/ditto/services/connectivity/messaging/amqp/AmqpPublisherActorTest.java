@@ -227,6 +227,9 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final Map<String, String> receivedHeaders =
                     JMSPropertyMapper.getPropertiesAndApplicationProperties(message);
 
+            assertThat(message.getJMSTimestamp()).isEqualTo(-1L);
+            assertThat(message.getJMSType()).isEqualTo("subjective");
+
             // THEN: valid AMQP properties and application properties are set and invalid ones are dropped.
             assertThat(receivedHeaders).containsEntry("group-id", "hello");
             assertThat(receivedHeaders).containsEntry("subject", "subjective");
@@ -235,6 +238,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             assertThat(receivedHeaders).containsEntry("application-property-with-dash", "value0");
             assertThat(receivedHeaders).containsEntry("amqp.application.property:to", "value1");
             assertThat(receivedHeaders).containsEntry("anotherApplicationProperty", "value2");
+            // group-sequence is an AMQP prop of type "int", therefore it must not be contained in the headers here
             assertThat(receivedHeaders).doesNotContainKey("group-sequence");
         }};
 

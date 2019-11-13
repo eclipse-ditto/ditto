@@ -64,7 +64,7 @@ public final class JMSMessageWorkaround extends JmsMessage {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         return message.equals(o);
     }
 
@@ -239,7 +239,7 @@ public final class JMSMessageWorkaround extends JmsMessage {
     }
 
     @Override
-    public void setValidatePropertyNames(boolean validatePropertyNames) {
+    public void setValidatePropertyNames(final boolean validatePropertyNames) {
         message.setValidatePropertyNames(validatePropertyNames);
     }
 
@@ -249,7 +249,7 @@ public final class JMSMessageWorkaround extends JmsMessage {
     }
 
     @Override
-    public void setReadOnly(boolean readOnly) {
+    public void setReadOnly(final boolean readOnly) {
         message.setReadOnly(readOnly);
     }
 
@@ -259,7 +259,7 @@ public final class JMSMessageWorkaround extends JmsMessage {
     }
 
     @Override
-    public void setReadOnlyBody(boolean readOnlyBody) {
+    public void setReadOnlyBody(final boolean readOnlyBody) {
         message.setReadOnlyBody(readOnlyBody);
     }
 
@@ -269,12 +269,12 @@ public final class JMSMessageWorkaround extends JmsMessage {
     }
 
     @Override
-    public void setReadOnlyProperties(boolean readOnlyProperties) {
+    public void setReadOnlyProperties(final boolean readOnlyProperties) {
         message.setReadOnlyProperties(readOnlyProperties);
     }
 
     @Override
-    public boolean propertyExists(String name) throws JMSException {
+    public boolean propertyExists(final String name) throws JMSException {
         return message.propertyExists(name);
     }
 
@@ -289,92 +289,92 @@ public final class JMSMessageWorkaround extends JmsMessage {
     }
 
     @Override
-    public void setObjectProperty(String name, Object value) throws JMSException {
+    public void setObjectProperty(final String name, final Object value) throws JMSException {
         message.setObjectProperty(name, value);
     }
 
     @Override
-    public Object getObjectProperty(String name) throws JMSException {
+    public Object getObjectProperty(final String name) throws JMSException {
         return message.getObjectProperty(name);
     }
 
     @Override
-    public boolean getBooleanProperty(String name) throws JMSException {
+    public boolean getBooleanProperty(final String name) throws JMSException {
         return message.getBooleanProperty(name);
     }
 
     @Override
-    public byte getByteProperty(String name) throws JMSException {
+    public byte getByteProperty(final String name) throws JMSException {
         return message.getByteProperty(name);
     }
 
     @Override
-    public short getShortProperty(String name) throws JMSException {
+    public short getShortProperty(final String name) throws JMSException {
         return message.getShortProperty(name);
     }
 
     @Override
-    public int getIntProperty(String name) throws JMSException {
+    public int getIntProperty(final String name) throws JMSException {
         return message.getIntProperty(name);
     }
 
     @Override
-    public long getLongProperty(String name) throws JMSException {
+    public long getLongProperty(final String name) throws JMSException {
         return message.getLongProperty(name);
     }
 
     @Override
-    public float getFloatProperty(String name) throws JMSException {
+    public float getFloatProperty(final String name) throws JMSException {
         return message.getFloatProperty(name);
     }
 
     @Override
-    public double getDoubleProperty(String name) throws JMSException {
+    public double getDoubleProperty(final String name) throws JMSException {
         return message.getDoubleProperty(name);
     }
 
     @Override
-    public String getStringProperty(String name) throws JMSException {
+    public String getStringProperty(final String name) throws JMSException {
         return message.getStringProperty(name);
     }
 
     @Override
-    public void setBooleanProperty(String name, boolean value) throws JMSException {
+    public void setBooleanProperty(final String name, final boolean value) throws JMSException {
         message.setBooleanProperty(name, value);
     }
 
     @Override
-    public void setByteProperty(String name, byte value) throws JMSException {
+    public void setByteProperty(final String name, final byte value) throws JMSException {
         message.setByteProperty(name, value);
     }
 
     @Override
-    public void setShortProperty(String name, short value) throws JMSException {
+    public void setShortProperty(final String name, final short value) throws JMSException {
         message.setShortProperty(name, value);
     }
 
     @Override
-    public void setIntProperty(String name, int value) throws JMSException {
+    public void setIntProperty(final String name, final int value) throws JMSException {
         message.setIntProperty(name, value);
     }
 
     @Override
-    public void setLongProperty(String name, long value) throws JMSException {
+    public void setLongProperty(final String name, final long value) throws JMSException {
         message.setLongProperty(name, value);
     }
 
     @Override
-    public void setFloatProperty(String name, float value) throws JMSException {
+    public void setFloatProperty(final String name, final float value) throws JMSException {
         message.setFloatProperty(name, value);
     }
 
     @Override
-    public void setDoubleProperty(String name, double value) throws JMSException {
+    public void setDoubleProperty(final String name, final double value) throws JMSException {
         message.setDoubleProperty(name, value);
     }
 
     @Override
-    public void setStringProperty(String name, String value) throws JMSException {
+    public void setStringProperty(final String name, final String value) throws JMSException {
         message.setStringProperty(name, value);
     }
 
@@ -384,12 +384,12 @@ public final class JMSMessageWorkaround extends JmsMessage {
     }
 
     @Override
-    public void setAcknowledgeCallback(JmsAcknowledgeCallback jmsAcknowledgeCallback) {
+    public void setAcknowledgeCallback(final JmsAcknowledgeCallback jmsAcknowledgeCallback) {
         message.setAcknowledgeCallback(jmsAcknowledgeCallback);
     }
 
     @Override
-    public void onSend(long producerTtl) throws JMSException {
+    public void onSend(final long producerTtl) throws JMSException {
         message.onSend(producerTtl);
     }
 
@@ -409,7 +409,7 @@ public final class JMSMessageWorkaround extends JmsMessage {
     }
 
     @Override
-    public void setConnection(JmsConnection connection) {
+    public void setConnection(final JmsConnection connection) {
         message.setConnection(connection);
     }
 
