@@ -96,7 +96,6 @@ public class WrappingMessageMapperTest {
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockAdaptable);
-        verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getHeaders();
         verify(mockMapper).map(mockAdaptable);
     }
 
