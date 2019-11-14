@@ -18,7 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 
 /**
@@ -52,17 +52,17 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     /**
-     * Returns a new TopicPathBuilder for the specified {@code thingId}. The {@code namespace} and {@code id} part of
-     * the {@code TopicPath} will pe parsed from the {@code thingId} and set in the builder.
+     * Returns a new TopicPathBuilder for the specified {@code entityId}. The {@code namespace} and {@code id} part of
+     * the {@code TopicPath} will pe parsed from the {@code entityId} and set in the builder.
      *
-     * @param thingId the Thing ID.
+     * @param entityId the entity ID.
      * @return the builder.
-     * @throws NullPointerException if {@code thingId} is {@code null}.
-     * @throws ThingIdInvalidException if {@code thingId} is not in the expected format.
+     * @throws NullPointerException if {@code entityId} is {@code null}.
+     * @throws ThingIdInvalidException if {@code entityId} is not in the expected format.
      */
-    public static TopicPathBuilder of(final ThingId thingId) {
-        requireNonNull(thingId, "thing id");
-        return new ImmutableTopicPathBuilder(thingId.getNamespace(), thingId.getName());
+    public static TopicPathBuilder of(final NamespacedEntityId entityId) {
+        requireNonNull(entityId, "entityId");
+        return new ImmutableTopicPathBuilder(entityId.getNamespace(), entityId.getName());
     }
 
     /**

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.policies;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
@@ -254,6 +255,23 @@ public final class PoliciesModelFactory {
     }
 
     /**
+     * TODO test both [type:]/[path] and [type:/path]
+     * Returns a {@link ResourceKey} for the given {@link JsonPointer}.
+     *
+     * @param pointer the json pointer representing a resource key e.g. /thing:/path1/path2/...
+     * @return a new ResourceKey.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
+     */
+    public static ResourceKey newResourceKey(final JsonPointer pointer) {
+        checkNotNull(pointer, "pointer");
+        checkNotEmpty(pointer, "pointer");
+        // omit leading slash
+        final String typeWithPath = pointer.toString().substring(1);
+        return newResourceKey(typeWithPath);
+    }
+
+    /**
      * Returns a new {@link Resource} with the specified {@code resourceType}, {@code resourcePath} and
      * {@code effectedPermissions}.
      *
@@ -481,7 +499,8 @@ public final class PoliciesModelFactory {
         checkNotNull(jsonObject, "JSON object");
         return jsonObject.stream()
                 .map(jsonField -> newPolicyEntry(jsonField.getKey(), jsonField.getValue()))
-                .collect(Collectors.toSet());
+                // TODO changed this to toList from toSet (to fix equals)
+                .collect(Collectors.toList());
     }
 
     /**

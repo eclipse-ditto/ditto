@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
 /**
  * Adapter for mapping a {@link ThingQueryCommandResponse} to and from an {@link Adaptable}.
  */
-final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryCommandResponse> {
+final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQueryCommandResponse> {
 
     private ThingQueryCommandResponseAdapter(
             final Map<String, JsonifiableMapper<ThingQueryCommandResponse>> mappingStrategies,
@@ -115,7 +115,7 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
             return RetrieveThingsResponse.TYPE;
         } else {
             final JsonPointer path = adaptable.getPayload().getPath();
-            final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
+            final String commandName = getAction(topicPath) + upperCaseFirst(pathMatcher.match(path));
             return topicPath.getGroup() + ".responses:" + commandName;
         }
     }

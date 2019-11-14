@@ -21,7 +21,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
@@ -155,6 +157,34 @@ public final class ProtocolFactory {
      */
     public static TopicPathBuilder newTopicPathBuilder(final ThingId thingId) {
         return ImmutableTopicPathBuilder.of(thingId).things();
+    }
+
+    /**
+     * Returns a new {@code TopicPathBuilder} for the specified {@code entityId}. The {@code namespace} and {@code id}
+     * part of the {@code TopicPath} will pe parsed from the {@code entityId} and set in the builder.
+     *
+     * @param entityId the id.
+     * @return the builder.
+     * @throws NullPointerException if {@code entityId} is {@code null}.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code entityIdId} is not in the expected
+     * format.
+     */
+    public static TopicPathBuilder newTopicPathBuilder(final NamespacedEntityId entityId) {
+        return ImmutableTopicPathBuilder.of(entityId).things();
+    }
+
+    /**
+     * Returns a new {@code TopicPathBuilder} for the specified {@code policyId}. The {@code namespace} and {@code id}
+     * part of the {@code TopicPath} will pe parsed from the {@code policyId} and set in the builder.
+     *
+     * @param policyId the id.
+     * @return the builder.
+     * @throws NullPointerException if {@code policyId} is {@code null}.
+     * @throws org.eclipse.ditto.model.policies.PolicyIdInvalidException if {@code policyId} is not in the expected
+     * format.
+     */
+    public static TopicPathBuilder newTopicPathBuilder(final PolicyId policyId) {
+        return ImmutableTopicPathBuilder.of(policyId).policies();
     }
 
     /**

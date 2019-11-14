@@ -15,6 +15,7 @@ package org.eclipse.ditto.protocoladapter;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,11 +30,10 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
  */
 final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
 
-
     private MessageCommandAdapter(
             final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies,
             final HeaderTranslator headerTranslator) {
-        super(mappingStrategies, headerTranslator);
+        super(mappingStrategies, headerTranslator, new PathMatcher(Collections.emptyMap()));
     }
 
     /**

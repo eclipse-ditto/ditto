@@ -16,11 +16,12 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructor;
+import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructorFactory;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -46,7 +47,10 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 /**
  * Adapter for mapping a {@link ThingModifyCommand} to and from an {@link Adaptable}.
  */
-final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand> {
+final class ThingModifyCommandAdapter extends AbstractThingAdapter<ThingModifyCommand> {
+
+    private final AdaptableConstructor<ThingModifyCommand> adaptableConstructor =
+            AdaptableConstructorFactory.newThingModifyAdaptableConstructor();
 
     private ThingModifyCommandAdapter(
             final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies,
@@ -133,37 +137,13 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
+        final String commandName = getAction(topicPath) + upperCaseFirst(pathMatcher.match(path));
         return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
     }
 
     @Override
     public Adaptable constructAdaptable(final ThingModifyCommand command, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(command.getThingEntityId());
-
-        final CommandsTopicPathBuilder commandsTopicPathBuilder =
-                fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
-
-        final String commandName = command.getClass().getSimpleName().toLowerCase();
-        if (commandName.startsWith(TopicPath.Action.CREATE.toString())) {
-            commandsTopicPathBuilder.create();
-        } else if (commandName.startsWith(TopicPath.Action.MODIFY.toString())) {
-            commandsTopicPathBuilder.modify();
-        } else if (commandName.startsWith(TopicPath.Action.DELETE.toString())) {
-            commandsTopicPathBuilder.delete();
-        } else {
-            throw UnknownCommandException.newBuilder(commandName).build();
-        }
-
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
-
-        final Optional<JsonValue> value = command.getEntity(command.getImplementedSchemaVersion());
-        value.ifPresent(payloadBuilder::withValue);
-
-        return Adaptable.newBuilder(commandsTopicPathBuilder.build())
-                .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(command.getDittoHeaders()))
-                .build();
+        return adaptableConstructor.construct(command, channel);
     }
 
     private static JsonObject initialPolicyForCreateThingFrom(final Adaptable adaptable) {

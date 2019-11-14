@@ -14,19 +14,18 @@ package org.eclipse.ditto.protocoladapter;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructor;
+import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructorFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
@@ -43,7 +42,12 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 /**
  * Adapter for mapping a {@link ThingQueryCommand} to and from an {@link Adaptable}.
  */
-final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> {
+final class ThingQueryCommandAdapter extends AbstractThingAdapter<ThingQueryCommand> {
+
+    private final AdaptableConstructor<ThingQueryCommand<?>> thingQueryAdaptableConstructor =
+            AdaptableConstructorFactory.newThingQueryAdaptableConstructor();
+    private final AdaptableConstructor<RetrieveThings> retrieveThingsAdaptableConstructor =
+            AdaptableConstructorFactory.newRetrieveThingsAdaptableConstructor();
 
     private ThingQueryCommandAdapter(
             final Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies,
@@ -114,7 +118,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
             return RetrieveThings.TYPE;
         } else {
             final JsonPointer path = adaptable.getPayload().getPath();
-            final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
+            final String commandName = getAction(topicPath) + upperCaseFirst(pathMatcher.match(path));
             return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
         }
     }
@@ -122,53 +126,10 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
     @Override
     public Adaptable constructAdaptable(final ThingQueryCommand command, final TopicPath.Channel channel) {
         if (command instanceof RetrieveThings) {
-            return handleMultipleRetrieve((RetrieveThings) command, channel);
+            return retrieveThingsAdaptableConstructor.construct((RetrieveThings) command, channel);
         } else {
-            return handleSingleRetrieve(command, channel);
+            return thingQueryAdaptableConstructor.construct(command, channel);
         }
-    }
-
-    private static Adaptable handleSingleRetrieve(final ThingQueryCommand<?> command, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(command.getThingEntityId());
-
-        final CommandsTopicPathBuilder commandsTopicPathBuilder;
-        commandsTopicPathBuilder = fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
-
-        final String commandName = command.getClass().getSimpleName().toLowerCase();
-        if (!commandName.startsWith(TopicPath.Action.RETRIEVE.toString())) {
-            throw UnknownCommandException.newBuilder(commandName).build();
-        }
-
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
-        command.getSelectedFields().ifPresent(payloadBuilder::withFields);
-
-        return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build())
-                .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(command.getDittoHeaders()))
-                .build();
-    }
-
-    private static Adaptable handleMultipleRetrieve(final RetrieveThings command,
-            final TopicPath.Channel channel) {
-
-        final String commandName = command.getClass().getSimpleName().toLowerCase();
-        if (!commandName.startsWith(TopicPath.Action.RETRIEVE.toString())) {
-            throw UnknownCommandException.newBuilder(commandName).build();
-        }
-
-        final String namespace = command.getNamespace().orElse("_");
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilderFromNamespace(namespace);
-        final CommandsTopicPathBuilder commandsTopicPathBuilder =
-                fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
-
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
-        command.getSelectedFields().ifPresent(payloadBuilder::withFields);
-        payloadBuilder.withValue(createIdsPayload(command.getThingEntityIds()));
-
-        return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build())
-                .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(command.getDittoHeaders()))
-                .build();
     }
 
     private static List<ThingId> thingsIdsFrom(final Adaptable adaptable) {
@@ -186,14 +147,6 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
                 .map(JsonValue::asString)
                 .map(ThingId::of)
                 .collect(Collectors.toList());
-    }
-
-    private static JsonValue createIdsPayload(final Collection<ThingId> ids) {
-        final JsonArray thingIdsArray = ids.stream()
-                .map(String::valueOf)
-                .map(JsonFactory::newValue)
-                .collect(JsonCollectors.valuesToArray());
-        return JsonFactory.newObject().setValue(RetrieveThings.JSON_THING_IDS.getPointer(), thingIdsArray);
     }
 
 }

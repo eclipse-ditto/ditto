@@ -59,7 +59,7 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
 /**
  * Adapter for mapping a {@link ThingEvent} to and from an {@link Adaptable}.
  */
-final class ThingEventAdapter extends AbstractAdapter<ThingEvent<?>> {
+final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> {
 
     private ThingEventAdapter(
             final Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies,
@@ -214,7 +214,7 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent<?>> {
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String eventName = PathMatcher.match(path) + getActionNameWithFirstLetterUpperCase(topicPath);
+        final String eventName = pathMatcher.match(path) + getActionNameWithFirstLetterUpperCase(topicPath);
         return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + eventName;
     }
 

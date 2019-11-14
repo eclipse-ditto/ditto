@@ -45,8 +45,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandRespon
 /**
  * Adapter for mapping a {@link ThingModifyCommandResponse} to and from an {@link Adaptable}.
  */
-final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModifyCommandResponse> {
-
+final class ThingModifyCommandResponseAdapter extends AbstractThingAdapter<ThingModifyCommandResponse> {
 
     private ThingModifyCommandResponseAdapter(
             final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies,
@@ -83,7 +82,7 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
+        final String commandName = getAction(topicPath) + upperCaseFirst(pathMatcher.match(path));
         return topicPath.getGroup() + ".responses:" + commandName;
     }
 

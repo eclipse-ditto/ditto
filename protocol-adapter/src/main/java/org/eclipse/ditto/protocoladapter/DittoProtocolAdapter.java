@@ -36,6 +36,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
+import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
+import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -61,6 +63,9 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     private final ThingQueryCommandResponseAdapter thingQueryCommandResponseAdapter;
     private final ThingEventAdapter thingEventAdapter;
 
+    private final PolicyModifyCommandAdapter policyModifyCommandAdapter;
+    private final PolicyQueryCommandAdapter policyQueryCommandAdapter;
+
     protected DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
 
@@ -73,6 +78,9 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
         thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
         thingEventAdapter = ThingEventAdapter.of(headerTranslator);
+
+        policyModifyCommandAdapter = PolicyModifyCommandAdapter.of(headerTranslator);
+        policyQueryCommandAdapter = PolicyQueryCommandAdapter.of(headerTranslator);
     }
 
     /**
@@ -199,6 +207,10 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             return toAdaptable((ThingModifyCommand) command, channel);
         } else if (command instanceof ThingQueryCommand) {
             return toAdaptable((ThingQueryCommand) command, channel);
+        } else if (command instanceof PolicyModifyCommand) {
+            return toAdaptable((PolicyModifyCommand) command, channel);
+        } else if (command instanceof PolicyQueryCommand) {
+            return toAdaptable((PolicyQueryCommand) command, channel);
         } else {
             throw UnknownCommandException.newBuilder(command.getName()).build();
         }
@@ -212,6 +224,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     @Override
     public Adaptable toAdaptable(final ThingModifyCommand<?> thingModifyCommand, final TopicPath.Channel channel) {
         return thingModifyCommandAdapter.toAdaptable(thingModifyCommand, channel);
+    }
+
+    @Override
+    public Adaptable toAdaptable(final PolicyModifyCommand<?> policyModifyCommand, final TopicPath.Channel channel) {
+        return policyModifyCommandAdapter.toAdaptable(policyModifyCommand, channel);
     }
 
     @Override
@@ -231,8 +248,18 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     }
 
     @Override
+    public Adaptable toAdaptable(final PolicyQueryCommand<?> policyQueryCommand) {
+        return toAdaptable(policyQueryCommand, TopicPath.Channel.TWIN);
+    }
+
+    @Override
     public Adaptable toAdaptable(final ThingQueryCommand<?> thingQueryCommand, final TopicPath.Channel channel) {
         return thingQueryCommandAdapter.toAdaptable(thingQueryCommand, channel);
+    }
+
+    @Override
+    public Adaptable toAdaptable(final PolicyQueryCommand<?> policyQueryCommand, final TopicPath.Channel channel) {
+        return policyQueryCommandAdapter.toAdaptable(policyQueryCommand, channel);
     }
 
     @Override

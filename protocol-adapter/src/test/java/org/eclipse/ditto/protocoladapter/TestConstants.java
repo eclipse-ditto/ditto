@@ -12,6 +12,12 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+
+import java.util.Arrays;
+import java.util.UUID;
+
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -22,6 +28,19 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.model.policies.EffectedPermissions;
+import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.Resource;
+import org.eclipse.ditto.model.policies.Resources;
+import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectId;
+import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.model.policies.SubjectType;
+import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -31,8 +50,8 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
  */
@@ -113,6 +132,72 @@ final class TestConstants {
             DittoHeaderDefinition.CONTENT_TYPE.getKey()).build();
 
     static final long REVISION = 1337;
+
+    static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path, final JsonValue value) {
+        return Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(value)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+    }
+
+    static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path) {
+        return Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+    }
+
+    static class Policies {
+
+        static final String POLICY_NAME = "myPolicy";
+        static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, POLICY_NAME);
+        static final Policy POLICY = PoliciesModelFactory.newPolicyBuilder(POLICY_ID).build();
+        static final DittoHeaders HEADERS =
+                DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
+
+        static final Label POLICY_ENTRY_LABEL = Label.of("admin");
+        static final Label POLICY_ENTRY_LABEL2 = Label.of("frontend");
+
+        static final SubjectId SUBJECT_ID1 = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "theSubject1");
+        static final SubjectId SUBJECT_ID2 = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "theSubject2");
+        static final Subject SUBJECT1 = PoliciesModelFactory.newSubject(SUBJECT_ID1, SubjectType.GENERATED);
+        static final Subject SUBJECT2 = PoliciesModelFactory.newSubject(SUBJECT_ID2, SubjectType.GENERATED);
+        static final EffectedPermissions GRANT_READ =
+                EffectedPermissions.newInstance(singletonList("READ"), emptyList());
+        static final EffectedPermissions GRANT_WRITE =
+                EffectedPermissions.newInstance(singletonList("WRITE"), emptyList());
+        static final EffectedPermissions GRANT_READ_REVOKE_WRITE =
+                EffectedPermissions.newInstance(singletonList("READ"), singletonList("WRITE"));
+        static final Resource RESOURCE1 =
+                PoliciesModelFactory.newResource("thing", "/thingId", GRANT_READ_REVOKE_WRITE);
+        static final Resource RESOURCE2 = PoliciesModelFactory.newResource("message", "/subject", GRANT_WRITE);
+
+        static final PolicyEntry POLICY_ENTRY =
+                PolicyEntry.newInstance(POLICY_ENTRY_LABEL, Arrays.asList(SUBJECT1, SUBJECT2),
+                        Arrays.asList(RESOURCE1, RESOURCE2));
+        static final PolicyEntry POLICY_ENTRY2 =
+                PolicyEntry.newInstance(POLICY_ENTRY_LABEL2, Arrays.asList(SUBJECT1), Arrays.asList(RESOURCE2));
+
+        static final Iterable<PolicyEntry> POLICY_ENTRIES = Arrays.asList(POLICY_ENTRY, POLICY_ENTRY2);
+        static final Resources RESOURCES = Resources.newInstance(RESOURCE1, RESOURCE2);
+        static final Subjects SUBJECTS = Subjects.newInstance(SUBJECT1, SUBJECT2);
+
+        static class TopicPaths {
+
+            static final TopicPath CREATE =
+                    TopicPath.newBuilder(POLICY_ID).policies().twin().commands().create().build();
+            static final TopicPath MODIFY =
+                    TopicPath.newBuilder(POLICY_ID).policies().twin().commands().modify().build();
+            static final TopicPath DELETE =
+                    TopicPath.newBuilder(POLICY_ID).policies().twin().commands().delete().build();
+            static final TopicPath RETRIEVE =
+                    TopicPath.newBuilder(POLICY_ID).policies().twin().commands().retrieve().build();
+        }
+
+    }
 
     private TestConstants() {
         throw new AssertionError();
