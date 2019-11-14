@@ -86,7 +86,7 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
         requireNonNull(input);
         requireNonNull(dittoHeaders);
 
-        return ExpressionResolver.substitute(input, false, createReplacerFunction(dittoHeaders))
+        return ExpressionResolver.substitute(input, createReplacerFunction(dittoHeaders))
                 .toOptional()
                 .orElse(input);
     }

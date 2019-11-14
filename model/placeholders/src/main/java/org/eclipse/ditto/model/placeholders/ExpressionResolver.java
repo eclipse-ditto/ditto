@@ -52,26 +52,23 @@ public interface ExpressionResolver {
      *
      * @param expressionTemplate the expressionTemplate to resolve {@link org.eclipse.ditto.model.placeholders.Placeholder}s and and execute optional
      * pipeline stages
-     * @param allowUnresolved whether unresolved placeholder expressions are allowed to remain in the result.
      * @return the resolved String, a signifier for resolution failure, or one for deletion.
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
-    default PipelineElement resolve(final String expressionTemplate, final boolean allowUnresolved) {
-        return ExpressionResolver.substitute(expressionTemplate, allowUnresolved, this::resolveAsPipelineElement);
+    default PipelineElement resolve(final String expressionTemplate) {
+        return ExpressionResolver.substitute(expressionTemplate, this::resolveAsPipelineElement);
     }
 
     /**
      * Perform simple substitution on a string based on a template function.
      *
      * @param input the input string.
-     * @param allowUnresolved whether unresolved placeholders are allowed.
      * @param substitutionFunction the substitution function turning the content of each placeholder into a result.
      * @return the substitution result.
      */
     static PipelineElement substitute(
             final String input,
-            final boolean allowUnresolved,
             final Function<String, PipelineElement> substitutionFunction) {
 
         final Matcher matcher = Placeholders.pattern().matcher(input);
@@ -87,15 +84,11 @@ public interface ExpressionResolver {
             final PipelineElement element = substitutionFunction.apply(placeholderExpression);
             switch (element.getType()) {
                 case DELETED:
-                    // abort pipeline execution: the string has been deleted.
-                    return element;
                 case UNRESOLVED:
-                    // abort pipeline execution: resolution failed where unresolved placeholders are forbidden.
-                    if (!allowUnresolved) {
-                        return element;
-                    }
+                    // abort pipeline execution: resolution failed or the string has been deleted.
+                    return element;
                 default:
-                    // no-op
+                    // proceed to append resolution result and evaluate the next pipeline expression
             }
             // append resolved placeholder
             element.map(resolvedValue -> {

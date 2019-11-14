@@ -144,7 +144,7 @@ public final class PlaceholderFilter {
      * function chain which is too complex (e.g. too much chained function calls)
      */
     public static Optional<String> applyOrElseDelete(final String template, final ExpressionResolver resolver) {
-        return resolver.resolve(template, false).toOptional();
+        return resolver.resolve(template).toOptional();
     }
 
     /**
@@ -162,7 +162,7 @@ public final class PlaceholderFilter {
      * function chain which is too complex (e.g. too much chained function calls)
      */
     public static String applyOrElseRetain(final String template, final ExpressionResolver resolver) {
-        return resolver.resolve(template, true).toOptional().orElse(template);
+        return resolver.resolve(template).toOptional().orElse(template);
     }
 
     /**
@@ -203,7 +203,7 @@ public final class PlaceholderFilter {
         final Supplier<String> throwUnresolvedPlaceholderException = () -> {
             throw UnresolvedPlaceholderException.newBuilder(template).build();
         };
-        return expressionResolver.resolve(template, false)
+        return expressionResolver.resolve(template)
                 .accept(PipelineElement.<String>newVisitorBuilder()
                         .resolved(Function.identity())
                         .unresolved(throwUnresolvedPlaceholderException)

@@ -318,7 +318,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * If not resolvable, the returned Optional will be empty.
      */
     private static Optional<String> applyForReplyTargetAddress(final ExpressionResolver resolver, final String value) {
-        return resolver.resolve(value, false).toOptional();
+        return resolver.resolve(value).toOptional();
     }
 
     private static ExpressionResolver getExpressionResolver(final ExternalMessage originalMessage,

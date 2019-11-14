@@ -51,74 +51,74 @@ public class ExpressionResolverTest {
     @Test
     public void testPlaceholderFunctionDefaultWithConstant() {
 
-        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default('fallback-val') }}", true))
+        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default('fallback-val') }}"))
                 .contains("fallback-val");
     }
 
     @Test
     public void testHeaderWithColon() {
-        assertThat(expressionResolver.resolve("{{ header:header:with:colon }}", true))
+        assertThat(expressionResolver.resolve("{{ header:header:with:colon }}"))
                 .contains("value:with:colon");
     }
 
     @Test
     public void testPlaceholderFunctionDefaultWithPlaceholder() {
-        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(header:header-name) }}", true))
+        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(header:header-name) }}"))
                 .contains("header-val");
     }
 
     @Test
     public void testPlaceholderFunctionDefaultWithPlaceholderNonExistingDefault() {
-        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(header:alsoNotThere) }}", false))
+        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(header:alsoNotThere) }}"))
                 .isEmpty();
     }
 
     @Test
     public void testPlaceholderFunctionSubstringBefore() {
-        assertThat(expressionResolver.resolve("{{ thing:namespace }}:{{thing:name | fn:substring-before(':') }}", true))
+        assertThat(expressionResolver.resolve("{{ thing:namespace }}:{{thing:name | fn:substring-before(':') }}"))
                 .contains(THING_NS + ":" + "the.id");
     }
 
     @Test
     public void testPlaceholderFunctionSubstringBeforeWithDefaultFallback() {
         assertThat(expressionResolver.resolve(
-                "{{ thing:namespace }}:{{thing:name | fn:substring-before('_') | fn:default(thing:name)}}", true))
+                "{{ thing:namespace }}:{{thing:name | fn:substring-before('_') | fn:default(thing:name)}}"))
                 .contains(THING_ID.toString());
     }
 
     @Test
     public void testPlaceholderFunctionSubstringAfterWithUpper() {
-        assertThat(expressionResolver.resolve("{{ thing:name | fn:substring-after(':') | fn:upper() }}", true))
+        assertThat(expressionResolver.resolve("{{ thing:name | fn:substring-after(':') | fn:upper() }}"))
                 .contains("the-rest".toUpperCase());
     }
 
     @Test
     public void testLoneDelete() {
-        assertThat(expressionResolver.resolve("{{ fn:delete() }}", true))
+        assertThat(expressionResolver.resolve("{{ fn:delete() }}"))
                 .isEqualTo(PipelineElement.deleted());
     }
 
     @Test
     public void testLoneDefault() {
-        assertThat(expressionResolver.resolve("{{ fn:default(header:header-name) }}", true))
+        assertThat(expressionResolver.resolve("{{ fn:default(header:header-name) }}"))
                 .contains("header-val");
     }
 
     @Test
     public void testPipelineStartingWithDefault() {
-        assertThat(expressionResolver.resolve("{{ fn:default(header:header-name) | fn:upper() }}", true))
+        assertThat(expressionResolver.resolve("{{ fn:default(header:header-name) | fn:upper() }}"))
                 .contains("HEADER-VAL");
     }
 
     @Test
     public void testDeleteIfUnresolved() {
-        assertThat(expressionResolver.resolve("{{ header:nonexistent }}", true))
-                .contains("{{ header:nonexistent }}");
+        assertThat(expressionResolver.resolve("{{ header:nonexistent }}"))
+                .isEqualTo(PipelineElement.unresolved());
 
-        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(fn:delete()) }}", true))
+        assertThat(expressionResolver.resolve("{{ header:nonexistent | fn:default(fn:delete()) }}"))
                 .isEqualTo(PipelineElement.deleted());
 
-        assertThat(expressionResolver.resolve("{{ header:header-name | fn:delete() }}", true))
+        assertThat(expressionResolver.resolve("{{ header:header-name | fn:delete() }}"))
                 .isEqualTo(PipelineElement.deleted());
     }
 

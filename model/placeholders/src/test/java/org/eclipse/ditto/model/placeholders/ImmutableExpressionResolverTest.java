@@ -79,93 +79,93 @@ public class ImmutableExpressionResolverTest {
     @Test
     public void testSuccessfulPlaceholderResolution() {
 
-        assertThat(underTest.resolve("{{ header:one }}", false))
+        assertThat(underTest.resolve("{{ header:one }}"))
                 .contains(KNOWN_HEADERS.get("one"));
-        assertThat(underTest.resolve("{{ header:two }}", false))
+        assertThat(underTest.resolve("{{ header:two }}"))
                 .contains(KNOWN_HEADERS.get("two"));
-        assertThat(underTest.resolve("{{ thing:id }}", false))
+        assertThat(underTest.resolve("{{ thing:id }}"))
                 .contains(THING_ID.toString());
-        assertThat(underTest.resolve("{{ thing:name }}", false))
+        assertThat(underTest.resolve("{{ thing:name }}"))
                 .contains(THING_NAME);
-        assertThat(underTest.resolve("{{ topic:full }}", false))
+        assertThat(underTest.resolve("{{ topic:full }}"))
                 .contains(KNOWN_TOPIC);
-        assertThat(underTest.resolve("{{ topic:entityId }}", false))
+        assertThat(underTest.resolve("{{ topic:entityId }}"))
                 .contains(THING_NAME);
 
         // verify different whitespace
-        assertThat(underTest.resolve("{{topic:entityId }}", false))
+        assertThat(underTest.resolve("{{topic:entityId }}"))
                 .contains(THING_NAME);
-        assertThat(underTest.resolve("{{topic:entityId}}", false))
+        assertThat(underTest.resolve("{{topic:entityId}}"))
                 .contains(THING_NAME);
-        assertThat(underTest.resolve("{{        topic:entityId}}", false))
+        assertThat(underTest.resolve("{{        topic:entityId}}"))
                 .contains(THING_NAME);
     }
 
     @Test
     public void testPlaceholderResolutionAllowingUnresolvedPlaceholders() {
         // supported unresolved placeholders are retained
-        assertThat(underTest.resolve(UNKNOWN_HEADER_EXPRESSION, true))
-                .contains(UNKNOWN_HEADER_EXPRESSION);
+        assertThat(underTest.resolve(UNKNOWN_HEADER_EXPRESSION))
+                .isEqualTo(PipelineElement.unresolved());
 
         // unsupported placeholders cause error
         assertThatExceptionOfType(UnresolvedPlaceholderException.class)
-                .isThrownBy(() -> underTest.resolve(UNKNOWN_THING_EXPRESSION, true));
+                .isThrownBy(() -> underTest.resolve(UNKNOWN_THING_EXPRESSION));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class)
-                .isThrownBy(() -> underTest.resolve(UNKNOWN_TOPIC_EXPRESSION, true));
+                .isThrownBy(() -> underTest.resolve(UNKNOWN_TOPIC_EXPRESSION));
     }
 
     @Test
     public void testUnsuccessfulPlaceholderResolution() {
-        assertThat(underTest.resolve(UNKNOWN_HEADER_EXPRESSION, false)).isEmpty();
+        assertThat(underTest.resolve(UNKNOWN_HEADER_EXPRESSION)).isEmpty();
     }
 
     @Test
     public void testSuccessfulFunctionBasedOnPlaceholderInput() {
 
-        assertThat(underTest.resolve("{{ header:unknown | fn:default('fallback') }}", false))
+        assertThat(underTest.resolve("{{ header:unknown | fn:default('fallback') }}"))
                 .contains("fallback");
-        assertThat(underTest.resolve("{{ header:unknown | fn:default('bar') | fn:upper() }}", false))
+        assertThat(underTest.resolve("{{ header:unknown | fn:default('bar') | fn:upper() }}"))
                 .contains("BAR");
-        assertThat(underTest.resolve("{{ thing:id | fn:substring-before(':') }}", false))
+        assertThat(underTest.resolve("{{ thing:id | fn:substring-before(':') }}"))
                 .contains(THING_NAMESPACE);
-        assertThat(underTest.resolve("{{ thing:id | fn:substring-before(':') | fn:default('foo') }}", false))
+        assertThat(underTest.resolve("{{ thing:id | fn:substring-before(':') | fn:default('foo') }}"))
                 .contains(THING_NAMESPACE);
-        assertThat(underTest.resolve("any/prefix/{{ thing:id | fn:substring-before(':') | fn:default('foo') }}", false))
+        assertThat(underTest.resolve("any/prefix/{{ thing:id | fn:substring-before(':') | fn:default('foo') }}"))
                 .contains("any/prefix/" + THING_NAMESPACE);
-        assertThat(underTest.resolve("{{ header:unknown | fn:default(' fallback-spaces  ') }}", false))
+        assertThat(underTest.resolve("{{ header:unknown | fn:default(' fallback-spaces  ') }}"))
                 .contains(" fallback-spaces  ");
 
         // verify different whitespace
-        assertThat(underTest.resolve("{{header:unknown |fn:default('bar')| fn:upper() }}", false))
+        assertThat(underTest.resolve("{{header:unknown |fn:default('bar')| fn:upper() }}"))
                 .contains("BAR");
-        assertThat(underTest.resolve("{{    header:unknown |     fn:default('bar')    |fn:upper()}}", false))
+        assertThat(underTest.resolve("{{    header:unknown |     fn:default('bar')    |fn:upper()}}"))
                 .contains("BAR");
-        assertThat(underTest.resolve("{{ header:unknown | fn:default(  'bar'  ) |fn:upper(  ) }}", false))
+        assertThat(underTest.resolve("{{ header:unknown | fn:default(  'bar'  ) |fn:upper(  ) }}"))
                 .contains("BAR");
         assertThat(underTest.resolve(
-                "{{ thing:id | fn:substring-before(\"|\") | fn:default('bAz') | fn:lower() }}", false))
+                "{{ thing:id | fn:substring-before(\"|\") | fn:default('bAz') | fn:lower() }}"))
                 .contains("baz");
     }
 
     @Test
     public void testSpecialCharactersInStrings() {
-        assertThat(underTest.resolve("{{ header:unknown | fn:default( ' \\s%!@/*+\"\\'上手カキクケコ' ) | fn:upper( ) }}", false))
+        assertThat(underTest.resolve("{{ header:unknown | fn:default( ' \\s%!@/*+\"\\'上手カキクケコ' ) | fn:upper( ) }}"))
                 .contains(" \\S%!@/*+\"\\'上手カキクケコ");
 
-        assertThat(underTest.resolve("{{ header:unknown | fn:default( \" \\s%!@/*+'\\\"上手カキクケコ\" ) | fn:upper( ) }}", false))
+        assertThat(underTest.resolve("{{ header:unknown | fn:default( \" \\s%!@/*+'\\\"上手カキクケコ\" ) | fn:upper( ) }}"))
                 .contains(" \\S%!@/*+'\\\"上手カキクケコ");
     }
 
     @Test
     public void rejectUnsupportedPlaceholdersWithSpecialCharacters() {
         assertThatExceptionOfType(UnresolvedPlaceholderException.class)
-                .isThrownBy(() -> underTest.resolve("{{ thing:id\\s%!@/*+上手カキクケコ }}", false));
+                .isThrownBy(() -> underTest.resolve("{{ thing:id\\s%!@/*+上手カキクケコ }}"));
     }
 
     @Test
     public void testUnsuccessfulFunctionBasedOnPlaceholderInput() {
-        assertThat(underTest.resolve("{{ header:unknown }}", false)).isEmpty();
-        assertThat(underTest.resolve("{{ header:unknown | fn:default(header:unknown) }}", false)).isEmpty();
+        assertThat(underTest.resolve("{{ header:unknown }}")).isEmpty();
+        assertThat(underTest.resolve("{{ header:unknown | fn:default(header:unknown) }}")).isEmpty();
     }
 
     @Test
@@ -189,7 +189,7 @@ public class ImmutableExpressionResolverTest {
         // 10 functions should work:
         assertThat(underTest.resolve(
                 "{{ header:unknown | fn:default('fallback') | fn:upper() | fn:lower() | fn:upper()" +
-                        " | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() }}", false))
+                        " | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() }}"))
                 .contains("FALLBACK");
     }
 
@@ -200,7 +200,7 @@ public class ImmutableExpressionResolverTest {
                 underTest.resolve(
                         "{{ header:unknown | fn:default('fallback') | fn:upper() | fn:lower()" +
                                 " | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower()" +
-                                " | fn:upper() | fn:lower() }}",
-                        false));
+                                " | fn:upper() | fn:lower() }}"
+                ));
     }
 }
