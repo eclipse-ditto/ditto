@@ -131,8 +131,8 @@ public final class PlaceholderFilter {
 
     /**
      * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
-     * by applying the given {@code expressionResolver}. Return an empty optional if any pipeline expression
-     * fails to resolve or resolves to the deleted pipeline element.
+     * by applying the given {@code expressionResolver}. If a pipeline function deletes the element or the pipeline
+     * leads to an unresolved element, then return an empty optional.
      *
      * @param template the template string.
      * @param resolver the expression-resolver used to resolve placeholders and optionally pipeline stages
