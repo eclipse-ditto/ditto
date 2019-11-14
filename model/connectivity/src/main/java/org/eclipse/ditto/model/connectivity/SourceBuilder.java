@@ -106,6 +106,14 @@ public interface SourceBuilder<T extends SourceBuilder> {
     T replyTarget(@Nullable ReplyTarget replyTarget);
 
     /**
+     * Set whether the reply-target is enabled.
+     *
+     * @param replyTargetEnabled whether the reply-target is enabled.
+     * @return this builder.
+     */
+    T replyTargetEnabled(boolean replyTargetEnabled);
+
+    /**
      * Build the source instance.
      *
      * @return the new source instance

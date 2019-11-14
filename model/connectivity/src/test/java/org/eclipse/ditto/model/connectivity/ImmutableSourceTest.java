@@ -76,6 +76,7 @@ public final class ImmutableSourceTest {
     private static final JsonObject SOURCE_JSON_WITH_AUTH_CONTEXT = SOURCE_JSON.toBuilder()
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .set(Source.JsonFields.REPLY_TARGET, ImmutableReplyTargetTest.REPLY_TARGET_JSON)
+            .set(Source.JsonFields.REPLY_TARGET_ENABLED, true)
             .build();
 
     private static final String MQTT_SOURCE1 = "mqtt/source1";

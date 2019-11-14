@@ -99,7 +99,6 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         final List<Header> headers = Arrays.asList(message.record().headers().toArray());
         shouldContainHeader(headers, "mappedHeader1", "original-header-value");
         shouldContainHeader(headers, "mappedHeader2", "thing:id");
-        shouldContainHeader(headers, "mappedHeader3", "{{header:ditto-reply-target}}");
     }
 
     @Override

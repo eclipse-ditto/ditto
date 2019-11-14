@@ -93,6 +93,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Optional<ReplyTarget> getReplyTarget();
 
     /**
+     * Whether reply-target is enabled for this source.
+     *
+     * @return whether reply-target is enabled.
+     */
+    boolean isReplyTargetEnabled();
+
+    /**
      * Returns all non hidden marked fields of this {@code Source}.
      *
      * @return a JSON object representation of this Source including only non hidden marked fields.
@@ -174,6 +181,16 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonObject> REPLY_TARGET =
                 JsonFactory.newJsonObjectFieldDefinition("replyTarget", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field for whether reply-target is enabled. Set to false explicitly to disable reply sending.
+         * Otherwise it is assumed that the connection was created before reply-target was introduced and
+         * live migration will occur. The field is within the "replyTarget" block but is treated as a part of
+         * Source instead.
+         */
+        public static final JsonFieldDefinition<Boolean> REPLY_TARGET_ENABLED =
+                JsonFactory.newBooleanFieldDefinition("replyTarget/enabled", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

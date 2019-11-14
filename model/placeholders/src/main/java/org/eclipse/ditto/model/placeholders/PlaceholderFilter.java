@@ -131,25 +131,20 @@ public final class PlaceholderFilter {
 
     /**
      * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
-     * by applying the given {@code expressionResolver}. If a pipeline function deletes the element, then return
-     * an empty optional.
+     * by applying the given {@code expressionResolver}. Return an empty optional if any pipeline expression
+     * fails to resolve or resolves to the deleted pipeline element.
      *
      * @param template the template string.
      * @param resolver the expression-resolver used to resolve placeholders and optionally pipeline stages
      * (functions).
      * @return a template string if resolution succeeds with a result,
-     * or an empty optional if the template string is deleted.
+     * or an empty optional if the template string fails to resolve or is deleted.
      * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code template} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
-    public static Optional<String> applyWithDeletion(final String template, final ExpressionResolver resolver) {
-        return resolver.resolve(template, true)
-                .accept(PipelineElement.<Optional<String>>newVisitorBuilder()
-                        .resolved(Optional::of)
-                        .unresolved(() -> Optional.of(template))
-                        .deleted(Optional::empty)
-                        .build());
+    public static Optional<String> applyOrElseDelete(final String template, final ExpressionResolver resolver) {
+        return resolver.resolve(template, false).toOptional();
     }
 
     /**
@@ -167,12 +162,7 @@ public final class PlaceholderFilter {
      * function chain which is too complex (e.g. too much chained function calls)
      */
     public static String applyOrElseRetain(final String template, final ExpressionResolver resolver) {
-        return resolver.resolve(template, true)
-                .accept(PipelineElement.<String>newVisitorBuilder()
-                        .resolved(Function.identity())
-                        .unresolved(() -> template)
-                        .deleted(() -> template)
-                        .build());
+        return resolver.resolve(template, true).toOptional().orElse(template);
     }
 
     /**

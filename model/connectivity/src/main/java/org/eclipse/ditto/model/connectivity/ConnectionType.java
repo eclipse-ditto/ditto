@@ -96,4 +96,8 @@ public enum ConnectionType implements CharSequence {
         return name;
     }
 
+    static boolean supportsHeaders(final ConnectionType connectionType) {
+        return connectionType != MQTT;
+    }
+
 }

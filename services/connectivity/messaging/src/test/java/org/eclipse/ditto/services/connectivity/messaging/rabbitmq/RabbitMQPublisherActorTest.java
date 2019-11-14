@@ -103,8 +103,6 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
 
         assertThat(propertiesCaptor.getValue().getHeaders().get("mappedHeader1")).isEqualTo("original-header-value");
         assertThat(propertiesCaptor.getValue().getHeaders().get("mappedHeader2")).isEqualTo("thing:id");
-        assertThat(propertiesCaptor.getValue().getHeaders().get("mappedHeader3"))
-                .isEqualTo("{{header:ditto-reply-target}}");
     }
 
     protected String getOutboundAddress() {

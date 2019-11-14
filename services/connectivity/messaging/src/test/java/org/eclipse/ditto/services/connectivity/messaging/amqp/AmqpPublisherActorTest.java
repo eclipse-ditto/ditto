@@ -275,7 +275,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
         assertThat(message.getStringProperty("mappedHeader1")).isEqualTo("original-header-value");
         assertThat(message.getStringProperty("mappedHeader2")).isEqualTo("thing:id");
-        assertThat(message.getStringProperty("mappedHeader3")).isEqualTo("{{header:ditto-reply-target}}");
     }
 
     @Override

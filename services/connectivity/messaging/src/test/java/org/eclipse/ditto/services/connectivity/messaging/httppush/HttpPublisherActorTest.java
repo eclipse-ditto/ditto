@@ -142,8 +142,6 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                 .contains(HttpHeader.parse("mappedHeader1", "original-header-value"));
         assertThat(request.getHeader("mappedHeader2"))
                 .contains(HttpHeader.parse("mappedHeader2", "thing:id"));
-        assertThat(request.getHeader("mappedHeader3"))
-                .contains(HttpHeader.parse("mappedHeader3", "{{header:ditto-reply-target}}"));
     }
 
     private static final class DummyHttpPushFactory implements HttpPushFactory {

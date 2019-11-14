@@ -294,7 +294,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final Signal<?> sourceSignal = outboundSignal.getSource();
 
             final Map<String, String> mappedHeaders = mapping.getMapping().entrySet().stream()
-                    .flatMap(e -> applyExpressionResolver(expressionResolver, e.getValue())
+                    .flatMap(e -> mapHeaderByResolver(expressionResolver, e.getValue())
                             .map(resolvedValue -> Stream.of(new AbstractMap.SimpleEntry<>(e.getKey(), resolvedValue)))
                             .orElseGet(Stream::empty))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -309,8 +309,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return messageBuilder.build();
     }
 
-    private static Optional<String> applyExpressionResolver(final ExpressionResolver resolver, final String value) {
-        return PlaceholderFilter.applyWithDeletion(value, resolver);
+    private static Optional<String> mapHeaderByResolver(final ExpressionResolver resolver, final String value) {
+        return PlaceholderFilter.applyOrElseDelete(value, resolver);
     }
 
     /**

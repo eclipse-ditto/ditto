@@ -634,6 +634,7 @@ final class ImmutableConnection implements Connection {
             checkSourceAndTargetAreValid();
             checkAuthorizationContextsAreValid();
             migrateMappingContext();
+            migrateReplyTargets();
             return new ImmutableConnection(this);
         }
 
@@ -655,6 +656,12 @@ final class ImmutableConnection implements Connection {
                                 .build())
                         .collect(Collectors.toList()));
             }
+        }
+
+        private void migrateReplyTargets() {
+            setSources(sources.stream()
+                    .map(source -> ImmutableSource.migrateReplyTarget(source, connectionType))
+                    .collect(Collectors.toList()));
         }
 
         private PayloadMapping addMigratedPayloadMappings(final PayloadMapping payloadMapping) {

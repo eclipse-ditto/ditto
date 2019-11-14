@@ -594,7 +594,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
                 final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
                 mapping.getMapping().entrySet().stream()
-                        .flatMap(e -> PlaceholderFilter.applyWithDeletion(e.getValue(), expressionResolver)
+                        .flatMap(e -> PlaceholderFilter.applyOrElseDelete(e.getValue(), expressionResolver)
                                 .map(resolvedValue -> Stream.of(newEntry(e.getKey(), resolvedValue)))
                                 .orElseGet(Stream::empty)
                         )
