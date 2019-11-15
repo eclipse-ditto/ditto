@@ -1,6 +1,12 @@
 name: Java CI
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
+
+  # Run build for any PR
+  pull_request:
 
 jobs:
   build:
