@@ -75,7 +75,7 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
                 ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(payload))
         );
 
-        final DittoHeaders mergedHeaders = mergeHeaders(message, jsonifiableAdaptable);
+        final DittoHeaders mergedHeaders = jsonifiableAdaptable.getDittoHeaders();
         return singletonList(
                 ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable).withHeaders(mergedHeaders).build());
     }
@@ -123,19 +123,6 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
 
     private static Charset determineCharset(final Map<String, String> messageHeaders) {
         return CharsetDeterminer.getInstance().apply(messageHeaders.get(ExternalMessage.CONTENT_TYPE_HEADER));
-    }
-
-    /**
-     * Merge message headers of message and adaptable. Adaptable headers do override message headers!
-     *
-     * @param message the message
-     * @param adaptable the adaptable
-     * @return the merged headers
-     */
-    private static DittoHeaders mergeHeaders(final ExternalMessage message, final Adaptable adaptable) {
-        final Map<String, String> headers = new HashMap<>(message.getHeaders());
-        adaptable.getHeaders().ifPresent(headers::putAll);
-        return DittoHeaders.of(headers);
     }
 
 }
