@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command which retrieves a {@link Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveConnection.TYPE_PREFIX, name = RetrieveConnection.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = RetrieveConnection.NAME)
 public final class RetrieveConnection extends AbstractCommand<RetrieveConnection>
         implements ConnectivityQueryCommand<RetrieveConnection> {
 
@@ -109,6 +109,7 @@ public final class RetrieveConnection extends AbstractCommand<RetrieveConnection
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
                 predicate);
@@ -131,7 +132,7 @@ public final class RetrieveConnection extends AbstractCommand<RetrieveConnection
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveConnection);
+        return other instanceof RetrieveConnection;
     }
 
     @Override
