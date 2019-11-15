@@ -46,21 +46,33 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableSource implements Source {
 
-    private static final int DEFAULT_CONSUMER_COUNT = 1;
-    private static final int DEFAULT_INDEX = 0;
-    private static final boolean DEFAULT_REPLY_TARGET_ENABLED = true;
+    /**
+     * Default address to publish responses of incoming commands.
+     */
     static final String DEFAULT_REPLY_TARGET_ADDRESS = "{{header:reply-to}}";
+
+    /**
+     * Default header mapping for legacy sources (i. e., no reply-target defined)
+     */
     static final HeaderMapping DEFAULT_SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
                     .set("correlation-id", "{{header:correlation-id}}")
                     .set("content-type", "{{header:content-type}}")
                     .set("reply-to", "{{header:reply-to}}")
                     .build());
+
+    /**
+     * Default header mapping for the reply-target added to legacy sources.
+     */
     static final HeaderMapping DEFAULT_REPLY_TARGET_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
                     .set("correlation-id", "{{header:correlation-id}}")
                     .set("content-type", "{{header:content-type}}")
                     .build());
+
+    private static final int DEFAULT_CONSUMER_COUNT = 1;
+    private static final int DEFAULT_INDEX = 0;
+    private static final boolean DEFAULT_REPLY_TARGET_ENABLED = true;
 
     private final Set<String> addresses;
     private final int consumerCount;

@@ -53,7 +53,8 @@ public class SignalFilterWithFilterTest {
     private static final ThingId THING_ID = ThingId.of("foo:bar13");
     private static final AuthorizationSubject AUTHORIZED = newAuthSubject("authorized");
     private static final AuthorizationSubject UNAUTHORIZED = newAuthSubject("unauthorized");
-    private static final HeaderMapping HEADER_MAPPING = null;
+    private static final HeaderMapping HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(Collections.singletonMap("reply-to", "{{fn:delete()}}"));
 
     private final ConnectionMonitorRegistry connectionMonitorRegistry = TestConstants.Monitoring.MONITOR_REGISTRY_MOCK;
 

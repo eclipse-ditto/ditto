@@ -46,6 +46,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableTarget implements Target {
 
+    /**
+     * Default header mapping for legacy targets with no header mapping configured.
+     */
+    static final HeaderMapping DEFAULT_HEADER_MAPPING = ImmutableSource.DEFAULT_SOURCE_HEADER_MAPPING;
+
     private final String address;
     private final Set<FilteredTopic> topics;
     @Nullable private final Integer qos;

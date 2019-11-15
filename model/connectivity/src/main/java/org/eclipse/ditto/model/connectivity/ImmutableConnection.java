@@ -633,36 +633,50 @@ final class ImmutableConnection implements Connection {
         public Connection build() {
             checkSourceAndTargetAreValid();
             checkAuthorizationContextsAreValid();
-            migrateMappingContext();
-            migrateReplyTargets();
+            migrateLegacyConfigurationOnTheFly();
             return new ImmutableConnection(this);
         }
 
-        private void migrateMappingContext() {
-            // migrate legacy mapping context on the fly
-            if (mappingContext != null) {
+        private boolean shouldMigrateMappingContext() {
+            return mappingContext != null;
+        }
+
+        private void migrateLegacyConfigurationOnTheFly() {
+            if (shouldMigrateMappingContext()) {
                 this.payloadMappingDefinition =
                         payloadMappingDefinition.withDefinition(MIGRATED_MAPPER_ID, mappingContext);
-                // add migrated mapping to all sources and targets
-                setSources(sources.stream()
-                        .map(source -> new ImmutableSource.Builder(source)
-                                .payloadMapping(addMigratedPayloadMappings(source.getPayloadMapping()))
-                                .build())
-                        .collect(Collectors.toList()));
+            }
+            setSources(sources.stream().map(this::migrateSource).collect(Collectors.toList()));
+            setTargets(targets.stream().map(this::migrateTarget).collect(Collectors.toList()));
+        }
 
-                setTargets(targets.stream()
-                        .map(target -> new ImmutableTarget.Builder(target)
-                                .payloadMapping(addMigratedPayloadMappings(target.getPayloadMapping()))
-                                .build())
-                        .collect(Collectors.toList()));
+        private Source migrateSource(final Source source) {
+            final Source sourceAfterReplyTargetMigration = ImmutableSource.migrateReplyTarget(source, connectionType);
+            if (shouldMigrateMappingContext()) {
+                return new ImmutableSource.Builder(sourceAfterReplyTargetMigration)
+                        .payloadMapping(addMigratedPayloadMappings(source.getPayloadMapping()))
+                        .build();
+            } else {
+                return sourceAfterReplyTargetMigration;
             }
         }
 
-        private void migrateReplyTargets() {
-            setSources(sources.stream()
-                    .map(source -> ImmutableSource.migrateReplyTarget(source, connectionType))
-                    .collect(Collectors.toList()));
+        private Target migrateTarget(final Target target) {
+            final boolean shouldMigrate = shouldMigrateMappingContext() | !target.getHeaderMapping().isPresent();
+            if (shouldMigrate) {
+                final TargetBuilder builder = new ImmutableTarget.Builder(target);
+                if (shouldMigrateMappingContext()) {
+                    builder.payloadMapping(addMigratedPayloadMappings(target.getPayloadMapping()));
+                }
+                if (ConnectionType.supportsHeaders(connectionType)) {
+                    builder.headerMapping(target.getHeaderMapping().orElse(ImmutableTarget.DEFAULT_HEADER_MAPPING));
+                }
+                return builder.build();
+            } else {
+                return target;
+            }
         }
+
 
         private PayloadMapping addMigratedPayloadMappings(final PayloadMapping payloadMapping) {
             final ArrayList<String> merged = new ArrayList<>(payloadMapping.getMappings());

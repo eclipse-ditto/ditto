@@ -111,6 +111,14 @@ public final class ImmutableConnectionTest {
                             .set(Source.JsonFields.REPLY_TARGET_ENABLED, true)
                             .build())
                     .collect(JsonCollectors.valuesToArray());
+    private static final JsonArray KNOWN_TARGETS_WITH_HEADER_MAPPING =
+            KNOWN_TARGETS_WITH_MAPPING_JSON.stream()
+                    .map(o -> o.asObject().toBuilder()
+                            .set(Target.JsonFields.HEADER_MAPPING, o.asObject()
+                                    .getValue(Target.JsonFields.HEADER_MAPPING)
+                                    .orElseGet(ImmutableTarget.DEFAULT_HEADER_MAPPING::toJson))
+                            .build())
+                    .collect(JsonCollectors.valuesToArray());
 
     private static final MappingContext KNOWN_MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             JAVA_SCRIPT_MAPPING,
@@ -186,7 +194,8 @@ public final class ImmutableConnectionTest {
             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_REPLY_TARGET = KNOWN_JSON
-            .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_WITH_REPLY_TARGET);
+            .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_WITH_REPLY_TARGET)
+            .set(Connection.JsonFields.TARGETS, KNOWN_TARGETS_WITH_HEADER_MAPPING);
 
     private static final JsonObject KNOWN_LEGACY_JSON = KNOWN_JSON
             .set(Connection.JsonFields.MAPPING_CONTEXT, KNOWN_MAPPING_CONTEXT.toJson());
