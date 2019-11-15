@@ -1,0 +1,198 @@
+BEGIN:VCALENDAR
+PRODID:-//Microsoft Corporation//Outlook 16.0 MIMEDIR//EN
+VERSION:2.0
+METHOD:REQUEST
+X-MS-OLK-FORCEINSPECTOROPEN:TRUE
+BEGIN:VTIMEZONE
+TZID:W. Europe Standard Time
+BEGIN:STANDARD
+DTSTART:16011028T030000
+RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:16010325T020000
+RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+ATTENDEE;CN="ditto developer discussions";RSVP=TRUE:mailto:ditto-dev@eclips
+	e.org
+CLASS:PUBLIC
+CREATED:20191115T092804Z
+DESCRIPTION:Hello Ditto community.\n\n \n\nOne of our adopters and contribu
+	tors\, Bob from Aloxy\, reached out to the Ditto team asking whether we co
+	uld do regular community calls.\n\nThat’s a great idea as the community 
+	can learn what is currently happening in the Ditto project and the committ
+	ers can learn how the community uses Ditto and what they are maybe missing
+	.\n\n \n\nWe will start with a 4 weekly recurrence and see if we have dema
+	nd for more regular calls.\n\n \n\nJoin Zoom Meeting \nhttps://eclipse.zoo
+	m.us/j/937598490 \n\nMeeting ID: 937 598 490 \n\nOne tap mobile \n+1646876
+	9923\,\,937598490# US (New York) \n+16699006833\,\,937598490# US (San Jose
+	) \n\nDial by your location \n        +1 646 876 9923 US (New York) \n    
+	    +1 669 900 6833 US (San Jose) \n        +1 647 558 0588 Canada \n     
+	   +33 1 7037 2246 France \n        +33 1 7037 9729 France \n        +33 7
+	 5678 4048 France \n        +49 30 3080 6188 Germany \n        +49 30 5679
+	 5800 Germany \n        +49 69 7104 9922 Germany \n        +44 203 481 523
+	7 United Kingdom \n        +44 203 966 3809 United Kingdom \n        +44 1
+	31 460 1196 United Kingdom \n        +44 203 051 2874 United Kingdom \n   
+	     +41 22 518 89 78 Switzerland \n        +41 31 528 09 88 Switzerland \
+	n        +41 43 210 70 42 Switzerland \n        +46 8 4468 2488 Sweden \n 
+	       +46 850 539 728 Sweden \n        +45 32 71 31 57 Denmark \n        
+	+45 89 88 37 88 Denmark \n        +31 20 241 0288 Netherlands \n        +3
+	1 20 794 0854 Netherlands \nMeeting ID: 937 598 490 \nFind your local numb
+	er: https://eclipse.zoom.us/u/afBu7G4IA \n\n \n\n \n\nBest regards \n\nTho
+	mas Jaeckle\n\nEngineering Cloud Services 1 Bosch IoT Things (INST/ECS1) \
+	nBosch Software Innovations GmbH | Ziegelei 7 | 88090 Immenstaad | GERMANY
+	 | www.bosch-si.com <http://www.bosch-si.com>  \n\n\nSitz: Berlin\, Regist
+	ergericht: Amtsgericht Charlottenburg\; HRB 148411 B\nAufsichtsratsvorsitz
+	ender: Dr.-Ing. Thorsten Lücke\; Geschäftsführung: Dr. Stefan Ferber\, 
+	Michael Hahn\, Dr. Aleksandar Mitrovic\n\n
+DTEND;TZID="W. Europe Standard Time":20191125T170000
+DTSTAMP:20191115T090041Z
+DTSTART;TZID="W. Europe Standard Time":20191125T160000
+LAST-MODIFIED:20191115T092804Z
+LOCATION:https://eclipse.zoom.us/j/937598490
+ORGANIZER;CN="Jaeckle Thomas (INST/ECS1)":mailto:thomas.jaeckle@bosch-si.co
+	m
+PRIORITY:5
+RECURRENCE-ID;TZID="W. Europe Standard Time":20191125T160000
+SEQUENCE:0
+SUMMARY;LANGUAGE=de:Eclipse Ditto community call
+TRANSP:OPAQUE
+UID:040000008200E00074C5B7101A82E00800000000F0F074979A9BD501000000000000000
+	010000000996D4E517624684A90D5D9606599BF47
+X-ALT-DESC;FMTTYPE=text/html:<html xmlns:v="urn:schemas-microsoft-com:vml" 
+	xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-mic
+	rosoft-com:office:word" xmlns:m="http://schemas.microsoft.com/office/2004/
+	12/omml" xmlns="http://www.w3.org/TR/REC-html40"><head><meta name=Generato
+	r content="Microsoft Word 15 (filtered medium)"><style><!--\n/* Font Defin
+	itions */\n@font-face\n	{font-family:"Cambria Math"\;\n	panose-1:2 4 5 3 5
+	 4 6 3 2 4\;}\n@font-face\n	{font-family:Calibri\;\n	panose-1:2 15 5 2 2 2
+	 4 3 2 4\;}\n/* Style Definitions */\np.MsoNormal\, li.MsoNormal\, div.Mso
+	Normal\n	{margin:0cm\;\n	margin-bottom:.0001pt\;\n	font-size:12.0pt\;\n	fo
+	nt-family:"Times New Roman"\,serif\;}\na:link\, span.MsoHyperlink\n	{mso-s
+	tyle-priority:99\;\n	color:blue\;\n	text-decoration:underline\;}\na:visite
+	d\, span.MsoHyperlinkFollowed\n	{mso-style-priority:99\;\n	color:purple\;\
+	n	text-decoration:underline\;}\np\n	{mso-style-priority:99\;\n	mso-margin-
+	top-alt:auto\;\n	margin-right:0cm\;\n	mso-margin-bottom-alt:auto\;\n	margi
+	n-left:0cm\;\n	font-size:12.0pt\;\n	font-family:"Times New Roman"\,serif\;
+	}\np.msonormal0\, li.msonormal0\, div.msonormal0\n	{mso-style-name:msonorm
+	al\;\n	mso-margin-top-alt:auto\;\n	margin-right:0cm\;\n	mso-margin-bottom-
+	alt:auto\;\n	margin-left:0cm\;\n	font-size:12.0pt\;\n	font-family:"Times N
+	ew Roman"\,serif\;}\nspan.EmailStyle19\n	{mso-style-type:personal-compose\
+	;\n	font-family:"Arial"\,sans-serif\;}\n.MsoChpDefault\n	{mso-style-type:e
+	xport-only\;\n	font-size:10.0pt\;}\n@page WordSection1\n	{size:612.0pt 792
+	.0pt\;\n	margin:72.0pt 72.0pt 72.0pt 72.0pt\;}\ndiv.WordSection1\n	{page:W
+	ordSection1\;}\n--></style><!--[if gte mso 9]><xml>\n<o:shapedefaults v:ex
+	t="edit" spidmax="1026" />\n</xml><![endif]--><!--[if gte mso 9]><xml>\n<o
+	:shapelayout v:ext="edit">\n<o:idmap v:ext="edit" data="1" />\n</o:shapela
+	yout></xml><![endif]--></head><body lang=EN-US link=blue vlink=purple><div
+	 class=WordSection1><p class=MsoNormal><span style='font-size:10.0pt\;font
+	-family:"Arial"\,sans-serif'>Hello Ditto community.<o:p></o:p></span></p><
+	p class=MsoNormal><span style='font-size:10.0pt\;font-family:"Arial"\,sans
+	-serif'><o:p>&nbsp\;</o:p></span></p><p class=MsoNormal><span style='font-
+	size:10.0pt\;font-family:"Arial"\,sans-serif'>One of our adopters and cont
+	ributors\, Bob from Aloxy\, reached out to the Ditto team asking whether w
+	e could do regular community calls.<o:p></o:p></span></p><p class=MsoNorma
+	l><span style='font-size:10.0pt\;font-family:"Arial"\,sans-serif'>That&#82
+	17\;s a great idea as the community can learn what is currently happening 
+	in the Ditto project and the committers can learn how the community uses D
+	itto and what they are maybe missing.<o:p></o:p></span></p><p class=MsoNor
+	mal><span style='font-size:10.0pt\;font-family:"Arial"\,sans-serif'><o:p>&
+	nbsp\;</o:p></span></p><p class=MsoNormal><span style='font-size:10.0pt\;f
+	ont-family:"Arial"\,sans-serif'>We will start with a 4 weekly recurrence a
+	nd see if we have demand for more regular calls.<o:p></o:p></span></p><p c
+	lass=MsoNormal><span style='font-size:10.0pt\;font-family:"Arial"\,sans-se
+	rif'><o:p>&nbsp\;</o:p></span></p><p><span style='font-size:10.0pt\;font-f
+	amily:"Arial"\,sans-serif'>Join Zoom Meeting</span> <br><span style='font-
+	size:10.0pt\;font-family:"Arial"\,sans-serif'><a href="https://eclipse.zoo
+	m.us/j/937598490">https://eclipse.zoom.us/j/937598490</a></span> <o:p></o:
+	p></p><p><span style='font-size:10.0pt\;font-family:"Arial"\,sans-serif'>M
+	eeting ID: 937 598 490</span> <o:p></o:p></p><p><span style='font-size:10.
+	0pt\;font-family:"Arial"\,sans-serif'>One tap mobile</span> <br><span styl
+	e='font-size:10.0pt\;font-family:"Arial"\,sans-serif'>+16468769923\,\,9375
+	98490# US (New York)</span> <br><span style='font-size:10.0pt\;font-family
+	:"Arial"\,sans-serif'>+16699006833\,\,937598490# US (San Jose)</span> <o:p
+	></o:p></p><p><span style='font-size:10.0pt\;font-family:"Arial"\,sans-ser
+	if'>Dial by your location</span> <br><span style='font-size:10.0pt\;font-f
+	amily:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\; +1 646 876 9923 US (New York)</span> <br><span style='font-size:10.0pt\
+	;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\;&nbsp\; +1 669 900 6833 US (San Jose)</span> <br><span style='font-size:
+	10.0pt\;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\;&nbsp\;&nbsp\; +1 647 558 0588 Canada</span> <br><span style='font-size:
+	10.0pt\;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\;&nbsp\;&nbsp\; +33 1 7037 2246 France</span> <br><span style='font-size:
+	10.0pt\;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\;&nbsp\;&nbsp\; +33 1 7037 9729 France</span> <br><span style='font-size:
+	10.0pt\;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\;&nbsp\;&nbsp\; +33 7 5678 4048 France</span> <br><span style='font-size:
+	10.0pt\;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\;&nbsp\;&nbsp\; +49 30 3080 6188 Germany</span> <br><span style='font-siz
+	e:10.0pt\;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nb
+	sp\;&nbsp\;&nbsp\; +49 30 5679 5800 Germany</span> <br><span style='font-s
+	ize:10.0pt\;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&
+	nbsp\;&nbsp\;&nbsp\; +49 69 7104 9922 Germany</span> <br><span style='font
+	-size:10.0pt\;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\
+	;&nbsp\;&nbsp\;&nbsp\; +44 203 481 5237 United Kingdom</span> <br><span st
+	yle='font-size:10.0pt\;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbs
+	p\;&nbsp\;&nbsp\;&nbsp\;&nbsp\; +44 203 966 3809 United Kingdom</span> <br
+	><span style='font-size:10.0pt\;font-family:"Arial"\,sans-serif'>&nbsp\;&n
+	bsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\; +44 131 460 1196 United Kingdom</
+	span> <br><span style='font-size:10.0pt\;font-family:"Arial"\,sans-serif'>
+	&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\; +44 203 051 2874 United 
+	Kingdom</span> <br><span style='font-size:10.0pt\;font-family:"Arial"\,san
+	s-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\; +41 22 518 89 7
+	8 Switzerland</span> <br><span style='font-size:10.0pt\;font-family:"Arial
+	"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\; +41 31 52
+	8 09 88 Switzerland</span> <br><span style='font-size:10.0pt\;font-family:
+	"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\; +41
+	 43 210 70 42 Switzerland</span> <br><span style='font-size:10.0pt\;font-f
+	amily:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\; +46 8 4468 2488 Sweden</span> <br><span style='font-size:10.0pt\;font-f
+	amily:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\; +46 850 539 728 Sweden</span> <br><span style='font-size:10.0pt\;font-f
+	amily:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\; +45 32 71 31 57 Denmark</span> <br><span style='font-size:10.0pt\;font-
+	family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbs
+	p\; +45 89 88 37 88 Denmark</span> <br><span style='font-size:10.0pt\;font
+	-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nb
+	sp\; +31 20 241 0288 Netherlands</span> <br><span style='font-size:10.0pt\
+	;font-family:"Arial"\,sans-serif'>&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp\;&nbsp
+	\;&nbsp\; +31 20 794 0854 Netherlands</span> <br><span style='font-size:10
+	.0pt\;font-family:"Arial"\,sans-serif'>Meeting ID: 937 598 490</span> <br>
+	<span style='font-size:10.0pt\;font-family:"Arial"\,sans-serif'>Find your 
+	local number: <a href="https://eclipse.zoom.us/u/afBu7G4IA">https://eclips
+	e.zoom.us/u/afBu7G4IA</a></span> <o:p></o:p></p><p><o:p>&nbsp\;</o:p></p><
+	p class=MsoNormal><span style='font-size:10.0pt\;font-family:"Arial"\,sans
+	-serif'><o:p>&nbsp\;</o:p></span></p><p><span lang=DE style='font-size:10.
+	0pt\;font-family:"Arial"\,sans-serif\;color:black'>Best regards <br><br><b
+	>Thomas Jaeckle<br></b><br>Engineering Cloud Services 1 Bosch IoT Things (
+	INST/ECS1) <br>Bosch&nbsp\;Software Innovations&nbsp\;GmbH | Ziegelei 7 | 
+	88090 Immenstaad | <span style='text-transform:uppercase'>GERMANY</span></
+	span><span lang=DE> | </span><span style='font-size:10.0pt\;font-family:"A
+	rial"\,sans-serif\;color:black'><a href="http://www.bosch-si.com"><span la
+	ng=DE>www.bosch-si.com</span></a></span><span lang=DE style='font-size:10.
+	0pt\;font-family:"Arial"\,sans-serif\;color:black'> <br></span><span lang=
+	DE style='font-size:8.0pt\;font-family:"Arial"\,sans-serif\;color:black'><
+	br><br>Sitz: Berlin\, Registergericht: Amtsgericht Charlottenburg\; HRB 14
+	8411 B<br>Aufsichtsratsvorsitzender: Dr.-Ing. Thorsten Lücke\; Geschäfts
+	führung: Dr. Stefan Ferber\, Michael Hahn\, Dr. Aleksandar Mitrovic</span
+	><span lang=DE><o:p></o:p></span></p></div></body></html>
+X-MICROSOFT-CDO-BUSYSTATUS:BUSY
+X-MICROSOFT-CDO-IMPORTANCE:1
+X-MICROSOFT-DISALLOW-COUNTER:FALSE
+X-MS-OLK-APPTSEQTIME:20191115T090041Z
+X-MS-OLK-AUTOFILLLOCATION:FALSE
+X-MS-OLK-CONFTYPE:0
+BEGIN:VALARM
+TRIGGER:-PT15M
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+END:VALARM
+END:VEVENT
+END:VCALENDAR
