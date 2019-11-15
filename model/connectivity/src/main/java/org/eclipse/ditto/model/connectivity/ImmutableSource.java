@@ -237,7 +237,9 @@ final class ImmutableSource implements Source {
                 jsonObject.getValue(JsonFields.REPLY_TARGET_ENABLED).orElse(DEFAULT_REPLY_TARGET_ENABLED);
 
         final ReplyTarget readReplyTarget =
-                jsonObject.getValue(JsonFields.REPLY_TARGET).flatMap(ReplyTarget::fromJsonOptional).orElse(null);
+                jsonObject.getValue(JsonFields.REPLY_TARGET)
+                        .flatMap(ImmutableReplyTarget::fromJsonOptional)
+                        .orElse(null);
 
         return new Builder()
                 .addresses(readSources)
