@@ -662,18 +662,32 @@ final class ImmutableConnection implements Connection {
         }
 
         private Target migrateTarget(final Target target) {
-            final boolean shouldMigrate = shouldMigrateMappingContext() | !target.getHeaderMapping().isPresent();
-            if (shouldMigrate) {
+            final boolean shouldAddHeaderMapping = shouldAddDefaultHeaderMappingToTarget(connectionType);
+            final boolean shouldMigrateMappingContext = shouldMigrateMappingContext();
+            if (shouldMigrateMappingContext | shouldAddHeaderMapping) {
                 final TargetBuilder builder = new ImmutableTarget.Builder(target);
-                if (shouldMigrateMappingContext()) {
+                if (shouldMigrateMappingContext) {
                     builder.payloadMapping(addMigratedPayloadMappings(target.getPayloadMapping()));
                 }
-                if (ConnectionType.supportsHeaders(connectionType)) {
+                if (shouldAddHeaderMapping) {
                     builder.headerMapping(target.getHeaderMapping().orElse(ImmutableTarget.DEFAULT_HEADER_MAPPING));
                 }
                 return builder.build();
             } else {
                 return target;
+            }
+        }
+
+        private boolean shouldAddDefaultHeaderMappingToTarget(final ConnectionType connectionType) {
+            switch (connectionType) {
+                case AMQP_091:
+                case AMQP_10:
+                case KAFKA:
+                    return true;
+                case MQTT:
+                case HTTP_PUSH:
+                default:
+                    return false;
             }
         }
 

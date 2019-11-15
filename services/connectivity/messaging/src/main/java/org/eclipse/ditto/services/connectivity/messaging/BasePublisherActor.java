@@ -142,9 +142,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         } else {
                             log().debug("Response dropped, reply-target address unresolved: <{}>", address);
                             responseDroppedMonitor.failure(outbound.getSource(),
-                                    "Response dropped since its reply-target's address " +
-                                            "cannot be resolved to a value: {0}",
-                                    address);
+                                    "Response dropped since its reply-target's address '" + address +
+                                            "' cannot be resolved to a value.");
                         }
                     } else {
                         log().debug("Response dropped, missing reply-target: {}", response);
