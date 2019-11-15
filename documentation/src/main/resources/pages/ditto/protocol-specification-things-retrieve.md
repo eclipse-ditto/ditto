@@ -38,6 +38,36 @@ Optionally you can use field selectors (see `fields`) to only get the specified 
 [Retrieve a Thing](protocol-examples-retrievething.html)
 
 
+## Retrieve a Policy
+
+Retrieve the Policy specified by the `<namespace>` and `<policyId>` in the `topic`. 
+The response includes all details about the Policy. 
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyId>/policies/twin/commands/retrieve`     |
+| **path**  | `/`     |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyId>/policies/twin/commands/retrieve` |
+| **path**   |        | `/`                      |
+| **value**  |        | The found complete Thing as JSON object. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
+| **status** | _code_ |                          | 
+|            | `200`  | Success.       |
+|            | `304`  | Not Modified - The (sub-)resource has not been modified. This happens if you specified a If-None-Match header, which matches the current ETag of the (sub-)resource.       |
+|            | `400`  | Not Modifiable - The request could not be completed       |
+|            | `401`  | Unauthorized - The request could not be completed due to missing authentication.      |
+|            | `403`  | Not Modifiable - The request could not be completed due to a missing or invalid API Token.       |
+|            | `404`  | Not Found - the requested Thing does not exist or the requesting user does not have enough permission to retrieve it. |
+|            | `412`  | Precondition Failed - A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you specified an If-Match or If-None-Match header, which fails the precondition check against the current ETag of the (sub-)resource. |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+
 ## Retrieve all Attributes of a Thing
 
 Retrieve the Attributes of a Thing identified by the `<namespace>` and `<thingId>` in the `topic`.
