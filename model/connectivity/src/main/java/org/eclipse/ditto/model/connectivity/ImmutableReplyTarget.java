@@ -24,6 +24,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -70,23 +71,18 @@ final class ImmutableReplyTarget implements ReplyTarget {
         return jsonObjectBuilder.build();
     }
 
-    /**
-     * Creates a new reply-target object from the specified JSON object.
-     *
-     * @param jsonObject a JSON object which provides the data for the Target to be created.
-     * @return a new Target which is initialised with the extracted data from {@code jsonObject}.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
-     */
     static ReplyTarget fromJson(final JsonObject jsonObject) {
-        final HeaderMapping readHeaderMapping = jsonObject.getValue(JsonFields.HEADER_MAPPING)
-                .map(ConnectivityModelFactory::newHeaderMapping)
-                .orElse(null);
+        return fromJsonOptional(jsonObject).orElseThrow(() -> new JsonMissingFieldException(JsonFields.ADDRESS));
+    }
 
-        return new Builder()
-                .address(jsonObject.getValueOrThrow(JsonFields.ADDRESS))
-                .headerMapping(readHeaderMapping)
-                .build();
+    static Optional<ReplyTarget> fromJsonOptional(final JsonObject jsonObject) {
+        return jsonObject.getValue(JsonFields.ADDRESS).map(address -> new Builder()
+                .address(address)
+                .headerMapping(jsonObject.getValue(JsonFields.HEADER_MAPPING)
+                        .map(ConnectivityModelFactory::newHeaderMapping)
+                        .orElse(null))
+                .build());
+
     }
 
     @Override

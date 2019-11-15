@@ -75,6 +75,19 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
     }
 
     /**
+     * Creates a new reply-target object from the specified JSON object, or return an empty optional if it cannot be
+     * read.
+     *
+     * @param jsonObject a JSON object which provides the data for the reply-target to be created.
+     * @return a new reply-target which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    static Optional<ReplyTarget> fromJsonOptional(final JsonObject jsonObject) {
+        return ImmutableReplyTarget.fromJsonOptional(jsonObject);
+    }
+
+    /**
      * Create a new builder for a reply-target.
      *
      * @return the builder.

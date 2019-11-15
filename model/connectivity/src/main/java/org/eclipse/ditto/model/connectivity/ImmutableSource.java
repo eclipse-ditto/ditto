@@ -233,12 +233,11 @@ final class ImmutableSource implements Source {
                         .map(ImmutablePayloadMapping::fromJson)
                         .orElse(ConnectivityModelFactory.emptyPayloadMapping());
 
-        final Optional<Boolean> replyTargetEnabled = jsonObject.getValue(JsonFields.REPLY_TARGET_ENABLED);
+        final boolean replyTargetEnabled =
+                jsonObject.getValue(JsonFields.REPLY_TARGET_ENABLED).orElse(DEFAULT_REPLY_TARGET_ENABLED);
 
-        // deserialize reply-target only if reply target is explicitly enabled
-        final ReplyTarget readReplyTarget = replyTargetEnabled.orElse(false)
-                ? jsonObject.getValue(JsonFields.REPLY_TARGET).map(ReplyTarget::fromJson).orElse(null)
-                : null;
+        final ReplyTarget readReplyTarget =
+                jsonObject.getValue(JsonFields.REPLY_TARGET).flatMap(ReplyTarget::fromJsonOptional).orElse(null);
 
         return new Builder()
                 .addresses(readSources)
@@ -249,7 +248,7 @@ final class ImmutableSource implements Source {
                 .enforcement(readEnforcement)
                 .headerMapping(readHeaderMapping)
                 .payloadMapping(readPayloadMapping)
-                .replyTargetEnabled(replyTargetEnabled.orElse(DEFAULT_REPLY_TARGET_ENABLED))
+                .replyTargetEnabled(replyTargetEnabled)
                 .replyTarget(readReplyTarget)
                 .build();
     }
