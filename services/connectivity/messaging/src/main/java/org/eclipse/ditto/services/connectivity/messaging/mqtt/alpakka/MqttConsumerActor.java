@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka;
 
 import static org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka.MqttClientActor.ConsumerStreamMessage.STREAM_ACK;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
@@ -117,12 +119,15 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                     payloadMapping);
 
             headers.put(MQTT_TOPIC_HEADER, message.topic());
+            final HeaderMapping mqttTopicHeaderMapping = ConnectivityModelFactory.newHeaderMapping(
+                    Collections.singletonMap(MQTT_TOPIC_HEADER, message.topic()));
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
                     .withTextAndBytes(textPayload, message.payload().toByteBuffer())
                     .withAuthorizationContext(source.getAuthorizationContext())
                     .withEnforcement(getEnforcementFilter(message.topic()))
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(payloadMapping)
+                    .withHeaderMapping(mqttTopicHeaderMapping)
                     .build();
             inboundMonitor.success(externalMessage);
 

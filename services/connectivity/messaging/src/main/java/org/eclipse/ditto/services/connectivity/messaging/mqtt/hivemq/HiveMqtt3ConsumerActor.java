@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -25,6 +26,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
@@ -61,7 +63,8 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
         this.payloadMapping = source.getPayloadMapping();
         topicEnforcementFilterFactory = source.getEnforcement()
                 .map(enforcement -> EnforcementFactoryFactory
-                        .newEnforcementFilterFactory(enforcement, ConnectivityModelFactory.newSourceAddressPlaceholder()))
+                        .newEnforcementFilterFactory(enforcement,
+                                ConnectivityModelFactory.newSourceAddressPlaceholder()))
                 .orElse(null);
     }
 
@@ -114,6 +117,8 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
             log.debug("Received MQTT message on topic <{}>: {}", topic, textPayload);
 
             headers.put(MQTT_TOPIC_HEADER, topic);
+            final HeaderMapping mqttTopicHeaderMapping = ConnectivityModelFactory.newHeaderMapping(
+                    Collections.singletonMap(MQTT_TOPIC_HEADER, topic));
             final ExternalMessage externalMessage = ExternalMessageFactory
                     .newExternalMessageBuilder(headers)
                     .withTextAndBytes(textPayload, payload)
@@ -121,6 +126,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
                     .withEnforcement(getEnforcementFilter(topic))
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(payloadMapping)
+                    .withHeaderMapping(mqttTopicHeaderMapping)
                     .build();
             inboundMonitor.success(externalMessage);
 

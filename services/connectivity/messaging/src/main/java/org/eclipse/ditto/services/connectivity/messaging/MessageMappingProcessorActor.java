@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -583,16 +584,19 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final Signal<?> signal = inboundExternalMessage.getSignal();
             final ExternalMessage externalMessage = inboundExternalMessage.getSource();
             return externalMessage.getHeaderMapping().map(mapping -> {
-                final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+                final DittoHeaders resolverHeaders = signal.getDittoHeaders()
+                        .toBuilder()
+                        .putHeaders(inboundExternalMessage.getSource().getHeaders())
+                        .build();
 
                 final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
-                        PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, dittoHeaders),
+                        PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, resolverHeaders),
                         PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, signal.getEntityId()),
                         PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER,
                                 inboundExternalMessage.getTopicPath())
                 );
 
-                final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
+                final DittoHeadersBuilder dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
                 mapping.getMapping().entrySet().stream()
                         .flatMap(e -> PlaceholderFilter.applyOrElseDelete(e.getValue(), expressionResolver)
                                 .map(resolvedValue -> Stream.of(newEntry(e.getKey(), resolvedValue)))
@@ -601,9 +605,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                         .forEach(e -> dittoHeadersBuilder.putHeader(e.getKey(), e.getValue()));
 
                 LogUtil.enhanceLogWithCorrelationId(log, signal);
+
                 final DittoHeaders newHeaders = dittoHeadersBuilder.build();
-                log.debug("Result of header mapping <{}> are these headers: {}", mapping, newHeaders);
-                return newHeaders;
+                final DittoHeaders headersWithCorrelationId = newHeaders.getCorrelationId().isPresent()
+                        ? newHeaders
+                        : newHeaders.toBuilder().correlationId(UUID.randomUUID().toString()).build();
+                log.debug("Result of header mapping <{}> are these headers: {}", mapping, headersWithCorrelationId);
+                return headersWithCorrelationId;
             }).orElse(signal.getDittoHeaders());
         }
 

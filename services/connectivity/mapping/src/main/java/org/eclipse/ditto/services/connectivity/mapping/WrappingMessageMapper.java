@@ -81,9 +81,7 @@ final class WrappingMessageMapper implements MessageMapper {
 
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
-        return checkMaxMappedMessagesLimit(delegate.map(message), inboundMessageLimit).stream()
-                .map(WrappingMessageMapper::addRandomCorrelationId)
-                .collect(Collectors.toList());
+        return checkMaxMappedMessagesLimit(delegate.map(message), inboundMessageLimit);
     }
 
     @Override
@@ -133,19 +131,6 @@ final class WrappingMessageMapper implements MessageMapper {
         return getClass().getSimpleName() + " [" +
                 "delegate=" + delegate +
                 "]";
-    }
-
-    private static Adaptable addRandomCorrelationId(final Adaptable adaptable) {
-        if (adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId).isPresent()) {
-            return adaptable;
-        } else {
-            return ProtocolFactory.newAdaptableBuilder(adaptable)
-                    .withHeaders(DittoHeaders.newBuilder()
-                            .correlationId(UUID.randomUUID().toString())
-                            .putHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()))
-                            .build())
-                    .build();
-        }
     }
 
 }
