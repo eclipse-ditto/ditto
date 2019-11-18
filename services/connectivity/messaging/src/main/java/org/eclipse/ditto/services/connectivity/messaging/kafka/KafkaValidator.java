@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
-
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,6 +30,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.connectivity.messaging.Resolvers;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
 import akka.actor.ActorSystem;
@@ -97,7 +94,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
 
         final String placeholderReplacement = UUID.randomUUID().toString();
         final String addressWithoutPlaceholders = validateTemplateAndReplace(target.getAddress(), dittoHeaders,
-                placeholderReplacement, newThingPlaceholder(), newTopicPathPlaceholder(), newHeadersPlaceholder());
+                placeholderReplacement, Resolvers.PLACEHOLDERS);
 
         validateAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
     }

@@ -38,11 +38,7 @@ import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
-import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
@@ -71,10 +67,6 @@ import akka.japi.pf.ReceiveBuilder;
  * @param <T> the type of targets for this actor
  */
 public abstract class BasePublisherActor<T extends PublishTarget> extends AbstractActor {
-
-    private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
-    private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
-    private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
     protected final ConnectionId connectionId;
     protected final List<Target> targets;
@@ -129,7 +121,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     if (replyTargetOptional.isPresent()) {
                         final ReplyTarget replyTarget = replyTargetOptional.get();
                         final ExpressionResolver expressionResolver =
-                                getExpressionResolver(outbound.getExternalMessage(), outbound.getSource());
+                                Resolvers.forOutbound(outbound.getExternalMessage(), outbound.getSource());
                         final String address = replyTarget.getAddress();
                         final Optional<T> resolvedAddress =
                                 applyForReplyTargetAddress(expressionResolver, address).map(this::toPublishTarget);
@@ -275,7 +267,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final @Nullable HeaderMapping mapping, final DiagnosticLoggingAdapter log) {
 
         return applyHeaderMapping(
-                getExpressionResolver(outboundSignal.getExternalMessage(), outboundSignal.getSource()),
+                Resolvers.forOutbound(outboundSignal.getExternalMessage(), outboundSignal.getSource()),
                 outboundSignal, mapping, log);
     }
 
@@ -321,13 +313,4 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return resolver.resolve(value).toOptional();
     }
 
-    private static ExpressionResolver getExpressionResolver(final ExternalMessage originalMessage,
-            final Signal sourceSignal) {
-        return PlaceholderFactory.newExpressionResolver(
-                PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, originalMessage.getHeaders()),
-                PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, sourceSignal.getEntityId()),
-                PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER,
-                        originalMessage.getTopicPath().orElse(null))
-        );
-    }
 }

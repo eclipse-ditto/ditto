@@ -174,7 +174,7 @@ public final class DittoMessageMapperTest {
                 .build());
 
         List<ExternalMessage> message =
-                Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                         .withTopicPath(adaptable.getTopicPath())
                         .withText(adaptable.toJsonString())
                         .build());
@@ -188,7 +188,7 @@ public final class DittoMessageMapperTest {
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withHeaders(DittoHeaders.of(headers)).build());
 
-        message = Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(headers)
+        message = Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build());

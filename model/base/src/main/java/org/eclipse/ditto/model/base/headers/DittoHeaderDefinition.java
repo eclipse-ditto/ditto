@@ -107,7 +107,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "origin"}, Java type: {@link String}.
      * </p>
      */
-    ORIGIN("origin", String.class, false, false),
+    ORIGIN("ditto-origin", String.class, false, false),
 
     /**
      * Header definition for "ETag".

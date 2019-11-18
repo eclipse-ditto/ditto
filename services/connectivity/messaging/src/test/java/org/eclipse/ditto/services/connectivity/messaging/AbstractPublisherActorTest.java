@@ -142,17 +142,18 @@ public abstract class AbstractPublisherActorTest {
             final String... extraHeaders) {
 
         final Signal source = mock(Signal.class);
-        when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
-        when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-        final OutboundSignal outboundSignal =
-                OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
 
         final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing");
-        for (int i = 0; 2*i+1 < extraHeaders.length; ++i) {
-            headersBuilder.putHeader(extraHeaders[2*i], extraHeaders[2*i+1]);
+        for (int i = 0; 2 * i + 1 < extraHeaders.length; ++i) {
+            headersBuilder.putHeader(extraHeaders[2 * i], extraHeaders[2 * i + 1]);
         }
+        final DittoHeaders dittoHeaders = headersBuilder.build();
+        when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
+        when(source.getDittoHeaders()).thenReturn(dittoHeaders);
+        final OutboundSignal outboundSignal =
+                OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
         final ExternalMessage externalMessage =
-                ExternalMessageFactory.newExternalMessageBuilder(headersBuilder.build()).withText("payload").build();
+                ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("payload").build();
         return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
     }
 

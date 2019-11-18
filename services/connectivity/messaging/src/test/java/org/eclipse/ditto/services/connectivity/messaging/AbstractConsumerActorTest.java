@@ -156,7 +156,7 @@ public abstract class AbstractConsumerActorTest<M> {
         testInboundMessage(header("useless", "header"), false,
                 msg -> {},
                 response -> {
-                    assertThat(response.getExternalMessage().getHeaders()).contains(REPLY_TO_HEADER);
+                    assertThat(response.getSource().getDittoHeaders()).contains(REPLY_TO_HEADER);
                     assertThat(response.getExternalMessage().getTextPayload().orElse(""))
                             .contains("{{ header:device_id }}");
                 }

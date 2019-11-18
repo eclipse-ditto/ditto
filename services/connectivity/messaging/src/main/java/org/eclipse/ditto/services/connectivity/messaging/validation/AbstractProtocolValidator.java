@@ -37,6 +37,7 @@ import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.Resolvers;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
@@ -188,8 +189,7 @@ public abstract class AbstractProtocolValidator {
      */
     protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
         headerMapping.getMapping().forEach((key, value)
-                -> validateTemplate(value, dittoHeaders, newHeadersPlaceholder(), newThingPlaceholder(),
-                newTopicPathPlaceholder()));
+                -> validateTemplate(value, dittoHeaders, Resolvers.PLACEHOLDERS));
     }
 
     /**

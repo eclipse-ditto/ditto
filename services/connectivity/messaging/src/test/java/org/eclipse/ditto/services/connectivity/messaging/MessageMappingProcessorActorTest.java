@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
@@ -96,6 +97,12 @@ public final class MessageMappingProcessorActorTest {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String FAULTY_MAPPER = "faulty";
     private static final String ADD_HEADER_MAPPER = "header";
+
+    private static final HeaderMapping CORRELATION_ID_AND_SOURCE_HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
+                    .set("correlation-id", "{{ header:correlation-id }}")
+                    .set("source", "{{ request:subjectId }}")
+                    .build());
 
     private static ActorSystem actorSystem;
     private static ProtocolAdapterProvider protocolAdapterProvider;
@@ -262,7 +269,6 @@ public final class MessageMappingProcessorActorTest {
 
                 if (ADD_HEADER_MAPPER.equals(mapping)) {
                     final Map<String, String> headers = responseMessage.getExternalMessage().getHeaders();
-                    assertThat(headers).contains(AddHeaderMessageMapper.INBOUND_HEADER);
                     assertThat(headers).contains(AddHeaderMessageMapper.OUTBOUND_HEADER);
                 }
             } else {
@@ -292,9 +298,9 @@ public final class MessageMappingProcessorActorTest {
             assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(correlationId);
             assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(expectedAuthContext);
 
-            // TODO: does "source" need to be set? If so, where?
-            //assertThat(modifyAttribute.getDittoHeaders().getSource())
-            //        .contains("integration:" + correlationId + ":hub-application/json");
+            // mapped by source <- {{ request:subjectId }}
+            assertThat(modifyAttribute.getDittoHeaders().getSource())
+                    .contains("integration:" + correlationId + ":hub-application/json");
         });
     }
 
@@ -326,10 +332,11 @@ public final class MessageMappingProcessorActorTest {
             messageMappingProcessorActor.tell(inboundMessage, getRef());
 
             // THEN: resulting error response retains the correlation ID
-            final ExternalMessage outboundMessage =
-                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal().getExternalMessage();
-            assertThat(outboundMessage)
-                    .extracting(e -> e.getHeaders().get("correlation-id"))
+            final OutboundSignal outboundSignal =
+                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
+            assertThat(outboundSignal)
+                    .extracting(o -> o.getSource().getDittoHeaders().getCorrelationId()
+                            .orElseThrow(() -> new AssertionError("correlation-id not found")))
                     .isEqualTo(correlationId);
         }};
     }
@@ -410,9 +417,7 @@ public final class MessageMappingProcessorActorTest {
                     .withTopicPath(adaptable.getTopicPath())
                     .withText(adaptable.toJsonString())
                     .withAuthorizationContext(context)
-                    .withHeaderMapping(ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
-                            .set("correlation-id", "{{ header:correlation-id }}")
-                            .build()))
+                    .withHeaderMapping(CORRELATION_ID_AND_SOURCE_HEADER_MAPPING)
                     .build();
 
             messageMappingProcessorActor.tell(externalMessage, getRef());
@@ -438,9 +443,7 @@ public final class MessageMappingProcessorActorTest {
 
             final OutboundSignal.WithExternalMessage outboundSignal =
                     expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
-            assertThat(outboundSignal.getExternalMessage().findContentType())
-                    .contains(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-            assertThat(outboundSignal.getExternalMessage().getHeaders().get(CORRELATION_ID.getKey()))
+            assertThat(outboundSignal.getSource().getDittoHeaders().getCorrelationId())
                     .contains(correlationId);
         }};
     }
@@ -467,7 +470,7 @@ public final class MessageMappingProcessorActorTest {
                     expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
 
             // THEN: correlation ID is preserved
-            assertThat(outboundSignal.getExternalMessage().getHeaders().get(CORRELATION_ID.getKey()))
+            assertThat(outboundSignal.getSource().getDittoHeaders().getCorrelationId())
                     .contains(correlationId);
 
             // THEN: topic-path contains thing ID

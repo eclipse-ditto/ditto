@@ -16,8 +16,8 @@ import static java.util.Collections.singletonList;
 
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -82,14 +82,12 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
 
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
-        final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 
         final boolean isError = TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion());
         final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
         return singletonList(
-                ExternalMessageFactory.newExternalMessageBuilder(headers)
+                ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                         .withTopicPath(adaptable.getTopicPath())
                         .withText(jsonString)
                         .asResponse(isResponse)

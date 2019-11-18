@@ -14,12 +14,12 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static java.util.Collections.singletonList;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -41,27 +41,21 @@ import akka.event.DiagnosticLoggingAdapter;
  */
 public class BasePublisherActorTest {
 
-    private static Map<String, String> headerMappingMap = new HashMap<>();
-
-    static {
-        headerMappingMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "{{ header:my-cor-id-important }}");
-        headerMappingMap.put("thing-id", "{{ header:device_id }}");
-        headerMappingMap.put("eclipse", "ditto");
-    }
-
-    private static final HeaderMapping HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(headerMappingMap);
+    private static final HeaderMapping HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
+                    .set("correlation-id", "{{ header:my-cor-id-important }}")
+                    .set("thing-id", "{{ header:device_id }}")
+                    .set("eclipse", "ditto")
+                    .build());
 
     @Test
     public void ensureHeadersAreMappedAsExpected() {
 
         // given
-        final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
         final Target target =
                 ConnectivityModelFactory.newTarget("target", TestConstants.Authorization.AUTHORIZATION_CONTEXT,
                         HEADER_MAPPING, null,
                         Topic.TWIN_EVENTS);
-        final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                singletonList(target));
 
         final String correlationId = UUID.randomUUID().toString();
         final String correlationIdImportant = correlationId + "-important!";
@@ -79,9 +73,13 @@ public class BasePublisherActorTest {
                 .putHeader("reply-to", replyTo)
                 .build();
         final ExternalMessage externalMessage =
-                ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders)
+                ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                         .withText("payload")
                         .build();
+        final ThingModifiedEvent thingModifiedEvent =
+                TestConstants.thingModified(singletonList("")).setDittoHeaders(dittoHeaders);
+        final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
+                singletonList(target));
         final OutboundSignal.WithExternalMessage mappedOutboundSignal =
                 OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
 
@@ -92,13 +90,9 @@ public class BasePublisherActorTest {
         );
 
         // then
-        final Map<String, String> expectedHeaders = new HashMap<>();
-        expectedHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(),
-                correlationIdImportant); // the overwritten correlation-id from the headerMapping
-        expectedHeaders.put("thing-id", deviceId); // as defined in headerMappingMap
-        expectedHeaders.put("eclipse", "ditto"); // as defined in headerMappingMap
-
         final Map<String, String> actualHeaders = headerMappedExternalMessage.getHeaders();
-        Assertions.assertThat(actualHeaders).containsOnly(expectedHeaders.entrySet().toArray(new Map.Entry[0]));
+        Assertions.assertThat(actualHeaders).containsEntry("correlation-id", correlationIdImportant);
+        Assertions.assertThat(actualHeaders).containsEntry("thing-id", deviceId);
+        Assertions.assertThat(actualHeaders).containsEntry("eclipse", "ditto");
     }
 }
