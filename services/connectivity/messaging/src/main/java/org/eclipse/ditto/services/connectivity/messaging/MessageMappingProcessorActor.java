@@ -226,9 +226,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 = new InboundMappingResultHandler(mappedInboundMessage -> {
             final Signal<?> signal = mappedInboundMessage.getSignal();
             enhanceLogUtil(signal);
-            connectionMonitorRegistry.forInboundEnforced(connectionId, source)
-                    .wrapExecution(signal)
-                    .execute(() -> applySignalIdEnforcement.accept(messageWithAuthSubject, signal));
+
             // the above throws an exception if signal id enforcement fails
             final Signal<?> adjustedSignal = mapHeaders.andThen(
                     mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
@@ -238,6 +236,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                             .build())
                     .andThen(signal::setDittoHeaders)
                     .apply(mappedInboundMessage);
+
+            enhanceLogUtil(adjustedSignal);
+            // enforce signal ID after header mapping was done
+            connectionMonitorRegistry.forInboundEnforced(connectionId, source)
+                    .wrapExecution(adjustedSignal)
+                    .execute(() -> applySignalIdEnforcement.accept(messageWithAuthSubject, adjustedSignal));
 
             // This message is important to check if a command is accepted for a specific connection, as this happens
             // quite a lot this is going to the debug level. Use best with a connection-id filter.
