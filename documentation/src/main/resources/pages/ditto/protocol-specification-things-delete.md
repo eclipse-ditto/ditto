@@ -64,7 +64,6 @@ Delete Policy identified by identified by the `<namespace>` and the `<policyId>`
 | **status** | _code_ |                          | 
 |            | `204`  | Success - The Features were deleted successfully.       |
 |            | `400`  | Not Modifiable - The request could not be completed.       |
-|            | `401`  | Unauthorized - The request could not be completed due to missing authentication.       |
 |            | `403`  | Not Modifiable - The Features could not be deleted as the requester had insufficient permissions ('WRITE' is required).          |
 |            | `404`  | Not Found - The Thing or Features were not found or requester had insufficient permissions.  |
 |            | `412`  | Precondition Failed - A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you specified an If-Match or If-None-Match header, which fails the precondition check against the current ETag of the (sub-)resource.  |

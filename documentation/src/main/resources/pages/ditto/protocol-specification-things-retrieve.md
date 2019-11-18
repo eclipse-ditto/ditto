@@ -61,8 +61,6 @@ The response includes all details about the Policy.
 |            | `200`  | Success.       |
 |            | `304`  | Not Modified - The (sub-)resource has not been modified. This happens if you specified a If-None-Match header, which matches the current ETag of the (sub-)resource.       |
 |            | `400`  | Not Modifiable - The request could not be completed       |
-|            | `401`  | Unauthorized - The request could not be completed due to missing authentication.      |
-|            | `403`  | Not Modifiable - The request could not be completed due to a missing or invalid API Token.       |
 |            | `404`  | Not Found - the requested Thing does not exist or the requesting user does not have enough permission to retrieve it. |
 |            | `412`  | Precondition Failed - A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you specified an If-Match or If-None-Match header, which fails the precondition check against the current ETag of the (sub-)resource. |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |

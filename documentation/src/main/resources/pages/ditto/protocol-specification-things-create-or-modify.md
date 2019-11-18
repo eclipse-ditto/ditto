@@ -119,8 +119,6 @@ The list of Features will be replaced by the JSON in the `value`.
 |            | `201`  | Success - The Policy was successfully created.       |
 |            | `204`  | Success - The Policy was successfully updated.       |
 |            | `400`  | Not Modifiable - The request could not be completed.       |
-|            | `401`  | Unauthorized - The request could not be completed due to missing authentication.       |
-|            | `402`  | Not Modifiable - The request could not be completed due to exceeded data volume.       |
 |            | `403`  | Not Modifiable - The Policy could not be modified as the requester had insufficient permissions ('WRITE' is required).          |
 |            | `404`  | Not Found - The request could not be completed. The Policy with the given ID was not found in the context of the authenticated user.  |
 |            | `412`  | Precondition Failed - A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you specified an If-Match or If-None-Match header, which fails the precondition check against the current ETag of the (sub-)resource.  |
