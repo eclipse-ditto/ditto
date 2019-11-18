@@ -198,23 +198,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <sourcepath>
-                        org/eclipse/ditto/services/gateway/endpoints/directives/auth/DittoGatewayAuthenticationDirectiveFactory.java
-                    </sourcepath>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 
