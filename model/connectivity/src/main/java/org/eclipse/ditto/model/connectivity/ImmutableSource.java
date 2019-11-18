@@ -51,14 +51,17 @@ final class ImmutableSource implements Source {
      */
     static final String DEFAULT_REPLY_TARGET_ADDRESS = "{{header:reply-to}}";
 
+    private static final String HEADER_CORRELATION_ID = "{{header:correlation-id}}";
+    private static final String HEADER_CONTENT_TYPE = "{{header:content-type}}";
+
     /**
      * Default header mapping for legacy sources (i. e., no reply-target defined)
      */
     static final HeaderMapping DEFAULT_SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
-                    .set("correlation-id", "{{header:correlation-id}}")
-                    .set("content-type", "{{header:content-type}}")
-                    .set("reply-to", "{{header:reply-to}}")
+                    .set("correlation-id", HEADER_CORRELATION_ID)
+                    .set("content-type", HEADER_CONTENT_TYPE)
+                    .set("reply-to", DEFAULT_REPLY_TARGET_ADDRESS)
                     .build());
 
     /**
@@ -66,8 +69,8 @@ final class ImmutableSource implements Source {
      */
     static final HeaderMapping DEFAULT_REPLY_TARGET_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
-                    .set("correlation-id", "{{header:correlation-id}}")
-                    .set("content-type", "{{header:content-type}}")
+                    .set("correlation-id", HEADER_CORRELATION_ID)
+                    .set("content-type", HEADER_CONTENT_TYPE)
                     .build());
 
     private static final int DEFAULT_CONSUMER_COUNT = 1;

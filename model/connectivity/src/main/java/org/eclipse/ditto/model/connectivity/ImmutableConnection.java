@@ -664,7 +664,7 @@ final class ImmutableConnection implements Connection {
         private Target migrateTarget(final Target target) {
             final boolean shouldAddHeaderMapping = shouldAddDefaultHeaderMappingToTarget(connectionType);
             final boolean shouldMigrateMappingContext = shouldMigrateMappingContext();
-            if (shouldMigrateMappingContext | shouldAddHeaderMapping) {
+            if (shouldMigrateMappingContext || shouldAddHeaderMapping) {
                 final TargetBuilder builder = new ImmutableTarget.Builder(target);
                 if (shouldMigrateMappingContext) {
                     builder.payloadMapping(addMigratedPayloadMappings(target.getPayloadMapping()));

@@ -96,6 +96,12 @@ public enum ConnectionType implements CharSequence {
         return name;
     }
 
+    /**
+     * Whether the passed in {@code connectionType} supports headers on the protocol level or not.
+     *
+     * @param connectionType the connection type to check for header support.
+     * @return {@code true} when headers are supported by the passed in {@code connectionType}, {@code false} if not.
+     */
     static boolean supportsHeaders(final ConnectionType connectionType) {
         return connectionType != MQTT;
     }
