@@ -227,7 +227,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      *
      * @return the created Resource.
      */
-    Optional<Resource> getResourceCreated() {
+    public Optional<Resource> getResourceCreated() {
         return Optional.ofNullable(resourceCreated);
     }
 

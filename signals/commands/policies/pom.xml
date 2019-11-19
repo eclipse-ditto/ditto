@@ -151,7 +151,9 @@
                             <exclude>org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntryResponse#getId()</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse#getId()</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.policies.query.RetrieveResource#getId()</exclude>
-                            <exluce>org.eclipse.ditto.signals.commands.policies.query.RetrieveResourceResponse#getId()</exluce>
+                            <exclude>
+                                org.eclipse.ditto.signals.commands.policies.query.RetrieveResourceResponse#getId()
+                            </exclude>
                             <exclude>org.eclipse.ditto.signals.commands.policies.query.RetrieveResources#getId()</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.policies.query.RetrieveResourcesResponse#getId()</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject#getId()</exclude>
@@ -170,6 +172,15 @@
                             <exclude>org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy#getId()</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntries#getId()</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntriesResponse#getId()</exclude>
+                            <exclude>
+                                org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectResponse#modified(java.lang.String,org.eclipse.ditto.model.policies.Label,org.eclipse.ditto.model.base.headers.DittoHeaders)
+                            </exclude>
+                            <exclude>
+                                org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntryResponse#modified(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)
+                            </exclude>
+                            <exclude>
+                                org.eclipse.ditto.signals.commands.policies.modify.ModifyResourceResponse#modified(java.lang.String,org.eclipse.ditto.model.policies.Label,org.eclipse.ditto.model.base.headers.DittoHeaders)
+                            </exclude>
                         </excludes>
                     </parameter>
                 </configuration>

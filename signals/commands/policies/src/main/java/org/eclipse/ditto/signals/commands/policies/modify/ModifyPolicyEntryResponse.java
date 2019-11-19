@@ -197,7 +197,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      *
      * @return the created PolicyEntry.
      */
-    Optional<PolicyEntry> getPolicyEntryCreated() {
+    public Optional<PolicyEntry> getPolicyEntryCreated() {
         return Optional.ofNullable(policyEntryCreated);
     }
 
