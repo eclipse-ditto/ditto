@@ -53,7 +53,7 @@ public interface SseRouteBuilder {
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code sseConnectionSupervisor} is {@code null}.
      */
-    SseRouteBuilder withWebSocketSupervisor(SseConnectionSupervisor sseConnectionSupervisor);
+    SseRouteBuilder withSseConnectionSupervisor(SseConnectionSupervisor sseConnectionSupervisor);
 
     /**
      * Creates the Akka HTTP route for SSE.

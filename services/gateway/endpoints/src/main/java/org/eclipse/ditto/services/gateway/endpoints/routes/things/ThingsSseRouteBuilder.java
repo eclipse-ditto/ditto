@@ -130,7 +130,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     }
 
     @Override
-    public SseRouteBuilder withWebSocketSupervisor(final SseConnectionSupervisor sseConnectionSupervisor) {
+    public SseRouteBuilder withSseConnectionSupervisor(final SseConnectionSupervisor sseConnectionSupervisor) {
         this.sseConnectionSupervisor = checkNotNull(sseConnectionSupervisor, "sseConnectionSupervisor");
         return this;
     }
