@@ -289,9 +289,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         final ExternalMessage originalMessage = outboundSignal.getExternalMessage();
 
-        // clear all existing headers in the builder which is used for building the ExternalMessage to be returned:
-        final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(originalMessage)
-                .clearHeaders();
+        final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(originalMessage);
 
         if (mapping != null) {
             final Signal<?> sourceSignal = outboundSignal.getSource();
@@ -305,8 +303,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             LogUtil.enhanceLogWithCorrelationId(log, sourceSignal);
             log.debug("Result of header mapping <{}> are these headers to be published: {}", mapping, mappedHeaders);
 
-            // set headers to mapped headers---original headers from payload mapping were cleared.
-            messageBuilder.withHeaders(mappedHeaders);
+            messageBuilder.withAdditionalHeaders(mappedHeaders);
         }
 
         return messageBuilder.build();
