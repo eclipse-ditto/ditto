@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
@@ -46,6 +47,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -144,14 +146,23 @@ public final class MessageMappingProcessor {
      * @param outboundSignal the outboundSignal to be processed
      * @param resultHandler handles the 0..n results of the mapping(s)
      */
-    void process(final OutboundSignal outboundSignal, final MappingResultHandler<ExternalMessage> resultHandler) {
+    void process(final OutboundSignal outboundSignal, final MappingResultHandler<OutboundSignal.Mapped> resultHandler) {
         final MappingTimer timer = MappingTimer.outbound(connectionId);
         final Adaptable adaptable = timer.protocol(() -> protocolAdapter.toAdaptable(outboundSignal.getSource()));
         enhanceLogFromAdaptable(adaptable);
         final List<MessageMapper> mappers = getMappers(outboundSignal);
         log.debug("Resolved mappers for message {} to targets {}: {}",
                 outboundSignal.getSource().getDittoHeaders().getCorrelationId(), outboundSignal.getTargets(), mappers);
-        mappers.forEach(mapper -> convertOutboundMessage(adaptable, mapper, timer, resultHandler));
+        mappers.forEach(mapper -> convertOutboundMessage(outboundSignal, adaptable, mapper, timer, resultHandler));
+    }
+
+    /**
+     * Retrieve the header translator of the protocol adapter.
+     *
+     * @return the header translator.
+     */
+    HeaderTranslator getHeaderTranslator() {
+        return protocolAdapter.headerTranslator();
     }
 
     private void convertInboundMessage(final MessageMapper mapper,
@@ -201,20 +212,27 @@ public final class MessageMappingProcessor {
         return contentType -> !mapper.getContentTypeBlacklist().contains(contentType);
     }
 
-    private void convertOutboundMessage(final Adaptable adaptable, final MessageMapper mapper,
-            final MappingTimer timer, final MappingResultHandler<ExternalMessage> resultHandler) {
+    private void convertOutboundMessage(
+            final OutboundSignal outboundSignal,
+            final Adaptable adaptable, final MessageMapper mapper,
+            final MappingTimer timer, final MappingResultHandler<OutboundSignal.Mapped> resultHandler) {
         try {
 
             log.debug("Applying mapper {} to message {}", mapper.getId(),
                     adaptable.getDittoHeaders().getCorrelationId());
 
-            final List<ExternalMessage> messages = timer.payload(mapper.getId(),
+            final List<OutboundSignal.Mapped> messages = timer.payload(mapper.getId(),
                     () -> toStream(mapper.map(adaptable))
-                            .map(em -> ExternalMessageFactory.newExternalMessageBuilder(em)
-                                    .withTopicPath(adaptable.getTopicPath())
-                                    // TODO check if same as signal.getDittoHeaders()
-                                    .withInternalHeaders(adaptable.getDittoHeaders())
-                                    .build())
+                            .map(em -> {
+                                final ExternalMessage externalMessage =
+                                        ExternalMessageFactory.newExternalMessageBuilder(em)
+                                                .withTopicPath(adaptable.getTopicPath())
+                                                // TODO check if same as signal.getDittoHeaders()
+                                                .withInternalHeaders(adaptable.getDittoHeaders())
+                                                .build();
+                                return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable,
+                                        externalMessage);
+                            })
                             .collect(Collectors.toList()));
 
             log.debug("Mapping '{}' produced {} messages.", mapper.getId(), messages.size());

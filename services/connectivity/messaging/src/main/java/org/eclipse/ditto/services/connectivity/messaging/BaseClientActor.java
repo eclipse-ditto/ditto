@@ -1357,13 +1357,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     static class PublishMappedMessage {
 
-        private final OutboundSignal.WithExternalMessage outboundSignal;
+        private final OutboundSignal.Mapped outboundSignal;
 
-        PublishMappedMessage(final OutboundSignal.WithExternalMessage outboundSignal) {
+        PublishMappedMessage(final OutboundSignal.Mapped outboundSignal) {
             this.outboundSignal = outboundSignal;
         }
 
-        OutboundSignal.WithExternalMessage getOutboundSignal() {
+        OutboundSignal.Mapped getOutboundSignal() {
             return outboundSignal;
         }
 

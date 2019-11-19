@@ -22,11 +22,6 @@ import javax.annotation.Nullable;
 public interface HeaderDefinition {
 
     /**
-     * Prefix of reserved Ditto headers.
-     */
-    String RESERVED_DITTO_PREFIX = "ditto-";
-
-    /**
      * Returns the key used as key for header map.
      *
      * @return the key.

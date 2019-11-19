@@ -94,7 +94,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder
-                .match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
+                .match(OutboundSignal.Mapped.class, this::isDryRun,
                         outbound -> log.info("Message dropped in dry run mode: {}", outbound))
                 .match(RetrieveStatus.class, retrieve -> getSender().tell(null != initStatus ? initStatus :
                         new Status.Success(Done.getInstance()), getSelf()));

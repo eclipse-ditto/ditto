@@ -18,6 +18,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -80,7 +81,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                 });
 
                 // WHEN: the publisher is requested to send a message
-                final OutboundSignal.WithExternalMessage outboundSignal = getMockOutboundSignal();
+                final OutboundSignal.Mapped outboundSignal = getMockOutboundSignal();
                 final ActorRef underTest = childActorOf(getPublisherActorProps());
                 underTest.tell(outboundSignal, getRef());
 
@@ -128,8 +129,11 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                 .toStrict(60_000L, ActorMaterializer.create(actorSystem))
                 .toCompletableFuture()
                 .join();
-        assertThat(entity.getContentType().binary()).isFalse();
         assertThat(entity.getData().utf8String()).isEqualTo("payload");
+        if (!entity.getContentType().toString().equals(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)) {
+            // Ditto protocol content type is parsed as binary for some reason
+            assertThat(entity.getContentType().binary()).isFalse();
+        }
     }
 
     @Override

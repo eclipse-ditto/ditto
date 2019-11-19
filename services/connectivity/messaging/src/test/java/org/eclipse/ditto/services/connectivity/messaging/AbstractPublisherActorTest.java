@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
@@ -24,12 +21,17 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -73,7 +75,7 @@ public abstract class AbstractPublisherActorTest {
 
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
-            final OutboundSignal.WithExternalMessage mappedOutboundSignal = getMockOutboundSignal();
+            final OutboundSignal.Mapped mappedOutboundSignal = getMockOutboundSignal();
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);
@@ -94,7 +96,7 @@ public abstract class AbstractPublisherActorTest {
 
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
-            final OutboundSignal.WithExternalMessage mappedOutboundSignal = getResponseWithReplyTarget();
+            final OutboundSignal.Mapped mappedOutboundSignal = getResponseWithReplyTarget();
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);
@@ -134,37 +136,37 @@ public abstract class AbstractPublisherActorTest {
 
     protected abstract void verifyPublishedMessageToReplyTarget() throws Exception;
 
-    protected OutboundSignal.WithExternalMessage getMockOutboundSignal(final String... extraHeaders) {
+    protected OutboundSignal.Mapped getMockOutboundSignal(final String... extraHeaders) {
         return getMockOutboundSignal(decorateTarget(createTestTarget()), extraHeaders);
     }
 
-    protected OutboundSignal.WithExternalMessage getMockOutboundSignal(final Target target,
+    protected OutboundSignal.Mapped getMockOutboundSignal(final Target target,
             final String... extraHeaders) {
-
-        final Signal source = mock(Signal.class);
 
         final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing");
         for (int i = 0; 2 * i + 1 < extraHeaders.length; ++i) {
             headersBuilder.putHeader(extraHeaders[2 * i], extraHeaders[2 * i + 1]);
         }
         final DittoHeaders dittoHeaders = headersBuilder.build();
-        when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
-        when(source.getDittoHeaders()).thenReturn(dittoHeaders);
+
+        final ThingEvent source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, dittoHeaders);
         final OutboundSignal outboundSignal =
                 OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("payload").build();
-        return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
+        final Adaptable adaptable =
+                DittoProtocolAdapter.newInstance().toAdaptable(source, TopicPath.Channel.TWIN);
+        return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
     }
 
-    private OutboundSignal.WithExternalMessage getResponseWithReplyTarget() {
+    private OutboundSignal.Mapped getResponseWithReplyTarget() {
         final DittoHeaders externalHeaders = DittoHeaders.newBuilder()
                 .putHeader("original-header", "original-header-value")
                 .build();
         final DittoHeaders internalHeaders = externalHeaders.toBuilder()
                 .replyTarget(0)
                 .build();
-        final Signal source = DeleteThingResponse.of(ThingId.of("thing", "id"), internalHeaders);
+        final ThingCommandResponse source = DeleteThingResponse.of(ThingId.of("thing", "id"), internalHeaders);
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(externalHeaders)
                         .withText("payload")
@@ -172,7 +174,8 @@ public abstract class AbstractPublisherActorTest {
                         .asResponse(true)
                         .build();
         final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(source, Collections.emptyList());
-        return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
+        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source, TopicPath.Channel.TWIN);
+        return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
     }
 
 }

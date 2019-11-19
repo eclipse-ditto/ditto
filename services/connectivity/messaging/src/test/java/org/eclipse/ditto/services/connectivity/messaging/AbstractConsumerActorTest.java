@@ -170,7 +170,7 @@ public abstract class AbstractConsumerActorTest<M> {
     private void testInboundMessage(final Map.Entry<String, Object> header,
             final boolean isForwardedToConcierge,
             final Consumer<Signal<?>> verifySignal,
-            final Consumer<OutboundSignal.WithExternalMessage> verifyResponse) {
+            final Consumer<OutboundSignal.Mapped> verifyResponse) {
         testInboundMessage(header, isForwardedToConcierge ? 1 : 0, isForwardedToConcierge ? 0 : 1, verifySignal,
                 verifyResponse, ConnectivityModelFactory.emptyPayloadMapping());
     }
@@ -179,7 +179,7 @@ public abstract class AbstractConsumerActorTest<M> {
             final int forwardedToConcierge,
             final int respondedToCaller,
             final Consumer<Signal<?>> verifySignal,
-            final Consumer<OutboundSignal.WithExternalMessage> verifyResponse,
+            final Consumer<OutboundSignal.Mapped> verifyResponse,
             final PayloadMapping payloadMapping
     ) {
 

@@ -14,16 +14,20 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -32,23 +36,11 @@ import org.eclipse.ditto.signals.base.Signal;
 public final class Resolvers {
 
     /**
-     * Placeholder resolver creators for incoming messages.
+     * Placeholder resolver creators for incoming and outgoing messages.
      */
-    private static final List<ResolverCreator<?>> INCOMING_CREATORS = Arrays.asList(
+    private static final List<ResolverCreator<?>> RESOLVER_CREATORS = Arrays.asList(
             // For incoming messages, header mapping injects headers of external messages into Ditto headers.
-            ResolverCreator.of(PlaceholderFactory.newHeadersPlaceholder(), (e, s, t, a) -> e.getHeaders()),
-            ResolverCreator.of(PlaceholderFactory.newThingPlaceholder(), (e, s, t, a) -> s.getEntityId()),
-            ResolverCreator.of(PlaceholderFactory.newTopicPathPlaceholder(), (e, s, t, a) -> t),
-            ResolverCreator.of(PlaceholderFactory.newRequestPlaceholder(), (e, s, t, a) -> a)
-    );
-
-    /**
-     * Placeholder resolver creators for outgoing messages.
-     * MUST contain the same placeholders as INCOMING_CREATORS.
-     */
-    private static final List<ResolverCreator<?>> OUTGOING_CREATORS = Arrays.asList(
-            // For outgoing messages, header mapping creates external message headers from Ditto headers.
-            ResolverCreator.of(PlaceholderFactory.newHeadersPlaceholder(), (e, s, t, a) -> s.getDittoHeaders()),
+            ResolverCreator.of(PlaceholderFactory.newHeadersPlaceholder(), (e, s, t, a) -> e),
             ResolverCreator.of(PlaceholderFactory.newThingPlaceholder(), (e, s, t, a) -> s.getEntityId()),
             ResolverCreator.of(PlaceholderFactory.newTopicPathPlaceholder(), (e, s, t, a) -> t),
             ResolverCreator.of(PlaceholderFactory.newRequestPlaceholder(), (e, s, t, a) -> a)
@@ -58,21 +50,23 @@ public final class Resolvers {
      * Array of all placeholders for target address and source/target header mappings.
      * MUST be equal to *both* the placeholders in INCOMING_CREATORS *and* those in OUTGOING_CREATORS.
      */
-    public static final Placeholder[] PLACEHOLDERS = INCOMING_CREATORS.stream()
+    public static final Placeholder[] PLACEHOLDERS = RESOLVER_CREATORS.stream()
             .map(ResolverCreator::getPlaceholder)
             .toArray(Placeholder[]::new);
 
     /**
      * Create an expression resolver for an outbound message.
      *
-     * @param externalMessage the mapped external message.
-     * @param signal the outbound signal with truthful and valid authorization subject.
+     * @param mappedOutboundSignal the mapped external message.
      * @return the expression resolver.
      */
-    public static ExpressionResolver forOutbound(final ExternalMessage externalMessage, final Signal signal) {
+    public static ExpressionResolver forOutbound(final OutboundSignal.Mapped mappedOutboundSignal) {
+        final Signal signal = mappedOutboundSignal.getSource();
+        final ExternalMessage externalMessage = mappedOutboundSignal.getExternalMessage();
+        final Adaptable adaptable = mappedOutboundSignal.getAdaptable();
         return PlaceholderFactory.newExpressionResolver(
-                OUTGOING_CREATORS.stream()
-                        .map(creator -> creator.create(externalMessage, signal,
+                RESOLVER_CREATORS.stream()
+                        .map(creator -> creator.create(adaptable.getHeaders().orElse(DittoHeaders.empty()), signal,
                                 externalMessage.getTopicPath().orElse(null),
                                 signal.getDittoHeaders().getAuthorizationContext()))
                         .toArray(PlaceholderResolver[]::new)
@@ -91,8 +85,9 @@ public final class Resolvers {
     public static ExpressionResolver forInbound(final ExternalMessage externalMessage, final Signal signal,
             @Nullable final TopicPath topicPath, @Nullable final AuthorizationContext authorizationContext) {
         return PlaceholderFactory.newExpressionResolver(
-                INCOMING_CREATORS.stream()
-                        .map(creator -> creator.create(externalMessage, signal, topicPath, authorizationContext))
+                RESOLVER_CREATORS.stream()
+                        .map(creator ->
+                                creator.create(externalMessage.getHeaders(), signal, topicPath, authorizationContext))
                         .toArray(PlaceholderResolver[]::new)
         );
     }
@@ -106,7 +101,7 @@ public final class Resolvers {
     private interface ResolverDataExtractor<T> {
 
         @Nullable
-        T extract(final ExternalMessage externalMessage, final Signal signal, @Nullable final TopicPath topicPath,
+        T extract(final Map<String, String> inputHeaders, final Signal signal, @Nullable final TopicPath topicPath,
                 @Nullable final AuthorizationContext authorizationContext);
     }
 
@@ -132,10 +127,10 @@ public final class Resolvers {
             return new ResolverCreator<>(placeholder, dataExtractor);
         }
 
-        private PlaceholderResolver<T> create(final ExternalMessage externalMessage, final Signal signal,
+        private PlaceholderResolver<T> create(final Map<String, String> inputHeaders, final Signal signal,
                 @Nullable final TopicPath topicPath, @Nullable final AuthorizationContext authorizationContext) {
             return PlaceholderFactory.newPlaceholderResolver(placeholder,
-                    dataExtractor.extract(externalMessage, signal, topicPath, authorizationContext));
+                    dataExtractor.extract(inputHeaders, signal, topicPath, authorizationContext));
         }
 
         private Placeholder<T> getPlaceholder() {

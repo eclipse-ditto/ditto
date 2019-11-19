@@ -109,42 +109,45 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ReceiveBuilder receiveBuilder = receiveBuilder();
         preEnhancement(receiveBuilder);
 
-        receiveBuilder.match(OutboundSignal.WithExternalMessage.class, BasePublisherActor::isResponseOrError,
+        receiveBuilder.match(OutboundSignal.Mapped.class, BasePublisherActor::isResponseOrError,
                 outbound -> {
                     final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
                     ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log(), correlationId, connectionId);
 
-                    final Optional<ReplyTarget> replyTargetOptional = response.getInternalHeaders()
+                    final Optional<ReplyTarget> replyTargetOptional = outbound.getSource()
+                            .getDittoHeaders()
                             .getReplyTarget()
                             .flatMap(this::getReplyTargetByIndex);
                     if (replyTargetOptional.isPresent()) {
-                        final ReplyTarget replyTarget = replyTargetOptional.get();
-                        final ExpressionResolver expressionResolver =
-                                Resolvers.forOutbound(outbound.getExternalMessage(), outbound.getSource());
-                        final String address = replyTarget.getAddress();
-                        final Optional<T> resolvedAddress =
-                                applyForReplyTargetAddress(expressionResolver, address).map(this::toPublishTarget);
+                        catchHeaderMappingException(responsePublishedMonitor, outbound.getSource(), () -> {
+                            final ReplyTarget replyTarget = replyTargetOptional.get();
+                            final ExpressionResolver expressionResolver = Resolvers.forOutbound(outbound);
+                            final String address = replyTarget.getAddress();
+                            final Optional<T> resolvedAddress =
+                                    applyForReplyTargetAddress(expressionResolver, address).map(this::toPublishTarget);
 
-                        if (resolvedAddress.isPresent()) {
-                            final HeaderMapping headerMapping = replyTarget.getHeaderMapping().orElse(null);
-                            final ExternalMessage responseWithMappedHeaders =
-                                    applyHeaderMapping(expressionResolver, outbound, headerMapping, log());
-                            publishResponseOrError(resolvedAddress.get(), outbound, responseWithMappedHeaders);
-                        } else {
-                            log().debug("Response dropped, reply-target address unresolved: <{}>", address);
-                            responseDroppedMonitor.failure(outbound.getSource(),
-                                    "Response dropped since its reply-target''s address " +
-                                            "cannot be resolved to a value: {0}",
-                                    address);
-                        }
+                            if (resolvedAddress.isPresent()) {
+                                final HeaderMapping headerMapping = replyTarget.getHeaderMapping().orElse(null);
+                                final ExternalMessage responseWithMappedHeaders =
+                                        applyHeaderMapping(expressionResolver, outbound, headerMapping, log());
+                                publishResponseOrError(resolvedAddress.get(), outbound, responseWithMappedHeaders);
+                            } else {
+                                log().debug("Response dropped, reply-target address unresolved: <{}>", address);
+                                responseDroppedMonitor.failure(outbound.getSource(),
+                                        "Response dropped since its reply-target''s address " +
+                                                "cannot be resolved to a value: {0}",
+                                        address);
+                            }
+                        });
                     } else {
                         log().debug("Response dropped, missing reply-target: {}", response);
                         responseDroppedMonitor.failure(outbound.getSource(),
                                 "Response dropped since it was missing a reply-target.");
                     }
                 })
-                .match(OutboundSignal.WithExternalMessage.class, outbound -> {
+                .match(OutboundSignal.Mapped.class, outbound -> {
+                    final ExpressionResolver resolver = Resolvers.forOutbound(outbound);
                     final ExternalMessage message = outbound.getExternalMessage();
                     final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
                     ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log(), correlationId, connectionId);
@@ -159,19 +162,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         final ConnectionMonitor publishedMonitor =
                                 connectionMonitorRegistry.forOutboundPublished(connectionId,
                                         target.getOriginalAddress());
-                        try {
-                            final T publishTarget = toPublishTarget(target.getAddress());
-                            final ExternalMessage messageWithMappedHeaders =
-                                    applyHeaderMapping(outbound, target.getHeaderMapping().orElse(null), log());
-                            publishMessage(target, publishTarget, messageWithMappedHeaders, publishedMonitor);
-                        } catch (final DittoRuntimeException e) {
-                            publishedMonitor.failure(outboundSource,
-                                    "Ran into a failure when applying header mapping: {0}",
-                                    e.getMessage());
-                            log().warning("Got unexpected DittoRuntimeException when applying header mapping - " +
-                                            "thus NOT publishing the message: {} {}",
-                                    e.getClass().getSimpleName(), e.getMessage());
-                        }
+                        final HeaderMapping headerMapping = target.getHeaderMapping().orElse(null);
+                        catchHeaderMappingException(publishedMonitor, outboundSource, () ->
+                                applyForReplyTargetAddress(resolver, target.getAddress())
+                                        .map(this::toPublishTarget)
+                                        .ifPresent(publishTarget -> {
+                                            final ExternalMessage mappedMessage =
+                                                    applyHeaderMapping(resolver, outbound, headerMapping, log());
+                                            publishMessage(target, publishTarget, mappedMessage, publishedMonitor);
+                                        }));
                     });
                 })
                 .match(RetrieveAddressStatus.class, ram -> getCurrentTargetStatus().forEach(rs ->
@@ -183,6 +182,19 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         postEnhancement(receiveBuilder);
         return receiveBuilder.build();
+    }
+
+    private void catchHeaderMappingException(final ConnectionMonitor publishedMonitor, final Signal<?> outboundSource,
+            final Runnable doPublish) {
+        try {
+            doPublish.run();
+        } catch (final DittoRuntimeException e) {
+            publishedMonitor.failure(outboundSource,
+                    "Failed to publish signal: {0}",
+                    e.getMessage());
+            log().warning("Got unexpected DittoRuntimeException when publishing a signal: {} {}",
+                    e.getClass().getSimpleName(), e.getMessage());
+        }
     }
 
     private void publishResponseOrError(final T address, final OutboundSignal outbound,
@@ -249,7 +261,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param outboundSignal the OutboundSignal to check.
      * @return {@code true} if the OutboundSignal is a response or an error, {@code false} otherwise
      */
-    private static boolean isResponseOrError(final OutboundSignal.WithExternalMessage outboundSignal) {
+    private static boolean isResponseOrError(final OutboundSignal.Mapped outboundSignal) {
         return outboundSignal.getExternalMessage().isResponse() || outboundSignal.getExternalMessage().isError();
     }
 
@@ -263,16 +275,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param log the logger to use for logging.
      * @return the ExternalMessage with replaced headers
      */
-    static ExternalMessage applyHeaderMapping(final OutboundSignal.WithExternalMessage outboundSignal,
-            final @Nullable HeaderMapping mapping, final DiagnosticLoggingAdapter log) {
+    static ExternalMessage applyHeaderMapping(final OutboundSignal.Mapped outboundSignal,
+            final @Nullable HeaderMapping mapping,
+            final DiagnosticLoggingAdapter log) {
 
-        return applyHeaderMapping(
-                Resolvers.forOutbound(outboundSignal.getExternalMessage(), outboundSignal.getSource()),
-                outboundSignal, mapping, log);
+        return applyHeaderMapping(Resolvers.forOutbound(outboundSignal), outboundSignal, mapping, log);
     }
 
     private static ExternalMessage applyHeaderMapping(final ExpressionResolver expressionResolver,
-            final OutboundSignal.WithExternalMessage outboundSignal,
+            final OutboundSignal.Mapped outboundSignal,
             final @Nullable HeaderMapping mapping,
             final DiagnosticLoggingAdapter log) {
 

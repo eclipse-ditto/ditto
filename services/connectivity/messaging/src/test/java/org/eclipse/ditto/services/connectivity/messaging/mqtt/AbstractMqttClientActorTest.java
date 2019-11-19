@@ -378,8 +378,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             final String expectedJson = TestConstants.signalToDittoProtocolJsonString(thingModifiedEvent);
 
             LOGGER.info("Sending thing modified message: {}", thingModifiedEvent);
-            final OutboundSignal.WithExternalMessage mappedSignal =
-                    Mockito.mock(OutboundSignal.WithExternalMessage.class);
+            final OutboundSignal.Mapped mappedSignal =
+                    Mockito.mock(OutboundSignal.Mapped.class);
             when(mappedSignal.getTargets()).thenReturn(singletonList(TARGET));
             when(mappedSignal.getSource()).thenReturn(thingModifiedEvent);
             underTest.tell(mappedSignal, getRef());

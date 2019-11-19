@@ -77,7 +77,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
+        receiveBuilder.match(OutboundSignal.Mapped.class, this::isDryRun,
                 outbound -> log().info("Message dropped in dry run mode: {}", outbound));
     }
 

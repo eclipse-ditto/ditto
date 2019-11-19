@@ -104,7 +104,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
+        receiveBuilder.match(OutboundSignal.Mapped.class, this::isDryRun,
                 outbound -> log.info("Message dropped in dry run mode: {}", outbound))
                 .matchEquals(GracefulStop.INSTANCE, unused -> this.stopGracefully());
     }
