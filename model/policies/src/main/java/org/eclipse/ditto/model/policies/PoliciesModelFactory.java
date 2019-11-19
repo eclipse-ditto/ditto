@@ -499,8 +499,7 @@ public final class PoliciesModelFactory {
         checkNotNull(jsonObject, "JSON object");
         return jsonObject.stream()
                 .map(jsonField -> newPolicyEntry(jsonField.getKey(), jsonField.getValue()))
-                // TODO changed this to toList from toSet (to fix equals)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     /**

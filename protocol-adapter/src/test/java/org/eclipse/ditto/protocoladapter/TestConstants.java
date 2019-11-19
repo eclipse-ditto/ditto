@@ -16,6 +16,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -199,9 +200,9 @@ final class TestConstants {
                 PolicyEntry.newInstance(POLICY_ENTRY_LABEL, Arrays.asList(SUBJECT1, SUBJECT2),
                         Arrays.asList(RESOURCE1, RESOURCE2));
         static final PolicyEntry POLICY_ENTRY2 =
-                PolicyEntry.newInstance(POLICY_ENTRY_LABEL2, Arrays.asList(SUBJECT1), Arrays.asList(RESOURCE2));
+                PolicyEntry.newInstance(POLICY_ENTRY_LABEL2, singletonList(SUBJECT1), singletonList(RESOURCE2));
 
-        static final Iterable<PolicyEntry> POLICY_ENTRIES = Arrays.asList(POLICY_ENTRY, POLICY_ENTRY2);
+        static final Iterable<PolicyEntry> POLICY_ENTRIES = new HashSet<>(Arrays.asList(POLICY_ENTRY, POLICY_ENTRY2));
         static final Resources RESOURCES = Resources.newInstance(RESOURCE1, RESOURCE2);
         static final Subjects SUBJECTS = Subjects.newInstance(SUBJECT1, SUBJECT2);
 
