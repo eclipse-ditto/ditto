@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -50,6 +51,7 @@ public class ModifySubjectResponseTest {
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ModifySubjectResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
+            .set(ModifySubjectResponse.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT.getId().toString())
             .build();
 
 
@@ -57,7 +59,7 @@ public class ModifySubjectResponseTest {
     public void assertImmutability() {
         assertInstancesOf(ModifySubjectResponse.class,
                 areImmutable(),
-                provided(Label.class, Subject.class, PolicyId.class).areAlsoImmutable());
+                provided(Label.class, Subject.class, PolicyId.class, SubjectId.class).areAlsoImmutable());
     }
 
 
@@ -80,7 +82,7 @@ public class ModifySubjectResponseTest {
 
         final ModifySubjectResponse underTestUpdated =
                 ModifySubjectResponse.modified(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJsonUpdated = underTestUpdated.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);

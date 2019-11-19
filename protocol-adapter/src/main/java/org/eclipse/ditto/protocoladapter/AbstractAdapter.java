@@ -71,40 +71,6 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    //    public static void main(String[] args) {
-//        final ModifyPolicyEntries modifyPolicyEntries = ModifyPolicyEntries.of(PolicyId.of("ns", "policy"),
-//                Arrays.asList(PoliciesModelFactory.newPolicyEntry("lbl",
-//                        Arrays.asList(
-//                                PoliciesModelFactory.newSubject(SubjectId.newInstance(SubjectIssuer.GOOGLE, "123"),
-//                                        SubjectType.GENERATED)),
-//                        Arrays.asList(PoliciesModelFactory.newResource(ResourceKey.newInstance("type", "path"),
-//                                EffectedPermissions.newInstance(Arrays.asList("READ"), Arrays.asList("WRITE")))))),
-//                DittoHeaders.newBuilder().correlationId("cid").build());
-//
-//        System.out.println(modifyPolicyEntries.toJsonString());
-//    }
-
-
-//    private static Iterable<Resource> resourcesFrom(final Adaptable adaptable) {
-//        return adaptable.getPayload().getValue()
-//            .map(JsonValue::asObject)
-//            .map(jo -> jo.get(PolicyEntry.JsonFields.RESOURCES))
-//            .map(jsonObject -> jsonObject.stream()
-//                    .map(f -> PoliciesModelFactory.newResource(ResourceKey.newInstance(f.getKeyName()), f.getValue()))
-//                    .collect(Collectors.toList()))
-//            .orElseThrow(() -> JsonParseException.newBuilder().build());
-//    }
-//
-//    private static Iterable<Subject> subjectsFrom(final Adaptable adaptable) {
-//        return adaptable.getPayload().getValue()
-//                .map(JsonValue::asObject)
-//                .map(jo -> jo.get(PolicyEntry.JsonFields.SUBJECTS))
-//                .map(jsonObject -> jsonObject.stream()
-//                        .map(f -> PoliciesModelFactory.newSubject(f.getKeyName(), f.getValue().asObject()))
-//                        .collect(Collectors.toList()))
-//                .orElseThrow(() -> JsonParseException.newBuilder().build());
-//    }
-
     protected static HttpStatusCode statusCodeFrom(final Adaptable adaptable) {
         return adaptable.getPayload().getStatus().orElse(null);
     }

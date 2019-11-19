@@ -17,9 +17,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructorFactory;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicy;
@@ -87,8 +85,7 @@ final class PolicyModifyCommandAdapter extends AbstractPolicyAdapter<PolicyModif
         mappingStrategies.put(ModifyResource.TYPE, adaptable -> ModifyResource.of(
                 policyIdFromTopicPath(adaptable.getTopicPath()),
                 labelFrom(adaptable),
-                Resource.newInstance(entryResourceKeyFromPath(adaptable.getPayload().getPath()),
-                        adaptable.getPayload().getValue().orElseThrow(() -> JsonParseException.newBuilder().build())),
+                resourceFrom(adaptable),
                 dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(ModifyResources.TYPE, adaptable -> ModifyResources.of(

@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
@@ -46,6 +47,7 @@ public final class ModifyPolicyEntryResponseTest {
     private static final JsonObject KNOWN_JSON_UPDATED = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, ModifyPolicyEntryResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
+            .set(ModifyPolicyEntryResponse.JSON_LABEL, TestConstants.Policy.POLICY_ENTRY.getLabel().toString())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .build();
 
@@ -53,7 +55,7 @@ public final class ModifyPolicyEntryResponseTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyPolicyEntryResponse.class,
                 areImmutable(),
-                provided(PolicyEntry.class, PolicyId.class).isAlsoImmutable());
+                provided(PolicyEntry.class, PolicyId.class, Label.class).isAlsoImmutable());
     }
 
     @Test
@@ -73,7 +75,8 @@ public final class ModifyPolicyEntryResponseTest {
         assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON_CREATED);
 
         final ModifyPolicyEntryResponse underTestUpdated =
-                ModifyPolicyEntryResponse.modified(TestConstants.Policy.POLICY_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                ModifyPolicyEntryResponse.modified(TestConstants.Policy.POLICY_ID,
+                        TestConstants.Policy.POLICY_ENTRY.getLabel(), TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJsonUpdated = underTestUpdated.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);

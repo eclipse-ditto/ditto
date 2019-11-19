@@ -12,15 +12,17 @@
  */
 package org.eclipse.ditto.protocoladapter.adaptables;
 
-import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
-import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
+import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.signals.base.Signal;
 
-final class PolicyQueryAdaptableConstructor extends AbstractQueryAdaptableConstructor<PolicyQueryCommand> {
+abstract class AbstractModifyAdaptableConstructor<T extends Signal> extends AbstractAdaptableConstructor<T> {
+
+    private static final TopicPath.Action[] SUPPORTED_ACTIONS =
+            {TopicPath.Action.CREATE, TopicPath.Action.MODIFY, TopicPath.Action.DELETE};
 
     @Override
-    public TopicPathBuilder getTopicPathBuilder(final PolicyQueryCommand command) {
-        return ProtocolFactory.newTopicPathBuilder(command.getEntityId()).policies();
+    public TopicPath.Action[] getSupportedActions() {
+        return SUPPORTED_ACTIONS;
     }
 
 }

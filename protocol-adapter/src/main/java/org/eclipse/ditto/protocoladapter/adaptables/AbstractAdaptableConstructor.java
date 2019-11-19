@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocoladapter.adaptables;
 
+import java.util.stream.Stream;
+
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.CommandsTopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -22,31 +24,58 @@ import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.signals.base.Signal;
 
-abstract class QueryCommandAdaptableConstructor<T extends Signal> implements AdaptableConstructor<T> {
+abstract class AbstractAdaptableConstructor<T extends Signal> implements AdaptableConstructor<T> {
 
     @Override
     public Adaptable construct(final T command, final TopicPath.Channel channel) {
 
-        final String commandName = command.getClass().getSimpleName().toLowerCase();
-        if (!commandName.startsWith(TopicPath.Action.RETRIEVE.toString())) {
-            throw UnknownCommandException.newBuilder(commandName).build();
-        }
+        validate(command);
 
         final TopicPathBuilder topicPathBuilder = getTopicPathBuilder(command);
-
         final CommandsTopicPathBuilder commandsTopicPathBuilder =
                 fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
+        setTopicPathAction(commandsTopicPathBuilder, command, getSupportedActions());
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
+
         enhancePayloadBuilder(command, payloadBuilder);
 
-        return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build())
+        return Adaptable.newBuilder(commandsTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())
                 .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(command.getDittoHeaders()))
                 .build();
     }
 
-    private static CommandsTopicPathBuilder fromTopicPathBuilderWithChannel(final TopicPathBuilder topicPathBuilder,
+    private void setTopicPathAction(final CommandsTopicPathBuilder builder, final T signal,
+            final TopicPath.Action... supportedActions) {
+
+        final String commandName = signal.getClass().getSimpleName().toLowerCase();
+        setAction(builder, Stream.of(supportedActions)
+                .filter(action -> commandName.startsWith(action.toString()))
+                .findAny()
+                .orElseThrow(() -> UnknownCommandException.newBuilder(commandName).build()));
+    }
+
+    private void setAction(final CommandsTopicPathBuilder builder, final TopicPath.Action action) {
+        switch (action) {
+            case CREATE:
+                builder.create();
+                break;
+            case RETRIEVE:
+                builder.retrieve();
+                break;
+            case MODIFY:
+                builder.modify();
+                break;
+            case DELETE:
+                builder.delete();
+                break;
+            default:
+                throw UnknownCommandException.newBuilder(action.getName()).build();
+        }
+    }
+
+    static CommandsTopicPathBuilder fromTopicPathBuilderWithChannel(final TopicPathBuilder topicPathBuilder,
             final TopicPath.Channel channel) {
         final CommandsTopicPathBuilder commandsTopicPathBuilder;
         if (channel == TopicPath.Channel.TWIN) {
@@ -58,4 +87,5 @@ abstract class QueryCommandAdaptableConstructor<T extends Signal> implements Ada
         }
         return commandsTopicPathBuilder;
     }
+
 }

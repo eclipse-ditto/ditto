@@ -555,7 +555,7 @@ class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyEntriesResponse.json")), modifyPolicyEntriesResponse);
 
         final ModifyPolicyEntryResponse modifyPolicyEntryResponse =
-                ModifyPolicyEntryResponse.modified(POLICY_ID, DITTO_HEADERS);
+                ModifyPolicyEntryResponse.modified(POLICY_ID, LABEL, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyEntryResponse.json")), modifyPolicyEntryResponse);
 
         final ModifyPolicyEntryResponse modifyPolicyEntryResponseCreated =
@@ -572,7 +572,7 @@ class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("modifySubjectsResponse.json")), modifySubjectsResponse);
 
         final ModifySubjectResponse modifySubjectResponse =
-                ModifySubjectResponse.modified(POLICY_ID, LABEL, DITTO_HEADERS);
+                ModifySubjectResponse.modified(POLICY_ID, LABEL, SUBJECT_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifySubjectResponse.json")), modifySubjectResponse);
 
         final ModifySubjectResponse modifySubjectResponseCreated =
@@ -589,7 +589,7 @@ class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("modifyResourcesResponse.json")), modifyResourcesResponse);
 
         final ModifyResourceResponse modifyResourceResponse =
-                ModifyResourceResponse.modified(POLICY_ID, LABEL, DITTO_HEADERS);
+                ModifyResourceResponse.modified(POLICY_ID, LABEL, RESOURCE_KEY, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyResourceResponse.json")), modifyResourceResponse);
 
         final ModifyResourceResponse modifyResourceResponseCreated =

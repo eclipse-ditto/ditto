@@ -19,7 +19,7 @@ import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
 
 final class PolicyModifyResponseAdaptableConstructor
-        extends ModifyCommandAdaptableConstructor<PolicyModifyCommandResponse> {
+        extends AbstractModifyAdaptableConstructor<PolicyModifyCommandResponse> {
 
     @Override
     public void validate(final PolicyModifyCommandResponse commandResponse) {
@@ -38,5 +38,6 @@ final class PolicyModifyResponseAdaptableConstructor
     public void enhancePayloadBuilder(final PolicyModifyCommandResponse commandResponse,
             final PayloadBuilder payloadBuilder) {
         payloadBuilder.withStatus(commandResponse.getStatusCode());
+        commandResponse.getEntity(commandResponse.getImplementedSchemaVersion()).ifPresent(payloadBuilder::withValue);
     }
 }

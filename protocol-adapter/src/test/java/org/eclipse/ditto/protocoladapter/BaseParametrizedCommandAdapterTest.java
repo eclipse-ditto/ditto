@@ -14,11 +14,16 @@ package org.eclipse.ditto.protocoladapter;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.Label;
@@ -82,6 +87,13 @@ public abstract class BaseParametrizedCommandAdapterTest<T extends Signal> imple
         return Arrays.stream(segments).reduce(JsonPointer.empty(),
                 (p, segment) -> p.addLeaf(JsonKey.of(segment)),
                 JsonPointer::append);
+    }
+
+    static <T> JsonValue fromIterable(final Iterable<T> source, final Function<T, JsonKey> key,
+            final Function<T, JsonValue> value) {
+        return StreamSupport.stream(source.spliterator(), false)
+                .map(t -> JsonFactory.newField(key.apply(t), value.apply(t)))
+                .collect(JsonCollectors.fieldsToObject());
     }
 
     static JsonPointer entriesPath() {

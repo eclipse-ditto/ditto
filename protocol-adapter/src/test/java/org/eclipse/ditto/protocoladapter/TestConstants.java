@@ -18,12 +18,15 @@ import static java.util.Collections.singletonList;
 import java.util.Arrays;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -54,6 +57,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
+ *
  */
 final class TestConstants {
 
@@ -62,10 +66,14 @@ final class TestConstants {
     static final String NAME = "myThing";
     static final String NAME2 = "myThing2";
 
+
     static final String CORRELATION_ID = "dittoCorrelationId";
 
     static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
     static final ThingId THING_ID2 = ThingId.of(NAMESPACE, NAME2);
+
+    static final String POLICY_NAME = "myPolicy";
+    static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, POLICY_NAME);
 
     static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
 
@@ -133,19 +141,31 @@ final class TestConstants {
 
     static final long REVISION = 1337;
 
-    static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path, final JsonValue value) {
-        return Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(value)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
-                .build();
+    static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path) {
+        return adaptable(topicPath, path, null, null);
     }
 
-    static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path) {
+    static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path, final JsonValue value) {
+        return adaptable(topicPath, path, value, null);
+    }
+
+    static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path, final HttpStatusCode status) {
+        return adaptable(topicPath, path, null, status);
+    }
+
+    static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path, @Nullable final JsonValue value,
+            final HttpStatusCode status) {
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
+
+        if (value != null) {
+            payloadBuilder.withValue(value);
+        }
+        if (status != null) {
+            payloadBuilder.withStatus(status);
+        }
+
         return Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path)
-                        .build())
+                .withPayload(payloadBuilder.build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
     }

@@ -63,7 +63,7 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
                 final ModifySubjectResponse rawResponse;
 
                 if (policyEntry.getSubjects().getSubject(subject.getId()).isPresent()) {
-                    rawResponse = ModifySubjectResponse.modified(policyId, label, dittoHeaders);
+                    rawResponse = ModifySubjectResponse.modified(policyId, label, subject.getId(), dittoHeaders);
                     event = SubjectModified.of(policyId, label, subject, nextRevision, getEventTimestamp(),
                             command.getDittoHeaders());
                 } else {

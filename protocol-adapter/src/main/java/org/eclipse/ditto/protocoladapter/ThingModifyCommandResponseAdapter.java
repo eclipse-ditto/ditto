@@ -16,10 +16,10 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructor;
+import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructorFactory;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
@@ -46,6 +46,9 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandRespon
  * Adapter for mapping a {@link ThingModifyCommandResponse} to and from an {@link Adaptable}.
  */
 final class ThingModifyCommandResponseAdapter extends AbstractThingAdapter<ThingModifyCommandResponse> {
+
+    private final AdaptableConstructor<ThingModifyCommandResponse>
+            adaptableConstructor = AdaptableConstructorFactory.newThingModifyResponseAdaptableConstructor();
 
     private ThingModifyCommandResponseAdapter(
             final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies,
@@ -87,40 +90,8 @@ final class ThingModifyCommandResponseAdapter extends AbstractThingAdapter<Thing
     }
 
     @Override
-    public Adaptable constructAdaptable(final ThingModifyCommandResponse commandResponse,
-            final TopicPath.Channel channel) {
-        final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
-        if (!responseName.endsWith("response")) {
-            throw UnknownCommandResponseException.newBuilder(responseName).build();
-        }
-
-        final TopicPathBuilder topicPathBuilder =
-                ProtocolFactory.newTopicPathBuilder(commandResponse.getThingEntityId());
-
-        final CommandsTopicPathBuilder commandsTopicPathBuilder =
-                fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
-
-        final String commandName = commandResponse.getClass().getSimpleName().toLowerCase();
-        if (commandName.startsWith(TopicPath.Action.CREATE.toString())) {
-            commandsTopicPathBuilder.create();
-        } else if (commandName.startsWith(TopicPath.Action.MODIFY.toString())) {
-            commandsTopicPathBuilder.modify();
-        } else if (commandName.startsWith(TopicPath.Action.DELETE.toString())) {
-            commandsTopicPathBuilder.delete();
-        } else {
-            throw UnknownCommandException.newBuilder(commandName).build();
-        }
-
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(commandResponse.getResourcePath()) //
-                .withStatus(commandResponse.getStatusCode());
-
-        final Optional<JsonValue> value = commandResponse.getEntity(commandResponse.getImplementedSchemaVersion());
-        value.ifPresent(payloadBuilder::withValue);
-
-        return Adaptable.newBuilder(commandsTopicPathBuilder.build()) //
-                .withPayload(payloadBuilder.build()) //
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(commandResponse.getDittoHeaders())) //
-                .build();
+    protected Adaptable constructAdaptable(final ThingModifyCommandResponse signal, final TopicPath.Channel channel) {
+        return adaptableConstructor.construct(signal, channel);
     }
 
     private static void addTopLevelResponses(

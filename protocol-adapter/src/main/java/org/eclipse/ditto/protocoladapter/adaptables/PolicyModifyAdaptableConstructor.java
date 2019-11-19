@@ -12,15 +12,20 @@
  */
 package org.eclipse.ditto.protocoladapter.adaptables;
 
+import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 
-final class PolicyModifyAdaptableConstructor extends ModifyCommandAdaptableConstructor<PolicyModifyCommand> {
+final class PolicyModifyAdaptableConstructor extends AbstractModifyAdaptableConstructor<PolicyModifyCommand> {
 
     @Override
     public TopicPathBuilder getTopicPathBuilder(final PolicyModifyCommand command) {
         return ProtocolFactory.newTopicPathBuilder(command.getEntityId()).policies();
     }
 
+    @Override
+    public void enhancePayloadBuilder(final PolicyModifyCommand command, final PayloadBuilder payloadBuilder) {
+        command.getEntity(command.getImplementedSchemaVersion()).ifPresent(payloadBuilder::withValue);
+    }
 }

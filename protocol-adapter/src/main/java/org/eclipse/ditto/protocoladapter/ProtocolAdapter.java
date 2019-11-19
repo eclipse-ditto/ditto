@@ -17,8 +17,12 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
+import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
+import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
+import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -90,6 +94,8 @@ public interface ProtocolAdapter {
      * ProtocolAdapter
      */
     Adaptable toAdaptable(ThingCommandResponse<?> thingCommandResponse, TopicPath.Channel channel);
+
+    Adaptable toAdaptable(PolicyCommandResponse<?> policyCommandResponse, TopicPath.Channel channel);
 
     /**
      * Maps the given {@code messageCommand} to an {@code Adaptable}.
@@ -165,6 +171,9 @@ public interface ProtocolAdapter {
     Adaptable toAdaptable(ThingModifyCommandResponse<?> thingModifyCommandResponse,
             TopicPath.Channel channel);
 
+    Adaptable toAdaptable(PolicyModifyCommandResponse<?> policyModifyCommandResponse,
+            TopicPath.Channel channel);
+
     /**
      * Maps the given {@code thingQueryCommand} to an {@code Adaptable}.
      *
@@ -194,6 +203,8 @@ public interface ProtocolAdapter {
      */
     Adaptable toAdaptable(ThingQueryCommandResponse<?> thingQueryCommandResponse);
 
+    Adaptable toAdaptable(PolicyQueryCommandResponse<?> policyQueryCommandResponse);
+
     /**
      * Maps the given {@code thingQueryCommandResponse} to an {@code Adaptable}.
      *
@@ -204,6 +215,9 @@ public interface ProtocolAdapter {
     Adaptable toAdaptable(ThingQueryCommandResponse<?> thingQueryCommandResponse,
             TopicPath.Channel channel);
 
+    Adaptable toAdaptable(PolicyQueryCommandResponse<?> policyQueryCommandResponse,
+            TopicPath.Channel channel);
+
     /**
      * Maps the given {@code thingErrorResponse} to an {@code Adaptable}.
      *
@@ -212,6 +226,9 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      */
     Adaptable toAdaptable(ThingErrorResponse thingErrorResponse, TopicPath.Channel channel);
+
+    // TODO code duplicaten
+    Adaptable toAdaptable(PolicyErrorResponse policyErrorResponse, TopicPath.Channel channel);
 
     /**
      * Maps the given {@code event} to an {@code Adaptable}.

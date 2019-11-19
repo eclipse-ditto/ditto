@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructorFactory;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
@@ -59,7 +58,7 @@ final class PolicyQueryCommandAdapter extends AbstractPolicyAdapter<PolicyQueryC
 
         mappingStrategies.put(RetrievePolicyEntry.TYPE,
                 adaptable -> RetrievePolicyEntry.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        Label.of(labelFrom(adaptable)), dittoHeadersFrom(adaptable)));
+                        labelFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrievePolicyEntries.TYPE,
                 adaptable -> RetrievePolicyEntries.of(policyIdFromTopicPath(adaptable.getTopicPath()),
@@ -67,21 +66,21 @@ final class PolicyQueryCommandAdapter extends AbstractPolicyAdapter<PolicyQueryC
 
         mappingStrategies.put(RetrieveResource.TYPE,
                 adaptable -> RetrieveResource.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        Label.of(labelFrom(adaptable)), entryResourceKeyFromPath(adaptable.getPayload().getPath()),
+                        labelFrom(adaptable), entryResourceKeyFromPath(adaptable.getPayload().getPath()),
                         dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveResources.TYPE,
                 adaptable -> RetrieveResources.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        Label.of(labelFrom(adaptable)), dittoHeadersFrom(adaptable)));
+                        labelFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveSubject.TYPE,
                 adaptable -> RetrieveSubject.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        Label.of(labelFrom(adaptable)),
+                        labelFrom(adaptable),
                         entrySubjectIdFromPath(adaptable.getPayload().getPath()), dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveSubjects.TYPE,
                 adaptable -> RetrieveSubjects.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        Label.of(labelFrom(adaptable)), dittoHeadersFrom(adaptable)));
+                        labelFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
     }

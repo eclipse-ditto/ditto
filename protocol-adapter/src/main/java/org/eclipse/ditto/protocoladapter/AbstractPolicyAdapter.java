@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.Subject;
@@ -88,6 +89,11 @@ abstract class AbstractPolicyAdapter<T extends Jsonifiable & WithId> extends Abs
                 .map(JsonValue::asObject)
                 .map(PoliciesModelFactory::newPolicyEntries)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+
+    static Resource resourceFrom(final Adaptable adaptable) {
+        return Resource.newInstance(entryResourceKeyFromPath(adaptable.getPayload().getPath()),
+                adaptable.getPayload().getValue().orElseThrow(() -> JsonParseException.newBuilder().build()));
     }
 
     protected static Resources resourcesFrom(final Adaptable adaptable) {

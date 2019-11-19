@@ -18,7 +18,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.signals.commands.base.WithNamespace;
+import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructor;
+import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructorFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
@@ -36,6 +37,13 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
  * Adapter for mapping a {@link ThingQueryCommandResponse} to and from an {@link Adaptable}.
  */
 final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQueryCommandResponse> {
+
+    private final AdaptableConstructor<RetrieveThingsResponse>
+            retrieveThingsAdaptableConstructor =
+            AdaptableConstructorFactory.newRetrieveThingsResponseAdaptableConstructor();
+    private final AdaptableConstructor<ThingQueryCommandResponse>
+            thingQueryResponseAdaptableConstructor =
+            AdaptableConstructorFactory.newThingQueryResponseAdaptableConstructor();
 
     private ThingQueryCommandResponseAdapter(
             final Map<String, JsonifiableMapper<ThingQueryCommandResponse>> mappingStrategies,
@@ -123,38 +131,11 @@ final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQ
     @Override
     public Adaptable constructAdaptable(final ThingQueryCommandResponse commandResponse,
             final TopicPath.Channel channel) {
-        final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
-        if (!responseName.endsWith("response")) {
-            throw UnknownCommandResponseException.newBuilder(responseName).build();
-        }
-
-        final TopicPathBuilder topicPathBuilder;
         if (commandResponse instanceof RetrieveThingsResponse) {
-            final String namespace = ((WithNamespace) commandResponse).getNamespace().orElse("_");
-            topicPathBuilder = ProtocolFactory.newTopicPathBuilderFromNamespace(namespace);
+            return retrieveThingsAdaptableConstructor.construct((RetrieveThingsResponse) commandResponse, channel);
         } else {
-            topicPathBuilder = ProtocolFactory.newTopicPathBuilder(commandResponse.getThingEntityId());
+            return thingQueryResponseAdaptableConstructor.construct(commandResponse, channel);
         }
-
-        final CommandsTopicPathBuilder commandsTopicPathBuilder =
-                fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
-
-        final String commandName = commandResponse.getClass().getSimpleName().toLowerCase();
-        if (commandName.startsWith(TopicPath.Action.RETRIEVE.toString())) {
-            commandsTopicPathBuilder.retrieve();
-        } else {
-            throw UnknownCommandException.newBuilder(commandName).build();
-        }
-
-        final Payload payload = Payload.newBuilder(commandResponse.getResourcePath())
-                .withStatus(commandResponse.getStatusCode())
-                .withValue(commandResponse.getEntity(commandResponse.getImplementedSchemaVersion()))
-                .build();
-
-        return Adaptable.newBuilder(commandsTopicPathBuilder.build())
-                .withPayload(payload)
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(commandResponse.getDittoHeaders()))
-                .build();
     }
 
 }

@@ -37,6 +37,8 @@ public interface AdaptableConstructor<T extends WithId> {
 
     TopicPathBuilder getTopicPathBuilder(T command);
 
+    TopicPath.Action[] getSupportedActions();
+
     default void enhancePayloadBuilder(T command, PayloadBuilder payloadBuilder) {
         // do nothing
     }

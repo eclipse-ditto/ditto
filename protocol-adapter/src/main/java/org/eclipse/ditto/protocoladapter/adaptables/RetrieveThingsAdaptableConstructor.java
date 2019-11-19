@@ -24,7 +24,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 
-final class RetrieveThingsAdaptableConstructor extends QueryCommandAdaptableConstructor<RetrieveThings> {
+final class RetrieveThingsAdaptableConstructor extends AbstractQueryAdaptableConstructor<RetrieveThings> {
 
     @Override
     public TopicPathBuilder getTopicPathBuilder(final RetrieveThings command) {

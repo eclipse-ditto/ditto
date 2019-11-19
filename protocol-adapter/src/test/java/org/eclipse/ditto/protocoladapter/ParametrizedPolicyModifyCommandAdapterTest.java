@@ -13,13 +13,8 @@
 package org.eclipse.ditto.protocoladapter;
 
 import java.util.Collection;
-import java.util.function.Function;
-import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.protocoladapter.TestConstants.Policies;
@@ -185,12 +180,4 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
                 subjectsPath(Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT1.getId()));
         return TestParameter.of("deleteSubject", adaptable, command);
     }
-
-    private static <T> JsonValue fromIterable(final Iterable<T> source, final Function<T, JsonKey> key,
-            final Function<T, JsonValue> value) {
-        return StreamSupport.stream(source.spliterator(), false)
-                .map(t -> JsonFactory.newField(key.apply(t), value.apply(t)))
-                .collect(JsonCollectors.fieldsToObject());
-    }
-
 }

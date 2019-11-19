@@ -39,7 +39,7 @@ public class ETagTestUtils {
         if (created) {
             return ModifyPolicyEntryResponse.created(policyId, policyEntry, dittoHeadersWithETagHeader);
         } else {
-            return ModifyPolicyEntryResponse.modified(policyId, dittoHeadersWithETagHeader);
+            return ModifyPolicyEntryResponse.modified(policyId, policyEntry.getLabel(), dittoHeadersWithETagHeader);
         }
     }
 
@@ -55,7 +55,8 @@ public class ETagTestUtils {
         if (created) {
             return ModifyResourceResponse.created(policyId, label, resource, dittoHeadersWithETagHeader);
         } else {
-            return ModifyResourceResponse.modified(policyId, label, dittoHeadersWithETagHeader);
+            return ModifyResourceResponse.modified(policyId, label, resource.getResourceKey(),
+                    dittoHeadersWithETagHeader);
         }
     }
 
@@ -87,7 +88,7 @@ public class ETagTestUtils {
         if (created) {
             return ModifySubjectResponse.created(policyId, label, subject, dittoHeadersWithETagHeader);
         } else {
-            return ModifySubjectResponse.modified(policyId, label, dittoHeadersWithETagHeader);
+            return ModifySubjectResponse.modified(policyId, label, subject.getId(), dittoHeadersWithETagHeader);
         }
     }
 

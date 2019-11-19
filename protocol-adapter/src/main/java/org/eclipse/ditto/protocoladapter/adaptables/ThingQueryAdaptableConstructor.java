@@ -17,15 +17,16 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 
-final class ThingQueryAdaptableConstructor extends QueryCommandAdaptableConstructor<ThingQueryCommand<?>> {
+final class ThingQueryAdaptableConstructor extends AbstractQueryAdaptableConstructor<ThingQueryCommand<?>> {
 
     @Override
     public TopicPathBuilder getTopicPathBuilder(final ThingQueryCommand command) {
-        return ProtocolFactory.newTopicPathBuilder(command.getThingEntityId()).things();
+        return ProtocolFactory.newTopicPathBuilder(command.getEntityId()).things();
     }
 
     @Override
     public void enhancePayloadBuilder(final ThingQueryCommand<?> command, final PayloadBuilder payloadBuilder) {
         command.getSelectedFields().ifPresent(payloadBuilder::withFields);
     }
+
 }

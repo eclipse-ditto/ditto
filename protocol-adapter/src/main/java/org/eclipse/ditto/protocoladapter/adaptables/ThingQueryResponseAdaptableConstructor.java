@@ -16,13 +16,13 @@ import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
+import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
-final class RetrieveThingsResponseAdaptableConstructor
-        extends AbstractQueryAdaptableConstructor<RetrieveThingsResponse> {
+final class ThingQueryResponseAdaptableConstructor
+        extends AbstractQueryAdaptableConstructor<ThingQueryCommandResponse> {
 
     @Override
-    public void validate(final RetrieveThingsResponse commandResponse) {
+    public void validate(final ThingQueryCommandResponse commandResponse) {
         final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
         if (!responseName.endsWith("response")) {
             throw UnknownCommandResponseException.newBuilder(responseName).build();
@@ -30,13 +30,12 @@ final class RetrieveThingsResponseAdaptableConstructor
     }
 
     @Override
-    public TopicPathBuilder getTopicPathBuilder(final RetrieveThingsResponse command) {
-        final String namespace = command.getNamespace().orElse("_");
-        return ProtocolFactory.newTopicPathBuilderFromNamespace(namespace);
+    public TopicPathBuilder getTopicPathBuilder(final ThingQueryCommandResponse command) {
+        return ProtocolFactory.newTopicPathBuilder(command.getThingEntityId()).things();
     }
 
     @Override
-    public void enhancePayloadBuilder(final RetrieveThingsResponse commandResponse,
+    public void enhancePayloadBuilder(final ThingQueryCommandResponse commandResponse,
             final PayloadBuilder payloadBuilder) {
         payloadBuilder.withStatus(commandResponse.getStatusCode());
         payloadBuilder.withValue(commandResponse.getEntity(commandResponse.getImplementedSchemaVersion()));

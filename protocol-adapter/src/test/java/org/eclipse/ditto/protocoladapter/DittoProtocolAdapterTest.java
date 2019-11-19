@@ -14,6 +14,7 @@ package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2;
+import static org.eclipse.ditto.protocoladapter.TestConstants.POLICY_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -22,6 +23,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
@@ -86,6 +89,31 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final ThingErrorResponse expected =
                 ThingErrorResponse.of(TestConstants.THING_ID, thingNotAccessibleException, DITTO_HEADERS_V_2);
         final ThingErrorResponse actual = (ThingErrorResponse) underTest.fromAdaptable(adaptable);
+
+        assertThat(actual.toJson()).isEqualTo(expected.toJson());
+    }
+
+    @Test
+    public void policyErrorResponseFromAdaptable() {
+        final PolicyNotAccessibleException policyNotAccessibleException =
+                PolicyNotAccessibleException.newBuilder(POLICY_ID).build();
+        final TopicPath topicPath = TopicPath.newBuilder(POLICY_ID)
+                .policies()
+                .twin()
+                .errors()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(policyNotAccessibleException.getStatusCode())
+                        .withValue(policyNotAccessibleException.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final PolicyErrorResponse expected =
+                PolicyErrorResponse.of(POLICY_ID, policyNotAccessibleException, DITTO_HEADERS_V_2);
+        final PolicyErrorResponse actual = (PolicyErrorResponse) underTest.fromAdaptable(adaptable);
 
         assertThat(actual.toJson()).isEqualTo(expected.toJson());
     }
