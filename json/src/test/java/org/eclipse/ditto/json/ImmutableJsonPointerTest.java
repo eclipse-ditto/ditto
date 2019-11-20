@@ -90,19 +90,26 @@ public final class ImmutableJsonPointerTest {
     /** */
     @Test
     public void createInstanceFromStringWithTwoDelimitingSlashes() {
-        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo//bar/baz/");
-        final byte expectedLevelCount = 3;
-
-        assertThat(underTest).hasLevelCount(expectedLevelCount);
+        this.assertConsecutiveSlashesExceptionFor("/foo//bar/baz/");
     }
 
     /** */
     @Test
     public void createInstanceFromStringWithTwoStartingSlashes() {
-        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("//foo/bar/baz/");
-        final byte expectedLevelCount = 3;
+        this.assertConsecutiveSlashesExceptionFor("//foo/bar/baz/");
+    }
 
-        assertThat(underTest).hasLevelCount(expectedLevelCount);
+    /** */
+    @Test
+    public void createInstanceFromStringWithTwoEndingSlashes() {
+        this.assertConsecutiveSlashesExceptionFor("/foo/bar/baz//");
+    }
+
+    private void assertConsecutiveSlashesExceptionFor(final String jsonPointer) {
+        assertThatExceptionOfType(JsonPointerInvalidException.class)
+                .isThrownBy(() -> ImmutableJsonPointer.ofParsed(jsonPointer))
+                .withMessageContaining(jsonPointer)
+                .satisfies(e -> assertThat(e.getDescription()).contains("Consecutive slashes in JSON pointers are not supported."));
     }
 
     /** */
@@ -281,9 +288,9 @@ public final class ImmutableJsonPointerTest {
     }
 
     @Test
-    public void createInstanceFromParsedStringWithEscapedSlashesWorksAsExpected() {
+    public void createInstanceFromParsedStringWithEscapedTildesWorksAsExpected() {
         final String key1 = "foo";
-        final String key2 = "dum~1die~1dum";
+        final String key2 = "~0dum~0die~0dum";
         final String key3 = "baz";
 
         final String pointerString = "/" + key1 + "/" + key2 + "/" + key3;
@@ -291,23 +298,8 @@ public final class ImmutableJsonPointerTest {
         final JsonPointer underTest = ImmutableJsonPointer.ofParsed(pointerString);
 
         assertThat(underTest).hasLevelCount(3);
-        assertThat(underTest.get(1)).contains(JsonFactory.newKey("dum/die/dum"));
-        assertThat(underTest.toString()).isEqualTo("/foo/dum~1die~1dum/baz");
-    }
-
-    @Test
-    public void createInstanceFromParsedStringWithEscapedTildesAndSlashesWorksAsExpected() {
-        final String key1 = "foo";
-        final String key2 = "~0dum~1~0die~1~0dum";
-        final String key3 = "baz";
-
-        final String pointerString = "/" + key1 + "/" + key2 + "/" + key3;
-
-        final JsonPointer underTest = ImmutableJsonPointer.ofParsed(pointerString);
-
-        assertThat(underTest).hasLevelCount(3);
-        assertThat(underTest.get(1)).contains(JsonFactory.newKey("~dum/~die/~dum"));
-        assertThat(underTest.toString()).isEqualTo("/foo/~0dum~1~0die~1~0dum/baz");
+        assertThat(underTest.get(1)).contains(JsonFactory.newKey("~dum~die~dum"));
+        assertThat(underTest.toString()).isEqualTo("/foo/~0dum~0die~0dum/baz");
     }
 
     @Test
@@ -320,7 +312,7 @@ public final class ImmutableJsonPointerTest {
 
         assertThat(underTest).hasLevelCount(3);
         assertThat(underTest.get(1)).contains(key2);
-        assertThat(underTest.toString()).isEqualTo("/foo/~0dum~1~0die~1~0dum/baz");
+        assertThat(underTest.toString()).isEqualTo("/foo/~0dum/~0die/~0dum/baz");
     }
 
 }

@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 
 /**
  * Default implementation of {@link JwtAuthorizationContextProvider}.
@@ -39,7 +40,7 @@ public final class DefaultJwtAuthorizationContextProvider implements JwtAuthoriz
      * passed to {@link #getAuthorizationContext(JsonWebToken)}.
      * @return the created instance.
      */
-    public static DefaultJwtAuthorizationContextProvider getInstance(
+    public static DefaultJwtAuthorizationContextProvider of(
             final JwtAuthorizationSubjectsProvider authorizationSubjectsProvider) {
 
         return new DefaultJwtAuthorizationContextProvider(authorizationSubjectsProvider);

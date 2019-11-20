@@ -39,9 +39,11 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.jwt.ImmutableJsonWebKey;
+import org.eclipse.ditto.model.jwt.JsonWebKey;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.security.cache.PublicKeyIdWithIssuer;
-import org.eclipse.ditto.services.gateway.util.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
@@ -68,6 +70,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
     private static final long JWK_REQUEST_TIMEOUT_MILLISECONDS = 5000;
     private static final String OPENID_CONNECT_DISCOVERY_PATH = "/.well-known/openid-configuration";
+    private static final String HTTPS = "https://";
     private static final JsonFieldDefinition<String> JSON_JWKS_URI = JsonFieldDefinition.ofString("jwks_uri");
 
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
@@ -148,7 +151,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         } else {
             iss = issuer;
         }
-        return iss + OPENID_CONNECT_DISCOVERY_PATH;
+        return HTTPS + iss + OPENID_CONNECT_DISCOVERY_PATH;
     }
 
     private CompletableFuture<JsonArray> mapResponseToJsonArray(final HttpResponse response) {
@@ -176,6 +179,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                     .toCompletableFuture()
                     .get(JWK_REQUEST_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
         } catch (final ExecutionException | InterruptedException | TimeoutException e) {
+            Thread.currentThread().interrupt();
             throw new IllegalStateException(
                     MessageFormat.format("Got Exception from discovery endpoint <{0}>.", discoveryEndpoint), e);
         }

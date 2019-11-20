@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.sse;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -63,6 +64,6 @@ public interface SseRouteBuilder {
      * @return the route.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Route build(RequestContext requestContext, Supplier<DittoHeaders> dittoHeadersSupplier);
+    Route build(RequestContext requestContext, Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier);
 
 }

@@ -167,12 +167,9 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or one of the defined query parameters was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or one of the defined query parameters was invalid.
           content:
             application/json:
               schema:
@@ -194,10 +191,8 @@ paths:
     put:
       summary: Create or update a Thing with a specified ID
       description: |-
-        Create or update the Thing specified by the `thingId` path parameter and the optional JSON body. The `thingId` has to:
-
-          * contain a mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character
-          * conform to RFC-3986 (URI)
+        Create or update the Thing specified by the `thingId` path parameter and the optional JSON body. The `thingId` has to
+        conform to the [namespaced entity ID notation](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id).
 
         #### Valid examples
 
@@ -312,12 +307,9 @@ paths:
                 type: string
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or the JSON of the Thing to be created/modified was either invalid or did contain a `thingId` which did not match the ID in the URL.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or the JSON of the Thing to be created/modified was either invalid or did contain a `thingId` which did not match the ID in the URL.
           content:
             application/json:
               schema:
@@ -369,10 +361,8 @@ paths:
           description: The Thing was successfully deleted.
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -440,10 +430,8 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -487,12 +475,9 @@ paths:
                 type: string
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or the JSON was invalid, or no valid ACL JSON object.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or the JSON was invalid, or no valid ACL JSON object.
           content:
             application/json:
               schema:
@@ -571,10 +556,8 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -637,12 +620,9 @@ paths:
                 type: string
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or the JSON was invalid, or no valid ACL JSON object.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or the JSON was invalid, or no valid ACL JSON object.
           content:
             application/json:
               schema:
@@ -692,10 +672,8 @@ paths:
           description: The ACL entry was successfully deleted.
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -752,10 +730,8 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -814,12 +790,9 @@ paths:
                 type: string
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or the JSON was invalid or was not a JSON object.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or the JSON was invalid or was not a JSON object.
           content:
             application/json:
               schema:
@@ -865,10 +838,8 @@ paths:
           description: The Attributes were successfully deleted.
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -897,7 +868,7 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/things/{thingId}/attributes/{attributePath}':
     get:
-      ummary: Retrieve a specific Attribute of a specific Thing
+      summary: Retrieve a specific Attribute of a specific Thing
       description: |-
         Returns a specific Attribute of the Thing identified by the `thingId` path parameter. The Attribute (JSON) can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
         `/things/{thingId}/attributes/address/city` in order to retrieve the `city` field of an `address` object.
@@ -922,10 +893,8 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -982,10 +951,8 @@ paths:
                 type: string
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1032,10 +999,8 @@ paths:
           description: The Attribute was successfully deleted.
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1102,12 +1067,9 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or at least one of the defined query parameters was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or at least one of the defined query parameters was invalid.
           content:
             application/json:
               schema:
@@ -1167,12 +1129,9 @@ paths:
                 type: string
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or the JSON was invalid or was not a JSON object.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or the JSON was invalid or was not a JSON object.
           content:
             application/json:
               schema:
@@ -1225,10 +1184,8 @@ paths:
           description: The Features were successfully deleted.
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1285,12 +1242,9 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or at least one of the defined query parameters was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or at least one of the defined query parameters was invalid.
           content:
             application/json:
               schema:
@@ -1349,12 +1303,9 @@ paths:
                 type: string
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or the JSON of the Feature to be created was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or the JSON of the Feature to be created was invalid.
           content:
             application/json:
               schema:
@@ -1408,10 +1359,8 @@ paths:
           description: The Feature was successfully deleted.
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1469,12 +1418,9 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or at least one of the defined query parameters was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or at least one of the defined query parameters was invalid.
           content:
             application/json:
               schema:
@@ -1538,12 +1484,9 @@ paths:
                 type: string
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or the JSON was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or the JSON was invalid.
           content:
             application/json:
               schema:
@@ -1602,10 +1545,8 @@ paths:
           description: The Definition was successfully deleted.
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1666,12 +1607,9 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or at least one of the defined query parameters was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or at least one of the defined query parameters was invalid.
           content:
             application/json:
               schema:
@@ -1727,12 +1665,9 @@ paths:
                 type: string
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or the JSON was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or the JSON was invalid.
           content:
             application/json:
               schema:
@@ -1786,10 +1721,8 @@ paths:
           description: The Properties were successfully deleted.
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1844,10 +1777,8 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1901,12 +1832,9 @@ paths:
                 type: string
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or the JSON was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or the JSON was invalid.
           content:
             application/json:
               schema:
@@ -1955,10 +1883,8 @@ paths:
           description: The Property was successfully deleted.
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -2007,12 +1933,9 @@ paths:
           description: The Claim message was processed successfully and no custom response body was set. The response code defaults to `204` but may be chosen by the recipient.
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or at least one of the defined path parameters was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or at least one of the defined path parameters was invalid.
           content:
             application/json:
               schema:
@@ -2061,12 +1984,9 @@ paths:
           description: The message was sent but not necessarly received by the Thing (fire and forget).
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or at least one of the defined path parameters was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or at least one of the defined path parameters was invalid.
           content:
             application/json:
               schema:
@@ -2115,12 +2035,9 @@ paths:
           description: The message was sent (fire and forget).
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or at least one of the defined path parameters was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or at least one of the defined path parameters was invalid.
           content:
             application/json:
               schema:
@@ -2170,12 +2087,9 @@ paths:
           description: The message was sent but not necessarly received by the Feature (fire and forget).
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or at least one of the defined path parameters was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or at least one of the defined path parameters was invalid.
           content:
             application/json:
               schema:
@@ -2225,12 +2139,9 @@ paths:
           description: The message was sent (fire and forget).
         '400':
           description: |-
-            The request could not be completed. The `thingId` either
-
-              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-3986 (URI)
-
-            Or at least one of the defined path parameters was invalid.
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or at least one of the defined path parameters was invalid.
           content:
             application/json:
               schema:
@@ -2523,7 +2434,7 @@ components:
         - message
     Attributes:
       type: object
-      description: An arbitrary JSON object.
+      description: "Attributes of a Thing: an arbitrary JSON object."
     FeatureDefinition:
       type: array
       items:
@@ -2534,16 +2445,14 @@ components:
       pattern: ([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)
     FeatureProperties:
       type: object
-      description: An arbitrary JSON object.
+      description: "Properties of a Feature: an arbitrary JSON object."
     Feature:
       type: object
       properties:
         definition:
           $ref: '#/components/schemas/FeatureDefinition'
-          description: The Definition of this Feature
         properties:
           $ref: '#/components/schemas/FeatureProperties'
-          description: The Properties of this Feature
     SearchResultThings:
       properties:
         items:
@@ -2559,13 +2468,10 @@ components:
       properties:
         acl:
           $ref: '#/components/schemas/Acl'
-          description: The Access Control List of this Thing containing one AclEntry for each
         attributes:
           $ref: '#/components/schemas/Attributes'
-          description: The attributes of this Thing
         features:
           $ref: '#/components/schemas/Features'
-          description: The Features of this Thing
     Thing:
       type: object
       required:
@@ -2577,23 +2483,17 @@ components:
         thingId:
           type: string
           description: |-
-            Unique identifier representing the Thing - has to:
-
-              * contain the mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character
-              * conform to RFC-3986 (URI)
+            Unique identifier representing the Thing, has to conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
         acl:
           $ref: '#/components/schemas/Acl'
-          description: The Access Control List of this Thing containing one AclEntry for each arbitrary `authorizationSubject` key
         attributes:
           $ref: '#/components/schemas/Attributes'
-          description: The attributes of this Thing
         features:
           $ref: '#/components/schemas/Features'
-          description: The Features of this Thing
     Acl:
       type: object
       description: Access Control List containing one AclEntry for each arbitrary `authorizationSubject` key
-      properties:
       additionalProperties:
         $ref: '#/components/schemas/AclEntry'
     AclEntry:
@@ -2616,7 +2516,6 @@ components:
     Features:
       type: object
       description: List of Features where the key represents the `featureId` of each Feature. The `featureId` key must be unique in the list.
-      properties:
       additionalProperties:
         $ref: '#/components/schemas/Feature'
   responses:
@@ -2700,10 +2599,8 @@ components:
       name: thingId
       in: path
       description: |-
-        The ID of the Thing - has to:
-
-          * contain the mandatory namespace prefix (java package notation + `:` colon)
-          * conform to RFC-3986 (URI)
+        The ID of the Thing has to conform to the namespaced entity ID notation
+        (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
       required: true
       schema:
         type: string

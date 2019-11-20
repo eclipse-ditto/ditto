@@ -90,6 +90,14 @@ public interface TargetBuilder {
     TargetBuilder headerMapping(@Nullable HeaderMapping headerMapping);
 
     /**
+     * Sets the payload mappings for the target.
+     *
+     * @param payloadMapping the payload mappings for this target
+     * @return this builder
+     */
+    TargetBuilder payloadMapping(PayloadMapping payloadMapping);
+
+    /**
      * Build the {@link Target} instance.
      *
      * @return the new {@link Target} instance

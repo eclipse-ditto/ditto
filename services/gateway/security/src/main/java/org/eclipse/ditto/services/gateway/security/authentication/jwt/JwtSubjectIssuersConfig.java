@@ -33,6 +33,8 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 @Immutable
 public final class JwtSubjectIssuersConfig {
 
+    private static final String HTTPS = "https://";
+
     private final Map<String, JwtSubjectIssuerConfig> subjectIssuerConfigMap;
 
     /**
@@ -44,9 +46,14 @@ public final class JwtSubjectIssuersConfig {
         requireNonNull(configItems);
         final Map<String, JwtSubjectIssuerConfig> modifiableSubjectIssuerConfigMap = new HashMap<>();
 
-        configItems.forEach(configItem ->
-                modifiableSubjectIssuerConfigMap.put(configItem.getIssuer(), configItem));
+        configItems.forEach(configItem -> addConfigToMap(configItem, modifiableSubjectIssuerConfigMap));
         subjectIssuerConfigMap = Collections.unmodifiableMap(modifiableSubjectIssuerConfigMap);
+    }
+
+    private static void addConfigToMap(final JwtSubjectIssuerConfig config,
+            final Map<String, JwtSubjectIssuerConfig> map) {
+        map.put(config.getIssuer(), config);
+        map.put(HTTPS + config.getIssuer(), config);
     }
 
     /**
@@ -58,19 +65,6 @@ public final class JwtSubjectIssuersConfig {
      */
     public Optional<JwtSubjectIssuerConfig> getConfigItem(final String issuer) {
         return Optional.ofNullable(subjectIssuerConfigMap.get(issuer));
-    }
-
-    /**
-     * Gets the configuration item for the given subject issuer.
-     *
-     * @param subjectIssuer the subject issuer
-     * @return the configuration for the given subject issuer, or an empty {@link Optional} if no configuration is
-     * provided for this subject issuer
-     */
-    public Optional<JwtSubjectIssuerConfig> getConfigItem(final SubjectIssuer subjectIssuer) {
-        return subjectIssuerConfigMap.values().stream()
-                .filter(jwtSubjectIssuerConfig -> jwtSubjectIssuerConfig.getSubjectIssuer().equals(subjectIssuer))
-                .findFirst();
     }
 
     /**
@@ -93,7 +87,7 @@ public final class JwtSubjectIssuersConfig {
         checkNotNull(subjectIssuer);
 
         return subjectIssuerConfigMap.values().stream()
-                .filter(jwtSubjectIssuerConfig -> subjectIssuer.equals(jwtSubjectIssuerConfig.getSubjectIssuer()))
+                .filter(jwtSubjectIssuerConfig -> jwtSubjectIssuerConfig.getSubjectIssuer().equals(subjectIssuer))
                 .collect(Collectors.toList());
     }
 

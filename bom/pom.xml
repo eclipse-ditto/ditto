@@ -522,6 +522,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-model-jwt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-things</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -588,11 +593,6 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-commands-batch</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -635,11 +635,6 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-events-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-events-batch</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1084,12 +1079,7 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
                 <configuration>
-                    <!-- instead of flattenMode=bom, set the pom-element <dependencyManagement/> explicitly without
-                         <properties/> so that dynamic version properties are resolved in deployed bom. -->
-                    <flattenMode>oss</flattenMode>
-                    <pomElements>
-                        <dependencyManagement/>
-                    </pomElements>
+                    <flattenMode>bom</flattenMode>
                 </configuration>
             </plugin>
         </plugins>

@@ -131,7 +131,15 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "If-None-Match"}, Java type: {@link String}.
      * </p>
      */
-    IF_NONE_MATCH("If-None-Match", EntityTagMatchers.class, String.class, true, false);
+    IF_NONE_MATCH("If-None-Match", EntityTagMatchers.class, String.class, true, false),
+
+    /**
+     * Header definition for "ditto-inbound-payload-mapper".
+     * <p>
+     * Key: {@code "ditto-inbound-payload-mapper"}, Java type: {@link String}.
+     * </p>
+     */
+    INBOUND_PAYLOAD_MAPPER("ditto-inbound-payload-mapper", String.class, false, false);
 
     /**
      * Map to speed up lookup of header definition by key.

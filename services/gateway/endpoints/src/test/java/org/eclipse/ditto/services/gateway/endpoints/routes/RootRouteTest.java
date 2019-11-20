@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
-import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
@@ -43,15 +42,20 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParamete
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRoute;
-import org.eclipse.ditto.services.gateway.endpoints.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.Config;
 
@@ -68,6 +72,7 @@ import akka.http.javadsl.testkit.TestRouteResult;
 /**
  * Tests {@link RootRoute}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public final class RootRouteTest extends EndpointTestBase {
 
     private static final String ROOT_PATH = "/";
@@ -98,8 +103,12 @@ public final class RootRouteTest extends EndpointTestBase {
 
     private static final String HTTPS = "https";
 
-    private TestRoute rootTestRoute;
     private final Executor messageDispatcher;
+
+    private TestRoute rootTestRoute;
+
+    @Mock
+    private HttpClientFacade httpClientFacade;
 
     public RootRouteTest() {
         this.messageDispatcher = Executors.newFixedThreadPool(8);
@@ -112,9 +121,10 @@ public final class RootRouteTest extends EndpointTestBase {
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(protocolConfig, actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
-        final DefaultHttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
+        final JwtAuthenticationFactory jwtAuthenticationFactory =
+                JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(), cacheConfig, httpClientFacade);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(authConfig, cacheConfig, httpClient, messageDispatcher);
+                new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory, messageDispatcher);
 
         final ActorRef proxyActor = createDummyResponseActor();
         final Supplier<ClusterStatus> clusterStatusSupplier = createClusterStatusSupplierMock();
@@ -136,7 +146,7 @@ public final class RootRouteTest extends EndpointTestBase {
                         new ThingsRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
                                 headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(proxyActor, webSocketConfig, actorSystem.eventStream()))
+                .websocketRoute(WebSocketRoute.getInstance(proxyActor, actorSystem.eventStream()))
                 .supportedSchemaVersions(config.getIntList("ditto.gateway.http.schema-versions"))
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)
@@ -346,24 +356,23 @@ public final class RootRouteTest extends EndpointTestBase {
                 withDummyAuthentication(withHttps(HttpRequest.GET(THING_SEARCH_2_PATH)
                         .withHeaders(Collections.singleton(
                                 akka.http.javadsl.model.HttpHeader.parse("x-correlation-id", largeString)))));
-        ;
         final TestRouteResult result = rootTestRoute.run(request);
 
         result.assertStatusCode(StatusCodes.REQUEST_HEADER_FIELDS_TOO_LARGE);
     }
 
-    protected HttpRequest withHttps(final HttpRequest httpRequest) {
+    private HttpRequest withHttps(final HttpRequest httpRequest) {
         return httpRequest.addHeader(RawHeader.create
                 (HttpsEnsuringDirective.X_FORWARDED_PROTO_LBAAS, HTTPS));
     }
 
-    protected HttpRequest withDummyAuthentication(final HttpRequest httpRequest, final String subject) {
+    private HttpRequest withDummyAuthentication(final HttpRequest httpRequest, final String subject) {
         return httpRequest.addHeader(RawHeader.create
                 (HttpHeader.X_DITTO_DUMMY_AUTH.getName(), subject));
 
     }
 
-    protected HttpRequest withDummyAuthentication(final HttpRequest httpRequest) {
+    private HttpRequest withDummyAuthentication(final HttpRequest httpRequest) {
         return withDummyAuthentication(httpRequest, "some-issuer:foo");
     }
 

@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,7 +42,6 @@ import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseAuthorizationEnforcer;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseConnectionSupervisor;
@@ -65,6 +65,7 @@ import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.headers.Accept;
 import akka.http.javadsl.model.sse.ServerSentEvent;
 import akka.http.javadsl.server.Directives;
+import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.JavaPartialFunction;
@@ -142,16 +143,18 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
      */
     @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
     @Override
-    public Route build(final RequestContext ctx, final Supplier<DittoHeaders> dittoHeadersSupplier) {
-        return Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_THINGS),
+    public Route build(final RequestContext ctx, final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
+        return Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS),
                 () -> Directives.pathEndOrSingleSlash(
                         () -> Directives.get(
                                 () -> Directives.headerValuePF(AcceptHeaderExtractor.INSTANCE,
                                         accept -> {
-                                            final DittoHeaders dittoHeaders =
-                                                    getDittoHeadersWithCorrelationId(dittoHeadersSupplier.get());
-                                            sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
-                                            return buildThingsSseRoute(ctx, dittoHeaders);
+
+                                            final CompletionStage<DittoHeaders> dittoHeadersCompletionStage =
+                                                    dittoHeadersSupplier.get()
+                                                            .thenApply(
+                                                                    ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
+                                            return buildThingsSseRoute(ctx, dittoHeadersCompletionStage);
                                         }))));
     }
 
@@ -165,12 +168,12 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                 .build();
     }
 
-    private Route buildThingsSseRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    private Route buildThingsSseRoute(final RequestContext ctx, final CompletionStage<DittoHeaders> dittoHeaders) {
         return parameterOptional(ThingsParameter.FIELDS.toString(),
                 fieldsString -> parameterOptional(ThingsParameter.IDS.toString(),
                         idsString -> parameterOptional(PARAM_NAMESPACES,
                                 namespacesString -> parameterOptional(PARAM_FILTER,
-                                        filterString -> createSseRoute(ctx.getRequest(),
+                                        filterString -> createSseRoute(ctx,
                                                 dittoHeaders,
                                                 getFieldSelector(fieldsString),
                                                 getThingIds(idsString),
@@ -205,30 +208,35 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
              console.log(e.data);
          }, false);
        */
-    private Route createSseRoute(final HttpRequest request,
-            final DittoHeaders dittoHeaders,
+    private Route createSseRoute(final RequestContext ctx,
+            final CompletionStage<DittoHeaders> dittoHeadersStage,
             @Nullable final JsonFieldSelector fieldSelector,
             final Collection<ThingId> targetThingIds,
             final List<String> namespaces,
             @Nullable final String filterString) {
 
-        final Counter messageCounter = DittoMetrics.counter("streaming_messages")
-                        .tag("type", "sse")
-                        .tag("direction", "out");
+        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
+                dittoHeadersStage.thenApply(dittoHeaders -> {
 
-        if (filterString != null) {
-            // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
-            queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
-        }
+                    sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
 
-        final Source<ServerSentEvent, NotUsed> sseSource =
-                Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
-                        EventAndResponsePublisher.props(10))
-                        .mapMaterializedValue(publisherActor -> {
+                    final Counter messageCounter = DittoMetrics.counter("streaming_messages")
+                            .tag("type", "sse")
+                            .tag("direction", "out");
+
+                    if (filterString != null) {
+                        // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
+                        queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
+                    }
+
+                    return Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
+                            EventAndResponsePublisher.props(10))
+                            .mapMaterializedValue(publisherActor -> {
                             final String connectionCorrelationId = dittoHeaders.getCorrelationId().get();
                             sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId, dittoHeaders);
                             streamingActor.tell(
-                                    new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_SSE), null);
+                                    new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_SSE, null),
+                                    null);
                             streamingActor.tell(
                                     new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
                                             dittoHeaders.getAuthorizationContext(), namespaces, filterString), null);
@@ -236,35 +244,38 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                         })
                         .filter(jsonifiable -> jsonifiable instanceof ThingEvent)
                         .map(jsonifiable -> (ThingEvent) jsonifiable)
-                        .filter(thingEvent -> targetThingIds.isEmpty() ||
-                                        targetThingIds.contains(thingEvent.getThingEntityId())
-                                // only Events of the target thingIds
-                        )
-                        .filter(thingEvent -> namespaces.isEmpty() || namespaces.contains(namespaceFromId(thingEvent)))
-                        .map(ThingEventToThingConverter::thingEventToThing)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .map(thing -> {
+                            .filter(thingEvent -> targetThingIds.isEmpty() ||
+                                            targetThingIds.contains(thingEvent.getThingEntityId())
+                                    // only Events of the target thingIds
+                            )
+                            .filter(thingEvent -> namespaces.isEmpty() ||
+                                    namespaces.contains(namespaceFromId(thingEvent)))
+                            .map(ThingEventToThingConverter::thingEventToThing)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .map(thing -> {
                             final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
                                     .orElse(dittoHeaders.getImplementedSchemaVersion());
                             return null != fieldSelector
                                     ? thing.toJson(jsonSchemaVersion, fieldSelector)
                                     : thing.toJson(jsonSchemaVersion);
                         })
-                        .filter(thingJson -> fieldSelector == null || fieldSelector.getPointers().stream()
-                                .filter(p -> !p.equals(Thing.JsonFields.ID.getPointer())) // ignore "thingId"
-                                .anyMatch(
-                                        thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
-                        .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
-                        .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
-                        .via(Flow.fromFunction(msg -> {
-                            messageCounter.increment();
-                            return msg;
-                        }))
-                        .viaMat(eventSniffer.toAsyncFlow(request), Keep.left()) // sniffer shouldn't sniff heartbeats
-                        .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
+                            .filter(thingJson -> fieldSelector == null || fieldSelector.getPointers().stream()
+                                    .filter(p -> !p.equals(Thing.JsonFields.ID.getPointer())) // ignore "thingId"
+                                    .anyMatch(
+                                            thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
+                            .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
+                            .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
+                            .via(Flow.fromFunction(msg -> {
+                                messageCounter.increment();
+                                return msg;
+                            }))
+                            .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()),
+                                    Keep.left()) // sniffer shouldn't sniff heartbeats
+                            .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
+                });
 
-        return Directives.completeOK(sseSource, EventStreamMarshalling.toEventStream());
+        return Directives.completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
     }
 
     private static String namespaceFromId(final ThingEvent thingEvent) {

@@ -84,9 +84,9 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     public static MessageHeadersBuilder newInstance(final MessageDirection direction, final ThingId thingId,
             final CharSequence subject) {
 
-        checkNotNull(direction, MessageHeaderDefinition.DIRECTION.getKey());
-        checkNotNull(thingId, MessageHeaderDefinition.THING_ID.getKey());
-        argumentNotEmpty(subject, MessageHeaderDefinition.SUBJECT.getKey());
+        checkNotNull(direction, "direction");
+        checkNotNull(thingId, "thing-id");
+        argumentNotEmpty(subject, "subject");
 
         final Map<String, String> initialHeaders = new HashMap<>();
         initialHeaders.put(MessageHeaderDefinition.DIRECTION.getKey(), direction.toString());
@@ -156,6 +156,7 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * @return this builder to allow method chaining.
      * @throws IllegalArgumentException if {@code contentType} is empty.
      */
+    @Override
     public MessageHeadersBuilder contentType(@Nullable final CharSequence contentType) {
         putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType);
         return myself;
@@ -242,23 +243,6 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
             final String msg = MessageFormat.format("HTTP status code <{0}> is unknown!", statusCode);
             return new IllegalArgumentException(msg);
         }));
-    }
-
-    /**
-     * Sets the specified URL which is used for message validation.
-     *
-     * @param validationUrl the validation URL to be set.
-     * @return this builder to allow method chaining.
-     * @throws IllegalArgumentException if {@code validationUrl} is empty.
-     */
-    public MessageHeadersBuilder validationUrl(@Nullable final CharSequence validationUrl) {
-        final MessageHeaderDefinition definition = MessageHeaderDefinition.VALIDATION_URL;
-        if (null != validationUrl) {
-            putCharSequence(definition, validationUrl);
-        } else {
-            removeHeader(definition.getKey());
-        }
-        return myself;
     }
 
     @Override

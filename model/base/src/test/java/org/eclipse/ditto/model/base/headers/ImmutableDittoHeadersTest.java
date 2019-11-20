@@ -64,6 +64,7 @@ public final class ImmutableDittoHeadersTest {
     private static final Collection<String> KNOWN_READ_SUBJECTS = Collections.singleton(KNOWN_READ_SUBJECT);
     private static final String KNOWN_CONTENT_TYPE = "application/json";
     private static final String KNOWN_ORIGIN = "knownOrigin";
+    private static final String KNOWN_MAPPER = "knownMapper";
 
     @Test
     public void assertImmutability() {
@@ -95,6 +96,7 @@ public final class ImmutableDittoHeadersTest {
                 .ifNoneMatch(KNOWN_IF_NONE_MATCH)
                 .origin(KNOWN_ORIGIN)
                 .contentType(KNOWN_CONTENT_TYPE)
+                .inboundPayloadMapper(KNOWN_MAPPER)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -220,6 +222,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG.toString())
                 .set(DittoHeaderDefinition.ORIGIN.getKey(), KNOWN_ORIGIN)
                 .set(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE)
+                .set(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -378,6 +381,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG.toString());
         result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE);
         result.put(DittoHeaderDefinition.ORIGIN.getKey(), KNOWN_ORIGIN);
+        result.put(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER);
 
         return result;
     }

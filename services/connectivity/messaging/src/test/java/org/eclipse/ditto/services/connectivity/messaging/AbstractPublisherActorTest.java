@@ -70,19 +70,7 @@ public abstract class AbstractPublisherActorTest {
 
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
-            final OutboundSignal outboundSignal = mock(OutboundSignal.class);
-            final Signal source = mock(Signal.class);
-            when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
-            when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-            when(outboundSignal.getSource()).thenReturn(source);
-            final Target target = createTestTarget();
-            when(outboundSignal.getTargets()).thenReturn(Collections.singletonList(decorateTarget(target)));
-
-            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
-            final ExternalMessage externalMessage =
-                    ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders).withText("payload").build();
-            final OutboundSignal.WithExternalMessage mappedOutboundSignal =
-                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
+            final OutboundSignal.WithExternalMessage mappedOutboundSignal = getMockOutboundSignal();
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);
@@ -120,5 +108,20 @@ public abstract class AbstractPublisherActorTest {
     protected abstract Target decorateTarget(Target target);
 
     protected abstract void verifyPublishedMessage() throws Exception;
+
+    protected OutboundSignal.WithExternalMessage getMockOutboundSignal() {
+        final OutboundSignal outboundSignal = mock(OutboundSignal.class);
+        final Signal source = mock(Signal.class);
+        when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
+        when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+        when(outboundSignal.getSource()).thenReturn(source);
+        final Target target = createTestTarget();
+        when(outboundSignal.getTargets()).thenReturn(Collections.singletonList(decorateTarget(target)));
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
+        final ExternalMessage externalMessage =
+                ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders).withText("payload").build();
+        return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
+    }
 
 }

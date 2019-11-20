@@ -31,6 +31,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.EventStream;
+import akka.http.javadsl.model.ws.PeerClosedConnectionException;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.actor.AbstractActorSubscriber;
 import akka.stream.actor.ActorSubscriberMessage;
@@ -114,7 +115,13 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
                 })
                 .match(ActorSubscriberMessage.OnError.class, onError -> {
                     final Throwable cause = onError.cause();
-                    if (cause instanceof DittoRuntimeException) {
+                    if (cause instanceof PeerClosedConnectionException) {
+                        // handle PeerClosedConnectionException and stop actor because WS connection was closed.
+                        logger.debug("Received PeerClosedConnectionException with close code <{}> and close reason <{}>.",
+                                ((PeerClosedConnectionException) cause).closeCode(), ((PeerClosedConnectionException) cause).closeReason());
+                        getContext().stop(getSelf());
+                    }
+                    else if (cause instanceof DittoRuntimeException) {
                         handleDittoRuntimeException(delegateActor, (DittoRuntimeException) cause);
                     } else if (cause instanceof JsonRuntimeException) {
                         handleDittoRuntimeException(delegateActor, new DittoJsonException((RuntimeException) cause));

@@ -25,12 +25,11 @@ import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAudienceInvalidException;
+import org.eclipse.ditto.model.jwt.JwtAudienceInvalidException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
-import org.eclipse.ditto.signals.commands.batch.exceptions.BatchAlreadyExecutingException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
@@ -51,7 +50,6 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 AclModificationInvalidException.class,
                 AuthorizationSubjectBlockedException.class,
                 JsonTypeNotParsableException.class,
-                BatchAlreadyExecutingException.class,
                 InvalidNamespacesException.class,
                 NamespaceBlockedException.class,
                 PlaceholderFunctionSignatureInvalidException.class,

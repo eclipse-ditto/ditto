@@ -13,18 +13,58 @@ This page shows the basics for operating Ditto.
 
 ## Configuration
 
+Each of Ditto's microservice has many options for configuration, e.g. timeouts, cache sizes, etc.
+
+In order to have a look at all possible configuration options and what default values they have, here are the configuration
+files of Ditto's microservices:
+* Policies: [policies.conf](https://github.com/eclipse/ditto/blob/master/services/policies/starter/src/main/resources/policies.conf)
+* Things: [things.conf](https://github.com/eclipse/ditto/blob/master/services/things/starter/src/main/resources/things.conf)
+* Things-Search: [things-search.conf](https://github.com/eclipse/ditto/blob/master/services/thingsearch/starter/src/main/resources/things-search.conf)
+* Concierge: [concierge.conf](https://github.com/eclipse/ditto/blob/master/services/concierge/starter/src/main/resources/concierge.conf)
+* Connectivity: [connectivity.conf](https://github.com/eclipse/ditto/blob/master/services/connectivity/starter/src/main/resources/connectivity.conf)
+* Gateway: [gateway.conf](https://github.com/eclipse/ditto/blob/master/services/gateway/starter/src/main/resources/gateway.conf)
+
+Whenever you find the syntax `${?UPPER_CASE_ENV_NAME}` in the configuration files, you may overwrite the default value 
+by specifying that environment variable when running the container.
+
+When no environment variable is defined in the config, you may change the default value anyway by specifying a 
+"System property" you pass to the Java process.
+
+The following example configures the devops password of the gateway-service started via docker-compose. In order
+to supply additional configuration one has to add the variable in the corresponding `entrypoint` section of the
+`docker-compose.yml` file.
+
+```yml
+    ...
+    entrypoint:
+      - java
+      # Alternative approach for configuration of the service
+      - -Dditto.gateway.authentication.devops.password=foobar
+      - -jar
+      - starter.jar
+```
+
+The executable for the microservice is called `starter.jar`. The configuration variables have to be set before
+the `-jar` option.
+
 ### OpenID Connect
 
 The authentication provider must be added to the ditto-gateway configuration.
 
-```java
+```
 ditto.gateway.authentication {
     oauth {
       openid-connect-issuers = {
-        myprovider = "https://localhost:9000/"
+        myprovider = "localhost:9000"
       }
     }
 }
+```
+
+In order to do this by specifying a Java system property, use the following:
+
+```
+-Dditto.gateway.authentication.oauth.openid-connect-issuers.myprovider=localhost:9000
 ```
 
 The configured subject-issuer will be used to prefix the value of the “sub” claim, e.g.
@@ -33,7 +73,7 @@ The configured subject-issuer will be used to prefix the value of the “sub” 
 {
   "subjects": {
     "<provider>:<sub-claim>": {
-    "type": "generated"
+      "type": "generated"
     }
   }
 }
@@ -49,7 +89,7 @@ may be put infront of ditto to handle the token-logic.
 **If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for the 
 akka-http ssl configuration.
 
-```java
+```
 ssl-config {
   trustManager = {
     stores = [

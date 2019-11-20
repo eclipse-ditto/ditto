@@ -21,6 +21,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 
 /**
  * Checks if the given {@link ConnectivityCommand} is valid by trying to create the client actor props.
@@ -30,13 +31,17 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
     private final ClientActorPropsFactory propsFactory;
     private final ActorRef conciergeForwarder;
     private final ConnectionValidator connectionValidator;
+    private final ActorSystem actorSystem;
 
     public DittoConnectivityCommandValidator(
-            final ClientActorPropsFactory propsFactory, final ActorRef conciergeForwarder,
-            final ConnectionValidator connectionValidator) {
+            final ClientActorPropsFactory propsFactory,
+            final ActorRef conciergeForwarder,
+            final ConnectionValidator connectionValidator,
+            final ActorSystem actorSystem) {
         this.propsFactory = propsFactory;
         this.conciergeForwarder = conciergeForwarder;
         this.connectionValidator = connectionValidator;
+        this.actorSystem = actorSystem;
     }
 
     @Override
@@ -47,7 +52,7 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
             case ModifyConnection.TYPE:
                 final Connection connection = getConnectionFromCommand(command);
                 if (connection != null) {
-                    connectionValidator.validate(connection, command.getDittoHeaders());
+                    connectionValidator.validate(connection, command.getDittoHeaders(), actorSystem);
                     propsFactory.getActorPropsForType(connection, conciergeForwarder);
                 } else {
                     // should never happen

@@ -42,8 +42,9 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
     private static final String MESSAGE_TEMPLATE = "Policy ID ''{0}'' is not valid!";
 
     private static final String DEFAULT_DESCRIPTION =
-            "It must contain a namespace prefix (java package notation + a colon ':') + a name and must be a valid " +
-                    "URI path segment according to RFC-3986";
+            "It must conform to the namespaced entity ID notation (see Ditto documentation)";
+
+    private static final URI DEFAULT_HREF = URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
 
     private static final long serialVersionUID = 8154256308793903738L;
 
@@ -53,7 +54,7 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
      * @param policyId the invalid Policy ID.
      */
     public PolicyIdInvalidException(@Nullable final String policyId) {
-        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, policyId), DEFAULT_DESCRIPTION, null, null);
+        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, policyId), DEFAULT_DESCRIPTION, null, DEFAULT_HREF);
     }
 
     private PolicyIdInvalidException(final DittoHeaders dittoHeaders,
@@ -105,7 +106,7 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
+                .href(readHRef(jsonObject).orElse(DEFAULT_HREF))
                 .build();
     }
 
@@ -123,6 +124,7 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
+            href(DEFAULT_HREF);
         }
 
         private Builder(@Nullable final CharSequence policyId) {

@@ -35,6 +35,9 @@ entries:
       - title: Milestone releases
         output: web
         subfolderitems:
+        - title: 1.0.0-M2
+          url: /release_notes_100-M2.html
+          output: web
         - title: 1.0.0-M1a
           url: /release_notes_100-M1a.html
           output: web
@@ -106,6 +109,9 @@ entries:
           output: web
         - title: Policy
           url: /basic-policy.html
+          output: web
+        - title: Namespaces and Names
+          url: /basic-namespaces-and-names.html
           output: web
 
     - title: Authentication and Authorization
@@ -228,6 +234,9 @@ entries:
       output: web
     - title: MQTT 3.1.1 protocol binding
       url: /connectivity-protocol-bindings-mqtt.html
+      output: web
+    - title: HTTP 1.1 protocol binding
+      url: /connectivity-protocol-bindings-http.html
       output: web
     - title: Kafka 2.x protocol binding
       url: /connectivity-protocol-bindings-kafka2.html

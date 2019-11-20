@@ -181,12 +181,11 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     Map<String, String> getSpecificConfig();
 
     /**
-     * Returns the MappingContext to apply in this connection containing either JavaScript scripts or a custom
-     * implementation in Java mapping from external messages to internal Ditto Protocol messages.
+     * Returns the payload mapping definitions for this connection.
      *
-     * @return the MappingContext to apply for this connection
+     * @return the payload mapping definitions for this connection
      */
-    Optional<MappingContext> getMappingContext();
+    PayloadMappingDefinition getPayloadMappingDefinition();
 
     /**
      * Returns the tags of this {@code Connection}.
@@ -351,9 +350,18 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
 
         /**
          * JSON field containing the {@code Connection} {@link MappingContext} to apply.
+         * @deprecated MAPPING_CONTEXT is deprecated, use MAPPING_DEFINITIONS instead
          */
+        @Deprecated
         public static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
                 JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the definitions of {@code Connection} mappings.
+         */
+        public static final JsonFieldDefinition<JsonObject> MAPPING_DEFINITIONS =
+                JsonFactory.newJsonObjectFieldDefinition("mappingDefinitions", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

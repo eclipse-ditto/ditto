@@ -88,8 +88,6 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
      */
     public static final String ACTOR_NAME_PREFIX = "subUpdater";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SubUpdater.class);
-
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     // pseudo-random number generator for force updates. quality matters little.
@@ -172,14 +170,10 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
 
     private void tick(final Clock tick) {
         final boolean forceUpdate = forceUpdate();
-        if (state == State.UPDATING) {
-            LOGGER.trace("Ignoring tick in state <{}> with changed=<{}>.", state, localSubscriptionsChanged);
-        } else if (!localSubscriptionsChanged && !forceUpdate) {
-            LOGGER.trace("Tick in state <{}> with changed=<{}>: flushing acks.", state, localSubscriptionsChanged);
+        if (!localSubscriptionsChanged && !forceUpdate) {
             moveAwaitUpdateToAwaitAcknowledge();
             flushAcknowledgements();
         } else {
-            LOGGER.trace("Updating.");
             final SubscriptionsReader snapshot;
             final CompletionStage<Void> ddataOp;
             if (subscriptions.isEmpty()) {
@@ -207,7 +201,6 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
     }
 
     private void updateSuccess(final SubscriptionsReader snapshot) {
-        log.debug("updateSuccess");
         flushAcknowledgements();
         state = State.WAITING;
         // race condition possible -- some published messages may arrive before the acknowledgement

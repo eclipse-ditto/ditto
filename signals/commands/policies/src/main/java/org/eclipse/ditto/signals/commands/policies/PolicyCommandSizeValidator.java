@@ -24,7 +24,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandSizeValidator;
 public final class PolicyCommandSizeValidator extends AbstractCommandSizeValidator<PolicyTooLargeException> {
 
     /**
-     * System property name of the property defining the max Topology size in bytes.
+     * System property name of the property defining the max policy size in bytes.
      */
     public static final String DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES = "ditto.limits.policies.max-size";
 

@@ -31,13 +31,14 @@ public final class JavaScriptMessageMapperFactory {
     /**
      * Creates a MessageMapperConfigurationBuilder for JavaScript.
      *
+     * @param id the id of the mapper
      * @param properties the Map of configuration properties to initialize the builder with
      * @return the ConfigurationBuilder
      */
     public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMessageMapperConfigurationBuilder(
-            final Map<String, String> properties) {
+            final String id, final Map<String, String> properties) {
 
-        return new ImmutableJavaScriptMessageMapperConfiguration.Builder(properties);
+        return new ImmutableJavaScriptMessageMapperConfiguration.Builder(id, properties);
     }
 
     /**

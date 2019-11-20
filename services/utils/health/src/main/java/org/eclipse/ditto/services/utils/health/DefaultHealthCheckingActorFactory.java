@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.utils.health;
 
 import java.util.LinkedHashMap;
 
+import javax.annotation.Nullable;
+
 import akka.actor.Props;
 
 /**
@@ -40,10 +42,10 @@ public final class DefaultHealthCheckingActorFactory {
      * @param otherProps props of other child actors.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final HealthCheckingActorOptions options, final Props persistenceCheckerProps,
+    public static Props props(final HealthCheckingActorOptions options, @Nullable final Props persistenceCheckerProps,
             final Props... otherProps) {
         final LinkedHashMap<String, Props> childActorProps = new LinkedHashMap<>();
-        if (options.isPersistenceCheckEnabled()) {
+        if (options.isPersistenceCheckEnabled() && persistenceCheckerProps != null) {
             childActorProps.put(PERSISTENCE_LABEL, persistenceCheckerProps);
         }
         for (final Props props : otherProps) {

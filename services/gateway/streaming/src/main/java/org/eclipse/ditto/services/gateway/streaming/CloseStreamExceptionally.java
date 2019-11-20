@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 /**
  * Command for triggering the closing of a streaming connection (e. g. WebSocket) because of an exception.
  */
-public final class CloseStreamExceptionally {
+public final class CloseStreamExceptionally implements StreamControlMessage{
 
     private final DittoRuntimeException reason;
     private final String connectionCorrelationId;

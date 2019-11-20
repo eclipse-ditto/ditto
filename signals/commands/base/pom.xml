@@ -75,6 +75,7 @@
                             <exclude>org.eclipse.ditto.signals.commands.base.ErrorRegistry</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.base.JsonParsable</exclude>
                             <exclude>org.eclipse.ditto.signals.commands.base.JsonParsableCommandRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

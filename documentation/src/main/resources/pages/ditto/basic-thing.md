@@ -24,32 +24,8 @@ Examples:
 
 ### Thing ID
 
-Unique identifier of a Thing. For choosing custom Thing IDs when creating a Thing, following rules apply:
-
-#### Allowed Characters
-
-Due to the fact that a Thing ID often needs to be set in the path of a HTTP request, we have restricted the set of
-allowed characters to those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc3986.txt).
-
-In order to separate Things from different Solution spaces from each other, they are required to be created in a
-specific *Namespace*.
-This Namespace needs to be provided additionally to every REST request as a **prefix** of the Thing ID:
-
-* The Namespace must conform to Java package naming:
-    * must start with a lower- or uppercase character from a-z,
-    * can use dots (`.`) to separate characters,
-    * a dot (`.`) must be followed by a lower- or uppercase character from a-z,
-    * numbers can be used,
-    * underscore can be used,
-* The Namespace is separated by a mandatory colon (`:`) from the thingId.
-
-#### Examples
-
-Following some examples of valid Thing IDs are given:
-* `org.eclipse.ditto:fancycar-1`,
-* `foo:fancycar-1`,
-* `org.eclipse.ditto_42:fancycar-1`.
-
+Unique identifier of a Thing. For choosing custom Thing IDs when creating a Thing, the rules for 
+[namespaced IDs](basic-namespaces-and-names.html#namespaced-id) apply.
 
 ### Access control
 

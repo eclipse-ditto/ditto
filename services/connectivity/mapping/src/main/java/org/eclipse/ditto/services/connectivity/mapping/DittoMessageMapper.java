@@ -12,17 +12,18 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import static java.util.Collections.singletonList;
+
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
-import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -39,61 +40,66 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
  * A message mapper implementation for the Ditto Protocol.
  * Expects messages to contain a JSON serialized Ditto Protocol message.
  */
-public final class DittoMessageMapper implements MessageMapper {
+@PayloadMapper(
+        alias = {"Ditto",
+                // legacy full qualified name
+                "org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper"})
+public final class DittoMessageMapper extends AbstractMessageMapper {
+
+
+    private static final Map<String, String> DEFAULT_OPTIONS;
 
     /**
      * The context representing this mapper
      */
-    public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
-            DittoMessageMapper.class.getCanonicalName(),
-            Collections.emptyMap()
-    );
+    public static final MappingContext CONTEXT;
 
-    /**
-     * Constructs a new {@code DittoMessageMapper} object.
-     * This constructor is required as the the instance is created via reflection.
-     */
-    public DittoMessageMapper() {
-        super();
+    static {
+        DEFAULT_OPTIONS = new HashMap<>();
+        DEFAULT_OPTIONS.put(
+                MessageMapperConfiguration.CONTENT_TYPE_BLACKLIST,
+                "application/vnd.eclipse-hono-empty-notification" +
+                        "," +
+                        "application/vnd.eclipse-hono-dc-notification+json"
+        );
+        CONTEXT = ConnectivityModelFactory.newMappingContext(
+                DittoMessageMapper.class.getCanonicalName(),
+                DEFAULT_OPTIONS
+        );
     }
 
     @Override
-    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
-        // no op
-    }
-
-    @Override
-    public Optional<String> getContentType() {
-        return Optional.of(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-    }
-
-    @Override
-    public Optional<Adaptable> map(final ExternalMessage message) {
+    public List<Adaptable> map(final ExternalMessage message) {
         final String payload = extractPayloadAsString(message);
         final JsonifiableAdaptable jsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(() ->
                 ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(payload))
         );
 
         final DittoHeaders mergedHeaders = mergeHeaders(message, jsonifiableAdaptable);
-        return Optional.of(
+        return singletonList(
                 ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable).withHeaders(mergedHeaders).build());
     }
 
     @Override
-    public Optional<ExternalMessage> map(final Adaptable adaptable) {
+    public List<ExternalMessage> map(final Adaptable adaptable) {
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
 
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 
         final boolean isError = TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion());
         final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
-        return Optional.of(
+        return singletonList(
                 ExternalMessageFactory.newExternalMessageBuilder(headers)
                         .withTopicPath(adaptable.getTopicPath())
                         .withText(jsonString)
                         .asResponse(isResponse)
                         .asError(isError)
                         .build());
+    }
+
+    @Override
+    public Map<String, String> getDefaultOptions() {
+        return DEFAULT_OPTIONS;
     }
 
     private static String extractPayloadAsString(final ExternalMessage message) {

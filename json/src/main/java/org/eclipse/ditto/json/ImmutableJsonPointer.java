@@ -34,11 +34,10 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class ImmutableJsonPointer implements JsonPointer {
 
+    private static final Pattern DOUBLE_SLASH_PATTERN = Pattern.compile("//");
     private static final String SLASH = "/";
     private static final String SLASH_REGEX = "/(?!/)"; // a SLASH which is not followed by another slash
     private static final Pattern SINGLE_SLASH_REGEX_PATTERN = Pattern.compile(SLASH_REGEX);
-    private static final Pattern ESCAPED_SLASH_PATTERN = Pattern.compile("~1");
-    private static final Pattern DECODED_SLASH_PATTERN = Pattern.compile(SLASH);
     private static final Pattern ESCAPED_TILDE_PATTERN = Pattern.compile("~0");
     private static final Pattern DECODED_TILDE_PATTERN = Pattern.compile("~");
 
@@ -80,11 +79,12 @@ final class ImmutableJsonPointer implements JsonPointer {
             result = newInstance(Collections.singletonList(((JsonKey) slashDelimitedCharSequence)));
         } else if (0 == slashDelimitedCharSequence.length()) {
             result = empty();
+        } else if (DOUBLE_SLASH_PATTERN.matcher(slashDelimitedCharSequence).find()) {
+            throw JsonPointerInvalidException.newBuilderForConsecutiveSlashes(slashDelimitedCharSequence)
+                    .build();
         } else {
             final List<JsonKey> jsonKeys = Stream.of(SINGLE_SLASH_REGEX_PATTERN.split(slashDelimitedCharSequence))
                     .filter(keyName -> !keyName.isEmpty()) // ignore empty segments
-                    .filter(keyName -> !keyName.equals(SLASH)) // ignore "/" segments
-                    .map(ImmutableJsonPointer::decodeSlash)
                     .map(ImmutableJsonPointer::decodeTilde)
                     .map(JsonFactory::newKey)
                     .collect(toList());
@@ -93,11 +93,6 @@ final class ImmutableJsonPointer implements JsonPointer {
         }
 
         return result;
-    }
-
-    private static String decodeSlash(final CharSequence keyString) {
-        final Matcher matcher = ESCAPED_SLASH_PATTERN.matcher(keyString);
-        return matcher.replaceAll(SLASH);
     }
 
     private static String decodeTilde(final CharSequence keyString) {
@@ -334,7 +329,6 @@ final class ImmutableJsonPointer implements JsonPointer {
         } else {
             stringRepresentation = SLASH + jsonKeyHierarchy.stream()
                     .map(ImmutableJsonPointer::escapeTilde)
-                    .map(ImmutableJsonPointer::escapeSlash)
                     .collect(Collectors.joining(SLASH));
         }
         return stringRepresentation;
@@ -344,11 +338,6 @@ final class ImmutableJsonPointer implements JsonPointer {
         final String keyString = jsonKey.toString();
         final Matcher matcher = DECODED_TILDE_PATTERN.matcher(keyString);
         return matcher.replaceAll(ESCAPED_TILDE_PATTERN.toString());
-    }
-
-    private static String escapeSlash(final CharSequence jsonKeyString) {
-        final Matcher matcher = DECODED_SLASH_PATTERN.matcher(jsonKeyString);
-        return matcher.replaceAll(ESCAPED_SLASH_PATTERN.toString());
     }
 
 }

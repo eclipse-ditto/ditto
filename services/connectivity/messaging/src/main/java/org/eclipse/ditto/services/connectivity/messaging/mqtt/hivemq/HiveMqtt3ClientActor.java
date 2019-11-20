@@ -62,7 +62,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     private HiveMqtt3ClientActor(final Connection connection,
             final ActorRef conciergeForwarder,
             final HiveMqtt3ClientFactory clientFactory) {
-        super(connection, connection.getConnectionStatus(), conciergeForwarder);
+        super(connection, conciergeForwarder);
         this.clientFactory = clientFactory;
 
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
@@ -211,7 +211,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
             final Mqtt3Client client) {
         final Props publisherActorProps =
                 HiveMqtt3PublisherActor.props(connectionId, targets, client, isDryRun());
-        return getContext().actorOf(publisherActorProps, HiveMqtt3PublisherActor.NAME);
+        return startChildActorConflictFree(HiveMqtt3PublisherActor.NAME, publisherActorProps);
     }
 
     @Override
@@ -247,6 +247,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     /**
      * Call only in case of a failure to make sure the client is closed properly. E.g. when subscribing to a topic
      * failed the connection is already established and must be closed to avoid resource leaks.
+     *
      * @param mqtt3Client the client to disconnect
      */
     private void safelyDisconnectClient(final Mqtt3Client mqtt3Client) {

@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -92,7 +93,7 @@ final class ImmutableFeaturePropertiesBuilder implements FeaturePropertiesBuilde
     }
 
     @Override
-    public FeaturePropertiesBuilder set(final CharSequence key, final String value,
+    public FeaturePropertiesBuilder set(final CharSequence key, @Nullable final String value,
             final Predicate<JsonField> predicate) {
 
         jsonObjectBuilder.set(key, value, predicate);
@@ -108,7 +109,7 @@ final class ImmutableFeaturePropertiesBuilder implements FeaturePropertiesBuilde
     }
 
     @Override
-    public <T> FeaturePropertiesBuilder set(final JsonFieldDefinition<T> fieldDefinition, final T value,
+    public <T> FeaturePropertiesBuilder set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value,
             final Predicate<JsonField> predicate) {
 
         jsonObjectBuilder.set(fieldDefinition, value, predicate);

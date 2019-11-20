@@ -17,11 +17,14 @@ You can integrate your Ditto instance with external messaging services such as
 [Eclipse Hono](https://eclipse.org/hono/), a [RabbitMQ](https://www.rabbitmq.com/) broker or an 
 [Apache Kafka](https://kafka.apache.org/) broker via custom "connections".
 
+Additionally, you may invoke foreign HTTP endpoints by using the 
+[HTTP connection type](connectivity-protocol-bindings-http.html).
+
 A connection represents a communication channel for the exchange of messages between any service and Ditto. It 
 requires a transport protocol, which is used to transmit [Ditto Protocol](protocol-overview.html) messages. Ditto supports one-way and two-way
- communication over connections. This enables consumer/producer scenarios as well as fully-fledged command and response
- use cases. Nevertheless, those options might be limited by the transport protocol or the other endpoint's
- capabilities.
+communication over connections. This enables consumer/producer scenarios as well as fully-fledged command and response
+use cases. Nevertheless, those options might be limited by the transport protocol or the other endpoint's
+capabilities.
  
 All connections are configured and supervised via Ditto's 
 [Connectivity service](architecture-services-connectivity.html). The following model defines the connection itself:
@@ -38,6 +41,7 @@ for custom payload formats. Currently the following connection types are support
 * [AMQP 0.9.1](connectivity-protocol-bindings-amqp091.html)
 * [AMQP 1.0](connectivity-protocol-bindings-amqp10.html)
 * [MQTT 3.1.1](connectivity-protocol-bindings-mqtt.html)
+* [HTTP 1.1](connectivity-protocol-bindings-http.html)
 * [Kafka 2.x](connectivity-protocol-bindings-kafka2.html)
 
 The `sources` and `targets` address formats depends on the `connectionType` and has therefore `connectionType` 
@@ -215,9 +219,9 @@ A connection source can only receive data for Things to which it has WRITE right
 Some [connection types](#connection-types) require specific configuration which are not supported for other connection types.
 Those are put into the `specificConfig` field.
 
-### Mapping context
+### Payload Mapping
 
-For more information on the `mappingContext` see the corresponding [Payload Mapping Documentation](connectivity-mapping.html).
+For more information on mapping message payloads see the corresponding [Payload Mapping Documentation](connectivity-mapping.html).
 
 ## Placeholders
 

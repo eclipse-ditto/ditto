@@ -166,10 +166,10 @@ public final class EventAndResponsePublisher
     private void deliverBuf() {
         LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
         while (totalDemand() > 0) {
-        /*
-         * totalDemand is a Long and could be larger than
-         * what buffer.splitAt can accept
-         */
+            /*
+             * totalDemand is a Long and could be larger than
+             * what buffer.splitAt can accept
+             */
             if (totalDemand() <= Integer.MAX_VALUE) {
                 final List<Jsonifiable.WithPredicate<JsonObject, JsonField>> took =
                         buffer.subList(0, Math.min(buffer.size(), (int) totalDemand()));

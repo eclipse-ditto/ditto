@@ -171,8 +171,8 @@
         update_count('#total-things-count', 0);
     });
     $.getJSON("/stats/things", function (data) {
-        let hotThingsCount = data.hotThingsCount;
-        update_count('#hot-things-count', hotThingsCount);
+        let hotThings = data.hotThings;
+        update_count('#hot-things-count', hotThings);
     }).fail(function () {
         update_count('#hot-things-count', 0);
     });

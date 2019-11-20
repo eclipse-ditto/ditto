@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -32,20 +33,38 @@ import org.eclipse.ditto.model.connectivity.SourceBuilder;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import akka.actor.ActorSystem;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link RabbitMQValidator}.
  */
 public final class RabbitMQValidatorTest {
 
+    private static final RabbitMQValidator UNDER_TEST = RabbitMQValidator.newInstance();
+    private static ActorSystem actorSystem;
+
+    @BeforeClass
+    public static void setUp() {
+        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        if (actorSystem != null) {
+            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
+                    false);
+        }
+    }
+
     @Test
     public void testImmutability() {
         assertInstancesOf(RabbitMQValidator.class, areImmutable());
     }
-
-    private static final RabbitMQValidator UNDER_TEST = RabbitMQValidator.newInstance();
-
 
     @Test
     public void testValidationOfEnforcement() {
@@ -68,11 +87,11 @@ public final class RabbitMQValidatorTest {
 
     @Test
     public void testValidTargetAddress() {
-        UNDER_TEST.validate(connectionWithTarget("ditto/rabbit"), DittoHeaders.empty());
-        UNDER_TEST.validate(connectionWithTarget("ditto"), DittoHeaders.empty());
-        UNDER_TEST.validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty());
-        UNDER_TEST.validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty());
-        UNDER_TEST.validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty());
+        UNDER_TEST.validate(connectionWithTarget("ditto/rabbit"), DittoHeaders.empty(), actorSystem);
+        UNDER_TEST.validate(connectionWithTarget("ditto"), DittoHeaders.empty(), actorSystem);
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty(), actorSystem);
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty(), actorSystem);
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty(), actorSystem);
     }
 
     @Test

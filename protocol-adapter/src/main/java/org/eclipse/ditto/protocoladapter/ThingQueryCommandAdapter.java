@@ -64,7 +64,6 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
     private static Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies() {
         final Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies = new HashMap<>();
 
-        // the snapshot revision is not yet relevant for Protocol Adapter as it is only used by Topologies
         mappingStrategies.put(RetrieveThing.TYPE, adaptable -> RetrieveThing.getBuilder(thingIdFrom(adaptable),
                 dittoHeadersFrom(adaptable))
                 .withSelectedFields(selectedFieldsFrom(adaptable))

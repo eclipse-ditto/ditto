@@ -36,40 +36,42 @@ Maven coordinates:
 
 ### Instantiate & configure a new Ditto client
 
-In order to configure your Ditto client instance, use the `DittoClientFactory` in order to 
-* obtain a `CommonConfiguration` builder
-* build a `DittoClient` instance after configuration was done
+To configure your Ditto client instance, use the `org.eclipse.ditto.client.configuration` package in order to 
+* create instances of `AuthenticationProvider` and `MessagingProvider`
+* create a `DittoClient` instance
 
 For example:
 
 ```java
-CredentialsAuthenticationConfiguration authenticationConfiguration = CredentialsAuthenticationConfiguration.newBuilder()
-   .username("ditto")
-   .password("ditto")
-   .build();
+ProxyConfiguration proxyConfiguration =
+    ProxyConfiguration.newBuilder()
+        .proxyHost("localhost")
+        .proxyPort(3128)
+        .build();
 
-// optionally configure a proxy server or a truststore containing the trusted CAs for SSL connection establishment
-ProxyConfiguration proxyConfiguration = ProxyConfiguration.newBuilder()
-   .proxyHost("localhost")
-   .proxyPort(3128)
-   .build();
+AuthenticationProvider authenticationProvider =
+    AuthenticationProviders.clientCredentials(ClientCredentialsAuthenticationConfiguration.newBuilder()
+        .clientId("my-oauth-client-id")
+        .clientSecret("my-oauth-client-secret")
+        .scopes("offline_access email")
+        .tokenEndpoint("https://my-oauth-provider/oauth/token")
+        // optionally configure a proxy server
+        .proxyConfiguration(proxyConfiguration)
+        .build());
 
-TrustStoreConfiguration trustStoreConfiguration = TrustStoreConfiguration.newBuilder()
-   .location(TRUSTSTORE_LOCATION)
-   .password(TRUSTSTORE_PASSWORD)
-   .build();
+MessagingProvider messagingProvider =
+    MessagingProviders.webSocket(WebSocketMessagingConfiguration.newBuilder()
+        .endpoint("wss://ditto.eclipse.org")
+        .jsonSchemaVersion(JsonSchemaVersion.V_1)
+        // optionally configure a proxy server or a truststore containing the trusted CAs for SSL connection establishment
+        .proxyConfiguration(proxyConfiguration)
+        .trustStoreConfiguration(TrustStoreConfiguration.newBuilder()
+            .location(TRUSTSTORE_LOCATION)
+            .password(TRUSTSTORE_PASSWORD)
+            .build())
+        .build(), authenticationProvider);
 
-CommonConfiguration configuration = DittoClientFactory.configurationBuilder()
-   .providerConfiguration(MessagingProviders.dittoWebsocketProviderBuilder()
-      .endpoint("wss://ditto.eclipse.org")
-      .authenticationConfiguration(authenticationConfiguration)
-      .build()
-   )
-   .proxyConfiguration(proxyConfiguration)
-   .trustStoreConfiguration(trustStoreConfiguration)
-   .build();
-
-DittoClient client = DittoClientFactory.newInstance(configuration);
+DittoClient client = DittoClients.newInstance(messagingProvider);
 ```
 
 ### Use the Ditto client
