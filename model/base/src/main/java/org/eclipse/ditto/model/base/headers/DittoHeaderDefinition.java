@@ -32,10 +32,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for Authorization Subjects value.
      * <p>
-     * Key: {@code "auth-subjects"}, Java type: {@link JsonArray}.
+     * Key: {@code "ditto-auth-subjects"}, Java type: {@link JsonArray}.
      * </p>
      */
-    AUTHORIZATION_SUBJECTS("auth-subjects", JsonArray.class, false, false),
+    AUTHORIZATION_SUBJECTS("ditto-auth-subjects", JsonArray.class, false, false),
 
     /**
      * Header definition for correlation Id value.
@@ -72,10 +72,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for dry run value.
      * <p>
-     * Key: {@code "dry-run"}, Java type: {@code boolean}.
+     * Key: {@code "ditto-dry-run"}, Java type: {@code boolean}.
      * </p>
      */
-    DRY_RUN("dry-run", boolean.class, false, false),
+    DRY_RUN("ditto-dry-run", boolean.class, false, false),
 
     /**
      * Header definition for read subjects value.
@@ -83,7 +83,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "read-subjects"}, Java type: {@link JsonArray}.
      * </p>
      */
-    READ_SUBJECTS("read-subjects", JsonArray.class, false, false),
+    READ_SUBJECTS("ditto-read-subjects", JsonArray.class, false, false),
 
     /**
      * Header definition for a signal's content-type.
@@ -96,15 +96,15 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for channel value meaning distinguishing between live/twin.
      * <p>
-     * Key: {@code "channel"}, Java type: {@link String}.
+     * Key: {@code "ditto-channel"}, Java type: {@link String}.
      * </p>
      */
-    CHANNEL("channel", String.class, false, false),
+    CHANNEL("ditto-channel", String.class, false, false),
 
     /**
      * Header definition for origin value that is set to the id of the originating session.
      * <p>
-     * Key: {@code "origin"}, Java type: {@link String}.
+     * Key: {@code "ditto-origin"}, Java type: {@link String}.
      * </p>
      */
     ORIGIN("ditto-origin", String.class, false, false),
