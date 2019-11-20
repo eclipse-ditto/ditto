@@ -125,7 +125,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                             final ExpressionResolver expressionResolver = Resolvers.forOutbound(outbound);
                             final String address = replyTarget.getAddress();
                             final Optional<T> resolvedAddress =
-                                    applyForReplyTargetAddress(expressionResolver, address).map(this::toPublishTarget);
+                                    resolveTargetAddress(expressionResolver, address).map(this::toPublishTarget);
 
                             if (resolvedAddress.isPresent()) {
                                 final HeaderMapping headerMapping = replyTarget.getHeaderMapping().orElse(null);
@@ -164,7 +164,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                         target.getOriginalAddress());
                         final HeaderMapping headerMapping = target.getHeaderMapping().orElse(null);
                         catchHeaderMappingException(publishedMonitor, outboundSource, () ->
-                                applyForReplyTargetAddress(resolver, target.getAddress())
+                                resolveTargetAddress(resolver, target.getAddress())
                                         .map(this::toPublishTarget)
                                         .ifPresent(publishTarget -> {
                                             final ExternalMessage mappedMessage =
@@ -317,7 +317,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * Resolve target address.
      * If not resolvable, the returned Optional will be empty.
      */
-    private static Optional<String> applyForReplyTargetAddress(final ExpressionResolver resolver, final String value) {
+    private static Optional<String> resolveTargetAddress(final ExpressionResolver resolver, final String value) {
         return resolver.resolve(value).toOptional();
     }
 
