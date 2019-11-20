@@ -94,7 +94,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
 
         final String placeholderReplacement = UUID.randomUUID().toString();
         final String addressWithoutPlaceholders = validateTemplateAndReplace(target.getAddress(), dittoHeaders,
-                placeholderReplacement, Resolvers.PLACEHOLDERS);
+                placeholderReplacement, Resolvers.getPlaceholders());
 
         validateAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
     }

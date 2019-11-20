@@ -189,7 +189,7 @@ public abstract class AbstractProtocolValidator {
      */
     protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
         headerMapping.getMapping().forEach((key, value)
-                -> validateTemplate(value, dittoHeaders, Resolvers.PLACEHOLDERS));
+                -> validateTemplate(value, dittoHeaders, Resolvers.getPlaceholders()));
     }
 
     /**

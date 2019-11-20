@@ -69,7 +69,7 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
         target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
-        validateTemplate(target.getAddress(), dittoHeaders, Resolvers.PLACEHOLDERS);
+        validateTemplate(target.getAddress(), dittoHeaders, Resolvers.getPlaceholders());
     }
 
     @Override

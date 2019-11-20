@@ -13,8 +13,10 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -46,13 +48,18 @@ public final class Resolvers {
             ResolverCreator.of(PlaceholderFactory.newRequestPlaceholder(), (e, s, t, a) -> a)
     );
 
+    private static final List<Placeholder> PLACEHOLDERS = Collections.unmodifiableList(
+            RESOLVER_CREATORS.stream()
+                    .map(ResolverCreator::getPlaceholder)
+                    .collect(Collectors.toList())
+    );
+
     /**
-     * Array of all placeholders for target address and source/target header mappings.
-     * MUST be equal to *both* the placeholders in INCOMING_CREATORS *and* those in OUTGOING_CREATORS.
+     * @return Array of all placeholders for target address and source/target header mappings.
      */
-    public static final Placeholder[] PLACEHOLDERS = RESOLVER_CREATORS.stream()
-            .map(ResolverCreator::getPlaceholder)
-            .toArray(Placeholder[]::new);
+    public static Placeholder[] getPlaceholders() {
+        return PLACEHOLDERS.toArray(new Placeholder[0]);
+    }
 
     /**
      * Create an expression resolver for an outbound message.
