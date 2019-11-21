@@ -1,0 +1,15 @@
+{{- if and .Values.swaggerui.podDisruptionBudget.enabled (gt .Values.swaggerui.replicaCount 1.0) -}}
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "eclipse-ditto.fullname" . }}-swaggerui
+  labels:
+    app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-swaggerui
+{{ include "eclipse-ditto.labels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-swaggerui
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  minAvailable: {{ .Values.swaggerui.podDisruptionBudget.minAvailable }}
+{{- end }}

@@ -1,0 +1,140 @@
+{{- if .Values.gateway.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eclipse-ditto.fullname" . }}-gateway
+  labels:
+    app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-gateway
+{{ include "eclipse-ditto.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.gateway.replicaCount }}
+  strategy:
+  {{- with .Values.gateway.updateStrategy }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-gateway
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-gateway
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        actorSystemName: {{ .Values.akka.actorSystemName }}
+        {{- with .Values.gateway.additionalLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- if .Values.global.prometheus.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/"
+        prometheus.io/port: "{{ .Values.global.prometheus.port }}"
+        {{- end }}
+        checksum/password-config: {{ include (print $.Template.BasePath "/gateway-secret.yaml") . | sha256sum }}
+        checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        {{- with .Values.gateway.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.rbac.enabled }}
+      serviceAccountName: {{ template "eclipse-ditto.serviceAccountName" . }}
+      {{- end }}
+    {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}-gateway
+          image: "{{ .Values.gateway.image.repository }}:{{ .Values.gateway.image.tag }}"
+          imagePullPolicy: {{ .Values.gateway.image.imagePullPolicy }}
+          command: ["java"]
+          args:
+          {{- if .Values.gateway.systemProps }}
+            {{- toYaml .Values.gateway.systemProps | nindent 12 }}
+          {{- end }}
+            - "-jar"
+            - "/opt/ditto/starter.jar"
+          env:
+            - name: POD_LABEL_SELECTOR
+              value: "app.kubernetes.io/name=%s"
+            - name: POD_NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: ENABLE_DUMMY_AUTH
+              value: {{ .Values.gateway.enableDummyAuth | quote }}
+            - name: INSTANCE_INDEX
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: DISCOVERY_METHOD
+              value: "kubernetes-api"
+            - name: TZ
+              value: "{{ .Values.global.timezone }}"
+            - name: OPENJ9_JAVA_OPTIONS
+              value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+            - name: DEVOPS_SECURE_STATUS
+              value: "{{ .Values.gateway.devopsSecureStatus }}"
+            - name: DEVOPS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eclipse-ditto.fullname" . }}-gateway-secret
+                  key: devops-password
+            - name: STATUS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eclipse-ditto.fullname" . }}-gateway-secret
+                  key: status-password
+          {{- if .Values.global.prometheus.enabled }}
+            - name: PROMETHEUS_PORT
+              value: "{{ .Values.global.prometheus.port }}"
+          {{- end }}
+          {{- if .Values.gateway.extraEnv }}
+            {{- toYaml .Values.gateway.extraEnv | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: remoting
+              containerPort: {{ .Values.akka.remoting.port }}
+              protocol: TCP
+            - name: management
+              containerPort: {{ .Values.akka.mgmthttp.port }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              port: management
+              path: /ready
+            initialDelaySeconds: {{ .Values.gateway.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.gateway.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.gateway.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.gateway.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              port: management
+              path: /alive
+            initialDelaySeconds: {{ .Values.gateway.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.gateway.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.gateway.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.gateway.livenessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.gateway.resources | nindent 12 }}
+      {{- with .Values.gateway.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.gateway.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.gateway.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end }}
