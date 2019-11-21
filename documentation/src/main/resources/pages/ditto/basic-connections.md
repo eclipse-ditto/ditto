@@ -57,11 +57,12 @@ Source messages can be of the following type:
 * [live commands/responses/events](protocol-twinlive.html)
 
 Sources contain:
-* several addresses (depending on the [connection type](#connection-types) those are interpreted differently, e.g. as queues, topics, etc.)
-* a consumer count defining how many consumers should be attached to each source address
-* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages from the source 
-* enforcement information that allows filtering the messages that are consumed in this source
-* [header mapping](connectivity-header-mapping.html) for mapping headers of source messages to internal headers
+* several addresses (depending on the [connection type](#connection-types) those are interpreted differently, e.g. as queues, topics, etc.),
+* a consumer count defining how many consumers should be attached to each source address,
+* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages from the source,
+* enforcement information that allows filtering the messages that are consumed in this source,
+* [header mapping](connectivity-header-mapping.html) for mapping headers of source messages to internal headers, and
+* a reply-target to configure publication of any responses of incoming commands.
 
 #### Source enforcement
 
@@ -118,8 +119,11 @@ only send data to the Thing `sensor:temperature1` the following enforcement conf
 #### Source header mapping
 
 For incoming messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
+Mapped headers are added to the headers of the Ditto protocol message obtained by payload mapping.
+The default [Ditto payload mapper](connectivity-mapping.html#ditto-mapper) does not retain any external header;
+in this case all Ditto protocol headers come from the header mapping.
 
-The JSON for a source with header mapping could like this:
+The JSON for a source with header mapping could look like this:
 ```json
 {
   "addresses": [
@@ -129,6 +133,28 @@ The JSON for a source with header mapping could like this:
   "headerMapping": {
     "correlation-id": "{%raw%}{{ header:message-id }}{%endraw%}",
     "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
+  }
+}
+```
+
+#### Source reply target
+
+A source may define a reply target to publish the responses of incoming commands.
+For a reply target, the address and header mapping are defined in itself, whereas its payload mapping is inherited
+from the parent source, because a payload mapping definition specifies the transformation for both incoming and outgoing
+messages.
+
+For example, to publish responses at the target address equal to the `reply-to` header of incoming commands,
+define source header mapping and reply target as follows. If an incoming command does not have the `reply-to` header,
+then its response is dropped.
+```json
+{
+  "headerMapping": {
+    "reply-to": "{%raw%}{{ header:reply-to }}{%endraw%}"
+  },
+  "replyTarget": {
+    "enabled": true,
+    "address": "{%raw%}{{ header:reply-to }}{%endraw%}"
   }
 }
 ```
@@ -143,10 +169,10 @@ Target messages can be of the following type:
 * [live commands/responses/events](protocol-twinlive.html)
 
 Targets contain:
-* one address (that is interpreted differently depending on the [connection type](#connection-types), e.g. as queue, topic, etc.)
-* [topics](#target-topics-and-filtering) that will be sent to the target
-* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages to the target 
-* [header mapping](connectivity-header-mapping.html) for mapping headers internal headers to target headers
+* one address (that is interpreted differently depending on the [connection type](#connection-types), e.g. as queue, topic, etc.),
+* [topics](#target-topics-and-filtering) that will be sent to the target,
+* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages to the target, and
+* [header mapping](connectivity-header-mapping.html) to compute external headers from Ditto protocol headers.
 
 #### Target topics and filtering
 
@@ -182,6 +208,9 @@ would match an attribute "counter" to be greater than 42. Additionally it would 
 #### Target header mapping
 
 For outgoing messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
+Mapped headers are added to the external headers.
+The default [Ditto payload mapper](connectivity-mapping.html#ditto-mapper) does not define any external header;
+in this case all external headers come from the header mapping.
 
 The JSON for a target with header mapping could like this:
 ```json
@@ -228,7 +257,6 @@ For more information on mapping message payloads see the corresponding [Payload 
 The configuration of a connection allows to use placeholders at certain places. This allows more fine grained control 
 over how messages are consumed or where they are published to. The general syntax of a placeholder is 
 `{% raw %}{{ placeholder }}{% endraw %}`. Have a look at the [placeholders concept](basic-placeholders.html) for more details on that. 
-A missing placeholder results in an error which is passed back to the sender (if a _reply-to_ header was provided). 
 
 ### Placeholder for source authorization subjects
 
@@ -278,7 +306,8 @@ For a Thing with the ID _org.eclipse.ditto:device-123_ these placeholders would 
 | `thing:name` | Name (i.e. second part of an ID ) | _device-123_ |
 
 Even more than the ones above, all mentioned [connection placeholders](basic-placeholders.html#scope-connections) may be
-used in target addresses. 
+used in target addresses. However, if any placeholder in the target address fails to resolve, then the message will be
+dropped.
 
 Example:
 
