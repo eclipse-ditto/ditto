@@ -34,7 +34,7 @@ public interface EntityPersistenceOperations {
      * @param entityId the ID of the entity to delete.
      * @return source of any errors during the purge.
      */
-    Source<List<Throwable>, NotUsed> purgeEntity(EntityId entityId);
+    Source<List<Throwable>, NotUsed> purgeEntity(CharSequence entityId);
 
     /**
      * Purge all entities contained in the given {@code entityIds}.
