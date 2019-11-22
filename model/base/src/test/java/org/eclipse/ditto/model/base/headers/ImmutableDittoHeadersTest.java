@@ -53,7 +53,6 @@ public final class ImmutableDittoHeadersTest {
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
     private static final String KNOWN_READ_SUBJECT_WITHOUT_ISSUER = "knownReadSubject";
     private static final String KNOWN_READ_SUBJECT = KNOWN_READ_SUBJECT_WITHOUT_ISSUER;
-    private static final String KNOWN_SOURCE = "knownSource";
     private static final String KNOWN_CHANNEL = "live";
     private static final boolean KNOWN_RESPONSE_REQUIRED = true;
     private static final EntityTagMatchers KNOWN_IF_MATCH =
@@ -91,7 +90,6 @@ public final class ImmutableDittoHeadersTest {
                 .responseRequired(KNOWN_RESPONSE_REQUIRED)
                 .dryRun(false)
                 .schemaVersion(KNOWN_SCHEMA_VERSION)
-                .source(KNOWN_SOURCE)
                 .eTag(KNOWN_ETAG)
                 .ifMatch(KNOWN_IF_MATCH)
                 .ifNoneMatch(KNOWN_IF_NONE_MATCH)
@@ -138,13 +136,6 @@ public final class ImmutableDittoHeadersTest {
         final DittoHeaders underTest = DittoHeaders.newBuilder().correlationId(KNOWN_CORRELATION_ID).build();
 
         assertThat(underTest.getCorrelationId()).contains(KNOWN_CORRELATION_ID);
-    }
-
-    @Test
-    public void getSourceReturnsExpected() {
-        final DittoHeaders underTest = DittoHeaders.newBuilder().source(KNOWN_SOURCE).build();
-
-        assertThat(underTest.getSource()).contains(KNOWN_SOURCE);
     }
 
     @Test
@@ -214,7 +205,6 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), toJsonArray(AUTH_SUBJECTS))
                 .set(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID)
                 .set(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toInt())
-                .set(DittoHeaderDefinition.SOURCE.getKey(), KNOWN_SOURCE)
                 .set(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL)
                 .set(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), KNOWN_RESPONSE_REQUIRED)
                 .set(DittoHeaderDefinition.DRY_RUN.getKey(), false)
@@ -374,7 +364,6 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), toJsonArray(AUTH_SUBJECTS).toString());
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID);
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
-        result.put(DittoHeaderDefinition.SOURCE.getKey(), KNOWN_SOURCE);
         result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);
         result.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), String.valueOf(KNOWN_RESPONSE_REQUIRED));
         result.put(DittoHeaderDefinition.DRY_RUN.getKey(), String.valueOf(false));

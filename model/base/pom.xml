@@ -74,7 +74,11 @@
                             <exclude>org.eclipse.ditto.model.base.entity.Entity#NAMESPACE_REGEX</exclude>
                             <exclude>org.eclipse.ditto.model.base.entity.Entity#ID_REGEX</exclude>
                             <exclude>org.eclipse.ditto.model.base.entity.Entity#ENTITY_NAME_REGEX</exclude>
-                            <exclude>org.eclipse.ditto.model.base.headers.DittoHeaders</exclude>
+                            <exclude>org.eclipse.ditto.model.base.headers.DittoHeaders#getSource()</exclude>
+                            <exclude>org.eclipse.ditto.model.base.headers.DittoHeadersBuilder#source(java.lang.CharSequence)</exclude>
+                            <exclude>org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#SOURCE</exclude>
+                            <exclude>org.eclipse.ditto.model.base.headers.AbstractDittoHeaders#getSource()</exclude>
+                            <exclude>org.eclipse.ditto.model.base.headers.AbstractDittoHeadersBuilder#source(java.lang.CharSequence)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

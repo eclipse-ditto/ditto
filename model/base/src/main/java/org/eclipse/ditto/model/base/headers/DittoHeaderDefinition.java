@@ -54,14 +54,6 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     SCHEMA_VERSION("version", int.class, true, true),
 
     /**
-     * Header definition for source value.
-     * <p>
-     * Key: {@code "source"}, Java type: String.
-     * </p>
-     */
-    SOURCE("source", String.class, true, true),
-
-    /**
      * Header definition for response required value.
      * <p>
      * Key: {@code "response-required"}, Java type: {@code boolean}.

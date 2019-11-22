@@ -76,11 +76,6 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
-    public Optional<String> getSource() {
-        return getStringForDefinition(DittoHeaderDefinition.SOURCE);
-    }
-
-    @Override
     public Optional<JsonSchemaVersion> getSchemaVersion() {
         return getStringForDefinition(DittoHeaderDefinition.SCHEMA_VERSION)
                 .map(Integer::valueOf)

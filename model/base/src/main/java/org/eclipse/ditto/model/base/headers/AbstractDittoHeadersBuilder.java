@@ -125,12 +125,6 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S source(@Nullable final CharSequence source) {
-        putCharSequence(DittoHeaderDefinition.SOURCE, source);
-        return myself;
-    }
-
-    @Override
     public S schemaVersion(@Nullable final JsonSchemaVersion schemaVersion) {
         if (null != schemaVersion) {
             putCharSequence(DittoHeaderDefinition.SCHEMA_VERSION, schemaVersion.toString());

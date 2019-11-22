@@ -912,9 +912,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
-        final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
-                .source(getInstanceIdentifier())
-                .build();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final SourceMetrics sourceMetrics = connectionCounterRegistry.aggregateSourceMetrics(connectionId());
         final TargetMetrics targetMetrics = connectionCounterRegistry.aggregateTargetMetrics(connectionId());
@@ -977,7 +975,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received RetrieveConnectionLogs message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
-                .source(getInstanceIdentifier())
                 .build();
 
         final ConnectionLoggerRegistry.ConnectionLogs connectionLogs =

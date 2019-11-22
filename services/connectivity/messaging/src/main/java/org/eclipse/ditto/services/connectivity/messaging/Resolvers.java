@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -37,6 +37,10 @@ import org.eclipse.ditto.signals.base.Signal;
  */
 public final class Resolvers {
 
+    private Resolvers() {
+        throw new AssertionError();
+    }
+
     /**
      * Placeholder resolver creators for incoming and outgoing messages.
      */
@@ -68,7 +72,7 @@ public final class Resolvers {
      * @return the expression resolver.
      */
     public static ExpressionResolver forOutbound(final OutboundSignal.Mapped mappedOutboundSignal) {
-        final Signal signal = mappedOutboundSignal.getSource();
+        final Signal<?> signal = mappedOutboundSignal.getSource();
         final ExternalMessage externalMessage = mappedOutboundSignal.getExternalMessage();
         final Adaptable adaptable = mappedOutboundSignal.getAdaptable();
         return PlaceholderFactory.newExpressionResolver(
@@ -89,7 +93,7 @@ public final class Resolvers {
      * @param authorizationContext the authorization context of the inbound message, or null if it cannot be determined.
      * @return the expression resolver.
      */
-    public static ExpressionResolver forInbound(final ExternalMessage externalMessage, final Signal signal,
+    public static ExpressionResolver forInbound(final ExternalMessage externalMessage, final Signal<?> signal,
             @Nullable final TopicPath topicPath, @Nullable final AuthorizationContext authorizationContext) {
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
@@ -108,8 +112,8 @@ public final class Resolvers {
     private interface ResolverDataExtractor<T> {
 
         @Nullable
-        T extract(final Map<String, String> inputHeaders, final Signal signal, @Nullable final TopicPath topicPath,
-                @Nullable final AuthorizationContext authorizationContext);
+        T extract(Map<String, String> inputHeaders, Signal signal, @Nullable TopicPath topicPath,
+                @Nullable AuthorizationContext authorizationContext);
     }
 
     /**

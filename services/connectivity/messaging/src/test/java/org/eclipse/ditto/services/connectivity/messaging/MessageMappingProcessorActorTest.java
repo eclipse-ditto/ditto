@@ -256,7 +256,7 @@ public final class MessageMappingProcessorActorTest {
             assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(expectedAuthContext);
 
             // mapped by source <- {{ request:subjectId }}
-            assertThat(modifyAttribute.getDittoHeaders().getSource())
+            assertThat(modifyAttribute.getDittoHeaders().get("source"))
                     .contains("integration:" + correlationId + ":hub-application/json");
         });
     }

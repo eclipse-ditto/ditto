@@ -47,7 +47,6 @@ public final class JsonifiableSerializerTest {
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationSubjects("authSubject")
             .correlationId("correlationId")
-            .source("source")
             .schemaVersion(JsonSchemaVersion.LATEST)
             .build();
 

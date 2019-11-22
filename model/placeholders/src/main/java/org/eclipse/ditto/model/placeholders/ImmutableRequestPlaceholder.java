@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 
 /**
- * Placeholder implementation that replaces {@code header:*} from a headers map of {@code Map<String, String>}.
+ * Placeholder implementation that replaces {@code request} related things based on an {@link AuthorizationContext}.
  */
 @Immutable
 final class ImmutableRequestPlaceholder implements Placeholder<AuthorizationContext> {

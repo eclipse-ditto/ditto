@@ -139,13 +139,6 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getContentType();
 
     /**
-     * Returns the source which caused the command, e.g. a "clientId".
-     *
-     * @return the source which caused the command.
-     */
-    Optional<String> getSource();
-
-    /**
      * Returns the json schema version.
      *
      * @return the schema version.

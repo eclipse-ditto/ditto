@@ -1248,7 +1248,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                         .authorizationSubjects("authSubject")
                         .correlationId("correlationId")
-                        .source("source")
                         .schemaVersion(JsonSchemaVersion.LATEST)
                         .build();
 
