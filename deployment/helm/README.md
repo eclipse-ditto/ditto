@@ -99,3 +99,13 @@ helm delete eclipse-ditto --purge
 ```bash
 kind delete cluster
 ```
+
+### Troubleshooting
+
+If you experience high resource consumption (either CPU or RAM or both), you can limit the resource usage by specifing resource limits.
+This can be done individually for each single component.
+Here is an example how to limit CPU to 0.25 Cores and RAM to 512MiB for the `connectivity` service:
+
+```bash
+helm upgrade eclipse-ditto ./eclipse-ditto --install --wait --set connectivity.resources.limits.cpu=0.25 --set connectivity.resources.limits.memory=512Mi
+```
