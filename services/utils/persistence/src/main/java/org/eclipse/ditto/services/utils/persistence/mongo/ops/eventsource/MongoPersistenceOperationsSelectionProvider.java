@@ -24,6 +24,7 @@ import javax.annotation.concurrent.Immutable;
 import org.bson.BsonRegularExpression;
 import org.bson.BsonString;
 import org.bson.Document;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 
@@ -61,16 +62,13 @@ final class MongoPersistenceOperationsSelectionProvider {
      * in the EventSource.
      * @throws NullPointerException if {@code entityId} is {@code null}.
      */
-    public Collection<MongoPersistenceOperationsSelection> selectEntity(final String entityId) {
+    public Collection<MongoPersistenceOperationsSelection> selectEntity(final EntityId entityId) {
         checkNotNull(entityId, "entity ID");
 
-        if (settings.isSupportsNamespaces()) {
-            validateAndExtractNamespace(entityId);
-        }
-
-        return settings.getSuffixSeparator()
-                .map(suffixSeparator -> selectEntityBySuffix(entityId))
-                .orElseGet(() -> selectEntityWithoutSuffix(entityId));
+        return Collections.unmodifiableList(Arrays.asList(
+                selectEntityByPid(settings.getMetadataCollectionName(), entityId),
+                selectEntityByPid(settings.getJournalCollectionName(), entityId),
+                selectEntityByPid(settings.getSnapshotCollectionName(), entityId)));
     }
 
     /**
@@ -88,52 +86,14 @@ final class MongoPersistenceOperationsSelectionProvider {
             throw new UnsupportedOperationException("Namespaces are not supported!");
         }
 
-        return settings.getSuffixSeparator()
-                .map(suffixSeparator -> selectNamespaceWithSuffix(namespace))
-                .orElseGet(() -> selectNamespaceWithoutSuffix(namespace));
-    }
-
-    private Collection<MongoPersistenceOperationsSelection> selectEntityBySuffix(final String entityId) {
-        return Collections.unmodifiableList(Arrays.asList(
-                selectEntityByPid(settings.getMetadataCollectionName(), entityId),
-                // collection "*Metadata" has no namespace suffix
-                selectEntityBySuffix(settings.getJournalCollectionName(), entityId),
-                selectEntityBySuffix(settings.getSnapshotCollectionName(), entityId)));
-    }
-
-    private Collection<MongoPersistenceOperationsSelection> selectEntityWithoutSuffix(final String entityId) {
-        return Collections.unmodifiableList(Arrays.asList(
-                selectEntityByPid(settings.getMetadataCollectionName(), entityId),
-                selectEntityByPid(settings.getJournalCollectionName(), entityId),
-                selectEntityByPid(settings.getSnapshotCollectionName(), entityId)));
-    }
-
-    private Collection<MongoPersistenceOperationsSelection> selectNamespaceWithSuffix(final CharSequence namespace) {
-        return Collections.unmodifiableList(Arrays.asList(
-                selectNamespaceByPid(settings.getMetadataCollectionName(), namespace),
-                // collection "*Metadata" has no namespace suffix
-                selectNamespaceBySuffix(settings.getJournalCollectionName(), namespace),
-                selectNamespaceBySuffix(settings.getSnapshotCollectionName(), namespace)));
-    }
-
-    private Collection<MongoPersistenceOperationsSelection> selectNamespaceWithoutSuffix(final CharSequence namespace) {
         return Collections.unmodifiableList(Arrays.asList(
                 selectNamespaceByPid(settings.getMetadataCollectionName(), namespace),
                 selectNamespaceByPid(settings.getJournalCollectionName(), namespace),
                 selectNamespaceByPid(settings.getSnapshotCollectionName(), namespace)));
     }
 
-    private MongoPersistenceOperationsSelection selectNamespaceBySuffix(final String collection,
-            final CharSequence namespace) {
-
-        final String suffixSeparator = settings.getSuffixSeparator().orElseThrow(IllegalStateException::new);
-        final String suffixedCollection = String.format("%s%s%s", collection, suffixSeparator, namespace);
-        return MongoPersistenceOperationsSelection.of(suffixedCollection, new Document());
-    }
-
     private MongoPersistenceOperationsSelection selectNamespaceByPid(final String collection,
             final CharSequence namespace) {
-
         return MongoPersistenceOperationsSelection.of(collection, filterByPidPrefix(namespace));
     }
 
@@ -142,29 +102,11 @@ final class MongoPersistenceOperationsSelectionProvider {
         return new Document(PID, new BsonRegularExpression(pidRegex));
     }
 
-    private MongoPersistenceOperationsSelection selectEntityBySuffix(final String collection, final String entityId) {
-        final String namespace = validateAndExtractNamespace(entityId);
-        final String suffixSeparator = settings.getSuffixSeparator().orElseThrow(IllegalStateException::new);
-        final String suffixedCollection = String.format("%s%s%s", collection, suffixSeparator, namespace);
-        final Document filter = filterByPid(entityId);
-        return MongoPersistenceOperationsSelection.of(suffixedCollection, filter);
-    }
-
-    private static String validateAndExtractNamespace(final String entityId) {
-        final int separatorIndex = entityId.indexOf(':');
-        if (-1 == separatorIndex) {
-            throw new IllegalArgumentException(
-                    MessageFormat.format("Entity ID <{0}> does not have namespace!", entityId));
-        }
-
-        return entityId.substring(0, separatorIndex);
-    }
-
-    private MongoPersistenceOperationsSelection selectEntityByPid(final String collection, final String entityId) {
+    private MongoPersistenceOperationsSelection selectEntityByPid(final String collection, final EntityId entityId) {
         return MongoPersistenceOperationsSelection.of(collection, filterByPid(entityId));
     }
 
-    private Document filterByPid(final String entityId) {
+    private Document filterByPid(final EntityId entityId) {
         final String pid = String.format("%s%s", settings.getPersistenceIdPrefix(), entityId);
         return new Document(PID, new BsonString(pid));
     }

@@ -52,7 +52,7 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param mongoDbConfig the MongoDB configuration settings.
-     * @param config configuration with info about event journal, snapshot store, suffix-builder and database.
+     * @param config configuration with info about event journal, snapshot store and database.
      * @param persistenceOperationsConfig the persistence operations configuration settings.
      * @return a Props object.
      */
