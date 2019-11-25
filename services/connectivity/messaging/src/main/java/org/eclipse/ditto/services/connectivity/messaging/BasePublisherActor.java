@@ -200,8 +200,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private void publishResponseOrError(final T address, final OutboundSignal outbound,
             final ExternalMessage response) {
 
-        log().info("Publishing mapped response/error message of type <{}> to reply address <{}>",
-                outbound.getSource().getType(), address);
         log().debug("Publishing mapped response/error message of type <{}> to reply address <{}>: {}",
                 outbound.getSource().getType(), address, response);
         publishMessage(null, address, response, responsePublishedMonitor);
