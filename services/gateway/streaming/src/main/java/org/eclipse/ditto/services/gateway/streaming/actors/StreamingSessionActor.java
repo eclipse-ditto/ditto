@@ -121,7 +121,7 @@ final class StreamingSessionActor extends AbstractActor {
     @Override
     public void postStop() {
         LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-        sessionTerminationCancellable.cancel();
+        cancelSessionTimeout();
         logger.info("Closing '{}' streaming session: {}", type, connectionCorrelationId);
     }
 
@@ -199,10 +199,10 @@ final class StreamingSessionActor extends AbstractActor {
                     }
                 })
                 .match(RefreshSession.class, refreshSession -> {
-                    sessionTerminationCancellable.cancel();
+                    cancelSessionTimeout();
                     checkAuthorizationContextAndStartSessionTimer(refreshSession);
                 })
-                .match(InvalidJwtToken.class, invalidJwtToken -> sessionTerminationCancellable.cancel())
+                .match(InvalidJwtToken.class, invalidJwtToken -> cancelSessionTimeout())
                 .match(AcknowledgeSubscription.class, msg ->
                         acknowledgeSubscription(msg.getStreamingType(), getSelf()))
                 .match(AcknowledgeUnsubscription.class, msg ->
@@ -273,6 +273,12 @@ final class StreamingSessionActor extends AbstractActor {
                         .correlationId(connectionCorrelationId)
                         .build())
                 .build(), getSelf());
+    }
+
+    private void cancelSessionTimeout() {
+        if (null != sessionTerminationCancellable) {
+            sessionTerminationCancellable.cancel();
+        }
     }
 
     private void checkAuthorizationContextAndStartSessionTimer(final RefreshSession refreshSession) {

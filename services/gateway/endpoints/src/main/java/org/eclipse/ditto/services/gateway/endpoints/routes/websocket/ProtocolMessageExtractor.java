@@ -123,7 +123,7 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
                 .filter(token -> !token.isEmpty())
                 .map(String::new)
                 .orElse("");
-        return new JwtToken(jwtToken, connectionCorrelationId);
+        return new JwtToken(connectionCorrelationId, jwtToken);
     }
 
     /**
