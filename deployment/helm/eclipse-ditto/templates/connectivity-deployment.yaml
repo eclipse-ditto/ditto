@@ -47,8 +47,9 @@ spec:
         - name: {{ .Chart.Name }}-connectivity
           image: "{{ .Values.connectivity.image.repository }}:{{ .Values.connectivity.image.tag }}"
           imagePullPolicy: {{ .Values.connectivity.image.imagePullPolicy }}
-          command: ["java"]
+          command: ["/sbin/tini"]
           args:
+            - "java"
           {{- if .Values.connectivity.systemProps }}
             {{- toYaml .Values.connectivity.systemProps | nindent 12 }}
           {{- end }}

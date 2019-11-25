@@ -3,7 +3,7 @@ appVersion: "1.0.0-M3"
 description: A Helm chart for Eclipse Ditto
 name: eclipse-ditto
 version: 0.6.1
-home: www.eclipse.org/ditto
+home: https://www.eclipse.org/ditto
 sources:
 - https://github.com/eclipse/ditto
 - https://github.com/kiwigrid/helm-charts/tree/master/charts/eclipse-ditto
@@ -11,3 +11,5 @@ icon: https://www.eclipse.org/ditto/images/ditto.svg
 maintainers:
 - name: axdotl
   email: axel.koehler@kiwigrid.com
+- name: thjaeckle
+  email: thomas.jaeckle@bosch-si.com

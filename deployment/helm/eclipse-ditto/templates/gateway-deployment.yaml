@@ -48,8 +48,9 @@ spec:
         - name: {{ .Chart.Name }}-gateway
           image: "{{ .Values.gateway.image.repository }}:{{ .Values.gateway.image.tag }}"
           imagePullPolicy: {{ .Values.gateway.image.imagePullPolicy }}
-          command: ["java"]
+          command: ["/sbin/tini"]
           args:
+            - "java"
           {{- if .Values.gateway.systemProps }}
             {{- toYaml .Values.gateway.systemProps | nindent 12 }}
           {{- end }}
