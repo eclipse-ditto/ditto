@@ -741,50 +741,44 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     @Test
     public void testConsumerRecreationFailureWhenConnected() throws JMSException {
-        final CountDownLatch latch = new CountDownLatch(1);
-        try {
-            new TestKit(actorSystem) {{
-                final Props props =
-                        AmqpClientActor.propsForTests(singleConsumerConnection(), getRef(), (ac, el) -> mockConnection);
-                final TestActorRef<AmqpClientActor> amqpClientActorRef = TestActorRef.apply(props, actorSystem);
-                final AmqpClientActor amqpClientActor = amqpClientActorRef.underlyingActor();
+        new TestKit(actorSystem) {{
+            final Props props =
+                    AmqpClientActor.propsForTests(singleConsumerConnection(), getRef(), (ac, el) -> mockConnection);
+            final TestActorRef<AmqpClientActor> amqpClientActorRef = TestActorRef.apply(props, actorSystem);
+            final AmqpClientActor amqpClientActor = amqpClientActorRef.underlyingActor();
 
-                amqpClientActorRef.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-                expectMsg(CONNECTED_SUCCESS);
+            amqpClientActorRef.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTED_SUCCESS);
 
-                // GIVEN: JMS session fails, but the JMS connection can create a new functional session
-                final Session mockSession2 = Mockito.mock(Session.class);
-                final MessageConsumer mockConsumer2 = Mockito.mock(JmsMessageConsumer.class);
-                doAnswer(invocation -> waitForLatchAndReturn(latch, mockConsumer))
-                        .when(mockSession)
-                        .createConsumer(any());
-                doReturn(mockSession2).when(mockConnection).createSession(anyInt());
-                doReturn(mockConsumer2).when(mockSession2).createConsumer(any());
+            // GIVEN: JMS session fails, but the JMS connection can create a new functional session
+            final Session mockSession2 = Mockito.mock(Session.class);
+            final MessageConsumer mockConsumer2 = Mockito.mock(JmsMessageConsumer.class);
+            doThrow(new IllegalStateException("expected exception"))
+                    .when(mockSession)
+                    .createConsumer(any());
+            doReturn(mockSession2).when(mockConnection).createSession(anyInt());
+            doReturn(mockConsumer2).when(mockSession2).createConsumer(any());
 
-                // WHEN: consumer is closed and cannot be recreated
-                final ActorRef amqpConsumerActor = amqpClientActor.context().children().toStream()
-                        .find(child -> child.path().name().startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX))
-                        .get();
-                final Throwable error = new IllegalStateException("Forcibly detached");
-                final Status.Failure failure = new Status.Failure(new AskTimeoutException("Consumer creation timeout"));
-                amqpClientActor.connectionListener.onConsumerClosed(mockConsumer, error);
-                verify(mockSession, atLeastOnce()).createConsumer(any());
-                amqpConsumerActor.tell(failure, amqpConsumerActor);
+            // WHEN: consumer is closed and cannot be recreated
+            final ActorRef amqpConsumerActor = amqpClientActor.context().children().toStream()
+                    .find(child -> child.path().name().startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX))
+                    .get();
+            final Throwable error = new IllegalStateException("Forcibly detached");
+            final Status.Failure failure = new Status.Failure(new AskTimeoutException("Consumer creation timeout"));
+            amqpClientActor.connectionListener.onConsumerClosed(mockConsumer, error);
+            verify(mockSession, atLeastOnce()).createConsumer(any());
+            amqpConsumerActor.tell(failure, amqpConsumerActor);
 
-                // THEN: connection gets restarted
-                verify(mockConnection).createSession(anyInt());
-                latch.countDown();
-                final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
-                verify(mockConsumer2, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
-                final MessageListener messageListener = captor.getValue();
+            // THEN: connection gets restarted
+            verify(mockConnection).createSession(anyInt());
+            final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
+            verify(mockConsumer2, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
+            final MessageListener messageListener = captor.getValue();
 
-                // THEN: recreated connection is working
-                messageListener.onMessage(mockMessage());
-                expectMsgClass(Command.class);
-            }};
-        } finally {
-            latch.countDown();
-        }
+            // THEN: recreated connection is working
+            messageListener.onMessage(mockMessage());
+            expectMsgClass(Command.class);
+        }};
     }
 
     @Test
