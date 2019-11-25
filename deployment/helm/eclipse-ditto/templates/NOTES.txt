@@ -1,12 +1,15 @@
-1. Access ditto in your browser by running one of these commands:
+Eclipse Ditto installed!
 
-{{- if contains "NodePort" .Values.service.type }}
-- minikube service ditto (browser is automatically redirected)
-OR
-- kubectl port-forward svc/ditto 8080 --namespace {{ .Release.Namespace }} (localhost:8080)
-{{- else if contains "LoadBalancer" .Values.service.type }}
-     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-           You can watch the status of by running 'kubectl get svc -w ditto --namespace {{ .Release.Namespace }}'
-  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} ditto -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-  echo http://$SERVICE_IP:{{ .Values.service.port }}
-{{- end }}
+Access ditto in your browser (http://localhost:8080) by running:
+
+    kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "eclipse-ditto.fullname" . }}-nginx 8080:8080
+
+The /status resource can be accessed by:
+
+    export STATUS_PWD=$(kubectl --namespace {{ .Release.Namespace }} get secret {{ include "eclipse-ditto.fullname" . }}-gateway-secret -o jsonpath="{.data.status-password}" | base64 --decode)
+    curl -i -X GET "http://devops:${STATUS_PWD}@localhost:8080/status"
+
+The /devops resource can be accessed by:
+
+    export DEVOPS_PWD=$(kubectl --namespace {{ .Release.Namespace }} get secret {{ include "eclipse-ditto.fullname" . }}-gateway-secret -o jsonpath="{.data.devops-password}" | base64 --decode)
+    curl -i -X GET "http://devops:${DEVOPS_PWD}@localhost:8080/devops"

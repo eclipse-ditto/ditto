@@ -1,0 +1,11 @@
+{{- if .Values.swaggerui.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "eclipse-ditto.fullname" . }}-swaggerui
+  labels:
+    app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-swaggerui
+{{ include "eclipse-ditto.labels" . | indent 4 }}
+data:
+{{ (.Files.Glob "openapi/*").AsConfig | indent 2 }}
+{{- end }}

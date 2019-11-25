@@ -1,0 +1,31 @@
+{{- if .Values.connectivity.networkPolicy.enabled }}
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: {{ include "eclipse-ditto.fullname" . }}-connectivity
+  labels:
+    app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-connectivity
+{{ include "eclipse-ditto.labels" . | indent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-connectivity
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow inner cluster communication
+  - from:
+    - podSelector:
+        matchLabels:
+          actorSystemName: {{ .Values.akka.actorSystemName }}
+    ports:
+    - protocol: TCP
+      port: {{ .Values.akka.remoting.port }}
+    - protocol: TCP
+      port: {{ .Values.akka.mgmthttp.port }}
+  # Open all egress
+  egress:
+  - {}
+{{- end }}

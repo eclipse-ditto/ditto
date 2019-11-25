@@ -1,7 +1,9 @@
 # Eclipse Ditto :: Helm
 
-This folder contains a example helm chart which can be used to start Eclipse Ditto
+This folder contains a Helm chart which can be used to install Eclipse Ditto
 with its backing Database - MongoDB - and a reverse proxy - nginx - in front of the HTTP and WebSocket API.
+
+The Chart [README.md](eclipse-ditto/README.md) contains some more usage instructions.
 
 ## Configure nginx
 
@@ -24,69 +26,86 @@ password in front like this:
 ditto:A6BgmB8IEtPTs
 ```
 
-## Requirements
+## Usage From Helm Hub
 
-- [Minikube](https://github.com/kubernetes/minikube/)
+A version of the Chart is also available via [Helm Hub](https://hub.helm.sh/charts/kiwigrid/ditto-digital-twins).
+Just follow the usage instructions described there.
+
+## Local Setup
+
+### Requirements
+
+- [Kubernetes IN Dokcer](https://github.com/kubernetes-sigs/kind)
 - [kubectl](https://kubernetes.io/docs/tasks/kubectl/install/)
-- [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
-- [Helm](https://docs.helm.sh/using_helm/#installing-helm)
+- [Helm v2](https://docs.helm.sh/using_helm/#installing-helm)
 
-## Start Eclipse Ditto
+### Run Eclipse Ditto
 
-### Start Minikube and install Helm into one node cluster
+#### Start KIND Cluster
 
-```bash
-minikube start
-helm init
+Prepare a kind configuration file named `kind-config.yaml`, with following content:
+
+```yaml
+kind: Cluster
+apiVersion: kind.sigs.k8s.io/v1alpha3
+nodes:
+# the control plane node config
+- role: control-plane
+# Worker reachable from local machine
+- role: worker
+  extraPortMappings:
+  # HTTP
+  - containerPort: 32080
+    hostPort: 80
 ```
 
-### Start Eclipse Ditto
+Start kind cluster
+
+```bash
+kind create cluster --image "kindest/node:v1.14.9" --config kind-config.yaml
+```
+
+#### Install Eclipse Ditto
+
+**Note:** Following commands requires Helm v2
+
+Prepare Tiller
 
 ```bash
 cd <DITTO_PATH>/deployment/helm/
-kubectl create namespace dittons
 helm dependency update ./eclipse-ditto/
+
+kubectl --namespace kube-system create serviceaccount tiller
+kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+helm init --service-account tiller --upgrade --wait
 ```
 
-(Optional) we recommend to define a K8s [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) independent of the Helm release to ensure the data survives a helm delete:
+Install eclipse-ditto chart with default configuration
 
 ```bash
-kubectl apply -f ditto-mongodb-pvc.yaml
+helm upgrade eclipse-ditto ./eclipse-ditto --install --wait
 ```
 
-...in this case start Ditto with:
+Follow the instructions from `NOTES.txt` (printed when install is finished).
+
+#### Delete Eclipse Ditto Release
 
 ```bash
-helm upgrade ditto ./eclipse-ditto/ --set mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-mongodb-pvc --wait --install
+helm delete eclipse-ditto --purge
 ```
 
-.. or else
+#### Destroy KIND Cluster
 
 ```bash
-helm upgrade ditto ./eclipse-ditto/ --set mongodb.persistence.enabled=true --wait --install
+kind delete cluster
 ```
 
-...or without persistence for the MongoDB at all:
+### Troubleshooting
+
+If you experience high resource consumption (either CPU or RAM or both), you can limit the resource usage by specifing resource limits.
+This can be done individually for each single component.
+Here is an example how to limit CPU to 0.25 Cores and RAM to 512MiB for the `connectivity` service:
 
 ```bash
-helm upgrade ditto ./eclipse-ditto/ --wait --install
-```
-
-### Use Eclipse Ditto
-
-```bash
-minikube service -n dittons ditto
-```
-
-### Use Minikube Dashboard
-
-```bash
-minikube dashboard
-```
-
-### Delete Eclipse Ditto release
-
-```bash
-cd <DITTO_PATH>/deployment/helm/
-helm delete --purge ditto
+helm upgrade eclipse-ditto ./eclipse-ditto --install --wait --set connectivity.resources.limits.cpu=0.25 --set connectivity.resources.limits.memory=512Mi
 ```
