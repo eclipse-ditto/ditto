@@ -40,11 +40,8 @@ import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultSuffixBuilderConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.SuffixBuilderConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -222,7 +219,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     protected ActorSystem doStart() {
         logRuntimeParameters();
         final Config actorSystemConfig = appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig());
-        configureMongoDbSuffixBuilder();
         startKamon();
         final ActorSystem actorSystem = createActorSystem(actorSystemConfig);
         initializeActorSystem(actorSystem);
@@ -250,13 +246,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         logger.info("Available processors: <{}>.", Runtime.getRuntime().availableProcessors());
     }
 
-    private void configureMongoDbSuffixBuilder() {
-        if (isServiceWithMongoDbConfig()) {
-            final SuffixBuilderConfig suffixBuilderConfig = DefaultSuffixBuilderConfig.of(rawConfig);
-            NamespaceSuffixCollectionNames.setSupportedPrefixes(suffixBuilderConfig.getSupportedPrefixes());
-        }
-    }
-
     private void startKamon() {
         final Config kamonConfig = ConfigFactory.load("kamon");
         Kamon.reconfigure(kamonConfig);
@@ -278,7 +267,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
             prometheusReporter = new PrometheusReporter();
             Kamon.addReporter(prometheusReporter);
             logger.info("Successfully added Prometheus reporter to Kamon.");
-        } catch (final Throwable ex) {
+        } catch (final Exception ex) {
             logger.error("Error while adding Prometheus reporter to Kamon.", ex);
         }
     }

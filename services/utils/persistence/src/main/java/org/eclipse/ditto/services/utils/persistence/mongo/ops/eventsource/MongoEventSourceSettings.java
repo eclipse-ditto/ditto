@@ -15,9 +15,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
-import java.util.Optional;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import com.typesafe.config.Config;
@@ -35,27 +33,18 @@ public final class MongoEventSourceSettings {
     private final String journalCollectionName;
     private final String snapshotCollectionName;
     private final boolean supportsNamespaces;
-    @Nullable
-    private final String suffixSeparator;
 
     private MongoEventSourceSettings(final String persistenceIdPrefix,
             final boolean supportsNamespaces,
             final String metadataCollectionName,
             final String journalCollectionName,
-            final String snapshotCollectionName,
-            @Nullable final String suffixSeparator) {
+            final String snapshotCollectionName) {
 
         this.persistenceIdPrefix = checkNotNull(persistenceIdPrefix, "persistence ID prefix");
         this.supportsNamespaces = supportsNamespaces;
         this.metadataCollectionName = checkNotNull(metadataCollectionName, "metadata collection name");
         this.journalCollectionName = checkNotNull(journalCollectionName, "journal collection name");
         this.snapshotCollectionName = checkNotNull(snapshotCollectionName, "snapshot collection name");
-
-        if (suffixSeparator != null && !supportsNamespaces) {
-            throw new IllegalArgumentException("suffixSeparator is currently not allowed when namespaces are not " +
-                    "supported!");
-        }
-        this.suffixSeparator = suffixSeparator;
     }
 
     /**
@@ -66,8 +55,6 @@ public final class MongoEventSourceSettings {
      * @param metadataCollectionName the name of the metadata collection.
      * @param journalCollectionName the name of the journal collection.
      * @param snapshotCollectionName the name of the snapshot collection.
-     * @param suffixSeparator the suffix separator, may be {@code null}: if not null, it is assumed that there is one
-     * collection per namespace with the corresponding suffix.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
@@ -75,11 +62,10 @@ public final class MongoEventSourceSettings {
             final boolean supportsNamespaces,
             final String metadataCollectionName,
             final String journalCollectionName,
-            final String snapshotCollectionName,
-            @Nullable final String suffixSeparator) {
+            final String snapshotCollectionName) {
 
         return new MongoEventSourceSettings(persistenceIdPrefix, supportsNamespaces,
-                metadataCollectionName, journalCollectionName, snapshotCollectionName, suffixSeparator);
+                metadataCollectionName, journalCollectionName, snapshotCollectionName);
     }
 
     /**
@@ -107,17 +93,8 @@ public final class MongoEventSourceSettings {
         final String journalCollectionName = getCollectionName(config, journalPluginId, "journal");
         final String snapshotCollectionName = getCollectionName(config, snapshotPluginId, "snaps");
 
-        final boolean isSuffixBuilderEnabled = !readConfig(config, suffixBuilderPath("class"), "").trim().isEmpty();
-
-        final String suffixSeparator;
-        if (isSuffixBuilderEnabled) {
-            suffixSeparator = readConfig(config, suffixBuilderPath("separator"), "@");
-        } else {
-            suffixSeparator = null;
-        }
-
         return new MongoEventSourceSettings(persistenceIdPrefix, supportsNamespaces, metadataCollectionName,
-                journalCollectionName, snapshotCollectionName, suffixSeparator);
+                journalCollectionName, snapshotCollectionName);
     }
 
     /**
@@ -155,24 +132,8 @@ public final class MongoEventSourceSettings {
         return supportsNamespaces;
     }
 
-    /**
-     * @return the suffix separator, may be empty; if not empty, it is assumed that there is one collection per
-     * namespace with the corresponding suffix
-     */
-    public Optional<String> getSuffixSeparator() {
-        return Optional.ofNullable(suffixSeparator);
-    }
-
     private static String getCollectionName(final Config config, final String root, final String collectionType) {
         return config.getString(String.format("%s.overrides.%s-collection", root, collectionType));
-    }
-
-    private static String readConfig(final Config config, final String path, final String fallback) {
-        return config.hasPath(path) ? config.getString(path) : fallback;
-    }
-
-    private static String suffixBuilderPath(final String key) {
-        return "akka.contrib.persistence.mongodb.mongo.suffix-builder." + key;
     }
 
     @Override
@@ -188,14 +149,13 @@ public final class MongoEventSourceSettings {
                 Objects.equals(persistenceIdPrefix, that.persistenceIdPrefix) &&
                 Objects.equals(metadataCollectionName, that.metadataCollectionName) &&
                 Objects.equals(journalCollectionName, that.journalCollectionName) &&
-                Objects.equals(snapshotCollectionName, that.snapshotCollectionName) &&
-                Objects.equals(suffixSeparator, that.suffixSeparator);
+                Objects.equals(snapshotCollectionName, that.snapshotCollectionName);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(persistenceIdPrefix, metadataCollectionName, journalCollectionName, snapshotCollectionName,
-                supportsNamespaces, suffixSeparator);
+                supportsNamespaces);
     }
 
     @Override
@@ -206,7 +166,6 @@ public final class MongoEventSourceSettings {
                 ", journalCollectionName='" + journalCollectionName + '\'' +
                 ", snapshotCollectionName='" + snapshotCollectionName + '\'' +
                 ", supportsNamespaces=" + supportsNamespaces +
-                ", suffixSeparator='" + suffixSeparator + '\'' +
                 ']';
     }
 

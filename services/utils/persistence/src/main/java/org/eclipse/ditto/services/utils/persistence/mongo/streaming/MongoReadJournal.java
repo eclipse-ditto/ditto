@@ -16,17 +16,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -37,7 +33,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +40,6 @@ import com.mongodb.QueryOperators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
-import com.mongodb.reactivestreams.client.ListCollectionsPublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
@@ -79,12 +73,6 @@ import akka.stream.javadsl.Source;
 public class MongoReadJournal {
     // not a final class to test with Mockito
 
-    // pattern that matches nothing
-    private static final Pattern MATCH_NOTHING = Pattern.compile(".\\A");
-
-    // group name of collection name suffix
-    private static final String SUFFIX = "suffix";
-
     private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START =
             "akka.persistence.journal.auto-start-journals";
     private static final String AKKA_PERSISTENCE_SNAPS_AUTO_START =
@@ -113,15 +101,15 @@ public class MongoReadJournal {
     private static final String COLLECTION_NAME_FIELD = "name";
     private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
-    private final Pattern journalCollectionPrefix;
-    private final Pattern snapsCollectionPrefix;
+    private final String journalCollection;
+    private final String snapsCollection;
     private final DittoMongoClient mongoClient;
     private final Logger log;
 
-    private MongoReadJournal(final Pattern journalCollectionPrefix, final Pattern snapsCollectionPrefix,
+    private MongoReadJournal(final String journalCollection, final String snapsCollection,
             final DittoMongoClient mongoClient) {
-        this.journalCollectionPrefix = journalCollectionPrefix;
-        this.snapsCollectionPrefix = snapsCollectionPrefix;
+        this.journalCollection = journalCollection;
+        this.snapsCollection = snapsCollection;
         this.mongoClient = mongoClient;
         log = LoggerFactory.getLogger(MongoReadJournal.class);
     }
@@ -149,11 +137,11 @@ public class MongoReadJournal {
     public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient) {
         final String autoStartJournalKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_JOURNAL_AUTO_START);
         final String autoStartSnapsKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_SNAPS_AUTO_START);
-        final Pattern journalCollectionPrefix =
-                getOverrideCollectionNamePattern(config.getConfig(autoStartJournalKey), JOURNAL_COLLECTION_NAME_KEY);
-        final Pattern snapsCollectionPrefix =
-                getOverrideCollectionNamePattern(config.getConfig(autoStartSnapsKey), SNAPS_COLLECTION_NAME_KEY);
-        return new MongoReadJournal(journalCollectionPrefix, snapsCollectionPrefix, mongoClient);
+        final String journalCollection =
+                getOverrideCollectionName(config.getConfig(autoStartJournalKey), JOURNAL_COLLECTION_NAME_KEY);
+        final String snapshotCollection =
+                getOverrideCollectionName(config.getConfig(autoStartSnapsKey), SNAPS_COLLECTION_NAME_KEY);
+        return new MongoReadJournal(journalCollection, snapshotCollection, mongoClient);
     }
 
     /**
@@ -168,9 +156,9 @@ public class MongoReadJournal {
         final MongoDatabase db = mongoClient.getDefaultDatabase();
         final Document idFilter = createIdFilter(start, end);
 
-        log.debug("Looking for journal collection with pattern <{}>.", journalCollectionPrefix);
+        log.debug("Looking for journal <{}> and snapshot store <{}>.", journalCollection, snapsCollection);
 
-        return listJournalsAndSnapshotStores()
+        return getJournalAndSnapshotStore()
                 .flatMapConcat(journalAndSnaps -> listPidWithSeqNr(journalAndSnaps, db, idFilter));
     }
 
@@ -189,7 +177,7 @@ public class MongoReadJournal {
             final ActorMaterializer mat) {
 
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
-        return listJournals().withAttributes(Attributes.inputBuffer(1, 1))
+        return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
                         listPidsInJournal(journal, "", batchSize, mat, MAX_BACK_OFF_DURATION, maxRestarts)
                 )
@@ -208,7 +196,7 @@ public class MongoReadJournal {
     public Source<String, NotUsed> getJournalPidsAbove(final String lowerBoundPid, final int batchSize,
             final Duration maxIdleTime, final ActorMaterializer mat) {
 
-        return listJournals().withAttributes(Attributes.inputBuffer(1, 1))
+        return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
                         listPidsInJournal(journal, lowerBoundPid, batchSize, mat, Duration.ZERO, 0)
                 )
@@ -277,22 +265,15 @@ public class MongoReadJournal {
 
     private Source<PidWithSeqNr, NotUsed> listPidWithSeqNr(final JournalAndSnaps journalAndSnaps,
             final MongoDatabase database, final Document idFilter) {
-        final Source<PidWithSeqNr, NotUsed> journalPids;
-        final Source<PidWithSeqNr, NotUsed> snapsPids;
 
-        if (journalAndSnaps.journal == null) {
-            journalPids = Source.empty();
-        } else {
-            journalPids = find(database, journalAndSnaps.journal, idFilter, JOURNAL_PROJECT_DOCUMENT)
-                    .map(doc -> new PidWithSeqNr(doc.getString(PROCESSOR_ID), doc.getLong(TO)));
-        }
+        final Source<PidWithSeqNr, NotUsed> journalPids =
+                find(database, journalAndSnaps.journal, idFilter, JOURNAL_PROJECT_DOCUMENT)
+                        .map(doc -> new PidWithSeqNr(doc.getString(PROCESSOR_ID), doc.getLong(TO)));
 
-        if (journalAndSnaps.snaps == null) {
-            snapsPids = Source.empty();
-        } else {
-            snapsPids = find(database, journalAndSnaps.snaps, idFilter, SNAPS_PROJECT_DOCUMENT)
-                    .map(doc -> new PidWithSeqNr(doc.getString(PROCESSOR_ID), doc.getLong(SN)));
-        }
+        final Source<PidWithSeqNr, ?> snapsPids =
+                Source.lazily(() -> find(database, journalAndSnaps.snaps, idFilter, SNAPS_PROJECT_DOCUMENT)
+                        .map(doc -> new PidWithSeqNr(doc.getString(PROCESSOR_ID), doc.getLong(SN)))
+                );
 
         return journalPids.concat(snapsPids);
     }
@@ -305,31 +286,12 @@ public class MongoReadJournal {
         );
     }
 
-    private Source<JournalAndSnaps, NotUsed> listJournalsAndSnapshotStores() {
-        final MongoDatabase database = mongoClient.getDefaultDatabase();
-        return resolveCollectionNames(journalCollectionPrefix, snapsCollectionPrefix, database, log)
-                .map(this::toJournalAndSnaps);
+    private Source<JournalAndSnaps, NotUsed> getJournalAndSnapshotStore() {
+        return Source.single(new JournalAndSnaps(journalCollection, snapsCollection));
     }
 
-    private Source<MongoCollection<Document>, NotUsed> listJournals() {
-        final MongoDatabase database = mongoClient.getDefaultDatabase();
-        return resolveCollectionNames(journalCollectionPrefix, MATCH_NOTHING, database, log)
-                .map(database::getCollection);
-    }
-
-    private JournalAndSnaps toJournalAndSnaps(final String collectionName) {
-        final Matcher matcher1 = journalCollectionPrefix.matcher(collectionName);
-        if (matcher1.matches()) {
-            return new JournalAndSnaps(matcher1.group(SUFFIX), collectionName, null);
-        } else {
-            final Matcher matcher2 = snapsCollectionPrefix.matcher(collectionName);
-            if (matcher2.matches()) {
-                return new JournalAndSnaps(matcher2.group(SUFFIX), null, collectionName);
-            } else {
-                throw new IllegalArgumentException(String.format(
-                        "Collection is neither journal nor snapshot-store: <%s>", collectionName));
-            }
-        }
+    private Source<MongoCollection<Document>, NotUsed> getJournal() {
+        return Source.single(mongoClient.getDefaultDatabase().getCollection(journalCollection));
     }
 
     private Document createIdFilter(final Instant start, final Instant end) {
@@ -393,7 +355,7 @@ public class MongoReadJournal {
     }
 
     /**
-     * Resolve event journal collection prefix (e.g. "things_journal") from the auto-start journal configuration.
+     * Resolve event journal collection name (e.g. "things_journal") from the auto-start journal configuration.
      * <p>
      * It assumes that in the auto-start journal configuration,
      * {@code overrides.journal-collection} is defined and equal to the name of the event journal
@@ -406,66 +368,17 @@ public class MongoReadJournal {
      * @throws com.typesafe.config.ConfigException.Missing if a relevant config value is missing.
      * @throws com.typesafe.config.ConfigException.WrongType if a relevant config value has not the expected type.
      */
-    private static Pattern getOverrideCollectionNamePattern(final Config journalOrSnapsConfig, final String key) {
-        final String collectionPrefix = journalOrSnapsConfig.getString(key);
-        return Pattern.compile("^" + collectionPrefix + String.format("(?<%s>.*)", SUFFIX));
-    }
-
-    /**
-     * Resolves all journal and snapshot-store collection names matching the passed prefixes.
-     *
-     * @param journalCollectionPrefix the prefix of the journal collections to resolve.
-     * @param snapsCollectionPrefix the prefix of the journal collections to resolve.
-     * @param database the MongoDB database to use for resolving collection names.
-     * @return a source of resolved journal collection names which matched the prefix.
-     */
-    private static Source<String, NotUsed> resolveCollectionNames(final Pattern journalCollectionPrefix,
-            final Pattern snapsCollectionPrefix, final MongoDatabase database, final Logger log) {
-
-        // starts with "journalCollectionPrefix":
-        final ListCollectionsPublisher<Document> documentListCollectionsPublisher = database.listCollections();
-        final Bson filter = Filters.or(Filters.regex(COLLECTION_NAME_FIELD, journalCollectionPrefix),
-                Filters.regex(COLLECTION_NAME_FIELD, snapsCollectionPrefix));
-        final Publisher<Document> publisher = documentListCollectionsPublisher.filter(filter);
-        return Source.fromPublisher(publisher)
-                .map(document -> document.getString(COLLECTION_NAME_FIELD))
-                // Double check in case the Mongo API persistence layer in use does not support listCollections with filtering
-                .filter(collectionName -> journalCollectionPrefix.matcher(collectionName).matches() ||
-                        snapsCollectionPrefix.matcher(collectionName).matches())
-                .map(collectionName -> {
-                    log.debug("Collection <{}> with patterns <{}> or <{}> found.", collectionName,
-                            journalCollectionPrefix, snapsCollectionPrefix);
-                    return collectionName;
-                })
-                // Each "get current PIDs" query collects all collection names in memory in order to list them in
-                // a fixed order.
-                .<SortedSet<String>>fold(new TreeSet<>(), (collectionNames, collectionName) -> {
-                    collectionNames.add(collectionName);
-                    return collectionNames;
-                })
-                .mapConcat(collectionNames -> collectionNames);
+    private static String getOverrideCollectionName(final Config journalOrSnapsConfig, final String key) {
+        return journalOrSnapsConfig.getString(key);
     }
 
     private static final class JournalAndSnaps {
 
-        @Nullable
-        private final String suffix;
-
-        @Nullable
         private final String journal;
 
-        @Nullable
         private final String snaps;
 
-        private JournalAndSnaps() {
-            this.suffix = null;
-            journal = null;
-            snaps = null;
-        }
-
-        private JournalAndSnaps(@Nullable final String suffix, @Nullable final String journal,
-                @Nullable final String snaps) {
-            this.suffix = suffix;
+        private JournalAndSnaps(final String journal, final String snaps) {
             this.journal = journal;
             this.snaps = snaps;
         }
@@ -475,17 +388,6 @@ public class MongoReadJournal {
             return "JournalAndSnapshot[journal=" + journal + ",snaps=" + snaps + "]";
         }
 
-        @Nullable
-        private String getSuffix() {
-            return suffix;
-        }
-
-        private static JournalAndSnaps merge(final JournalAndSnaps js1, final JournalAndSnaps js2) {
-            final String suffix = js1.suffix != null ? js1.suffix : js2.suffix;
-            final String journal = js1.journal != null ? js1.journal : js2.journal;
-            final String snaps = js1.snaps != null ? js1.snaps : js2.snaps;
-            return new JournalAndSnaps(suffix, journal, snaps);
-        }
     }
 
 }

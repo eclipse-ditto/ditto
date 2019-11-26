@@ -14,9 +14,7 @@
 package org.eclipse.ditto.services.policies.persistence.serializer;
 
 import java.text.MessageFormat;
-import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -40,7 +38,6 @@ import org.slf4j.Logger;
 import akka.actor.ExtendedActorSystem;
 import akka.persistence.journal.EventAdapter;
 import akka.persistence.journal.EventSeq;
-import akka.persistence.journal.Tagged;
 
 public abstract class AbstractPolicyMongoEventAdapter implements EventAdapter {
 
@@ -86,19 +83,11 @@ public abstract class AbstractPolicyMongoEventAdapter implements EventAdapter {
             final JsonObject jsonObject =
                     theEvent.toJson(schemaVersion, IS_REVISION.negate().and(FieldType.regularOrSpecial()));
             final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
-            final Object bson = dittoBsonJson.parse(jsonObject);
-            final Set<String> readSubjects = calculateReadSubjects(theEvent);
-            return new Tagged(bson, readSubjects);
+            return dittoBsonJson.parse(jsonObject);
         } else {
             throw new IllegalArgumentException(
                     "Unable to toJournal a non-'PolicyEvent' object! Was: " + event.getClass());
         }
-    }
-
-    private static Set<String> calculateReadSubjects(final Event<?> theEvent) {
-        return theEvent.getDittoHeaders().getReadSubjects().stream()
-                .map(rs -> "rs:" + rs)
-                .collect(Collectors.toSet());
     }
 
     @Override
