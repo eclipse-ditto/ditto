@@ -17,8 +17,10 @@ spec:
       - name: concierge
         image: docker.io/eclipse/ditto-concierge:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -76,8 +78,10 @@ spec:
       - name: connectivity
         image: docker.io/eclipse/ditto-connectivity:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -135,8 +139,10 @@ spec:
       - name: things
         image: docker.io/eclipse/ditto-things:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -193,8 +199,10 @@ spec:
       - name: things-search
         image: docker.io/eclipse/ditto-things-search:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -251,8 +259,10 @@ spec:
       - name: policies
         image: docker.io/eclipse/ditto-policies:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -309,8 +319,10 @@ spec:
       - name: gateway
         image: docker.io/eclipse/ditto-gateway:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551

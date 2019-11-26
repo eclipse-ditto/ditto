@@ -47,8 +47,8 @@ spec:
         - name: {{ .Chart.Name }}-policies
           image: "{{ .Values.policies.image.repository }}:{{ .Values.policies.image.tag }}"
           imagePullPolicy: {{ .Values.policies.image.imagePullPolicy }}
-          command: ["java"]
           args:
+            - "java"
           {{- if .Values.policies.systemProps }}
             {{- toYaml .Values.policies.systemProps | nindent 12 }}
           {{- end }}

@@ -22,4 +22,5 @@ RUN set -x \
     && apk add --no-cache tini
 
 WORKDIR $DITTO_HOME
-ENTRYPOINT ["java","-jar","starter.jar"]
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["java", "-jar", "/opt/ditto/starter.jar"]
