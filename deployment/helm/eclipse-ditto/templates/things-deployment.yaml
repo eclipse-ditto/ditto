@@ -47,9 +47,8 @@ spec:
         - name: {{ .Chart.Name }}-things
           image: "{{ .Values.things.image.repository }}:{{ .Values.things.image.tag }}"
           imagePullPolicy: {{ .Values.things.image.imagePullPolicy }}
-          command: ["/sbin/tini"]
+          command: ["java"]
           args:
-            - "java"
           {{- if .Values.things.systemProps }}
             {{- toYaml .Values.things.systemProps | nindent 12 }}
           {{- end }}

@@ -47,9 +47,8 @@ spec:
         - name: {{ .Chart.Name }}-concierge
           image: "{{ .Values.concierge.image.repository }}:{{ .Values.concierge.image.tag }}"
           imagePullPolicy: {{ .Values.concierge.image.imagePullPolicy }}
-          command: ["/sbin/tini"]
+          command: ["java"]
           args:
-            - "java"
           {{- if .Values.concierge.systemProps }}
             {{- toYaml .Values.concierge.systemProps | nindent 12 }}
           {{- end }}
