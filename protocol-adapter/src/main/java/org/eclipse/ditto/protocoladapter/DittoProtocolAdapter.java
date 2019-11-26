@@ -255,4 +255,14 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         return (((Adapter<ThingEvent<?>>) thingsAdapters.getEventAdapter())).toAdaptable(thingEvent, channel);
     }
 
+    @Override
+    public Adaptable toAdaptable(final MessageCommand<?, ?> messageCommand) {
+        return (((Adapter<MessageCommand>) thingsAdapters.getMessageCommandAdapter())).toAdaptable(messageCommand);
+    }
+
+    @Override
+    public Adaptable toAdaptable(final MessageCommandResponse<?, ?> messageCommandResponse) {
+        return (((Adapter<MessageCommandResponse>) thingsAdapters.getMessageCommandResponseAdapter())).toAdaptable(
+                messageCommandResponse);
+    }
 }
