@@ -36,7 +36,6 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     private final HeaderTranslator headerTranslator;
     protected final PathMatcher pathMatcher;
 
-
     protected AbstractAdapter(final Map<String, JsonifiableMapper<T>> mappingStrategies,
             final HeaderTranslator headerTranslator, final PathMatcher pathMatcher) {
         this.mappingStrategies = requireNonNull(mappingStrategies);
@@ -82,19 +81,6 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
 
     protected static String leafValue(final JsonPointer path) {
         return path.getLeaf().orElseThrow(() -> UnknownPathException.newBuilder(path).build()).toString();
-    }
-
-    protected static CommandsTopicPathBuilder fromTopicPathBuilderWithChannel(final TopicPathBuilder topicPathBuilder,
-            final TopicPath.Channel channel) {
-        final CommandsTopicPathBuilder commandsTopicPathBuilder;
-        if (channel == TopicPath.Channel.TWIN) {
-            commandsTopicPathBuilder = topicPathBuilder.twin().commands();
-        } else if (channel == TopicPath.Channel.LIVE) {
-            commandsTopicPathBuilder = topicPathBuilder.live().commands();
-        } else {
-            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
-        }
-        return commandsTopicPathBuilder;
     }
 
     protected static TopicPath.Action getAction(final TopicPath topicPath) {

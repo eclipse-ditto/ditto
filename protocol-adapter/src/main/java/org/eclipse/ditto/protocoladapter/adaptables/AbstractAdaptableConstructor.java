@@ -24,6 +24,12 @@ import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.signals.base.Signal;
 
+/**
+ * Base class for all {@link AdaptableConstructor}s. Constructs an {@link Adaptable} with data common to all signals
+ * and provides extension points to further customize the {@link Adaptable} in sub classes.
+ *
+ * @param <T> the type of the signal
+ */
 abstract class AbstractAdaptableConstructor<T extends Signal> implements AdaptableConstructor<T> {
 
     @Override
@@ -75,7 +81,7 @@ abstract class AbstractAdaptableConstructor<T extends Signal> implements Adaptab
         }
     }
 
-    static CommandsTopicPathBuilder fromTopicPathBuilderWithChannel(final TopicPathBuilder topicPathBuilder,
+    private static CommandsTopicPathBuilder fromTopicPathBuilderWithChannel(final TopicPathBuilder topicPathBuilder,
             final TopicPath.Channel channel) {
         final CommandsTopicPathBuilder commandsTopicPathBuilder;
         if (channel == TopicPath.Channel.TWIN) {
