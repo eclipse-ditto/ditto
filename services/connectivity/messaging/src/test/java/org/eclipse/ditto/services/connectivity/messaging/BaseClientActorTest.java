@@ -29,7 +29,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
@@ -74,13 +73,15 @@ public final class BaseClientActorTest {
     @BeforeClass
     public static void beforeClass() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connectivityConfig = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+        connectivityConfig =
+                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
     }
 
     @AfterClass
     public static void tearDown() {
         if (null != actorSystem) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS), false);
+            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
+                    false);
         }
     }
 
@@ -94,7 +95,8 @@ public final class BaseClientActorTest {
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
-            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
             andConnectionNotSuccessful(dummyClientActor);
 
             expectMsgClass(Status.Failure.class);
@@ -114,10 +116,12 @@ public final class BaseClientActorTest {
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
-            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
             thenExpectConnectClientCalled();
 
-            andClosingConnection(dummyClientActor, CloseConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+            andClosingConnection(dummyClientActor, CloseConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
             thenExpectDisconnectClientCalled();
             andDisconnectionSuccessful(dummyClientActor, getRef());
 
@@ -250,7 +254,8 @@ public final class BaseClientActorTest {
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
-            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
             thenExpectConnectClientCalled();
 
             andStateTimeoutSent(dummyClientActor);
@@ -274,13 +279,15 @@ public final class BaseClientActorTest {
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
-            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
 
             expectMsgClass(Status.Failure.class);
 
             thenExpectCleanupResourcesCalled();
             Mockito.clearInvocations(delegate);
-            thenExpectCleanupResourcesCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingMinTimeout());
+            thenExpectCleanupResourcesCalledAfterTimeout(
+                    connectivityConfig.getClientConfig().getConnectingMinTimeout());
             thenExpectNoConnectClientCalled();
         }};
     }
@@ -295,7 +302,8 @@ public final class BaseClientActorTest {
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
-            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
             thenExpectConnectClientCalled();
             Mockito.clearInvocations(delegate);
             andConnectionSuccessful(dummyClientActor, getRef());
@@ -310,7 +318,7 @@ public final class BaseClientActorTest {
         new TestKit(actorSystem) {{
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
-                    TestConstants.createConnection(randomConnectionId,new Target[0]);
+                    TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
@@ -356,10 +364,13 @@ public final class BaseClientActorTest {
         verify(delegate, timeout(connectingTimeout.toMillis() + 200).atLeastOnce()).cleanupResourcesForConnection();
     }
 
-    private void whenOpeningConnection(final ActorRef clientActor, final OpenConnection openConnection, final ActorRef sender) {
+    private void whenOpeningConnection(final ActorRef clientActor, final OpenConnection openConnection,
+            final ActorRef sender) {
         clientActor.tell(openConnection, sender);
     }
-    private void andClosingConnection(final ActorRef clientActor, final CloseConnection closeConnection, final ActorRef sender) {
+
+    private void andClosingConnection(final ActorRef clientActor, final CloseConnection closeConnection,
+            final ActorRef sender) {
         clientActor.tell(closeConnection, sender);
     }
 
@@ -381,13 +392,14 @@ public final class BaseClientActorTest {
     }
 
     private static final class DummyClientActor extends BaseClientActor {
+
         private static final Logger LOGGER = LoggerFactory.getLogger(DummyClientActor.class);
 
         private final ActorRef publisherActor;
         private final BaseClientActor delegate;
 
-        public DummyClientActor(final Connection connection, final ConnectivityStatus desiredConnectionStatus,
-                final ActorRef conciergeForwarder, final ActorRef publisherActor, final BaseClientActor delegate) {
+        public DummyClientActor(final Connection connection, final ActorRef conciergeForwarder,
+                final ActorRef publisherActor, final BaseClientActor delegate) {
             super(connection, conciergeForwarder);
             this.publisherActor = publisherActor;
             this.delegate = delegate;
@@ -403,8 +415,7 @@ public final class BaseClientActorTest {
          */
         public static Props props(final Connection connection, final ActorRef conciergeForwarder,
                 final ActorRef publisherActor, final BaseClientActor delegate) {
-            return Props.create(DummyClientActor.class, connection, connection.getConnectionStatus(),
-                    conciergeForwarder, publisherActor, delegate);
+            return Props.create(DummyClientActor.class, connection, conciergeForwarder, publisherActor, delegate);
         }
 
         @Override

@@ -84,6 +84,22 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     PayloadMapping getPayloadMapping();
 
     /**
+     * The target to handle Ditto command responses to commands sent by this source.
+     * If undefined, responses are published for commands with {@code response-required=true}
+     * at the address defined by the header {@code reply-to} without header or payload mapping.
+     *
+     * @return an optional reply-target.
+     */
+    Optional<ReplyTarget> getReplyTarget();
+
+    /**
+     * Whether reply-target is enabled for this source.
+     *
+     * @return whether reply-target is enabled.
+     */
+    boolean isReplyTargetEnabled();
+
+    /**
      * Returns all non hidden marked fields of this {@code Source}.
      *
      * @return a JSON object representation of this Source including only non hidden marked fields.
@@ -158,6 +174,23 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonArray> PAYLOAD_MAPPING =
                 JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the reply-target.
+         */
+        public static final JsonFieldDefinition<JsonObject> REPLY_TARGET =
+                JsonFactory.newJsonObjectFieldDefinition("replyTarget", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field for whether reply-target is enabled. Set to false explicitly to disable reply sending.
+         * Otherwise it is assumed that the connection was created before reply-target was introduced and
+         * live migration will occur. The field is within the "replyTarget" block but is treated as a part of
+         * Source instead.
+         */
+        public static final JsonFieldDefinition<Boolean> REPLY_TARGET_ENABLED =
+                JsonFactory.newBooleanFieldDefinition("replyTarget/enabled", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

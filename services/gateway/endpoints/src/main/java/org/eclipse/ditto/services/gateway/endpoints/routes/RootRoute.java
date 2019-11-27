@@ -36,7 +36,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -412,8 +411,6 @@ public final class RootRoute extends AllDirectives {
         builder.authorizationContext(authorizationContext)
                 .schemaVersion(jsonSchemaVersion)
                 .correlationId(correlationId);
-
-        authorizationContext.getFirstAuthorizationSubject().map(AuthorizationSubject::getId).ifPresent(builder::source);
 
         // if the "live" query param was set - no matter what the value was - use live channel
         if (liveParam != null) {

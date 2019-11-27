@@ -241,4 +241,10 @@ public interface ProtocolAdapter {
      */
     Adaptable toAdaptable(ThingEvent<?> thingEvent, TopicPath.Channel channel);
 
+    /**
+     * Retrieve the header translator responsible for this protocol adapter.
+     *
+     * @return the header translator.
+     */
+    HeaderTranslator headerTranslator();
 }

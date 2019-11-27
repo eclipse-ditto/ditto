@@ -53,7 +53,6 @@ public final class ImmutableMessageHeadersTest {
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
     private static final String KNOWN_READ_SUBJECT_WITHOUT_ISSUER = "knownReadSubject";
     private static final String KNOWN_READ_SUBJECT = KNOWN_READ_SUBJECT_WITHOUT_ISSUER;
-    private static final String KNOWN_SOURCE = "knownSource";
     private static final String KNOWN_CHANNEL = "twin";
     private static final boolean KNOWN_RESPONSE_REQUIRED = true;
     private static final Collection<String> KNOWN_READ_SUBJECTS = Collections.singletonList(KNOWN_READ_SUBJECT);
@@ -83,7 +82,6 @@ public final class ImmutableMessageHeadersTest {
                 .authorizationSubjects(AUTH_SUBJECTS)
                 .correlationId(KNOWN_CORRELATION_ID)
                 .schemaVersion(KNOWN_SCHEMA_VERSION)
-                .source(KNOWN_SOURCE)
                 .channel(KNOWN_CHANNEL)
                 .responseRequired(KNOWN_RESPONSE_REQUIRED)
                 .dryRun(false)
@@ -262,7 +260,6 @@ public final class ImmutableMessageHeadersTest {
         result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), toJsonArray(AUTH_SUBJECTS).toString());
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "knownCorrelationId");
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
-        result.put(DittoHeaderDefinition.SOURCE.getKey(), KNOWN_SOURCE);
         result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);
         result.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), String.valueOf(KNOWN_RESPONSE_REQUIRED));
         result.put(DittoHeaderDefinition.DRY_RUN.getKey(), String.valueOf(false));

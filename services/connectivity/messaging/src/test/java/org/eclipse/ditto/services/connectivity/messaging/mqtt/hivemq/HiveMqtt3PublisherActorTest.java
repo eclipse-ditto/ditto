@@ -17,17 +17,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
@@ -56,8 +55,7 @@ public class HiveMqtt3PublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return HiveMqtt3PublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), mqtt3Client,
-                false);
+        return HiveMqtt3PublisherActor.props(TestConstants.createConnection(), mqtt3Client, false);
     }
 
     @Override
@@ -73,6 +71,14 @@ public class HiveMqtt3PublisherActorTest extends AbstractPublisherActorTest {
         assertThat(mqttMessage.getTopic().toString()).isEqualTo(getOutboundAddress());
         assertThat(mqttMessage.getPayload().map(ByteBufferUtils::toUtf8String).orElse(null)).isEqualTo("payload");
         // MQTT 3.1.1 does not support headers - the workaround with property bag is not (yet) implemented
+    }
+
+    @Override
+    protected void verifyPublishedMessageToReplyTarget() {
+        Awaitility.await().until(() -> received.size() > 0);
+        assertThat(received).hasSize(1);
+        final Mqtt3Publish mqttMessage = received.get(0);
+        assertThat(mqttMessage.getTopic().toString()).isEqualTo("replyTarget/thing:id");
     }
 
     protected String getOutboundAddress() {

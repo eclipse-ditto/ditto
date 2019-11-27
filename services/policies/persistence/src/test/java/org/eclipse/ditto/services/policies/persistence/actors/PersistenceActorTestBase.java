@@ -113,7 +113,6 @@ public abstract class PersistenceActorTestBase {
 
         return DittoHeaders.newBuilder()
                 .correlationId(null)
-                .source(null)
                 .responseRequired(false)
                 .schemaVersion(schemaVersion)
                 .authorizationSubjects(authSubjectsStr)

@@ -139,13 +139,6 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getContentType();
 
     /**
-     * Returns the source which caused the command, e.g. a "clientId".
-     *
-     * @return the source which caused the command.
-     */
-    Optional<String> getSource();
-
-    /**
      * Returns the json schema version.
      *
      * @return the schema version.
@@ -230,6 +223,11 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @return the {@code MessageMapper} which mapped incoming payload.
      */
     Optional<String> getInboundPayloadMapper();
+
+    /**
+     * @return the reply target of a command-response.
+     */
+    Optional<Integer> getReplyTarget();
 
     /**
      * Indicates whether the size of the headers entries is greater than the specified size.

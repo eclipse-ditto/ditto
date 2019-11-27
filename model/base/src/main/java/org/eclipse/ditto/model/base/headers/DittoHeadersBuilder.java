@@ -44,15 +44,6 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B correlationId(@Nullable CharSequence correlationId);
 
     /**
-     * Sets the specified String as source of the command.
-     *
-     * @param source the source of the command to be set.
-     * @return this builder for Method Chaining.
-     * @throws IllegalArgumentException if {@code source} is empty.
-     */
-    B source(@Nullable CharSequence source);
-
-    /**
      * Sets the json schema version value.
      *
      * @param schemaVersion the "schema version" value to be set.
@@ -168,6 +159,14 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @return this builder for Method Chaining
      */
     B inboundPayloadMapper(String inboundPayloadMapperId);
+
+    /**
+     * Set the reply-target.
+     *
+     * @param replyTarget the reply-target identifier.
+     * @return this builder.
+     */
+    B replyTarget(@Nullable Integer replyTarget);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.

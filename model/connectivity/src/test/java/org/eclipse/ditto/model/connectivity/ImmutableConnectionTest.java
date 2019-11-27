@@ -36,8 +36,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
-import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -66,6 +64,9 @@ public final class ImmutableConnectionTest {
     private static final Source SOURCE1 = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "amqp/source1");
     private static final Source SOURCE2 = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "amqp/source2", 1);
     private static final List<Source> SOURCES = Arrays.asList(SOURCE1, SOURCE2);
+    private static final List<Source> SOURCES_WITH_REPLY_TARGET_DISABLED = SOURCES.stream()
+            .map(s -> ConnectivityModelFactory.newSourceBuilder(s).replyTargetEnabled(false).build())
+            .collect(Collectors.toList());
     private static final HeaderMapping HEADER_MAPPING = null;
     private static final Target TARGET1 =
             ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
@@ -96,6 +97,27 @@ public final class ImmutableConnectionTest {
             KNOWN_TARGETS_JSON.stream()
                     .map(JsonValue::asObject)
                     .map(o -> o.set(Source.JsonFields.PAYLOAD_MAPPING, JsonArray.of(JsonValue.of(STATUS_MAPPING))))
+                    .collect(JsonCollectors.valuesToArray());
+    private static final JsonArray KNOWN_SOURCES_WITH_REPLY_TARGET =
+            KNOWN_SOURCES_WITH_MAPPING_JSON.stream()
+                    .map(o -> o.asObject().toBuilder()
+                            .set(Source.JsonFields.HEADER_MAPPING.getPointer(),
+                                    ImmutableSource.DEFAULT_SOURCE_HEADER_MAPPING.toJson())
+                            .set(Source.JsonFields.REPLY_TARGET.getPointer(),
+                                    ReplyTarget.newBuilder().address(ImmutableSource.DEFAULT_REPLY_TARGET_ADDRESS)
+                                            .headerMapping(ImmutableSource.DEFAULT_REPLY_TARGET_HEADER_MAPPING)
+                                            .build()
+                                            .toJson())
+                            .set(Source.JsonFields.REPLY_TARGET_ENABLED, true)
+                            .build())
+                    .collect(JsonCollectors.valuesToArray());
+    private static final JsonArray KNOWN_TARGETS_WITH_HEADER_MAPPING =
+            KNOWN_TARGETS_WITH_MAPPING_JSON.stream()
+                    .map(o -> o.asObject().toBuilder()
+                            .set(Target.JsonFields.HEADER_MAPPING, o.asObject()
+                                    .getValue(Target.JsonFields.HEADER_MAPPING)
+                                    .orElseGet(ImmutableTarget.DEFAULT_HEADER_MAPPING::toJson))
+                            .build())
                     .collect(JsonCollectors.valuesToArray());
 
     private static final MappingContext KNOWN_MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
@@ -171,6 +193,10 @@ public final class ImmutableConnectionTest {
                     .collect(JsonCollectors.valuesToArray()))
             .build();
 
+    private static final JsonObject KNOWN_JSON_WITH_REPLY_TARGET = KNOWN_JSON
+            .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_WITH_REPLY_TARGET)
+            .set(Connection.JsonFields.TARGETS, KNOWN_TARGETS_WITH_HEADER_MAPPING);
+
     private static final JsonObject KNOWN_LEGACY_JSON = KNOWN_JSON
             .set(Connection.JsonFields.MAPPING_CONTEXT, KNOWN_MAPPING_CONTEXT.toJson());
 
@@ -193,14 +219,14 @@ public final class ImmutableConnectionTest {
     @Test
     public void createMinimalConnectionConfigurationInstance() {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                .sources(SOURCES)
+                .sources(SOURCES_WITH_REPLY_TARGET_DISABLED)
                 .targets(TARGETS)
                 .build();
 
         assertThat((CharSequence) connection.getId()).isEqualTo(ID);
         assertThat((Object) connection.getConnectionType()).isEqualTo(TYPE);
         assertThat(connection.getUri()).isEqualTo(URI);
-        assertThat(connection.getSources()).isEqualTo(SOURCES);
+        assertThat(connection.getSources()).isEqualTo(SOURCES_WITH_REPLY_TARGET_DISABLED);
     }
 
     @Test
@@ -238,7 +264,8 @@ public final class ImmutableConnectionTest {
                 .validateCertificate(true)
                 .uri("amqps://some.amqp.org:5672")
                 .id(ID)
-                .payloadMappingDefinition(ConnectivityModelFactory.newPayloadMappingDefinition("test", KNOWN_JAVA_MAPPING_CONTEXT))
+                .payloadMappingDefinition(
+                        ConnectivityModelFactory.newPayloadMappingDefinition("test", KNOWN_JAVA_MAPPING_CONTEXT))
                 .build();
 
         assertThat(ImmutableConnection.getBuilder(connection).build()).isEqualTo(connection);
@@ -338,7 +365,7 @@ public final class ImmutableConnectionTest {
 
         final JsonObject actual = underTest.toJson();
 
-        assertThat(actual).isEqualTo(KNOWN_JSON);
+        assertThat(actual).isEqualTo(KNOWN_JSON_WITH_REPLY_TARGET);
     }
 
     @Test

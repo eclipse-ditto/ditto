@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceBuilder;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

@@ -31,12 +31,13 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = PlaceholderFunctionUnknownException.ERROR_CODE)
-public final class PlaceholderFunctionUnknownException extends DittoRuntimeException {
+public final class PlaceholderFunctionUnknownException extends DittoRuntimeException
+        implements PlaceholderException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "placeholder.function.unknown";
+    public static final String ERROR_CODE = PlaceholderException.ERROR_CODE_PREFIX + "function.unknown";
 
     private static final String MESSAGE_TEMPLATE = "The function <{0}> is not known.";
 

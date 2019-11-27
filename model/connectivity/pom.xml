@@ -39,7 +39,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-protocol-adapter</artifactId>
+            <artifactId>ditto-model-placeholders</artifactId>
         </dependency>
 
         <!-- ### Testing ### -->
@@ -91,13 +91,6 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
-                <configuration>
-                    <parameter>
-                        <excludes>
-                            <exclude>org.eclipse.ditto.model.connectivity.ConnectionType</exclude>
-                        </excludes>
-                    </parameter>
-                </configuration>
             </plugin>
         </plugins>
     </build>

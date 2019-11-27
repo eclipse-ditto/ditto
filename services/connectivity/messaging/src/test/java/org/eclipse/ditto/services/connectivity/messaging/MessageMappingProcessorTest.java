@@ -242,15 +242,16 @@ public class MessageMappingProcessorTest {
             final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(targets));
-            final MappingResultHandler<ExternalMessage> mock = Mockito.mock(MappingResultHandler.class);
+            final MappingResultHandler<OutboundSignal.Mapped> mock = Mockito.mock(MappingResultHandler.class);
             underTest.process(outboundSignal, mock);
-            final ArgumentCaptor<ExternalMessage> captor = ArgumentCaptor.forClass(ExternalMessage.class);
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
             verify(mock, times(mapped)).onMessageMapped(captor.capture());
             verify(mock, times(failed)).onException(any(Exception.class));
             verify(mock, times(dropped)).onMessageDropped();
 
-            assertThat(captor.getAllValues()).allSatisfy(em -> assertThat(em.getTextPayload()).contains(
-                    TestConstants.signalToDittoProtocolJsonString(signal)));
+            assertThat(captor.getAllValues()).allSatisfy(em ->
+                    assertThat(em.getExternalMessage().getTextPayload())
+                            .contains(TestConstants.signalToDittoProtocolJsonString(signal)));
         }};
     }
 

@@ -20,18 +20,16 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
+import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
-import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
@@ -60,40 +58,36 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+    @Nullable
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
     private final PayloadMapping payloadMapping;
 
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
-            @Nullable final Enforcement enforcement, @Nullable final HeaderMapping headerMapping,
-            final PayloadMapping payloadMapping) {
-        super(connectionId, sourceAddress, messageMappingProcessor, authorizationContext, headerMapping);
+            final ActorRef messageMappingProcessor, final Source source) {
+        super(connectionId, sourceAddress, messageMappingProcessor, source);
         headerEnforcementFilterFactory =
-                enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
-                        PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
-        this.payloadMapping = payloadMapping;
+                source.getEnforcement()
+                        .map(value ->
+                                EnforcementFactoryFactory.newEnforcementFilterFactory(value,
+                                        PlaceholderFactory.newHeadersPlaceholder()))
+                        .orElse(null);
+        this.payloadMapping = source.getPayloadMapping();
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
      *
-     * @param source the source of messages
+     * @param sourceAddress the source address.
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
-     * @param authorizationContext the authorization context of this source
-     * @param enforcement the enforcement configuration
-     * @param headerMapping optional header mappings
-     * @param payloadMapping payload mappings for messages received on this source
+     * @param source the configured connection source for the consumer actor.
      * @param connectionId ID of the connection
      * @return the Akka configuration Props object.
      */
-    static Props props(final String source, final ActorRef messageMappingProcessor, final
-    AuthorizationContext authorizationContext, @Nullable final Enforcement enforcement,
-            @Nullable final HeaderMapping headerMapping, final PayloadMapping payloadMapping,
+    static Props props(final String sourceAddress, final ActorRef messageMappingProcessor, final Source source,
             final ConnectionId connectionId) {
 
-        return Props.create(RabbitMQConsumerActor.class, connectionId, source, messageMappingProcessor,
-                authorizationContext, enforcement, headerMapping, payloadMapping);
+        return Props.create(RabbitMQConsumerActor.class, connectionId, sourceAddress, messageMappingProcessor, source);
     }
 
     @Override
@@ -132,9 +126,11 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             } else {
                 externalMessageBuilder.withTextAndBytes(text, body);
             }
-            externalMessageBuilder.withAuthorizationContext(authorizationContext);
-            externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
-            externalMessageBuilder.withHeaderMapping(headerMapping);
+            externalMessageBuilder.withAuthorizationContext(source.getAuthorizationContext());
+            if (headerEnforcementFilterFactory != null) {
+                externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
+            }
+            externalMessageBuilder.withHeaderMapping(source.getHeaderMapping().orElse(null));
             externalMessageBuilder.withSourceAddress(sourceAddress);
             externalMessageBuilder.withPayloadMapping(payloadMapping);
             final ExternalMessage externalMessage = externalMessageBuilder.build();

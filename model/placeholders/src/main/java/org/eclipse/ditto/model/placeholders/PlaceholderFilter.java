@@ -16,7 +16,10 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -26,7 +29,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
@@ -43,7 +45,8 @@ public final class PlaceholderFilter {
      * @return AuthorizationContext as result of placeholder substitution.
      * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
      */
-    public static AuthorizationContext applyHeadersPlaceholderToAuthContext(final AuthorizationContext authorizationContext,
+    public static AuthorizationContext applyHeadersPlaceholderToAuthContext(
+            final AuthorizationContext authorizationContext,
             final Map<String, String> headers) {
 
         // check if we have to replace anything at all
@@ -108,26 +111,8 @@ public final class PlaceholderFilter {
      * @param <T> the type of the placeholderSource
      * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
      */
-    static <T> String apply(final String template, final T placeholderSource, final Placeholder<T> placeholder) {
+    public static <T> String apply(final String template, final T placeholderSource, final Placeholder<T> placeholder) {
         return apply(template, PlaceholderFactory.newExpressionResolver(placeholder, placeholderSource));
-    }
-
-    /**
-     * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
-     * by applying the given {@code placeholder}.
-     *
-     * @param template the template to replace placeholders and optionally apply pipeline stages (functions) in.
-     * @param placeholderSource the source to resolve {@code placeholder} names from.
-     * @param placeholder the placeholder used to resolve placeholders.
-     * @param allowUnresolved if {@code false} this method throws an exception if there are any
-     * unresolved placeholders after applying the given placeholders.
-     * @param <T> the type of the placeholderSource
-     * @throws UnresolvedPlaceholderException if {@code allowUnresolved} was @{code false} and not all placeholders
-     * could be resolved
-     */
-    static <T> String apply(final String template, final T placeholderSource, final Placeholder<T> placeholder,
-            boolean allowUnresolved) {
-        return apply(template, PlaceholderFactory.newExpressionResolver(placeholder, placeholderSource), allowUnresolved);
     }
 
     /**
@@ -141,28 +126,43 @@ public final class PlaceholderFilter {
      * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
      */
     public static String apply(final String template, final ExpressionResolver expressionResolver) {
-        return apply(template, expressionResolver, false);
+        return doApply(template, expressionResolver);
     }
 
     /**
      * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
-     * by applying the given {@code expressionResolver}.
+     * by applying the given {@code expressionResolver}. If a pipeline function deletes the element or the pipeline
+     * leads to an unresolved element, then return an empty optional.
      *
      * @param template the template string.
-     * @param expressionResolver the expressionResolver used to resolve placeholders and optionally pipeline stages
+     * @param resolver the expression-resolver used to resolve placeholders and optionally pipeline stages
      * (functions).
-     * @param allowUnresolved if {@code false} this method throws an exception if there are any
-     * unresolved placeholders after applying the given placeholders.
-     * @return the template string with the resolved values
-     * @throws UnresolvedPlaceholderException if {@code allowUnresolved} is true and not all
-     * placeholders were resolved
+     * @return a template string if resolution succeeds with a result,
+     * or an empty optional if the template string fails to resolve or is deleted.
+     * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code template} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
-    public static String apply(final String template, final ExpressionResolver expressionResolver,
-            final boolean allowUnresolved) {
+    public static Optional<String> applyOrElseDelete(final String template, final ExpressionResolver resolver) {
+        return resolver.resolve(template).toOptional();
+    }
 
-        return doApply(template, expressionResolver, allowUnresolved);
+    /**
+     * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
+     * by applying the given {@code expressionResolver}. If a pipeline function deletes the element or if a placeholder
+     * fails to resolve then return the original string.
+     *
+     * @param template the template string.
+     * @param resolver the expression-resolver used to resolve placeholders and optionally pipeline stages
+     * (functions).
+     * @return a template string if resolution succeeds with a result,
+     * or an empty optional if the template string is deleted.
+     * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
+     * @throws PlaceholderFunctionTooComplexException thrown if the {@code template} contains a placeholder
+     * function chain which is too complex (e.g. too much chained function calls)
+     */
+    public static String applyOrElseRetain(final String template, final ExpressionResolver resolver) {
+        return resolver.resolve(template).toOptional().orElse(template);
     }
 
     /**
@@ -176,15 +176,7 @@ public final class PlaceholderFilter {
      * function chain which is too complex (e.g. too much chained function calls)
      */
     public static void validate(final String template, final Placeholder<?>... placeholders) {
-        String replaced = template;
-        for (int i = 0; i < placeholders.length; i++) {
-            boolean isNotLastPlaceholder = i < placeholders.length - 1;
-            final Placeholder thePlaceholder = placeholders[i];
-            final ExpressionResolver expressionResolver = PlaceholderFactory
-                    .newExpressionResolverForValidation(thePlaceholder);
-
-            replaced = doApply(replaced, expressionResolver, isNotLastPlaceholder);
-        }
+        applyOrElseRetain(template, PlaceholderFactory.newExpressionResolverForValidation(placeholders));
     }
 
     /**
@@ -195,36 +187,28 @@ public final class PlaceholderFilter {
      * @param template a string potentially containing placeholders to replace
      * @param stringUsedInPlaceholderReplacement the dummy value used as a replacement for the found placeholders.
      * @param placeholders the {@link Placeholder}s to use for replacement
+     * @return the {@code template} with every placeholder replaced by {@code stringUsedInPlaceholderReplacement}.
      * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code template} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
-     * @return the {@code template} with every placeholder replaced by {@code stringUsedInPlaceholderReplacement}.
      */
-    public static String validateAndReplace(final String template, final String stringUsedInPlaceholderReplacement, final Placeholder<?>... placeholders) {
-        String replaced = template;
-        for (int i = 0; i < placeholders.length; i++) {
-            boolean isNotLastPlaceholder = i < placeholders.length - 1;
-            final Placeholder thePlaceholder = placeholders[i];
-            final ExpressionResolver expressionResolver = PlaceholderFactory
-                    .newExpressionResolverForValidation(thePlaceholder, stringUsedInPlaceholderReplacement);
-
-            replaced = doApply(replaced, expressionResolver, isNotLastPlaceholder);
-        }
-        return replaced;
+    public static String validateAndReplace(final String template, final String stringUsedInPlaceholderReplacement,
+            final Placeholder<?>... placeholders) {
+        return doApply(template,
+                PlaceholderFactory.newExpressionResolverForValidation(stringUsedInPlaceholderReplacement, placeholders)
+        );
     }
 
-    private static String doApply(final String template,
-            final ExpressionResolver expressionResolver,
-            final boolean allowUnresolved) {
-
-        return expressionResolver.resolve(template, allowUnresolved);
-    }
-
-    static String checkAllPlaceholdersResolved(final String input) {
-        if (Placeholders.containsAnyPlaceholder(input)) {
-            throw UnresolvedPlaceholderException.newBuilder(input).build();
-        }
-        return input;
+    private static String doApply(final String template, final ExpressionResolver expressionResolver) {
+        final Supplier<String> throwUnresolvedPlaceholderException = () -> {
+            throw UnresolvedPlaceholderException.newBuilder(template).build();
+        };
+        return expressionResolver.resolve(template)
+                .accept(PipelineElement.<String>newVisitorBuilder()
+                        .resolved(Function.identity())
+                        .unresolved(throwUnresolvedPlaceholderException)
+                        .deleted(throwUnresolvedPlaceholderException)
+                        .build());
     }
 
     private PlaceholderFilter() {

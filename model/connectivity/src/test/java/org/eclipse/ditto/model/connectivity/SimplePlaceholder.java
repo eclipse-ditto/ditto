@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,11 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders;
+package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import org.eclipse.ditto.model.placeholders.Placeholder;
 
 /**
  * Simple placeholder for test purposes.

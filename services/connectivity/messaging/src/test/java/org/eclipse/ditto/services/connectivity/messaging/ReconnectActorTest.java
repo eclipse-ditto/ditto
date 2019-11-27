@@ -98,7 +98,7 @@ public final class ReconnectActorTest {
             probe.expectMsgClass(RetrieveConnectionStatus.class);
             probe.expectMsgClass(RetrieveConnectionStatus.class);
             probe.expectMsgClass(RetrieveConnectionStatus.class);
-            probe.expectNoMsg();
+            probe.expectNoMessage();
         }};
     }
 

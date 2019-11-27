@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.placeholders;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -40,16 +39,16 @@ final class PipelineFunctionSubstringBefore implements PipelineFunction {
     }
 
     @Override
-    public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
+    public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
         final String splitValue = parseAndResolve(paramsIncludingParentheses, expressionResolver);
 
-        return value.map(previousStage -> {
+        return value.onResolved(previousStage -> {
             if (previousStage.contains(splitValue)) {
-                return previousStage.substring(0, previousStage.indexOf(splitValue));
+                return PipelineElement.resolved(previousStage.substring(0, previousStage.indexOf(splitValue)));
             } else {
-                return null;
+                return PipelineElement.unresolved();
             }
         });
     }
@@ -57,9 +56,10 @@ final class PipelineFunctionSubstringBefore implements PipelineFunction {
     private String parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        return parameterResolver.apply(paramsIncludingParentheses, expressionResolver)
-                .orElseThrow(() ->
-                        PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
+        return parameterResolver.apply(paramsIncludingParentheses, expressionResolver, this)
+                .toOptional()
+                .orElseThrow(
+                        () -> PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                                 .build());
     }
 
@@ -79,14 +79,6 @@ final class PipelineFunctionSubstringBefore implements PipelineFunction {
         @Override
         public List<ParameterDefinition> getParameterDefinitions() {
             return Collections.singletonList(givenStringDescription);
-        }
-
-        @Override
-        public <T> ParameterDefinition<T> getParameterDefinition(final int index) {
-            if (index == 0) {
-                return (ParameterDefinition<T>) givenStringDescription;
-            }
-            throw new IllegalArgumentException("Signature does not define a parameter at index '" + index + "'");
         }
 
         @Override
