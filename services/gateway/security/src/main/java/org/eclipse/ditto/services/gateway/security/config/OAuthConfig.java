@@ -33,8 +33,17 @@ public interface OAuthConfig {
      */
     Map<SubjectIssuer, String> getOpenIdConnectIssuers();
 
+    /**
+     * Returns all additionally supported openid connect issuers. This can be useful during migration phases e.g. if
+     * you have multiple issuer URIs for the same subject issuer.
+     *
+     * @return the additional issuers.
+     */
+    Map<SubjectIssuer, String> getOpenIdConnectIssuersExtension();
+
     enum OAuthConfigValue implements KnownConfigValue {
-        OPENID_CONNECT_ISSUERS("openid-connect-issuers", Collections.emptyMap());
+        OPENID_CONNECT_ISSUERS("openid-connect-issuers", Collections.emptyMap()),
+        OPENID_CONNECT_ISSUERS_EXTENSION("openid-connect-issuers-extension", Collections.emptyMap());
 
         private final String path;
         private final Object defaultValue;
