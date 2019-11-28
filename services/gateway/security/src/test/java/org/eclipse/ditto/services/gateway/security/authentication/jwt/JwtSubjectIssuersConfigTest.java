@@ -32,13 +32,16 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class JwtSubjectIssuersConfigTest {
 
     private static final JwtSubjectIssuerConfig JWT_SUBJECT_ISSUER_CONFIG_GOOGLE;
+    private static final JwtSubjectIssuerConfig JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE;
     private static final Set<JwtSubjectIssuerConfig> JWT_SUBJECT_ISSUER_CONFIGS;
     private static final JwtSubjectIssuersConfig JWT_SUBJECT_ISSUERS_CONFIG;
 
     static {
         JWT_SUBJECT_ISSUER_CONFIG_GOOGLE = new JwtSubjectIssuerConfig("accounts.google.com", SubjectIssuer.GOOGLE);
+        JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE = new JwtSubjectIssuerConfig("accounts.google.de", SubjectIssuer.GOOGLE);
         JWT_SUBJECT_ISSUER_CONFIGS = new HashSet<>();
         JWT_SUBJECT_ISSUER_CONFIGS.add(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE);
+        JWT_SUBJECT_ISSUER_CONFIGS.add(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE);
         JWT_SUBJECT_ISSUERS_CONFIG = new JwtSubjectIssuersConfig(JWT_SUBJECT_ISSUER_CONFIGS);
     }
 
@@ -66,6 +69,17 @@ public final class JwtSubjectIssuersConfigTest {
         final Optional<JwtSubjectIssuerConfig> configItem =
                 JWT_SUBJECT_ISSUERS_CONFIG.getConfigItem("accounts.google.com");
         assertThat(configItem).hasValue(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE);
+    }
+
+    @Test
+    public void issuerWithMultipleIssuerUrisWorks() {
+        final Optional<JwtSubjectIssuerConfig> configItem =
+                JWT_SUBJECT_ISSUERS_CONFIG.getConfigItem("accounts.google.com");
+        assertThat(configItem).hasValue(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE);
+
+        final Optional<JwtSubjectIssuerConfig> configItem2 =
+                JWT_SUBJECT_ISSUERS_CONFIG.getConfigItem("accounts.google.de");
+        assertThat(configItem2).hasValue(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE);
     }
 
 }
