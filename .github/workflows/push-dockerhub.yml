@@ -1,0 +1,51 @@
+name: push-dockerhub
+
+on:
+  push:
+    tags:        
+      - '**'
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Branch name
+      id: branch_name
+      run: |
+        echo ::set-output name=IMAGE_TAG::${GITHUB_REF#refs/tags/}
+    - name: Building Docker images for tag
+      run: |
+        echo $IMAGE_TAG          
+      env:
+        IMAGE_TAG: ${{ steps.branch_name.outputs.IMAGE_TAG }}
+    - name: Build the Docker images
+      run: |
+        docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-policies-starter     --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-policies:$IMAGE_TAG      -t eclipse/ditto-policies:latest .;
+        docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-things-starter       --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things:$IMAGE_TAG        -t eclipse/ditto-things:latest .;
+        docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-thingsearch-starter  --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things-search:$IMAGE_TAG -t eclipse/ditto-things-search:latest .;
+        docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-concierge-starter    --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-concierge:$IMAGE_TAG     -t eclipse/ditto-concierge:latest .;
+        docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-gateway-starter      --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-gateway:$IMAGE_TAG       -t eclipse/ditto-gateway:latest .;
+        docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-connectivity-starter --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-connectivity:$IMAGE_TAG  -t eclipse/ditto-connectivity:latest .;
+      env:
+        IMAGE_TAG: ${{ steps.branch_name.outputs.IMAGE_TAG }}
+    - name: Pushing the Docker images to Docker Hub
+      run: |
+        docker login -u "eclipsedittobot" -p "$DOCKER_HUB_TOKEN";
+        docker push eclipse/ditto-policies:$IMAGE_TAG;
+        docker push eclipse/ditto-policies:latest;
+        docker push eclipse/ditto-things:$IMAGE_TAG;
+        docker push eclipse/ditto-things:latest;
+        docker push eclipse/ditto-things-search:$IMAGE_TAG;
+        docker push eclipse/ditto-things-search:latest;
+        docker push eclipse/ditto-concierge:$IMAGE_TAG;
+        docker push eclipse/ditto-concierge:latest;
+        docker push eclipse/ditto-gateway:$IMAGE_TAG;
+        docker push eclipse/ditto-gateway:latest;
+        docker push eclipse/ditto-connectivity:$IMAGE_TAG;
+        docker push eclipse/ditto-connectivity:latest;
+      env:
+        IMAGE_TAG: ${{ steps.branch_name.outputs.IMAGE_TAG }}
