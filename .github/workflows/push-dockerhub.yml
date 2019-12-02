@@ -12,7 +12,6 @@ jobs:
     - uses: actions/checkout@v1
     - uses: azure/docker-login@v1
       with:
-        login-server: index.docker.io
         username: eclipsedittobot
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
     - name: Branch name
