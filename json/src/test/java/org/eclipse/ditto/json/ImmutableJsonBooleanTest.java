@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.io.IOException;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -53,6 +55,18 @@ public final class ImmutableJsonBooleanTest {
         final ImmutableJsonBoolean underTest = ImmutableJsonBoolean.of(javaBoolean);
 
         assertThat(underTest.asBoolean()).isEqualTo(javaBoolean);
+    }
+
+    @Test
+    public void writeValueWritesExpected() throws IOException {
+        final ImmutableJsonBoolean thetruth = ImmutableJsonBoolean.of(true);
+        final ImmutableJsonBoolean nottrue = ImmutableJsonBoolean.of(false);
+
+        final String thetruthExpectedString = "F5";
+        final String nottrueExpectedString = "F4";
+
+        assertThat(CborTestUtils.byteArrayToHexString(CborTestUtils.serializeWithJackson(thetruth))).isEqualToIgnoringCase(thetruthExpectedString);
+        assertThat(CborTestUtils.byteArrayToHexString(CborTestUtils.serializeWithJackson(nottrue))).isEqualToIgnoringCase(nottrueExpectedString);
     }
 
     @Test

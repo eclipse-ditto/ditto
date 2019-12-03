@@ -34,6 +34,7 @@
 
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
+        <jackson-core.version>2.10.1</jackson-core.version>
         <typesafe-config.version>1.3.4</typesafe-config.version>
         <ssl-config-core.version>0.3.8</ssl-config-core.version>
         <akka.version>2.5.27</akka.version>
@@ -107,6 +108,18 @@
                 <groupId>com.eclipsesource.minimal-json</groupId>
                 <artifactId>minimal-json</artifactId>
                 <version>${minimal-json.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson-core.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-cbor</artifactId>
+                <version>${jackson-core.version}</version>
             </dependency>
 
             <dependency>

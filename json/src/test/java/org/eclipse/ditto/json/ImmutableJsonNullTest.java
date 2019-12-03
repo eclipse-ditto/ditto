@@ -16,6 +16,7 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.io.IOException;
 import java.lang.ref.SoftReference;
 
 import org.assertj.core.api.Assertions;
@@ -67,5 +68,11 @@ public class ImmutableJsonNullTest {
         assertThat(underTest.toString()).isEqualTo("null");
     }
 
+    @Test
+    public void writeValueWritesExpected() throws IOException {
+        final byte[] bytes = CborTestUtils.serializeWithJackson(ImmutableJsonNull.getInstance());
+        final String expectedStringForNull = "F6";
+        assertThat(CborTestUtils.byteArrayToHexString(bytes)).isEqualToIgnoringCase(expectedStringForNull);
+    }
 }
 

@@ -80,4 +80,9 @@ public final class NullFeaturePropertiesTest {
         assertThat(underTest).isNotString();
         assertThat(underTest).isNotArray();
     }
+
+    @Test
+    public void writeValueWritesExpected() {
+        // TODO implement test
+    }
 }

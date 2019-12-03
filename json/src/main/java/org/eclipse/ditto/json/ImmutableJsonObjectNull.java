@@ -192,4 +192,9 @@ final class ImmutableJsonObjectNull extends AbstractJsonValue implements JsonObj
         return JsonFactory.nullLiteral().toString();
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) {
+        // TODO implement
+    }
+
 }

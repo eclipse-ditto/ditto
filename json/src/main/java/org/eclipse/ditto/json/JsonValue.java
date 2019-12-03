@@ -274,4 +274,13 @@ public interface JsonValue {
         return isString() ? asString() : toString();
     }
 
+    /**
+     * Writes this JsonValue into the provided serialization context.
+     * This is intended to be used by serialization logic only.
+     * Pass this object to the relevant methods in {@link JsonFactory} instead if you want its serialized representation.
+     *
+     * @param serializationContext The context for serialization bundling configuration and state needed for serialization.
+     */
+    void writeValue(SerializationContext serializationContext);
+
 }

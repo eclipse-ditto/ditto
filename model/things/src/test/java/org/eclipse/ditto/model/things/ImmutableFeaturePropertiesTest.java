@@ -56,4 +56,11 @@ public final class ImmutableFeaturePropertiesTest {
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toBuilder().build());
     }
 
+    @Test
+    public void writeValueWritesExpected() {
+        // TODO implement test
+    }
+
+    // TODO test that this conforms to JsonObject
+
 }

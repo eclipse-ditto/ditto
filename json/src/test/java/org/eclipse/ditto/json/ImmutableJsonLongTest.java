@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -211,4 +212,9 @@ public final class ImmutableJsonLongTest {
         return Integer.MIN_VALUE <= longValue && Integer.MAX_VALUE >= longValue;
     }
 
+    @Test
+    public void writeValueWritesExpected() throws IOException {
+        final String expectedString = CborTestUtils.byteArrayToHexString(CborTestUtils.longToBytes(longValue));
+        assertThat(CborTestUtils.byteArrayToHexString(CborTestUtils.serializeWithJackson(underTest))).isEqualToIgnoringCase(expectedString);
+    }
 }

@@ -138,4 +138,10 @@ public final class ImmutableAttributesTest {
         assertThat(attributes).isEqualTo(attributes.toBuilder().build());
     }
 
+    @Test
+    public void writeValueWritesExpected() {
+        // TODO implement test
+    }
+
+    // TODO test that this behaves like a JsonObject
 }

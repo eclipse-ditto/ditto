@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -264,4 +265,25 @@ public final class ImmutableJsonDoubleTest {
         return Long.MIN_VALUE <= doubleValue && Long.MAX_VALUE >= doubleValue && hasNoFraction();
     }
 
+    @Test
+    public void writeValueWritesExpectedTestVectors() throws IOException {
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(3.4028234663852886e+38)))
+                .isEqualToIgnoringCase("fa7f7fffff");
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(5.960464477539063e-8)))
+                .isEqualToIgnoringCase("f90001");
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(Double.POSITIVE_INFINITY)))
+                .isEqualToIgnoringCase("f97c00");
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(Double.NEGATIVE_INFINITY)))
+                .isEqualToIgnoringCase("f9fc00");
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(Double.NaN)))
+                .isEqualToIgnoringCase("f97e00");
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(Double.MIN_VALUE)))
+                .isEqualToIgnoringCase("FB0000000000000001");
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(Double.MAX_VALUE)))
+                .isEqualToIgnoringCase("FB7FEFFFFFFFFFFFFF");
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(13.3742D)))
+                .isEqualToIgnoringCase("FB402ABF972474538F");
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(1.081542E124D)))
+                .isEqualToIgnoringCase("FB59B05C5EED0FB82F");
+    }
 }

@@ -83,4 +83,9 @@ final class ImmutableJsonNull extends AbstractJsonValue implements JsonNull {
         return "null";
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) {
+        // TODO implement
+    }
+
 }

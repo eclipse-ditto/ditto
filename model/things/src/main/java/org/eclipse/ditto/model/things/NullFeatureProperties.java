@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.SerializationContext;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -300,6 +301,11 @@ final class NullFeatureProperties implements FeatureProperties {
     @Override
     public String toString() {
         return wrapped.toString();
+    }
+
+    @Override
+    public void writeValue(final SerializationContext serializationContext) {
+        // TODO implement
     }
 
 }

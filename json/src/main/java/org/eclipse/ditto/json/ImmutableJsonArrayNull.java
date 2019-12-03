@@ -141,4 +141,9 @@ final class ImmutableJsonArrayNull extends AbstractJsonValue implements JsonArra
         return JsonFactory.nullLiteral().toString();
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) {
+        // TODO implement test
+    }
+
 }

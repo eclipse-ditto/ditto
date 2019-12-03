@@ -509,6 +509,11 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         return fieldMap.asJsonObjectString();
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) {
+        // TODO implement
+    }
+
     @Immutable
     static final class SoftReferencedFieldMap {
 

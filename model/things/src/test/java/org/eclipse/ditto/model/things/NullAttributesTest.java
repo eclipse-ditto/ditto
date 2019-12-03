@@ -83,4 +83,10 @@ public final class NullAttributesTest {
         assertThat(underTest).isNotString();
         assertThat(underTest).isNotArray();
     }
+
+    @Test
+    public void writeValueWritesExpected() {
+        // TODO implement test
+
+    }
 }

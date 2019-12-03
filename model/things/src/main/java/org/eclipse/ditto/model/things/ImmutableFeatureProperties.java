@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.SerializationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -303,6 +304,11 @@ final class ImmutableFeatureProperties implements FeatureProperties {
     @Override
     public String toString() {
         return wrapped.toString();
+    }
+
+    @Override
+    public void writeValue(final SerializationContext serializationContext) {
+        // TODO implement
     }
 
     private FeatureProperties determineResult(final Supplier<JsonObject> newWrappedSupplier) {

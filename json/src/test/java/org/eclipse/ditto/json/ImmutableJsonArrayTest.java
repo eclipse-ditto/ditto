@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.json;
 
+import static org.eclipse.ditto.json.JsonFactory.newObject;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -19,6 +20,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -393,6 +395,42 @@ public final class ImmutableJsonArrayTest {
         final ImmutableJsonArray underTest = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
 
         assertThat(underTest.toString()).isEqualTo(expectedString);
+    }
+
+    @Test
+    public void writeValueWritesExpectedForSimpleArray() throws IOException {
+        final String expectedString
+                = "83" // Array of size 3
+                + "17" // unsigned 23
+                + "182A" // unsigned 42
+                + "190539"; // unsigned 1337
+        final ImmutableJsonArray underTest = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
+
+        assertThat(CborTestUtils.byteArrayToHexString(CborTestUtils.serializeWithJackson(underTest))).isEqualToIgnoringCase(expectedString);
+    }
+
+    @Test
+    public void writeValueWritesExpectedForMixedArray() throws IOException {
+        final String expectedString
+                = "86" // Array of size 6
+                + "F4" // false
+                + "F6" // null
+                + "03" // unsigned 3
+                + "39032E" // -0815
+                + "68" // Text of length 8
+                + "6D79737472696E67" // "mystring
+                + "A1616B6176"; // Object: {"k":"v"}
+
+        final List<JsonValue> jsonValues = new ArrayList<>();
+            jsonValues.add(newValue(false));
+            jsonValues.add(newValue(null));
+            jsonValues.add(newValue(3));
+            jsonValues.add(newValue(-815));
+            jsonValues.add(newObject("{\"k\":\"v\"}"));
+
+        final ImmutableJsonArray underTest = ImmutableJsonArray.of(jsonValues);
+
+        assertThat(CborTestUtils.byteArrayToHexString(CborTestUtils.serializeWithJackson(underTest))).isEqualToIgnoringCase(expectedString);
     }
 
     @Test

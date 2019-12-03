@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1387,4 +1388,19 @@ public final class ImmutableJsonObjectTest {
         return JsonFactory.newFieldSelector(s, JsonParseOptions.newBuilder().withoutUrlDecoding().build());
     }
 
+    @Test
+    public void writeValueWritesExpectedEmpty() throws IOException {
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonObject.empty())).isEqualToIgnoringCase("A0");
+    }
+
+    @Test
+    public void writeValueWritesExpectedSimple() throws IOException {
+        String expectedString = "A3" // map of length 3
+                + "63666F6F" + "63626172" // "foo": "bar"
+                + "63626172" + "6362617A" // "bar": "baz"
+                + "6362617A" + "182A"; // "baz": 42
+
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonObject.of(KNOWN_FIELDS))) // {"foo":"bar","bar":"baz","baz":42}
+                .isEqualToIgnoringCase(expectedString);
+    }
 }

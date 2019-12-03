@@ -79,4 +79,9 @@ final class ImmutableJsonBoolean extends AbstractJsonValue {
         return String.valueOf(value);
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) {
+        // TODO implement
+    }
+
 }

@@ -237,6 +237,11 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         return valueList.asJsonArrayString();
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) {
+        // TODO implement
+    }
+
     @Immutable
     static final class SoftReferencedValueList {
 

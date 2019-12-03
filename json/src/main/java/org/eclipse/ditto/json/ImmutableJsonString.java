@@ -84,6 +84,11 @@ final class ImmutableJsonString extends AbstractJsonValue {
         return result;
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) {
+        // TODO implement
+    }
+
     private String createStringRepresentation() {
         final JavaStringToEscapedJsonString javaStringToEscapedJsonString = JavaStringToEscapedJsonString.getInstance();
         return javaStringToEscapedJsonString.apply(value);

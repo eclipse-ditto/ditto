@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.io.IOException;
+
 import org.junit.Test;
 
 /**
@@ -46,4 +48,11 @@ public final class ImmutableJsonObjectNullTest {
         assertThat(underTest.toString()).isEqualTo("null");
     }
 
+    @Test
+    public void writeValueWritesExpected() throws IOException {
+        byte[] jsonObjectNull = CborTestUtils.serializeWithJackson(ImmutableJsonObjectNull.getInstance());
+        byte[] jsonNull = CborTestUtils.serializeWithJackson(ImmutableJsonNull.getInstance());
+        assertThat(CborTestUtils.byteArrayToHexString(jsonObjectNull))
+                .isEqualToIgnoringCase(CborTestUtils.byteArrayToHexString(jsonNull));
+    }
 }
