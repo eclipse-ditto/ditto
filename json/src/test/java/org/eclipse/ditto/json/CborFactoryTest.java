@@ -59,13 +59,17 @@ public class CborFactoryTest {
 
     @Parameterized.Parameter
     public String testObjectString;
-    
+
     private JsonValue testValue;
     private byte[] testBytes;
 
     @Before
     public void init() throws IOException {
-        testValue = JsonFactory.newObject(testObjectString);
+        if (testObjectString.length() > 15) {
+            testValue = JsonFactory.newObject(testObjectString);
+        } else {
+            testValue = JsonFactory.newValue(testObjectString);
+        }
         testBytes = CborTestUtils.serializeWithJackson(testValue);
     }
     @Test

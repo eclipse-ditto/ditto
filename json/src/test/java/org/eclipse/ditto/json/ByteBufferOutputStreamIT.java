@@ -35,6 +35,6 @@ public class ByteBufferOutputStreamIT {
         outputStream.write(new byte[]{7,8,9});
         outputStream.write(new byte[]{10,11,12,13,14}, 1, 3);
 
-        assertThat(buffer.position()).isEqualTo(expectedCount - 1);
+        assertThat(buffer.position()).isEqualTo(expectedCount);
     }
 }

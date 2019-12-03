@@ -14,6 +14,7 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -85,8 +86,9 @@ final class ImmutableJsonString extends AbstractJsonValue {
     }
 
     @Override
-    public void writeValue(final SerializationContext serializationContext) {
-        // TODO implement
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.getJacksonGenerator().writeString(value);
+        // TODO implement caching based on SerializableString.
     }
 
     private String createStringRepresentation() {

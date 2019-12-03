@@ -88,10 +88,4 @@ abstract class AbstractJsonNumber<T extends Number> extends AbstractJsonValue im
     public String toString() {
         return value.toString();
     }
-
-    @Override
-    public void writeValue(final SerializationContext serializationContext) {
-        // TODO implement
-        // Does it make more sense to implement this here or should I implement this in the concrete classes?
-    }
 }

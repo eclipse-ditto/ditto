@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.things;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -293,8 +294,8 @@ final class NullAttributes implements Attributes {
     }
 
     @Override
-    public void writeValue(final SerializationContext serializationContext) {
-        // TODO implement
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        JsonFactory.nullLiteral().writeValue(serializationContext);
     }
 
 }

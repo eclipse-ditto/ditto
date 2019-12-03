@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -84,8 +86,8 @@ final class ImmutableJsonNull extends AbstractJsonValue implements JsonNull {
     }
 
     @Override
-    public void writeValue(final SerializationContext serializationContext) {
-        // TODO implement
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.getJacksonGenerator().writeNull();
     }
 
 }

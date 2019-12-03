@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -103,4 +104,5 @@ public interface JsonField {
      */
     boolean isMarkedAs(JsonFieldMarker fieldMarker, JsonFieldMarker... furtherFieldMarkers);
 
+    void writeKeyAndValue(SerializationContext serializationContext) throws IOException;
 }

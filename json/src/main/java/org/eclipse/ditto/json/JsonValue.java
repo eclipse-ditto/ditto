@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
+
 import javax.annotation.Nullable;
 
 /**
@@ -281,6 +283,6 @@ public interface JsonValue {
      *
      * @param serializationContext The context for serialization bundling configuration and state needed for serialization.
      */
-    void writeValue(SerializationContext serializationContext);
+    void writeValue(SerializationContext serializationContext) throws IOException;
 
 }

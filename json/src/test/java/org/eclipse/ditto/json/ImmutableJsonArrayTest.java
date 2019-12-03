@@ -426,6 +426,7 @@ public final class ImmutableJsonArrayTest {
             jsonValues.add(newValue(null));
             jsonValues.add(newValue(3));
             jsonValues.add(newValue(-815));
+            jsonValues.add(newValue("mystring"));
             jsonValues.add(newObject("{\"k\":\"v\"}"));
 
         final ImmutableJsonArray underTest = ImmutableJsonArray.of(jsonValues);

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -69,4 +70,8 @@ final class ImmutableJsonLong extends AbstractJsonNumber<Long> {
         return value.hashCode();
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.getJacksonGenerator().writeNumber(getValue());
+    }
 }

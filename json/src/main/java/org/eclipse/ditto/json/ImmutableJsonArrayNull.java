@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Optional;
@@ -142,8 +143,8 @@ final class ImmutableJsonArrayNull extends AbstractJsonValue implements JsonArra
     }
 
     @Override
-    public void writeValue(final SerializationContext serializationContext) {
-        // TODO implement test
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        ImmutableJsonNull.getInstance().writeValue(serializationContext);
     }
 
 }

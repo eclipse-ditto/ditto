@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -80,8 +81,8 @@ final class ImmutableJsonBoolean extends AbstractJsonValue {
     }
 
     @Override
-    public void writeValue(final SerializationContext serializationContext) {
-        // TODO implement
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.getJacksonGenerator().writeBoolean(value);
     }
 
 }

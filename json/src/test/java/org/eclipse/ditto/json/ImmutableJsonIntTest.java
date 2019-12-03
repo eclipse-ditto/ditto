@@ -20,9 +20,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -31,176 +34,191 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link org.eclipse.ditto.json.ImmutableJsonInt}.
  */
-@RunWith(Parameterized.class)
+@RunWith(Enclosed.class)
 public final class ImmutableJsonIntTest {
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<Integer> intValues() {
-        return Arrays.asList(Integer.MIN_VALUE, Integer.MAX_VALUE, 0, 1337);
+    @RunWith(Parameterized.class)
+    public static class ParameterizedTests {
+
+        @Parameterized.Parameters(name = "{0}")
+        public static Collection<Integer> intValues() {
+            return Arrays.asList(Integer.MIN_VALUE, Integer.MAX_VALUE, 0, 1337);
+        }
+
+        @Parameterized.Parameter
+        public int intValue;
+
+        private ImmutableJsonInt underTest;
+
+        @Before
+        public void setUp() {
+            underTest = ImmutableJsonInt.of(intValue);
+        }
+
+        @Test
+        public void assertImmutability() {
+            assertInstancesOf(ImmutableJsonInt.class, areImmutable());
+        }
+
+        @Test
+        public void testHashCodeAndEquals() {
+            final Integer red = intValue / 2;
+            final Integer black = red + 1;
+
+            EqualsVerifier.forClass(ImmutableJsonInt.class)
+                    .withRedefinedSuperclass()
+                    .usingGetClass()
+                    .withNonnullFields("value")
+                    .withPrefabValues(Number.class, red, black)
+                    .verify();
+        }
+
+        @Test
+        public void jsonIntEqualsJsonLongIfSameValue() {
+            final ImmutableJsonLong longValue = ImmutableJsonLong.of(intValue);
+
+            assertThat(underTest).isEqualTo(longValue);
+        }
+
+        @Test
+        public void jsonIntHasSameHashCodeAsJsonLongIfSameValue() {
+            final ImmutableJsonLong longValue = ImmutableJsonLong.of(intValue);
+
+            assertThat(underTest.hashCode()).isEqualTo(longValue.hashCode());
+        }
+
+        @Test
+        public void jsonIntEqualsJsonDoubleIfSameValue() {
+            final ImmutableJsonDouble doubleValue = ImmutableJsonDouble.of(intValue);
+
+            assertThat(underTest).isEqualTo(doubleValue);
+        }
+
+        @Test
+        public void jsonIntHasSameHashCodeAsJsonDoubleIfSameValue() {
+            final ImmutableJsonDouble doubleValue = ImmutableJsonDouble.of(intValue);
+
+            assertThat(underTest.hashCode()).isEqualTo(doubleValue.hashCode());
+        }
+
+        @Test
+        public void getValueReturnsExpected() {
+            assertThat(underTest.getValue()).isEqualTo(intValue);
+        }
+
+        @Test
+        public void asIntReturnsExpected() {
+            assertThat(underTest.asInt()).isEqualTo(intValue);
+        }
+
+        @Test
+        public void asLongReturnsExpected() {
+            assertThat(underTest.asLong()).isEqualTo(intValue);
+        }
+
+        @Test
+        public void asDoubleReturnsExpected() {
+            assertThat(underTest.asDouble()).isEqualTo(intValue);
+        }
+
+        @Test
+        public void toStringReturnsExpected() {
+            assertThat(underTest.toString()).isEqualTo(String.valueOf(intValue));
+        }
+
+        @Test
+        public void isNotNull() {
+            assertThat(underTest.isNull()).isFalse();
+        }
+
+        @Test
+        public void isNotBoolean() {
+            assertThat(underTest.isBoolean()).isFalse();
+        }
+
+        @Test
+        public void isNumber() {
+            assertThat(underTest.isNumber()).isTrue();
+        }
+
+        @Test
+        public void isInt() {
+            assertThat(underTest.isInt()).isTrue();
+        }
+
+        @Test
+        public void isLong() {
+            assertThat(underTest.isLong()).isTrue();
+        }
+
+        @Test
+        public void isDouble() {
+            assertThat(underTest.isDouble()).isTrue();
+        }
+
+        @Test
+        public void isNotString() {
+            assertThat(underTest.isString()).isFalse();
+        }
+
+        @Test
+        public void isNotObject() {
+            assertThat(underTest.isObject()).isFalse();
+        }
+
+        @Test
+        public void isNotArray() {
+            assertThat(underTest.isArray()).isFalse();
+        }
+
+        @Test
+        public void tryToGetAsBoolean() {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asBoolean())
+                    .withMessage("This JSON value is not a boolean: %s", underTest)
+                    .withNoCause();
+        }
+
+        @Test
+        public void tryToGetAsString() {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asString())
+                    .withMessage("This JSON value is not a string: %s", underTest)
+                    .withNoCause();
+        }
+
+        @Test
+        public void tryToGetAsObject() {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asObject())
+                    .withMessage("This JSON value is not an object: %s", underTest)
+                    .withNoCause();
+        }
+
+        @Test
+        public void tryToGetAsArray() {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asArray())
+                    .withMessage("This JSON value is not an array: %s", underTest)
+                    .withNoCause();
+        }
     }
 
-    @Parameterized.Parameter
-    public int intValue;
+    public static class NonParameterizedTests{
+        @Test
+        public void writeValueWritesExpected() throws IOException {
+            Map<String, Integer> testVectors = new HashMap<String, Integer>(){{
+                put("1A7FFFFFFF", Integer.MAX_VALUE);
+                put("3A7FFFFFFF", Integer.MIN_VALUE);
+                put("00", 0);
+                put("190539", 1337);
+            }};
 
-    private ImmutableJsonInt underTest;
-
-    @Before
-    public void setUp() {
-        underTest = ImmutableJsonInt.of(intValue);
+            for (Map.Entry<String, Integer> entry : testVectors.entrySet()) {
+                String actual = CborTestUtils.serializeToHexString(ImmutableJsonInt.of(entry.getValue()));
+                String expected = entry.getKey();
+                assertThat(actual).isEqualToIgnoringCase(expected);
+            }
+        }
     }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonInt.class, areImmutable());
-    }
-
-    @Test
-    public void testHashCodeAndEquals() {
-        final Integer red = intValue / 2;
-        final Integer black = red + 1;
-
-        EqualsVerifier.forClass(ImmutableJsonInt.class)
-                .withRedefinedSuperclass()
-                .usingGetClass()
-                .withNonnullFields("value")
-                .withPrefabValues(Number.class, red, black)
-                .verify();
-    }
-
-    @Test
-    public void jsonIntEqualsJsonLongIfSameValue() {
-        final ImmutableJsonLong longValue = ImmutableJsonLong.of(intValue);
-
-        assertThat(underTest).isEqualTo(longValue);
-    }
-
-    @Test
-    public void jsonIntHasSameHashCodeAsJsonLongIfSameValue() {
-        final ImmutableJsonLong longValue = ImmutableJsonLong.of(intValue);
-
-        assertThat(underTest.hashCode()).isEqualTo(longValue.hashCode());
-    }
-
-    @Test
-    public void jsonIntEqualsJsonDoubleIfSameValue() {
-        final ImmutableJsonDouble doubleValue = ImmutableJsonDouble.of(intValue);
-
-        assertThat(underTest).isEqualTo(doubleValue);
-    }
-
-    @Test
-    public void jsonIntHasSameHashCodeAsJsonDoubleIfSameValue() {
-        final ImmutableJsonDouble doubleValue = ImmutableJsonDouble.of(intValue);
-
-        assertThat(underTest.hashCode()).isEqualTo(doubleValue.hashCode());
-    }
-
-    @Test
-    public void getValueReturnsExpected() {
-        assertThat(underTest.getValue()).isEqualTo(intValue);
-    }
-
-    @Test
-    public void asIntReturnsExpected() {
-        assertThat(underTest.asInt()).isEqualTo(intValue);
-    }
-
-    @Test
-    public void asLongReturnsExpected() {
-        assertThat(underTest.asLong()).isEqualTo(intValue);
-    }
-
-    @Test
-    public void asDoubleReturnsExpected() {
-        assertThat(underTest.asDouble()).isEqualTo(intValue);
-    }
-
-    @Test
-    public void toStringReturnsExpected() {
-        assertThat(underTest.toString()).isEqualTo(String.valueOf(intValue));
-    }
-
-    @Test
-    public void isNotNull() {
-        assertThat(underTest.isNull()).isFalse();
-    }
-
-    @Test
-    public void isNotBoolean() {
-        assertThat(underTest.isBoolean()).isFalse();
-    }
-
-    @Test
-    public void isNumber() {
-        assertThat(underTest.isNumber()).isTrue();
-    }
-
-    @Test
-    public void isInt() {
-        assertThat(underTest.isInt()).isTrue();
-    }
-
-    @Test
-    public void isLong() {
-        assertThat(underTest.isLong()).isTrue();
-    }
-
-    @Test
-    public void isDouble() {
-        assertThat(underTest.isDouble()).isTrue();
-    }
-
-    @Test
-    public void isNotString() {
-        assertThat(underTest.isString()).isFalse();
-    }
-
-    @Test
-    public void isNotObject() {
-        assertThat(underTest.isObject()).isFalse();
-    }
-
-    @Test
-    public void isNotArray() {
-        assertThat(underTest.isArray()).isFalse();
-    }
-
-    @Test
-    public void tryToGetAsBoolean() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asBoolean())
-                .withMessage("This JSON value is not a boolean: %s", underTest)
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToGetAsString() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asString())
-                .withMessage("This JSON value is not a string: %s", underTest)
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToGetAsObject() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asObject())
-                .withMessage("This JSON value is not an object: %s", underTest)
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToGetAsArray() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asArray())
-                .withMessage("This JSON value is not an array: %s", underTest)
-                .withNoCause();
-    }
-
-    @Test
-    public void writeValueWritesExpected() throws IOException {
-        final String expectedString = CborTestUtils.byteArrayToHexString(CborTestUtils.longToBytes(intValue));
-        assertThat(CborTestUtils.byteArrayToHexString(CborTestUtils.serializeWithJackson(underTest))).isEqualToIgnoringCase(expectedString);
-    }
-
 }

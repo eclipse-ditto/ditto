@@ -20,9 +20,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -31,259 +34,264 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link org.eclipse.ditto.json.ImmutableJsonDouble}.
  */
-@RunWith(Parameterized.class)
+@RunWith(Enclosed.class)
 public final class ImmutableJsonDoubleTest {
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<Double> doubleValues() {
-        return Arrays.asList(Double.NEGATIVE_INFINITY, Double.MIN_VALUE, Double.MAX_VALUE, Double.POSITIVE_INFINITY,
-                0D, 0.0D, -0D, -0.0D, 13.3742D, 1.081542E124D);
-    }
+    @RunWith(Parameterized.class)
+    public static class ParameterizedTests{
 
-    @Parameterized.Parameter
-    public double doubleValue;
+        @Parameterized.Parameters(name = "{0}")
+        public static Collection<Double> doubleValues() {
+            return Arrays.asList(Double.NEGATIVE_INFINITY, Double.MIN_VALUE, Double.MAX_VALUE, Double.POSITIVE_INFINITY,
+                    0D, 0.0D, -0D, -0.0D, 13.3742D, 1.081542E124D);
+        }
 
-    private ImmutableJsonDouble underTest;
+        @Parameterized.Parameter
+        public double doubleValue;
 
-    @Before
-    public void setUp() {
-        underTest = ImmutableJsonDouble.of(doubleValue);
-    }
+        private ImmutableJsonDouble underTest;
 
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonDouble.class, areImmutable());
-    }
+        @Before
+        public void setUp() {
+            underTest = ImmutableJsonDouble.of(doubleValue);
+        }
 
-    @Test
-    public void testHashCodeAndEquals() {
-        final Double red = 23.0D;
-        final Double black = 42.23D;
+        @Test
+        public void assertImmutability() {
+            assertInstancesOf(ImmutableJsonDouble.class, areImmutable());
+        }
 
-        EqualsVerifier.forClass(ImmutableJsonDouble.class)
-                .withRedefinedSuperclass()
-                .usingGetClass()
-                .withNonnullFields("value")
-                .withPrefabValues(Number.class, red, black)
-                .verify();
-    }
+        @Test
+        public void testHashCodeAndEquals() {
+            final Double red = 23.0D;
+            final Double black = 42.23D;
 
-    @Test
-    public void jsonDoubleEqualsJsonIntIfSameValue() {
-        final int value = Integer.MAX_VALUE;
-        final ImmutableJsonInt intValue = ImmutableJsonInt.of(value);
-        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
+            EqualsVerifier.forClass(ImmutableJsonDouble.class)
+                    .withRedefinedSuperclass()
+                    .usingGetClass()
+                    .withNonnullFields("value")
+                    .withPrefabValues(Number.class, red, black)
+                    .verify();
+        }
 
-        assertThat(underTest).isEqualTo(intValue);
-    }
+        @Test
+        public void jsonDoubleEqualsJsonIntIfSameValue() {
+            final int value = Integer.MAX_VALUE;
+            final ImmutableJsonInt intValue = ImmutableJsonInt.of(value);
+            final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
 
-    @Test
-    public void jsonDoubleHasSameHashCodeAsJsonIntIfSameValue() {
-        final int value = Integer.MAX_VALUE;
-        final ImmutableJsonInt intValue = ImmutableJsonInt.of(value);
-        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
+            assertThat(underTest).isEqualTo(intValue);
+        }
 
-        assertThat(underTest.hashCode()).isEqualTo(intValue.hashCode());
-    }
+        @Test
+        public void jsonDoubleHasSameHashCodeAsJsonIntIfSameValue() {
+            final int value = Integer.MAX_VALUE;
+            final ImmutableJsonInt intValue = ImmutableJsonInt.of(value);
+            final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
 
-    @Test
-    public void jsonDoubleEqualsJsonLongIfSameValue() {
-        final long value = Long.MAX_VALUE;
-        final ImmutableJsonLong longValue = ImmutableJsonLong.of(value);
-        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
+            assertThat(underTest.hashCode()).isEqualTo(intValue.hashCode());
+        }
 
-        assertThat(underTest).isEqualTo(longValue);
-    }
+        @Test
+        public void jsonDoubleEqualsJsonLongIfSameValue() {
+            final long value = Long.MAX_VALUE;
+            final ImmutableJsonLong longValue = ImmutableJsonLong.of(value);
+            final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
 
-    @Test
-    public void jsonDoubleHasSameHashCodeAsJsonLongIfSameValue() {
-        final long value = Long.MAX_VALUE;
-        final ImmutableJsonLong longValue = ImmutableJsonLong.of(value);
-        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
+            assertThat(underTest).isEqualTo(longValue);
+        }
 
-        assertThat(underTest.hashCode()).isEqualTo(longValue.hashCode());
-    }
+        @Test
+        public void jsonDoubleHasSameHashCodeAsJsonLongIfSameValue() {
+            final long value = Long.MAX_VALUE;
+            final ImmutableJsonLong longValue = ImmutableJsonLong.of(value);
+            final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
 
-    @Test
-    public void getValueReturnsExpected() {
-        assertThat(underTest.getValue()).isEqualTo(doubleValue);
-    }
+            assertThat(underTest.hashCode()).isEqualTo(longValue.hashCode());
+        }
 
-    @Test
-    public void asDoubleReturnsExpected() {
-        assertThat(underTest.asDouble()).isEqualTo(doubleValue);
-    }
+        @Test
+        public void getValueReturnsExpected() {
+            assertThat(underTest.getValue()).isEqualTo(doubleValue);
+        }
 
-    @Test
-    public void toStringReturnsExpected() {
-        assertThat(underTest.toString()).isEqualTo(String.valueOf(doubleValue));
-    }
+        @Test
+        public void asDoubleReturnsExpected() {
+            assertThat(underTest.asDouble()).isEqualTo(doubleValue);
+        }
 
-    @Test
-    public void isNotNull() {
-        assertThat(underTest.isNull()).isFalse();
-    }
+        @Test
+        public void toStringReturnsExpected() {
+            assertThat(underTest.toString()).isEqualTo(String.valueOf(doubleValue));
+        }
 
-    @Test
-    public void isNotBoolean() {
-        assertThat(underTest.isBoolean()).isFalse();
-    }
+        @Test
+        public void isNotNull() {
+            assertThat(underTest.isNull()).isFalse();
+        }
 
-    @Test
-    public void isNumber() {
-        assertThat(underTest.isNumber()).isTrue();
-    }
+        @Test
+        public void isNotBoolean() {
+            assertThat(underTest.isBoolean()).isFalse();
+        }
 
-    @Test
-    public void isIntReturnsExpected() {
-        assertThat(underTest.isInt()).isEqualTo(isDoubleValueWithinIntegerRange());
-    }
+        @Test
+        public void isNumber() {
+            assertThat(underTest.isNumber()).isTrue();
+        }
 
-    @Test
-    public void jsonDoubleWithFractionsIsNotInt() {
-        final double doubleValue = 23.42D;
-        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(doubleValue);
+        @Test
+        public void isIntReturnsExpected() {
+            assertThat(underTest.isInt()).isEqualTo(isDoubleValueWithinIntegerRange());
+        }
 
-        assertThat(underTest.isInt()).isFalse();
-    }
+        @Test
+        public void jsonDoubleWithFractionsIsNotInt() {
+            final double doubleValue = 23.42D;
+            final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(doubleValue);
 
-    @Test
-    public void jsonDoubleWithZeroFractionsWithinIntRangeIsEqualToSameInt() {
-        final double doubleValueWithFractions = 23.0D;
-        final int equivalentIntValue = 23;
+            assertThat(underTest.isInt()).isFalse();
+        }
 
-        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(doubleValueWithFractions);
+        @Test
+        public void jsonDoubleWithZeroFractionsWithinIntRangeIsEqualToSameInt() {
+            final double doubleValueWithFractions = 23.0D;
+            final int equivalentIntValue = 23;
 
-        assertThat(underTest.isDouble()).isTrue();
-        assertThat(underTest.isInt()).isTrue();
-        assertThat(underTest.isLong()).isTrue();
-        assertThat(underTest.asInt()).isEqualTo(equivalentIntValue);
-    }
+            final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(doubleValueWithFractions);
 
-    @Test
-    public void isLongReturnsExpected() {
-        if (isDoubleValueWithinIntegerRange() || isDoubleValueWithinLongRange()) {
+            assertThat(underTest.isDouble()).isTrue();
+            assertThat(underTest.isInt()).isTrue();
             assertThat(underTest.isLong()).isTrue();
-        } else {
+            assertThat(underTest.asInt()).isEqualTo(equivalentIntValue);
+        }
+
+        @Test
+        public void isLongReturnsExpected() {
+            if (isDoubleValueWithinIntegerRange() || isDoubleValueWithinLongRange()) {
+                assertThat(underTest.isLong()).isTrue();
+            } else {
+                assertThat(underTest.isLong()).isFalse();
+            }
+        }
+
+        @Test
+        public void jsonDoubleWithFractionsIsNotLong() {
+            final double doubleValue = 23.42D;
+            final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(doubleValue);
+
             assertThat(underTest.isLong()).isFalse();
         }
-    }
 
-    @Test
-    public void jsonDoubleWithFractionsIsNotLong() {
-        final double doubleValue = 23.42D;
-        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(doubleValue);
+        @Test
+        public void isDouble() {
+            assertThat(underTest.isDouble()).isTrue();
+        }
 
-        assertThat(underTest.isLong()).isFalse();
-    }
+        @Test
+        public void isNotString() {
+            assertThat(underTest.isString()).isFalse();
+        }
 
-    @Test
-    public void isDouble() {
-        assertThat(underTest.isDouble()).isTrue();
-    }
+        @Test
+        public void isNotObject() {
+            assertThat(underTest.isObject()).isFalse();
+        }
 
-    @Test
-    public void isNotString() {
-        assertThat(underTest.isString()).isFalse();
-    }
+        @Test
+        public void isNotArray() {
+            assertThat(underTest.isArray()).isFalse();
+        }
 
-    @Test
-    public void isNotObject() {
-        assertThat(underTest.isObject()).isFalse();
-    }
-
-    @Test
-    public void isNotArray() {
-        assertThat(underTest.isArray()).isFalse();
-    }
-
-    @Test
-    public void tryToGetAsBoolean() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asBoolean())
-                .withMessage("This JSON value is not a boolean: %s", underTest)
-                .withNoCause();
-    }
-
-    @Test
-    public void getAsIntBehavesCorrectly() {
-        if (underTest.isInt()) {
-            assertThat(underTest.asInt()).isEqualTo(Double.valueOf(doubleValue).intValue());
-        } else {
-            assertThatExceptionOfType(NumberFormatException.class)
-                    .isThrownBy(() -> underTest.asInt())
-                    .withMessage("This JSON value is not an int: %s", underTest)
+        @Test
+        public void tryToGetAsBoolean() {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asBoolean())
+                    .withMessage("This JSON value is not a boolean: %s", underTest)
                     .withNoCause();
+        }
+
+        @Test
+        public void getAsIntBehavesCorrectly() {
+            if (underTest.isInt()) {
+                assertThat(underTest.asInt()).isEqualTo(Double.valueOf(doubleValue).intValue());
+            } else {
+                assertThatExceptionOfType(NumberFormatException.class)
+                        .isThrownBy(() -> underTest.asInt())
+                        .withMessage("This JSON value is not an int: %s", underTest)
+                        .withNoCause();
+            }
+        }
+
+        @Test
+        public void getAsLongBehavesCorrectly() {
+            if (underTest.isLong()) {
+                assertThat(underTest.asLong()).isEqualTo(Double.valueOf(doubleValue).longValue());
+            } else {
+                assertThatExceptionOfType(NumberFormatException.class)
+                        .isThrownBy(() -> underTest.asLong())
+                        .withMessage("This JSON value is not a long: %s", underTest)
+                        .withNoCause();
+            }
+        }
+
+        @Test
+        public void tryToGetAsString() {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asString())
+                    .withMessage("This JSON value is not a string: %s", underTest)
+                    .withNoCause();
+        }
+
+        @Test
+        public void tryToGetAsObject() {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asObject())
+                    .withMessage("This JSON value is not an object: %s", underTest)
+                    .withNoCause();
+        }
+
+        @Test
+        public void tryToGetAsArray() {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asArray())
+                    .withMessage("This JSON value is not an array: %s", underTest)
+                    .withNoCause();
+        }
+
+        private boolean isDoubleValueWithinIntegerRange() {
+            return Integer.MIN_VALUE <= doubleValue && Integer.MAX_VALUE >= doubleValue && hasNoFraction();
+        }
+
+        private boolean hasNoFraction() {
+            return 0 == doubleValue % 1;
+        }
+
+        private boolean isDoubleValueWithinLongRange() {
+            return Long.MIN_VALUE <= doubleValue && Long.MAX_VALUE >= doubleValue && hasNoFraction();
         }
     }
 
-    @Test
-    public void getAsLongBehavesCorrectly() {
-        if (underTest.isLong()) {
-            assertThat(underTest.asLong()).isEqualTo(Double.valueOf(doubleValue).longValue());
-        } else {
-            assertThatExceptionOfType(NumberFormatException.class)
-                    .isThrownBy(() -> underTest.asLong())
-                    .withMessage("This JSON value is not a long: %s", underTest)
-                    .withNoCause();
+    public static class NonParameterizedTests{
+        @Test
+        public void writeValueWritesExpectedTestVectors() throws IOException {
+            Map<String, Double> testVectors = new HashMap<String, Double>(){{
+                put("f97c00", Double.POSITIVE_INFINITY);
+                put("f9fc00", Double.NEGATIVE_INFINITY);
+                put("f90001", 5.960464477539063e-8);
+                put("fa7f7fffff", 3.4028234663852886e+38);
+                put("f97e00", Double.NaN);
+                put("FB0000000000000001", Double.MIN_VALUE);
+                put("FB7FEFFFFFFFFFFFFF", Double.MAX_VALUE);
+                put("FB402ABF972474538F", 13.3742D);
+                put("FB59B05C5EED0FB82F", 1.081542E124D);
+            }};
+
+            for (Map.Entry<String, Double> entry : testVectors.entrySet()) {
+                String actual = CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(entry.getValue()));
+                String expected = entry.getKey();
+                assertThat(actual).isEqualToIgnoringCase(expected);
+            }
         }
-    }
-
-    @Test
-    public void tryToGetAsString() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asString())
-                .withMessage("This JSON value is not a string: %s", underTest)
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToGetAsObject() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asObject())
-                .withMessage("This JSON value is not an object: %s", underTest)
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToGetAsArray() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asArray())
-                .withMessage("This JSON value is not an array: %s", underTest)
-                .withNoCause();
-    }
-
-    private boolean isDoubleValueWithinIntegerRange() {
-        return Integer.MIN_VALUE <= doubleValue && Integer.MAX_VALUE >= doubleValue && hasNoFraction();
-    }
-
-    private boolean hasNoFraction() {
-        return 0 == doubleValue % 1;
-    }
-
-    private boolean isDoubleValueWithinLongRange() {
-        return Long.MIN_VALUE <= doubleValue && Long.MAX_VALUE >= doubleValue && hasNoFraction();
-    }
-
-    @Test
-    public void writeValueWritesExpectedTestVectors() throws IOException {
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(3.4028234663852886e+38)))
-                .isEqualToIgnoringCase("fa7f7fffff");
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(5.960464477539063e-8)))
-                .isEqualToIgnoringCase("f90001");
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(Double.POSITIVE_INFINITY)))
-                .isEqualToIgnoringCase("f97c00");
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(Double.NEGATIVE_INFINITY)))
-                .isEqualToIgnoringCase("f9fc00");
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(Double.NaN)))
-                .isEqualToIgnoringCase("f97e00");
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(Double.MIN_VALUE)))
-                .isEqualToIgnoringCase("FB0000000000000001");
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(Double.MAX_VALUE)))
-                .isEqualToIgnoringCase("FB7FEFFFFFFFFFFFFF");
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(13.3742D)))
-                .isEqualToIgnoringCase("FB402ABF972474538F");
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(1.081542E124D)))
-                .isEqualToIgnoringCase("FB59B05C5EED0FB82F");
     }
 }

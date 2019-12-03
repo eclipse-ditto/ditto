@@ -14,6 +14,7 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -238,8 +239,14 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
     }
 
     @Override
-    public void writeValue(final SerializationContext serializationContext) {
-        // TODO implement
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.getJacksonGenerator().writeStartArray(valueList.getSize());
+        for (final JsonValue jsonValue: valueList.values()){
+            jsonValue.writeValue(serializationContext);
+        }
+        serializationContext.getJacksonGenerator().writeEndArray();
+        // TODO: use caching
+        // TODO: change caching over to CBOR?
     }
 
     @Immutable

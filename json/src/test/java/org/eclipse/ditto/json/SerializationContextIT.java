@@ -29,20 +29,32 @@ import com.fasterxml.jackson.core.io.IOContext;
 public class SerializationContextIT {
 
     private boolean somethingWrittenDuringCreateWithOutputStreamWritesToStream = false;
+    private boolean generatorCalledDuringJsonGeneratorIsCreatedByFactory = false;
 
 
     @Test
     public void jsonGeneratorIsCreatedByFactory() throws IOException {
-        final Object markedObject = new Object();
+        final JsonGenerator markedObject = new JsonFactory().createGenerator(System.out);
         final JsonFactory jacksonFactory = new JsonFactory() {
             @Override
             protected JsonGenerator _createGenerator(final Writer out, final IOContext ctxt) {
-                return (JsonGenerator) markedObject;
+                return recordAndReturn();
+            }
+
+            @Override
+            protected JsonGenerator _createUTF8Generator(OutputStream out, IOContext ctxt) {
+                return recordAndReturn();
+            }
+
+            private JsonGenerator recordAndReturn(){
+                generatorCalledDuringJsonGeneratorIsCreatedByFactory = true;
+                return markedObject;
             }
         };
         final SerializationContext serializationContext =
                 new SerializationContext(jacksonFactory, ByteBuffer.allocate(15));
         final JsonGenerator returnedGenerator = serializationContext.getJacksonGenerator();
+        assertThat(generatorCalledDuringJsonGeneratorIsCreatedByFactory).isTrue();
         assertThat(returnedGenerator == markedObject).isTrue(); // deliberate reference comparison
     }
 

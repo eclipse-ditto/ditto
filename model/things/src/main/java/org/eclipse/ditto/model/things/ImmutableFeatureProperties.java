@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.things;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -307,8 +308,9 @@ final class ImmutableFeatureProperties implements FeatureProperties {
     }
 
     @Override
-    public void writeValue(final SerializationContext serializationContext) {
-        // TODO implement
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        wrapped.writeValue(serializationContext);
+        // TODO implement caching?
     }
 
     private FeatureProperties determineResult(final Supplier<JsonObject> newWrappedSupplier) {

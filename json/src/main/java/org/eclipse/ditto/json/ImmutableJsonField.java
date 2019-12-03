@@ -14,6 +14,7 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
@@ -91,6 +92,14 @@ final class ImmutableJsonField implements JsonField {
     @Override
     public boolean isMarkedAs(final JsonFieldMarker fieldMarker, final JsonFieldMarker... furtherFieldMarkers) {
         return null != definition && definition.isMarkedAs(fieldMarker, furtherFieldMarkers);
+    }
+
+    @Override
+    public void writeKeyAndValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.getJacksonGenerator().writeFieldName(key.toString());
+        value.writeValue(serializationContext);
+
+        // TODO: cache Key as SerializableString
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})

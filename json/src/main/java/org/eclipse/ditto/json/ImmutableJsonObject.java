@@ -14,6 +14,7 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.text.MessageFormat;
 import java.util.ArrayDeque;
@@ -33,6 +34,9 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 
 /**
  * An immutable implementation of a JSON object.
@@ -510,8 +514,28 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     }
 
     @Override
-    public void writeValue(final SerializationContext serializationContext) {
-        // TODO implement
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        writeStartObjectWithLenght(serializationContext, fieldMap.getSize());
+        for (JsonField jsonField: fieldMap.fields().values()){
+            jsonField.writeKeyAndValue(serializationContext);
+        }
+        serializationContext.getJacksonGenerator().writeEndObject();
+    }
+
+    private static void writeStartObjectWithLenght(final SerializationContext serializationContext, int length)
+            throws IOException {
+        /*
+        This is a workaround to ensure that length is encoded in CBOR-Objects.
+        A proper API should be available in version 2.11. (2020-02)
+        see: https://github.com/FasterXML/jackson-dataformats-binary/issues/3
+         */
+        final JsonGenerator jacksonGenerator = serializationContext.getJacksonGenerator();
+        if (jacksonGenerator instanceof CBORGenerator){
+            CBORGenerator cborGenerator = (CBORGenerator) jacksonGenerator;
+            cborGenerator.writeStartObject(length);
+        } else {
+            jacksonGenerator.writeStartObject();
+        }
     }
 
     @Immutable
