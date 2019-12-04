@@ -15,10 +15,7 @@ package org.eclipse.ditto.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
@@ -73,13 +70,13 @@ public class CborFactoryTest {
         testBytes = CborTestUtils.serializeWithJackson(testValue);
     }
     @Test
-    public void readFromByteArrayWithoutOffset() {
+    public void readFromByteArrayWithoutOffset() throws IOException {
         final JsonValue result = CborFactory.readFrom(testBytes);
         assertThat(result).isEqualTo(testValue);
     }
 
     @Test
-    public void readFromByteArrayWithOffset(){
+    public void readFromByteArrayWithOffset() throws IOException {
         final int paddingFront = 20;
         final int paddingBack = 42;
         byte[] arrayWithOffsetAndLength = new byte[ paddingFront + testBytes.length + paddingBack];
@@ -89,24 +86,17 @@ public class CborFactoryTest {
     }
 
     @Test
-    public void readFromByteBuffer(){
+    public void readFromByteBuffer() throws IOException {
         final JsonValue result = CborFactory.readFrom(ByteBuffer.wrap(testBytes));
         assertThat(result).isEqualTo(testValue);
     }
 
     @Test
-    public void readFromByteBufferWithInaccessibleArray(){
+    public void readFromByteBufferWithInaccessibleArray() throws IOException {
         // ReadOnlyByteBuffers throw an exception when trying to access the backing array directly.
         // This test also avoids accessing the backing array directly, which causes issues with ByteBuffers that represent slices of other Buffers.
         final ByteBuffer readOnlyBuffer = ByteBuffer.wrap(testBytes).asReadOnlyBuffer();
         final JsonValue result = CborFactory.readFrom(readOnlyBuffer);
-        assertThat(result).isEqualTo(testValue);
-    }
-
-    @Test
-    public void readFromReader(){
-        final Reader reader = new InputStreamReader(new ByteArrayInputStream(testBytes));
-        final JsonValue result = CborFactory.readFrom(reader);
         assertThat(result).isEqualTo(testValue);
     }
 }
