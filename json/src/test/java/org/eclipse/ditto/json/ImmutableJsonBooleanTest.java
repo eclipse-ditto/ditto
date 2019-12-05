@@ -65,8 +65,8 @@ public final class ImmutableJsonBooleanTest {
         final String thetruthExpectedString = "F5";
         final String nottrueExpectedString = "F4";
 
-        assertThat(CborTestUtils.byteArrayToHexString(CborTestUtils.serializeWithJackson(thetruth))).isEqualToIgnoringCase(thetruthExpectedString);
-        assertThat(CborTestUtils.byteArrayToHexString(CborTestUtils.serializeWithJackson(nottrue))).isEqualToIgnoringCase(nottrueExpectedString);
+        assertThat(CborTestUtils.serializeToHexString(thetruth)).isEqualToIgnoringCase(thetruthExpectedString);
+        assertThat(CborTestUtils.serializeToHexString(nottrue)).isEqualToIgnoringCase(nottrueExpectedString);
     }
 
     @Test

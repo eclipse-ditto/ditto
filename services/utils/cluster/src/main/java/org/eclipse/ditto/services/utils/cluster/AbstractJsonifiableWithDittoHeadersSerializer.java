@@ -26,6 +26,7 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.BinaryToHexConverter;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -160,8 +161,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 LOG.warn("Could not put bytes of JSON string <{}> into ByteBuffer due to BufferOverflow", jsonObject.toString(), e);
                 throw e;
             } catch (IOException e) {
-                LOG.warn("Serialization failed with {} on Jsonifiable with string representation <{}>", e.getClass().getName(), jsonObject, e);
-                // TODO throw this exception somehow?
+                final String errorMessage = MessageFormat.format(
+                        "Serialization failed with {} on Jsonifiable with string representation <{}>",
+                        e.getClass().getName(), jsonObject);
+                LOG.warn(errorMessage, e);
+                throw new RuntimeException(errorMessage, e);
             }
         } else {
             LOG.error("Could not serialize class <{}> as it does not implement <{}>!", object.getClass(),
@@ -209,7 +213,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         try {
             final Jsonifiable jsonifiable = tryToCreateKnownJsonifiableFrom(manifest, buf);
             if (LOG.isTraceEnabled()){
-                LOG.trace("fromBinary {} which got 'in': {}", serializerName,buf); // TODO: convert cbor to hex for log
+                LOG.trace("fromBinary {} which got 'in': {}", serializerName,tryToConvertToHexString(buf));
             }
             inCounter.increment();
             return jsonifiable;
@@ -229,7 +233,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             return createJsonifiableFrom(manifest, byteBuffer);
         } catch (final DittoRuntimeException | JsonRuntimeException | IOException e) {
             LOG.error("Got <{}> during deserialization for manifest <{}> and serializer {} while processing message: <{}>.",
-                    e.getClass().getSimpleName(), manifest, serializerName, byteBuffer, e); // TODO: convert cbor to hex for log
+                    e.getClass().getSimpleName(), manifest, serializerName, tryToConvertToHexString(byteBuffer), e);
             throw new NotSerializableException(manifest);
         }
     }
@@ -250,9 +254,9 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             jsonObject = jsonValue.asObject();
         } else {
             LOG.warn("Expected object but received value <{}> with manifest <{}> via {}", jsonValue, manifest, serializerName);
-            throw JsonParseException.newBuilder()
-                    .message(MessageFormat.format("<{}> is not a valid {} object! (It's a value.)", bytebuffer, serializerName))
-                    .build();
+            final String errorMessage = MessageFormat.format("<{}> is not a valid {} object! (It's a value.)",
+                    tryToConvertToHexString(bytebuffer), serializerName);
+            throw JsonParseException.newBuilder().message(errorMessage).build();
         }
 
         final JsonObject payload = getPayload(jsonObject);
@@ -285,6 +289,14 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         }
 
         return result;
+    }
+
+    private static String tryToConvertToHexString(ByteBuffer byteBuffer){
+        try {
+            return BinaryToHexConverter.toHexString(byteBuffer);
+        } catch (IOException e) {
+            return "Could not convert ByteBuffer to String due to " + e.getClass().getSimpleName();
+        }
     }
 
 }

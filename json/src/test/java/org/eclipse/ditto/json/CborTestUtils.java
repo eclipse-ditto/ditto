@@ -33,18 +33,8 @@ class CborTestUtils {
         return sizedByteArrayFromByteBuffer(byteBuffer);
     }
 
-    static String byteArrayToHexString(byte[] array){
-        StringBuilder result = new StringBuilder(array.length * 2);
-        char[] hexcharacters = "0123456789ABCDEF".toCharArray();
-        for (byte b : array) {
-            result.append(hexcharacters[(b & 0xF0) >> 4]);
-            result.append(hexcharacters[b & 0x0F]);
-        }
-        return result.toString();
-    }
-
     static String serializeToHexString(JsonValue jsonValue) throws IOException {
-        return byteArrayToHexString(serializeWithJackson(jsonValue));
+        return BinaryToHexConverter.toHexString(serializeWithJackson(jsonValue));
     }
 
     private static byte[] sizedByteArrayFromByteBuffer(ByteBuffer byteBuffer){

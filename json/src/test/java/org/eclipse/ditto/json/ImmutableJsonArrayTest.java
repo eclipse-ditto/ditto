@@ -406,7 +406,7 @@ public final class ImmutableJsonArrayTest {
                 + "190539"; // unsigned 1337
         final ImmutableJsonArray underTest = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
 
-        assertThat(CborTestUtils.byteArrayToHexString(CborTestUtils.serializeWithJackson(underTest))).isEqualToIgnoringCase(expectedString);
+        assertThat(CborTestUtils.serializeToHexString(underTest)).isEqualToIgnoringCase(expectedString);
     }
 
     @Test
@@ -431,7 +431,7 @@ public final class ImmutableJsonArrayTest {
 
         final ImmutableJsonArray underTest = ImmutableJsonArray.of(jsonValues);
 
-        assertThat(CborTestUtils.byteArrayToHexString(CborTestUtils.serializeWithJackson(underTest))).isEqualToIgnoringCase(expectedString);
+        assertThat(CborTestUtils.serializeToHexString(underTest)).isEqualToIgnoringCase(expectedString);
     }
 
     @Test

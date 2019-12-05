@@ -50,9 +50,7 @@ public final class ImmutableJsonObjectNullTest {
 
     @Test
     public void writeValueWritesExpected() throws IOException {
-        byte[] jsonObjectNull = CborTestUtils.serializeWithJackson(ImmutableJsonObjectNull.getInstance());
-        byte[] jsonNull = CborTestUtils.serializeWithJackson(ImmutableJsonNull.getInstance());
-        assertThat(CborTestUtils.byteArrayToHexString(jsonObjectNull))
-                .isEqualToIgnoringCase(CborTestUtils.byteArrayToHexString(jsonNull));
+        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonObjectNull.getInstance()))
+                .isEqualToIgnoringCase(CborTestUtils.serializeToHexString(ImmutableJsonNull.getInstance()));
     }
 }
