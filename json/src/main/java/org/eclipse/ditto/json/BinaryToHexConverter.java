@@ -55,5 +55,4 @@ public class BinaryToHexConverter {
         result.append(HEXCHARACTERS[(b & 0xF0) >> 4]);
         result.append(HEXCHARACTERS[b & 0x0F]);
     }
-    // TODO: test
 }

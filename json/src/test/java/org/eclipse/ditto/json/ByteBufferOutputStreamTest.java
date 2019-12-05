@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 
 import org.junit.Test;
 
-public class ByteBufferOutputStreamIT {
+public class ByteBufferOutputStreamTest {
 
     @Test
     public void writesThroughToBuffer() throws IOException {

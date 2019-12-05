@@ -28,7 +28,7 @@ class CborTestUtils {
                 new SerializationContext(jacksonFactory, new ByteBufferOutputStream(byteBuffer));
         jsonValue.writeValue(serializationContext);
         serializationContext.close();
-        byteBuffer.flip(); // TODO is this needed?
+        byteBuffer.flip();
 
         return sizedByteArrayFromByteBuffer(byteBuffer);
     }

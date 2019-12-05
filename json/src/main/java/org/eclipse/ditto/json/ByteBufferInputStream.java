@@ -47,6 +47,4 @@ public class ByteBufferInputStream extends InputStream {
         byteBuffer.get(b, off, dataToRead);
         return dataToRead;
     }
-
-    // TODO: write tests
 }

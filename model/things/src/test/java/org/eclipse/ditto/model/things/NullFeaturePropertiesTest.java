@@ -18,6 +18,10 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.io.IOException;
+
+import org.eclipse.ditto.json.BinaryToHexConverter;
+import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Before;
@@ -82,7 +86,8 @@ public final class NullFeaturePropertiesTest {
     }
 
     @Test
-    public void writeValueWritesExpected() {
-        // TODO implement test
+    public void writeValueWritesExpected() throws IOException {
+        assertThat(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(NullFeatureProperties.newInstance())))
+                .isEqualTo(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(JsonFactory.nullLiteral())));
     }
 }

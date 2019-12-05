@@ -62,11 +62,7 @@ public class CborFactoryTest {
 
     @Before
     public void init() throws IOException {
-        if (testObjectString.length() > 15) {
-            testValue = JsonFactory.newObject(testObjectString);
-        } else {
-            testValue = JsonFactory.newValue(testObjectString);
-        }
+        testValue = JsonFactory.newValue(testObjectString);
         testBytes = CborTestUtils.serializeWithJackson(testValue);
     }
     @Test
@@ -98,5 +94,19 @@ public class CborFactoryTest {
         final ByteBuffer readOnlyBuffer = ByteBuffer.wrap(testBytes).asReadOnlyBuffer();
         final JsonValue result = CborFactory.readFrom(readOnlyBuffer);
         assertThat(result).isEqualTo(testValue);
+    }
+
+    @Test
+    public void toBytebufferWorks() throws IOException {
+        assertThat(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(testValue)))
+                .isEqualTo(CborTestUtils.serializeToHexString(testValue));
+    }
+
+    @Test
+    public void writeToByteBufferWorks() throws IOException {
+        final ByteBuffer allocate = ByteBuffer.allocate(512);
+        CborFactory.writeToByteBuffer(testValue, allocate);
+        allocate.flip();
+        assertThat(BinaryToHexConverter.toHexString(allocate)).isEqualTo(CborTestUtils.serializeToHexString(testValue));
     }
 }

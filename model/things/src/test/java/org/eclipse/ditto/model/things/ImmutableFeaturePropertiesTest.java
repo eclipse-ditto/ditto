@@ -17,6 +17,10 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.io.IOException;
+
+import org.eclipse.ditto.json.BinaryToHexConverter;
+import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
 
@@ -57,10 +61,10 @@ public final class ImmutableFeaturePropertiesTest {
     }
 
     @Test
-    public void writeValueWritesExpected() {
-        // TODO implement test
+    public void writeValueWritesExpected() throws IOException {
+        assertThat(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(ImmutableFeatureProperties.of(TestConstants.Thing.ATTRIBUTES))))
+                .isEqualTo(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(TestConstants.Thing.ATTRIBUTES)));
     }
 
     // TODO test that this conforms to JsonObject
-
 }
