@@ -14,6 +14,9 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
@@ -33,6 +36,8 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -40,9 +45,23 @@ import com.typesafe.config.ConfigValueFactory;
 import akka.actor.ExtendedActorSystem;
 
 /**
- * Unit test for {@link JsonifiableSerializer}
+ * Unit test for {@link JsonJsonifiableSerializer}
  */
-public final class JsonifiableSerializerTest {
+@RunWith(Parameterized.class)
+public final class SharedJsonifiableSerializerTest {
+
+    private enum SerializerImplementation{
+        JsonifiableSerializer,
+        CborJsonifiableSerializer
+    }
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<SerializerImplementation> serializerImplementationsToTest() {
+        return Arrays.asList(SerializerImplementation.JsonifiableSerializer, SerializerImplementation.CborJsonifiableSerializer);
+    }
+
+    @Parameterized.Parameter
+    public SerializerImplementation serializerClass;
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationSubjects("authSubject")
@@ -56,7 +75,7 @@ public final class JsonifiableSerializerTest {
             .setId(THING_ID)
             .build();
 
-    private JsonifiableSerializer underTestForThingCommands;
+    private AbstractJsonifiableWithDittoHeadersSerializer underTestForThingCommands;
 
     @Before
     public void setUp() {
@@ -64,7 +83,18 @@ public final class JsonifiableSerializerTest {
                 (ExtendedActorSystem) ExtendedActorSystem.create("test", ConfigFactory.empty()
                         .withValue("ditto.mapping-strategy.implementation",
                                 ConfigValueFactory.fromAnyRef(ThingCommandsStrategy.class.getName())));
-        underTestForThingCommands = new JsonifiableSerializer(actorSystem);
+        underTestForThingCommands = createNewSerializer(actorSystem);
+    }
+
+    private AbstractJsonifiableWithDittoHeadersSerializer createNewSerializer(ExtendedActorSystem actorSystem){
+        switch (serializerClass) {
+            case JsonifiableSerializer:
+                return new JsonJsonifiableSerializer(actorSystem);
+            case CborJsonifiableSerializer:
+                return new CborJsonifiableSerializer(actorSystem);
+            default:
+                throw new IllegalArgumentException("No test logic provided for serializer" + serializerClass.getClass());
+        }
     }
 
     @Test
@@ -73,7 +103,7 @@ public final class JsonifiableSerializerTest {
                 (ExtendedActorSystem) ExtendedActorSystem.create("test", ConfigFactory.empty()
                         .withValue("ditto.mapping-strategy.implementation",
                                 ConfigValueFactory.fromAnyRef(DittoHeadersStrategy.class.getName())));
-        final JsonifiableSerializer underTest = new JsonifiableSerializer(actorSystem);
+        final AbstractJsonifiableWithDittoHeadersSerializer underTest = createNewSerializer(actorSystem);
 
         final byte[] bytes = underTest.toBinary(DITTO_HEADERS);
         final Object o = underTest.fromBinary(bytes, DittoHeaders.class.getSimpleName());

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
 import java.io.NotSerializableException;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
@@ -64,7 +66,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJsonifiableWithDittoHeadersSerializer.class);
 
-    private static final Charset UTF8_CHARSET = StandardCharsets.UTF_8;
+    protected static final Charset CHARSET = StandardCharsets.UTF_8;
 
     private static final JsonFieldDefinition<JsonObject> JSON_DITTO_HEADERS =
             JsonFactory.newJsonObjectFieldDefinition("dittoHeaders");
@@ -80,7 +82,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             .withValue(CONFIG_DIRECT_BUFFER_SIZE, ConfigValueFactory.fromAnyRef("64 KiB"))
             .withValue(CONFIG_DIRECT_BUFFER_POOL_LIMIT, ConfigValueFactory.fromAnyRef("500"));
 
-    private static final String METRIC_NAME = "json_serializer_messages";
+    private static final String METRIC_NAME_SUFFIX = "_serializer_messages";
     private static final String METRIC_DIRECTION = "direction";
 
     private final int identifier;
@@ -90,14 +92,18 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private final Long defaultBufferSize;
     private final Counter inCounter;
     private final Counter outCounter;
+    private final String serializerName;
 
     /**
      * Constructs a new {@code AbstractJsonifiableWithDittoHeadersSerializer} object.
+     *
+     * @param serializerName A name to be used for this serializer when reporting metrics, in the log and in error messages.
      */
     protected AbstractJsonifiableWithDittoHeadersSerializer(final int identifier, final ExtendedActorSystem actorSystem,
-            final Function<Object, String> manifestProvider) {
+            final Function<Object, String> manifestProvider, final String serializerName) {
 
         this.identifier = identifier;
+        this.serializerName = serializerName;
 
         mappingStrategies = MappingStrategies.loadMappingStrategies(actorSystem);
         this.manifestProvider = requireNonNull(manifestProvider, "manifest provider");
@@ -108,9 +114,9 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         final int maxPoolEntries = config.withFallback(FALLBACK_CONF).getInt(CONFIG_DIRECT_BUFFER_POOL_LIMIT);
         byteBufferPool = new DirectByteBufferPool(defaultBufferSize.intValue(), maxPoolEntries);
 
-        inCounter = DittoMetrics.counter(METRIC_NAME)
+        inCounter = DittoMetrics.counter(serializerName.toLowerCase() + METRIC_NAME_SUFFIX)
                 .tag(METRIC_DIRECTION, "in");
-        outCounter = DittoMetrics.counter(METRIC_NAME)
+        outCounter = DittoMetrics.counter(serializerName.toLowerCase() + METRIC_NAME_SUFFIX)
                 .tag(METRIC_DIRECTION, "out");
     }
 
@@ -143,23 +149,29 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             }
 
             jsonObjectBuilder.set(JSON_PAYLOAD, jsonValue);
-            final String jsonStr = jsonObjectBuilder.build().toString();
-
+            final JsonObject jsonObject = jsonObjectBuilder.build();
             try {
-                buf.put(UTF8_CHARSET.encode(jsonStr));
-                LOG.trace("toBinary jsonStr about to send 'out': {}", jsonStr);
+                serializeIntoByteBuffer(jsonObject, buf);
+                if (LOG.isTraceEnabled()){
+                    LOG.trace("toBinary jsonStr about to send 'out': {}", jsonObject.toString());
+                }
                 outCounter.increment();
             } catch (final BufferOverflowException e) {
-                LOG.warn("Could not put bytes of JSON string <{}> into ByteBuffer due to BufferOverflow", jsonStr, e);
+                LOG.warn("Could not put bytes of JSON string <{}> into ByteBuffer due to BufferOverflow", jsonObject.toString(), e);
                 throw e;
+            } catch (IOException e) {
+                LOG.warn("Serialization failed with {} on Jsonifiable with string representation <{}>", e.getClass().getName(), jsonObject, e);
+                // TODO throw this exception somehow?
             }
         } else {
             LOG.error("Could not serialize class <{}> as it does not implement <{}>!", object.getClass(),
                     Jsonifiable.WithPredicate.class);
             final String error = new NotSerializableException(object.getClass().getName()).getMessage();
-            buf.put(UTF8_CHARSET.encode(error));
+            buf.put(CHARSET.encode(error));
         }
     }
+
+    protected abstract void serializeIntoByteBuffer(JsonObject jsonObject, ByteBuffer byteBuffer) throws IOException;
 
     @Override
     public byte[] toBinary(final Object object) {
@@ -194,10 +206,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
     @Override
     public Object fromBinary(final ByteBuffer buf, final String manifest) {
-        final String json = UTF8_CHARSET.decode(buf).toString();
         try {
-            final Jsonifiable jsonifiable = tryToCreateKnownJsonifiableFrom(manifest, json);
-            LOG.trace("fromBinary json which got 'in': {}", json);
+            final Jsonifiable jsonifiable = tryToCreateKnownJsonifiableFrom(manifest, buf);
+            if (LOG.isTraceEnabled()){
+                LOG.trace("fromBinary {} which got 'in': {}", serializerName,buf); // TODO: convert cbor to hex for log
+            }
             inCounter.increment();
             return jsonifiable;
         } catch (final NotSerializableException e) {
@@ -210,19 +223,19 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         return fromBinary(ByteBuffer.wrap(bytes), manifest);
     }
 
-    private Jsonifiable tryToCreateKnownJsonifiableFrom(final String manifest, final String json)
+    private Jsonifiable tryToCreateKnownJsonifiableFrom(final String manifest, final ByteBuffer byteBuffer)
             throws NotSerializableException {
         try {
-            return createJsonifiableFrom(manifest, json);
-        } catch (final DittoRuntimeException | JsonRuntimeException e) {
-            LOG.error("Got <{}> during fromBinary(byte[],String) deserialization for manifest <{}> and JSON: '{}'",
-                    e.getClass().getSimpleName(), manifest, json, e);
+            return createJsonifiableFrom(manifest, byteBuffer);
+        } catch (final DittoRuntimeException | JsonRuntimeException | IOException e) {
+            LOG.error("Got <{}> during deserialization for manifest <{}> and serializer {} while processing message: <{}>.",
+                    e.getClass().getSimpleName(), manifest, serializerName, byteBuffer, e); // TODO: convert cbor to hex for log
             throw new NotSerializableException(manifest);
         }
     }
 
-    private Jsonifiable createJsonifiableFrom(final String manifest, final String json)
-            throws NotSerializableException {
+    private Jsonifiable createJsonifiableFrom(final String manifest, final ByteBuffer bytebuffer)
+            throws IOException {
 
         final Optional<MappingStrategy> mappingStrategy = this.mappingStrategies.getMappingStrategyFor(manifest);
 
@@ -231,7 +244,16 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             throw new NotSerializableException(manifest);
         }
 
-        final JsonObject jsonObject = JsonFactory.newObject(json);
+        final JsonValue jsonValue = deserializeFromByteBuffer(bytebuffer);
+        final JsonObject jsonObject;
+        if (jsonValue.isObject()) {
+            jsonObject = jsonValue.asObject();
+        } else {
+            LOG.warn("Expected object but received value <{}> with manifest <{}> via {}", jsonValue, manifest, serializerName);
+            throw JsonParseException.newBuilder()
+                    .message(MessageFormat.format("<{}> is not a valid {} object! (It's a value.)", bytebuffer, serializerName))
+                    .build();
+        }
 
         final JsonObject payload = getPayload(jsonObject);
 
@@ -241,6 +263,8 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
         return mappingStrategy.get().map(payload, dittoHeadersBuilder.build());
     }
+
+    protected abstract JsonValue deserializeFromByteBuffer(ByteBuffer byteBuffer) throws IOException;
 
     private static JsonObject getPayload(final JsonObject sourceJsonObject) {
         final JsonObject result;
