@@ -40,6 +40,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
@@ -412,6 +413,58 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                 RetrieveAttributeResponse.of(THING_ID, TestConstants.ATTRIBUTE_POINTER, TestConstants.ATTRIBUTE_VALUE,
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAttribute);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrieveDefinitionResponseFromAdaptable() {
+        final RetrieveThingDefinitionResponse expected =
+                RetrieveThingDefinitionResponse.of(THING_ID, TestConstants.THING_DEFINITION, DITTO_HEADERS_V_1);
+
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
+                .build();
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.JSON_THING_DEFINITION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrieveDefinitionResponseToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
+                .build();
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.JSON_THING_DEFINITION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final RetrieveThingDefinitionResponse retrieveDefinition =
+                RetrieveThingDefinitionResponse.of(THING_ID, TestConstants.THING_DEFINITION,
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(retrieveDefinition);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

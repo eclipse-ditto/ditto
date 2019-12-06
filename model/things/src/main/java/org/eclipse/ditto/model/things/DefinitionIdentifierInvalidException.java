@@ -28,15 +28,15 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 /**
  * This exception is thrown if an Identifier of a Feature Definition has an invalid structure.
  */
-@JsonParsableException(errorCode = FeatureDefinitionIdentifierInvalidException.ERROR_CODE)
-public final class FeatureDefinitionIdentifierInvalidException extends DittoRuntimeException implements ThingException {
+@JsonParsableException(errorCode = DefinitionIdentifierInvalidException.ERROR_CODE)
+public final class DefinitionIdentifierInvalidException extends DittoRuntimeException implements ThingException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "feature.definition.identifier.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "definition.identifier.invalid";
 
-    private static final String MESSAGE_TEMPLATE = "Feature Definition Identifier <{0}> is invalid!";
+    private static final String MESSAGE_TEMPLATE = "Definition Identifier <{0}> is invalid!";
 
     private static final String DEFAULT_DESCRIPTION = "An Identifier string is expected to have the structure " +
             "'namespace:name:version'. Each segment must contain at least one char of [_a-zA-Z0-9\\-.]";
@@ -44,16 +44,16 @@ public final class FeatureDefinitionIdentifierInvalidException extends DittoRunt
     private static final long serialVersionUID = -5652551484675928573L;
 
     /**
-     * Constructs a new {@code FeatureDefinitionIdentifierInvalidException} object.
+     * Constructs a new {@code DefinitionIdentifierInvalidException} object.
      *
      * @param identifierAsCharSequence a char sequence representing the invalid FeatureDefinition Identifier.
      */
-    public FeatureDefinitionIdentifierInvalidException(final CharSequence identifierAsCharSequence) {
+    public DefinitionIdentifierInvalidException(final CharSequence identifierAsCharSequence) {
         this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, identifierAsCharSequence),
                 DEFAULT_DESCRIPTION, null, null);
     }
 
-    private FeatureDefinitionIdentifierInvalidException(final DittoHeaders dittoHeaders,
+    private DefinitionIdentifierInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -62,7 +62,7 @@ public final class FeatureDefinitionIdentifierInvalidException extends DittoRunt
     }
 
     /**
-     * Returns a mutable builder with a fluent API for an immutable {@code FeatureDefinitionIdentifierInvalidException}.
+     * Returns a mutable builder with a fluent API for an immutable {@code DefinitionIdentifierInvalidException}.
      *
      * @param identifierAsCharSequence a char sequence representing the invalid FeatureDefinition Identifier.
      * @return the builder.
@@ -72,13 +72,13 @@ public final class FeatureDefinitionIdentifierInvalidException extends DittoRunt
     }
 
     /**
-     * Constructs a new {@code FeatureDefinitionIdentifierInvalidException} object with the given exception message.
+     * Constructs a new {@code DefinitionIdentifierInvalidException} object with the given exception message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new FeatureDefinitionIdentifierInvalidException.
+     * @return the new DefinitionIdentifierInvalidException.
      */
-    public static FeatureDefinitionIdentifierInvalidException fromMessage(final String message,
+    public static DefinitionIdentifierInvalidException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
@@ -87,16 +87,16 @@ public final class FeatureDefinitionIdentifierInvalidException extends DittoRunt
     }
 
     /**
-     * Constructs a new {@code FeatureDefinitionIdentifierInvalidException} object with the exception message extracted
+     * Constructs a new {@code DefinitionIdentifierInvalidException} object with the exception message extracted
      * from the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new FeatureDefinitionIdentifierInvalidException.
+     * @return the new DefinitionIdentifierInvalidException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the
      * {@link JsonFields#MESSAGE} field.
      */
-    public static FeatureDefinitionIdentifierInvalidException fromJson(final JsonObject jsonObject,
+    public static DefinitionIdentifierInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
@@ -107,11 +107,11 @@ public final class FeatureDefinitionIdentifierInvalidException extends DittoRunt
     }
 
     /**
-     * A mutable builder with a fluent API for an immutable {@code FeatureDefinitionIdentifierInvalidException}.
+     * A mutable builder with a fluent API for an immutable {@code DefinitionIdentifierInvalidException}.
      */
     @NotThreadSafe
     public static final class Builder extends
-            DittoRuntimeExceptionBuilder<FeatureDefinitionIdentifierInvalidException> {
+            DittoRuntimeExceptionBuilder<DefinitionIdentifierInvalidException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -123,12 +123,12 @@ public final class FeatureDefinitionIdentifierInvalidException extends DittoRunt
         }
 
         @Override
-        protected FeatureDefinitionIdentifierInvalidException doBuild(final DittoHeaders dittoHeaders,
+        protected DefinitionIdentifierInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new FeatureDefinitionIdentifierInvalidException(dittoHeaders, message, description, cause, href);
+            return new DefinitionIdentifierInvalidException(dittoHeaders, message, description, cause, href);
         }
 
     }

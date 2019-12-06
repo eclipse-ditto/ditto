@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyRes
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
@@ -51,6 +53,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyRe
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 
 /**
@@ -287,6 +290,25 @@ public abstract class ETagTestUtils {
             final PolicyId expectedPolicyId, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedPolicyId, dittoHeaders);
         return RetrievePolicyIdResponse.of(thingId, expectedPolicyId, dittoHeadersWithETag);
+    }
+
+    // ThingDefinition
+
+    public static ModifyThingDefinitionResponse modifyThingDefinitionResponse(final ThingId thingId,
+            final ThingDefinition definition,
+            final DittoHeaders dittoHeaders, final boolean created) {
+        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(definition, dittoHeaders);
+        if (created) {
+            return ModifyThingDefinitionResponse.created(thingId, definition, dittoHeadersWithETag);
+        } else {
+            return ModifyThingDefinitionResponse.modified(thingId, dittoHeadersWithETag);
+        }
+    }
+
+    public static RetrieveThingDefinitionResponse retrieveDefinitionResponse(final ThingId thingId,
+            final ThingDefinition expectedThingDefinition, final DittoHeaders dittoHeaders) {
+        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThingDefinition, dittoHeaders);
+        return RetrieveThingDefinitionResponse.of(thingId, expectedThingDefinition, dittoHeadersWithETag);
     }
 
 

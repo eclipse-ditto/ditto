@@ -57,7 +57,7 @@ abstract class AbstractJsonFieldDefinition<T> implements JsonFieldDefinition<T> 
             final Class<T> valueType,
             final Function<JsonValue, Boolean> checkJavaTypeFunction,
             final Function<JsonValue, T> mappingFunction,
-            final JsonFieldMarker ... markers) {
+            final JsonFieldMarker... markers) {
 
         requireNonNull(pointer, "The JSON pointer of the field definition must not be null!");
         requireNonNull(markers, "The markers must not be null!");

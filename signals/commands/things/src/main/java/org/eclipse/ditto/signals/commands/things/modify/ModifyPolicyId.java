@@ -80,12 +80,12 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
     }
 
     /**
-     * Returns a command for modifying an attribute which is passed as argument.
+     * Returns a command for modifying a Policy ID which is passed as argument.
      *
      * @param thingId the ID of the thing on which to modify the Policy ID.
      * @param policyId the Policy ID to set.
      * @param dittoHeaders the headers of the command.
-     * @return a command for modifying the provided new attribute.
+     * @return a command for modifying the provided new Policy ID.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      * @deprecated Thing ID is now typed. Use
      * {@link #of(ThingId, PolicyId, DittoHeaders)}
@@ -97,12 +97,12 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
     }
 
     /**
-     * Returns a command for modifying an attribute which is passed as argument.
+     * Returns a command for modifying a Policy ID which is passed as argument.
      *
      * @param thingId the ID of the thing on which to modify the Policy ID.
      * @param policyId the Policy ID to set.
      * @param dittoHeaders the headers of the command.
-     * @return a command for modifying the provided new attribute.
+     * @return a command for modifying the provided new Policy ID.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static ModifyPolicyId of(final ThingId thingId, final PolicyId policyId,

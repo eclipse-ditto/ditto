@@ -8,6 +8,7 @@
   "value": {
     "thingId": "com.acme:xdk_53",
     "policyId": "com.acme:the_policy_id",
+    "definition": "com.acme:XDKmodel:1.0.0",
     "attributes": {
       "location": {
         "latitude": 44.673856,

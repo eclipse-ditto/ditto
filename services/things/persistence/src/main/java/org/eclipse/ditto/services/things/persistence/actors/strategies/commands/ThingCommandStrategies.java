@@ -39,6 +39,7 @@ public final class ThingCommandStrategies
         addPolicyStrategies();
         addAclStrategies();
         addAttributesStrategies();
+        addDefinitionStrategies();
         addFeaturesStrategies();
         addFeatureDefinitionStrategies();
         addFeatureStrategies();
@@ -90,6 +91,12 @@ public final class ThingCommandStrategies
         addStrategy(new RetrieveAttributeStrategy());
         addStrategy(new DeleteAttributesStrategy());
         addStrategy(new DeleteAttributeStrategy());
+    }
+
+    private void addDefinitionStrategies() {
+        addStrategy(new ModifyThingDefinitionStrategy());
+        addStrategy(new RetrieveThingDefinitionStrategy());
+        addStrategy(new DeleteThingDefinitionStrategy());
     }
 
     private void addFeaturesStrategies() {

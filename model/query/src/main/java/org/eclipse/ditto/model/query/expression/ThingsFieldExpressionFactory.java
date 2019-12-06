@@ -111,4 +111,5 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     default SortFieldExpression sortByThingId() {
         return sortBy(FieldExpressionUtil.FIELD_NAME_THING_ID);
     }
+
 }

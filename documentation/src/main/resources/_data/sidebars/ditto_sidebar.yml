@@ -359,6 +359,18 @@ entries:
         - title: Retrieve a single Attribute
           url: /protocol-examples-retrieveattribute.html
           output: web
+        - title: Create a Definition
+          url: /protocol-examples-createthingdefinition.html
+          output: web
+        - title: Delete a Definition
+          url: /protocol-examples-deletethingdefinition.html
+          output: web
+        - title: Modify a Definition
+          url: /protocol-examples-modifythingdefinition.html
+          output: web
+        - title: Retrieve a Definition
+          url: /protocol-examples-retrievethingdefinition.html
+          output: web
         - title: Create Features
           url: /protocol-examples-createfeatures.html
           output: web

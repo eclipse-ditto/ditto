@@ -63,7 +63,8 @@ public class PolicyIdMissingExceptionTest {
 
     @Test
     public void fromThingIdOnUpdate() {
-        final PolicyIdMissingException exception = PolicyIdMissingException.fromThingIdOnUpdate(KNOWN_THING_ID, KNOWN_HEADERS);
+        final PolicyIdMissingException exception =
+                PolicyIdMissingException.fromThingIdOnUpdate(KNOWN_THING_ID, KNOWN_HEADERS);
         Assertions.assertThat(exception.getMessage()).contains(KNOWN_THING_ID.toString());
     }
 
