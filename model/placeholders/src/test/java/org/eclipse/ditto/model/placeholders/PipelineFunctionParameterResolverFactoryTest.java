@@ -13,13 +13,13 @@
 package org.eclipse.ditto.model.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import org.junit.Test;
@@ -32,6 +32,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
 
     private static final String KNOWN_VALUE = "expected";
     private static final String KNOWN_PLACEHOLDER = "thing:name";
+    private static final PipelineFunction DUMMY = new PipelineFunctionDelete();
 
     @Mock
     private ExpressionResolver expressionResolver;
@@ -42,7 +43,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
                 PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
 
         final String params = "(\"" + KNOWN_VALUE + "\")";
-        assertThat(parameterResolver.apply(params, expressionResolver)).contains(KNOWN_VALUE);
+        assertThat(parameterResolver.apply(params, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
 
         verifyZeroInteractions(expressionResolver);
     }
@@ -53,13 +54,13 @@ public class PipelineFunctionParameterResolverFactoryTest {
                 PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
 
         final String params = "(\'" + KNOWN_VALUE + "\')";
-        assertThat(parameterResolver.apply(params, expressionResolver)).contains(KNOWN_VALUE);
+        assertThat(parameterResolver.apply(params, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
 
         verifyZeroInteractions(expressionResolver);
     }
 
     @Test
-    public void singleResolverUsesFirstOfMultipleParameters() {
+    public void singleResolverThrowsExceptionOnMultipleParameters() {
         final PipelineFunctionParameterResolverFactory.SingleParameterResolver parameterResolver =
                 PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
 
@@ -67,9 +68,12 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String paramsSingleQuoted = "(\'" + KNOWN_VALUE + "\', \'otherValue\')";
         final String paramsPlaceholders = "(" + KNOWN_PLACEHOLDER + ", topic:full)";
 
-        assertThat(parameterResolver.apply(paramsDoubleQuoted, expressionResolver)).isEmpty();
-        assertThat(parameterResolver.apply(paramsSingleQuoted, expressionResolver)).isEmpty();
-        assertThat(parameterResolver.apply(paramsPlaceholders, expressionResolver)).isEmpty();
+        assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
+                .isThrownBy(() -> parameterResolver.apply(paramsDoubleQuoted, expressionResolver, DUMMY));
+        assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
+                .isThrownBy(() -> parameterResolver.apply(paramsSingleQuoted, expressionResolver, DUMMY));
+        assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
+                .isThrownBy(() -> parameterResolver.apply(paramsPlaceholders, expressionResolver, DUMMY));
 
         verifyZeroInteractions(expressionResolver);
     }
@@ -80,11 +84,12 @@ public class PipelineFunctionParameterResolverFactoryTest {
                 PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
 
         final String params = "(" + KNOWN_PLACEHOLDER + ")";
-        when(expressionResolver.resolveSinglePlaceholder(anyString())).thenReturn(Optional.of(KNOWN_VALUE));
+        when(expressionResolver.resolveAsPipelineElement(anyString()))
+                .thenReturn(PipelineElement.resolved(KNOWN_VALUE));
 
-        assertThat(parameterResolver.apply(params, expressionResolver)).contains(KNOWN_VALUE);
+        assertThat(parameterResolver.apply(params, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
 
-        verify(expressionResolver).resolveSinglePlaceholder(KNOWN_PLACEHOLDER);
+        verify(expressionResolver).resolveAsPipelineElement(KNOWN_PLACEHOLDER);
     }
 
     @Test
@@ -96,8 +101,8 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String stringSingle = "(\'" + value + "\')";
         final String stringDouble = "(\"" + value + "\")";
 
-        assertThat(parameterResolver.apply(stringSingle, expressionResolver)).contains(value);
-        assertThat(parameterResolver.apply(stringDouble, expressionResolver)).contains(value);
+        assertThat(parameterResolver.apply(stringSingle, expressionResolver, DUMMY)).contains(value);
+        assertThat(parameterResolver.apply(stringDouble, expressionResolver, DUMMY)).contains(value);
     }
 
     @Test
@@ -109,13 +114,14 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String stringDouble = "(   \"" + KNOWN_VALUE + "\"   )";
         final String stringPlaceholder = "(    " + KNOWN_PLACEHOLDER + "   )";
 
-        when(expressionResolver.resolveSinglePlaceholder(anyString())).thenReturn(Optional.of(KNOWN_VALUE));
+        when(expressionResolver.resolveAsPipelineElement(anyString())).thenReturn(
+                PipelineElement.resolved(KNOWN_VALUE));
 
-        assertThat(parameterResolver.apply(stringSingle, expressionResolver)).contains(KNOWN_VALUE);
-        assertThat(parameterResolver.apply(stringDouble, expressionResolver)).contains(KNOWN_VALUE);
-        assertThat(parameterResolver.apply(stringPlaceholder, expressionResolver)).contains(KNOWN_VALUE);
+        assertThat(parameterResolver.apply(stringSingle, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
+        assertThat(parameterResolver.apply(stringDouble, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
+        assertThat(parameterResolver.apply(stringPlaceholder, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
 
-        verify(expressionResolver).resolveSinglePlaceholder(KNOWN_PLACEHOLDER);
+        verify(expressionResolver).resolveAsPipelineElement(KNOWN_PLACEHOLDER);
     }
 
     @Test
@@ -125,20 +131,21 @@ public class PipelineFunctionParameterResolverFactoryTest {
 
         final String stringPlaceholder = "(    " + KNOWN_PLACEHOLDER + "   )";
 
-        when(expressionResolver.resolveSinglePlaceholder(anyString())).thenReturn(Optional.empty());
+        when(expressionResolver.resolveAsPipelineElement(anyString())).thenReturn(PipelineElement.unresolved());
 
-        assertThat(parameterResolver.apply(stringPlaceholder, expressionResolver)).contains(KNOWN_PLACEHOLDER);
+        assertThat(parameterResolver.apply(stringPlaceholder, expressionResolver, DUMMY)).isEmpty();
 
-        verify(expressionResolver).resolveSinglePlaceholder(KNOWN_PLACEHOLDER);
+        verify(expressionResolver).resolveAsPipelineElement(KNOWN_PLACEHOLDER);
     }
 
     @Test
-    public void singleStringResolverReturnsEmptyIfNotResolvable() {
-        final BiFunction<String, ExpressionResolver, Optional<String>> stringResolver =
+    public void singleStringResolverThrowsExceptionIfNotResolvable() {
+        final PipelineFunctionParameterResolverFactory.SingleParameterResolver stringResolver =
                 PipelineFunctionParameterResolverFactory.forStringParameter();
         final String stringPlaceholder = "(    " + KNOWN_PLACEHOLDER + "   )";
 
-        assertThat(stringResolver.apply(stringPlaceholder, expressionResolver)).isEmpty();
+        assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
+                .isThrownBy(() -> stringResolver.apply(stringPlaceholder, expressionResolver, DUMMY));
 
         verifyZeroInteractions(expressionResolver);
     }
@@ -146,15 +153,16 @@ public class PipelineFunctionParameterResolverFactoryTest {
     @Test
     public void singleStringResolverDoesNotResolvePlaceholders() {
 
-        final BiFunction<String, ExpressionResolver, Optional<String>> stringResolver =
+        final PipelineFunctionParameterResolverFactory.SingleParameterResolver stringResolver =
                 PipelineFunctionParameterResolverFactory.forStringParameter();
         final String stringSingle = "(\'" + KNOWN_VALUE + "\')";
         final String stringDouble = "(\"" + KNOWN_VALUE + "\")";
         final String stringPlaceholder = "(" + KNOWN_PLACEHOLDER + ")";
 
-        assertThat(stringResolver.apply(stringSingle, expressionResolver)).contains(KNOWN_VALUE);
-        assertThat(stringResolver.apply(stringDouble, expressionResolver)).contains(KNOWN_VALUE);
-        assertThat(stringResolver.apply(stringPlaceholder, expressionResolver)).isEmpty();
+        assertThat(stringResolver.apply(stringSingle, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
+        assertThat(stringResolver.apply(stringDouble, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
+        assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
+                .isThrownBy(() -> stringResolver.apply(stringPlaceholder, expressionResolver, DUMMY));
 
         verifyZeroInteractions(expressionResolver);
     }

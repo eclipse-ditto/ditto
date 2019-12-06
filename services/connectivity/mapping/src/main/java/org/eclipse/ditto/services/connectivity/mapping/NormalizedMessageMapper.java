@@ -63,6 +63,11 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     private JsonFieldSelector jsonFieldSelector;
 
     @Override
+    public String getId() {
+        return "normalized";
+    }
+
+    @Override
     public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         final Optional<String> fields = configuration.findProperty(FIELDS);
         fields.ifPresent(s ->

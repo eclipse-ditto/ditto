@@ -20,9 +20,11 @@ import javax.jms.Message;
 
 /**
  * An interface similar to BiConsumer that accepts a JMS Message and a String and throws {@link JMSException}s.
+ *
+ * @param <T> type of the second argument.
  */
 @FunctionalInterface
-public interface JmsExceptionThrowingBiConsumer {
+public interface JmsExceptionThrowingBiConsumer<T> {
 
     /**
      * Performs this operation on the given arguments of type JMS Message and String.
@@ -31,7 +33,7 @@ public interface JmsExceptionThrowingBiConsumer {
      * @param value the String to accept.
      * @throws JMSException when the underlying JMS implementation raised a JMSException
      */
-    void accept(Message message, String value) throws JMSException;
+    void accept(Message message, T value) throws JMSException;
 
     /**
      * Wraps a {@link JmsExceptionThrowingBiConsumer} returning a BiConsumer by converting thrown {@link JMSException}s
@@ -40,7 +42,7 @@ public interface JmsExceptionThrowingBiConsumer {
      * @param throwingConsumer the JmsExceptionThrowingBiConsumer that throws {@link JMSException}
      * @return a BiConsumer that throws {@link JMSRuntimeException}
      */
-    static BiConsumer<Message, String> wrap(final JmsExceptionThrowingBiConsumer throwingConsumer) {
+    static <T> BiConsumer<Message, T> wrap(final JmsExceptionThrowingBiConsumer<T> throwingConsumer) {
         return (m, v) -> {
             try {
                 throwingConsumer.accept(m, v);

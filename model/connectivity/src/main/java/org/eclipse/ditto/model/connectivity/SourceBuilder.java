@@ -98,6 +98,22 @@ public interface SourceBuilder<T extends SourceBuilder> {
     T payloadMapping(PayloadMapping payloadMapping);
 
     /**
+     * Set the reply target.
+     *
+     * @param replyTarget the new reply-target, or null to remove the current reply-target.
+     * @return this builder.
+     */
+    T replyTarget(@Nullable ReplyTarget replyTarget);
+
+    /**
+     * Set whether the reply-target is enabled.
+     *
+     * @param replyTargetEnabled whether the reply-target is enabled.
+     * @return this builder.
+     */
+    T replyTargetEnabled(boolean replyTargetEnabled);
+
+    /**
      * Build the source instance.
      *
      * @return the new source instance

@@ -92,8 +92,11 @@ public class ImmutableTargetTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableTarget.class, areImmutable(),
-                provided(AuthorizationContext.class, FilteredTopic.class, HeaderMapping.class,
-                        PayloadMapping.class).isAlsoImmutable());
+                provided(AuthorizationContext.class,
+                        FilteredTopic.class,
+                        HeaderMapping.class,
+                        PayloadMapping.class
+                ).areAlsoImmutable());
     }
 
     @Test

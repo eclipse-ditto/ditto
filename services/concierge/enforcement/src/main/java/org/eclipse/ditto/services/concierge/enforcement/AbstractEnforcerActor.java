@@ -163,7 +163,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         return contextual.withReceivedMessage(message, getSender());
     }
 
-    private static Cache<String, ActorRef> createResponseReceiversCache() {
+    private static Cache<String, ResponseReceiver> createResponseReceiversCache() {
         return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(120, TimeUnit.SECONDS));
     }
 }

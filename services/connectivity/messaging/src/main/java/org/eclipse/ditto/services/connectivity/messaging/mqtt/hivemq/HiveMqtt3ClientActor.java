@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -23,7 +22,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
@@ -81,8 +79,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
-    HiveMqtt3ClientActor(final Connection connection,
-            final ActorRef conciergeForwarder) {
+    private HiveMqtt3ClientActor(final Connection connection, final ActorRef conciergeForwarder) {
         this(connection, conciergeForwarder, DefaultHiveMqtt3ClientFactory.getInstance());
     }
 
@@ -145,7 +142,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                     return (Status.Status) new Status.Success(message);
                 })
                 .thenCompose(status -> {
-                    startPublisherActor(connectionId(), connection().getTargets(), testClient);
+                    startPublisherActor(connection(), testClient);
                     return CompletableFuture.completedFuture(new Status.Success("publisher started"));
                 })
                 .thenCompose(s -> {
@@ -203,14 +200,12 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> startPublisherActor() {
-        publisherActor = startPublisherActor(connectionId(), connection().getTargets(), client);
+        publisherActor = startPublisherActor(connection(), client);
         return CompletableFuture.completedFuture(DONE);
     }
 
-    private ActorRef startPublisherActor(final ConnectionId connectionId, final List<Target> targets,
-            final Mqtt3Client client) {
-        final Props publisherActorProps =
-                HiveMqtt3PublisherActor.props(connectionId, targets, client, isDryRun());
+    private ActorRef startPublisherActor(final Connection connection, final Mqtt3Client client) {
+        final Props publisherActorProps = HiveMqtt3PublisherActor.props(connection, client, isDryRun());
         return startChildActorConflictFree(HiveMqtt3PublisherActor.NAME, publisherActorProps);
     }
 

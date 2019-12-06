@@ -14,9 +14,12 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.jms.JMSException;
@@ -24,6 +27,7 @@ import javax.jms.JMSRuntimeException;
 import javax.jms.MessageConsumer;
 
 import org.apache.qpid.jms.message.JmsMessage;
+import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.json.JsonPointer;
@@ -49,6 +53,7 @@ import org.mockito.Mockito;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.event.LoggingAdapter;
 import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
 import akka.routing.DefaultResizer;
@@ -162,13 +167,18 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final Map.Entry<String, ?>... headers) {
         try {
             final AmqpJmsTextMessageFacade messageFacade = new AmqpJmsTextMessageFacade();
+            // give it a connection returning null for all methods to set any AMQP properties at all
+            messageFacade.initialize(Mockito.mock(AmqpConnection.class));
             messageFacade.setText(plainPayload);
             messageFacade.setContentType(Symbol.getSymbol("text/plain"));
             messageFacade.setCorrelationId(correlationId);
-            for (final Map.Entry<String, ?> e : headers) {
-                messageFacade.setApplicationProperty(e.getKey(), e.getValue());
-            }
-            return messageFacade.asJmsMessage();
+
+            final JmsMessage message = messageFacade.asJmsMessage();
+            JMSPropertyMapper.setPropertiesAndApplicationProperties(messageFacade.asJmsMessage(),
+                    Arrays.stream(headers)
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())),
+                    Mockito.mock(LoggingAdapter.class));
+            return message;
         } catch (final JMSException e) {
             throw new JMSRuntimeException(e.getMessage(), e.getErrorCode(), e.getCause());
         }
@@ -212,6 +222,10 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
+            Mockito.when(source.getHeaderMapping())
+                    .thenReturn(Optional.of(ConnectivityModelFactory.newHeaderMapping(
+                            Collections.singletonMap("correlation-id", "{{ header:correlation-id }}")
+                    )));
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props(CONNECTION_ID,
                             consumerData("foo123", Mockito.mock(MessageConsumer.class), source), processor,

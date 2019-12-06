@@ -1,0 +1,22 @@
+{{- if .Values.swaggerui.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "eclipse-ditto.fullname" . }}-swaggerui
+  labels:
+    app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-swaggerui
+{{ include "eclipse-ditto.labels" . | indent 4 }}
+  {{- with .Values.swaggerui.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ports:
+    - port: {{ .Values.swaggerui.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-swaggerui
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

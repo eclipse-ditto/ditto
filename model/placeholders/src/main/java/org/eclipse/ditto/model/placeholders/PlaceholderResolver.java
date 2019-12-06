@@ -22,12 +22,6 @@ import java.util.Optional;
 public interface PlaceholderResolver<T> extends Placeholder<T> {
 
     /**
-     * @return whether the placeholder is only used for validation (returning {@code true}) or if it is used for actual
-     * replacement.
-     */
-    boolean isForValidation();
-
-    /**
      * @return the source from which to resolve a placeholder with a {@code name}.
      */
     Optional<T> getPlaceholderSource();

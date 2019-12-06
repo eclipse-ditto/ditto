@@ -1,4 +1,15 @@
 apiVersion: v1
+appVersion: "1.0.0-M3"
+description: A Helm chart for Eclipse Ditto
 name: eclipse-ditto
-version: 0.9.0
-description: A basic helm chart for Eclipse Ditto and K8s
+version: 0.7.0
+home: https://www.eclipse.org/ditto
+sources:
+- https://github.com/eclipse/ditto
+- https://github.com/kiwigrid/helm-charts/tree/master/charts/eclipse-ditto
+icon: https://www.eclipse.org/ditto/images/ditto.svg
+maintainers:
+- name: axdotl
+  email: axel.koehler@kiwigrid.com
+- name: thjaeckle
+  email: thomas.jaeckle@bosch-si.com

@@ -119,7 +119,7 @@ public final class MongoReadJournalIT {
     @Test
     public void streamJournals() {
         insert("test_journal", new Document().append("pid", "pid1").append("to", 1L));
-        insert("test_journal@ns2", new Document().append("pid", "pid2").append("to", 2L));
+        insert("test_journal", new Document().append("pid", "pid2").append("to", 2L));
         final List<PidWithSeqNr> pids =
                 readJournal.getPidWithSeqNrsByInterval(Instant.EPOCH, Instant.now().plusSeconds(500L))
                         .runWith(Sink.seq(), materializer)
@@ -132,7 +132,7 @@ public final class MongoReadJournalIT {
     @Test
     public void streamSnapshotStores() {
         insert("test_snaps", new Document().append("pid", "pid3").append("sn", 3L));
-        insert("test_snaps@ns2", new Document().append("pid", "pid4").append("sn", 4L));
+        insert("test_snaps", new Document().append("pid", "pid4").append("sn", 4L));
         final List<PidWithSeqNr> pids =
                 readJournal.getPidWithSeqNrsByInterval(Instant.EPOCH, Instant.now().plusSeconds(500L))
                         .runWith(Sink.seq(), materializer)
@@ -144,12 +144,12 @@ public final class MongoReadJournalIT {
 
     @Test
     public void extractJournalPidsFromEventsAndNotSnapshots() {
-        insert("test_journal@ns2", new Document().append("pid", "pid3").append("to", 2L));
-        insert("test_journal@ns2", new Document().append("pid", "pid4").append("to", 2L));
+        insert("test_journal", new Document().append("pid", "pid3").append("to", 2L));
+        insert("test_journal", new Document().append("pid", "pid4").append("to", 2L));
         insert("test_journal", new Document().append("pid", "pid1").append("to", 1L));
         insert("test_journal", new Document().append("pid", "pid2").append("to", 1L));
         insert("test_snaps", new Document().append("pid", "pid5").append("sn", 3L));
-        insert("test_snaps@ns2", new Document().append("pid", "pid6").append("sn", 4L));
+        insert("test_snaps", new Document().append("pid", "pid6").append("sn", 4L));
 
         final List<String> pids =
                 readJournal.getJournalPids(2, Duration.ZERO, materializer)
@@ -163,8 +163,8 @@ public final class MongoReadJournalIT {
     public void extractJournalPidsAboveALowerBound() {
         insert("test_journal", new Document().append("pid", "pid1").append("to", 1L));
         insert("test_journal", new Document().append("pid", "pid2").append("to", 1L));
-        insert("test_journal@ns2", new Document().append("pid", "pid3").append("to", 2L));
-        insert("test_journal@ns2", new Document().append("pid", "pid4").append("to", 2L));
+        insert("test_journal", new Document().append("pid", "pid3").append("to", 2L));
+        insert("test_journal", new Document().append("pid", "pid4").append("to", 2L));
 
         final List<String> pids =
                 readJournal.getJournalPidsAbove("pid2", 2, Duration.ZERO, materializer)

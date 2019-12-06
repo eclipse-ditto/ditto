@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.placeholders;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -25,9 +24,6 @@ import javax.annotation.concurrent.Immutable;
 final class PipelineFunctionDefault implements PipelineFunction {
 
     private static final String FUNCTION_NAME = "default";
-
-    private final PipelineFunctionParameterResolverFactory.SingleParameterResolver parameterResolver =
-            PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
 
     @Override
     public String getName() {
@@ -40,25 +36,20 @@ final class PipelineFunctionDefault implements PipelineFunction {
     }
 
     @Override
-    public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
+    public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        if (value.isPresent()) {
-            // if previous stage was non-empty: proceed with that
-            return value;
-        } else {
-            // parse + resolve the specified default value:
-            return parseAndResolveThrow(paramsIncludingParentheses, expressionResolver);
-        }
+        // parse + resolve the specified default value for unresolved placeholders
+        // if previous stage does not resolve to a value. deleted pipeline elements remain deleted.
+        // evaluate parameter first to fail fast.
+        final PipelineElement parameter = parseAndResolveThrow(paramsIncludingParentheses, expressionResolver);
+        return value.onUnresolved(() -> parameter);
     }
 
-    private Optional<String> parseAndResolveThrow(final String paramsIncludingParentheses, final ExpressionResolver expressionResolver) {
-        final Optional<String> resolved = this.parameterResolver.apply(paramsIncludingParentheses, expressionResolver);
-        if(!resolved.isPresent()) {
-            throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
-                    .build();
-        }
-        return resolved;
+    private PipelineElement parseAndResolveThrow(final String paramsIncludingParentheses,
+            final ExpressionResolver expressionResolver) {
+        return PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter()
+                .apply(paramsIncludingParentheses, expressionResolver, this);
     }
 
     /**
@@ -77,14 +68,6 @@ final class PipelineFunctionDefault implements PipelineFunction {
         @Override
         public List<ParameterDefinition> getParameterDefinitions() {
             return Collections.singletonList(defaultValueDescription);
-        }
-
-        @Override
-        public <T> ParameterDefinition<T> getParameterDefinition(final int index) {
-            if (index == 0) {
-                return (ParameterDefinition<T>) defaultValueDescription;
-            }
-            throw new IllegalArgumentException("Signature does not define a parameter at index '" + index + "'");
         }
 
         @Override

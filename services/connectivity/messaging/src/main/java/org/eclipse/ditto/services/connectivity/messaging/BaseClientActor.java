@@ -912,9 +912,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
-        final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
-                .source(getInstanceIdentifier())
-                .build();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final SourceMetrics sourceMetrics = connectionCounterRegistry.aggregateSourceMetrics(connectionId());
         final TargetMetrics targetMetrics = connectionCounterRegistry.aggregateTargetMetrics(connectionId());
@@ -977,7 +975,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
         log.debug("Received RetrieveConnectionLogs message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
-                .source(getInstanceIdentifier())
                 .build();
 
         final ConnectionLoggerRegistry.ConnectionLogs connectionLogs =
@@ -1357,13 +1354,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     static class PublishMappedMessage {
 
-        private final OutboundSignal.WithExternalMessage outboundSignal;
+        private final OutboundSignal.Mapped outboundSignal;
 
-        PublishMappedMessage(final OutboundSignal.WithExternalMessage outboundSignal) {
+        PublishMappedMessage(final OutboundSignal.Mapped outboundSignal) {
             this.outboundSignal = outboundSignal;
         }
 
-        OutboundSignal.WithExternalMessage getOutboundSignal() {
+        OutboundSignal.Mapped getOutboundSignal() {
             return outboundSignal;
         }
 

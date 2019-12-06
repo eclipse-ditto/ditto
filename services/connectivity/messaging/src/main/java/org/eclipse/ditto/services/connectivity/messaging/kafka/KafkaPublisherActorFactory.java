@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 import java.io.Serializable;
 import java.util.List;
 
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.Target;
 
@@ -35,12 +36,11 @@ public interface KafkaPublisherActorFactory extends Serializable {
     /**
      * Get the props of the publisher actor that should be created.
      *
-     * @param connectionId the connection ID.
-     * @param targets the targets to publish to.
+     * @param connection the connection.
      * @param factory the connection factory to use.
      * @param dryRun if the publisher actor should be started in dry-run mode.
      * @return the {@code Props} to create the publisher actor.
      */
-    Props props(ConnectionId connectionId, List<Target> targets, KafkaConnectionFactory factory, boolean dryRun);
+    Props props(Connection connection, KafkaConnectionFactory factory, boolean dryRun);
 
 }

@@ -1,0 +1,132 @@
+{{- if .Values.connectivity.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eclipse-ditto.fullname" . }}-connectivity
+  labels:
+    app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-connectivity
+{{ include "eclipse-ditto.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.connectivity.replicaCount }}
+  strategy:
+  {{- with .Values.connectivity.updateStrategy }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-connectivity
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "eclipse-ditto.name" . }}-connectivity
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        actorSystemName: {{ .Values.akka.actorSystemName }}
+        {{- with .Values.connectivity.additionalLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- if .Values.global.prometheus.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/"
+        prometheus.io/port: "{{ .Values.global.prometheus.port }}"
+        {{- end }}
+        checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        {{- with .Values.connectivity.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.rbac.enabled }}
+      serviceAccountName: {{ template "eclipse-ditto.serviceAccountName" . }}
+      {{- end }}
+    {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}-connectivity
+          image: "{{ .Values.connectivity.image.repository }}:{{ .Values.connectivity.image.tag }}"
+          imagePullPolicy: {{ .Values.connectivity.image.imagePullPolicy }}
+          args:
+            - "java"
+          {{- if .Values.connectivity.systemProps }}
+            {{- toYaml .Values.connectivity.systemProps | nindent 12 }}
+          {{- end }}
+            - "-jar"
+            - "/opt/ditto/starter.jar"
+          env:
+            - name: POD_LABEL_SELECTOR
+              value: "app.kubernetes.io/name=%s"
+            - name: POD_NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: INSTANCE_INDEX
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: DISCOVERY_METHOD
+              value: "kubernetes-api"
+            - name: TZ
+              value: "{{ .Values.global.timezone }}"
+            - name: OPENJ9_JAVA_OPTIONS
+              value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError{{ if .Values.dbconfig.connectivity.ssl }} -Dorg.mongodb.async.type=netty{{ end }}"
+            - name: MONGO_DB_SSL_ENABLED
+              value: "{{ if .Values.dbconfig.connectivity.ssl }}true{{ else }}false{{ end }}"
+            - name: MONGO_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eclipse-ditto.fullname" . }}-mongodb-secret
+                  key: connectivity-uri
+          {{- if .Values.global.prometheus.enabled }}
+            - name: PROMETHEUS_PORT
+              value: "{{ .Values.global.prometheus.port }}"
+          {{- end }}
+          {{- if .Values.connectivity.extraEnv }}
+            {{- toYaml .Values.connectivity.extraEnv | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: remoting
+              containerPort: {{ .Values.akka.remoting.port }}
+              protocol: TCP
+            - name: management
+              containerPort: {{ .Values.akka.mgmthttp.port }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              port: management
+              path: /ready
+            initialDelaySeconds: {{ .Values.connectivity.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.connectivity.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.connectivity.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.connectivity.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              port: management
+              path: /alive
+            initialDelaySeconds: {{ .Values.connectivity.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.connectivity.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.connectivity.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.connectivity.livenessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.connectivity.resources | nindent 12 }}
+      {{- with .Values.connectivity.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.connectivity.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.connectivity.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end }}

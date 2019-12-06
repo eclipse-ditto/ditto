@@ -261,7 +261,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         stopChildActor(amqpPublisherActor);
         final String namePrefix = AmqpPublisherActor.ACTOR_NAME_PREFIX;
         if (jmsSession != null) {
-            final Props props = AmqpPublisherActor.props(connectionId(), getTargetsOrEmptyList(), jmsSession,
+            final Props props = AmqpPublisherActor.props(connection(), jmsSession,
                     connectivityConfig.getConnectionConfig());
             amqpPublisherActor = startChildActorConflictFree(namePrefix, props);
             future.complete(DONE);

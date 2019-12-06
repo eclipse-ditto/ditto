@@ -25,6 +25,7 @@ import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -65,7 +66,8 @@ public class SignalFilterTest {
     private static final AuthorizationSubject AUTHORIZED = newAuthSubject("authorized");
     private static final AuthorizationSubject UNAUTHORIZED = newAuthSubject("unauthorized");
     private static final AuthorizationSubject DUMMY = newAuthSubject("dummy");
-    private static final HeaderMapping HEADER_MAPPING = null;
+    private static final HeaderMapping HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(Collections.singletonMap("reply-to", "{{fn:delete()}}"));
 
     @Parameterized.Parameters(name = "topic={0}, readSubjects={1}, configuredTargets={2}, expectedTargets={3}")
     public static Collection<Object[]> data() {
@@ -147,8 +149,7 @@ public class SignalFilterTest {
 
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(signal(signalTopic, readSubjects));
-        Assertions
-                .assertThat(filteredTargets)
+        Assertions.assertThat(filteredTargets)
                 .isEqualTo(expectedTargets);
     }
 
