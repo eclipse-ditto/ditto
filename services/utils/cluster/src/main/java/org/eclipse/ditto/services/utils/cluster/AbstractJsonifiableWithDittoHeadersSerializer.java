@@ -154,11 +154,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             try {
                 serializeIntoByteBuffer(jsonObject, buf);
                 if (LOG.isTraceEnabled()){
-                    LOG.trace("toBinary jsonStr about to send 'out': {}", jsonObject.toString());
+                    LOG.trace("toBinary jsonStr about to send 'out': {}", jsonObject);
                 }
                 outCounter.increment();
             } catch (final BufferOverflowException e) {
-                LOG.warn("Could not put bytes of JSON string <{}> into ByteBuffer due to BufferOverflow", jsonObject.toString(), e);
+                LOG.warn("Could not put bytes of JSON string <{}> into ByteBuffer due to BufferOverflow", jsonObject, e);
                 throw e;
             } catch (IOException e) {
                 final String errorMessage = MessageFormat.format(
@@ -254,7 +254,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             jsonObject = jsonValue.asObject();
         } else {
             LOG.warn("Expected object but received value <{}> with manifest <{}> via {}", jsonValue, manifest, serializerName);
-            final String errorMessage = MessageFormat.format("<{}> is not a valid {} object! (It's a value.)",
+            final String errorMessage = MessageFormat.format("<{}> is not a valid {} object! (It''s a value.)",
                     tryToConvertToHexString(bytebuffer), serializerName);
             throw JsonParseException.newBuilder().message(errorMessage).build();
         }

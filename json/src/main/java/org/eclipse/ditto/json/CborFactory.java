@@ -28,7 +28,7 @@ import com.fasterxml.jackson.dataformat.cbor.CBORParser;
 
 public final class CborFactory {
 
-    private static CBORFactory cborFactory = new CBORFactory();
+    private static CBORFactory jacksonCborFactory = new CBORFactory();
     /*
      * This utility class is not meant to be instantiated.
      */
@@ -37,15 +37,15 @@ public final class CborFactory {
     }
 
     public static JsonValue readFrom(final byte[] bytes) throws IOException {
-        return parseValue(cborFactory.createParser(bytes));
+        return parseValue(jacksonCborFactory.createParser(bytes));
     }
 
     public static JsonValue readFrom(final byte[] bytes, int offset, int length) throws IOException {
-        return parseValue(cborFactory.createParser(bytes, offset, length));
+        return parseValue(jacksonCborFactory.createParser(bytes, offset, length));
     }
 
     public static JsonValue readFrom(ByteBuffer byteBuffer) throws IOException {
-        return parseValue(cborFactory.createParser(ByteBufferInputStream.of(byteBuffer)));
+        return parseValue(jacksonCborFactory.createParser(ByteBufferInputStream.of(byteBuffer)));
     }
 
     public static byte[] toByteArray(JsonValue jsonValue) throws IOException {
@@ -66,7 +66,7 @@ public final class CborFactory {
     }
 
     private static void writeToOutputStream(JsonValue jsonValue, OutputStream outputStream) throws IOException {
-        final SerializationContext serializationContext = new SerializationContext(cborFactory, outputStream);
+        final SerializationContext serializationContext = new SerializationContext(jacksonCborFactory, outputStream);
         jsonValue.writeValue(serializationContext);
         serializationContext.close();
     }

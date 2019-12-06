@@ -25,6 +25,13 @@ public class BinaryToHexConverter {
     private static final char[] HEXCHARACTERS = "0123456789ABCDEF".toCharArray();
 
     /**
+     * This class should not be instantiated.
+     */
+    private BinaryToHexConverter(){
+        throw new AssertionError();
+    }
+
+    /**
      * Converts the parameter to an uppercase hexadecimal string.
      */
     public static String toHexString(byte[] array) throws IOException {

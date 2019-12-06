@@ -29,4 +29,9 @@ public class ByteBufferOutputStream extends OutputStream {
         // super specifies to ignore everything except the lower 8 bits.
         destinationBuffer.put((byte) b);
     }
+
+    @Override
+    public void write(final byte[] b, final int off, final int len) {
+        destinationBuffer.put(b, off, len);
+    }
 }
