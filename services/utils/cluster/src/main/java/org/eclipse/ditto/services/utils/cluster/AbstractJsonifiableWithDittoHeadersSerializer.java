@@ -249,9 +249,13 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         }
 
         final JsonValue jsonValue = deserializeFromByteBuffer(bytebuffer);
+
         final JsonObject jsonObject;
         if (jsonValue.isObject()) {
             jsonObject = jsonValue.asObject();
+        }
+        else if (jsonValue.isNull()) {
+            jsonObject = JsonFactory.nullObject();
         } else {
             LOG.warn("Expected object but received value <{}> with manifest <{}> via {}", jsonValue, manifest, serializerName);
             final String errorMessage = MessageFormat.format("<{}> is not a valid {} object! (It''s a value.)",
