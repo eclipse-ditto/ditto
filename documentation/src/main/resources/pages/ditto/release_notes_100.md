@@ -78,7 +78,7 @@ e.g. from things_journal@org.eclipse.ditto and things_journal@org.eclipse.hono t
 
 1. Completely stop Ditto.
 2. Execute the migration script via mongo shell.
-3. Update Ditto to 1.0.0-M3.
+3. Update Ditto to 1.0.0.
 4. Start Ditto.
 
 ## Roadmap
