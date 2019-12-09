@@ -105,7 +105,7 @@ public final class SearchActor extends AbstractActor {
 
         this.queryParser = queryParser;
         this.searchPersistence = searchPersistence;
-        materializer = ActorMaterializer.create(getContext().system());
+        materializer = ActorMaterializer.create(getContext());
 
         dispatcher = getContext().system().dispatchers().lookup(SEARCH_DISPATCHER_ID);
     }
