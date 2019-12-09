@@ -16,9 +16,12 @@ investigated."
 ## What's in this release?
 
 Eclipse Ditto 1.0.0 focuses on the following areas:
-                               
+
+* Addition of "defintion" field in thing at model level containing the model ID a thing may follow
+* Improved connection response hanlding/mapping
+
 {% include warning.html content="
-If you want to upgrade an existing Ditto 1.0.0-M2 installation, the following database migration has to be done 
+If you want to upgrade an existing Ditto installation to 1.0.0, the following database migration has to be done 
 before upgrading: **Follow the steps documented in [the migration notes](#migration-notes)**." %}
 
 
@@ -39,9 +42,29 @@ sharding can't be used.
 
 #### New features
 
+##### [Comprehensive support for command responses](https://github.com/eclipse/ditto/issues/540)
+
+Adds the possibility to define a "reply target" for [connection sources](basic-connections.html#sources) where 
+* the response address may be configured
+* response header mappings may be configured
+
+Both accepting placeholders, so e.g. with that feature it is possible to send replies whenever an incoming command 
+specified a `reply-to` address.
+
+Used in combination with [Eclipse Hono](https://eclipse.org/hono/)  it is possible to send responses to devices which 
+e.g. need to retrieve data from Ditto.
+
+##### [Add "definition" to Thing in order to reference used model](https://github.com/eclipse/ditto/issues/247)
+
+In order to specify which model a Thing follows, the JSON of the Thing entity was enhanced with a single string for 
+`"definintion"`. This can e.g. be used in order to place an [Eclipse Vorto](https://eclipse.org/vorto/) 
+"Information Model" reference to a Thing.
 
 #### Bugfixes
 
+##### [Fixed NullPointer in StreamingSessionActor](https://github.com/eclipse/ditto/pull/546)
+
+When closing a WebSocket session, a `NullPointerException` occurred which is fixed now.
 
 ### Migration notes
 

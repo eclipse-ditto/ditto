@@ -158,11 +158,6 @@
             <groupId>com.newmotion</groupId>
             <artifactId>akka-rabbitmq_${scala.version}</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>com.lightbend.akka</groupId>
-            <artifactId>akka-stream-alpakka-mqtt_${scala.version}</artifactId>
-        </dependency>
         <dependency>
             <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client</artifactId>
