@@ -43,7 +43,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-connectivity</artifactId>
+            <artifactId>ditto-protocol-adapter</artifactId>
         </dependency>
 
         <!-- ### Testing ### -->

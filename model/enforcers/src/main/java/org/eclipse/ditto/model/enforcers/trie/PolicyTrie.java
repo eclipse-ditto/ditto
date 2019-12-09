@@ -244,12 +244,7 @@ final class PolicyTrie {
         for (final JsonField field : jsonFields) {
             final JsonValue jsonView = getViewForJsonFieldOrNull(field, defaultPolicyTrie, subjectIds, permissions);
             if (null != jsonView) {
-                final Optional<JsonFieldDefinition> definitionOptional = field.getDefinition();
-                if (definitionOptional.isPresent()) {
-                    outputObjectBuilder.set(definitionOptional.get(), jsonView);
-                } else {
-                    outputObjectBuilder.set(field.getKey(), jsonView);
-                }
+                outputObjectBuilder.set(field.getKey(), jsonView);
             }
         }
 

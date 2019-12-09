@@ -173,20 +173,6 @@
               }
             }
           },
-          "headerMapping": {
-            "$id": "/properties/sources/items/properties/headerMapping",
-            "type": "object",
-            "title": "Header mapping configuration",
-            "description": "Headers to map for each incoming message (after the optional payload transformation) from the source's protocol headers to internal DittoHeaders.",
-            "additionalProperties": false,
-            "patternProperties": {
-              "^.+$": {
-                "title": "header value",
-                "description": "The key is the internal DittoHeader key to set, the value can make use of placeholders in order to access external header values via `{{ header:[any-header-name] }}`, the Thing ID via `{{ thing:id }}` or to access the DittoProtocol topic via `{{ topic:[topic-placeholder-attr] }}`.",
-                "type": "string"
-              }
-            }
-          },
           "payloadMapping": {
             "$id": "/properties/sources/items/properties/payloadMapping",
             "type": "array",
@@ -194,6 +180,55 @@
             "items": {
               "title": "Payload definition reference",
               "type": "string"
+            }
+          },
+          "headerMapping": {
+            "$id": "/properties/sources/items/properties/headerMapping",
+            "type": "object",
+            "title": "Header mapping configuration",
+            "description": "Ditto protocol headers computed from external headers and certain properties of the Ditto protocol messages created by payload mapping.",
+            "additionalProperties": false,
+            "patternProperties": {
+              "^.+$": {
+                "title": "header value",
+                "description": "The key is the Ditto protocol header key to set, the value can make use of placeholders in order to access external header values via `{{ header:[any-header-name] }}`, the Thing ID via `{{ thing:id }}` or to access the Ditto protocol topic via `{{ topic:[topic-placeholder-attr] }}`.",
+                "type": "string"
+              }
+            }
+          },
+          "replyTarget": {
+            "$id": "/properties/sources/items/properties/replyTarget",
+            "type": "object",
+            "title": "Reply target configuration",
+            "description": "Configuration for sending responses of incoming commands.",
+            "properties": {
+              "enabled": {
+                "$id": "/properties/sources/items/properties/replyTarget/enabled",
+                "type": "boolean",
+                "title": "Whether reply target is enabled",
+                "description": "Whether reply target is enabled."
+              },
+              "address": {
+                "$id": "/properties/sources/items/properties/replyTarget/address",
+                "type": "string",
+                "title": "Reply target address",
+                "description": "The target address where responses of incoming commands from the parent source are published to. The following placeholders are allowed within the target address:\n * Thing ID: `{{ thing:id }}`\n * Thing Namespace: `{{ thing:namespace }}`\n * Thing Name: `{{ thing:name }}` (the part of the ID without the namespace)\n * Ditto protocol topic attribute: `{{ topic:[topic-placeholder-attr] }}`\n * Ditto protocol header value: `{{ header:[any-header-name] }}`\n\nIf placeholder resolution fails for a response, then the response is dropped.",
+                "examples": ["{{ header:device_id }}", "{{ source:address }}"]
+              },
+              "headerMapping": {
+                "$id": "/properties/sources/items/properties/replyTarget/headerMapping",
+                "type": "object",
+                "title": "Header mapping configuration",
+                "description": "External headers computed from headers and other properties of Ditto protocol messages.",
+                "additionalProperties": false,
+                "patternProperties": {
+                  "^.+$": {
+                    "title": "header value",
+                    "description": "The key is the external header key to set, the value can make use of placeholders in order to access Ditto protocol header values via `{{ header:[any-header-name] }}`, the Thing ID via `{{ thing:id }}` or to access the DittoProtocol topic via `{{ topic:[topic-placeholder-attr] }}`.",
+                    "type": "string"
+                  }
+                }
+              }
             }
           }
         }
@@ -215,7 +250,7 @@
             "$id": "/properties/targets/properties/address",
             "type": "string",
             "title": "Target address",
-            "description": "The target address where events, commands and messages are published to. The following placeholders are allowed within the target address:\n * Thing ID: `{{ thing:id }}`\n * Thing Namespace: `{{ thing:namespace }}`\n * Thing Name: `{{ thing:name }}` (the part of the ID without the namespace)"
+            "description": "The target address where events, commands and messages are published to. The following placeholders are allowed within the target address:\n * Thing ID: `{{ thing:id }}`\n * Thing Namespace: `{{ thing:namespace }}`\n * Thing Name: `{{ thing:name }}` (the part of the ID without the namespace)\n * Ditto protocol topic attribute: `{{ topic:[topic-placeholder-attr] }}`\n * Ditto protocol header value: `{{ header:[any-header-name] }}`"
           },
           "topics": {
             "$id": "/properties/targets/items/properties/topics",
@@ -256,20 +291,6 @@
               ]
             }
           },
-          "headerMapping": {
-            "$id": "/properties/targets/items/properties/headerMapping",
-            "type": "object",
-            "title": "Header mapping configuration",
-            "description": "Headers to map for each outgoing message (after the optional payload transformation) from the internal DittoHeaders to the targets's protocol headers.",
-            "additionalProperties": false,
-            "patternProperties": {
-              "^.+$": {
-                "title": "header value",
-                "description": "The key is the external header key to set, the value can make use of placeholder in order to access DittoHeader values via `{{ header:[any-header-name] }}`, the Thing ID via `{{ thing:id }}` or to access the DittoProtocol topic via `{{ topic:[topic-placeholder-attr] }}`.",
-                "type": "string"
-              }
-            }
-          },
           "payloadMapping": {
             "$id": "/properties/targets/items/properties/payloadMapping",
             "type": "array",
@@ -277,6 +298,20 @@
             "items": {
               "title": "Payload definition reference",
               "type": "string"
+            }
+          },
+          "headerMapping": {
+            "$id": "/properties/targets/items/properties/headerMapping",
+            "type": "object",
+            "title": "Header mapping configuration",
+            "description": "External headers computed from headers and other properties of Ditto protocol messages.",
+            "additionalProperties": false,
+            "patternProperties": {
+              "^.+$": {
+                "title": "header value",
+                "description": "The key is the external header key to set, the value can make use of placeholder in order to access Ditto protocol header values via `{{ header:[any-header-name] }}`, the Thing ID via `{{ thing:id }}` or to access the Ditto protocol topic via `{{ topic:[topic-placeholder-attr] }}`.",
+                "type": "string"
+              }
             }
           }
         }

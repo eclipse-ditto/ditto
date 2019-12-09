@@ -17,23 +17,23 @@ import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 
 /**
  * {@link MappingResultHandler} for outbound messages. This handler forwards to the given handlers and
  * calls the {@link MappingResultHandler#onException(Exception)} method for exceptions thrown in these handlers and
  * increases the according counters for mapped, dropped failed messages.
  */
-public class OutboundMappingResultHandler implements MappingResultHandler<ExternalMessage> {
+public class OutboundMappingResultHandler implements MappingResultHandler<OutboundSignal.Mapped> {
 
-    private final Consumer<ExternalMessage> onMessageMapped;
+    private final Consumer<OutboundSignal.Mapped> onMessageMapped;
     private final Runnable onMessageDropped;
     private final Consumer<Exception> onException;
     private final Set<ConnectionMonitor> outboundMapped;
     private final Set<ConnectionMonitor> outboundDropped;
     private final ConnectionMonitor.InfoProvider infoProvider;
 
-    OutboundMappingResultHandler(final Consumer<ExternalMessage> onMessageMapped, final Runnable onMessageDropped,
+    OutboundMappingResultHandler(final Consumer<OutboundSignal.Mapped> onMessageMapped, final Runnable onMessageDropped,
             final Consumer<Exception> onException, final Set<ConnectionMonitor> outboundMapped,
             final Set<ConnectionMonitor> outboundDropped, final ConnectionMonitor.InfoProvider infoProvider) {
         this.onMessageMapped = onMessageMapped;
@@ -45,7 +45,7 @@ public class OutboundMappingResultHandler implements MappingResultHandler<Extern
     }
 
     @Override
-    public void onMessageMapped(final ExternalMessage outboundMappedMessage) {
+    public void onMessageMapped(final OutboundSignal.Mapped outboundMappedMessage) {
         try {
             outboundMapped.forEach(monitor -> monitor.success(infoProvider));
             onMessageMapped.accept(outboundMappedMessage);

@@ -244,11 +244,11 @@ entries:
     - title: Kafka 2.x protocol binding
       url: /connectivity-protocol-bindings-kafka2.html
       output: web
-    - title: Header mapping
-      url: /connectivity-header-mapping.html
-      output: web
     - title: Payload mapping
       url: /connectivity-mapping.html
+      output: web
+    - title: Header mapping
+      url: /connectivity-header-mapping.html
       output: web
     - title: TLS certificates
       url: /connectivity-tls-certificates.html

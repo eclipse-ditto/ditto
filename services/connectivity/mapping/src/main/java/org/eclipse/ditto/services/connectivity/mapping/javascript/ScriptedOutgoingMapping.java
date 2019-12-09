@@ -118,7 +118,7 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
         if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
             headers = new HashMap<>();
             final Map jsHeaders = (Map) mappingHeaders;
-            jsHeaders.forEach((key, value) -> headers.put((String) key, value.toString()));
+            jsHeaders.forEach((key, value) -> headers.put(String.valueOf(key), String.valueOf(value)));
         } else {
             headers = Collections.emptyMap();
         }

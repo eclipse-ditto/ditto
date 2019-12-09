@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -23,9 +24,9 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
-import org.eclipse.ditto.model.connectivity.credentials.CredentialsVisitor;
+import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
 
 /**
  * Create SSL context from connection credentials.
@@ -103,7 +104,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     }
 
     @Override
-    public SSLContext clientCertificate(final ClientCertificateCredentials credentials) {
+    public SSLContext clientCertificate(@Nonnull final ClientCertificateCredentials credentials) {
 
         final String clientKeyPem = credentials.getClientKey().orElse(null);
         final String clientCertificatePem = credentials.getClientCertificate().orElse(null);

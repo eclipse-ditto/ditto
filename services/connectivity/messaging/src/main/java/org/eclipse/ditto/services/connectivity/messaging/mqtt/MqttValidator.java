@@ -34,13 +34,13 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.SourceAddressPlaceholder;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.model.placeholders.SourceAddressPlaceholder;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
@@ -112,7 +112,6 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
         validateSourceQoS(qos.get(), dittoHeaders, sourceDescription);
         validateSourceEnforcement(source.getEnforcement().orElse(null), dittoHeaders, sourceDescription);
-
         validateConsumerCount(source, dittoHeaders);
     }
 
@@ -134,7 +133,8 @@ public final class MqttValidator extends AbstractProtocolValidator {
         }
 
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(), newHeadersPlaceholder());
+        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
+                newHeadersPlaceholder());
     }
 
     /**
@@ -177,15 +177,16 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
             validateEnforcementInput(enforcement, sourceDescription, dittoHeaders);
 
-            final ThingId dummyThingId = ThingId.of("namespace","name");
-            final Map<String, String> filtersMap = PlaceholderFilter.applyThingPlaceholderToAddresses(enforcement.getFilters(),
-                    dummyThingId, filter -> {
-                        throw invalidValueForConfig(filter, "filters", sourceDescription.get())
-                                .description("Placeholder substitution failed. " +
-                                        "Please check the placeholder variables against the documentation.")
-                                .dittoHeaders(dittoHeaders)
-                                .build();
-                    });
+            final ThingId dummyThingId = ThingId.of("namespace", "name");
+            final Map<String, String> filtersMap =
+                    PlaceholderFilter.applyThingPlaceholderToAddresses(enforcement.getFilters(),
+                            dummyThingId, filter -> {
+                                throw invalidValueForConfig(filter, "filters", sourceDescription.get())
+                                        .description("Placeholder substitution failed. " +
+                                                "Please check the placeholder variables against the documentation.")
+                                        .dittoHeaders(dittoHeaders)
+                                        .build();
+                            });
             filtersMap.forEach((filter, mqttTopic) ->
                     validateMqttTopic(mqttTopic, true, errorMessage ->
                             invalidValueForConfig(filter, "filters", sourceDescription.get())
@@ -199,7 +200,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
     private static void validateEnforcementInput(final Enforcement enforcement,
             final Supplier<String> sourceDescription, final DittoHeaders dittoHeaders) {
-        final SourceAddressPlaceholder sourceAddressPlaceholder = PlaceholderFactory.newSourceAddressPlaceholder();
+        final SourceAddressPlaceholder sourceAddressPlaceholder = ConnectivityModelFactory.newSourceAddressPlaceholder();
         try {
             EnforcementFactoryFactory
                     .newEnforcementFilterFactory(enforcement, sourceAddressPlaceholder)
@@ -296,6 +297,8 @@ public final class MqttValidator extends AbstractProtocolValidator {
         if (connection.getClientCount() > 1) {
             throw ConnectionConfigurationInvalidException
                     .newBuilder("Client count limited to 1 for MQTT 3 connections.")
+                    .description("MQTT does not support load-balancing; starting more than 1 client will only " +
+                            "result in duplicate incoming messages.")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
@@ -303,7 +306,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
     private void validateConsumerCount(final Source source,
             final DittoHeaders dittoHeaders) {
-        if (source.getConsumerCount()>1) {
+        if (source.getConsumerCount() > 1) {
             throw ConnectionConfigurationInvalidException
                     .newBuilder("Consumer count limited to 1 for MQTT 3 connections.")
                     .dittoHeaders(dittoHeaders)

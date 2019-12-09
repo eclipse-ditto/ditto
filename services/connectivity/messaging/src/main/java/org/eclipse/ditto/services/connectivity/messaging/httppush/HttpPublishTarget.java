@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -67,12 +68,14 @@ final class HttpPublishTarget implements PublishTarget {
     static HttpPublishTarget of(final String targetAddress) {
         final String[] methodAndPath = splitMethodAndPath(targetAddress);
         if (methodAndPath.length == 2) {
-            final HttpMethod method = HttpMethods.lookup(methodAndPath[0]).orElse(FALLBACK_METHOD);
-            return new HttpPublishTarget(method, methodAndPath[1]);
-        } else {
-            // validator should rule this out
-            return new HttpPublishTarget(FALLBACK_METHOD, targetAddress);
+            final Optional<HttpMethod> method = HttpMethods.lookup(methodAndPath[0]);
+            if (method.isPresent()) {
+                return new HttpPublishTarget(method.get(), methodAndPath[1]);
+            }
         }
+        // Fallback: default method with entire target address as path.
+        // HttpPublisherActorTest relies on the fallback even as it should never happen for valid connections.
+        return new HttpPublishTarget(FALLBACK_METHOD, targetAddress);
     }
 
     static String[] splitMethodAndPath(final String targetAddress) {

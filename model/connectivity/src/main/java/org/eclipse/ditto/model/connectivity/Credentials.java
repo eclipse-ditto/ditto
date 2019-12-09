@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity.credentials;
+package org.eclipse.ditto.model.connectivity;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -22,7 +22,7 @@ import org.eclipse.ditto.json.JsonParseException;
 
 /**
  * Credentials of a connection. Credential types are extensible. To add a new credential type, implement this
- * interface and {@link org.eclipse.ditto.model.connectivity.credentials.CredentialsVisitor} and their serialization.
+ * interface and {@link CredentialsVisitor} and their serialization.
  */
 public interface Credentials {
 

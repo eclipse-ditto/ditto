@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity;
+package org.eclipse.ditto.model.placeholders;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -27,17 +27,17 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
- * Thrown if a placeholder in the connection configuration could not be resolved.
+ * Thrown if a placeholder could not be resolved.
  */
 @Immutable
 @JsonParsableException(errorCode = UnresolvedPlaceholderException.ERROR_CODE)
 public final class UnresolvedPlaceholderException extends DittoRuntimeException
-        implements ConnectivityException {
+        implements PlaceholderException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "connection.placeholder.unresolved";
+    public static final String ERROR_CODE = PlaceholderException.ERROR_CODE_PREFIX + "unresolved";
 
     private static final String MESSAGE_TEMPLATE = "The placeholder ''{0}'' could not be resolved.";
 

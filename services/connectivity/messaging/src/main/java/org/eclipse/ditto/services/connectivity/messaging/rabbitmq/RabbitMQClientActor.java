@@ -321,7 +321,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private ActorRef startRmqPublisherActor() {
         stopChildActor(rmqPublisherActor);
-        final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptyList());
+        final Props publisherProps = RabbitMQPublisherActor.props(connection());
         return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
     }
 
@@ -354,8 +354,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         final PayloadMapping payloadMapping = source.getPayloadMapping();
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
-                                RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(),
-                                        authorizationContext, enforcement, headerMapping, payloadMapping,
+                                RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(), source,
                                         connectionId()));
                         consumerByAddressWithIndex.put(addressWithIndex, consumer);
                         try {

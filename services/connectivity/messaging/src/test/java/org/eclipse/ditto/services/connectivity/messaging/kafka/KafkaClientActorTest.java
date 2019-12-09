@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -38,6 +37,7 @@ import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActor
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
@@ -165,14 +165,13 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             final String expectedJson = TestConstants.signalToDittoProtocolJsonString(thingModifiedEvent);
 
             LOGGER.info("Sending thing modified message: {}", thingModifiedEvent);
-            final OutboundSignal.WithExternalMessage mappedSignal =
-                    Mockito.mock(OutboundSignal.WithExternalMessage.class);
+            final OutboundSignal.Mapped mappedSignal = Mockito.mock(OutboundSignal.Mapped.class);
             when(mappedSignal.getTargets()).thenReturn(singletonList(TARGET));
             when(mappedSignal.getSource()).thenReturn(thingModifiedEvent);
             kafkaClientActor.tell(mappedSignal, getRef());
 
-            final OutboundSignal.WithExternalMessage message =
-                    probe.expectMsgClass(OutboundSignal.WithExternalMessage.class);
+            final OutboundSignal.Mapped message =
+                    probe.expectMsgClass(OutboundSignal.Mapped.class);
             assertThat(message.getExternalMessage().getTextPayload()).contains(expectedJson);
 
             kafkaClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -232,8 +231,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             }
 
             @Override
-            public Props props(final ConnectionId connectionId, final List<Target> targets,
-                    final KafkaConnectionFactory factory, final boolean dryRun) {
+            public Props props(final Connection c, final KafkaConnectionFactory factory, final boolean dryRun) {
                 return MockKafkaPublisherActor.props(ref, status);
             }
         });
