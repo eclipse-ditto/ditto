@@ -55,6 +55,10 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
         }
 
+        if (entityId.length() > 256) {
+            throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
+        }
+
         final Matcher nsMatcher = ID_PATTERN.matcher(entityId);
 
         if (nsMatcher.matches()) {
@@ -142,6 +146,10 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
         }
 
         if (namespace == null) {
+            throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
+        }
+
+        if (stringRepresentation.length() > 256) {
             throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
         }
 

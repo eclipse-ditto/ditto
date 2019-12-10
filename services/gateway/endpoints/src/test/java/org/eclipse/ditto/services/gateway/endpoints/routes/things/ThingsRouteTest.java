@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
-import java.util.UUID;
-
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -56,17 +54,6 @@ public final class ThingsRouteTest extends EndpointTestBase {
     public void postFeaturesReturnsMethodNotAllowed() {
         final TestRouteResult result = underTest.run(HttpRequest.POST("/things/org.eclipse.ditto%3Adummy/features"));
         result.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
-    }
-
-    @Test
-    public void getThingWithVeryLongId() {
-        final int numberOfUUIDs = 100;
-        final StringBuilder pathBuilder = new StringBuilder("/things/").append("namespace");
-        for (int i = 0; i < numberOfUUIDs; ++i) {
-            pathBuilder.append(':').append(UUID.randomUUID());
-        }
-        final TestRouteResult result = underTest.run(HttpRequest.GET(pathBuilder.toString()));
-        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test
