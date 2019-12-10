@@ -12,9 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
-import static akka.http.javadsl.server.Directives.completeWithFuture;
-import static akka.http.javadsl.server.Directives.extractRequest;
-import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_COMMANDS;
@@ -29,6 +27,8 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -89,10 +89,11 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.ws.Message;
 import akka.http.javadsl.model.ws.TextMessage;
 import akka.http.javadsl.model.ws.UpgradeToWebSocket;
+import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
-import akka.pattern.Patterns;
 import akka.japi.pf.PFBuilder;
+import akka.pattern.Patterns;
 import akka.stream.Attributes;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
@@ -111,7 +112,8 @@ import scala.util.Right;
 /**
  * Builder for creating Akka HTTP routes for {@code /ws}.
  */
-public final class WebsocketRoute {
+@NotThreadSafe
+public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     /**
      * The backend sends the protocol message above suffixed by ":ACK" when the subscription was created. E.g.: {@code
@@ -123,7 +125,7 @@ public final class WebsocketRoute {
 
     private static final String BEARER = "Bearer";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketRoute.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketRoute.class);
 
     private static final Duration CONFIG_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
@@ -144,42 +146,58 @@ public final class WebsocketRoute {
     private final ActorRef streamingActor;
     private final EventStream eventStream;
 
-    private final EventSniffer<String> incomingMessageSniffer;
-    private final EventSniffer<String> outgoingMessageSniffer;
+    private EventSniffer<String> incomingMessageSniffer;
+    private EventSniffer<String> outgoingMessageSniffer;
+    private WebSocketAuthorizationEnforcer authorizationEnforcer;
+    private WebSocketSupervisor webSocketSupervisor;
 
-    private WebsocketRoute(final ActorRef streamingActor,
-            final EventStream eventStream,
-            final EventSniffer<String> incomingMessageSniffer,
-            final EventSniffer<String> outgoingMessageSniffer) {
-        this.streamingActor = streamingActor;
-        this.eventStream = eventStream;
-        this.incomingMessageSniffer = incomingMessageSniffer;
-        this.outgoingMessageSniffer = outgoingMessageSniffer;
+    private WebSocketRoute(final ActorRef streamingActor, final EventStream eventStream) {
+
+        this.streamingActor = checkNotNull(streamingActor, "streamingActor");
+        this.eventStream = checkNotNull(eventStream, "eventStream");
+
+        final EventSniffer<String> noOpEventSniffer = EventSniffer.noOp();
+        incomingMessageSniffer = noOpEventSniffer;
+        outgoingMessageSniffer = noOpEventSniffer;
+        authorizationEnforcer = new NoOpAuthorizationEnforcer();
+        webSocketSupervisor = new NoOpWebSocketSupervisor();
     }
 
     /**
-     * Constructs the {@code /ws} route builder.
+     * Returns an instance of this class.
      *
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
      * @param eventStream eventStream used to publish events within the actor system
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public WebsocketRoute(final ActorRef streamingActor, final EventStream eventStream) {
+    public static WebSocketRoute getInstance(final ActorRef streamingActor, final EventStream eventStream) {
 
-        this(streamingActor, eventStream, EventSniffer.noOp(), EventSniffer.noOp());
+        return new WebSocketRoute(streamingActor, eventStream);
     }
 
-    /**
-     * Create a copy of this object with message sniffers.
-     *
-     * @param incomingMessageSniffer sniffer of incoming messages.
-     * @param outgoingMessageSniffer sniffer of outgoing messages.
-     * @return a copy of this object with the message sniffers.
-     */
-    public WebsocketRoute withMessageSniffers(final EventSniffer<String> incomingMessageSniffer,
-            final EventSniffer<String> outgoingMessageSniffer) {
+    @Override
+    public WebSocketRouteBuilder withIncomingEventSniffer(final EventSniffer<String> eventSniffer) {
+        incomingMessageSniffer = checkNotNull(eventSniffer, "eventSniffer");
+        return this;
+    }
 
-        return new WebsocketRoute(streamingActor, eventStream, incomingMessageSniffer,
-                outgoingMessageSniffer);
+    @Override
+    public WebSocketRouteBuilder withOutgoingEventSniffer(final EventSniffer<String> eventSniffer) {
+        outgoingMessageSniffer = checkNotNull(eventSniffer, "eventSniffer");
+        return this;
+    }
+
+    @Override
+    public WebSocketRouteBuilder withAuthorizationEnforcer(final WebSocketAuthorizationEnforcer enforcer) {
+        authorizationEnforcer = checkNotNull(enforcer, "enforcer");
+        return this;
+    }
+
+    @Override
+    public WebSocketRouteBuilder withWebSocketSupervisor(final WebSocketSupervisor webSocketSupervisor) {
+        this.webSocketSupervisor = checkNotNull(webSocketSupervisor, "webSocketSupervisor");
+        return this;
     }
 
     /**
@@ -187,18 +205,21 @@ public final class WebsocketRoute {
      *
      * @return the {@code /ws} route.
      */
-    public Route buildWebsocketRoute(final Integer version,
-            final String correlationId,
+    @Override
+    public Route build(final Integer version,
+            final CharSequence correlationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
 
-        return extractUpgradeToWebSocket(upgradeToWebSocket -> extractRequest(request ->
-                completeWithFuture(
-                        createWebsocket(upgradeToWebSocket, version, correlationId, connectionAuthContext,
-                                additionalHeaders, chosenProtocolAdapter, request)
-                )
-        ));
+        return Directives.extractUpgradeToWebSocket(
+                upgradeToWebSocketHeader -> Directives.extractRequest(
+                        request -> {
+                            authorizationEnforcer.checkAuthorization(request, connectionAuthContext, additionalHeaders);
+                            return Directives.completeWithFuture(
+                                    createWebsocket(upgradeToWebSocketHeader, version, correlationId.toString(),
+                                            connectionAuthContext, additionalHeaders, chosenProtocolAdapter, request));
+                        }));
     }
 
     private CompletionStage<WebsocketConfig> retrieveWebsocketConfig() {
@@ -222,7 +243,7 @@ public final class WebsocketRoute {
                     createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request,
                             websocketConfig);
             final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
-                    createOutgoing(connectionCorrelationId, adapter, request, websocketConfig);
+                    createOutgoing(connectionCorrelationId, additionalHeaders, adapter, request, websocketConfig);
 
             return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing));
         });
@@ -401,17 +422,21 @@ public final class WebsocketRoute {
     }
 
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(final String connectionCorrelationId,
-            final ProtocolAdapter adapter, final HttpRequest request, final WebsocketConfig websocketConfig) {
+            final DittoHeaders additionalHeaders,
+            final ProtocolAdapter adapter,
+            final HttpRequest request, final WebsocketConfig websocketConfig) {
 
         final Optional<JsonWebToken> optJsonWebToken = extractJwtFromRequestIfPresent(request);
 
         final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                         EventAndResponsePublisher.props(websocketConfig.getPublisherBackpressureBufferSize()))
-                        .mapMaterializedValue(actorRef -> {
+                        .mapMaterializedValue(publisherActor -> {
+                            webSocketSupervisor.supervise(publisherActor, connectionCorrelationId, additionalHeaders);
                             streamingActor.tell(
-                                    new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_WS,
-                                            optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null)), null);
+                                    new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_WS,
+                                            optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null)),
+                                    ActorRef.noSender());
                             return NotUsed.getInstance();
                         })
                         .map(this::publishResponsePublishedEvent)
@@ -649,6 +674,34 @@ public final class WebsocketRoute {
                 .map(akka.http.javadsl.model.HttpHeader::value)
                 .filter(s -> s.startsWith(BEARER))
                 .map(ImmutableJsonWebToken::fromAuthorization);
+    }
+
+    /**
+     * Null implementation for {@link WebSocketAuthorizationEnforcer} which does nothing.
+     */
+    private static final class NoOpAuthorizationEnforcer implements WebSocketAuthorizationEnforcer {
+
+        @Override
+        public void checkAuthorization(final HttpRequest request, final AuthorizationContext authorizationContext,
+                final DittoHeaders dittoHeaders) {
+
+            // Does nothing.
+        }
+
+    }
+
+    /**
+     * Null implementation for {@link WebSocketSupervisor} which does nothing.
+     */
+    private static final class NoOpWebSocketSupervisor implements WebSocketSupervisor {
+
+        @Override
+        public void supervise(final ActorRef webSocketActor, final CharSequence connectionCorrelationId,
+                final DittoHeaders dittoHeaders) {
+
+            // Does nothing.
+        }
+
     }
 
 }

@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -706,16 +705,7 @@ public final class ConnectionPersistenceActor
             final Throwable error,
             final boolean sendExceptionResponse) {
 
-        final Throwable cause = getRootCause(error);
-        final DittoRuntimeException dre;
-        if (cause instanceof DittoRuntimeException) {
-            dre = (DittoRuntimeException) cause;
-        } else {
-            dre = ConnectionFailedException.newBuilder(entityId)
-                    .description(cause.getMessage())
-                    .cause(cause)
-                    .build();
-        }
+        final DittoRuntimeException dre = toDittoRuntimeException(error, entityId, DittoHeaders.empty());
 
         if (sendExceptionResponse && origin != null) {
             origin.tell(dre, getSelf());
@@ -873,22 +863,15 @@ public final class ConnectionPersistenceActor
         return future;
     }
 
-    private static Throwable getRootCause(final Throwable error) {
-        return error instanceof CompletionException ? getRootCause(error.getCause()) : error;
-    }
-
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,
             final DittoHeaders headers) {
-        final Throwable cause = getRootCause(error);
-        if (cause instanceof DittoRuntimeException) {
-            return (DittoRuntimeException) cause;
-        } else {
-            return ConnectionFailedException.newBuilder(id)
-                    .description(cause.getMessage())
-                    .cause(cause)
-                    .dittoHeaders(headers)
-                    .build();
-        }
+
+        return DittoRuntimeException.asDittoRuntimeException(error,
+                cause -> ConnectionFailedException.newBuilder(id)
+                        .description(cause.getMessage())
+                        .cause(cause)
+                        .dittoHeaders(headers)
+                        .build());
     }
 
     private static CompletionStage<Object> processClientAskResult(final CompletionStage<Object> askResultFuture) {

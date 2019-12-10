@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -177,36 +176,27 @@ public final class PreEnforcer {
         }
     }
 
-    private static WithDittoHeaders handleError(final Throwable error,
-            final WithSender wrapped,
+    private static WithDittoHeaders handleError(final Throwable error, final WithSender wrapped,
             @Nullable final ActorRef self) {
 
-        final Throwable rootCause = extractRootCause(error);
         final ActorRef sender = wrapped.getSender();
         final DittoHeaders dittoHeaders = wrapped.getMessage().getDittoHeaders();
 
-        if (rootCause instanceof DittoRuntimeException) {
-            sender.tell(rootCause, self);
-            return (WithDittoHeaders) rootCause;
-        } else {
-            FALLBACK_LOGGER.error("Unexpected non-DittoRuntimeException error - responding with " +
-                            "GatewayInternalErrorException: {} - {} - {}", error.getClass().getSimpleName(), error.getMessage(),
-                    error);
-            final GatewayInternalErrorException responseEx =
-                    GatewayInternalErrorException.newBuilder()
-                            .dittoHeaders(dittoHeaders)
-                            .cause(rootCause)
-                            .build();
-            sender.tell(responseEx, self);
-            return responseEx;
-        }
-    }
+        final DittoRuntimeException dittoRuntimeException =
+                DittoRuntimeException.asDittoRuntimeException(error, cause -> {
+                    FALLBACK_LOGGER.error("Unexpected non-DittoRuntimeException error - responding with " +
+                                    "GatewayInternalErrorException: {} - {} - {}", error.getClass().getSimpleName(),
+                            error.getMessage(),
+                            error);
 
-    private static Throwable extractRootCause(final Throwable t) {
-        if (t instanceof CompletionException) {
-            return extractRootCause(t.getCause());
-        }
-        return t;
+                    return GatewayInternalErrorException.newBuilder()
+                            .dittoHeaders(dittoHeaders)
+                            .cause(cause)
+                            .build();
+                });
+
+        sender.tell(dittoRuntimeException, self);
+        return dittoRuntimeException;
     }
 
     private static Graph<SinkShape<WithSender>, NotUsed> unhandled() {
