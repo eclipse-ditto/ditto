@@ -98,8 +98,6 @@ final class ImmutableJsonField implements JsonField {
     public void writeKeyAndValue(final SerializationContext serializationContext) throws IOException {
         serializationContext.getJacksonGenerator().writeFieldName(key.toString());
         value.writeValue(serializationContext);
-
-        // TODO: cache Key as SerializableString
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})

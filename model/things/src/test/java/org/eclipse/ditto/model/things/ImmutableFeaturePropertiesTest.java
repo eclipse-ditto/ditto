@@ -65,6 +65,4 @@ public final class ImmutableFeaturePropertiesTest {
         assertThat(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(ImmutableFeatureProperties.of(TestConstants.Thing.ATTRIBUTES))))
                 .isEqualTo(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(TestConstants.Thing.ATTRIBUTES)));
     }
-
-    // TODO test that this conforms to JsonObject
 }

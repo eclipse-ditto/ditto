@@ -311,7 +311,6 @@ final class ImmutableAttributes implements Attributes {
     @Override
     public void writeValue(final SerializationContext serializationContext) throws IOException {
         wrapped.writeValue(serializationContext);
-        // TODO implement caching?
     }
 
     private Attributes determineResult(final Supplier<JsonObject> newWrappedSupplier) {

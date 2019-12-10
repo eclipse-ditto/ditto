@@ -310,7 +310,6 @@ final class ImmutableFeatureProperties implements FeatureProperties {
     @Override
     public void writeValue(final SerializationContext serializationContext) throws IOException {
         wrapped.writeValue(serializationContext);
-        // TODO implement caching?
     }
 
     private FeatureProperties determineResult(final Supplier<JsonObject> newWrappedSupplier) {

@@ -88,7 +88,6 @@ final class ImmutableJsonString extends AbstractJsonValue {
     @Override
     public void writeValue(final SerializationContext serializationContext) throws IOException {
         serializationContext.getJacksonGenerator().writeString(value);
-        // TODO implement caching based on SerializableString.
     }
 
     private String createStringRepresentation() {

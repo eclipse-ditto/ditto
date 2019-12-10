@@ -245,8 +245,6 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
             jsonValue.writeValue(serializationContext);
         }
         serializationContext.getJacksonGenerator().writeEndArray();
-        // TODO: use caching
-        // TODO: change caching over to CBOR?
     }
 
     @Immutable

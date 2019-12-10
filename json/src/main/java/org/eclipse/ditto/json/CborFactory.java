@@ -24,8 +24,6 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORParser;
 
-//TODO: move these Methods to JsonFactory?
-
 public final class CborFactory {
 
     private static CBORFactory jacksonCborFactory = new CBORFactory();
@@ -52,12 +50,10 @@ public final class CborFactory {
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         writeToOutputStream(jsonValue, byteArrayOutputStream);
         return byteArrayOutputStream.toByteArray();
-        // TODO: check efficiency of this implementation
     }
 
     public static ByteBuffer toByteBuffer(JsonValue jsonValue) throws IOException {
         return ByteBuffer.wrap(toByteArray(jsonValue));
-        // TODO: check efficiency of this implementation
     }
 
     public static void writeToByteBuffer(JsonValue jsonValue, ByteBuffer byteBuffer) throws IOException {
@@ -75,7 +71,7 @@ public final class CborFactory {
         return parseValue(parser, parser.nextToken());
     }
 
-    private static JsonValue parseValue(CBORParser parser, JsonToken currentToken) throws IOException { // TODO: generify for JacksonParser
+    private static JsonValue parseValue(CBORParser parser, JsonToken currentToken) throws IOException {
         switch (currentToken) {
             case START_OBJECT:
                 return parseObject(parser);
