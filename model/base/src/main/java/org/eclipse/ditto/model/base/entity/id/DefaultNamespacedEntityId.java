@@ -33,6 +33,7 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
 
     private static final NamespacedEntityId DUMMY_ID = DefaultNamespacedEntityId.of(":_");
     private static final String DEFAULT_NAMESPACE = "";
+    private static int MAXIMUM_ID_LENGTH = 256;
 
     private final String namespace;
     private final String name;
@@ -55,7 +56,7 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
         }
 
-        if (entityId.length() > 256) {
+        if (entityId.length() > MAXIMUM_ID_LENGTH) {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
         }
 
@@ -149,7 +150,7 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
             throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
         }
 
-        if (stringRepresentation.length() > 256) {
+        if (stringRepresentation.length() > MAXIMUM_ID_LENGTH) {
             throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
         }
 
