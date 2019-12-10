@@ -26,8 +26,11 @@ public class ByteBufferInputStream extends InputStream {
     }
 
     static InputStream of(ByteBuffer byteBuffer){
-        if (byteBuffer.hasArray()){
-            return new ByteArrayInputStream(byteBuffer.array(), byteBuffer.arrayOffset(), byteBuffer.limit());
+        if (byteBuffer.hasArray()) {
+            return new ByteArrayInputStream(
+                    byteBuffer.array(),
+                    byteBuffer.arrayOffset() + byteBuffer.position(),
+                    byteBuffer.limit());
         }
         return new ByteBufferInputStream(byteBuffer);
     }

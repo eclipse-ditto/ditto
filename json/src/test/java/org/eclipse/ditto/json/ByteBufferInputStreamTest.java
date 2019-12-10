@@ -32,6 +32,7 @@ public class ByteBufferInputStreamTest {
         for (int i = 0; i < length; i++) {
             buffer.put((byte) i);
         }
+        buffer.flip();
         final InputStream stream = ByteBufferInputStream.of(buffer);
         for (int i = 0; i < length; i++) {
             assertThat(stream.read()).isEqualTo(i);
@@ -48,6 +49,7 @@ public class ByteBufferInputStreamTest {
         for (int i = 0; i < totalLength; i++) {
             buffer.put(TESTVALUE);
         }
+        buffer.flip();
         final InputStream stream = ByteBufferInputStream.of(buffer);
 
         byte[] bytes = new byte[totalLength];
