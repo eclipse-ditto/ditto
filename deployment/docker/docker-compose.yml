@@ -13,7 +13,6 @@ services:
        TZ: Europe/Berlin
 
   policies:
-    init: true
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -31,7 +30,6 @@ services:
     command: java -jar starter.jar
 
   things:
-    init: true
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -51,7 +49,6 @@ services:
     command: java -jar starter.jar
 
   things-search:
-    init: true
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -71,7 +68,6 @@ services:
     command: java -jar starter.jar
 
   concierge:
-    init: true
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -91,7 +87,6 @@ services:
     command: java -jar starter.jar
 
   connectivity:
-    init: true
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -112,7 +107,6 @@ services:
     command: java -jar starter.jar
 
   gateway:
-    init: true
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
