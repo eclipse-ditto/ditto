@@ -2,7 +2,7 @@
 title: Release notes 1.0.0
 tags: [release_notes]
 keywords: release notes, announcements, changelog
-summary: "Version 1.0.0 of Eclipse Ditto, released on 2019/12/12"
+summary: "Version 1.0.0 of Eclipse Ditto, released on 12.12.2019"
 permalink: release_notes_100.html
 ---
 
@@ -17,8 +17,8 @@ investigated."
 
 Eclipse Ditto 1.0.0 focuses on the following areas:
 
-* Addition of "defintion" field in thing at model level containing the model ID a thing may follow
-* Improved connection response hanlding/mapping
+* Addition of "definition" field in thing at model level containing the model ID a thing may follow
+* Improved connection response handling/mapping
 
 {% include warning.html content="
 If you want to upgrade an existing Ditto installation to 1.0.0, the following database migration has to be done 
@@ -80,7 +80,3 @@ e.g. from things_journal@org.eclipse.ditto and things_journal@org.eclipse.hono t
 2. Execute the migration script via mongo shell.
 3. Update Ditto to 1.0.0.
 4. Start Ditto.
-
-## Roadmap
-
-The Ditto project plans on releasing (non-milestone releases) twice per year, once every 6 months.
