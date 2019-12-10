@@ -296,6 +296,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     }
 
     private static String tryToConvertToHexString(ByteBuffer byteBuffer){
+        byteBuffer = byteBuffer.asReadOnlyBuffer(); // to avoid modifications especially to the position of the buffer
         try {
             return BinaryToHexConverter.toHexString(byteBuffer);
         } catch (IOException e) {
