@@ -24,8 +24,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
@@ -214,6 +216,25 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getStatusClusterWithoutHttps() {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(STATUS_CLUSTER_PATH));
         result.assertStatusCode(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
+    public void getThingWithVeryLongId() {
+        final int numberOfUUIDs = 100;
+        final StringBuilder pathBuilder = new StringBuilder(THINGS_2_PATH).append("/");
+        final StringBuilder idBuilder = new StringBuilder("namespace");
+        for (int i = 0; i < numberOfUUIDs; ++i) {
+            idBuilder.append(':').append(UUID.randomUUID());
+        }
+        pathBuilder.append(idBuilder);
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(pathBuilder.toString()))));
+        final ThingIdInvalidException expectedEx = ThingIdInvalidException.newBuilder(idBuilder.toString())
+                .dittoHeaders(DittoHeaders.empty())
+                .build();
+        result.assertEntity(expectedEx.toJsonString());
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+
     }
 
     @Test

@@ -13,7 +13,6 @@ services:
        TZ: Europe/Berlin
 
   policies:
-    init: true
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -26,15 +25,11 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
-    entrypoint:
-      - java
-      # Set additional configuration options here
-      # -Dditto.policies...
-      - -jar
-      - starter.jar
+    # Set additional configuration options here
+    # -Dditto.policies...
+    command: java -jar starter.jar
 
   things:
-    init: true
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -49,15 +44,11 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
-    entrypoint:
-      - java
-      # Set additional configuration options here
-      # -Dditto.things...
-      - -jar
-      - starter.jar
+    # Set additional configuration options here
+    # -Dditto.things...
+    command: java -jar starter.jar
 
   things-search:
-    init: true
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -72,15 +63,11 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
-    entrypoint:
-      - java
-      # Set additional configuration options here
-      # -Dditto.things-search...
-      - -jar
-      - starter.jar
+    # Set additional configuration options here
+    # -Dditto.things-search...
+    command: java -jar starter.jar
 
   concierge:
-    init: true
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -95,15 +82,11 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
-    entrypoint:
-      - java
-      # Set additional configuration options here
-      # -Dditto.concierge...
-      - -jar
-      - starter.jar
+    # Set additional configuration options here
+    # -Dditto.concierge...
+    command: java -jar starter.jar
 
   connectivity:
-    init: true
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -119,15 +102,11 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
-    entrypoint:
-      - java
-      # Set additional configuration options here
-      # -Dditto.connectivity...
-      - -jar
-      - starter.jar
+    # Set additional configuration options here
+    # -Dditto.connectivity...
+    command: java -jar starter.jar
 
   gateway:
-    init: true
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -148,12 +127,10 @@ services:
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       # You may use the environment for setting the devops password
       #- DEVOPS_PASSWORD=foobar
-    entrypoint:
-      - java
-      # Setting the devops password via java VM environment
-      - -Dditto.gateway.authentication.devops.password=foobar
-      - -jar
-      - starter.jar
+    # Set additional configuration options here
+    # -Dditto.gateway...
+    # Setting the devops password via java VM environment
+    command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v3.20.5

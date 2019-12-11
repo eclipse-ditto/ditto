@@ -49,8 +49,9 @@ Examples for valid names:
 
 ## Namespaced ID
 
-A namespaced ID must conform to the following notation:
+A namespaced ID must conform to the following expectations:
 * namespace and name separated by a `:` (colon)
+* have a maximum length of 256 characters
 
 When writing a Java application, you can use the following regex to validate your namespaced IDs: <br/>
 	`(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:\.[a-zA-Z]\w*+)*+)):(?<name>(?:[-\w:@&=+,.!~*'_;<>]|%\p{XDigit}{2})(?:[-\w:@&=+,.!~*'_;<>$]|%\p{XDigit}{2})*+)` 

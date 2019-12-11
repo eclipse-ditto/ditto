@@ -31,17 +31,13 @@ When no environment variable is defined in the config, you may change the defaul
 "System property" you pass to the Java process.
 
 The following example configures the devops password of the gateway-service started via docker-compose. In order
-to supply additional configuration one has to add the variable in the corresponding `entrypoint` section of the
+to supply additional configuration one has to add the variable in the corresponding `command` section of the
 `docker-compose.yml` file.
 
 ```yml
     ...
-    entrypoint:
-      - java
-      # Alternative approach for configuration of the service
-      - -Dditto.gateway.authentication.devops.password=foobar
-      - -jar
-      - starter.jar
+    # Alternative approach for configuration of the service
+    command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
 ```
 
 The executable for the microservice is called `starter.jar`. The configuration variables have to be set before
@@ -82,9 +78,9 @@ The configured subject-issuer will be used to prefix the value of the “sub” 
 As of the OAuth2.0 and OpenID Connect standards Ditto expects the headers `Authorization: Bearer <JWT>` and 
 `Content-Type: application/json`, containing the issued token of the provider. 
 
-**The token has to be issued beforehand. The required logic is not provided by ditto.** When using 
+**The token has to be issued beforehand. The required logic is not provided by Ditto.** When using 
 the OIDC provider [keycloak](https://www.keycloak.org/), a project like [keycloak-gatekeeper](https://github.com/keycloak/keycloak-gatekeeper) 
-may be put infront of ditto to handle the token-logic.
+may be put in front of Ditto to handle the token-logic.
 
 **If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for the 
 akka-http ssl configuration.

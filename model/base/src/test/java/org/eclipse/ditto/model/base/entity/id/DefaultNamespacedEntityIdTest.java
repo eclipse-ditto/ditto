@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -93,6 +92,26 @@ public class DefaultNamespacedEntityIdTest {
 
         assertThat(namespacedEntityId.getNamespace()).isEqualTo(invalidNamespace);
         assertThat(namespacedEntityId.getName()).isEqualTo(invalidName);
+    }
+
+    @Test
+    public void canHaveMaximumLengthOf256Characters() {
+        final int maximumAllowedCharactersForName = 255 - VALID_NAMESPACE.length();
+        final StringBuilder nameWithMaximumLength = new StringBuilder();
+        for (int i = 0; i < maximumAllowedCharactersForName; i++) {
+            nameWithMaximumLength.append("a");
+        }
+        assertValidId(VALID_NAMESPACE, nameWithMaximumLength.toString());
+    }
+
+    @Test
+    public void cannotHaveMoreThan256Characters() {
+        final int maximumAllowedCharactersForName = 255 - VALID_NAMESPACE.length();
+        final StringBuilder nameWithMaximumLength = new StringBuilder();
+        for (int i = 0; i < maximumAllowedCharactersForName; i++) {
+            nameWithMaximumLength.append("a");
+        }
+        assertInValidId(VALID_NAMESPACE, nameWithMaximumLength.append("a").toString());
     }
 
     @Test
@@ -201,19 +220,6 @@ public class DefaultNamespacedEntityIdTest {
     @Test
     public void notSpecialCharactersInNamespacesAreAllowed() {
         assertInvalidNamespace("my$namespace");
-    }
-
-    @Test
-    public void validateLongIdSucceeds() {
-        final int numberOfUUIDs = 1000;
-        final StringBuilder idBuilder = new StringBuilder("namespace");
-        for (int i = 0; i < numberOfUUIDs; ++i) {
-            idBuilder.append(':').append(UUID.randomUUID());
-        }
-
-        final NamespacedEntityId namespacedEntityId = DefaultNamespacedEntityId.of(idBuilder.toString());
-
-        assertThat(namespacedEntityId.getNamespace()).isEqualTo("namespace");
     }
 
     private static void assertInvalidNamespace(@Nullable final String namespace) {

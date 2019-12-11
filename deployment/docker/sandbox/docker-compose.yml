@@ -14,7 +14,6 @@ services:
        TZ: Europe/Berlin
 
   policies:
-    init: true
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -30,7 +29,6 @@ services:
       - MONGO_COLLECTION_NAME_SUFFIX_CLASS=
 
   things:
-    init: true
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -48,7 +46,6 @@ services:
       - MONGO_COLLECTION_NAME_SUFFIX_CLASS=
 
   things-search:
-    init: true
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -65,7 +62,6 @@ services:
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
 
   concierge:
-    init: true
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -82,7 +78,6 @@ services:
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
 
   connectivity:
-    init: true
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -100,7 +95,6 @@ services:
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
 
   gateway:
-    init: true
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:

@@ -66,17 +66,6 @@ public final class ThingsRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void getThingWithVeryLongId() {
-        final int numberOfUUIDs = 100;
-        final StringBuilder pathBuilder = new StringBuilder("/things/").append("namespace");
-        for (int i = 0; i < numberOfUUIDs; ++i) {
-            pathBuilder.append(':').append(UUID.randomUUID());
-        }
-        final TestRouteResult result = underTest.run(HttpRequest.GET(pathBuilder.toString()));
-        result.assertStatusCode(StatusCodes.OK);
-    }
-
-    @Test
     public void createThingWithInvalidInitialPolicy() {
         final String body = "{\"_policy\"org.eclipse.ditto:1234}";
         final RequestEntity requestEntity = HttpEntities.create(ContentTypes.APPLICATION_JSON, body);
