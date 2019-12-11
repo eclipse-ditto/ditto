@@ -27,8 +27,8 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * Represents the {@code Payload} of an {@link Adaptable}. The Ditto Protocol defines that a {@code Payload} must
- * always have a {@code path} property.
+ * Represents the {@code Payload} of an {@link Adaptable}.
+ * The Ditto Protocol defines that a {@code Payload} must always have a {@code path} property.
  */
 public interface Payload extends Jsonifiable<JsonObject> {
 
@@ -65,6 +65,13 @@ public interface Payload extends Jsonifiable<JsonObject> {
      * @return the optional value.
      */
     Optional<JsonValue> getValue();
+
+    /**
+     * Returns the extra information which enriches the actual value of this payload.
+     *
+     * @return the extra payload or an empty Optional.
+     */
+    Optional<JsonObject> getExtra();
 
     /**
      * Returns the {@code status} of this {@code Payload} if present.
@@ -109,6 +116,11 @@ public interface Payload extends Jsonifiable<JsonObject> {
          * JSON field containing the value.
          */
         public static final JsonFieldDefinition<JsonValue> VALUE = JsonFactory.newJsonValueFieldDefinition("value");
+
+        /**
+         * JSON field containing the extra data aka payload enrichment.
+         */
+        public static final JsonFieldDefinition<JsonObject> EXTRA = JsonFactory.newJsonObjectFieldDefinition("extra");
 
         /**
          * JSON field containing the status.

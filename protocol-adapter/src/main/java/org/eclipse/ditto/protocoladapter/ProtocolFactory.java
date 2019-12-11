@@ -17,6 +17,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -201,7 +203,7 @@ public final class ProtocolFactory {
      * @return the builder.
      */
     public static PayloadBuilder newPayloadBuilder() {
-        return ImmutablePayloadBuilder.of();
+        return newPayloadBuilder(null);
     }
 
     /**
@@ -210,8 +212,8 @@ public final class ProtocolFactory {
      * @param path the path.
      * @return the builder.
      */
-    public static PayloadBuilder newPayloadBuilder(final JsonPointer path) {
-        return ImmutablePayloadBuilder.of(path);
+    public static PayloadBuilder newPayloadBuilder(@Nullable final JsonPointer path) {
+        return ImmutablePayload.getBuilder(path);
     }
 
 

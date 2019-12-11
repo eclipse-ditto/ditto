@@ -19,17 +19,19 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ImmutablePayload}.
+ * Unit test for {@link ImmutablePayload} and its builder.
  */
 public final class ImmutablePayloadTest {
 
@@ -39,6 +41,44 @@ public final class ImmutablePayloadTest {
     private static final long KNOWN_REVISION = 1337;
     private static final Instant KNOWN_TIMESTAMP = Instant.now();
     private static final JsonFieldSelector KNOWN_FIELDS = JsonFieldSelector.newInstance("/foo");
+
+    private static JsonObject knownExtra;
+    private static JsonObject knownJsonRepresentation;
+    private static ImmutablePayload knownPayload;
+
+    @BeforeClass
+    public static void setUpClass() {
+        knownExtra = JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("manufacturer", "ACME corp")
+                        .build())
+                .set("features", JsonObject.newBuilder()
+                        .set("location", JsonObject.newBuilder()
+                                .set("longitude", 42.123D)
+                                .set("latitude", 3.54D)
+                                .build())
+                        .build())
+                .build();
+
+        knownJsonRepresentation = JsonObject.newBuilder()
+                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString())
+                .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
+                .set(Payload.JsonFields.EXTRA, knownExtra)
+                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
+                .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
+                .set(Payload.JsonFields.TIMESTAMP, KNOWN_TIMESTAMP.toString())
+                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
+                .build();
+
+        knownPayload = ImmutablePayload.getBuilder(KNOWN_PATH)
+                .withValue(KNOWN_VALUE)
+                .withExtra(knownExtra)
+                .withStatus(KNOWN_STATUS)
+                .withRevision(KNOWN_REVISION)
+                .withTimestamp(KNOWN_TIMESTAMP)
+                .withFields(KNOWN_FIELDS)
+                .build();
+    }
 
     @Test
     public void testHashCodeAndEquals() {
@@ -51,47 +91,45 @@ public final class ImmutablePayloadTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutablePayload.class,
                 areImmutable(),
-                provided(MessagePath.class, JsonValue.class, JsonFieldSelector.class).areAlsoImmutable());
+                provided(MessagePath.class, JsonObject.class, JsonValue.class,
+                        JsonFieldSelector.class).areAlsoImmutable());
     }
 
     @Test
-    public void jsonSerializationWorksAsExpected() {
-        final JsonObject expected = JsonObject.newBuilder()
-                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString())
-                .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
-                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
-                .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
-                .set(Payload.JsonFields.TIMESTAMP, KNOWN_TIMESTAMP.toString())
-                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
-                .build();
-
-        final ImmutablePayload payload =
-                ImmutablePayload.of(KNOWN_PATH, KNOWN_VALUE, KNOWN_STATUS, KNOWN_REVISION, KNOWN_TIMESTAMP,
-                        KNOWN_FIELDS);
-
-        final JsonObject actual = payload.toJson();
-
-        assertThat(actual).isEqualTo(expected);
+    public void gettersReturnExpected() {
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat((Object) knownPayload.getPath())
+                    .as("path")
+                    .isEqualTo(ImmutableMessagePath.of(KNOWN_PATH));
+            softly.assertThat(knownPayload.getValue())
+                    .as("value")
+                    .contains(KNOWN_VALUE);
+            softly.assertThat(knownPayload.getExtra())
+                    .as("extra")
+                    .contains(knownExtra);
+            softly.assertThat(knownPayload.getStatus())
+                    .as("status")
+                    .contains(KNOWN_STATUS);
+            softly.assertThat(knownPayload.getRevision())
+                    .as("revision")
+                    .contains(KNOWN_REVISION);
+            softly.assertThat(knownPayload.getTimestamp())
+                    .as("timestamp")
+                    .contains(KNOWN_TIMESTAMP);
+            softly.assertThat(knownPayload.getFields())
+                    .as("fields")
+                    .contains(KNOWN_FIELDS);
+        }
     }
 
     @Test
-    public void jsonDeserializationWorksAsExpected() {
-        final ImmutablePayload expected =
-                ImmutablePayload.of(KNOWN_PATH, KNOWN_VALUE, KNOWN_STATUS, KNOWN_REVISION, KNOWN_TIMESTAMP,
-                        KNOWN_FIELDS);
+    public void toJsonWorksAsExpected() {
+        assertThat(knownPayload.toJson()).isEqualTo(knownJsonRepresentation);
+    }
 
-        final JsonObject payloadJsonObject = JsonObject.newBuilder()
-                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString())
-                .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
-                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
-                .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
-                .set(Payload.JsonFields.TIMESTAMP, KNOWN_TIMESTAMP.toString())
-                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
-                .build();
-
-        final ImmutablePayload actual = ImmutablePayload.fromJson(payloadJsonObject);
-
-        assertThat(actual).isEqualTo(expected);
+    @Test
+    public void fromJsonWorksAsExpected() {
+        assertThat(ImmutablePayload.fromJson(knownJsonRepresentation)).isEqualTo(knownPayload);
     }
 
 }
