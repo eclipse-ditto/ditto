@@ -56,12 +56,12 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthe
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseThingsRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -107,10 +107,10 @@ public final class RootRoute extends AllDirectives {
     private final DevOpsRoute devopsRoute;
 
     private final PoliciesRoute policiesRoute;
-    private final SseThingsRoute sseThingsRoute;
+    private final SseRouteBuilder sseThingsRouteBuilder;
     private final ThingsRoute thingsRoute;
     private final ThingSearchRoute thingSearchRoute;
-    private final WebsocketRoute websocketRoute;
+    private final WebSocketRouteBuilder websocketRouteBuilder;
     private final StatsRoute statsRoute;
 
     private final CustomApiRoutesProvider customApiRoutesProvider;
@@ -132,10 +132,10 @@ public final class RootRoute extends AllDirectives {
         cachingHealthRoute = builder.cachingHealthRoute;
         devopsRoute = builder.devopsRoute;
         policiesRoute = builder.policiesRoute;
-        sseThingsRoute = builder.sseThingsRoute;
+        sseThingsRouteBuilder = builder.sseThingsRouteBuilder;
         thingsRoute = builder.thingsRoute;
         thingSearchRoute = builder.thingSearchRoute;
-        websocketRoute = builder.websocketRoute;
+        websocketRouteBuilder = builder.websocketRouteBuilder;
         statsRoute = builder.statsRoute;
         customApiRoutesProvider = builder.customApiRoutesProvider;
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
@@ -286,7 +286,7 @@ public final class RootRoute extends AllDirectives {
     private Route buildSseThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final AuthorizationContext authorizationContext) {
         return handleExceptions(exceptionHandler, () ->
-                sseThingsRoute.buildThingsSseRoute(ctx, () ->
+                sseThingsRouteBuilder.build(ctx, () ->
                         overwriteDittoHeadersForSse(ctx, dittoHeaders, authorizationContext))
         );
     }
@@ -339,12 +339,10 @@ public final class RootRoute extends AllDirectives {
 
                                                             final String userAgent = extractUserAgent(ctx).orElse(null);
                                                             final ProtocolAdapter chosenProtocolAdapter =
-                                                                    protocolAdapterProvider.getProtocolAdapter(userAgent);
-                                                            return websocketRoute.buildWebsocketRoute(wsVersion,
-                                                                    correlationId,
-                                                                    authContext,
-                                                                    dittoHeaders,
-                                                                    chosenProtocolAdapter);
+                                                                    protocolAdapterProvider.getProtocolAdapter(
+                                                                            userAgent);
+                                                            return websocketRouteBuilder.build(wsVersion, correlationId,
+                                                                    authContext, dittoHeaders, chosenProtocolAdapter);
                                                         }
                                                 )
                                 )
@@ -510,10 +508,10 @@ public final class RootRoute extends AllDirectives {
         private DevOpsRoute devopsRoute;
 
         private PoliciesRoute policiesRoute;
-        private SseThingsRoute sseThingsRoute;
+        private SseRouteBuilder sseThingsRouteBuilder;
         private ThingsRoute thingsRoute;
         private ThingSearchRoute thingSearchRoute;
-        private WebsocketRoute websocketRoute;
+        private WebSocketRouteBuilder websocketRouteBuilder;
         private StatsRoute statsRoute;
 
         private CustomApiRoutesProvider customApiRoutesProvider;
@@ -563,8 +561,8 @@ public final class RootRoute extends AllDirectives {
         }
 
         @Override
-        public RootRouteBuilder sseThingsRoute(final SseThingsRoute route) {
-            sseThingsRoute = route;
+        public RootRouteBuilder sseThingsRoute(final SseRouteBuilder sseThingsRouteBuilder) {
+            this.sseThingsRouteBuilder = sseThingsRouteBuilder;
             return this;
         }
 
@@ -581,8 +579,8 @@ public final class RootRoute extends AllDirectives {
         }
 
         @Override
-        public RootRouteBuilder websocketRoute(final WebsocketRoute route) {
-            websocketRoute = route;
+        public RootRouteBuilder websocketRoute(final WebSocketRouteBuilder websocketRouteBuilder) {
+            this.websocketRouteBuilder = websocketRouteBuilder;
             return this;
         }
 

@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.persistence.strategies.commands;
 
 import java.util.Optional;
-import java.util.concurrent.CompletionException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -71,19 +70,12 @@ abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand
 
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,
             final DittoHeaders headers) {
-        final Throwable cause = getRootCause(error);
-        if (cause instanceof DittoRuntimeException) {
-            return (DittoRuntimeException) cause;
-        } else {
-            return ConnectionFailedException.newBuilder(id)
-                    .description(cause.getMessage())
-                    .cause(cause)
-                    .dittoHeaders(headers)
-                    .build();
-        }
+        return DittoRuntimeException.asDittoRuntimeException(error,
+                cause -> ConnectionFailedException.newBuilder(id)
+                        .description(cause.getMessage())
+                        .cause(cause)
+                        .dittoHeaders(headers)
+                        .build());
     }
 
-    private static Throwable getRootCause(final Throwable error) {
-        return error instanceof CompletionException ? getRootCause(error.getCause()) : error;
-    }
 }

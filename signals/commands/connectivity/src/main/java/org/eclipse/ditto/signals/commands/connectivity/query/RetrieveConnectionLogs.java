@@ -37,7 +37,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command which retrieves the logs of an established {@link org.eclipse.ditto.model.connectivity.Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveConnectionLogs.TYPE_PREFIX, name = RetrieveConnectionLogs.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = RetrieveConnectionLogs.NAME)
 public final class RetrieveConnectionLogs extends AbstractCommand<RetrieveConnectionLogs>
         implements ConnectivityQueryCommand<RetrieveConnectionLogs> {
 
@@ -109,6 +109,7 @@ public final class RetrieveConnectionLogs extends AbstractCommand<RetrieveConnec
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
                 predicate);
@@ -136,14 +137,19 @@ public final class RetrieveConnectionLogs extends AbstractCommand<RetrieveConnec
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveConnectionLogs);
+        return other instanceof RetrieveConnectionLogs;
     }
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) {return true;}
-        if (o == null || getClass() != o.getClass()) {return false;}
-        if (!super.equals(o)) {return false;}
+        if (this == o) {return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final RetrieveConnectionLogs that = (RetrieveConnectionLogs) o;
         return Objects.equals(connectionId, that.connectionId);
     }
