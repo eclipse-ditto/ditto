@@ -72,7 +72,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
@@ -149,7 +149,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
@@ -226,7 +226,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
@@ -301,7 +301,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
@@ -377,7 +377,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
@@ -458,7 +458,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: DEVOPS_PASSWORD
           value: "dittoPW1!"
 ---
