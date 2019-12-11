@@ -218,14 +218,14 @@ public final class ThingsRoute extends AbstractRoute {
     private Route thingsEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
         return pathEndOrSingleSlash(() ->
                 concat(
-                        get(() -> // GET /things/things/<thingId>?fields=<fieldsString>
+                        get(() -> // GET /things/<thingId>?fields=<fieldsString>
                                 parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                         handlePerRequest(ctx, RetrieveThing.getBuilder(thingId, dittoHeaders)
                                                 .withSelectedFields(calculateSelectedFields(fieldsString).orElse(null))
                                                 .build())
                                 )
                         ),
-                        put(() -> // PUT /things/things/<thingId>
+                        put(() -> // PUT /things/<thingId>
                                 extractDataBytes(payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 thingJson -> ModifyThing.of(thingId, ThingsModelFactory.newThing(
@@ -235,7 +235,7 @@ public final class ThingsRoute extends AbstractRoute {
                                                         dittoHeaders))
                                 )
                         ),
-                        delete(() -> // DELETE /things/things/<thingId>
+                        delete(() -> // DELETE /things/<thingId>
                                 handlePerRequest(ctx, DeleteThing.of(thingId, dittoHeaders))
                         )
                 )
