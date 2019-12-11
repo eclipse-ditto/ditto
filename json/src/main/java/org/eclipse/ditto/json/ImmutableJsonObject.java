@@ -14,11 +14,13 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.text.MessageFormat;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -36,6 +38,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 
 /**
@@ -80,7 +83,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
      * @throws NullPointerException if {@code fields} is {@code null}.
      */
     public static ImmutableJsonObject of(final Map<String, JsonField> fields) {
-        return of(fields, null);
+        return new ImmutableJsonObject(SoftReferencedFieldMap.of(fields));
     }
 
     /**
@@ -96,6 +99,15 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
         requireNonNull(fields, "The fields of JSON object must not be null!");
         return new ImmutableJsonObject(SoftReferencedFieldMap.of(fields, stringRepresentation));
+    }
+
+    public static ImmutableJsonObject of(final Map<String, JsonField> fields,
+            @Nullable final byte[] cborRepresentation){
+        requireNonNull(fields, "The fields of JSON object must not be null!");
+        return new ImmutableJsonObject(SoftReferencedFieldMap.of(
+                fields,
+                cborRepresentation != null ? cborRepresentation.clone() : null
+        ));
     }
 
     @Override
@@ -515,57 +527,53 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
     @Override
     public void writeValue(final SerializationContext serializationContext) throws IOException {
-        writeStartObjectWithLenght(serializationContext, fieldMap.getSize());
-        for (JsonField jsonField: fieldMap.fields().values()){
-            jsonField.writeKeyAndValue(serializationContext);
-        }
-        serializationContext.getJacksonGenerator().writeEndObject();
-    }
-
-    private static void writeStartObjectWithLenght(final SerializationContext serializationContext, int length)
-            throws IOException {
-        /*
-        This is a workaround to ensure that length is encoded in CBOR-Objects.
-        A proper API should be available in version 2.11. (2020-02)
-        see: https://github.com/FasterXML/jackson-dataformats-binary/issues/3
-         */
-        final JsonGenerator jacksonGenerator = serializationContext.getJacksonGenerator();
-        if (jacksonGenerator instanceof CBORGenerator){
-            CBORGenerator cborGenerator = (CBORGenerator) jacksonGenerator;
-            cborGenerator.writeStartObject(length);
-        } else {
-            jacksonGenerator.writeStartObject();
-        }
+        fieldMap.writeValue(serializationContext);
     }
 
     @Immutable
     static final class SoftReferencedFieldMap {
 
-        private final String jsonObjectStringRepresentation;
+        private String jsonObjectStringRepresentation;
+        private byte[] cborObjectRepresentation;
         private int hashCode;
         private SoftReference<Map<String, JsonField>> fieldsReference;
 
-        private SoftReferencedFieldMap(final Map<String, JsonField> jsonFieldMap, final String stringRepresentation) {
-            jsonObjectStringRepresentation = stringRepresentation;
+        private SoftReferencedFieldMap(final Map<String, JsonField> jsonFieldMap, @Nullable final String stringRepresentation, @Nullable final byte[] cborObjectRepresentation){
             fieldsReference = new SoftReference<>(Collections.unmodifiableMap(new LinkedHashMap<>(jsonFieldMap)));
+            jsonObjectStringRepresentation = stringRepresentation;
+            this.cborObjectRepresentation = cborObjectRepresentation;
+            if (jsonObjectStringRepresentation == null && cborObjectRepresentation == null){
+                try {
+                    this.cborObjectRepresentation = createCborRepresentation(jsonFieldMap);
+                } catch (IOException e) {
+                    jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
+                }
+            }
             hashCode = 0;
         }
 
         static SoftReferencedFieldMap empty() {
-            return of(Collections.emptyMap(), "{}");
+            return of(Collections.emptyMap(), "{}", new byte[]{ (byte) 0xA0 });
         }
 
         static SoftReferencedFieldMap of(final Map<String, JsonField> fieldMap) {
-            return of(fieldMap, null);
+            return new SoftReferencedFieldMap(fieldMap, null, null);
         }
 
         static SoftReferencedFieldMap of(final Map<String, JsonField> jsonFieldMap,
                 @Nullable final String stringRepresentation) {
+            return new SoftReferencedFieldMap(jsonFieldMap, stringRepresentation, null);
+        }
 
-            if (null != stringRepresentation) {
-                return new SoftReferencedFieldMap(jsonFieldMap, stringRepresentation);
-            }
-            return new SoftReferencedFieldMap(jsonFieldMap, createStringRepresentation(jsonFieldMap));
+        static SoftReferencedFieldMap of(final Map<String, JsonField> jsonFieldMap,
+                @Nullable final byte[] cborObjectRepresentation){
+            return new SoftReferencedFieldMap(jsonFieldMap, null, cborObjectRepresentation);
+        }
+
+        static SoftReferencedFieldMap of(final Map<String, JsonField> jsonFieldMap,
+                @Nullable final String stringRepresentation,
+                @Nullable final byte[] cborObjectRepresentation){
+            return new SoftReferencedFieldMap(jsonFieldMap, stringRepresentation, cborObjectRepresentation);
         }
 
         private static String createStringRepresentation(final Map<String, JsonField> jsonFieldMap) {
@@ -632,16 +640,39 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         private Map<String, JsonField> fields() {
             Map<String, JsonField> result = fieldsReference.get();
             if (null == result) {
-                result = parseToMap(jsonObjectStringRepresentation);
+                result = recoverFields();
                 fieldsReference = new SoftReference<>(result);
             }
             return result;
+        }
+
+        private Map<String, JsonField> recoverFields(){
+            if (cborObjectRepresentation != null) {
+                try {
+                    return parseToMap(cborObjectRepresentation);
+                } catch (IOException e) {
+                    // try JSON instead.
+                }
+            }
+            if (jsonObjectStringRepresentation != null){
+                return parseToMap(jsonObjectStringRepresentation);
+            }
+            throw new RuntimeException("Fatal cache miss on JsonObject");
         }
 
         private static Map<String, JsonField> parseToMap(final String jsonObjectString) {
             final FieldMapJsonHandler jsonHandler = new FieldMapJsonHandler();
             JsonValueParser.fromString(jsonHandler).accept(jsonObjectString);
             return jsonHandler.getValue();
+        }
+
+        private static Map<String, JsonField> parseToMap(final byte[] cborObjectRepresentation) throws IOException {
+            final JsonValue jsonObject = CborFactory.readFrom(cborObjectRepresentation);
+            final Map<String, JsonField> map = new LinkedHashMap<>();
+            for (JsonField jsonValue: jsonObject.asObject()){
+                map.put(jsonValue.getKey().toString(), jsonValue);
+            }
+            return map;
         }
 
         @Override
@@ -653,12 +684,21 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                 return false;
             }
             final SoftReferencedFieldMap that = (SoftReferencedFieldMap) o;
-            if (jsonObjectStringRepresentation.equals(that.jsonObjectStringRepresentation)) {
-                return true;
-            } else if (jsonObjectStringRepresentation.length() == that.jsonObjectStringRepresentation.length()) {
-                return Objects.equals(fields(), that.fields());
+
+            if (jsonObjectStringRepresentation != null && that.jsonObjectStringRepresentation != null){
+                if (jsonObjectStringRepresentation.equals(that.jsonObjectStringRepresentation)) {
+                    return true;
+                } else if (jsonObjectStringRepresentation.length() == that.jsonObjectStringRepresentation.length()) {
+                    return Objects.equals(fields(), that.fields());
+                }
+                return false;
             }
-            return false;
+            if (cborObjectRepresentation != null && that.cborObjectRepresentation != null){
+                if (Arrays.equals(cborObjectRepresentation, that.cborObjectRepresentation)){
+                    return true;
+                }
+            }
+            return Objects.equals(fields(), that.fields());
         }
 
         @Override
@@ -672,7 +712,46 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         String asJsonObjectString() {
+            if (jsonObjectStringRepresentation == null) {
+                jsonObjectStringRepresentation = createStringRepresentation(this.fields());
+            }
             return jsonObjectStringRepresentation;
+        }
+
+        public void writeValue(final SerializationContext serializationContext) throws IOException {
+            if (cborObjectRepresentation == null) {
+                cborObjectRepresentation = createCborRepresentation(this.fields());
+            }
+            serializationContext.writeCachedElement(cborObjectRepresentation);
+        }
+
+        private byte[] createCborRepresentation(final Map<String, JsonField> jsonFieldMap) throws IOException {
+            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(512);
+            final SerializationContext serializationContext =
+                    new SerializationContext(new CBORFactory(), byteArrayOutputStream);
+            writeStartObjectWithLength(serializationContext, jsonFieldMap.size());
+            for (JsonField jsonField: jsonFieldMap.values()){
+                jsonField.writeKeyAndValue(serializationContext);
+            }
+            serializationContext.getJacksonGenerator().writeEndObject();
+            serializationContext.close();
+            return byteArrayOutputStream.toByteArray();
+        }
+
+        private static void writeStartObjectWithLength(final SerializationContext serializationContext, int length)
+                throws IOException {
+            /*
+            This is a workaround to ensure that length is encoded in CBOR-Objects.
+            A proper API should be available in version 2.11. (2020-02)
+            see: https://github.com/FasterXML/jackson-dataformats-binary/issues/3
+             */
+            final JsonGenerator jacksonGenerator = serializationContext.getJacksonGenerator();
+            if (jacksonGenerator instanceof CBORGenerator){
+                CBORGenerator cborGenerator = (CBORGenerator) jacksonGenerator;
+                cborGenerator.writeStartObject(length);
+            } else {
+                jacksonGenerator.writeStartObject();
+            }
         }
 
     }

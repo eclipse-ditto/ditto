@@ -14,6 +14,7 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.util.ArrayDeque;
@@ -22,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,6 +32,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
+
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 
 /**
  * Represents a JSON array, i.e. an ordered collection of JSON values.
@@ -43,6 +47,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
 
     @Nullable private static ImmutableJsonArray emptyInstance = null;
+    private static final String ASSERTION_VALUES_OF_JSON_ARRAY = "The values of the JSON array must not be null!";
 
     private final SoftReferencedValueList valueList;
 
@@ -72,7 +77,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
      * @throws NullPointerException if {@code values} is {@code null}.
      */
     public static ImmutableJsonArray of(final List<JsonValue> values) {
-        return of(values, null);
+        return new ImmutableJsonArray(SoftReferencedValueList.of(values));
     }
 
     /**
@@ -84,8 +89,19 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
      * @throws NullPointerException if {@code values} is {@code null}.
      */
     public static ImmutableJsonArray of(final List<JsonValue> values, @Nullable final String stringRepresentation) {
-        requireNonNull(values, "The values of the JSON array must not be null!");
+        requireNonNull(values, ASSERTION_VALUES_OF_JSON_ARRAY);
         return new ImmutableJsonArray(SoftReferencedValueList.of(values, stringRepresentation));
+    }
+
+    public static ImmutableJsonArray of(final List<JsonValue> values, @Nullable final byte[] cborRepresentation){
+        requireNonNull(values, ASSERTION_VALUES_OF_JSON_ARRAY);
+        return new ImmutableJsonArray(SoftReferencedValueList.of(values, cborRepresentation));
+    }
+
+    public static ImmutableJsonArray of(final List<JsonValue> values, @Nullable final String stringRepresentation,
+            @Nullable final byte[] cborRepresentation){
+        requireNonNull(values, ASSERTION_VALUES_OF_JSON_ARRAY);
+        return new ImmutableJsonArray(SoftReferencedValueList.of(values, stringRepresentation, cborRepresentation));
     }
 
     private static void checkValue(final Object value) {
@@ -240,41 +256,54 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
 
     @Override
     public void writeValue(final SerializationContext serializationContext) throws IOException {
-        serializationContext.getJacksonGenerator().writeStartArray(valueList.getSize());
-        for (final JsonValue jsonValue: valueList.values()){
-            jsonValue.writeValue(serializationContext);
-        }
-        serializationContext.getJacksonGenerator().writeEndArray();
+        valueList.writeValue(serializationContext);
     }
 
     @Immutable
     static final class SoftReferencedValueList {
 
-        private final String jsonArrayStringRepresentation;
+        private String jsonArrayStringRepresentation;
+        private byte[] cborArrayRepresentation;
         private int hashCode;
         private SoftReference<List<JsonValue>> valuesReference;
 
-        private SoftReferencedValueList(final List<JsonValue> jsonValueList, final String stringRepresentation) {
-            jsonArrayStringRepresentation = stringRepresentation;
+        private SoftReferencedValueList(final List<JsonValue> jsonValueList, @Nullable final String stringRepresentation,
+                @Nullable final byte[] cborArrayRepresentation) {
             valuesReference = new SoftReference<>(Collections.unmodifiableList(new ArrayList<>(jsonValueList)));
+            jsonArrayStringRepresentation = stringRepresentation;
+            this.cborArrayRepresentation = cborArrayRepresentation;
+            if (jsonArrayStringRepresentation == null && cborArrayRepresentation == null){
+                try {
+                    this.cborArrayRepresentation = createCborRepresentation(jsonValueList);
+                } catch (IOException e) {
+                    jsonArrayStringRepresentation = createStringRepresentation(jsonValueList);
+                }
+            }
             hashCode = 0;
         }
 
         static SoftReferencedValueList empty() {
-            return of(Collections.emptyList(), "[]");
+            return of(Collections.emptyList(), "[]", new byte[]{(byte) 0x80});
         }
 
         static SoftReferencedValueList of(final List<JsonValue> values) {
-            return of(values, null);
+            return new SoftReferencedValueList(values, null, null);
         }
 
         static SoftReferencedValueList of(final List<JsonValue> jsonValueList,
                 @Nullable final String stringRepresentation) {
+            return new SoftReferencedValueList(jsonValueList, stringRepresentation, null);
+        }
 
-            if (null != stringRepresentation) {
-                return new SoftReferencedValueList(jsonValueList, stringRepresentation);
-            }
-            return new SoftReferencedValueList(jsonValueList, createStringRepresentation(jsonValueList));
+        static SoftReferencedValueList of(final List<JsonValue> jsonValueList,
+                @Nullable final byte[] cborRepresentation) {
+            return new SoftReferencedValueList(jsonValueList, null, cborRepresentation);
+        }
+
+        static SoftReferencedValueList of(final List<JsonValue> jsonValueList,
+                @Nullable final String stringRepresentation,
+                @Nullable final byte[] cborRepresentation) {
+            return new SoftReferencedValueList(jsonValueList, stringRepresentation, cborRepresentation);
         }
 
         private static String createStringRepresentation(final Iterable<JsonValue> jsonValues) {
@@ -324,16 +353,39 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         private List<JsonValue> values() {
             List<JsonValue> result = valuesReference.get();
             if (null == result) {
-                result = parseToList(jsonArrayStringRepresentation);
+                result = recoverValues();
                 valuesReference = new SoftReference<>(result);
             }
             return result;
+        }
+
+        private List<JsonValue> recoverValues(){
+            if (cborArrayRepresentation != null) {
+                try {
+                    return parseToList(cborArrayRepresentation);
+                } catch (IOException e) {
+                    // try JSON instead.
+                }
+            }
+            if (jsonArrayStringRepresentation != null){
+                return parseToList(jsonArrayStringRepresentation);
+            }
+            throw new RuntimeException("Fatal cache miss on JsonObject");
         }
 
         private static List<JsonValue> parseToList(final String jsonArrayString) {
             final ValueListJsonHandler jsonHandler = new ValueListJsonHandler();
             JsonValueParser.fromString(jsonHandler).accept(jsonArrayString);
             return jsonHandler.getValue();
+        }
+
+        private static List<JsonValue> parseToList(final byte[] cborArrayRepresentation) throws IOException {
+            final JsonValue jsonArray = CborFactory.readFrom(cborArrayRepresentation);
+            List<JsonValue> list = new LinkedList<>();
+            for (JsonValue jsonValue : jsonArray.asArray()) {
+                list.add(jsonValue);
+            }
+            return list;
         }
 
         Iterator<JsonValue> getIterator() {
@@ -353,12 +405,20 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
                 return false;
             }
             final SoftReferencedValueList that = (SoftReferencedValueList) o;
-            if (jsonArrayStringRepresentation.equals(that.jsonArrayStringRepresentation)) {
-                return true;
-            } else if (jsonArrayStringRepresentation.length() == that.jsonArrayStringRepresentation.length()) {
-                return Objects.equals(values(), that.values());
+            if (jsonArrayStringRepresentation != null && that.jsonArrayStringRepresentation != null){
+                if (jsonArrayStringRepresentation.equals(that.jsonArrayStringRepresentation)) {
+                    return true;
+                } else if (jsonArrayStringRepresentation.length() == that.jsonArrayStringRepresentation.length()) {
+                    return Objects.equals(values(), that.values());
+                }
+                return false;
             }
-            return false;
+            if (cborArrayRepresentation != null && that.cborArrayRepresentation != null){
+                if (Arrays.equals(cborArrayRepresentation, that.cborArrayRepresentation)){
+                    return true;
+                }
+            }
+            return Objects.equals(values(), that.values());
         }
 
         @Override
@@ -372,8 +432,32 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         }
 
         String asJsonArrayString() {
+            if (jsonArrayStringRepresentation == null) {
+                jsonArrayStringRepresentation = createStringRepresentation(this.values());
+            }
             return jsonArrayStringRepresentation;
         }
+
+        void writeValue(SerializationContext serializationContext) throws IOException {
+            if (cborArrayRepresentation == null) {
+                cborArrayRepresentation = createCborRepresentation(this.values());
+            }
+            serializationContext.writeCachedElement(cborArrayRepresentation);
+        }
+
+        byte[] createCborRepresentation(final List<JsonValue> list) throws IOException {
+            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(512);
+            final SerializationContext serializationContext =
+                    new SerializationContext(new CBORFactory(), byteArrayOutputStream);
+            serializationContext.getJacksonGenerator().writeStartArray(list.size());
+            for (final JsonValue jsonValue: list){
+                jsonValue.writeValue(serializationContext);
+            }
+            serializationContext.getJacksonGenerator().writeEndArray();
+            serializationContext.close();
+            return byteArrayOutputStream.toByteArray();
+        }
+
 
     }
 

@@ -29,6 +29,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 public class SerializationContext implements Closeable, Flushable {
 
     private JsonGenerator jacksonGenerator;
+    private ControllableOutputStream outputStream;
 
     /**
      * Creates a Serialization context that writes to the designated target.
@@ -36,7 +37,8 @@ public class SerializationContext implements Closeable, Flushable {
      * @param outputStream The stream to write serialized data to. The stream is considered to be borrowed and will not be closed.
      */
     public SerializationContext(JsonFactory jacksonFactory, OutputStream outputStream) throws IOException {
-        jacksonGenerator = jacksonFactory.createGenerator(outputStream);
+        this.outputStream = new ControllableOutputStream(outputStream);
+        jacksonGenerator = jacksonFactory.createGenerator(this.outputStream);
     }
 
     /**
@@ -66,5 +68,70 @@ public class SerializationContext implements Closeable, Flushable {
     @Override
     public void flush() throws IOException {
         jacksonGenerator.flush();
+    }
+
+    /**
+     * Allows the caller to directly embed cached data in the Buffer.
+     * This can only be used to write one element.
+     * @param cachedData The data to write in an appropriately sized array.
+     */
+    void writeCachedElement(byte[] cachedData) throws IOException {
+        flush();
+        outputStream.write(cachedData);
+        informJacksonThatOneElementWasWritten();
+    }
+
+    private void informJacksonThatOneElementWasWritten() throws IOException {
+        // Deactivating the output stream to write a pseudo element and ensure that the internal counter keeping track of array and object lengths is accurate.
+        outputStream.disable();
+        jacksonGenerator.writeNull();
+        jacksonGenerator.flush();
+        outputStream.enable();
+    }
+
+    /**
+     * An output stream that can be switched to avoid writing unwanted data to the wrapped stream.
+     */
+    static final class ControllableOutputStream extends OutputStream {
+
+        private final OutputStream target;
+        private boolean enabled = true;
+
+        ControllableOutputStream(OutputStream target){
+            this.target = target;
+        }
+
+        void enable(){
+            this.enabled = true;
+        }
+
+        void disable(){
+            this.enabled = false;
+        }
+
+        @Override
+        public void write(final int b) throws IOException {
+            if (enabled) target.write(b);
+        }
+
+        @Override
+        public void write(final byte[] a, int b, int c) throws IOException {
+            if (enabled) target.write(a,b,c);
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            if (enabled) target.write(b);
+        }
+
+        @Override
+        public void flush() throws IOException {
+            target.flush();
+        }
+
+        @Override
+        public void close() throws IOException {
+            target.close();
+        }
     }
 }
