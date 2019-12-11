@@ -138,7 +138,7 @@ public final class ImmutableDefinitionIdentifierTest {
     public void tryToParseEmptyIdentifierString() {
         assertThatExceptionOfType(DefinitionIdentifierInvalidException.class)
                 .isThrownBy(() -> ImmutableDefinitionIdentifier.ofParsed(""))
-                .withMessage("Definition Identifier <> is invalid!")
+                .withMessage("Definition identifier <> is invalid!")
                 .withNoCause();
     }
 
@@ -148,7 +148,7 @@ public final class ImmutableDefinitionIdentifierTest {
 
         assertThatExceptionOfType(DefinitionIdentifierInvalidException.class)
                 .isThrownBy(() -> ImmutableDefinitionIdentifier.ofParsed(invalidString))
-                .withMessage("Definition Identifier <%s> is invalid!", invalidString)
+                .withMessage("Definition identifier <%s> is invalid!", invalidString)
                 .withNoCause();
     }
 
@@ -158,7 +158,7 @@ public final class ImmutableDefinitionIdentifierTest {
 
         assertThatExceptionOfType(DefinitionIdentifierInvalidException.class)
                 .isThrownBy(() -> ImmutableDefinitionIdentifier.ofParsed(invalidString))
-                .withMessage("Definition Identifier <%s> is invalid!", invalidString)
+                .withMessage("Definition identifier <%s> is invalid!", invalidString)
                 .withNoCause();
     }
 
