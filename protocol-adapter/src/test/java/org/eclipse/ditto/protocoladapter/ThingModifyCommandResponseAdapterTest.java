@@ -22,8 +22,8 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
@@ -34,6 +34,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertiesR
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
@@ -44,6 +45,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesR
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.junit.Before;
@@ -723,6 +725,135 @@ public final class ThingModifyCommandResponseAdapterTest implements ProtocolAdap
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
+
+    @Test
+    public void modifyDefinitionResponseFromAdaptable() {
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
+                .build();
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final ModifyThingDefinitionResponse expectedCreated =
+                ModifyThingDefinitionResponse.created(TestConstants.THING_ID, TestConstants.THING_DEFINITION,
+                        TestConstants.DITTO_HEADERS_V_2);
+
+        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.JSON_THING_DEFINITION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommandResponse actualCreated = underTest.fromAdaptable(adaptableCreated);
+
+        assertWithExternalHeadersThat(actualCreated).isEqualTo(expectedCreated);
+
+        final ModifyThingDefinitionResponse expectedModified =
+                ModifyThingDefinitionResponse.modified(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+
+        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommandResponse actualModified = underTest.fromAdaptable(adaptableModified);
+
+        assertWithExternalHeadersThat(actualModified).isEqualTo(expectedModified);
+    }
+
+    @Test
+    public void modifyDefinitionResponseToAdaptable() {
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
+                .build();
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.JSON_THING_DEFINITION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ModifyThingDefinitionResponse modifyDefinitionResponseCreated =
+                ModifyThingDefinitionResponse.created(TestConstants.THING_ID, TestConstants.THING_DEFINITION,
+                        TestConstants.DITTO_HEADERS_V_2);
+        final Adaptable actualCreated = underTest.toAdaptable(modifyDefinitionResponseCreated);
+
+        assertWithExternalHeadersThat(actualCreated).isEqualTo(expectedCreated);
+
+        final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withValue(null)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ModifyThingDefinitionResponse modifyThingDefinitionResponseModified =
+                ModifyThingDefinitionResponse.modified(TestConstants.THING_ID,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actualModified = underTest.toAdaptable(modifyThingDefinitionResponseModified);
+
+        assertWithExternalHeadersThat(actualModified).isEqualTo(expectedModified);
+    }
+
+    @Test
+    public void deleteDefinitionResponseFromAdaptable() {
+        final DeleteThingDefinitionResponse expected =
+                DeleteThingDefinitionResponse.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
+                .build();
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void deleteDefinitionResponseToAdaptable() {
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
+                .build();
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final DeleteThingDefinitionResponse deleteDefinitionResponse =
+                DeleteThingDefinitionResponse.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(deleteDefinitionResponse);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
 
     @Test
     public void modifyFeaturesResponseFromAdaptable() {

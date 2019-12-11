@@ -60,7 +60,7 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
     /**
      * Returns a command for retrieving the Policy ID of a Thing with the given ID.
      *
-     * @param thingId the ID of a single Thing whose ACL entry will be retrieved by this command.
+     * @param thingId the ID of a single Thing whose Policy ID entry will be retrieved by this command.
      * @param dittoHeaders the headers of the command.
      * @return a Command for retrieving the Policy ID of the Thing with the {@code thingId} as its ID which is readable
      * from the passed authorization context.

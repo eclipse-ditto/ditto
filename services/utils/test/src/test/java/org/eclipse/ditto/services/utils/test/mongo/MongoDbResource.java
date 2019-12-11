@@ -206,11 +206,11 @@ public final class MongoDbResource extends ExternalResource {
                 .artifactStore(new ExtractedArtifactStoreBuilder()
                         .defaults(command)
                         .download(new DownloadConfigBuilder()
-                                        .defaultsForCommand(command)
-                                        .proxyFactory(proxyFactory)
-                                        .progressListener(new StandardConsoleProgressListener())
-                                        .build()))
-                        .build());
+                                .defaultsForCommand(command)
+                                .proxyFactory(proxyFactory)
+                                .progressListener(new StandardConsoleProgressListener())
+                                .build()))
+                .build());
 
         return mongodStarter.prepare(new MongodConfigBuilder()
                 .net(new Net(bindIp, mongoDbPort, false))

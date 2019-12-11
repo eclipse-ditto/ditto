@@ -57,6 +57,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         thing.getAccessControlList().ifPresent(result::setPermissions);
         thing.getPolicyEntityId().ifPresent(result::setPolicyId);
         thing.getAttributes().ifPresent(result::setAttributes);
+        thing.getDefinition().ifPresent(result::setDefinition);
         thing.getFeatures().ifPresent(result::setFeatures);
         thing.getLifecycle().ifPresent(result::setLifecycle);
         thing.getRevision().ifPresent(result::setRevision);
@@ -95,6 +96,16 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         jsonObject.getValue(Thing.JsonFields.ATTRIBUTES)
                 .map(ThingsModelFactory::newAttributes)
                 .ifPresent(result::setAttributes);
+
+        jsonObject.getValue(Thing.JsonFields.DEFINITION)
+                .map(jsonValue -> {
+                    if (jsonValue.isNull()) {
+                        return ThingsModelFactory.nullDefinition();
+                    } else {
+                        return ThingsModelFactory.newDefinition(jsonValue.asString());
+                    }
+                })
+                .ifPresent(result::setDefinition);
 
         jsonObject.getValue(Thing.JsonFields.FEATURES)
                 .map(ThingsModelFactory::newFeatures)
@@ -365,6 +376,24 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         if (testAttributesPredicate(existingAttributesPredicate)) {
             setAttribute(attributePath, attributeValue);
         }
+        return this;
+    }
+
+    @Override
+    public FromCopy setDefinition(@Nullable final ThingDefinition definition) {
+        fromScratchBuilder.setDefinition(definition);
+        return this;
+    }
+
+    @Override
+    public FromCopy setNullDefinition() {
+        fromScratchBuilder.setNullDefinition();
+        return this;
+    }
+
+    @Override
+    public FromCopy removeDefinition() {
+        fromScratchBuilder.removeDefinition();
         return this;
     }
 

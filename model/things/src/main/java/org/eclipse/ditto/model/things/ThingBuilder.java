@@ -44,9 +44,9 @@ public interface ThingBuilder {
         return ThingId.generateRandom();
     }
 
+
     /**
      * A mutable builder with a fluent API for an immutable {@link Thing} from scratch.
-     *
      */
     @NotThreadSafe
     interface FromScratch {
@@ -236,12 +236,36 @@ public interface ThingBuilder {
         FromScratch removeAttribute(JsonPointer attributePath);
 
         /**
+         * Sets the given ThingDefinition to this builder.
+         *
+         * @param definition the Definition to set.
+         * @return this builder to allow method chaining.
+         */
+        FromScratch setDefinition(@Nullable ThingDefinition definition);
+
+        /**
+         * Sets the ThingDefinition to this builder which represent semantically {@code null}.
+         * An already set definition is discarded.
+         *
+         * @return this builder to allow method chaining.
+         */
+        FromScratch setNullDefinition();
+
+        /**
+         * Removes the Definition from this builder.
+         *
+         * @return this builder to allow method chaining.
+         */
+        FromScratch removeDefinition();
+
+        /**
          * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
          *
          * @param feature the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code feature} is {@code null}.
          */
+
         FromScratch setFeature(Feature feature);
 
         /**
@@ -466,12 +490,12 @@ public interface ThingBuilder {
          * @return the new Thing.
          */
         Thing build();
+
     }
 
     /**
      * A mutable builder with a fluent API for an immutable {@link Thing}. This builder is initialised with the
      * properties of an existing Thing.
-     *
      */
     @NotThreadSafe
     interface FromCopy {
@@ -857,6 +881,29 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          */
         FromCopy removeAttribute(Predicate<Attributes> existingAttributesPredicate, JsonPointer attributePath);
+
+        /**
+         * Sets the given definition to this builder.
+         *
+         * @param definition the Definition to set.
+         * @return this builder to allow method chaining.
+         */
+        FromCopy setDefinition(@Nullable ThingDefinition definition);
+
+        /**
+         * Sets the ThingDefinition to this builder which represent semantically {@code null}.
+         * An already set definition is discarded.
+         *
+         * @return this builder to allow method chaining.
+         */
+        FromCopy setNullDefinition();
+
+        /**
+         * Removes the ThingDefinition from this builder.
+         *
+         * @return this builder to allow method chaining.
+         */
+        FromCopy removeDefinition();
 
         /**
          * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
@@ -1390,6 +1437,7 @@ public interface ThingBuilder {
          * @return a new Thing object.
          */
         Thing build();
+
 
     }
 

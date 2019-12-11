@@ -22,11 +22,12 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * A FeatureDefinition is a list of fully qualified {@link Identifier}s. A FeatureDefinition is guaranteed to contain
- * at least one Identifier. Each Identifier is unique, i. e. a Feature Definition does not contain duplicates.
+ * A FeatureDefinition is a list of fully qualified {@link DefinitionIdentifier}s.
+ * A FeatureDefinition is guaranteed to contain at least one DefinitionIdentifier.
+ * Each Identifier is unique, i. e. a Feature Definition does not contain duplicates.
  */
 @Immutable
-public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier>, Jsonifiable<JsonArray> {
+public interface FeatureDefinition extends Iterable<DefinitionIdentifier>, Jsonifiable<JsonArray> {
 
     /**
      * Parses the specified CharSequence to an Identifier and returns an immutable {@code FeatureDefinition}
@@ -36,7 +37,7 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
      * @param furtherIdentifiers optional further Identifiers of the returned FeatureDefinition.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if any argument is invalid.
+     * @throws DefinitionIdentifierInvalidException if any argument is invalid.
      */
     static FeatureDefinition fromIdentifier(final CharSequence identifier, final CharSequence ... furtherIdentifiers) {
         final FeatureDefinitionBuilder builder = ThingsModelFactory.newFeatureDefinitionBuilder(identifier);
@@ -56,7 +57,7 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
      * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonArrayAsString} cannot be parsed
      * to {@code FeatureDefinition}.
      * @throws FeatureDefinitionEmptyException if the JSON array is empty.
-     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of the JSON array is invalid.
+     * @throws DefinitionIdentifierInvalidException if any Identifier of the JSON array is invalid.
      */
     static FeatureDefinition fromJson(final String jsonArrayAsString) {
         return ThingsModelFactory.newFeatureDefinition(jsonArrayAsString);
@@ -69,7 +70,7 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
      * @return the new immutable initialised {@code FeatureDefinition}.
      * @throws NullPointerException if {@code jsonArray} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonArray} is empty.
-     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of {@code jsonArray} is invalid.
+     * @throws DefinitionIdentifierInvalidException if any Identifier of {@code jsonArray} is invalid.
      */
     static FeatureDefinition fromJson(final JsonArray jsonArray) {
         return ThingsModelFactory.newFeatureDefinition(jsonArray);
@@ -80,7 +81,7 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
      *
      * @return the Identifier.
      */
-    Identifier getFirstIdentifier();
+    DefinitionIdentifier getFirstIdentifier();
 
     /**
      * Returns the count of Identifiers of this Feature Definition. The size is guaranteed to be at least one.
@@ -94,43 +95,6 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
      *
      * @return a sequential stream of the Identifiers of this Feature Definition.
      */
-    Stream<Identifier> stream();
-
-    /**
-     * This interface represents a single fully qualified Identifier of a {@code FeatureDefinition}.
-     */
-    interface Identifier extends CharSequence {
-
-        /**
-         * Returns the namespace of ths Identifier.
-         *
-         * @return the namespace.
-         */
-        String getNamespace();
-
-        /**
-         * Returns the name of this Identifier.
-         *
-         * @return the name.
-         */
-        String getName();
-
-        /**
-         * Returns the version of this Identifier.
-         *
-         * @return the version.
-         */
-        String getVersion();
-
-        /**
-         * Returns the string representation of this Identifier with the following structure:
-         * {@code "namespace:name:version"}
-         *
-         * @return the string representation.
-         */
-        @Override
-        String toString();
-
-    }
+    Stream<DefinitionIdentifier> stream();
 
 }

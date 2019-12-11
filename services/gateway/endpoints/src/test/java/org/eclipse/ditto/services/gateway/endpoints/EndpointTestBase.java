@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultClaimMessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultMessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultPublicHealthConfig;
@@ -74,11 +75,8 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     public static final JsonValue DEFAULT_DUMMY_ENTITY_JSON = JsonValue.of("dummy");
     public static final String DEFAULT_DUMMY_ENTITY = DEFAULT_DUMMY_ENTITY_JSON.toString();
 
-    private static final Function<Object, Optional<Object>> DUMMY_RESPONSE_PROVIDER = m -> Optional.of(new
-            DummyCommandResponse("bumlux",
-            HttpStatusCode.forInt(EndpointTestConstants.DUMMY_COMMAND_SUCCESS.intValue())
-                    .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR),
-            DittoHeaders.empty()));
+    private static final Function<Object, Optional<Object>> DUMMY_RESPONSE_PROVIDER =
+            DummyCommandResponse::echo;
 
     protected static HttpConfig httpConfig;
     protected static HealthCheckConfig healthCheckConfig;
@@ -211,6 +209,17 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
             super(responseType, statusCode, dittoHeaders);
         }
 
+        private static Optional<Object> echo(final Object m) {
+            final DummyCommandResponse response = new DummyCommandResponse("bumlux",
+                    HttpStatusCode.forInt(EndpointTestConstants.DUMMY_COMMAND_SUCCESS.intValue())
+                            .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR),
+                    DittoHeaders.empty());
+            if (m instanceof Jsonifiable) {
+                response.setEntity(((Jsonifiable) m).toJson());
+            }
+            return Optional.of(response);
+        }
+
         @Override
         protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
                 final Predicate<JsonField> predicate) {
@@ -235,7 +244,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         @Override
         public DummyCommandResponse setEntity(final JsonValue entity) {
             this.dummyEntity = entity;
-            return new DummyCommandResponse(getType(), getStatusCode(), getDittoHeaders());
+            return this;
         }
 
         @Override

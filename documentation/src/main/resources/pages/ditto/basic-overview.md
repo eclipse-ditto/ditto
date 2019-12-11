@@ -95,12 +95,13 @@ In **API version 2** the most minimalistic representation of a Thing is for exam
 Attributes and Features are optional (as also shown in the class diagram above), so in the example JSON above they are 
 omitted.
 
-A minimalistic Thing with one attribute and one Feature could look like this:
+A minimalistic Thing with one attribute, one Feature and a definition could look like this:
 
 ```json
 {
   "thingId": "the.namespace:the-thing-id",
   "policyId": "the.namespace:the-policy-id",
+  "definition": "digitaltwin:DigitaltwinExample:1.0.0",
   "attributes": {
     "location": "Kitchen"
   },

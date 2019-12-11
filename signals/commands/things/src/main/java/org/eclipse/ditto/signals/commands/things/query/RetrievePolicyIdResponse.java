@@ -64,16 +64,6 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     }
 
     /**
-     * RetrievePolicyIdResponse is only available in JsonSchemaVersion V_2.
-     *
-     * @return the supported JsonSchemaVersions.
-     */
-    @Override
-    public JsonSchemaVersion[] getSupportedSchemaVersions() {
-        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
-    }
-
-    /**
      * Creates a response to a {@link RetrievePolicyId} command.
      *
      * @param thingId the Thing ID of the retrieved Policy ID.
@@ -141,6 +131,16 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
 
                     return of(thingId, policyId, dittoHeaders);
                 });
+    }
+
+    /**
+     * RetrievePolicyIdResponse is only available in JsonSchemaVersion V_2.
+     *
+     * @return the supported JsonSchemaVersions.
+     */
+    @Override
+    public JsonSchemaVersion[] getSupportedSchemaVersions() {
+        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
     @Override

@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -44,18 +45,21 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 
 import akka.actor.ActorRef;
@@ -73,6 +77,7 @@ public final class ThingsRoute extends AbstractRoute {
     public static final String PATH_THINGS = "things";
     private static final String PATH_POLICY_ID = "policyId";
     private static final String PATH_ATTRIBUTES = "attributes";
+    private static final String PATH_THING_DEFINITION = "definition";
     private static final String PATH_ACL = "acl";
 
     private final FeaturesRoute featuresRoute;
@@ -108,6 +113,53 @@ public final class ThingsRoute extends AbstractRoute {
         return UriEncoding.decode(attributePointerStr, UriEncoding.EncodingType.RFC3986);
     }
 
+    private static Thing createThingForPost(final String jsonString) {
+        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+        if (inputJson.contains(Thing.JsonFields.ID.getPointer())) {
+            throw ThingIdNotExplicitlySettableException.newBuilder(true).build();
+        }
+
+        final ThingId thingId = ThingBuilder.generateRandomTypedThingId();
+
+        final JsonObjectBuilder outputJsonBuilder = inputJson.toBuilder();
+        outputJsonBuilder.set(Thing.JsonFields.ID.getPointer(), thingId.toString());
+
+        return ThingsModelFactory.newThingBuilder(outputJsonBuilder.build())
+                .setId(thingId)
+                .build();
+    }
+
+    private static JsonObject createInlinePolicyJson(final String jsonString) {
+        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+        return inputJson.getValue(Policy.INLINED_FIELD_NAME)
+                .map(jsonValue -> wrapJsonRuntimeException(jsonValue::asObject))
+                .orElse(null);
+    }
+
+    private static String getCopyPolicyFrom(final String jsonString) {
+        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+        return inputJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM)
+                .orElse(null);
+    }
+
+    private static JsonObject createThingJsonObjectForPut(final String jsonString, final String thingId) {
+        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+        final JsonObjectBuilder outputJsonBuilder = inputJson.toBuilder();
+        final Optional<JsonValue> optThingId = inputJson.getValue(Thing.JsonFields.ID.getPointer());
+
+        // verifies that thing ID agrees with ID from route
+        if (optThingId.isPresent()) {
+            final JsonValue thingIdFromBody = optThingId.get();
+            if (!thingIdFromBody.isString() || !thingId.equals(thingIdFromBody.asString())) {
+                throw ThingIdNotExplicitlySettableException.newBuilder(false).build();
+            }
+        } else {
+            outputJsonBuilder.set(Thing.JsonFields.ID, thingId).build();
+        }
+
+        return outputJsonBuilder.build();
+    }
+
     /**
      * Builds the {@code /things} route.
      *
@@ -134,6 +186,7 @@ public final class ThingsRoute extends AbstractRoute {
                 thingsEntryAclEntry(ctx, dittoHeaders, thingId),
                 thingsEntryAttributes(ctx, dittoHeaders, thingId),
                 thingsEntryAttributesEntry(ctx, dittoHeaders, thingId),
+                thingsEntryDefinition(ctx, dittoHeaders, thingId),
                 thingsEntryFeatures(ctx, dittoHeaders, thingId),
                 thingsEntryInboxOutbox(ctx, dittoHeaders, thingId)
         );
@@ -182,35 +235,6 @@ public final class ThingsRoute extends AbstractRoute {
                 .collect(Collectors.toList());
     }
 
-    private static Thing createThingForPost(final String jsonString) {
-        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        if (inputJson.contains(Thing.JsonFields.ID.getPointer())) {
-            throw ThingIdNotExplicitlySettableException.newBuilder(true).build();
-        }
-
-        final ThingId thingId = ThingBuilder.generateRandomTypedThingId();
-
-        final JsonObjectBuilder outputJsonBuilder = inputJson.toBuilder();
-        outputJsonBuilder.set(Thing.JsonFields.ID.getPointer(), thingId.toString());
-
-        return ThingsModelFactory.newThingBuilder(outputJsonBuilder.build())
-                .setId(thingId)
-                .build();
-    }
-
-    private static JsonObject createInlinePolicyJson(final String jsonString) {
-        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return inputJson.getValue(Policy.INLINED_FIELD_NAME)
-                .map(jsonValue -> wrapJsonRuntimeException(jsonValue::asObject))
-                .orElse(null);
-    }
-
-    private static String getCopyPolicyFrom(final String jsonString) {
-        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return inputJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM)
-                .orElse(null);
-    }
-
     /*
      * Describes {@code /things/<thingId>} route.
      * @return {@code /things/<thingId>} route.
@@ -228,8 +252,8 @@ public final class ThingsRoute extends AbstractRoute {
                         put(() -> // PUT /things/<thingId>
                                 extractDataBytes(payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                thingJson -> ModifyThing.of(thingId, ThingsModelFactory.newThing(
-                                                        createThingJsonObjectForPut(thingJson, thingId.toString())),
+                                                thingJson -> ModifyThing.of(thingId, ThingsModelFactory.newThingBuilder(
+                                                        createThingJsonObjectForPut(thingJson, thingId.toString())).build(),
                                                         createInlinePolicyJson(thingJson),
                                                         getCopyPolicyFrom(thingJson),
                                                         dittoHeaders))
@@ -240,24 +264,6 @@ public final class ThingsRoute extends AbstractRoute {
                         )
                 )
         );
-    }
-
-    private static JsonObject createThingJsonObjectForPut(final String jsonString, final String thingId) {
-        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        final JsonObjectBuilder outputJsonBuilder = inputJson.toBuilder();
-        final Optional<JsonValue> optThingId = inputJson.getValue(Thing.JsonFields.ID.getPointer());
-
-        // verifies that thing ID agrees with ID from route
-        if (optThingId.isPresent()) {
-            final JsonValue thingIdFromBody = optThingId.get();
-            if (!thingIdFromBody.isString() || !thingId.equals(thingIdFromBody.asString())) {
-                throw ThingIdNotExplicitlySettableException.newBuilder(false).build();
-            }
-        } else {
-            outputJsonBuilder.set(Thing.JsonFields.ID, thingId).build();
-        }
-
-        return outputJsonBuilder.build();
     }
 
     /*
@@ -272,7 +278,7 @@ public final class ThingsRoute extends AbstractRoute {
                         get(() -> // GET /things/<thingId>/policyId
                                 handlePerRequest(ctx, RetrievePolicyId.of(thingId, dittoHeaders))
                         ),
-                        put(() -> // GET /things/<thingId>/policyId
+                        put(() -> // PUT /things/<thingId>/policyId
                                 extractDataBytes(payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 policyIdJson -> ModifyPolicyId.of(thingId,
@@ -464,6 +470,53 @@ public final class ThingsRoute extends AbstractRoute {
                         )
                 )
         );
+    }
+
+    /*
+     * Describes {@code /things/<thingId>/definition} route.
+     *
+     * @return {@code /things/<thingId>/definition} route.
+     */
+    private Route thingsEntryDefinition(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final ThingId thingId) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_THING_DEFINITION), () ->
+                pathEndOrSingleSlash(() ->
+                        concat(
+                                get(() -> // GET /things/<thingId>/definition
+
+                                        handlePerRequest(ctx, RetrieveThingDefinition
+                                                .of(thingId, dittoHeaders)
+                                        )
+                                ),
+                                put(() -> // PUT /things/<thingId>/definition
+                                        extractDataBytes(payloadSource ->
+                                                pathEnd(() -> // PUT /things/<thingId>/definition/
+                                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                definitionJson ->
+                                                                        ModifyThingDefinition.of(thingId,
+                                                                                getDefinitionFromJson(definitionJson),
+                                                                                dittoHeaders))
+                                                )
+                                        )
+                                ),
+                                delete(() -> // DELETE /things/<thingId>/definition
+                                        handlePerRequest(ctx, DeleteThingDefinition.of(thingId, dittoHeaders))
+                                )
+                        )
+                )
+        );
+    }
+
+    private ThingDefinition getDefinitionFromJson(final String definitionJson) {
+        return DittoJsonException.wrapJsonRuntimeException(() -> {
+            final JsonValue jsonValue = JsonFactory.readFrom(definitionJson);
+            if (jsonValue.isNull()) {
+                return ThingsModelFactory.nullDefinition();
+            } else {
+                return ThingsModelFactory.newDefinition(jsonValue.asString());
+            }
+        });
     }
 
     /*
