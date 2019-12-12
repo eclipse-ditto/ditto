@@ -132,4 +132,9 @@ public final class ImmutablePayloadTest {
         assertThat(ImmutablePayload.fromJson(knownJsonRepresentation)).isEqualTo(knownPayload);
     }
 
+    @Test
+    public void toBuilderMaintainsIdentity() {
+        assertThat(knownPayload.toBuilder().build()).isEqualTo(knownPayload);
+    }
+
 }

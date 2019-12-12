@@ -102,6 +102,13 @@ public interface Payload extends Jsonifiable<JsonObject> {
     Optional<JsonFieldSelector> getFields();
 
     /**
+     * Returns a payload builder initialized with the values of this object.
+     *
+     * @return the payload builder.
+     */
+    PayloadBuilder toBuilder();
+
+    /**
      * Json Fields of the Jsonifiable Payload.
      */
     @Immutable
