@@ -30,6 +30,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 
 
 public final class ThingCommandToModifyExceptionRegistry
@@ -62,29 +64,30 @@ public final class ThingCommandToModifyExceptionRegistry
         return INSTANCE;
     }
 
-    @Override
-    protected DittoRuntimeException fallback(final ThingCommand command) {
-        return ThingNotModifiableException.newBuilder(command.getThingEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build();
-    }
-
     private static ThingCommandToModifyExceptionRegistry createInstance() {
         final Map<String, Function<ThingCommand, DittoRuntimeException>> mappingStrategies = new HashMap<>();
 
         // modify
         mappingStrategies.put(CreateThing.TYPE,
                 command -> ThingNotModifiableException.newBuilder(command.getThingEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(ModifyThing.TYPE,
                 command -> ThingNotModifiableException.newBuilder(command.getThingEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(DeleteThing.TYPE,
                 command -> ThingNotDeletableException.newBuilder(command.getThingEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+        mappingStrategies.put(ModifyThingDefinition.TYPE,
+                command -> ThingDefinitionNotModifiableException.newBuilder(command.getThingEntityId())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+        mappingStrategies.put(DeleteThingDefinition.TYPE,
+                command -> ThingDefinitionNotModifiableException.newBuilder(command.getThingEntityId())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(ModifyAttribute.TYPE,
                 command -> AttributeNotModifiableException.newBuilder(command.getThingEntityId(),
                         command.getResourcePath())
@@ -153,22 +156,29 @@ public final class ThingCommandToModifyExceptionRegistry
                         .build());
         mappingStrategies.put(ModifyAcl.TYPE,
                 command -> AclNotModifiableException.newBuilder(command.getThingEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(ModifyAclEntry.TYPE,
                 command -> AclNotModifiableException.newBuilder(command.getThingEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(DeleteAclEntry.TYPE,
                 command -> AclNotModifiableException.newBuilder(command.getThingEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(ModifyPolicyId.TYPE,
                 command -> PolicyIdNotModifiableException.newBuilder(command.getThingEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
 
         return new ThingCommandToModifyExceptionRegistry(mappingStrategies);
+    }
+
+    @Override
+    protected DittoRuntimeException fallback(final ThingCommand command) {
+        return ThingNotModifiableException.newBuilder(command.getThingEntityId())
+                .dittoHeaders(command.getDittoHeaders())
+                .build();
     }
 
 }

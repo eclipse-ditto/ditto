@@ -12,42 +12,27 @@
  */
 package org.eclipse.ditto.model.things;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.NotThreadSafe;
 
 /**
- * An immutable implementation of {@link org.eclipse.ditto.model.things.FeatureDefinition.Identifier}.
+ * An immutable implementation of {@link DefinitionIdentifier}.
  */
 @Immutable
-final class ImmutableFeatureDefinitionIdentifier implements FeatureDefinition.Identifier {
+final class ImmutableFeatureDefinitionIdentifier implements DefinitionIdentifier {
 
-    private static final Pattern IDENTIFIER_PATTERN = FeatureIdentifierPatternBuilder.getInstance()
-            .addCapturingGroup(CapturingGroup.NAMESPACE)
-            .addCapturingGroup(CapturingGroup.NAME)
-            .addCapturingGroup(CapturingGroup.VERSION)
-            .build();
+    private final DefinitionIdentifier delegate;
 
-    private static final String COLON = ":";
-
-    private final String namespace;
-    private final String name;
-    private final String version;
-    private final String stringRepresentation;
+    private ImmutableFeatureDefinitionIdentifier(final DefinitionIdentifier delegate) {
+        this.delegate = delegate;
+    }
 
     private ImmutableFeatureDefinitionIdentifier(final CharSequence theNamespace, final CharSequence theName,
             final CharSequence theVersion) {
-
-        namespace = argumentNotEmpty(theNamespace, "namespace").toString();
-        name = argumentNotEmpty(theName, "name").toString();
-        version = argumentNotEmpty(theVersion, "version").toString();
-        stringRepresentation = namespace + COLON + name + COLON + version;
+        this(ImmutableDefinitionIdentifier.getInstance(theNamespace, theName, theVersion));
     }
 
     /**
@@ -69,38 +54,35 @@ final class ImmutableFeatureDefinitionIdentifier implements FeatureDefinition.Id
     /**
      * Parses the specified CharSequence and returns an instance of {@code ImmutableFeatureDefinitionIdentifier}.
      *
-     * @param featureIdentifierAsCharSequence CharSequence-representation of an FeatureDefinition Identifier.
+     * @param featureDefinitionIdentifier CharSequence-representation of an FeatureDefinition Identifier.
      * @return the instance.
-     * @throws NullPointerException if {@code featureIdentifierAsCharSequence} is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if {@code featureIdentifierAsCharSequence} is invalid.
+     * @throws NullPointerException if {@code featureDefinitionIdentifier} is {@code null}.
+     * @throws DefinitionIdentifierInvalidException if {@code featureDefinitionIdentifier} is invalid.
      */
-    public static ImmutableFeatureDefinitionIdentifier ofParsed(final CharSequence featureIdentifierAsCharSequence) {
-        checkNotNull(featureIdentifierAsCharSequence, "CharSequence-representation of the identifier");
-        final Matcher matcher = IDENTIFIER_PATTERN.matcher(featureIdentifierAsCharSequence);
-        if (!matcher.matches()) {
-            throw new FeatureDefinitionIdentifierInvalidException(featureIdentifierAsCharSequence);
+    public static ImmutableFeatureDefinitionIdentifier ofParsed(final CharSequence featureDefinitionIdentifier) {
+        checkNotNull(featureDefinitionIdentifier, "CharSequence-representation of the identifier");
+
+        if (featureDefinitionIdentifier instanceof ImmutableFeatureDefinitionIdentifier) {
+            return (ImmutableFeatureDefinitionIdentifier) featureDefinitionIdentifier;
         }
-
-        final String parsedNamespace = matcher.group(CapturingGroup.NAMESPACE);
-        final String parsedName = matcher.group(CapturingGroup.NAME);
-        final String parsedVersion = matcher.group(CapturingGroup.VERSION);
-
-        return getInstance(parsedNamespace, parsedName, parsedVersion);
+        return new ImmutableFeatureDefinitionIdentifier(
+                ImmutableDefinitionIdentifier.ofParsed(featureDefinitionIdentifier)
+        );
     }
 
     @Override
     public String getNamespace() {
-        return namespace;
+        return delegate.getNamespace();
     }
 
     @Override
     public String getName() {
-        return name;
+        return delegate.getName();
     }
 
     @Override
     public String getVersion() {
-        return version;
+        return delegate.getVersion();
     }
 
     @Override
@@ -112,112 +94,32 @@ final class ImmutableFeatureDefinitionIdentifier implements FeatureDefinition.Id
             return false;
         }
         final ImmutableFeatureDefinitionIdentifier that = (ImmutableFeatureDefinitionIdentifier) o;
-        return Objects.equals(namespace, that.namespace) &&
-                Objects.equals(name, that.name) &&
-                Objects.equals(version, that.version);
+        return delegate.equals(that.delegate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, name, version);
+        return Objects.hash(delegate);
     }
 
     @Override
     public int length() {
-        return stringRepresentation.length();
+        return delegate.length();
     }
 
     @Override
     public char charAt(final int index) {
-        return stringRepresentation.charAt(index);
+        return delegate.charAt(index);
     }
 
     @Override
     public CharSequence subSequence(final int start, final int end) {
-        return stringRepresentation.subSequence(start, end);
+        return delegate.subSequence(start, end);
     }
 
     @Override
     public String toString() {
-        return stringRepresentation;
-    }
-
-    /**
-     * This class provides constants for names of regex pattern capturing group.
-     */
-    @Immutable
-    private static final class CapturingGroup {
-
-        /**
-         * Name of the capturing group for the namespace.
-         */
-        public static final String NAMESPACE = "NAMESPACE";
-
-        /**
-         * Name of the capturing group for the name.
-         */
-        public static final String NAME = "NAME";
-
-        /**
-         * Name of the capturing group for the version.
-         */
-        public static final String VERSION = "VERSION";
-
-        private CapturingGroup() {
-            throw new AssertionError();
-        }
-
-    }
-
-    /**
-     * A mutable builder with a fluent API for a {@link Pattern} for parsing string representations of a
-     * FeatureDefinitionIdentifier.
-     */
-    @NotThreadSafe
-    private static final class FeatureIdentifierPatternBuilder {
-
-        private static final Pattern ELEMENT_PATTERN = Pattern.compile("[_a-zA-Z0-9\\-.]+");
-
-        private final StringBuilder stringBuilder;
-
-        private FeatureIdentifierPatternBuilder() {
-            stringBuilder = new StringBuilder();
-        }
-
-        /**
-         * Returns an instance of {@code FeatureIdentifierPatternBuilder}.
-         *
-         * @return the instance.
-         */
-        public static FeatureIdentifierPatternBuilder getInstance() {
-            return new FeatureIdentifierPatternBuilder();
-        }
-
-        /**
-         * Adds a capturing group with the specified name.
-         *
-         * @param elementCapturingGroupName the name of the capturing group to be added.
-         * @return this builder instance to allow method chaining.
-         */
-        public FeatureIdentifierPatternBuilder addCapturingGroup(final CharSequence elementCapturingGroupName) {
-            if (0 < stringBuilder.length()) {
-                stringBuilder.append(COLON);
-            }
-            stringBuilder.append("(?<").append(elementCapturingGroupName).append(">");
-            stringBuilder.append(ELEMENT_PATTERN).append(")");
-            return this;
-        }
-
-        /**
-         * Returns a Pattern consisting of the named capturing groups which were added to this builder. The capturing
-         * groups are delimited by {@link #COLON}.
-         *
-         * @return the new Pattern.
-         */
-        public Pattern build() {
-            return Pattern.compile(stringBuilder.toString());
-        }
-
+        return delegate.toString();
     }
 
 }

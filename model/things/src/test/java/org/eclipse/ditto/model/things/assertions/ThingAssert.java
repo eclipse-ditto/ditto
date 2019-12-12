@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
@@ -276,6 +277,43 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         return this;
     }
 
+    public ThingAssert hasDefinition(final ThingDefinition expectedDefinition) {
+        isNotNull();
+
+        assertThat(actual.getDefinition())
+                .overridingErrorMessage("Expected Thing Definition to be <%s> but it did not", expectedDefinition)
+                .contains(expectedDefinition);
+
+        return this;
+    }
+
+    public ThingAssert hasDefinition(final String expectedDefinition) {
+        isNotNull();
+
+        final Optional<ThingDefinition> optionalDefinition = actual.getDefinition();
+
+        assertThat(optionalDefinition.isPresent() &&
+                optionalDefinition.get().toString().equals(expectedDefinition))
+                .overridingErrorMessage("Expected Definition to be \n<%s> but was \n<%s>", expectedDefinition,
+                        optionalDefinition.orElse(null))
+                .isTrue();
+
+        return this;
+    }
+
+    public ThingAssert hasNoDefinition() {
+        isNotNull();
+
+        final Optional<ThingDefinition> definitionOptional = actual.getDefinition();
+
+        assertThat(definitionOptional.isPresent())
+                .overridingErrorMessage("Expected Thing not have a Definition but it had <%s>",
+                        definitionOptional.orElse(null))
+                .isFalse();
+
+        return this;
+    }
+
     public ThingAssert hasFeature(final Feature expectedFeature) {
         isNotNull();
 
@@ -472,6 +510,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     }
 
     /**
+     *
      */
     public ThingAssert isModified() {
         isNotNull();

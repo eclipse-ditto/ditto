@@ -43,6 +43,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 
@@ -141,6 +142,14 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return adaptable.getPayload().getValue().orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
+    protected static ThingDefinition thingDefinitionFrom(final Adaptable adaptable) {
+        return adaptable.getPayload()
+                .getValue()
+                .map(JsonValue::asString)
+                .map(ThingsModelFactory::newDefinition)
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+
     protected static String featureIdFrom(final Adaptable adaptable) {
         final JsonPointer path = adaptable.getPayload().getPath();
         return path.get(1).orElseThrow(() -> UnknownPathException.newBuilder(path).build()).toString();
@@ -235,36 +244,6 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
     }
 
-    protected abstract Adaptable constructAdaptable(final T signal, final TopicPath.Channel channel);
-
-    protected abstract String getType(Adaptable adaptable);
-
-    /*
-     * injects header reading phase to parsing of protocol messages.
-     */
-    @Override
-    public final T fromAdaptable(final Adaptable externalAdaptable) {
-        checkNotNull(externalAdaptable, "Adaptable");
-        // get type from external adaptable before header filtering in case some headers exist for external messages
-        // but not internally in Ditto.
-        final String type = getType(externalAdaptable);
-
-        // filter headers by header translator, then inject any missing information from topic path
-        final DittoHeaders externalHeaders = externalAdaptable.getHeaders().orElse(DittoHeaders.empty());
-        final DittoHeaders filteredHeaders = addTopicPathInfo(
-                headerTranslator.fromExternalHeaders(externalHeaders),
-                externalAdaptable.getTopicPath());
-
-        final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.get(type);
-        if (null == jsonifiableMapper) {
-            throw UnknownTopicPathException.fromTopicAndPath(externalAdaptable.getTopicPath(),
-                    externalAdaptable.getPayload().getPath(), filteredHeaders);
-        }
-
-        final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
-        return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
-    }
-
     /**
      * Add to headers any information that will be missing from topic path.
      *
@@ -296,20 +275,6 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return headersBuilder.build();
     }
 
-    /*
-     * inject header publishing phase to creation of protocol messages.
-     */
-    @Override
-    public final Adaptable toAdaptable(final T signal, final TopicPath.Channel channel) {
-        final Adaptable adaptable = constructAdaptable(signal, channel);
-        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(adaptable.getDittoHeaders());
-        return adaptable.setDittoHeaders(DittoHeaders.of(externalHeaders));
-    }
-
-    protected final HeaderTranslator headerTranslator() {
-        return headerTranslator;
-    }
-
     /**
      * Returns the given String {@code s} with an upper case first letter.
      *
@@ -324,6 +289,50 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         final char[] chars = s.toCharArray();
         chars[0] = Character.toUpperCase(chars[0]);
         return new String(chars);
+    }
+
+    protected abstract Adaptable constructAdaptable(final T signal, final TopicPath.Channel channel);
+
+    protected abstract String getType(Adaptable adaptable);
+
+    /*
+     * injects header reading phase to parsing of protocol messages.
+     */
+    @Override
+    public final T fromAdaptable(final Adaptable externalAdaptable) {
+        checkNotNull(externalAdaptable, "Adaptable");
+        // get type from external adaptable before header filtering in case some headers exist for external messages
+        // but not internally in Ditto.
+        final String type = getType(externalAdaptable);
+
+        // filter headers by header translator, then inject any missing information from topic path
+        final DittoHeaders externalHeaders = externalAdaptable.getHeaders().orElse(DittoHeaders.empty());
+        final DittoHeaders filteredHeaders = addTopicPathInfo(
+                headerTranslator.fromExternalHeaders(externalHeaders),
+                externalAdaptable.getTopicPath());
+
+        final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.get(type);
+        if (null == jsonifiableMapper) {
+            throw UnknownTopicPathException.fromTopicAndPath(externalAdaptable.getTopicPath(),
+                    externalAdaptable.getPayload().getPath(), filteredHeaders);
+        }
+
+        final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
+        return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
+    }
+
+    /*
+     * inject header publishing phase to creation of protocol messages.
+     */
+    @Override
+    public final Adaptable toAdaptable(final T signal, final TopicPath.Channel channel) {
+        final Adaptable adaptable = constructAdaptable(signal, channel);
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(adaptable.getDittoHeaders());
+        return adaptable.setDittoHeaders(DittoHeaders.of(externalHeaders));
+    }
+
+    protected final HeaderTranslator headerTranslator() {
+        return headerTranslator;
     }
 
     /**
@@ -347,6 +356,7 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
             PATTERNS.put("policyEntryResource", Pattern.compile("^/_policy/entries/[^/]*/resources/.*$"));
             PATTERNS.put("attributes", Pattern.compile("^/attributes$"));
             PATTERNS.put("attribute", Pattern.compile("^/attributes/.*$"));
+            PATTERNS.put("definition", Pattern.compile("^/definition$"));
             PATTERNS.put("features", Pattern.compile("^/features$"));
             PATTERNS.put("feature", Pattern.compile("^/features/[^/]*$"));
             PATTERNS.put("featureDefinition", Pattern.compile("^/features/[^/]*/definition$"));

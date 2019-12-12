@@ -21,12 +21,11 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.Props;
@@ -48,6 +47,7 @@ public final class EventAndResponsePublisher
     private final int backpressureBufferSize;
     private final List<Jsonifiable.WithPredicate<JsonObject, JsonField>> buffer = new ArrayList<>();
     private final AtomicBoolean currentlyInMessageConsumedCheck = new AtomicBoolean(false);
+
     private String connectionCorrelationId;
 
     @SuppressWarnings("unused")
@@ -63,7 +63,6 @@ public final class EventAndResponsePublisher
      * @return the Akka configuration Props object.
      */
     public static Props props(final int backpressureBufferSize) {
-
         return Props.create(EventAndResponsePublisher.class, backpressureBufferSize);
     }
 
@@ -72,10 +71,9 @@ public final class EventAndResponsePublisher
         // Initially, this Actor can only receive the Connect message:
         return ReceiveBuilder.create()
                 .match(Connect.class, connect -> {
-                    final String connectionCorrelationId = connect.getConnectionCorrelationId();
-                    LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-                    logger.debug("Established new connection: {}", connectionCorrelationId);
-                    getContext().become(connected(connectionCorrelationId));
+                    LogUtil.enhanceLogWithCorrelationId(logger, connect.getConnectionCorrelationId());
+                    logger.debug("Established new connection: {}", connect.getConnectionCorrelationId());
+                    getContext().become(connected(connect.getConnectionCorrelationId()));
                 })
                 .matchAny(any -> {
                     logger.info("Got unknown message during init phase '{}' - stashing..", any);
@@ -100,15 +98,12 @@ public final class EventAndResponsePublisher
                         deliverBuf();
                     }
                 })
-                .match(GatewayWebsocketSessionExpiredException.class, gwsee -> {
-                    onNext(gwsee);
-                    // throw exception via onErrorAndStop to close the ws session and afterwards stop the actor
-                    onErrorThenStop(gwsee);
-                })
-                .match(GatewayWebsocketSessionClosedException.class, gwsce -> {
-                    onNext(gwsce);
-                    // throw exception via onErrorAndStop to close the ws session and afterwards stop the actor
-                    onErrorThenStop(gwsce);
+                .match(CloseStreamExceptionally.class, closeStreamExceptionally -> {
+                    final DittoRuntimeException reason = closeStreamExceptionally.getReason();
+                    LogUtil.enhanceLogWithCorrelationId(logger, closeStreamExceptionally.getConnectionCorrelationId());
+                    logger.info("Closing stream exceptionally because of <{}>.", reason);
+                    onNext(reason);
+                    onErrorThenStop(reason);
                 })
                 .match(DittoRuntimeException.class, cre -> buffer.size() >= backpressureBufferSize, cre -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, cre.getDittoHeaders().getCorrelationId());

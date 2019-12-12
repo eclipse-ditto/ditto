@@ -18,12 +18,13 @@ import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITO
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.ACL;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.ATTRIBUTES;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.DEFINITION;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.LIFECYCLE;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.MODIFIED;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.POLICY_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.REVISION;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.model.things.assertions.DittoThingsAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -58,7 +59,8 @@ public final class ImmutableThingTest {
     private static final JsonValue KNOWN_FEATURE_PROPERTY_VALUE = JsonFactory.newValue(1955);
 
     private static final Thing KNOWN_THING_V2 =
-            ImmutableThing.of(THING_ID, TestConstants.Thing.POLICY_ID, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+            ImmutableThing.of(THING_ID, TestConstants.Thing.POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE,
+                    REVISION,
                     MODIFIED);
 
     @Test
@@ -76,6 +78,7 @@ public final class ImmutableThingTest {
     public void assertImmutability() {
         final Class[] knownImmutableTypes = new Class[]{
                 Attributes.class,
+                ThingDefinition.class,
                 Features.class,
                 JsonObject.class,
                 AccessControlList.class,
@@ -86,8 +89,7 @@ public final class ImmutableThingTest {
 
         assertInstancesOf(ImmutableThing.class,
                 areImmutable(),
-                provided(knownImmutableTypes).areAlsoImmutable(),
-                assumingFields("policyEntries").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+                provided(knownImmutableTypes).areAlsoImmutable());
     }
 
     @Test
@@ -107,7 +109,7 @@ public final class ImmutableThingTest {
     @Test
     public void createThingWithoutACL() {
         final Thing thing =
-                ImmutableThing.of(THING_ID, (AccessControlList) null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                ImmutableThing.of(THING_ID, null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
                         MODIFIED);
 
         assertThat(thing)
@@ -122,12 +124,33 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithoutPolicyId() {
-        final Thing thing = ImmutableThing.of(THING_ID, (PolicyId) null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
-                MODIFIED);
+        final Thing thing =
+                ImmutableThing.of(THING_ID, null, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                        MODIFIED);
 
         assertThat(thing)
                 .hasId(THING_ID)
                 .hasNoPolicyId()
+                .hasDefinition(DEFINITION)
+                .hasAttributes(ATTRIBUTES)
+                .hasFeatures(FEATURES)
+                .hasLifecycle(LIFECYCLE)
+                .hasRevision(REVISION)
+                .hasModified(MODIFIED);
+    }
+
+
+    @Test
+    public void createThingWithoutDefinition() {
+        final Thing thing =
+                ImmutableThing.of(THING_ID, POLICY_ID, null, ATTRIBUTES, FEATURES, LIFECYCLE,
+                        REVISION,
+                        MODIFIED);
+
+        assertThat(thing)
+                .hasId(THING_ID)
+                .hasPolicyId(POLICY_ID)
+                .hasNoDefinition()
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -182,8 +205,26 @@ public final class ImmutableThingTest {
         final String invalidPolicyId = "namespace:";
         assertThatExceptionOfType(PolicyIdInvalidException.class).isThrownBy(() -> {
             ImmutableThing.of(
-                    THING_ID.toString(),
-                    invalidPolicyId,
+                    THING_ID,
+                    PolicyId.of(invalidPolicyId),
+                    DEFINITION,
+                    ATTRIBUTES,
+                    FEATURES,
+                    LIFECYCLE,
+                    REVISION,
+                    MODIFIED);
+        });
+    }
+
+    @Test
+    public void createThingWithInvalidDefinition() {
+        final String invalidDefinitionValue = "!namespace:";
+        assertThatExceptionOfType(DefinitionIdentifierInvalidException.class).isThrownBy(() -> {
+            ThingDefinition invalidDefinition = ImmutableThingDefinition.ofParsed(invalidDefinitionValue);
+            ImmutableThing.of(
+                    THING_ID,
+                    POLICY_ID,
+                    invalidDefinition,
                     ATTRIBUTES,
                     FEATURES,
                     LIFECYCLE,
@@ -198,8 +239,9 @@ public final class ImmutableThingTest {
         final String invalidPolicyId = "namespace:";
 
         final Thing thing = ImmutableThing.of(
-                THING_ID.toString(),
-                validPolicyId,
+                THING_ID,
+                PolicyId.of(validPolicyId),
+                DEFINITION,
                 ATTRIBUTES,
                 FEATURES,
                 LIFECYCLE,
@@ -208,6 +250,40 @@ public final class ImmutableThingTest {
 
         assertThatExceptionOfType(PolicyIdInvalidException.class).isThrownBy(
                 () -> thing.setPolicyId(invalidPolicyId));
+    }
+
+    @Test
+    public void setInvalidThingDefinition() {
+        final String validDefinition = "namespace:name:version";
+        final String invalidDefinition = "namespace:";
+
+        final Thing thing = ImmutableThing.of(
+                THING_ID,
+                POLICY_ID,
+                ImmutableThingDefinition.ofParsed(validDefinition),
+                ATTRIBUTES,
+                FEATURES,
+                LIFECYCLE,
+                REVISION,
+                MODIFIED);
+
+        assertThatExceptionOfType(DefinitionIdentifierInvalidException.class).isThrownBy(
+                () -> thing.setDefinition(invalidDefinition));
+    }
+
+    @Test
+    public void removeThingDefinitionWorkAsExpected() {
+        final Thing changedThing = KNOWN_THING_V2.removeDefinition();
+
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V2)
+                .hasId(THING_ID)
+                .hasPolicyId(POLICY_ID)
+                .hasAttributes(ATTRIBUTES)
+                .hasNoDefinition()
+                .hasFeatures(FEATURES)
+                .hasLifecycle(LIFECYCLE)
+                .hasRevision(REVISION);
     }
 
     @Test
@@ -306,6 +382,25 @@ public final class ImmutableThingTest {
                 .hasId(THING_ID)
                 .hasPolicyId(newPolicyId)
                 .hasAttributes(ATTRIBUTES)
+                .hasDefinition(DEFINITION)
+                .hasFeatures(FEATURES)
+                .hasLifecycle(LIFECYCLE)
+                .hasRevision(REVISION);
+    }
+
+
+    @Test
+    public void setThingDefinitionStringWorksAsExpected() {
+        final String newDefinition = "foo:new:version";
+
+        final Thing changedThing = KNOWN_THING_V2.setDefinition(newDefinition);
+
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V2)
+                .hasId(THING_ID)
+                .hasPolicyId(POLICY_ID)
+                .hasAttributes(ATTRIBUTES)
+                .hasDefinition(newDefinition)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
                 .hasRevision(REVISION);
@@ -322,6 +417,24 @@ public final class ImmutableThingTest {
                 .hasId(THING_ID)
                 .hasPolicyId(newPolicyId)
                 .hasAttributes(ATTRIBUTES)
+                .hasDefinition(DEFINITION)
+                .hasFeatures(FEATURES)
+                .hasLifecycle(LIFECYCLE)
+                .hasRevision(REVISION);
+    }
+
+    @Test
+    public void setThingDefinitionWorksAsExpected() {
+        final ImmutableThingDefinition newDefinition = ImmutableThingDefinition.ofParsed("foo:new:crew");
+
+        final Thing changedThing = KNOWN_THING_V2.setDefinition(newDefinition);
+
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V2)
+                .hasId(THING_ID)
+                .hasPolicyId(POLICY_ID)
+                .hasAttributes(ATTRIBUTES)
+                .hasDefinition(newDefinition)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
                 .hasRevision(REVISION);
@@ -563,7 +676,7 @@ public final class ImmutableThingTest {
     @Test
     public void setAclEntryToThingWithoutAcl() {
         final Thing withoutAcl =
-                ImmutableThing.of(THING_ID, (AccessControlList) null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                ImmutableThing.of(THING_ID, null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
                         MODIFIED);
         final Thing withAcl = withoutAcl.setAclEntry(TestConstants.Authorization.ACL_ENTRY_GRIMES);
 
@@ -580,7 +693,7 @@ public final class ImmutableThingTest {
     @Test
     public void removeAllPermissionsOfAuthSubjectFromThingWithoutAcl() {
         final Thing withoutAcl =
-                ImmutableThing.of(THING_ID, (AccessControlList) null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                ImmutableThing.of(THING_ID, null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
                         MODIFIED);
         final Thing withoutPermissionsForGrimes =
                 withoutAcl.removeAllPermissionsOf(TestConstants.Authorization.AUTH_SUBJECT_GRIMES);
@@ -879,6 +992,7 @@ public final class ImmutableThingTest {
                 .setId(THING_ID)
                 .setPolicyId(TestConstants.Thing.POLICY_ID)
                 .setAttributes(ATTRIBUTES)
+                .setDefinition(DEFINITION)
                 .setFeatures(FEATURES)
                 .setLifecycle(LIFECYCLE)
                 .setRevision(REVISION)
@@ -943,6 +1057,8 @@ public final class ImmutableThingTest {
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
         DittoJsonAssertions.assertThat(jsonObject)
+                .contains(Thing.JsonFields.DEFINITION, JsonValue.of(DEFINITION.toString()));
+        DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.SCHEMA_VERSION);
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.ACL);
@@ -962,6 +1078,8 @@ public final class ImmutableThingTest {
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID.toString());
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
+        DittoJsonAssertions.assertThat(jsonObject)
+                .contains(Thing.JsonFields.DEFINITION, JsonValue.of(DEFINITION.toString()));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.REVISION, JsonValue.of(TestConstants.Thing.REVISION_NUMBER));
@@ -986,19 +1104,19 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithInvalidCharactersInId() {
-        final List<String> invalidCharacters = Arrays.asList(" ", "/", "?",  "#", "%");
+        final List<String> invalidCharacters = Arrays.asList(" ", "/", "?", "#", "%");
 
         invalidCharacters.forEach(invalidCharacter ->
-            assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(() ->
-                    ImmutableThing.of(
-                            "ns:thingIdWithAnd" + invalidCharacter,
-                            ACL,
-                            ATTRIBUTES,
-                            FEATURES,
-                            LIFECYCLE,
-                            REVISION,
-                            MODIFIED)
-            )
+                assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(() ->
+                        ImmutableThing.of(
+                                "ns:thingIdWithAnd" + invalidCharacter,
+                                ACL,
+                                ATTRIBUTES,
+                                FEATURES,
+                                LIFECYCLE,
+                                REVISION,
+                                MODIFIED)
+                )
         );
 
     }

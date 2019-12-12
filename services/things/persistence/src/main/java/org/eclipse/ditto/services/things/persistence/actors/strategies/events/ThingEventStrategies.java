@@ -44,6 +44,9 @@ import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionCreated;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionDeleted;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionModified;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
@@ -72,6 +75,7 @@ public final class ThingEventStrategies extends AbstractEventStrategies<ThingEve
         addThingStrategies();
         addAclStrategies();
         addAttributesStrategies();
+        addDefinitionStrategies();
         addFeaturesStrategies();
         addPolicyIdStrategies();
     }
@@ -97,6 +101,12 @@ public final class ThingEventStrategies extends AbstractEventStrategies<ThingEve
         addStrategy(AttributeCreated.class, new AttributeCreatedStrategy());
         addStrategy(AttributeModified.class, new AttributeModifiedStrategy());
         addStrategy(AttributeDeleted.class, new AttributeDeletedStrategy());
+    }
+
+    private void addDefinitionStrategies() {
+        addStrategy(ThingDefinitionCreated.class, new ThingDefinitionCreatedStrategy());
+        addStrategy(ThingDefinitionModified.class, new ThingDefinitionModifiedStrategy());
+        addStrategy(ThingDefinitionDeleted.class, new ThingDefinitionDeletedStrategy());
     }
 
     private void addFeaturesStrategies() {

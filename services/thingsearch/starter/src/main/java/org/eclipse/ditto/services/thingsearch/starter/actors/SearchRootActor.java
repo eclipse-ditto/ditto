@@ -265,6 +265,7 @@ public final class SearchRootActor extends AbstractActor {
         addMapping(mappings, Thing.JsonFields.POLICY_ID);
         addMapping(mappings, Thing.JsonFields.REVISION);
         addMapping(mappings, Thing.JsonFields.MODIFIED);
+        addMapping(mappings, Thing.JsonFields.DEFINITION);
         return new ThingsFieldExpressionFactoryImpl(mappings);
     }
 

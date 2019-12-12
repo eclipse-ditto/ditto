@@ -43,13 +43,12 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttTopic;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.datatypes.MqttTopic;
+import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 
 import akka.actor.ActorSystem;
-import akka.stream.alpakka.mqtt.MqttQoS;
 
 /**
  * Connection specification for Mqtt protocol.
@@ -85,7 +84,6 @@ public final class MqttValidator extends AbstractProtocolValidator {
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "MQTT 3.1.1");
-        validateUriByPaho(connection, dittoHeaders);
         validateClientCount(connection, dittoHeaders);
         validateAddresses(connection, dittoHeaders);
         validateSourceConfigs(connection, dittoHeaders);
@@ -135,23 +133,6 @@ public final class MqttValidator extends AbstractProtocolValidator {
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
         validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
                 newHeadersPlaceholder());
-    }
-
-    /**
-     * Retrieve quality of service from a validated specific config with "at-most-once" as default.
-     *
-     * @param qos th configured qos value.
-     * @return quality of service.
-     */
-    public static MqttQoS getQoS(final int qos) {
-        switch (qos) {
-            case 1:
-                return MqttQoS.atLeastOnce();
-            case 2:
-                return MqttQoS.exactlyOnce();
-            default:
-                return MqttQoS.atMostOnce();
-        }
     }
 
     /**
@@ -270,26 +251,17 @@ public final class MqttValidator extends AbstractProtocolValidator {
     private static void validateMqttTopic(final String address, final boolean wildcardAllowed,
             final Function<String, DittoRuntimeException> errorProducer) {
         try {
-            MqttTopic.validate(address, wildcardAllowed);
+            if (wildcardAllowed) {
+                // this one allows wildcard characters:
+                MqttTopicFilter.of(address);
+            } else {
+                // this check doesn't allow wildcard characters:
+                MqttTopic.of(address);
+            }
         } catch (final IllegalArgumentException e) {
             throw errorProducer.apply(e.getMessage());
         }
 
-    }
-
-    private static void validateUriByPaho(final Connection connection, final DittoHeaders dittoHeaders) {
-        try {
-            MqttConnectOptions.validateURI(connection.getUri());
-        } catch (final IllegalArgumentException e) {
-            final String location = String.format("Connection with ID ''%s''", connection.getId());
-            final String configName = Connection.JsonFields.URI.getPointer().toString();
-            final String description =
-                    "Hint: MQTT connection URI may not have trailing '/' or any other path component.";
-            throw invalidValueForConfig(connection.getUri(), configName, location)
-                    .description(description)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
     }
 
     private void validateClientCount(final Connection connection,

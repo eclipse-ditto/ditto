@@ -67,6 +67,7 @@ public interface ThingEvent<T extends ThingEvent> extends Event<T>, WithThingId 
                 JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
+
         /**
          * Payload JSON field containing the Feature ID.
          */

@@ -108,7 +108,29 @@ public final class ThingsModelFactory {
     }
 
     /**
-     * Returns an immutable instance of {@link FeatureDefinition.Identifier}.
+     * Returns a new immutable {@link ThingDefinition} which is initialised with the parsed {@code thingDefinition}.
+     *
+     * @param thingDefinition Definition identifier which should be parsed as ThingDefinition.
+     * @return new ThingDefinition with the parsed definition identifier.
+     */
+    public static ThingDefinition newDefinition(@Nullable final CharSequence thingDefinition) {
+        if (null != thingDefinition) {
+            return ImmutableThingDefinition.ofParsed(thingDefinition);
+        }
+        return nullDefinition();
+    }
+
+    /**
+     * Returns a new immutable {@link ThingDefinition} which represents {@code null}.
+     *
+     * @return the new {@code null}-like {@code ThingDefinition}.
+     */
+    public static ThingDefinition nullDefinition() {
+        return NullThingDefinition.getInstance();
+    }
+
+    /**
+     * Returns an immutable instance of {@link DefinitionIdentifier}.
      *
      * @param namespace the namespace of the returned Identifier.
      * @param name the name of the returned Identifier.
@@ -117,25 +139,25 @@ public final class ThingsModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if any argument is empty.
      */
-    public static FeatureDefinition.Identifier newFeatureDefinitionIdentifier(final CharSequence namespace,
+    public static DefinitionIdentifier newFeatureDefinitionIdentifier(final CharSequence namespace,
             final CharSequence name, final CharSequence version) {
 
         return ImmutableFeatureDefinitionIdentifier.getInstance(namespace, name, version);
     }
 
     /**
-     * Parses the specified CharSequence and returns an immutable instance of {@link FeatureDefinition.Identifier}.
+     * Parses the specified CharSequence and returns an immutable instance of {@link DefinitionIdentifier}.
      *
      * @param featureIdentifierAsCharSequence CharSequence-representation of a FeatureDefinition Identifier.
      * @return the instance.
      * @throws NullPointerException if {@code featureIdentifierAsCharSequence} is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if {@code featureIdentifierAsCharSequence} is invalid.
+     * @throws DefinitionIdentifierInvalidException if {@code featureIdentifierAsCharSequence} is invalid.
      */
-    public static FeatureDefinition.Identifier newFeatureDefinitionIdentifier(
+    public static DefinitionIdentifier newFeatureDefinitionIdentifier(
             final CharSequence featureIdentifierAsCharSequence) {
 
-        if (featureIdentifierAsCharSequence instanceof FeatureDefinition.Identifier) {
-            return (FeatureDefinition.Identifier) featureIdentifierAsCharSequence;
+        if (featureIdentifierAsCharSequence instanceof DefinitionIdentifier) {
+            return (DefinitionIdentifier) featureIdentifierAsCharSequence;
         }
         return ImmutableFeatureDefinitionIdentifier.ofParsed(featureIdentifierAsCharSequence);
     }
@@ -149,7 +171,7 @@ public final class ThingsModelFactory {
      * @return the instance.
      * @throws NullPointerException if {@code jsonArray} is {@code null}.
      * @throws FeatureDefinitionEmptyException if {@code jsonArray} is empty.
-     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier string of the array is invalid.
+     * @throws DefinitionIdentifierInvalidException if any Identifier string of the array is invalid.
      */
     public static FeatureDefinition newFeatureDefinition(final JsonArray jsonArray) {
         checkNotNull(jsonArray, "JSON array");
@@ -167,7 +189,7 @@ public final class ThingsModelFactory {
      * @return the new immutable initialised {@code FeatureDefinition}.
      * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@code FeatureDefinition}.
      * @throws FeatureDefinitionEmptyException if the JSON array is empty.
-     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of the JSON array is invalid.
+     * @throws DefinitionIdentifierInvalidException if any Identifier of the JSON array is invalid.
      */
     public static FeatureDefinition newFeatureDefinition(final String jsonString) {
         final JsonArray jsonArray =
@@ -192,7 +214,7 @@ public final class ThingsModelFactory {
      * @param firstIdentifier CharSequence-representation of the first FeatureDefinition Identifier.
      * @return the instance.
      * @throws NullPointerException if {@code firstIdentifier} is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if {@code firstIdentifier} is invalid.
+     * @throws DefinitionIdentifierInvalidException if {@code firstIdentifier} is invalid.
      */
     public static FeatureDefinitionBuilder newFeatureDefinitionBuilder(final CharSequence firstIdentifier) {
         return ImmutableFeatureDefinition.getBuilder(newFeatureDefinitionIdentifier(firstIdentifier));
@@ -205,7 +227,7 @@ public final class ThingsModelFactory {
      * @param jsonArray provides the initial values of the result.
      * @return the builder.
      * @throws NullPointerException if {@code jsonArray} is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of the array is invalid.
+     * @throws DefinitionIdentifierInvalidException if any Identifier of the array is invalid.
      */
     public static FeatureDefinitionBuilder newFeatureDefinitionBuilder(final JsonArray jsonArray) {
         return ImmutableFeatureDefinition.Builder.getInstance().addAll(newFeatureDefinition(jsonArray));

@@ -55,6 +55,9 @@ import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionCreated;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionDeleted;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionModified;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
@@ -603,6 +606,124 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final AttributeDeleted attributeDeleted = AttributeDeleted.of(TestConstants.THING_ID,
                 TestConstants.ATTRIBUTE_POINTER, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(attributeDeleted);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void definitionCreatedFromAdaptable() {
+        final ThingDefinitionCreated expected = ThingDefinitionCreated.of(TestConstants.THING_ID,
+                TestConstants.THING_DEFINITION,
+                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void definitionCreatedToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ThingDefinitionCreated thingDefintionCreated =
+                ThingDefinitionCreated.of(TestConstants.THING_ID, TestConstants.THING_DEFINITION,
+                        TestConstants.REVISION,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(thingDefintionCreated);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void definitionModifiedFromAdaptable() {
+        final ThingDefinitionModified expected = ThingDefinitionModified.of(TestConstants.THING_ID,
+                TestConstants.THING_DEFINITION,
+                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void definitionModifiedToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ThingDefinitionModified definitionModified = ThingDefinitionModified.of(TestConstants.THING_ID,
+                TestConstants.THING_DEFINITION, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(definitionModified);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void definitionDeletedFromAdaptable() {
+        final ThingDefinitionDeleted expected =
+                ThingDefinitionDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
+                        TestConstants.DITTO_HEADERS_V_2);
+
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+                .withPayload(Payload.newBuilder(path)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void definitionDeletedToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/definition");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+                .withPayload(Payload.newBuilder(path)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ThingDefinitionDeleted definitionDeleted =
+                ThingDefinitionDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(definitionDeleted);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

@@ -115,6 +115,42 @@ The event emitted by Ditto after the Attribute of a thing was deleted.
 **Example:** 
 [Delete a single Attribute](protocol-examples-deleteattribute.html)
 
+## Delete the definition of a Thing
+
+Delete the definition of the Thing.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/commands/delete`     |
+| **path**  | `/definition`     |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/delete` |
+| **path**   |        | `/definition`                      |
+| **status** | _code_ |                          | 
+|            | `204`  | Success - The definition was deleted successfully.       |
+|            | `403`  | Not Modifiable - The definition could not be deleted as the requester had insufficient permissions ('WRITE' is required).         |
+|            | `404`  | Not Found - The Thing or definition was not found or requester had insufficient permissions.   |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+### Event
+
+The event emitted by Ditto after the definition of a thing was deleted.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/deleted`     |
+| **path**  | `/definition`     |
+
+**Example:** 
+[Delete a single definition](protocol-examples-deletethingdefinition.html)
+
+
 
 ## Delete all Features of a Thing
 

@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFacto
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.InvalidJwtToken;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
@@ -268,11 +269,15 @@ final class StreamingSessionActor extends AbstractActor {
 
     private void handleSessionTimeout() {
         logger.info("Stopping websocket session for connection with id: {}", connectionCorrelationId);
-        eventAndResponsePublisher.tell(GatewayWebsocketSessionExpiredException.newBuilder()
-                .dittoHeaders(DittoHeaders.newBuilder()
-                        .correlationId(connectionCorrelationId)
-                        .build())
-                .build(), getSelf());
+        final GatewayWebsocketSessionExpiredException gatewayWebsocketSessionExpiredException =
+                GatewayWebsocketSessionExpiredException.newBuilder()
+                        .dittoHeaders(DittoHeaders.newBuilder()
+                                .correlationId(connectionCorrelationId)
+                                .build())
+                        .build();
+        eventAndResponsePublisher.tell(
+                CloseStreamExceptionally.getInstance(gatewayWebsocketSessionExpiredException, connectionCorrelationId),
+                getSelf());
     }
 
     private void cancelSessionTimeout() {
@@ -287,11 +292,14 @@ final class StreamingSessionActor extends AbstractActor {
         if (!authorizationSubjects.equals(newAuthorizationSubjects)) {
             logger.debug("Authorization Context changed for websocket session: <{}> - terminating the session",
                     connectionCorrelationId);
-            eventAndResponsePublisher.tell(GatewayWebsocketSessionClosedException.newBuilder()
-                    .dittoHeaders(DittoHeaders.newBuilder()
-                            .correlationId(connectionCorrelationId)
-                            .build())
-                    .build(), getSelf());
+            final GatewayWebsocketSessionClosedException gatewayWebsocketSessionClosedException =
+                    GatewayWebsocketSessionClosedException.newBuilder()
+                            .dittoHeaders(DittoHeaders.newBuilder()
+                                    .correlationId(connectionCorrelationId)
+                                    .build())
+                            .build();
+            eventAndResponsePublisher.tell(CloseStreamExceptionally.getInstance(gatewayWebsocketSessionClosedException,
+                    connectionCorrelationId), getSelf());
         } else {
             sessionTerminationCancellable = startSessionTimeout(refreshSession.getSessionTimeout());
         }

@@ -10,36 +10,37 @@
  *  <code>null</code> if the message could/should not be mapped
  */
 function mapToDittoProtocolMsg(
-    headers,
-    textPayload,
-    bytePayload,
-    contentType
+  headers,
+  textPayload,
+  bytePayload,
+  contentType
 ) {
 
-    // ###
-    // Insert your mapping logic here:
-    if (contentType === 'application/vnd.eclipse.ditto+json') {
-        let dittoProtocolMsg = JSON.parse(textPayload);
-        Object.assign(dittoProtocolMsg.headers, headers);
-        return dittoProtocolMsg;
-    }
-    if (headers) {
-        return null; // returning 'null' means that the message will be dropped
-        // TODO replace with something useful
-    }
-    // ###
+  // ###
+  // Insert your mapping logic here:
+  if (contentType === 'application/vnd.eclipse.ditto+json') {
+    let dittoProtocolMsg = JSON.parse(textPayload);
+    Object.assign(dittoProtocolMsg.headers, headers);
+    return dittoProtocolMsg;
+  }
+  if (headers) {
+    return null; // returning 'null' means that the message will be dropped
+    // TODO replace with something useful
+  }
+  // ###
 
-    return Ditto.buildDittoProtocolMsg(
-        namespace,
-        id,
-        group,
-        channel,
-        criterion,
-        action,
-        path,
-        dittoHeaders,
-        value
-    );
+  return Ditto.buildDittoProtocolMsg(
+    namespace,
+    id,
+    group,
+    channel,
+    criterion,
+    action,
+    path,
+    dittoHeaders,
+    value,
+    status
+  );
 }
 
 /**
@@ -52,10 +53,10 @@ function mapToDittoProtocolMsg(
  */
 function mapToDittoProtocolMsgWrapper(externalMsg) {
 
-    let headers = externalMsg.headers;
-    let textPayload = externalMsg.textPayload;
-    let bytePayload = externalMsg.bytePayload;
-    let contentType = externalMsg.contentType;
+  let headers = externalMsg.headers;
+  let textPayload = externalMsg.textPayload;
+  let bytePayload = externalMsg.bytePayload;
+  let contentType = externalMsg.contentType;
 
-    return mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType);
+  return mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType);
 }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.base.headers;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -42,6 +43,15 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
     B correlationId(@Nullable CharSequence correlationId);
+
+    /**
+     * Sets a generated random correlation ID.
+     *
+     * @return this builder for Method Chaining.
+     */
+    default B randomCorrelationId() {
+        return correlationId(String.valueOf(UUID.randomUUID()));
+    }
 
     /**
      * Sets the json schema version value.

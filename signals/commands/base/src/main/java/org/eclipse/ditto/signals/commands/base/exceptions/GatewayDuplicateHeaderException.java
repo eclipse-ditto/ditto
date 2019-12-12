@@ -13,7 +13,6 @@
 package org.eclipse.ditto.signals.commands.base.exceptions;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -110,11 +109,7 @@ public final class GatewayDuplicateHeaderException extends DittoRuntimeException
         private Builder() {
             description(DEFAULT_DESCRIPTION);
             message(DEFAULT_MESSAGE);
-            try {
-                href(new URI(DEFAULT_HREF));
-            } catch (final URISyntaxException e) {
-                // Will not happen. DEFAULT_HREF is valid URI.
-            }
+            href(DEFAULT_HREF);
         }
 
         @Override

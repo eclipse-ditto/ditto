@@ -124,7 +124,7 @@ public abstract class AbstractRoute extends AllDirectives {
      * @param fieldsString the fields as string.
      * @return the Optional JsonFieldSelector
      */
-    protected static Optional<JsonFieldSelector> calculateSelectedFields(final Optional<String> fieldsString) {
+    public static Optional<JsonFieldSelector> calculateSelectedFields(final Optional<String> fieldsString) {
         return fieldsString.map(fs -> JsonFactory.newFieldSelector(fs, JSON_FIELD_SELECTOR_PARSE_OPTIONS));
     }
 
