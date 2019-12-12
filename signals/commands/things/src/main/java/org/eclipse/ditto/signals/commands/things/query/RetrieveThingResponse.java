@@ -241,7 +241,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     }
 
     @Override
-    public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
+    public JsonObject getEntity(final JsonSchemaVersion schemaVersion) {
         return lazyLoadThingJsonObject();
     }
 
