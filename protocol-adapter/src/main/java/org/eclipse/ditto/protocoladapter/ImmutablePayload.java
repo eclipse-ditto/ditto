@@ -122,11 +122,6 @@ final class ImmutablePayload implements Payload {
     }
 
     @Override
-    public PayloadBuilder toBuilder() {
-        return new ImmutablePayloadBuilder(this);
-    }
-
-    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
         jsonObjectBuilder.set(JsonFields.PATH, path.toString());
@@ -203,16 +198,6 @@ final class ImmutablePayload implements Payload {
         @Nullable private Long revision;
         @Nullable private Instant timestamp;
         @Nullable private JsonFieldSelector fields;
-
-        private ImmutablePayloadBuilder(final ImmutablePayload payload) {
-            path = payload.path;
-            value = payload.value;
-            extra = payload.extra;
-            status = payload.status;
-            revision = payload.revision;
-            timestamp = payload.timestamp;
-            fields = payload.fields;
-        }
 
         private ImmutablePayloadBuilder(@Nullable final JsonPointer path) {
             this.path = null != path ? ImmutableMessagePath.of(path) : null;

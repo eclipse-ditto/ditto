@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Instant;
 import java.util.Optional;
 
@@ -50,6 +52,26 @@ public interface Payload extends Jsonifiable<JsonObject> {
      */
     static PayloadBuilder newBuilder() {
         return ProtocolFactory.newPayloadBuilder();
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for creating a Payload.
+     * The returned builder is initialised with the values of the given payload.
+     *
+     * @param payload provides the initial properties of the returned builder.
+     * @return the builder.
+     * @throws NullPointerException if {@code payload} is {@code null}.
+     */
+    static PayloadBuilder newBuilder(final Payload payload) {
+        checkNotNull(payload, "payload");
+        final PayloadBuilder result = newBuilder(payload.getPath())
+                .withValue(payload.getValue().orElse(null))
+                .withExtra(payload.getExtra().orElse(null))
+                .withStatus(payload.getStatus().orElse(null))
+                .withTimestamp(payload.getTimestamp().orElse(null))
+                .withFields(payload.getFields().orElse(null));
+        payload.getRevision().ifPresent(result::withRevision);
+        return result;
     }
 
     /**
@@ -100,13 +122,6 @@ public interface Payload extends Jsonifiable<JsonObject> {
      * @return the optional fields.
      */
     Optional<JsonFieldSelector> getFields();
-
-    /**
-     * Returns a payload builder initialized with the values of this object.
-     *
-     * @return the payload builder.
-     */
-    PayloadBuilder toBuilder();
 
     /**
      * Json Fields of the Jsonifiable Payload.
