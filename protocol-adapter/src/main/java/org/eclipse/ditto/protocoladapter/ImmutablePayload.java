@@ -200,7 +200,13 @@ final class ImmutablePayload implements Payload {
         @Nullable private JsonFieldSelector fields;
 
         private ImmutablePayloadBuilder(@Nullable final JsonPointer path) {
-            this.path = null != path ? ImmutableMessagePath.of(path) : null;
+            if (path instanceof MessagePath) {
+                this.path = (MessagePath) path;
+            } else if (null != path) {
+                this.path = ImmutableMessagePath.of(path);
+            } else {
+                this.path = null;
+            }
             value = null;
             extra = null;
             status = null;

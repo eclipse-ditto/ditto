@@ -134,7 +134,8 @@ public final class ImmutablePayloadTest {
 
     @Test
     public void toBuilderMaintainsIdentity() {
-        assertThat(knownPayload.toBuilder().build()).isEqualTo(knownPayload);
+        final Payload payload = Payload.newBuilder(knownPayload).build();
+        assertThat(payload).isEqualTo(knownPayload);
     }
 
 }
