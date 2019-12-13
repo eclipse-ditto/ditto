@@ -66,18 +66,8 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <!-- getId() is still available but implemented in WithIdButActuallyNot interface -->
-                            <exclude>org.eclipse.ditto.signals.commands.common.CommonCommand#getId()</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.common.CommonCommandResponse#getId()</exclude>
-
-                            <!-- getEntityId() has been added on purpose -->
-                            <exclude>org.eclipse.ditto.signals.commands.common.CommonCommand#getEntityId()</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.common.CommonCommandResponse#getEntityId()</exclude>
-
-                            <exclude>
-                                <!-- this method was added on purpose -->
-                                org.eclipse.ditto.signals.commands.common.ShutdownReason#isRelevantFor(java.lang.Object)
-                            </exclude>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>
