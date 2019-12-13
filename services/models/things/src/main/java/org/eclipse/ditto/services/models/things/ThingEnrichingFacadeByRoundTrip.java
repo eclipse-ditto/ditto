@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.things.facade;
+package org.eclipse.ditto.services.models.things;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -30,28 +30,26 @@ import akka.pattern.Patterns;
 /**
  * Retrieve fixed parts of things by asking an actor.
  */
-final class PartialThingFacadeByRoundTrip implements PartialThingFacade {
+final class ThingEnrichingFacadeByRoundTrip implements ThingEnrichingFacade {
 
-    private final JsonFieldSelector jsonFieldSelector;
     private final ActorRef commandHandler;
     private final Duration askTimeout;
 
-    PartialThingFacadeByRoundTrip(final JsonFieldSelector jsonFieldSelector,
-            final ActorRef commandHandler, final Duration askTimeout) {
-        this.jsonFieldSelector = jsonFieldSelector;
+    ThingEnrichingFacadeByRoundTrip(final ActorRef commandHandler, final Duration askTimeout) {
         this.commandHandler = commandHandler;
         this.askTimeout = askTimeout;
     }
 
     @Override
-    public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId, final DittoHeaders dittoHeaders) {
+    public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
+            final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders) {
 
         final RetrieveThing command =
                 RetrieveThing.getBuilder(thingId, dittoHeaders).withSelectedFields(jsonFieldSelector).build();
 
         final CompletionStage<Object> askResult = Patterns.ask(commandHandler, command, askTimeout);
 
-        return askResult.thenCompose(PartialThingFacadeByRoundTrip::extractPartialThing);
+        return askResult.thenCompose(ThingEnrichingFacadeByRoundTrip::extractPartialThing);
     }
 
     private static CompletionStage<JsonObject> extractPartialThing(final Object object) {

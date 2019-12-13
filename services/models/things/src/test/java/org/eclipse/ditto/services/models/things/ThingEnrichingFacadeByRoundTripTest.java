@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.things.facade;
+package org.eclipse.ditto.services.models.things;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import akka.pattern.AskTimeoutException;
 
-public final class PartialThingFacadeByRoundTripTest {
+public final class ThingEnrichingFacadeByRoundTripTest {
 
     private static final JsonFieldSelector SELECTOR =
             JsonFieldSelector.newInstance("policyId,attributes/x,features/y/properties/z");
@@ -39,11 +39,11 @@ public final class PartialThingFacadeByRoundTripTest {
     public void success() {
         DittoTestSystem.run(this, kit -> {
             // GIVEN: PartialThingFacadeByRoundTrip.retrievePartialThing()
-            final PartialThingFacade underTest =
-                    PartialThingFacade.byRoundTrip(kit.getRef(), SELECTOR, Duration.ofSeconds(10L));
+            final ThingEnrichingFacade underTest =
+                    new ThingEnrichingFacadeByRoundTrip(kit.getRef(), Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
-            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, headers);
+            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, SELECTOR, headers);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
             kit.expectMsg(RetrieveThing.getBuilder(thingId, headers).withSelectedFields(SELECTOR).build());
@@ -64,11 +64,11 @@ public final class PartialThingFacadeByRoundTripTest {
     public void thingNotAccessible() {
         DittoTestSystem.run(this, kit -> {
             // GIVEN: PartialThingFacadeByRoundTrip.retrievePartialThing()
-            final PartialThingFacade underTest =
-                    PartialThingFacade.byRoundTrip(kit.getRef(), SELECTOR, Duration.ofSeconds(10L));
+            final ThingEnrichingFacade underTest =
+                    new ThingEnrichingFacadeByRoundTrip(kit.getRef(), Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
-            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, headers);
+            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, SELECTOR, headers);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with ThingNotAccessibleException
             kit.expectMsg(RetrieveThing.getBuilder(thingId, headers).withSelectedFields(SELECTOR).build());
@@ -86,11 +86,11 @@ public final class PartialThingFacadeByRoundTripTest {
     public void unexpectedMessage() {
         DittoTestSystem.run(this, kit -> {
             // GIVEN: PartialThingFacadeByRoundTrip.retrievePartialThing()
-            final PartialThingFacade underTest =
-                    PartialThingFacade.byRoundTrip(kit.getRef(), SELECTOR, Duration.ofSeconds(10L));
+            final ThingEnrichingFacade underTest =
+                    new ThingEnrichingFacadeByRoundTrip(kit.getRef(), Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
-            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, headers);
+            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, SELECTOR, headers);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with a random object
             kit.expectMsg(RetrieveThing.getBuilder(thingId, headers).withSelectedFields(SELECTOR).build());
@@ -109,11 +109,11 @@ public final class PartialThingFacadeByRoundTripTest {
     public void timeout() {
         DittoTestSystem.run(this, kit -> {
             // GIVEN: PartialThingFacadeByRoundTrip.retrievePartialThing() with a short timeout
-            final PartialThingFacade underTest =
-                    PartialThingFacade.byRoundTrip(kit.getRef(), SELECTOR, Duration.ofMillis(1L));
+            final ThingEnrichingFacade underTest =
+                    new ThingEnrichingFacadeByRoundTrip(kit.getRef(), Duration.ofMillis(1L));
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
-            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, headers);
+            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, SELECTOR, headers);
 
             // WHEN: Command handler does not respond
             kit.expectMsg(RetrieveThing.getBuilder(thingId, headers).withSelectedFields(SELECTOR).build());
