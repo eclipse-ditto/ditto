@@ -46,6 +46,7 @@
                         </goals>
                         <configuration>
                             <includes>
+                                <include>org/eclipse/ditto/signals/base/*</include>
                                 <include>org/eclipse/ditto/signals/base/assertions/*</include>
                             </includes>
                         </configuration>
