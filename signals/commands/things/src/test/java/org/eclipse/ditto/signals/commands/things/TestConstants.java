@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
@@ -56,11 +57,13 @@ import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotMo
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
+import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingDefinitionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotCreatableException;
@@ -180,7 +183,16 @@ public final class TestConstants {
          */
         public static final ThingId THING_ID = ThingId.of("example.com", "testThing");
 
+        /**
+         * A known PolicyID of a Thing.
+         */
         public static final PolicyId POLICY_ID = PolicyId.of("example.com:testPolicy");
+
+        /**
+         * A known Definition of a Thing.
+         */
+        public static final ThingDefinition DEFINITION = ThingsModelFactory.newDefinition("example:test" +
+                ":definition");
 
         /**
          * A known lifecycle of a Thing.
@@ -227,6 +239,7 @@ public final class TestConstants {
         public static final org.eclipse.ditto.model.things.Thing THING = ThingsModelFactory.newThingBuilder()
                 .setId(THING_ID)
                 .setAttributes(ATTRIBUTES)
+                .setDefinition(DEFINITION)
                 .setFeatures(Feature.FEATURES)
                 .setLifecycle(LIFECYCLE)
                 .setPolicyId(POLICY_ID)
@@ -295,18 +308,6 @@ public final class TestConstants {
          */
         public static final PolicyIdNotAllowedException POLICY_ID_NOT_ALLOWED_EXCEPTION =
                 PolicyIdNotAllowedException.newBuilder(THING_ID).build();
-
-        /**
-         * List of required policy permissions for a Thing.
-         */
-        public static Collection<String> REQUIRED_THING_PERMISSIONS = Arrays.asList("READ", "WRITE");
-
-        /**
-         * A known {@code PolicyInvalidException}.
-         */
-        public static final PolicyInvalidException POLICY_INVALID_EXCEPTION =
-                PolicyInvalidException.newBuilder(REQUIRED_THING_PERMISSIONS, THING_ID).build();
-
         /**
          * A known {@code PolicyNotAllowedException}.
          */
@@ -314,49 +315,63 @@ public final class TestConstants {
                 PolicyNotAllowedException.newBuilder(THING_ID).build();
 
         /**
+         * A known {@code PolicyIdNotAccessibleException}.
+         */
+        public static final PolicyIdNotAccessibleException POLICY_ID_NOT_ACCESSIBLE_EXCEPTION =
+                PolicyIdNotAccessibleException.newBuilder(THING_ID).build();
+
+        /**
+         * A known {@code ThingDefinitionNotAccessibleException}.
+         */
+        public static final ThingDefinitionNotAccessibleException THING_DEFINITION_NOT_ACCESSIBLE_EXCEPTION =
+                ThingDefinitionNotAccessibleException.newBuilder(THING_ID).build();
+
+        /**
          * A known {@code AttributesNotAccessibleException}.
          */
         public static final AttributesNotAccessibleException ATTRIBUTES_NOT_ACCESSIBLE_EXCEPTION =
                 AttributesNotAccessibleException.newBuilder(THING_ID).build();
-
         /**
          * A known {@code AttributesNotModifiableException}.
          */
         public static final AttributesNotModifiableException ATTRIBUTES_NOT_MODIFIABLE_EXCEPTION =
                 AttributesNotModifiableException.newBuilder(THING_ID).build();
-
         /**
          * A known {@code AttributeNotAccessibleException}.
          */
         public static final AttributeNotAccessibleException ATTRIBUTE_NOT_ACCESSIBLE_EXCEPTION =
                 AttributeNotAccessibleException.newBuilder(THING_ID, LOCATION_ATTRIBUTE_POINTER).build();
-
         /**
          * A known {@code AttributeNotModifiableException}.
          */
         public static final AttributeNotModifiableException ATTRIBUTE_NOT_MODIFIABLE_EXCEPTION =
                 AttributeNotModifiableException.newBuilder(THING_ID, LOCATION_ATTRIBUTE_POINTER).build();
-
         /**
          * A known {@code AttributePointerInvalidException}.
          */
         public static final AttributePointerInvalidException ATTRIBUTE_POINTER_INVALID_EXCEPTION =
                 AttributePointerInvalidException.newBuilder(LOCATION_ATTRIBUTE_POINTER).build();
-
         /**
          * A known {@code ThingUnavailableException}.
          */
         public static final ThingUnavailableException THING_UNAVAILABLE_EXCEPTION =
                 ThingUnavailableException.newBuilder(THING_ID).build();
-
         /**
          * A known {@code ThingTooManyModifyingRequestsException}.
          */
         public static final ThingTooManyModifyingRequestsException THING_TOO_MANY_MODIFYING_REQUESTS_EXCEPTION =
                 ThingTooManyModifyingRequestsException.newBuilder(THING_ID).build();
-
         public static final MissingThingIdsException MISSING_THING_IDS_EXCEPTION =
                 MissingThingIdsException.newBuilder().build();
+        /**
+         * List of required policy permissions for a Thing.
+         */
+        public static Collection<String> REQUIRED_THING_PERMISSIONS = Arrays.asList("READ", "WRITE");
+        /**
+         * A known {@code PolicyInvalidException}.
+         */
+        public static final PolicyInvalidException POLICY_INVALID_EXCEPTION =
+                PolicyInvalidException.newBuilder(REQUIRED_THING_PERMISSIONS, THING_ID).build();
 
         private Thing() {
             throw new AssertionError();

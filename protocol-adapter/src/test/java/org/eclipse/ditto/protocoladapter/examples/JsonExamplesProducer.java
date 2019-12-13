@@ -68,10 +68,10 @@ import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.AclInvalidException;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.DefinitionIdentifierInvalidException;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureDefinitionEmptyException;
-import org.eclipse.ditto.model.things.FeatureDefinitionIdentifierInvalidException;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
@@ -1293,8 +1293,8 @@ class JsonExamplesProducer {
         writeJson(exceptionsDir.resolve(Paths.get("featureDefinitionEmptyException.json")),
                 featureDefinitionEmptyException);
 
-        final FeatureDefinitionIdentifierInvalidException definitionIdentifierInvalidException =
-                FeatureDefinitionIdentifierInvalidException.newBuilder("foo:bar")
+        final DefinitionIdentifierInvalidException definitionIdentifierInvalidException =
+                DefinitionIdentifierInvalidException.newBuilder("foo:bar")
                         .dittoHeaders(DITTO_HEADERS).build();
         writeJson(exceptionsDir.resolve(Paths.get("definitionIdentifierInvalidException.json")),
                 definitionIdentifierInvalidException);

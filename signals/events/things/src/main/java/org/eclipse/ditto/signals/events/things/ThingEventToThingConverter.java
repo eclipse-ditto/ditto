@@ -86,6 +86,12 @@ public final class ThingEventToThingConverter {
                 ((AttributeModified) te).getAttributeValue()).build());
         mappers.put(AttributeDeleted.class, (te, tb) -> tb.build());
 
+        mappers.put(ThingDefinitionCreated.class,
+                (te, tb) -> tb.setDefinition(((ThingDefinitionCreated) te).getThingDefinition()).build());
+        mappers.put(ThingDefinitionModified.class,
+                (te, tb) -> tb.setDefinition(((ThingDefinitionModified) te).getThingDefinition()).build());
+        mappers.put(ThingDefinitionDeleted.class, (te, tb) -> tb.build());
+
         mappers.put(FeaturesCreated.class, (te, tb) -> tb.setFeatures(((FeaturesCreated) te).getFeatures()).build());
         mappers.put(FeaturesModified.class, (te, tb) -> tb.setFeatures(((FeaturesModified) te).getFeatures()).build());
         mappers.put(FeaturesDeleted.class, (te, tb) -> tb.build());

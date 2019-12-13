@@ -124,6 +124,7 @@ A `Thing` in API 2 has the following JSON structure:
 {
   "thingId": "{thingId}",
   "policyId": "{policyId}",
+  "definition": "{definition}",
   "attributes": {
   
   },
@@ -136,6 +137,7 @@ A `Thing` in API 2 has the following JSON structure:
 This maps to the following HTTP API endpoints:
 * `/things/{thingId}`: accessing a complete specific thing
 * `/things/{thingId}/policyId`: accessing the policy ID of the specific thing
+* `/things/{thingId}/definition`: accessing the definition of the specific thing
 * `/things/{thingId}/attributes`: accessing the attributes of the specific thing
 * `/things/{thingId}/features`: accessing the features of the specific thing
 
@@ -151,6 +153,7 @@ For example for a `Thing` with following content:
 {
   "thingId": "{thingId}",
   "policyId": "{policyId}",
+  "definition": "{definition}",
   "attributes": {
     "manufacturer": "ACME corp",
     "complex": {
@@ -231,6 +234,7 @@ Instead of
 {
   "thingId": "{thingId}",
   "policyId": "{policyId}",
+  "definition": "{definition}",
   "attributes": {
     "manufacturer": "ACME corp",
     "complex": {
@@ -280,6 +284,7 @@ Given, you have the following Thing:
 {
   "thingId": "{thingId}",
   "policyId": "{policyId}",
+  "definition": "{definition}",
   "attributes": {
     "manufacturer": "ACME corp",
     "complex": {
@@ -496,6 +501,7 @@ Response:
 {
   "thingId": "{thingId}",
   "policyId": "{policyId}",
+  "definition": "{definition}",
   "attributes": {
     "manufacturer": "ACME crop",
     "otherData": 4711

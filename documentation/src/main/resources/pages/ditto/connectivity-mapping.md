@@ -267,19 +267,21 @@ Ditto comes with a few helper functions, which makes writing the mapping scripts
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
+ * @param {number} status - The status code that indicates the result of the command.
  * @returns {DittoProtocolMessage} dittoProtocolMessage - 
  *  the mapped Ditto Protocol message or 
  *  <code>null</code> if the message could/should not be mapped
  */
-let buildDittoProtocolMsg = function(namespace, id, group, channel, criterion, action, path, dittoHeaders, value) {
+function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status) {
 
     let dittoProtocolMsg = {};
     dittoProtocolMsg.topic = namespace + "/" + id + "/" + group + "/" + channel + "/" + criterion + "/" + action;
     dittoProtocolMsg.path = path;
     dittoProtocolMsg.headers = dittoHeaders;
     dittoProtocolMsg.value = value;
+    dittoProtocolMsg.status = status;
     return dittoProtocolMsg;
-};
+}
 
 /**
  * Builds an external message from the passed parameters.
@@ -291,7 +293,7 @@ let buildDittoProtocolMsg = function(namespace, id, group, channel, criterion, a
  *  the mapped external message
  *  or <code>null</code> if the message could/should not be mapped
  */
-let buildExternalMsg = function(headers, textPayload, bytePayload, contentType) {
+function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
 
     let externalMsg = {};
     externalMsg.headers = headers;
@@ -299,7 +301,7 @@ let buildExternalMsg = function(headers, textPayload, bytePayload, contentType) 
     externalMsg.bytePayload = bytePayload;
     externalMsg.contentType = contentType;
     return externalMsg;
-};
+}
 
 /**
  * Transforms the passed ArrayBuffer to a String interpreting the content of the passed arrayBuffer as unsigned 8
@@ -308,10 +310,10 @@ let buildExternalMsg = function(headers, textPayload, bytePayload, contentType) 
  * @param {ArrayBuffer} arrayBuffer the ArrayBuffer to transform to a String
  * @returns {String} the transformed String
  */
-let arrayBufferToString = function(arrayBuffer) {
+function arrayBufferToString(arrayBuffer) {
 
     return String.fromCharCode.apply(null, new Uint8Array(arrayBuffer));
-};
+}
 
 /**
  * Transforms the passed String to an ArrayBuffer using unsigned 8 bit integers.
@@ -319,7 +321,7 @@ let arrayBufferToString = function(arrayBuffer) {
  * @param {String} string the String to transform to an ArrayBuffer
  * @returns {ArrayBuffer} the transformed ArrayBuffer
  */
-let stringToArrayBuffer = function(string) {
+function stringToArrayBuffer(string) {
 
     let buf = new ArrayBuffer(string.length);
     let bufView = new Uint8Array(buf);
@@ -327,7 +329,7 @@ let stringToArrayBuffer = function(string) {
         bufView[i] = string.charCodeAt(i);
     }
     return buf;
-};
+}
 
 /**
  * Transforms the passed ArrayBuffer to a {ByteBuffer} (from bytebuffer.js library which needs to be loaded).
@@ -335,12 +337,12 @@ let stringToArrayBuffer = function(string) {
  * @param {ArrayBuffer} arrayBuffer the ArrayBuffer to transform
  * @returns {ByteBuffer} the transformed ByteBuffer
  */
-let asByteBuffer = function(arrayBuffer) {
+function asByteBuffer(arrayBuffer) {
     
     let byteBuffer = new ArrayBuffer(arrayBuffer.byteLength);
     new Uint8Array(byteBuffer).set(new Uint8Array(arrayBuffer));
     return dcodeIO.ByteBuffer.wrap(byteBuffer);
-};
+}
 ```
 
 ### Mapping incoming messages
@@ -379,12 +381,13 @@ function mapToDittoProtocolMsg(
         action,
         path,
         dittoHeaders,
-        value
+        value,
+        status
     );
 }
 ```
 
-The result of the function has to be an JavaScript object in [Ditto Protocol](protocol-overview.html) or an array of 
+The result of the function has to be a JavaScript object in [Ditto Protocol](protocol-overview.html) or an array of 
 such JavaScript objects. That's where the helper method `Ditto.buildDittoProtocolMsg` is useful: it explicitly 
 defines which parameters are required for the Ditto Protocol message.
 
@@ -405,6 +408,7 @@ can be mapped to external messages by implementing the following JavaScript func
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
+ * @param {number} status - The status code that indicates the result of the command.
  * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage -
  *  The mapped external message,
  *  an array of external messages or
@@ -419,7 +423,8 @@ function mapFromDittoProtocolMsg(
     action,
     path,
     dittoHeaders,
-    value
+    value,
+    status
 ) {
 
     // ###

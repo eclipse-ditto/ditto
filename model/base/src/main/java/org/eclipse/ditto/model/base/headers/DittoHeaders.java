@@ -89,16 +89,6 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     }
 
     /**
-     * Returns a mutable builder with a fluent API for immutable {@code DittoHeaders}. The builder is initialised with
-     * the entries of this instance.
-     *
-     * @return the new builder.
-     */
-    default DittoHeadersBuilder toBuilder() {
-        return DefaultDittoHeadersBuilder.of(this);
-    }
-
-    /**
      * Creates a single-line String representation of the passed {@code readSubjects} which were retrieved by the
      * {@link #getReadSubjects()} of the DittoHeaders instance. Used when transmitting via a messaging header.
      *
@@ -122,6 +112,16 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     @Deprecated
     static Set<String> readSubjectsFromString(final String readSubjectsString) {
         return new HashSet<>(Arrays.asList(readSubjectsString.split(",")));
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for immutable {@code DittoHeaders}. The builder is initialised with
+     * the entries of this instance.
+     *
+     * @return the new builder.
+     */
+    default DittoHeadersBuilder toBuilder() {
+        return DefaultDittoHeadersBuilder.of(this);
     }
 
     /**

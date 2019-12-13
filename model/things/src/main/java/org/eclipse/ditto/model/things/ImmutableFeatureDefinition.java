@@ -38,9 +38,9 @@ import org.eclipse.ditto.json.JsonValue;
 @Immutable
 final class ImmutableFeatureDefinition implements FeatureDefinition {
 
-    private final List<Identifier> identifierList;
+    private final List<DefinitionIdentifier> identifierList;
 
-    private ImmutableFeatureDefinition(final Collection<Identifier> identifiers) {
+    private ImmutableFeatureDefinition(final Collection<DefinitionIdentifier> identifiers) {
         identifierList = Collections.unmodifiableList(new ArrayList<>(identifiers));
     }
 
@@ -52,7 +52,7 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
      * @return the instance.
      * @throws NullPointerException if {@code featureDefinitionEntriesAsJsonArray} is {@code null}.
      * @throws FeatureDefinitionEmptyException if {@code featureDefinitionEntriesAsJsonArray} is empty.
-     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier string of the array is invalid.
+     * @throws DefinitionIdentifierInvalidException if any Identifier string of the array is invalid.
      */
     public static ImmutableFeatureDefinition fromJson(final JsonArray featureDefinitionEntriesAsJsonArray) {
         checkNotNull(featureDefinitionEntriesAsJsonArray, "JSON array containing the FeatureDefinition entries");
@@ -60,7 +60,7 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
             throw new FeatureDefinitionEmptyException();
         }
 
-        final List<Identifier> identifiersFromJson = featureDefinitionEntriesAsJsonArray.stream()
+        final List<DefinitionIdentifier> identifiersFromJson = featureDefinitionEntriesAsJsonArray.stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
                 .map(ImmutableFeatureDefinitionIdentifier::ofParsed)
@@ -76,12 +76,12 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
      * @return the builder.
      * @throws NullPointerException if {@code firstIdentifier} is {@code null}.
      */
-    public static Builder getBuilder(final Identifier firstIdentifier) {
+    public static Builder getBuilder(final DefinitionIdentifier firstIdentifier) {
         return Builder.getInstance().add(checkNotNull(firstIdentifier, "first identifier"));
     }
 
     @Override
-    public Identifier getFirstIdentifier() {
+    public DefinitionIdentifier getFirstIdentifier() {
         return identifierList.get(0);
     }
 
@@ -91,19 +91,19 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
     }
 
     @Override
-    public Stream<Identifier> stream() {
+    public Stream<DefinitionIdentifier> stream() {
         return identifierList.stream();
     }
 
     @Override
-    public Iterator<Identifier> iterator() {
+    public Iterator<DefinitionIdentifier> iterator() {
         return identifierList.iterator();
     }
 
     @Override
     public JsonArray toJson() {
         return identifierList.stream()
-                .map(Identifier::toString)
+                .map(DefinitionIdentifier::toString)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray());
     }
@@ -134,7 +134,7 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
 
     public static final class Builder implements FeatureDefinitionBuilder {
 
-        private final Set<Identifier> identifiers;
+        private final Set<DefinitionIdentifier> identifiers;
 
         /**
          * Constructs a new {@code Builder} object.
@@ -158,7 +158,7 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
             return this;
         }
 
-        private static Identifier castOrParse(final CharSequence identifierAsCharSequence) {
+        private static DefinitionIdentifier castOrParse(final CharSequence identifierAsCharSequence) {
             return ThingsModelFactory.newFeatureDefinitionIdentifier(identifierAsCharSequence);
         }
 
@@ -181,7 +181,7 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
         }
 
         @Override
-        public Identifier getFirstIdentifier() {
+        public DefinitionIdentifier getFirstIdentifier() {
             return iterator().next();
         }
 
@@ -191,12 +191,12 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
         }
 
         @Override
-        public Stream<Identifier> stream() {
+        public Stream<DefinitionIdentifier> stream() {
             return identifiers.stream();
         }
 
         @Override
-        public Iterator<Identifier> iterator() {
+        public Iterator<DefinitionIdentifier> iterator() {
             return identifiers.iterator();
         }
 

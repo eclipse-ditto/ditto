@@ -28,6 +28,7 @@ public final class ThingsFieldExpressionFactoryImplTest {
     private static final String KNOWN_FEATURE = "features/" + KNOWN_FEATURE_ID;
     private static final String KNOWN_FEATURE_PROPERTY_WITH_ID =
             "features/" + KNOWN_FEATURE_ID + "/properties/" + KNOWN_STRING;
+    private static final String KNOWN_THING_DEFINITION = "definition/example:test:definition";
 
     private final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
 
@@ -184,4 +185,28 @@ public final class ThingsFieldExpressionFactoryImplTest {
         final SortFieldExpression expected = new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_ID);
         assertThat(fieldExpression).isEqualTo(expected);
     }
+
+    @Test
+    public void filterByDefinition() {
+        final FilterFieldExpression fieldExpression = ef.filterBy(KNOWN_THING_DEFINITION);
+
+        final FilterFieldExpression expected = new SimpleFieldExpressionImpl(KNOWN_THING_DEFINITION);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+    @Test
+    public void sortByDefinition() {
+        final SortFieldExpression fieldExpression = ef.sortBy(KNOWN_THING_DEFINITION);
+
+        final SortFieldExpression expected = new SimpleFieldExpressionImpl(KNOWN_THING_DEFINITION);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+    @Test
+    public void existsByWithDefinition() {
+        final FieldExpression fieldExpression = ef.existsBy(KNOWN_THING_DEFINITION);
+
+        final ExistsFieldExpression expected = new SimpleFieldExpressionImpl(KNOWN_THING_DEFINITION);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
 }

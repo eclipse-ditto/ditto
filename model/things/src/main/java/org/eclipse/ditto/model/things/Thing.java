@@ -233,6 +233,29 @@ public interface Thing extends Entity<ThingRevision> {
     Thing removeAttribute(JsonPointer attributePath);
 
     /**
+     * Gets the definition of this Thing.
+     *
+     * @return the Definition of this Thing.
+     */
+    Optional<ThingDefinition> getDefinition();
+
+    /**
+     * Sets the definition on a copy of this Thing.
+     *
+     * @param definitionIdentifier the Thing's definition to set.
+     * @return a copy of this Thing with the given definition.
+     * @throws DefinitionIdentifierInvalidException if {@code definitionIdentifier} is invalid.
+     */
+    Thing setDefinition(@Nullable CharSequence definitionIdentifier);
+
+    /**
+     * Removes the Thing's definition on a copy of this Thing.
+     *
+     * @return a copy of this Thing without definition.
+     */
+    Thing removeDefinition();
+
+    /**
      * Sets the given definition of a Feature on a copy of this Thing.
      *
      * @param featureId the ID of the Feature.
@@ -467,13 +490,6 @@ public interface Thing extends Entity<ThingRevision> {
     }
 
     /**
-     * Returns the Policy ID of this Thing.
-     *
-     * @return the Policy ID of this Thing.
-     */
-    Optional<PolicyId> getPolicyEntityId();
-
-    /**
      * Sets the given Policy ID on a copy of this Thing.
      *
      * @param policyId the Policy ID to set.
@@ -492,6 +508,13 @@ public interface Thing extends Entity<ThingRevision> {
      * @return a copy of this Thing with {@code policyId} as its Policy ID.
      */
     Thing setPolicyId(@Nullable PolicyId policyId);
+
+    /**
+     * Returns the Policy ID of this Thing.
+     *
+     * @return the Policy ID of this Thing.
+     */
+    Optional<PolicyId> getPolicyEntityId();
 
     /**
      * Returns the Features of this Thing.
@@ -537,6 +560,7 @@ public interface Thing extends Entity<ThingRevision> {
      */
     @Deprecated
     default void validate(DittoHeaders headers) { }
+
     /**
      * An enumeration of the known {@link JsonField}s of a Thing.
      */
@@ -596,6 +620,13 @@ public interface Thing extends Entity<ThingRevision> {
          */
         public static final JsonFieldDefinition<String> POLICY_ID =
                 JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Thing's definition.
+         */
+        public static final JsonFieldDefinition<JsonValue> DEFINITION =
+                JsonFactory.newJsonValueFieldDefinition("definition", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's attributes.
