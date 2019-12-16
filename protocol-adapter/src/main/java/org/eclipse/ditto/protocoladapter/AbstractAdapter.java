@@ -106,7 +106,7 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
 
         if (thingIdOptional.isPresent()) {
             if (!thingIdOptional.get().equals(thingIdFromTopic)) {
-                throw ThingIdNotExplicitlySettableException.forWebSocket().build();
+                throw ThingIdNotExplicitlySettableException.forDittoProtocol().build();
             }
             return thing;
         } else {

@@ -52,10 +52,10 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
     private static final String DEFAULT_DESCRIPTION_PUT =
             "Either delete the Thing ID from the request body or use the same Thing ID as in the request URL.";
 
-    private static final String MESSAGE_TEMPLATE_WS =
+    private static final String MESSAGE_TEMPLATE_DITTO_PROTOCOL =
             "The Thing ID in the thing JSON is not equal to the Thing ID in the topic path.";
 
-    private static final String DEFAULT_DESCRIPTION_WS =
+    private static final String DEFAULT_DESCRIPTION_DITTO_PROTOCOL =
             "Either delete the Thing ID from the thing JSON or use the same Thing ID as in the topic path.";
 
     private static final long serialVersionUID = 5477658033219182854L;
@@ -75,7 +75,7 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
      * {@code false}).
      * @return the builder.
      * @deprecated this is legacy use where we only needed to distinguish between put and post. Now whe have a third
-     * option "websocket" as well.
+     * option "ditto protocol" as well.
      */
     public static Builder newBuilder(final boolean isPostMethod) {
         return isPostMethod ? forPostMethod() : forPutMethod();
@@ -89,8 +89,8 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
         return new Builder(MESSAGE_TEMPLATE_PUT, DEFAULT_DESCRIPTION_PUT);
     }
 
-    public static Builder forWebSocket() {
-        return new Builder(MESSAGE_TEMPLATE_WS, DEFAULT_DESCRIPTION_WS);
+    public static Builder forDittoProtocol() {
+        return new Builder(MESSAGE_TEMPLATE_DITTO_PROTOCOL, DEFAULT_DESCRIPTION_DITTO_PROTOCOL);
     }
 
     /**
@@ -133,8 +133,8 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
                 return forPutMethod()
                         .dittoHeaders(dittoHeaders)
                         .build();
-            case MESSAGE_TEMPLATE_WS:
-                return forWebSocket()
+            case MESSAGE_TEMPLATE_DITTO_PROTOCOL:
+                return forDittoProtocol()
                         .dittoHeaders(dittoHeaders)
                         .build();
             default:
