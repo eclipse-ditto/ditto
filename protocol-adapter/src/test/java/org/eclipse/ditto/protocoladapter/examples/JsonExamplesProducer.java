@@ -1339,11 +1339,11 @@ class JsonExamplesProducer {
         writeJson(exceptionsDir.resolve(Paths.get("thingConflictException.json")), thingConflictException);
 
         final ThingIdNotExplicitlySettableException thingIdNotExplicitlySettableExceptionPost =
-                ThingIdNotExplicitlySettableException.newBuilder(true).build();
+                ThingIdNotExplicitlySettableException.forPostMethod().build();
         writeJson(exceptionsDir.resolve(Paths.get("thingIdNotExplicitlySettableException_post.json")),
                 thingIdNotExplicitlySettableExceptionPost);
         final ThingIdNotExplicitlySettableException thingIdNotExplicitlySettableExceptionPut =
-                ThingIdNotExplicitlySettableException.newBuilder(false).build();
+                ThingIdNotExplicitlySettableException.forPutMethod().build();
         writeJson(exceptionsDir.resolve(Paths.get("thingIdNotExplicitlySettableException_put.json")),
                 thingIdNotExplicitlySettableExceptionPut);
 
