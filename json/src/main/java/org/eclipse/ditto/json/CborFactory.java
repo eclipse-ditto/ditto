@@ -17,6 +17,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.text.MessageFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
@@ -34,16 +35,33 @@ public final class CborFactory {
         throw new AssertionError();
     }
 
-    public static JsonValue readFrom(final byte[] bytes) throws IOException {
-        return parseValue(jacksonCborFactory.createParser(bytes));
+    public static JsonValue readFrom(final byte[] bytes) {
+        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        try{
+            final CBORParser parser = jacksonCborFactory.createParser(bytes);
+            return parseValue(parser);
+        } catch (IOException e){
+            throw createJsonParseException(byteBuffer, e);
+        }
     }
 
-    public static JsonValue readFrom(final byte[] bytes, int offset, int length) throws IOException {
-        return parseValue(jacksonCborFactory.createParser(bytes, offset, length));
+    public static JsonValue readFrom(final byte[] bytes, int offset, int length) {
+        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, offset, length);
+        try{
+            final CBORParser parser = jacksonCborFactory.createParser(bytes, offset, length);
+            return parseValue(parser);
+        } catch (IOException e){
+            throw createJsonParseException(byteBuffer, e);
+        }
     }
 
-    public static JsonValue readFrom(ByteBuffer byteBuffer) throws IOException {
-        return parseValue(jacksonCborFactory.createParser(ByteBufferInputStream.of(byteBuffer)));
+    public static JsonValue readFrom(ByteBuffer byteBuffer) {
+        try{
+            final CBORParser parser = jacksonCborFactory.createParser(ByteBufferInputStream.of(byteBuffer));
+            return parseValue(parser);
+        } catch (IOException e){
+            throw createJsonParseException(byteBuffer, e);
+        }
     }
 
     public static byte[] toByteArray(JsonValue jsonValue) throws IOException {
@@ -59,6 +77,15 @@ public final class CborFactory {
     public static void writeToByteBuffer(JsonValue jsonValue, ByteBuffer byteBuffer) throws IOException {
         final ByteBufferOutputStream byteBufferOutputStream = new ByteBufferOutputStream(byteBuffer);
         writeToOutputStream(jsonValue, byteBufferOutputStream);
+    }
+
+    private static JsonParseException createJsonParseException(ByteBuffer byteBuffer, IOException e){
+        return JsonParseException.newBuilder()
+                .message(MessageFormat.format(
+                        "Failed to parse CBOR value ''{}''!",
+                        BinaryToHexConverter.tryToConvertToHexString(byteBuffer)))
+                .cause(e)
+                .build();
     }
 
     private static void writeToOutputStream(JsonValue jsonValue, OutputStream outputStream) throws IOException {

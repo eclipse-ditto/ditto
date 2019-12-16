@@ -52,13 +52,26 @@ public class BinaryToHexConverter {
         final StringBuilder stringBuilder = new StringBuilder(inputStream.available());
         int currentByte = inputStream.read();
         while (currentByte >= 0){
-            byteToHexChars((byte) currentByte, stringBuilder);
+            appendByte((byte) currentByte, stringBuilder);
             currentByte = inputStream.read();
         }
         return stringBuilder.toString();
     }
 
-    private static void byteToHexChars(byte b, StringBuilder result){
+    /**
+     * Converts the bytebuffer to an uppercase hexadecimal string.
+     * In case of internal errors an error message is returned instead.
+     */
+    public static String tryToConvertToHexString(ByteBuffer byteBuffer){
+        byteBuffer = byteBuffer.asReadOnlyBuffer(); // to avoid modifications especially to the position of the buffer
+        try {
+            return BinaryToHexConverter.toHexString(byteBuffer);
+        } catch (IOException e) {
+            return "Could not convert ByteBuffer to String due to " + e.getClass().getSimpleName();
+        }
+    }
+
+    private static void appendByte(byte b, StringBuilder result){
         result.append(HEXCHARACTERS[(b & 0xF0) >> 4]);
         result.append(HEXCHARACTERS[b & 0x0F]);
     }

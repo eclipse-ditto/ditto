@@ -39,7 +39,7 @@ public final class CborJsonifiableSerializer extends AbstractJsonifiableWithDitt
     }
 
     @Override
-    protected JsonValue deserializeFromByteBuffer(ByteBuffer byteBuffer) throws IOException {
+    protected JsonValue deserializeFromByteBuffer(ByteBuffer byteBuffer) {
         // TODO: potentially use the shortcut to array based stuff directly here?
         return CborFactory.readFrom(byteBuffer);
     }
