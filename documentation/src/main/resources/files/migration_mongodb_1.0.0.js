@@ -154,57 +154,6 @@ function dropAllToDelete() {
     .forEach(collectionName => db.getCollection(collectionName).drop());
 }
 
-function createJournalIndexes(collection) {
-  checkOk(db[collection].createIndex(
-    {
-      pid: 1,
-      from: 1,
-      to: 1
-    },
-    {
-      name: collection + '_index',
-      background: true,
-      unique: true
-    }));
-  checkOk(db[collection].createIndex(
-    {
-      pid: 1,
-      to: -1
-    },
-    {
-      name: 'max_sequence_sort',
-      background: true
-    }));
-  checkOk(db[collection].createIndex(
-    {
-      _tg: 1
-    },
-    {
-      name: 'journal_tag_index',
-      background: true
-    }));
-}
-
-function createSnapsIndexes(collection) {
-  checkOk(db[collection].createIndex(
-    {
-      pid: 1,
-      sn: -1,
-      ts: -1
-    },
-    {
-      name: collection + '_index',
-      background: true
-    }));
-}
-
-function createIndexes() {
-  createJournalIndexes(THINGS_JOURNAL);
-  createJournalIndexes(POLICIES_JOURNAL);
-  createSnapsIndexes(THINGS_SNAPS);
-  createSnapsIndexes(POLICIES_SNAPS);
-}
-
 /**
  * Migrate things and policies.
  * If any error aborts the migration, run 'revert()' to restore to previous state.
@@ -212,7 +161,6 @@ function createIndexes() {
 function migrate() {
   migratePolicies();
   migrateThings();
-  createIndexes();
   dropAllToDelete();
 }
 
@@ -233,3 +181,5 @@ function revert() {
 // Choose one of 'migrate()' or 'revert()'.
 migrate();
 // revert();
+
+// Expect high database resource consumption on service startup due to index creation.
