@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
+import java.util.AbstractMap;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
@@ -26,6 +27,8 @@ import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -47,7 +50,7 @@ public final class DefaultStreamingConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultStreamingConfig.class, areImmutable(),
-                provided(WebsocketConfig.class).isAlsoImmutable());
+                provided(Config.class, WebsocketConfig.class).isAlsoImmutable());
     }
 
     @Test
@@ -64,6 +67,14 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSessionCounterScrapeInterval())
                 .as(StreamingConfig.StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath())
                 .isEqualTo(StreamingConfig.StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getDefaultValue());
+
+        softly.assertThat(underTest.getThingEnrichmentProvider())
+                .as(StreamingConfig.StreamingConfigValue.THING_ENRICHMENT_PROVIDER.getConfigPath())
+                .isEmpty();
+
+        softly.assertThat(underTest.getThingEnrichmentConfig().entrySet())
+                .as(StreamingConfig.StreamingConfigValue.THING_ENRICHMENT_CONFIG.getConfigPath())
+                .isEmpty();
     }
 
     @Test
@@ -73,6 +84,13 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSessionCounterScrapeInterval())
                 .as(StreamingConfig.StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(67L));
+        softly.assertThat(underTest.getThingEnrichmentProvider())
+                .as(StreamingConfig.StreamingConfigValue.THING_ENRICHMENT_PROVIDER.getConfigPath())
+                .isEqualTo("MyEnrichmentProvider");
+        softly.assertThat(underTest.getThingEnrichmentConfig().root())
+                .as(StreamingConfig.StreamingConfigValue.THING_ENRICHMENT_CONFIG.getConfigPath())
+                .containsOnlyKeys("key")
+                .containsValue(ConfigValueFactory.fromAnyRef("value"));
         softly.assertThat(underTest.getWebsocketConfig().getThrottlingConfig().getInterval())
                 .as("websocket.throttling.interval")
                 .isEqualTo(Duration.ofSeconds(8L));

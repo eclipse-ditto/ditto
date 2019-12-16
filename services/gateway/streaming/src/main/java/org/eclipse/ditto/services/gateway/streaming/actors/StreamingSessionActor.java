@@ -23,6 +23,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
@@ -85,7 +87,7 @@ final class StreamingSessionActor extends AbstractActor {
     @SuppressWarnings("unused")
     private StreamingSessionActor(final String connectionCorrelationId, final String type,
             final DittoProtocolSub dittoProtocolSub, final ActorRef eventAndResponsePublisher,
-            final Instant sessionExpirationTime) {
+            @Nullable final Instant sessionExpirationTime) {
         this.connectionCorrelationId = connectionCorrelationId;
         this.type = type;
         this.dittoProtocolSub = dittoProtocolSub;
@@ -113,7 +115,7 @@ final class StreamingSessionActor extends AbstractActor {
      */
     static Props props(final String connectionCorrelationId, final String type,
             final DittoProtocolSub dittoProtocolSub, final ActorRef eventAndResponsePublisher,
-            final Instant sessionExpirationTime) {
+            @Nullable final Instant sessionExpirationTime) {
 
         return Props.create(StreamingSessionActor.class, connectionCorrelationId, type, dittoProtocolSub,
                 eventAndResponsePublisher, sessionExpirationTime);

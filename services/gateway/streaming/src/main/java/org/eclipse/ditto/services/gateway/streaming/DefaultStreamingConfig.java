@@ -30,11 +30,17 @@ public final class DefaultStreamingConfig implements StreamingConfig {
 
     private final Duration sessionCounterScrapeInterval;
     private final WebsocketConfig websocketConfig;
+    private final String thingEnrichmentProvider;
+    private final Config thingEnrichmentConfig;
 
     private DefaultStreamingConfig(final ScopedConfig scopedConfig) {
         sessionCounterScrapeInterval =
                 scopedConfig.getDuration(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath());
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
+        this.thingEnrichmentProvider =
+                scopedConfig.getString(StreamingConfigValue.THING_ENRICHMENT_PROVIDER.getConfigPath());
+        this.thingEnrichmentConfig =
+                scopedConfig.getConfig(StreamingConfigValue.THING_ENRICHMENT_CONFIG.getConfigPath());
     }
 
     /**
@@ -60,6 +66,16 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     }
 
     @Override
+    public String getThingEnrichmentProvider() {
+        return thingEnrichmentProvider;
+    }
+
+    @Override
+    public Config getThingEnrichmentConfig() {
+        return thingEnrichmentConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -69,18 +85,23 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         }
         final DefaultStreamingConfig that = (DefaultStreamingConfig) o;
         return Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
+                Objects.equals(thingEnrichmentProvider, that.thingEnrichmentProvider) &&
+                Objects.equals(thingEnrichmentConfig, that.thingEnrichmentConfig) &&
                 Objects.equals(websocketConfig, that.websocketConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sessionCounterScrapeInterval, websocketConfig);
+        return Objects.hash(sessionCounterScrapeInterval, thingEnrichmentProvider, thingEnrichmentConfig,
+                websocketConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "sessionCounterScrapeInterval=" + sessionCounterScrapeInterval +
+                ", thingEnrichmentProvider=" + thingEnrichmentProvider +
+                ", thingEnrichmentConfig=" + thingEnrichmentConfig +
                 ", websocketConfig=" + websocketConfig +
                 "]";
     }

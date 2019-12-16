@@ -30,7 +30,7 @@ import akka.pattern.Patterns;
 /**
  * Retrieve fixed parts of things by asking an actor.
  */
-final class ThingEnrichingFacadeByRoundTrip implements ThingEnrichingFacade {
+public final class ThingEnrichingFacadeByRoundTrip implements ThingEnrichingFacade {
 
     private final ActorRef commandHandler;
     private final Duration askTimeout;
@@ -38,6 +38,17 @@ final class ThingEnrichingFacadeByRoundTrip implements ThingEnrichingFacade {
     ThingEnrichingFacadeByRoundTrip(final ActorRef commandHandler, final Duration askTimeout) {
         this.commandHandler = commandHandler;
         this.askTimeout = askTimeout;
+    }
+
+    /**
+     * Create a thing-enriching facade that retrieves partial things by round-trip.
+     *
+     * @param commandHandler The recipient of retrieve-thing commands.
+     * @param askTimeout How long to wait for each response.
+     * @return The facade.
+     */
+    public static ThingEnrichingFacadeByRoundTrip of(final ActorRef commandHandler, final Duration askTimeout) {
+        return new ThingEnrichingFacadeByRoundTrip(commandHandler, askTimeout);
     }
 
     @Override
