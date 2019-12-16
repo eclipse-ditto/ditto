@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.models.things.ThingEnrichingFacadeByRoundTrip;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 
 /**
@@ -30,7 +31,11 @@ public final class ByRoundTripFacadeProvider implements ThingEnrichingFacadeProv
     private final ActorRef commandHandler;
     private final Duration askTimeout;
 
-    public ByRoundTripFacadeProvider(final ActorRef commandHandler, final Config config) {
+    // Called by reflection
+    @SuppressWarnings("unused")
+    public ByRoundTripFacadeProvider(final ActorSystem actorSystem,
+            final ActorRef commandHandler,
+            final Config config) {
         this.commandHandler = commandHandler;
         askTimeout = config.getDuration("ask-timeout");
     }

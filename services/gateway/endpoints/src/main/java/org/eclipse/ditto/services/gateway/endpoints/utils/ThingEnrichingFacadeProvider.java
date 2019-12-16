@@ -28,6 +28,7 @@ import akka.http.javadsl.model.HttpRequest;
  * Provider of {@link org.eclipse.ditto.services.models.things.ThingEnrichingFacade} to be loaded by reflection.
  * Implementations MUST have a public constructor taking the following parameters as arguments:
  * <ul>
+ * <li>ActorSystem actorSystem: actor system in which this provider is loaded,</li>
  * <li>ActorRef commandHandler: recipient of retrieve-thing commands,</li>
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
@@ -56,8 +57,8 @@ public interface ThingEnrichingFacadeProvider {
 
         return AkkaClassLoader.instantiate(actorSystem, ThingEnrichingFacadeProvider.class,
                 streamingConfig.getThingEnrichmentProvider(),
-                Arrays.asList(ActorRef.class, Config.class),
-                Arrays.asList(commandHandler, streamingConfig.getThingEnrichmentConfig())
+                Arrays.asList(ActorSystem.class, ActorRef.class, Config.class),
+                Arrays.asList(actorSystem, commandHandler, streamingConfig.getThingEnrichmentConfig())
         );
     }
 }
