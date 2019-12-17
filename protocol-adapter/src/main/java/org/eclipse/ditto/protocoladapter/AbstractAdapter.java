@@ -17,7 +17,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,7 +46,6 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
@@ -96,24 +94,10 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     }
 
     protected static Thing thingFrom(final Adaptable adaptable) {
-        final Thing thing = adaptable.getPayload().getValue()
+        return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
                 .map(ThingsModelFactory::newThing)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
-
-        final Optional<ThingId> thingIdOptional = thing.getEntityId();
-        final ThingId thingIdFromTopic = thingIdFrom(adaptable);
-
-        if (thingIdOptional.isPresent()) {
-            if (!thingIdOptional.get().equals(thingIdFromTopic)) {
-                throw ThingIdNotExplicitlySettableException.forDittoProtocol().build();
-            }
-            return thing;
-        } else {
-            return thing.toBuilder()
-                    .setId(thingIdFromTopic)
-                    .build();
-        }
     }
 
     protected static JsonArray thingsArrayFrom(final Adaptable adaptable) {

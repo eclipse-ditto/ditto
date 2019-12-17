@@ -21,6 +21,9 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -69,13 +72,8 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     private static Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies() {
         final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies = new HashMap<>();
 
-        mappingStrategies.put(CreateThing.TYPE,
-                adaptable -> CreateThing.of(thingFrom(adaptable), initialPolicyForCreateThingFrom(adaptable),
-                        policyIdOrPlaceholderForCreateThingFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(ModifyThing.TYPE,
-                adaptable -> ModifyThing.of(thingIdFrom(adaptable), thingFrom(adaptable),
-                        initialPolicyForModifyThingFrom(adaptable), policyIdOrPlaceholderForModifyThingFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(CreateThing.TYPE, ThingModifyCommandAdapter::createThingFrom);
+        mappingStrategies.put(ModifyThing.TYPE, ThingModifyCommandAdapter::modifyThingFrom);
         mappingStrategies.put(DeleteThing.TYPE,
                 adaptable -> DeleteThing.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
 
@@ -134,6 +132,37 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
                 featureIdFrom(adaptable), featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
+    }
+
+    private static CreateThing createThingFrom(final Adaptable adaptable) {
+        return CreateThing.of(thingToCreateOrModifyFrom(adaptable), initialPolicyForCreateThingFrom(adaptable),
+                policyIdOrPlaceholderForCreateThingFrom(adaptable), dittoHeadersFrom(adaptable));
+    }
+
+    private static ModifyThing modifyThingFrom(final Adaptable adaptable) {
+        final Thing thing = thingToCreateOrModifyFrom(adaptable);
+        final ThingId thingId = thing.getEntityId().orElseThrow(
+                () -> new IllegalStateException("ID should have been enforced in thingToCreateOrModifyFrom"));
+        return ModifyThing.of(thingId, thing, initialPolicyForModifyThingFrom(adaptable),
+                policyIdOrPlaceholderForModifyThingFrom(adaptable), dittoHeadersFrom(adaptable));
+    }
+
+    private static Thing thingToCreateOrModifyFrom(final Adaptable adaptable) {
+        final Thing thing = thingFrom(adaptable);
+
+        final Optional<ThingId> thingIdOptional = thing.getEntityId();
+        final ThingId thingIdFromTopic = thingIdFrom(adaptable);
+
+        if (thingIdOptional.isPresent()) {
+            if (!thingIdOptional.get().equals(thingIdFromTopic)) {
+                throw ThingIdNotExplicitlySettableException.forDittoProtocol().build();
+            }
+        } else {
+            return thing.toBuilder()
+                    .setId(thingIdFromTopic)
+                    .build();
+        }
+        return thing;
     }
 
     private static JsonObject initialPolicyForCreateThingFrom(final Adaptable adaptable) {
