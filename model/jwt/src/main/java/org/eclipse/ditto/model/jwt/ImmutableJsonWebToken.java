@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.jwt;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -68,11 +70,10 @@ public final class ImmutableJsonWebToken extends AbstractJsonWebToken {
      * @param token the token string.
      * @return the ImmutableJsonWebToken.
      * @throws NullPointerException if {@code token} is {@code null}.
+     * @throws IllegalArgumentException if {@code token} is empty.
      */
     public static JsonWebToken fromToken(final String token) {
-        checkNotNull(token, "token");
-        checkNotEmpty(token, "token");
-        return new ImmutableJsonWebToken(token);
+        return new ImmutableJsonWebToken(argumentNotEmpty(token, "token"));
     }
 
     @Override
@@ -81,7 +82,7 @@ public final class ImmutableJsonWebToken extends AbstractJsonWebToken {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
