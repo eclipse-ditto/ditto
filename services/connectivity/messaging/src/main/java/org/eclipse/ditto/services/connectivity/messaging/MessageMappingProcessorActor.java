@@ -19,23 +19,29 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.AbstractMap;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
@@ -51,6 +57,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.connectivity.mapping.ConnectionEnrichmentConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
@@ -63,17 +70,21 @@ import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessa
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
-import akka.actor.AbstractActor;
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Sink;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -81,7 +92,8 @@ import scala.util.Right;
 /**
  * This Actor processes incoming {@link Signal}s and dispatches them.
  */
-public final class MessageMappingProcessorActor extends AbstractActor {
+public final class MessageMappingProcessorActor extends
+        AbstractGraphActor<MessageMappingProcessorActor.OutboundSignalWithId, OutboundSignal> {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -95,6 +107,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final ConnectionId connectionId;
     private final ActorRef conciergeForwarder;
     private final LimitsConfig limitsConfig;
+    private final ConnectionEnrichmentConfig connectionEnrichmentConfig;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseDispatchedMonitor;
     private final ConnectionMonitor responseDroppedMonitor;
@@ -106,18 +119,21 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final MessageMappingProcessor messageMappingProcessor,
             final ConnectionId connectionId) {
 
+        super(OutboundSignal.class);
+
         this.conciergeForwarder = conciergeForwarder;
         this.clientActor = clientActor;
         this.messageMappingProcessor = messageMappingProcessor;
         this.connectionId = connectionId;
 
-        this.limitsConfig = DefaultLimitsConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
+        final DefaultScopedConfig dittoScoped =
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
+        this.limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
-        final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        ).getMonitoringConfig();
+        final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
+        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        connectionEnrichmentConfig = connectivityConfig.getConnectionEnrichmentConfig();
+
         this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connectionId);
@@ -143,19 +159,48 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     @Override
-    public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(ExternalMessage.class, this::handleInboundMessage)
-                .match(CommandResponse.class, this::handleCommandResponse)
-                .match(OutboundSignal.class, this::handleOutboundSignal)
-                .match(Signal.class, this::handleSignal)
-                .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
+    protected int getBufferSize() {
+        return connectionEnrichmentConfig.getBufferSize();
+    }
+
+    @Override
+    protected int getParallelism() {
+        return connectionEnrichmentConfig.getParallelism();
+    }
+
+    @Override
+    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
+        receiveBuilder
+                .match(ExternalMessage.class, this::handleInboundMessage)   // ExternalMessages are handled directly, without first putting them into a stream
+                .match(CommandResponse.class, this::handleCommandResponse)  // same for command responses
+                .match(Signal.class, this::handleSignal)                    // and all other Signals
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
-                        f.cause().getClass().getSimpleName(), f.cause().getMessage()))
-                .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
-                    unhandled(m);
-                }).build();
+                        f.cause().getClass().getSimpleName(), f.cause().getMessage()));
+    }
+
+    @Override
+    protected void handleDittoRuntimeException(final DittoRuntimeException exception) {
+        final ThingErrorResponse errorResponse = convertExceptionToErrorResponse(exception);
+        handleThingErrorResponse(exception, errorResponse);
+    }
+
+    @Override
+    protected OutboundSignalWithId mapMessage(final OutboundSignal message) {
+        // currently no need to further enhance the OutboundSignal with contextual information, so just use it:
+        return new OutboundSignalWithId(message, message.getSource().getEntityId());
+    }
+
+    @Override
+    protected Flow<OutboundSignalWithId, OutboundSignalWithId, NotUsed> processMessageFlow() {
+        // for now, don't pre-process the OutboundSignals:
+        return Flow.create();
+        // this is probably the place to do the "extra" fields enrichment
+    }
+
+    @Override
+    protected Sink<OutboundSignalWithId, ?> processedMessageSink() {
+        // simply handle each OutboundSignals:
+        return Sink.foreach(this::handleOutboundSignal);
     }
 
     private void handleInboundMessage(final ExternalMessage externalMessage) {
@@ -235,11 +280,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, signal, connectionId);
-    }
-
-    private void handleDittoRuntimeException(final DittoRuntimeException exception) {
-        final ThingErrorResponse errorResponse = convertExceptionToErrorResponse(exception);
-        handleThingErrorResponse(exception, errorResponse);
     }
 
     private void handleThingErrorResponse(final DittoRuntimeException exception,
@@ -504,6 +544,40 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             builder.correlationId(UUID.randomUUID().toString());
         }
         return builder;
+    }
+
+    /**
+     *
+     */
+    static class OutboundSignalWithId implements OutboundSignal, WithId {
+
+        private final OutboundSignal delegate;
+        private final EntityId entityId;
+
+        private OutboundSignalWithId(final OutboundSignal delegate, final EntityId entityId) {
+            this.delegate = delegate;
+            this.entityId = entityId;
+        }
+
+        @Override
+        public Signal<?> getSource() {
+            return delegate.getSource();
+        }
+
+        @Override
+        public List<Target> getTargets() {
+            return delegate.getTargets();
+        }
+
+        @Override
+        public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
+            return delegate.toJson(schemaVersion, predicate);
+        }
+
+        @Override
+        public EntityId getEntityId() {
+            return entityId;
+        }
     }
 
 }

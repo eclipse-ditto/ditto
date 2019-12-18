@@ -45,7 +45,7 @@ import akka.stream.javadsl.Sink;
 /**
  * Extensible actor to execute enforcement behavior.
  */
-public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextual<WithDittoHeaders>> {
+public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextual<WithDittoHeaders>, WithDittoHeaders> {
 
     private static final String TIMER_NAME = "concierge_enforcements";
 
@@ -79,7 +79,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
-        super();
+        super(WithDittoHeaders.class);
 
         enforcementConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())

@@ -189,7 +189,7 @@ public final class MessageMappingProcessor {
                         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                         final DittoHeaders headersWithMapper =
                                 dittoHeaders.toBuilder().inboundPayloadMapper(mapper.getId()).build();
-                        final Signal signalWithMapperHeader = signal.setDittoHeaders(headersWithMapper);
+                        final Signal<?> signalWithMapperHeader = signal.setDittoHeaders(headersWithMapper);
                         handler.onMessageMapped(MappedInboundExternalMessage.of(message, adaptable.getTopicPath(),
                                 signalWithMapperHeader));
                     });
@@ -285,6 +285,8 @@ public final class MessageMappingProcessor {
                     .orElseGet(ConnectivityModelFactory::emptyPayloadMapping);
         } else {
             // note: targets have been grouped by mapping -> all targets have the same mapping here
+            // TODO check if this is what we want - with the following line we can't have different payloadMappings
+            //  for different targets of the same connection
             payloadMapping = outboundSignal.getTargets().get(0).getPayloadMapping();
         }
 

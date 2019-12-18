@@ -51,7 +51,7 @@ import akka.stream.javadsl.Source;
 /**
  * Actor that dispatches signals not authorized by any entity meaning signals without entityId.
  */
-public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.ImmutableDispatch> {
+public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.ImmutableDispatch, WithDittoHeaders> {
 
     /**
      * The name of this actor.
@@ -67,7 +67,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
             final ActorRef pubSubMediator,
             final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler) {
 
-        super();
+        super(WithDittoHeaders.class);
 
         enforcementConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())

@@ -63,11 +63,11 @@ public final class DefaultConnectionEnrichmentConfigTest {
                 DefaultConnectionEnrichmentConfig.forActorSystemConfig(connectionEnrichmentTestConf);
 
         softly.assertThat(underTest.getProvider())
-                .as(ConnectionEnrichmentConfig.ConfigValue.PROVIDER.getConfigPath())
+                .as(ConnectionEnrichmentConfig.ConnectionEnrichmentConfigValue.PROVIDER.getConfigPath())
                 .isEqualTo("MyConnectionEnrichmentProvider");
 
         softly.assertThat(underTest.getConfig().root())
-                .as(ConnectionEnrichmentConfig.ConfigValue.CONFIG.getConfigPath())
+                .as(ConnectionEnrichmentConfig.ConnectionEnrichmentConfigValue.CONFIG.getConfigPath())
                 .containsOnlyKeys("key")
                 .containsValue(ConfigValueFactory.fromAnyRef("value"));
     }

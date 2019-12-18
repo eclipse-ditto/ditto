@@ -20,6 +20,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.connectivity.mapping.ConnectionEnrichmentConfig;
+import org.eclipse.ditto.services.connectivity.mapping.DefaultConnectionEnrichmentConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
@@ -51,6 +53,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private final ReconnectConfig reconnectConfig;
     private final ClientConfig clientConfig;
     private final ProtocolConfig protocolConfig;
+    private final ConnectionEnrichmentConfig connectionEnrichmentConfig;
     private final MonitoringConfig monitoringConfig;
 
     private DittoConnectivityConfig(final ScopedConfig dittoScopedConfig) {
@@ -63,6 +66,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         mappingConfig = DefaultMappingConfig.of(serviceSpecificConfig);
         reconnectConfig = DefaultReconnectConfig.of(serviceSpecificConfig);
         clientConfig = DefaultClientConfig.of(serviceSpecificConfig);
+        connectionEnrichmentConfig = DefaultConnectionEnrichmentConfig.of(serviceSpecificConfig);
         monitoringConfig = DefaultMonitoringConfig.of(serviceSpecificConfig);
     }
 
@@ -139,6 +143,11 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     }
 
     @Override
+    public ConnectionEnrichmentConfig getConnectionEnrichmentConfig() {
+        return connectionEnrichmentConfig;
+    }
+
+    @Override
     public MonitoringConfig getMonitoringConfig() {
         return monitoringConfig;
     }
@@ -162,13 +171,15 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 Objects.equals(reconnectConfig, that.reconnectConfig) &&
                 Objects.equals(clientConfig, that.clientConfig) &&
                 Objects.equals(protocolConfig, that.protocolConfig) &&
+                Objects.equals(connectionEnrichmentConfig, that.connectionEnrichmentConfig) &&
                 Objects.equals(monitoringConfig, that.monitoringConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
-                connectionConfig, mappingConfig, reconnectConfig, clientConfig, protocolConfig, monitoringConfig);
+                connectionConfig, mappingConfig, reconnectConfig, clientConfig, protocolConfig,
+                connectionEnrichmentConfig, monitoringConfig);
     }
 
     @Override
@@ -183,6 +194,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 ", reconnectConfig=" + reconnectConfig +
                 ", clientConfig=" + clientConfig +
                 ", protocolConfig=" + protocolConfig +
+                ", connectionEnrichmentConfig=" + connectionEnrichmentConfig +
                 ", monitoringConfig=" + monitoringConfig +
                 "]";
     }

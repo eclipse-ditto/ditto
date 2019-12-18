@@ -20,9 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -107,16 +105,13 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.persistence.RecoveryCompleted;
 import akka.routing.Broadcast;
@@ -453,7 +448,7 @@ public final class ConnectionPersistenceActor
     @Override
     protected void matchAnyAfterInitialization(final Object message) {
         if (message instanceof Signal) {
-            forwardSignalToClientActors((Signal) message);
+            forwardSignalToClientActors((Signal<?>) message);
         } else if (message == CheckLoggingActive.INSTANCE) {
             checkLoggingEnabled();
         } else {
@@ -466,7 +461,7 @@ public final class ConnectionPersistenceActor
         broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
     }
 
-    private void forwardSignalToClientActors(final Signal signal) {
+    private void forwardSignalToClientActors(final Signal<?> signal) {
         enhanceLogUtil(signal);
         if (clientActorRouter == null) {
             logDroppedSignal(signal.getType(), "Client actor not ready.");
@@ -893,111 +888,4 @@ public final class ConnectionPersistenceActor
         INSTANCE
     }
 
-    /**
-     * Local helper-actor which is started for aggregating several Status sent back by potentially several {@code
-     * clientActors} (behind a cluster Router running on different cluster nodes).
-     */
-    private static final class AggregateActor extends AbstractActor {
-
-        private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-        private final Map<String, Status.Status> aggregatedStatus;
-
-        private final ActorRef clientActor;
-        private final int expectedResponses;
-        private final long timeout;
-
-        private int responseCount = 0;
-        @Nullable private ActorRef origin;
-
-        /**
-         * Creates Akka configuration object for this actor.
-         *
-         * @param clientActor the client actor router
-         * @param expectedResponses the number of expected responses
-         * @param timeout the timeout in milliseconds
-         * @param connectionId the connection id
-         * @return the Akka configuration Props object
-         */
-        static Props props(final ActorRef clientActor, final int expectedResponses, final long timeout,
-                final ConnectionId connectionId) {
-            return Props.create(AggregateActor.class, clientActor, expectedResponses, timeout, connectionId);
-        }
-
-        @SuppressWarnings("unused")
-        private AggregateActor(final ActorRef clientActor, final int expectedResponses, final long timeout,
-                final ConnectionId connectionId) {
-            this.clientActor = clientActor;
-            this.expectedResponses = expectedResponses;
-            this.timeout = timeout;
-            aggregatedStatus = new HashMap<>();
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
-        }
-
-        @Override
-        public Receive createReceive() {
-            return ReceiveBuilder.create()
-                    .match(Command.class, command -> {
-                        clientActor.tell(new Broadcast(command), getSelf());
-                        origin = getSender();
-
-                        getContext().setReceiveTimeout(Duration.ofMillis(timeout / 2));
-                    })
-                    .match(ReceiveTimeout.class, receiveTimeout ->
-                            // send back (partially) gathered responses
-                            sendBackAggregatedResults()
-                    )
-                    .match(Status.Status.class, status -> {
-                        addStatus(status);
-                        respondIfExpectedResponsesReceived();
-                    })
-                    .match(DittoRuntimeException.class, dre -> {
-                        addStatus(new Status.Failure(dre));
-                        respondIfExpectedResponsesReceived();
-                    })
-                    .matchAny(any -> {
-                        log.info("Could not handle non-Status response: {}", any);
-                        respondIfExpectedResponsesReceived();
-                    })
-                    .build();
-        }
-
-        private void addStatus(final Status.Status status) {
-            aggregatedStatus.put(getSender().path().address().hostPort(), status);
-        }
-
-        private void sendBackAggregatedResults() {
-            if (origin != null) {
-                if (!aggregatedStatus.isEmpty()) {
-                    log.debug("Aggregated statuses: {}", aggregatedStatus);
-                    final Optional<Status.Status> failure = aggregatedStatus.values().stream()
-                            .filter(status -> status instanceof Status.Failure)
-                            .findFirst();
-                    if (failure.isPresent()) {
-                        origin.tell(failure.get(), getSelf());
-                    } else {
-                        final String aggregatedStatusStr = aggregatedStatus.entrySet().stream()
-                                .map(Object::toString)
-                                .collect(Collectors.joining(","));
-                        origin.tell(new Status.Success(aggregatedStatusStr), getSelf());
-                    }
-                } else {
-                    // no status response received, most likely a timeout
-                    log.info("Waiting for status responses timed out.");
-                    origin.tell(new RuntimeException("Waiting for status responses timed out."), getSelf());
-                }
-            } else {
-                log.info("No origin was present to send back aggregated results.");
-            }
-            getContext().stop(getSelf());
-        }
-
-        private void respondIfExpectedResponsesReceived() {
-            responseCount++;
-            if (expectedResponses == responseCount) {
-                // send back all gathered responses
-                sendBackAggregatedResults();
-            }
-        }
-    }
 }

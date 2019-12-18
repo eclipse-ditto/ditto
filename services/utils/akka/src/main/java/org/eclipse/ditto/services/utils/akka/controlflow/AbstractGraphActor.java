@@ -46,8 +46,12 @@ import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Actor whose behavior is defined entirely by an Akka stream graph.
+ *
+ * @param <T> the type of the messages this actor processes in the stream graph.
+ * @param <M> the type of the incoming messages which is translated to a message of type {@code <T>} in
+ *  {@link #mapMessage(M)}.
  */
-public abstract class AbstractGraphActor<T> extends AbstractActor {
+public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
     /**
      * For {@code signals} marked with a DittoHeader with that key,  the "special enforcement lane" shall be used -
@@ -59,25 +63,30 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      */
     public static final String DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE = "ditto-internal-special-enforcement-lane";
 
+    private static final String CLASS = "class";
+
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Counter receiveCounter = DittoMetrics.counter("graph_actor_receive")
-            .tag("class", getClass().getSimpleName());
+            .tag(CLASS, getClass().getSimpleName());
 
     private final Counter enqueueSuccessCounter = DittoMetrics.counter("graph_actor_enqueue_success")
-            .tag("class", getClass().getSimpleName());
+            .tag(CLASS, getClass().getSimpleName());
 
     private final Counter enqueueDroppedCounter = DittoMetrics.counter("graph_actor_enqueue_dropped")
-            .tag("class", getClass().getSimpleName());
+            .tag(CLASS, getClass().getSimpleName());
 
     private final Counter enqueueFailureCounter = DittoMetrics.counter("graph_actor_enqueue_failure")
-            .tag("class", getClass().getSimpleName());
+            .tag(CLASS, getClass().getSimpleName());
 
     private final Counter dequeueCounter = DittoMetrics.counter("graph_actor_dequeue")
-            .tag("class", getClass().getSimpleName());
+            .tag(CLASS, getClass().getSimpleName());
 
-    protected AbstractGraphActor() {
-        // no-op
+
+    private final Class<M> matchClass;
+
+    protected AbstractGraphActor(final Class<M> matchClass) {
+        this.matchClass = matchClass;
     }
 
     /**
@@ -86,7 +95,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      * @param message the currently processed message of this Actor.
      * @return the created Source.
      */
-    protected abstract T mapMessage(WithDittoHeaders message);
+    protected abstract T mapMessage(M message);
 
     /**
      * Called before handling the actual message via the {@link #processMessageFlow()} in order to being able to enhance the
@@ -162,20 +171,19 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
         preEnhancement(receiveBuilder);
         return receiveBuilder
-                .match(DittoRuntimeException.class, dittoRuntimeException -> {
-                    log.debug("Received DittoRuntimeException: <{}>", dittoRuntimeException);
-                    getSender().tell(dittoRuntimeException, getSelf());
-                })
-                .match(WithDittoHeaders.class, withDittoHeaders -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, withDittoHeaders);
-                    if (withDittoHeaders instanceof WithId) {
-                        log.debug("Received <{}> with id <{}>", withDittoHeaders.getClass().getSimpleName(),
-                                ((WithId) withDittoHeaders).getEntityId());
+                .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
+                .match(matchClass, match -> {
+                    if (match instanceof WithDittoHeaders) {
+                        LogUtil.enhanceLogWithCorrelationId(log, (WithDittoHeaders<?>) match);
+                    }
+                    if (match instanceof WithId) {
+                        log.debug("Received <{}> with id <{}>", match.getClass().getSimpleName(),
+                                ((WithId) match).getEntityId());
                     } else {
-                        log.debug("Received WithDittoHeaders: <{}>", withDittoHeaders);
+                        log.debug("Received match: <{}>", match);
                     }
                     incrementReceiveCounter();
-                    sourceQueue.offer(mapMessage(withDittoHeaders)).handle(this::incrementEnqueueCounters);
+                    sourceQueue.offer(mapMessage(match)).handle(this::incrementEnqueueCounters);
                 })
                 .match(Throwable.class, unknownThrowable -> {
                     log.warning("Received unknown Throwable: <{}>", unknownThrowable);
@@ -222,10 +230,9 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      * @param flowToPartition the Flow to apply the partitioning on.
      * @param parallelism the parallelism to use (how many partitions to process in parallel) - which should be based
      * on the amount of available CPUs.
-     * @param <T> the type of the messages flowing through the stream
      * @return the partitioning flow
      */
-    private static <T> Flow<T, T, NotUsed> partitionById(final Flow<T, T, NotUsed> flowToPartition,
+    private Flow<T, T, NotUsed> partitionById(final Flow<T, T, NotUsed> flowToPartition,
             final int parallelism) {
 
         final int parallelismWithSpecialLane = parallelism + 1;
@@ -266,11 +273,10 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      * each other.
      *
      * @param msg the message to check for whether to use the special lane.
-     * @param <T> the type of the message
      * @return whether to use the special lane or not.
      */
-    private static <T> boolean checkForSpecialLane(final T msg) {
-        return msg instanceof WithDittoHeaders && Optional.ofNullable(((WithDittoHeaders) msg).getDittoHeaders()
+    protected boolean checkForSpecialLane(final T msg) {
+        return msg instanceof WithDittoHeaders && Optional.ofNullable(((WithDittoHeaders<?>) msg).getDittoHeaders()
                 .get(DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE))
                 .isPresent();
     }
@@ -281,5 +287,16 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      * @param receiveBuilder the ReceiveBuilder to add other matchers to.
      */
     protected abstract void preEnhancement(final ReceiveBuilder receiveBuilder);
+
+    /**
+     * Handles DittoRuntimeExceptions by sending them back to the {@link #getSender() sender}.
+     * Overwrite to introduce a custom exception handling.
+     *
+     * @param dittoRuntimeException the DittoRuntimeException to handle.
+     */
+    protected void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
+        log.debug("Received DittoRuntimeException: <{}>", dittoRuntimeException);
+        getSender().tell(dittoRuntimeException, getSelf());
+    }
 
 }

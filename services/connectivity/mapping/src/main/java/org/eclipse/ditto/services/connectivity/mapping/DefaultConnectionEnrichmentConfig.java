@@ -23,16 +23,33 @@ import com.typesafe.config.Config;
 import akka.actor.ActorSystem;
 
 @Immutable
-final class DefaultConnectionEnrichmentConfig implements ConnectionEnrichmentConfig {
+public final class DefaultConnectionEnrichmentConfig implements ConnectionEnrichmentConfig {
 
-    private static final String CONFIG_PATH = "ditto.connectivity.connection-enrichment";
+    private static final String CONFIG_PATH = "connection-enrichment";
+    private static final String FULL_CONFIG_PATH = "ditto.connectivity.connection-enrichment";
 
+    private final int bufferSize;
+    private final int parallelism;
     private final String provider;
     private final Config config;
 
     DefaultConnectionEnrichmentConfig(final ConfigWithFallback configWithFallback) {
-        this.provider = configWithFallback.getString(ConfigValue.PROVIDER.getConfigPath());
-        this.config = configWithFallback.getConfig(ConfigValue.CONFIG.getConfigPath());
+        this.bufferSize = configWithFallback.getInt(ConnectionEnrichmentConfigValue.BUFFER_SIZE.getConfigPath());
+        this.parallelism = configWithFallback.getInt(ConnectionEnrichmentConfigValue.PARALLELISM.getConfigPath());
+        this.provider = configWithFallback.getString(ConnectionEnrichmentConfigValue.PROVIDER.getConfigPath());
+        this.config = configWithFallback.getConfig(ConnectionEnrichmentConfigValue.CONFIG.getConfigPath());
+    }
+
+    /**
+     * Returns an instance of {@code DefaultConnectionEnrichmentConfig} based on the settings of the specified Config.
+     *
+     * @param config is supposed to provide the settings of the JavaScript mapping config at {@value #CONFIG_PATH}.
+     * @return the instance.
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     */
+    public static DefaultConnectionEnrichmentConfig of(final Config config) {
+        return new DefaultConnectionEnrichmentConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH,
+                ConnectionEnrichmentConfigValue.values()));
     }
 
     static ConnectionEnrichmentConfig forActorSystem(final ActorSystem actorSystem) {
@@ -41,7 +58,17 @@ final class DefaultConnectionEnrichmentConfig implements ConnectionEnrichmentCon
 
     static ConnectionEnrichmentConfig forActorSystemConfig(final Config config) {
         return new DefaultConnectionEnrichmentConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
+                ConfigWithFallback.newInstance(config, FULL_CONFIG_PATH, ConnectionEnrichmentConfigValue.values()));
+    }
+
+    @Override
+    public int getBufferSize() {
+        return bufferSize;
+    }
+
+    @Override
+    public int getParallelism() {
+        return parallelism;
     }
 
     @Override
@@ -56,23 +83,30 @@ final class DefaultConnectionEnrichmentConfig implements ConnectionEnrichmentCon
 
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof DefaultConnectionEnrichmentConfig) {
-            final DefaultConnectionEnrichmentConfig that = (DefaultConnectionEnrichmentConfig) o;
-            return Objects.equals(provider, that.provider) && Objects.equals(config, that.config);
-        } else {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        final DefaultConnectionEnrichmentConfig that = (DefaultConnectionEnrichmentConfig) o;
+        return bufferSize == that.bufferSize &&
+                parallelism == that.parallelism &&
+                Objects.equals(provider, that.provider) &&
+                Objects.equals(config, that.config);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(provider, config);
+        return Objects.hash(bufferSize, parallelism, provider, config);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "provider=" + provider +
+                "bufferSize=" + bufferSize +
+                ", parallelism=" + parallelism +
+                ", provider=" + provider +
                 ", config=" + config +
                 "]";
     }

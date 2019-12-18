@@ -25,6 +25,22 @@ import com.typesafe.config.ConfigFactory;
 @Immutable
 public interface ConnectionEnrichmentConfig {
 
+    /**
+     * Returns the buffer size used for the queue in the message mapping processor actor responsible for doing the
+     * enrichment.
+     *
+     * @return the buffer size.
+     */
+    int getBufferSize();
+
+    /**
+     * Returns the parallelism used for processing messages in parallel in message mapping processor actor responsible
+     * for doing the enrichment.
+     *
+     * @return the parallelism.
+     */
+    int getParallelism();
+
     String getProvider();
 
     Config getConfig();
@@ -33,7 +49,17 @@ public interface ConnectionEnrichmentConfig {
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionEnrichmentConfig}.
      */
-    enum ConfigValue implements KnownConfigValue {
+    enum ConnectionEnrichmentConfigValue implements KnownConfigValue {
+
+        /**
+         * The buffer size used for the queue in the message mapping processor actor.
+         */
+        BUFFER_SIZE("buffer-size", 500),
+
+        /**
+         * The parallelism used for processing messages in parallel in message mapping processor actor.
+         */
+        PARALLELISM("parallelism", 64),
 
         /**
          * Canonical name of the thing-enriching facade provider for connections.
@@ -48,7 +74,7 @@ public interface ConnectionEnrichmentConfig {
         private final String path;
         private final Object defaultValue;
 
-        ConfigValue(final String thePath, final Object theDefaultValue) {
+        ConnectionEnrichmentConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
