@@ -68,7 +68,7 @@ When closing a WebSocket session, a `NullPointerException` occurred which is fix
 
 ### Migration notes
 
-OpenID Connect URLs are now prefixes with `https://` per default. Any configured URLs containing `https://` will break the configuration.
+OpenID Connect URLs are now prefixed with `https://` per default. Any configured URLs containing `https://` will break the configuration.
 Instead of `https://auth.eclipse.de/auth/realms/ditto` it has to be `auth.eclipse.de/auth/realms/ditto` instead.
 The Configuration option is `ditto.gateway.authentication.oauth.openid-connect-issuers.myprovider`.
 
