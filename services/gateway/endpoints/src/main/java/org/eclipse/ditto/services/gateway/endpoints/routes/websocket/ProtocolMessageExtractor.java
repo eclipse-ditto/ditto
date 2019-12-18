@@ -12,16 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.JWT_TOKEN;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_EVENTS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_COMMANDS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_EVENTS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_MESSAGES;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_EVENTS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_LIVE_COMMANDS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_LIVE_EVENTS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_MESSAGES;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -34,8 +24,13 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.services.gateway.streaming.JwtToken;
+import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
@@ -44,22 +39,27 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 /**
  * Extracts WebSocket Protocol message from the given payload string and returns a {@link StartStreaming},
  * {@link StopStreaming} instance or {@code null} if the payload did not contain one of the defined
- * {@link ProtocolMessages}.
+ * {@link ProtocolMessageType}.
  */
 final class ProtocolMessageExtractor implements Function<String, Optional<StreamControlMessage>> {
 
+    private static final String PARAMETER_SEPARATOR = "?";
     private static final String PARAM_FILTER = "filter";
     private static final String PARAM_NAMESPACES = "namespaces";
-    private static final String PARAM_JWT_TOKEN = "jwtToken";
+    private static final String PARAM_JWT = "jwtToken";
+    private static final String PARAM_EXTRA_FIELDS = "extraFields";
+    private static final JsonParseOptions JSON_PARSE_OPTIONS = JsonParseOptions.newBuilder()
+            .withoutUrlDecoding()
+            .build();
 
     private final AuthorizationContext connectionAuthContext;
     private final String connectionCorrelationId;
 
     /**
-     * Instantiates a new {@link ProtocolMessageExtractor}.
+     * Constructs a new {@code ProtocolMessageExtractor} object.
      *
-     * @param connectionAuthContext the {@link AuthorizationContext} of the connection
-     * @param connectionCorrelationId the correlation id of the connection
+     * @param connectionAuthContext the {@link AuthorizationContext} of the connection.
+     * @param connectionCorrelationId the correlation ID of the connection.
      */
     ProtocolMessageExtractor(final AuthorizationContext connectionAuthContext, final String connectionCorrelationId) {
         this.connectionAuthContext = connectionAuthContext;
@@ -68,62 +68,38 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
 
     @Override
     public Optional<StreamControlMessage> apply(final String protocolMessage) {
-        // twin events
-        if (START_SEND_EVENTS.matches(protocolMessage)) {
-            return Optional.of(buildStartStreaming(START_SEND_EVENTS, protocolMessage));
-        } else if (STOP_SEND_EVENTS.matches(protocolMessage)) {
-            return Optional.of(new StopStreaming(StreamingType.EVENTS, connectionCorrelationId));
-        }
-        // live events
-        else if (START_SEND_LIVE_EVENTS.matches(protocolMessage)) {
-            return Optional.of(buildStartStreaming(START_SEND_LIVE_EVENTS, protocolMessage));
-        } else if (STOP_SEND_LIVE_EVENTS.matches(protocolMessage)) {
-            return Optional.of(new StopStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId));
-        }
-        // live commands
-        else if (START_SEND_LIVE_COMMANDS.matches(protocolMessage)) {
-            return Optional.of(buildStartStreaming(START_SEND_LIVE_COMMANDS, protocolMessage));
-        } else if (STOP_SEND_LIVE_COMMANDS.matches(protocolMessage)) {
-            return Optional.of(new StopStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId));
-        }
-        // messages
-        else if (START_SEND_MESSAGES.matches(protocolMessage)) {
-            return Optional.of(buildStartStreaming(START_SEND_MESSAGES, protocolMessage));
-        } else if (STOP_SEND_MESSAGES.matches(protocolMessage)) {
-            return Optional.of(new StopStreaming(StreamingType.MESSAGES, connectionCorrelationId));
-        } else if (JWT_TOKEN.matchesWithParameters(protocolMessage)) {
-            return Optional.of(buildJwtToken(protocolMessage));
-        } else {
+        if (null == protocolMessage) {
             return Optional.empty();
         }
+
+        return getProtocolMessageType(protocolMessage)
+                .map(protocolMessageType -> {
+                    final StreamControlMessage result;
+                    if (ProtocolMessageType.JWT == protocolMessageType) {
+                        result = getJwt(protocolMessage);
+                    } else if (protocolMessageType.isStartSending()) {
+                        result = getStartStreaming(protocolMessageType, protocolMessage);
+                    } else {
+                        result = getStopStreaming(protocolMessageType);
+                    }
+                    return result;
+                });
     }
 
-    private StartStreaming buildStartStreaming(final ProtocolMessages message, final String protocolMessage) {
-        if (message.matchesWithParameters(protocolMessage)) {
-            final Map<String, String> params = determineParams(protocolMessage);
-            final List<String> namespaces = Optional.ofNullable(params.get(PARAM_NAMESPACES))
-                    .filter(ids -> !ids.isEmpty())
-                    .map(ids -> ids.split(","))
-                    .map(Arrays::asList)
-                    .orElse(Collections.emptyList());
-            final String filter = params.get(PARAM_FILTER);
-            return new StartStreaming(message.getStreamingType()
-                    .orElseThrow(() -> new IllegalStateException("StreamingType should be present but wasn't")),
-                    connectionCorrelationId, connectionAuthContext, namespaces, filter);
-        } else {
-            return new StartStreaming(message.getStreamingType()
-                    .orElseThrow(() -> new IllegalStateException("StreamingType should be present but wasn't")),
-                    connectionCorrelationId, connectionAuthContext, Collections.emptyList(), null);
+    private static Optional<ProtocolMessageType> getProtocolMessageType(final String message) {
+        for (final ProtocolMessageType protocolMessage : ProtocolMessageType.values()) {
+            if (message.startsWith(protocolMessage.getIdentifier())) {
+                return Optional.of(protocolMessage);
+            }
         }
+        return Optional.empty();
     }
 
-    private JwtToken buildJwtToken(final String protocolMessage) {
+    private Jwt getJwt(final String protocolMessage) {
         final Map<String, String> params = determineParams(protocolMessage);
-        final String jwtToken = Optional.ofNullable(params.get(PARAM_JWT_TOKEN))
-                .filter(token -> !token.isEmpty())
-                .map(String::new)
-                .orElse("");
-        return new JwtToken(connectionCorrelationId, jwtToken);
+        final String tokenString = params.getOrDefault(PARAM_JWT, "");
+
+        return Jwt.newInstance(tokenString, connectionCorrelationId);
     }
 
     /**
@@ -135,15 +111,13 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
      * @return the map containing the resolved params
      */
     private static Map<String, String> determineParams(final String protocolMessage) {
-        if (protocolMessage.contains(ProtocolMessages.PARAMETER_SEPARATOR)) {
-            final String parametersString =
-                    protocolMessage.split(Pattern.quote(ProtocolMessages.PARAMETER_SEPARATOR), 2)[1];
+        if (protocolMessage.contains(PARAMETER_SEPARATOR)) {
+            final String parametersString = protocolMessage.split(Pattern.quote(PARAMETER_SEPARATOR), 2)[1];
             return Arrays.stream(parametersString.split("&"))
                     .map(paramWithValue -> paramWithValue.split("=", 2))
                     .collect(Collectors.toMap(pv -> urlDecode(pv[0]), pv -> urlDecode(pv[1])));
-        } else {
-            return Collections.emptyMap();
         }
+        return Collections.emptyMap();
     }
 
     private static String urlDecode(final String value) {
@@ -153,4 +127,35 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
             return URLDecoder.decode(value);
         }
     }
+
+    private StartStreaming getStartStreaming(final ProtocolMessageType protocolMessageType, final String protocolMsg) {
+        final StreamingType streamingType = protocolMessageType.getStreamingTypeOrThrow();
+        final Map<String, String> params = determineParams(protocolMsg);
+
+        return StartStreaming.getBuilder(streamingType, connectionCorrelationId, connectionAuthContext)
+                .withNamespaces(getNamespaces(params.get(PARAM_NAMESPACES)))
+                .withFilter(params.get(PARAM_FILTER))
+                .withExtraFields(getExtraFields(params.get(PARAM_EXTRA_FIELDS)))
+                .build();
+    }
+
+    private static List<String> getNamespaces(@Nullable final String namespacesParam) {
+        if (null != namespacesParam && !namespacesParam.isEmpty()) {
+            return Arrays.asList(namespacesParam.split(","));
+        }
+        return Collections.emptyList();
+    }
+
+    @Nullable
+    private static JsonFieldSelector getExtraFields(@Nullable final String extraFieldsParam) {
+        if (null != extraFieldsParam && !extraFieldsParam.isEmpty()) {
+            return JsonFactory.newFieldSelector(extraFieldsParam, JSON_PARSE_OPTIONS);
+        }
+        return null;
+    }
+
+    private StopStreaming getStopStreaming(final ProtocolMessageType protocolMessageType) {
+        return new StopStreaming(protocolMessageType.getStreamingTypeOrThrow(), connectionCorrelationId);
+    }
+
 }

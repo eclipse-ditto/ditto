@@ -12,21 +12,29 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.io.UnsupportedEncodingException;
+import java.lang.ref.SoftReference;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
+
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonParseOptions;
 
 /**
  * Immutable implementation of {@link FilteredTopic}.
@@ -40,78 +48,50 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
     private static final String FILTER_ARG = "filter";
     private static final String NAMESPACES_ARG = "namespaces";
+    private static final String EXTRA_FIELDS_ARG = "extraFields";
+    private static final JsonParseOptions JSON_PARSE_OPTIONS = JsonParseOptions.newBuilder()
+            .withoutUrlDecoding()
+            .build();
 
     private final Topic topic;
     private final List<String> namespaces;
     @Nullable private final String filterString;
+    @Nullable private final JsonFieldSelector extraFields;
+    @Nullable private SoftReference<String> stringRepresentation;
 
-    private ImmutableFilteredTopic(final Topic topic, final List<String> namespaces,
-            @Nullable final String filterString) {
-        this.topic = topic;
-        this.namespaces = Collections.unmodifiableList(new ArrayList<>(namespaces));
-        this.filterString = filterString;
+    private ImmutableFilteredTopic(final ImmutableFilteredTopicBuilder builder) {
+        topic = builder.topic;
+        final Collection<String> namespacesFromBuilder = builder.namespaces;
+        namespaces = null != namespacesFromBuilder
+                ? Collections.unmodifiableList(new ArrayList<>(namespacesFromBuilder))
+                : Collections.emptyList();
+        filterString = Objects.toString(builder.filter, null);
+        extraFields = builder.extraFields;
+        stringRepresentation = null;
     }
 
     /**
-     * Creates a new {@code ImmutableFilteredTopic} instance.
+     * Returns a builder for creating an instance of ImmutableFilteredTopic.
      *
-     * @param topic the topic of this filtered topic
-     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are
-     * considered
-     * @param filterString the optional RQL filter string of this topic
-     * @return a new instance of ImmutableFilteredTopic
+     * @param topic the topic of this filtered topic.
+     * @return the builder.
+     * @throws NullPointerException if {@code topic} is {@code null}.
      */
-    public static FilteredTopic of(final Topic topic, final List<String> namespaces,
-            @Nullable final String filterString) {
-        return new ImmutableFilteredTopic(topic, namespaces, filterString);
+    public static ImmutableFilteredTopicBuilder getBuilder(final Topic topic) {
+        return new ImmutableFilteredTopicBuilder(topic);
     }
 
     /**
-     * Creates a new {@code ImmutableFilteredTopic} instance.
+     * Creates a new {@code ImmutableFilteredTopic} instance from the given string.
      *
-     * @param filteredTopicString the string representation of a FilteredTopic
-     * @return a new instance of ImmutableFilteredTopic
+     * @param filteredTopicString the string representation of a FilteredTopic.
+     * @return instance.
+     * @throws NullPointerException if {@code filteredTopicString} is {@code null}.
      */
-    public static FilteredTopic fromString(final String filteredTopicString) {
-
-        if (filteredTopicString.contains(QUERY_DELIMITER)) {
-            final String[] splitString = filteredTopicString.split("\\" + QUERY_DELIMITER, 2);
-
-            final String topicString = splitString[0];
-            final String queryParamsString = splitString[1];
-            final Map<String, String> paramValues = Arrays.stream(queryParamsString.split(QUERY_ARG_DELIMITER))
-                    .map(paramString -> paramString.split(QUERY_ARG_VALUE_DELIMITER, 2))
-                    .filter(av -> av.length == 2)
-                    .collect(Collectors.toMap(av -> urlDecode(av[0]), av -> urlDecode(av[1])));
-
-            final List<String> namespaces = Optional.ofNullable(paramValues.get(NAMESPACES_ARG))
-                    .map(namespacesStr -> namespacesStr.split(","))
-                    .map(Arrays::stream)
-                    .orElse(Stream.empty())
-                    .collect(Collectors.toList());
-
-            final String filter = paramValues.get(FILTER_ARG);
-
-            return new ImmutableFilteredTopic(Topic.forName(topicString).orElseThrow(() ->
-                    TopicParseException.newBuilder(filteredTopicString,
-                            "Unknown topic: " + topicString)
-                            .build()
-            ), namespaces, filter);
-        } else {
-            return new ImmutableFilteredTopic(Topic.forName(filteredTopicString).orElseThrow(() ->
-                    TopicParseException.newBuilder(filteredTopicString,
-                            "Unknown topic: " + filteredTopicString)
-                        .build()
-            ), Collections.emptyList(), null);
-        }
-    }
-
-    private static String urlDecode(final String value) {
-        try {
-            return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
-        } catch (final UnsupportedEncodingException e) {
-            return URLDecoder.decode(value);
-        }
+    public static ImmutableFilteredTopic fromString(final String filteredTopicString) {
+        checkNotNull(filteredTopicString, "filteredTopicString");
+        final FilteredTopicStringParser parser = new FilteredTopicStringParser(filteredTopicString);
+        return parser.parse();
     }
 
     @Override
@@ -127,6 +107,11 @@ final class ImmutableFilteredTopic implements FilteredTopic {
     @Override
     public Optional<String> getFilter() {
         return Optional.ofNullable(filterString);
+    }
+
+    @Override
+    public Optional<JsonFieldSelector> getExtraFields() {
+        return Optional.ofNullable(extraFields);
     }
 
     @Override
@@ -146,39 +131,170 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
     @Override
     public String toString() {
-        final String commaDelimitedNamespaces = String.join(",", namespaces);
-        if (filterString != null && namespaces.isEmpty()) {
-            return topic.getName() +
-                    QUERY_DELIMITER + FILTER_ARG + QUERY_ARG_VALUE_DELIMITER + filterString;
-        } else if (filterString != null) {
-            return topic.getName() +
-                    QUERY_DELIMITER + NAMESPACES_ARG + QUERY_ARG_VALUE_DELIMITER + commaDelimitedNamespaces +
-                    QUERY_ARG_DELIMITER + FILTER_ARG + QUERY_ARG_VALUE_DELIMITER + filterString;
-        } else if (!namespaces.isEmpty()) {
-            return topic.getName() +
-                    QUERY_DELIMITER + NAMESPACES_ARG + QUERY_ARG_VALUE_DELIMITER + commaDelimitedNamespaces;
-        } else {
-            return topic.getName();
+        String result = null != stringRepresentation ? stringRepresentation.get() : null;
+        if (null == result) {
+            result = join(QUERY_DELIMITER, topic.getName(), getQueryParametersAsString());
+            stringRepresentation = new SoftReference<>(result);
         }
+        return result;
+    }
+
+    private String getQueryParametersAsString() {
+        return join(QUERY_ARG_DELIMITER, getQueryParameterString(NAMESPACES_ARG, String.join(",", namespaces)),
+                getQueryParameterString(FILTER_ARG, filterString),
+                getQueryParameterString(EXTRA_FIELDS_ARG, extraFields));
+    }
+
+    private static String getQueryParameterString(final String parameterName, @Nullable final Object parameterValue) {
+        if (null != parameterValue) {
+            final String parameterValueAsString = parameterValue.toString();
+            if (!parameterValueAsString.isEmpty()) {
+                return parameterName + QUERY_ARG_VALUE_DELIMITER + parameterValueAsString;
+            }
+        }
+        return "";
+    }
+
+    private static String join(final String delimiter, final String ... elements) {
+        final StringBuilder stringBuilder = new StringBuilder();
+        String currentDelimiter = "";
+        for (final String element : elements) {
+            if (null != element && !element.isEmpty()) {
+                stringBuilder.append(currentDelimiter).append(element);
+                currentDelimiter = delimiter;
+            }
+        }
+        return stringBuilder.toString();
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ImmutableFilteredTopic)) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         final ImmutableFilteredTopic that = (ImmutableFilteredTopic) o;
-        return Objects.equals(topic, that.topic) &&
-                Objects.equals(namespaces, that.namespaces) &&
-                Objects.equals(filterString, that.filterString);
+        return topic == that.topic &&
+                namespaces.equals(that.namespaces) &&
+                Objects.equals(filterString, that.filterString) &&
+                Objects.equals(extraFields, that.extraFields);
     }
 
     @Override
     public int hashCode() {
-
-        return Objects.hash(topic, namespaces, filterString);
+        return Objects.hash(topic, namespaces, filterString, extraFields);
     }
+
+    /**
+     * A mutable builder with a fluent API for creating an ImmutableFilteredTopic.
+     */
+    @NotThreadSafe
+    static final class ImmutableFilteredTopicBuilder implements FilteredTopicBuilder {
+
+        private final Topic topic;
+        @Nullable private Collection<String> namespaces;
+        @Nullable private CharSequence filter;
+        @Nullable private JsonFieldSelector extraFields;
+
+        private ImmutableFilteredTopicBuilder(final Topic topic) {
+            this.topic = checkNotNull(topic, "topic");
+            namespaces = null;
+            filter = null;
+            extraFields = null;
+        }
+
+        @Override
+        public ImmutableFilteredTopicBuilder withNamespaces(@Nullable final Collection<String> namespaces) {
+            this.namespaces = namespaces;
+            return this;
+        }
+
+        @Override
+        public ImmutableFilteredTopicBuilder withFilter(@Nullable final CharSequence filter) {
+            this.filter = filter;
+            return this;
+        }
+
+        @Override
+        public ImmutableFilteredTopicBuilder withExtraFields(@Nullable final JsonFieldSelector extraFields) {
+            this.extraFields = extraFields;
+            return this;
+        }
+
+        @Override
+        public ImmutableFilteredTopic build() {
+            return new ImmutableFilteredTopic(this);
+        }
+
+    }
+
+    @Immutable
+    private static final class FilteredTopicStringParser {
+
+        private final String filteredTopicString;
+
+        private FilteredTopicStringParser(final String filteredTopicString) {
+            this.filteredTopicString = filteredTopicString;
+        }
+
+        ImmutableFilteredTopic parse() {
+            String topicName = filteredTopicString;
+            @Nullable String queryParamsString = null;
+            if (filteredTopicString.contains(QUERY_DELIMITER)) {
+                final String[] splitString = filteredTopicString.split("\\" + QUERY_DELIMITER, 2);
+                topicName = splitString[0];
+                queryParamsString = splitString[1];
+            }
+            final Map<String, String> queryParameters = parseQueryParameters(queryParamsString);
+
+            return getBuilder(parseTopic(topicName))
+                    .withNamespaces(parseNamespaces(queryParameters.get(NAMESPACES_ARG)))
+                    .withFilter(queryParameters.get(FILTER_ARG))
+                    .withExtraFields(parseExtraFields(queryParameters.get(EXTRA_FIELDS_ARG)))
+                    .build();
+        }
+
+        private Topic parseTopic(final String topicName) {
+            return Topic.forName(topicName)
+                    .orElseThrow(() -> TopicParseException.newBuilder(filteredTopicString,
+                            "Unknown topic: " + topicName).build());
+        }
+
+        private static Map<String, String> parseQueryParameters(@Nullable final String queryParamsString) {
+            if (null == queryParamsString || queryParamsString.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            return Arrays.stream(queryParamsString.split(QUERY_ARG_DELIMITER))
+                    .map(paramString -> paramString.split(QUERY_ARG_VALUE_DELIMITER, 2))
+                    .filter(queryParamPair -> 2 == queryParamPair.length)
+                    .collect(Collectors.toMap(queryParamPair -> urlDecode(queryParamPair[0]), av -> urlDecode(av[1])));
+        }
+
+        private static String urlDecode(final String value) {
+            try {
+                return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+            } catch (final UnsupportedEncodingException e) {
+                return URLDecoder.decode(value);
+            }
+        }
+
+        private static Collection<String> parseNamespaces(@Nullable final String namespacesString) {
+            if (null != namespacesString && !namespacesString.isEmpty()) {
+                return Arrays.asList(namespacesString.split(","));
+            }
+            return Collections.emptyList();
+        }
+
+        @Nullable
+        private static JsonFieldSelector parseExtraFields(@Nullable final String extraFieldsString) {
+            if (null != extraFieldsString && !extraFieldsString.isEmpty()) {
+                return JsonFactory.newFieldSelector(extraFieldsString, JSON_PARSE_OPTIONS);
+            }
+            return null;
+        }
+
+    }
+
 }

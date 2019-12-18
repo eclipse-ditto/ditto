@@ -119,7 +119,9 @@ final class SignalFilter {
     }
 
     private Predicate<FilteredTopic> applyRqlFilter(final Signal<?> signal) {
-        return t -> !t.hasFilter() || t.getFilter().filter(f -> matchesFilter(f, signal)).isPresent();
+        return filteredTopic -> filteredTopic.getFilter()
+                .map(filter -> matchesFilter(filter, signal))
+                .orElse(true);
     }
 
     private static Predicate<FilteredTopic> applyNamespaceFilter(final WithId signal) {
@@ -132,18 +134,15 @@ final class SignalFilter {
     }
 
     private boolean matchesFilter(final String filter, final Signal<?> signal) {
-
         if (signal instanceof ThingEvent) {
 
             // currently only ThingEvents may be filtered
-            return ThingEventToThingConverter.thingEventToThing((ThingEvent) signal)
+            return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
                     .filter(thing -> ThingPredicateVisitor.apply(parseCriteria(filter, signal.getDittoHeaders()))
-                            .test(thing)
-                    )
+                            .test(thing))
                     .isPresent();
-        } else {
-            return true;
         }
+        return true;
     }
 
     /**

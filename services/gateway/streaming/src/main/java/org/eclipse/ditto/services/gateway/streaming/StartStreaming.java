@@ -12,14 +12,19 @@
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 
@@ -33,25 +38,33 @@ public final class StartStreaming implements StreamControlMessage {
     private final AuthorizationContext authorizationContext;
     private final List<String> namespaces;
     @Nullable private final String filter;
+    @Nullable private final JsonFieldSelector extraFields;
+
+    private StartStreaming(final StartStreamingBuilder builder) {
+        streamingType = builder.streamingType;
+        connectionCorrelationId = builder.connectionCorrelationId.toString();
+        authorizationContext = builder.authorizationContext;
+        @Nullable final Collection<String> namespacesFromBuilder = builder.namespaces;
+        namespaces = null != namespacesFromBuilder
+                ? Collections.unmodifiableList(new ArrayList<>(namespacesFromBuilder))
+                : Collections.emptyList();
+        filter = Objects.toString(builder.filter, null);
+        extraFields = builder.extraFields;
+    }
 
     /**
-     * Constructs a new {@link StartStreaming} instance.
+     * Returns a mutable builder with a fluent API for creating an instance of StartStreaming.
      *
      * @param streamingType the type of entity to start the streaming for.
      * @param connectionCorrelationId the correlationId of the connection/session.
      * @param authorizationContext the {@link AuthorizationContext} of the connection/session.
-     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are
-     * considered.
-     * @param filter the filter string (RQL) to apply for event filtering or {@code null} if none should be applied.
+     * @return the builder.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public StartStreaming(final StreamingType streamingType, final String connectionCorrelationId,
-            final AuthorizationContext authorizationContext, final List<String> namespaces,
-            @Nullable final String filter) {
-        this.streamingType = streamingType;
-        this.connectionCorrelationId = connectionCorrelationId;
-        this.authorizationContext = authorizationContext;
-        this.namespaces = Collections.unmodifiableList(new ArrayList<>(namespaces));
-        this.filter = filter;
+    public static StartStreamingBuilder getBuilder(final StreamingType streamingType,
+            final CharSequence connectionCorrelationId, final AuthorizationContext authorizationContext) {
+
+        return new StartStreamingBuilder(streamingType, connectionCorrelationId, authorizationContext);
     }
 
     /**
@@ -84,21 +97,36 @@ public final class StartStreaming implements StreamControlMessage {
         return Optional.ofNullable(filter);
     }
 
+    /**
+     * Returns the selector for the extra fields and their values to enrich outgoing signals with.
+     *
+     * @return the selector or an empty Optional if signals should not be enriched.
+     */
+    public Optional<JsonFieldSelector> getExtraFields() {
+        return Optional.ofNullable(extraFields);
+    }
+
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final StartStreaming that = (StartStreaming) o;
         return streamingType == that.streamingType &&
                 Objects.equals(connectionCorrelationId, that.connectionCorrelationId) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(namespaces, that.namespaces) &&
-                Objects.equals(filter, that.filter);
+                Objects.equals(filter, that.filter) &&
+                Objects.equals(extraFields, that.extraFields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(streamingType, connectionCorrelationId, authorizationContext, namespaces, filter);
+        return Objects.hash(streamingType, connectionCorrelationId, authorizationContext, namespaces, filter,
+                extraFields);
     }
 
     @Override
@@ -109,6 +137,78 @@ public final class StartStreaming implements StreamControlMessage {
                 ", authorizationContext=" + authorizationContext +
                 ", namespaces=" + namespaces +
                 ", eventFilter=" + filter +
+                ", extraFields=" + extraFields +
                 "]";
     }
+
+    /**
+     * A mutable builder with a fluent API for creating an instance of StartStreaming.
+     */
+    @NotThreadSafe
+    public static final class StartStreamingBuilder {
+
+        private final StreamingType streamingType;
+        private final CharSequence connectionCorrelationId;
+        private final AuthorizationContext authorizationContext;
+
+        @Nullable private Collection<String> namespaces;
+        @Nullable private CharSequence filter;
+        @Nullable private JsonFieldSelector extraFields;
+
+        private StartStreamingBuilder(final StreamingType streamingType, final CharSequence connectionCorrelationId,
+                final AuthorizationContext authorizationContext) {
+
+            this.streamingType = checkNotNull(streamingType, "streamingType");
+            this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId");
+            this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
+            namespaces = null;
+            filter = null;
+            extraFields = null;
+        }
+
+        /**
+         * Sets the namespaces for which the filter should be applied.
+         *
+         * @param namespaces the namespaces for which the filter should be applied &ndash; if empty or {@code null},
+         * all namespaces are considered.
+         * @return this builder instance to allow method chaining.
+         */
+        public StartStreamingBuilder withNamespaces(@Nullable final Collection<String> namespaces) {
+            this.namespaces = namespaces;
+            return this;
+        }
+
+        /**
+         * Sets the filter to be applied to events.
+         *
+         * @param filter the filter string (RQL) to apply for event filtering or {@code null} if none should be applied.
+         * @return this builder instance to allow method chaining.
+         */
+        public StartStreamingBuilder withFilter(@Nullable final CharSequence filter) {
+            this.filter = filter;
+            return this;
+        }
+
+        /**
+         * Determines the extra fields and their values to be additionally set to outgoing signals.
+         *
+         * @param extraFields selector for the extra fields or {@code null} if outgoing signals should not be enriched.
+         * @return this builder instance to allow method chaining.
+         */
+        public StartStreamingBuilder withExtraFields(@Nullable final JsonFieldSelector extraFields) {
+            this.extraFields = extraFields;
+            return this;
+        }
+
+        /**
+         * Builds an instance of StartStreaming with the properties of this builder.
+         *
+         * @return the StartStreaming instance.
+         */
+        public StartStreaming build() {
+            return new StartStreaming(this);
+        }
+
+    }
+
 }

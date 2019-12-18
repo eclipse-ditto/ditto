@@ -65,7 +65,7 @@ public abstract class AbstractRoute extends AllDirectives {
      * Don't configure URL decoding as JsonParseOptions because Akka-Http already decodes the fields-param and we would
      * decode twice.
      */
-    private static final JsonParseOptions JSON_FIELD_SELECTOR_PARSE_OPTIONS = JsonFactory.newParseOptionsBuilder()
+    public static final JsonParseOptions JSON_FIELD_SELECTOR_PARSE_OPTIONS = JsonFactory.newParseOptionsBuilder()
             .withoutUrlDecoding()
             .build();
 

@@ -13,14 +13,18 @@
 package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.Arrays;
+import java.lang.ref.SoftReference;
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.List;
 
+import org.assertj.core.util.Lists;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -28,93 +32,211 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit tests for {@link ImmutableFilteredTopic}.
  */
-public class ImmutableFilteredTopicTest {
+public final class ImmutableFilteredTopicTest {
 
+    private static final List<String> NAMESPACES =
+            Collections.unmodifiableList(Lists.list("this.is.a.namespace", "eat.that", "foo.bar"));
     private static final String FILTER_EXAMPLE = "gt(attributes/a,42)";
+    private static final JsonFieldSelector EXTRA_FIELDS =
+            JsonFieldSelector.newInstance("attributes", "features/location");
 
     @Test
     public void testHashCodeAndEquals() {
+        final SoftReference<String> red = new SoftReference<>("Foo");
+        final SoftReference<String> black = new SoftReference<>("Bar");
+
         EqualsVerifier.forClass(ImmutableFilteredTopic.class)
                 .usingGetClass()
+                .withIgnoredFields("stringRepresentation")
+                .withPrefabValues(SoftReference.class, red, black)
                 .verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableFilteredTopic.class, areImmutable(),
-                provided(Topic.class).isAlsoImmutable());
+        assertInstancesOf(ImmutableFilteredTopic.class,
+                areImmutable(),
+                provided(Topic.class, JsonFieldSelector.class).areAlsoImmutable(),
+                assumingFields("namespaces").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
+                assumingFields("stringRepresentation").areModifiedAsPartOfAnUnobservableCachingStrategy());
+    }
+
+    @Test
+    public void getTopicReturnsExpected() {
+        final Topic topic = Topic.LIVE_COMMANDS;
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(topic).build();
+
+        assertThat(underTest.getTopic()).isEqualTo(topic);
+    }
+
+    @Test
+    public void getEmptyNamespacesIfNotSet() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS).build();
+
+        assertThat(underTest.getNamespaces()).isEmpty();
+    }
+
+    @Test
+    public void getNamespacesReturnsExpectedIfSet() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withNamespaces(NAMESPACES)
+                .build();
+
+        assertThat(underTest.getNamespaces()).isEqualTo(NAMESPACES);
+    }
+
+    @Test
+    public void getFilterReturnsEmptyOptionalIfNotSet() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS).build();
+
+        assertThat(underTest.getFilter()).isEmpty();
+    }
+
+    @Test
+    public void getFilterReturnsExpectedIfSet() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFilter(FILTER_EXAMPLE)
+                .build();
+
+        assertThat(underTest.getFilter()).contains(FILTER_EXAMPLE);
+    }
+
+    @Test
+    public void getExtraFieldsReturnsEmptyOptionalIfNotSet() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS).build();
+
+        assertThat(underTest.getExtraFields()).isEmpty();
+    }
+
+    @Test
+    public void getExtraFieldsReturnsExpectedIfSet() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+
+        assertThat(underTest.getExtraFields()).contains(EXTRA_FIELDS);
     }
 
     @Test
     public void toStringReturnsExpected() {
-        final FilteredTopic filteredTopic = ImmutableFilteredTopic.of(Topic.TWIN_EVENTS, Collections.emptyList(), null);
-        final String actual = filteredTopic.toString();
-        assertThat(actual).isEqualTo("_/_/things/twin/events");
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS).build();
+
+        assertThat(underTest.toString()).isEqualTo("_/_/things/twin/events");
     }
 
     @Test
-    public void toStringReturnsExpectedWithFilterAndNamespaces() {
-        final List<String> namespaces = Arrays.asList("foo", "bar");
-        final FilteredTopic filteredTopic = ImmutableFilteredTopic.of(Topic.TWIN_EVENTS, namespaces, FILTER_EXAMPLE);
-        final String actual = filteredTopic.toString();
-        assertThat(actual).isEqualTo(
-                "_/_/things/twin/events?namespaces=" + String.join(",", namespaces) + "&filter=" + FILTER_EXAMPLE);
+    public void toStringReturnsExpectedWithFilterNamespacesAndExtraFields() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withNamespaces(NAMESPACES)
+                .withFilter(FILTER_EXAMPLE)
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+        final String expected = MessageFormat.format("_/_/things/twin/events?namespaces={0}&filter={1}&extraFields={2}",
+                String.join(",", NAMESPACES), FILTER_EXAMPLE, EXTRA_FIELDS);
+
+        final String actual = underTest.toString();
+
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
     public void toStringReturnsExpectedWithOnlyNamespace() {
-        final List<String> namespaces = Arrays.asList("this.is.a.namespace", "eat.that", "foo.bar");
-        final FilteredTopic filteredTopic = ImmutableFilteredTopic.of(Topic.LIVE_MESSAGES, namespaces, null);
-        final String actual = filteredTopic.toString();
-        assertThat(actual).isEqualTo("_/_/things/live/messages?namespaces=" + String.join(",", namespaces));
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.LIVE_MESSAGES)
+                .withNamespaces(NAMESPACES)
+                .build();
+
+        final String actual = underTest.toString();
+
+        assertThat(actual).isEqualTo("_/_/things/live/messages?namespaces=" + String.join(",", NAMESPACES));
     }
 
     @Test
     public void toStringReturnsExpectedWithOnlyFilter() {
-        final FilteredTopic filteredTopic =
-                ImmutableFilteredTopic.of(Topic.TWIN_EVENTS, Collections.emptyList(), FILTER_EXAMPLE);
-        final String actual = filteredTopic.toString();
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFilter(FILTER_EXAMPLE)
+                .build();
+
+        final String actual = underTest.toString();
+
         assertThat(actual).isEqualTo("_/_/things/twin/events?filter=" + FILTER_EXAMPLE);
     }
 
     @Test
-    public void fromStringParsesAsExpectedWithFilterAndNamespaces() {
-        final String filterTopicString = "_/_/things/twin/events?namespaces=foo,bar&filter=" + FILTER_EXAMPLE;
+    public void toStringReturnsExpectedWithOnlyExtraFields() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
 
-        final FilteredTopic filteredTopic = ImmutableFilteredTopic.fromString(filterTopicString);
-        assertThat(filteredTopic.getNamespaces()).isEqualTo(Arrays.asList("foo", "bar"));
-        assertThat(filteredTopic.getTopic()).isEqualTo(Topic.TWIN_EVENTS);
-        assertThat(filteredTopic.getFilter()).contains(FILTER_EXAMPLE);
+        final String actual = underTest.toString();
+
+        assertThat(actual).isEqualTo("_/_/things/twin/events?extraFields=" + EXTRA_FIELDS);
+    }
+
+    @Test
+    public void fromStringParsesAsExpectedWithFilterAndNamespaces() {
+        final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withNamespaces(NAMESPACES)
+                .withFilter(FILTER_EXAMPLE)
+                .build();
+
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopic.toString());
+
+        assertThat(actual).isEqualTo(filteredTopic);
+    }
+
+    @Test
+    public void fromStringParsesAsExpectedWithFilterNamespacesAndExtraFields() {
+        final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withNamespaces(NAMESPACES)
+                .withFilter(FILTER_EXAMPLE)
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopic.toString());
+
+        assertThat(actual).isEqualTo(filteredTopic);
     }
 
     @Test
     public void fromStringParsesAsExpected() {
-        final String filterTopicString = "_/_/things/twin/events";
+        final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS).build();
 
-        final FilteredTopic filteredTopic = ImmutableFilteredTopic.fromString(filterTopicString);
-        assertThat(filteredTopic.getNamespaces()).isEmpty();
-        assertThat(filteredTopic.getTopic()).isEqualTo(Topic.TWIN_EVENTS);
-        assertThat(filteredTopic.getFilter()).isEmpty();
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopic.toString());
+
+        assertThat(actual).isEqualTo(filteredTopic);
     }
 
     @Test
     public void fromStringParsesAsExpectedWithOnlyNamespace() {
-        final List<String> namespaces = Arrays.asList("this.is.a.namespace", "eat.that", "foo.bar");
-        final String filterTopicString = "_/_/things/live/commands?namespaces=" + String.join(",", namespaces);
+        final ImmutableFilteredTopic expected = ImmutableFilteredTopic.getBuilder(Topic.LIVE_COMMANDS)
+                .withNamespaces(NAMESPACES)
+                .build();
 
-        final FilteredTopic filteredTopic = ImmutableFilteredTopic.fromString(filterTopicString);
-        assertThat(filteredTopic.getNamespaces()).isEqualTo(namespaces);
-        assertThat(filteredTopic.getTopic()).isEqualTo(Topic.LIVE_COMMANDS);
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(expected.toString());
+
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
     public void fromStringParsesAsExpectedWithOnlyFilter() {
-        final String filterTopicString = "_/_/things/live/events?filter=" + FILTER_EXAMPLE;
+        final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.LIVE_EVENTS)
+                .withFilter(FILTER_EXAMPLE)
+                .build();
 
-        final FilteredTopic filteredTopic = ImmutableFilteredTopic.fromString(filterTopicString);
-        assertThat(filteredTopic.getNamespaces()).isEmpty();
-        assertThat(filteredTopic.getTopic()).isEqualTo(Topic.LIVE_EVENTS);
-        assertThat(filteredTopic.getFilter()).contains(FILTER_EXAMPLE);
+        final FilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopic.toString());
+
+        assertThat(actual).isEqualTo(filteredTopic);
+    }
+
+    @Test
+    public void fromStringParsesAsExpectedWithOnlyExtraFields() {
+        final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+
+        final FilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopic.toString());
+
+        assertThat(actual).isEqualTo(filteredTopic);
     }
 
 }

@@ -12,146 +12,254 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
-import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.text.MessageFormat;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
+import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
-import org.eclipse.ditto.model.jwt.JsonWebToken;
-import org.eclipse.ditto.services.gateway.streaming.JwtToken;
+import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.Mockito;
 
 /**
- * Tests {@link ProtocolMessageExtractor}.
+ * Unit test for {@link ProtocolMessageExtractor}.
  */
-public class ProtocolMessageExtractorTest {
+@RunWith(Enclosed.class)
+public final class ProtocolMessageExtractorTest {
 
-    private String correlationId;
-    private AuthorizationContext authorizationContext;
-    private ProtocolMessageExtractor extractor;
+    public static final class GeneralFunctionalityTest {
 
-    @Before
-    public void setUp() {
-        authorizationContext = Mockito.mock(AuthorizationContext.class);
-        correlationId = UUID.randomUUID().toString();
-        extractor = new ProtocolMessageExtractor(authorizationContext, correlationId);
+        private final String connectionCorrelationId = String.valueOf(UUID.randomUUID());
+        private ProtocolMessageExtractor underTest;
+
+        @Before
+        public void setUp() {
+            underTest = new ProtocolMessageExtractor(Mockito.mock(AuthorizationContext.class), connectionCorrelationId);
+        }
+
+        @Test
+        public void noneProtocolMessagesMappedToNull() {
+            try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+                softly.assertThat(underTest.apply(null))
+                        .as("apply null")
+                        .isEmpty();
+                softly.assertThat(underTest.apply(""))
+                        .as("apply empty")
+                        .isEmpty();
+                softly.assertThat(underTest.apply("{\"some\":\"json\"}"))
+                        .as("apply some JSON")
+                        .isEmpty();
+            }
+        }
+
+        @Test
+        public void extractJwtProtocolMessage() {
+            final String jwt = getJwt();
+            final String jwtProtocolMessage = "JWT-TOKEN?jwtToken=" + jwt;
+            final StreamControlMessage expected = Jwt.newInstance(jwt, connectionCorrelationId);
+
+            assertThat(underTest.apply(jwtProtocolMessage)).contains(expected);
+        }
+
+        private static String getJwt() {
+            final String header = getBase64EncodedString(JsonObject.newBuilder()
+                    .set("header", "value")
+                    .build());
+            final String payload = getBase64EncodedString(JsonObject.newBuilder()
+                    .set("exp", Instant.now().plusSeconds(60).getEpochSecond())
+                    .build());
+            final String signature = getBase64EncodedString(JsonObject.newBuilder()
+                    .set("signature", "foo")
+                    .build());
+
+            return String.format("%s.%s.%s", header, payload, signature);
+        }
+
+        private static String getBase64EncodedString(final JsonObject jsonObject) {
+            final Base64.Encoder encoder = Base64.getEncoder();
+            final String jsonString = jsonObject.toString();
+            return new String(encoder.encode(jsonString.getBytes()));
+        }
+
     }
 
-    @Test
-    public void startSending() {
-        testStartSending("", Collections.emptyList(), null);
+    @RunWith(Parameterized.class)
+    public static final class StartSendingTest {
+
+        @Parameterized.Parameter
+        public ProtocolMessageType protocolMessageType;
+
+        private StreamingType streamingType;
+        private String correlationId;
+        private AuthorizationContext authContext;
+
+        private ProtocolMessageExtractor underTest;
+
+        @Parameterized.Parameters(name = "{0}")
+        public static List<ProtocolMessageType> startSendingProtocolMessageTypes( ) {
+            return Arrays.stream(ProtocolMessageType.values())
+                    .filter(ProtocolMessageType::isStartSending)
+                    .collect(Collectors.toList());
+        }
+
+        @Before
+        public void setUp() {
+            streamingType = protocolMessageType.getStreamingTypeOrThrow();
+            correlationId = String.valueOf(UUID.randomUUID());
+            authContext = Mockito.mock(AuthorizationContext.class);
+            underTest = new ProtocolMessageExtractor(authContext, correlationId);
+        }
+
+        @Test
+        public void startSending() {
+            final StartStreaming expected =
+                    StartStreaming.getBuilder(streamingType, correlationId, authContext).build();
+
+            assertThat(underTest.apply(protocolMessageType.toString())).contains(expected);
+        }
+
+        @Test
+        public void startSendingWithNamespaces() {
+            final Collection<String> namespaces = Arrays.asList("eclipse", "ditto", "is", "awesome");
+            final StartStreaming expected = StartStreaming.getBuilder(streamingType, correlationId, authContext)
+                    .withNamespaces(namespaces)
+                    .build();
+
+            final String requestParams = MessageFormat.format("?namespaces={0}", String.join(",", namespaces));
+
+            assertThat(underTest.apply(protocolMessageType + requestParams)).contains(expected);
+        }
+
+        @Test
+        public void startSendingWithFilter() {
+            final String filter = "eq(foo,1)";
+            final StartStreaming expected = StartStreaming.getBuilder(streamingType, correlationId, authContext)
+                    .withFilter(filter)
+                    .build();
+
+            final String requestParams = MessageFormat.format("?filter={0}", filter);
+
+            assertThat(underTest.apply(protocolMessageType + requestParams)).contains(expected);
+        }
+
+        @Test
+        public void startSendingWithEmptyFilter() {
+            final StartStreaming expected = StartStreaming.getBuilder(streamingType, correlationId, authContext)
+                    .withFilter("")
+                    .build();
+
+            assertThat(underTest.apply(protocolMessageType + "?filter=")).contains(expected);
+        }
+
+        @Test
+        public void startSendingWithEmptyNamespace() {
+            final StartStreaming expected =
+                    StartStreaming.getBuilder(streamingType, correlationId, authContext).build();
+
+            assertThat(underTest.apply(protocolMessageType + "?namespaces=")).contains(expected);
+        }
+
+        @Test
+        public void startSendingWithExtraFields() {
+            final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes", "features/location");
+            final StartStreaming expected = StartStreaming.getBuilder(streamingType, correlationId, authContext)
+                    .withExtraFields(extraFields)
+                    .build();
+
+            final String requestParams = MessageFormat.format("?extraFields={0}", extraFields.toString());
+
+            assertThat(underTest.apply(protocolMessageType + requestParams)).contains(expected);
+        }
+
+        @Test
+        public void startSendingWithEmptyExtraFields() {
+            final StartStreaming expected =
+                    StartStreaming.getBuilder(streamingType, correlationId, authContext).build();
+
+            assertThat(underTest.apply(protocolMessageType + "?extraFields=")).contains(expected);
+        }
+
+        @Test
+        public void startSendingWithNamespacesFilterAndExtraFields() {
+            final Collection<String> namespaces = Arrays.asList("eclipse", "ditto", "is", "awesome");
+            final String filter = "eq(foo,1)";
+            final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes", "features/location");
+            final StartStreaming expected = StartStreaming.getBuilder(streamingType, correlationId, authContext)
+                    .withNamespaces(namespaces)
+                    .withFilter(filter)
+                    .withExtraFields(extraFields)
+                    .build();
+
+            final String requestParams = MessageFormat.format("?filter={0}&namespaces={1}&extraFields={2}", filter,
+                    String.join(",", namespaces), extraFields.toString());
+
+            assertThat(underTest.apply(protocolMessageType + requestParams)).contains(expected);
+        }
+
+        @Test
+        public void startSendingWithStrangeAppendix() {
+            final StartStreaming expected =
+                    StartStreaming.getBuilder(streamingType, correlationId, authContext).build();
+
+            assertThat(underTest.apply(protocolMessageType + "thisShouldNotBeBreakAnything")).contains(expected);
+        }
+
+        @Test
+        public void startSendingWithUnknownParameters() {
+            final StartStreaming expected =
+                    StartStreaming.getBuilder(streamingType, correlationId, authContext).build();
+            
+            final Optional<StreamControlMessage> extracted = underTest.apply(protocolMessageType + "?eclipse=ditto");
+
+            assertThat(extracted).contains(expected);
+        }
+
     }
 
-    @Test
-    public void startSendingWithNamespaces() {
-        testStartSending("?namespaces=eclipse,ditto,is,awesome",
-                asList("eclipse", "ditto", "is", "awesome"), null);
-    }
+    @RunWith(Parameterized.class)
+    public static final class StopSendingTest {
 
-    @Test
-    public void startSendingWithFilter() {
-        testStartSending("?filter=eq(foo,1)", Collections.emptyList(), "eq(foo,1)");
-    }
+        @Parameterized.Parameter
+        public ProtocolMessageType protocolMessageType;
 
-    @Test
-    public void startSendingWithNamespacesAndFilter() {
-        testStartSending("?filter=eq(foo,1)&namespaces=eclipse,ditto,is,awesome",
-                asList("eclipse", "ditto", "is", "awesome"), "eq(foo,1)");
-    }
+        @Parameterized.Parameters(name = "{0}")
+        public static List<ProtocolMessageType> startSendingProtocolMessageTypes( ) {
+            return Arrays.stream(ProtocolMessageType.values())
+                    .filter(protocolMessage -> protocolMessage.getIdentifier().startsWith("STOP"))
+                    .collect(Collectors.toList());
+        }
 
-    @Test
-    public void startSendingWithEmptyFilter() {
-        testStartSending("?filter=", Collections.emptyList(), "");
-    }
+        @Test
+        public void testStopSending() {
+            final String correlationId = String.valueOf(UUID.randomUUID());
+            final StreamControlMessage expected =
+                    new StopStreaming(protocolMessageType.getStreamingTypeOrThrow(), correlationId);
 
-    @Test
-    public void startSendingWithEmptyNamespace() {
-        testStartSending("?namespaces=", Collections.emptyList(), null);
-    }
+            final ProtocolMessageExtractor underTest =
+                    new ProtocolMessageExtractor(Mockito.mock(AuthorizationContext.class), correlationId);
 
-    @Test
-    public void startSendingWithStrangeAppendix() {
-        testStartSending("thisShouldNotBeBreakAnything", Collections.emptyList(), null);
-    }
+            assertThat(underTest.apply(protocolMessageType.toString())).contains(expected);
+        }
 
-    @Test
-    public void startSendingWithUnknownParameters() {
-        testStartSending("?eclipse=ditto", Collections.emptyList(), null);
-    }
-
-    private void testStartSending(final String parameters, final List<String> expectedNamespaces,
-            @Nullable final String expectedFilter) {
-        Stream.of(ProtocolMessages.values())
-                .filter(protocolMessage -> protocolMessage.getIdentifier().startsWith("START"))
-                .forEach(protocolMessage -> {
-                    final Optional<StreamControlMessage> extracted =
-                            extractor.apply(protocolMessage.getIdentifier() + parameters);
-                    assertThat(extracted.get()).isInstanceOfAny(StartStreaming.class);
-                    final StartStreaming start = ((StartStreaming) extracted.get());
-                    assertThat(start.getStreamingType()).isEqualTo(protocolMessage.getStreamingType().get());
-                    assertThat(start.getConnectionCorrelationId()).isEqualTo(correlationId);
-                    assertThat(start.getAuthorizationContext()).isEqualTo(authorizationContext);
-                    assertThat(start.getNamespaces()).isEqualTo(expectedNamespaces);
-                    assertThat(start.getFilter()).isEqualTo(Optional.ofNullable(expectedFilter));
-                });
-    }
-
-    @Test
-    public void testStopSending() {
-        Stream.of(ProtocolMessages.values())
-                .filter(protocolMessage -> protocolMessage.getIdentifier().startsWith("STOP"))
-                .forEach(protocolMessage -> {
-                    final Optional<StreamControlMessage> extracted = extractor.apply(protocolMessage.getIdentifier());
-                    assertThat(extracted.get()).isInstanceOfAny(StopStreaming.class);
-                    final StopStreaming stop = ((StopStreaming) extracted.get());
-                    assertThat(stop.getStreamingType()).isEqualTo(protocolMessage.getStreamingType().get());
-                    assertThat(stop.getConnectionCorrelationId()).isEqualTo(correlationId);
-                });
-    }
-
-    @Test
-    public void noneProtocolMessagesMappedToNull() {
-        assertThat(extractor.apply(null)).isEmpty();
-        assertThat(extractor.apply("")).isEmpty();
-        assertThat(extractor.apply("{\"some\":\"json\"}")).isEmpty();
-    }
-
-    @Test
-    public void jwtToken() {
-        final JsonWebToken jsonWebToken = getJsonWebToken();
-        final String jwtTokenProtocolMessage = "JWT-TOKEN?jwtToken=" + jsonWebToken.getToken();
-        final Optional<StreamControlMessage> streamControlMessage = extractor.apply(jwtTokenProtocolMessage);
-        assertThat(streamControlMessage).isNotEmpty();
-        assertThat(streamControlMessage.get()).isInstanceOf(JwtToken.class);
-        final JwtToken jwtToken = (JwtToken) streamControlMessage.get();
-        assertThat(jwtToken.getJwtTokenAsString()).isEqualTo(jsonWebToken.getToken());
-    }
-
-    private static JsonWebToken getJsonWebToken() {
-        final String header = "{\"header\":\"value\"}";
-        final String payload = String.format("{\"exp\":%d}", Instant.now().plusSeconds(60).getEpochSecond());
-        final String signature = "{\"signature\":\"foo\"}";
-        final String token = base64(header) + "." + base64(payload) + "." + base64(signature);
-        return ImmutableJsonWebToken.fromToken(token);
-    }
-
-    private static String base64(final String value) {
-        return new String(Base64.getEncoder().encode(value.getBytes()));
     }
 
 }

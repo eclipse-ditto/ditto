@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -661,9 +662,11 @@ public final class ConnectivityModelFactory {
      *
      * @param topic the {@code Topic} of the FilteredTopic
      * @return the created FilteredTopic
+     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
      */
+    @Deprecated
     public static FilteredTopic newFilteredTopic(final Topic topic) {
-        return ImmutableFilteredTopic.of(topic, Collections.emptyList(), null);
+        return newFilteredTopicBuilder(topic).build();
     }
 
     /**
@@ -672,9 +675,13 @@ public final class ConnectivityModelFactory {
      * @param topic the {@code Topic} of the FilteredTopic
      * @param filter the filter String to apply for the FilteredTopic
      * @return the created FilteredTopic
+     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
      */
+    @Deprecated
     public static FilteredTopic newFilteredTopic(final Topic topic, @Nullable final String filter) {
-        return ImmutableFilteredTopic.of(topic, Collections.emptyList(), filter);
+        return newFilteredTopicBuilder(topic)
+                .withFilter(filter)
+                .build();
     }
 
     /**
@@ -684,9 +691,13 @@ public final class ConnectivityModelFactory {
      * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are
      * considered
      * @return the created FilteredTopic
+     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
      */
+    @Deprecated
     public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces) {
-        return ImmutableFilteredTopic.of(topic, namespaces, null);
+        return newFilteredTopicBuilder(topic)
+                .withNamespaces(namespaces)
+                .build();
     }
 
     /**
@@ -697,10 +708,16 @@ public final class ConnectivityModelFactory {
      * considered
      * @param filter the filter String to apply for the FilteredTopic
      * @return the created FilteredTopic
+     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
      */
+    @Deprecated
     public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces,
             @Nullable final String filter) {
-        return ImmutableFilteredTopic.of(topic, namespaces, filter);
+
+        return newFilteredTopicBuilder(topic)
+                .withNamespaces(namespaces)
+                .withFilter(filter)
+                .build();
     }
 
     /**
@@ -712,6 +729,17 @@ public final class ConnectivityModelFactory {
      */
     public static FilteredTopic newFilteredTopic(final String topicString) {
         return ImmutableFilteredTopic.fromString(topicString);
+    }
+
+    /**
+     * Returns a builder for a {@link FilteredTopic}.
+     *
+     * @param topic the topic of the FilteredTopic to be built.
+     * @return the builder.
+     * @throws NullPointerException if {@code topic} is {@code null}.
+     */
+    public static FilteredTopicBuilder newFilteredTopicBuilder(final Topic topic) {
+        return ImmutableFilteredTopic.getBuilder(topic);
     }
 
     /**

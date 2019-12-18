@@ -24,12 +24,13 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.actor.AbstractActorPublisherWithStash;
 import akka.stream.actor.ActorPublisherMessage;
@@ -43,12 +44,10 @@ public final class EventAndResponsePublisher
         extends AbstractActorPublisherWithStash<Jsonifiable.WithPredicate<JsonObject, JsonField>> {
 
     private static final int MESSAGE_CONSUMPTION_CHECK_SECONDS = 2;
-    private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final int backpressureBufferSize;
     private final List<Jsonifiable.WithPredicate<JsonObject, JsonField>> buffer = new ArrayList<>();
     private final AtomicBoolean currentlyInMessageConsumedCheck = new AtomicBoolean(false);
-
-    private String connectionCorrelationId;
 
     @SuppressWarnings("unused")
     private EventAndResponsePublisher(final int backpressureBufferSize) {
@@ -71,9 +70,10 @@ public final class EventAndResponsePublisher
         // Initially, this Actor can only receive the Connect message:
         return ReceiveBuilder.create()
                 .match(Connect.class, connect -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, connect.getConnectionCorrelationId());
-                    logger.debug("Established new connection: {}", connect.getConnectionCorrelationId());
-                    getContext().become(connected(connect.getConnectionCorrelationId()));
+                    final String connectionCorrelationId = connect.getConnectionCorrelationId();
+                    logger.withCorrelationId(connectionCorrelationId).debug("Established new connection: {}",
+                            connectionCorrelationId);
+                    getContext().become(connected(connectionCorrelationId));
                 })
                 .matchAny(any -> {
                     logger.info("Got unknown message during init phase '{}' - stashing..", any);
@@ -82,7 +82,6 @@ public final class EventAndResponsePublisher
     }
 
     private Receive connected(final String connectionCorrelationId) {
-        this.connectionCorrelationId = connectionCorrelationId;
         unstashAll();
 
         return ReceiveBuilder.create()
@@ -100,14 +99,17 @@ public final class EventAndResponsePublisher
                 })
                 .match(CloseStreamExceptionally.class, closeStreamExceptionally -> {
                     final DittoRuntimeException reason = closeStreamExceptionally.getReason();
-                    LogUtil.enhanceLogWithCorrelationId(logger, closeStreamExceptionally.getConnectionCorrelationId());
-                    logger.info("Closing stream exceptionally because of <{}>.", reason);
-                    onNext(reason);
+                    logger.withCorrelationId(closeStreamExceptionally.getConnectionCorrelationId())
+                            .info("Closing stream exceptionally because of <{}>.", reason);
+                    if (0 < totalDemand()) {
+                        onNext(reason);
+                    }
                     onErrorThenStop(reason);
                 })
                 .match(DittoRuntimeException.class, cre -> buffer.size() >= backpressureBufferSize, cre -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, cre.getDittoHeaders().getCorrelationId());
+                    logger.setCorrelationId(cre);
                     handleBackpressureFor(cre);
+                    logger.discardCorrelationId();
                 })
                 .match(DittoRuntimeException.class, cre -> {
                     if (buffer.isEmpty() && totalDemand() > 0) {
@@ -128,14 +130,13 @@ public final class EventAndResponsePublisher
                     }
                 })
                 .match(ActorPublisherMessage.Request.class, request -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-                    logger.debug("Got new demand: {}", request);
+                    logger.withCorrelationId(connectionCorrelationId).debug("Got new demand: {}", request);
                     deliverBuf();
                 })
                 .match(ActorPublisherMessage.Cancel.class, cancel -> getContext().stop(getSelf()))
                 .matchAny(any -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-                    logger.warning("Got unknown message during connected phase: '{}'", any);
+                    logger.withCorrelationId(connectionCorrelationId)
+                            .warning("Got unknown message during connected phase: '{}'", any);
                 })
                 .build();
     }
@@ -164,7 +165,6 @@ public final class EventAndResponsePublisher
     }
 
     private void deliverBuf() {
-        LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
         while (totalDemand() > 0) {
             /*
              * totalDemand is a Long and could be larger than
