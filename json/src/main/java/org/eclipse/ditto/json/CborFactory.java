@@ -39,7 +39,7 @@ public final class CborFactory {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         try{
             final CBORParser parser = jacksonCborFactory.createParser(bytes);
-            return parseValue(parser);
+            return parseValue(parser, byteBuffer);
         } catch (IOException e){
             throw createJsonParseException(byteBuffer, e);
         }
@@ -49,16 +49,17 @@ public final class CborFactory {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, offset, length);
         try{
             final CBORParser parser = jacksonCborFactory.createParser(bytes, offset, length);
-            return parseValue(parser);
+            return parseValue(parser, byteBuffer);
         } catch (IOException e){
             throw createJsonParseException(byteBuffer, e);
         }
     }
 
     public static JsonValue readFrom(ByteBuffer byteBuffer) {
+        // TODO: move / duplicate the bytebuffer array shortcut here?
         try{
             final CBORParser parser = jacksonCborFactory.createParser(ByteBufferInputStream.of(byteBuffer));
-            return parseValue(parser);
+            return parseValue(parser, byteBuffer);
         } catch (IOException e){
             throw createJsonParseException(byteBuffer, e);
         }
@@ -94,16 +95,16 @@ public final class CborFactory {
         serializationContext.close();
     }
 
-    private static JsonValue parseValue(CBORParser parser) throws IOException {
-        return parseValue(parser, parser.nextToken());
+    private static JsonValue parseValue(CBORParser parser, ByteBuffer byteBuffer) throws IOException {
+        return parseValue(parser, byteBuffer, parser.nextToken());
     }
 
-    private static JsonValue parseValue(CBORParser parser, JsonToken currentToken) throws IOException {
+    private static JsonValue parseValue(CBORParser parser, ByteBuffer byteBuffer, JsonToken currentToken) throws IOException {
         switch (currentToken) {
             case START_OBJECT:
-                return parseObject(parser);
+                return parseObject(parser, byteBuffer);
             case START_ARRAY:
-                return parseArray(parser);
+                return parseArray(parser, byteBuffer);
             case VALUE_STRING:
                 return ImmutableJsonString.of(parser.getValueAsString());
             case VALUE_NUMBER_INT:
@@ -136,25 +137,43 @@ public final class CborFactory {
         }
     }
 
-    private static JsonObject parseObject(CBORParser parser) throws IOException {
+    private static JsonObject parseObject(CBORParser parser, ByteBuffer byteBuffer) throws IOException {
         final LinkedHashMap<String, JsonField> map = new LinkedHashMap<>();
+        final long startOffset = parser.getTokenLocation().getByteOffset();
         while (parser.nextToken() == JsonToken.FIELD_NAME){
             final String key = parser.currentName();
-            final JsonField jsonField = JsonField.newInstance(key, parseValue(parser));
+            final JsonField jsonField = JsonField.newInstance(key, parseValue(parser, byteBuffer));
             map.put(key, jsonField);
         }
-        return ImmutableJsonObject.of(map);
+        final long endOffset = parser.getTokenLocation().getByteOffset();// - 1; // current value ends before next token starts
+        return ImmutableJsonObject.of(map, getBytesFromInputSource(startOffset, endOffset, byteBuffer));
         // TODO: trust that implementations in this package don't use passed maps to avoid copying them in JsonObject?
     }
 
-    private static JsonArray parseArray(CBORParser parser) throws IOException {
+    private static JsonArray parseArray(CBORParser parser, ByteBuffer byteBuffer) throws IOException {
         final LinkedList<JsonValue> list = new LinkedList<>();
+        final long startOffset = parser.getTokenLocation().getByteOffset();
         while (parser.nextToken() != JsonToken.END_ARRAY){
-            final JsonValue jsonValue = parseValue(parser, parser.currentToken());
+            final JsonValue jsonValue = parseValue(parser, byteBuffer, parser.currentToken());
             list.add(jsonValue);
         }
-        return ImmutableJsonArray.of(list);
+        final long endOffset = parser.getTokenLocation().getByteOffset() ;//- 1; // current value ends before next token starts
+        return ImmutableJsonArray.of(list, getBytesFromInputSource(startOffset, endOffset, byteBuffer));
         // TODO: trust that implementations in this package don't use passed lists to avoid copying them in JsonArray?
+    }
+
+    private static byte[] getBytesFromInputSource(final long startOffset, final long endOffset, final ByteBuffer byteBuffer){
+        assert endOffset > startOffset;
+        assert endOffset < Integer.MAX_VALUE;
+
+        final int length = (int) (endOffset - startOffset);
+        final byte[] bytes = new byte[length];
+
+        final ByteBuffer duplicate = byteBuffer.duplicate();
+        duplicate.position((int) startOffset);
+        duplicate.get(bytes);
+
+        return bytes;
     }
 
     /**
