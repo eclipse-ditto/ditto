@@ -49,7 +49,7 @@ import akka.stream.javadsl.SourceQueueWithComplete;
  *
  * @param <T> the type of the messages this actor processes in the stream graph.
  * @param <M> the type of the incoming messages which is translated to a message of type {@code <T>} in
- *  {@link #mapMessage(M)}.
+ *  {@link #mapMessage(Object)}.
  */
 public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 

@@ -398,6 +398,8 @@ public final class LogUtil {
 
     /**
      * Removes the correlation ID from the default slf4j {@link org.slf4j.MDC}.
+     *
+     * @param loggingAdapter  the DiagnosticLoggingAdapter to remove the MDC field "x-correlation-id" from.
      */
     private static void removeCorrelationId(final DiagnosticLoggingAdapter loggingAdapter) {
         removeCustomField(loggingAdapter, X_CORRELATION_ID);
@@ -405,6 +407,9 @@ public final class LogUtil {
 
     /**
      * Removes the {@code fieldName} from the default slf4j {@link org.slf4j.MDC}.
+     *
+     * @param loggingAdapter the DiagnosticLoggingAdapter to remove the MDC field from.
+     * @param fieldName the field to remove.
      */
     public static void removeCustomField(final DiagnosticLoggingAdapter loggingAdapter, final String fieldName) {
         final Map<String, Object> mdc = getMDC(loggingAdapter);
