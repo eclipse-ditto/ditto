@@ -42,7 +42,7 @@ import akka.event.DiagnosticLoggingAdapter;
 /**
  * Unit tests for functionality in {@link BasePublisherActor}.
  */
-public class BasePublisherActorTest {
+public final class BasePublisherActorTest {
 
     private static final HeaderMapping HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
@@ -55,10 +55,12 @@ public class BasePublisherActorTest {
     public void ensureHeadersAreMappedAsExpected() {
 
         // given
-        final Target target =
-                ConnectivityModelFactory.newTarget("target", TestConstants.Authorization.AUTHORIZATION_CONTEXT,
-                        HEADER_MAPPING, null,
-                        Topic.TWIN_EVENTS);
+        final Target target = ConnectivityModelFactory.newTargetBuilder()
+                .address("target")
+                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
 
         final String correlationId = UUID.randomUUID().toString();
         final String correlationIdImportant = correlationId + "-important!";

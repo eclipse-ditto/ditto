@@ -46,7 +46,7 @@ import akka.kafka.ProducerSettings;
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaBootstrapServerSpecificConfig}.
  */
-public class KafkaBootstrapServerSpecificConfigTest {
+public final class KafkaBootstrapServerSpecificConfigTest {
 
     private static final String FAIL_MESSAGE_TEMPLATE = "bootstrapServers: %s";
 
@@ -174,7 +174,7 @@ public class KafkaBootstrapServerSpecificConfigTest {
         final Connection connectionWithDuplicateBootstrapServers = connectionWithBootstrapServers(
                 BOOTSTRAP_SERVERS + "," + BOOTSTRAP_SERVERS
         );
-        this.shouldContainBootstrapServers(connectionWithDuplicateBootstrapServers);
+        shouldContainBootstrapServers(connectionWithDuplicateBootstrapServers);
     }
 
     private void shouldOnlyContainDefaultBootstrapServer(final Connection connection) {
@@ -202,9 +202,12 @@ public class KafkaBootstrapServerSpecificConfigTest {
         }
         return ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
                 ConnectionType.KAFKA, ConnectivityStatus.OPEN, DEFAULT_URI)
-                .targets(singletonList(
-                        org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget("target",
-                                AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+                .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address("target")
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .qos(1)
+                        .topics(Topic.LIVE_EVENTS)
+                        .build()))
                 .specificConfig(specificConfig)
                 .build();
     }

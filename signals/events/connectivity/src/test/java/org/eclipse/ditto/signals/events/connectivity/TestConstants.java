@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
-import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -36,11 +35,11 @@ public final class TestConstants {
     public static final ConnectionId ID = ConnectionId.of("myConnectionId");
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    public static ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
+    public static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
-    public static String URI = "amqps://username:password@my.endpoint:443";
+    public static final String URI = "amqps://username:password@my.endpoint:443";
 
-    public static AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+    public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
     public static final List<Source> SOURCES = Arrays.asList(
@@ -56,13 +55,15 @@ public final class TestConstants {
                     .index(1).build()
     );
 
-    private static final HeaderMapping HEADER_MAPPING = null;
-    public static final List<Target> TARGETS = Collections.singletonList(
-                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS));
-    public static Connection CONNECTION =
-            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                    .sources(SOURCES)
-                    .targets(TARGETS)
-                    .build();
+    public static final List<Target> TARGETS = Collections.singletonList(ConnectivityModelFactory.newTargetBuilder()
+            .address("eventQueue")
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .topics(Topic.TWIN_EVENTS)
+            .build());
+
+    public static final Connection CONNECTION = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+            .sources(SOURCES)
+            .targets(TARGETS)
+            .build();
 
 }

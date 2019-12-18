@@ -676,11 +676,11 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
 
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                    singletonList(ConnectivityModelFactory.newTarget(
-                            TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress(),
-                            Authorization.AUTHORIZATION_CONTEXT,
-                            null, null, Topic.TWIN_EVENTS))
-            );
+                    singletonList(ConnectivityModelFactory.newTargetBuilder()
+                            .address(TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress())
+                            .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                            .topics(Topic.TWIN_EVENTS)
+                            .build()));
 
             amqpClientActor.tell(outboundSignal, getRef());
 

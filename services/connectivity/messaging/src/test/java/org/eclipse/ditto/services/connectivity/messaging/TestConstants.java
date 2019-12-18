@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -321,21 +320,36 @@ public final class TestConstants {
 
         private static final HeaderMapping HEADER_MAPPING = null;
 
-        public static final Target TARGET_WITH_PLACEHOLDER =
-                newTarget("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}",
-                        Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
-                        null, Topic.TWIN_EVENTS);
-        public static final Target TWIN_TARGET =
-                newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
-                        null, Topic.TWIN_EVENTS);
-        private static final Target TWIN_TARGET_UNAUTHORIZED =
-                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
-                        Topic.TWIN_EVENTS);
-        private static final Target LIVE_TARGET =
-                newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_EVENTS);
-        public static final Target MESSAGE_TARGET =
-                newTarget("live/message", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
-                        Topic.LIVE_MESSAGES);
+        public static final Target TARGET_WITH_PLACEHOLDER = ConnectivityModelFactory.newTargetBuilder()
+                .address("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}")
+                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
+        public static final Target TWIN_TARGET = ConnectivityModelFactory.newTargetBuilder()
+                .address("twinEventExchange/twinEventRoutingKey")
+                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
+        private static final Target TWIN_TARGET_UNAUTHORIZED = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/key")
+                .authorizationContext(Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
+        private static final Target LIVE_TARGET = ConnectivityModelFactory.newTargetBuilder()
+                .address("live/key")
+                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.LIVE_EVENTS)
+                .build();
+        public static final Target MESSAGE_TARGET = ConnectivityModelFactory.newTargetBuilder()
+                .address("live/message")
+                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.LIVE_MESSAGES)
+                .build();
         public static final List<Target> TARGETS = asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
 
         public static final List<Target> TARGET_WITH_VALID_MAPPING_NUMBER =
@@ -360,7 +374,7 @@ public final class TestConstants {
     }
 
     private static PayloadMapping getPayloadMapping(final int numberOfPayloadMappings) {
-        final ArrayList<String> newPayloadMappingInputString = new ArrayList<>();
+        final List<String> newPayloadMappingInputString = new ArrayList<>();
         for (int i = 0; i < numberOfPayloadMappings; i++) {
             newPayloadMappingInputString.add("Ditto");
         }
@@ -410,28 +424,26 @@ public final class TestConstants {
 
     }
 
-    public static class Monitoring {
+    public static final class Monitoring {
 
-        public static ConnectionMonitorRegistry
-                MONITOR_REGISTRY_MOCK =
+        public static final ConnectionMonitorRegistry MONITOR_REGISTRY_MOCK =
                 Mockito.mock(ConnectionMonitorRegistry.class, Mockito.withSettings().stubOnly());
-        private static ConnectionMonitor
-                CONNECTION_MONITOR_MOCK = Mockito.mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
-        public static LogEntry LOG_ENTRY = ConnectivityModelFactory.newLogEntryBuilder("foo",
+        private static final ConnectionMonitor CONNECTION_MONITOR_MOCK =
+                Mockito.mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
+        public static final LogEntry LOG_ENTRY = ConnectivityModelFactory.newLogEntryBuilder("foo",
                 Instant.now(),
                 LogCategory.TARGET,
                 LogType.MAPPED,
                 LogLevel.SUCCESS,
                 "mapping worked.").build();
-        public static LogEntry LOG_ENTRY_2 = ConnectivityModelFactory.newLogEntryBuilder("bar",
+        public static final LogEntry LOG_ENTRY_2 = ConnectivityModelFactory.newLogEntryBuilder("bar",
                 Instant.now(),
                 LogCategory.TARGET,
                 LogType.PUBLISHED,
                 LogLevel.SUCCESS,
                 "publishing worked.").build();
-        public static Collection<LogEntry> LOG_ENTRIES =
+        public static final Collection<LogEntry> LOG_ENTRIES =
                 Collections.unmodifiableList(Arrays.asList(LOG_ENTRY, LOG_ENTRY_2));
-
 
         static {
             when(MONITOR_REGISTRY_MOCK.forInboundConsumed(any(ConnectionId.class), anyString()))
@@ -466,7 +478,6 @@ public final class TestConstants {
                 ConnectivityCounterRegistry.fromConfig(MONITORING_CONFIG.counter());
 
         public static final ConnectionId ID = ConnectionId.of("myConnectionId");
-
 
         public static final Duration ONE_MINUTE = Duration.ofMinutes(1);
         public static final Duration ONE_HOUR = Duration.ofHours(1);
@@ -531,13 +542,13 @@ public final class TestConstants {
 
         public static Measurement mergeMeasurements(final MetricType type,
                 final boolean success,
-                final Measurement measurements,
+                final Measurement measurement,
                 final int times) {
 
             final Map<Duration, Long> result = new HashMap<>();
             for (final Duration interval : DEFAULT_INTERVALS) {
                 result.put(interval,
-                        Optional.of(measurements)
+                        Optional.of(measurement)
                                 .filter(m -> Objects.equals(type, m.getMetricType()))
                                 .filter(m -> Objects.equals(success, m.isSuccess()))
                                 .map(Measurement::getCounts)

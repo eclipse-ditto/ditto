@@ -10,13 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import static java.util.Collections.emptyList;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthContext;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.model.connectivity.Topic.LIVE_COMMANDS;
 import static org.eclipse.ditto.model.connectivity.Topic.LIVE_EVENTS;
 import static org.eclipse.ditto.model.connectivity.Topic.LIVE_MESSAGES;
@@ -59,7 +57,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class SignalFilterTest {
+public final class SignalFilterTest {
 
     private static final String URI = "amqp://user:pass@host:1111/path";
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
@@ -74,49 +72,68 @@ public class SignalFilterTest {
 
         final Set<String> readSubjects = asSet("authorized", "ditto");
 
-        final Target twin_authd =
-                newTarget("twin/authorized", newAuthContext(AUTHORIZED, DUMMY), HEADER_MAPPING, null, TWIN_EVENTS, LIVE_MESSAGES);
-        final Target twin_unauthd =
-                newTarget("twin/unauthorized", newAuthContext(DUMMY, UNAUTHORIZED), HEADER_MAPPING, null, TWIN_EVENTS, LIVE_MESSAGES);
-        final Target live_authd =
-                newTarget("live/authorized", newAuthContext(DUMMY, AUTHORIZED), HEADER_MAPPING, null, LIVE_EVENTS, LIVE_MESSAGES);
-        final Target live_unauthd =
-                newTarget("live/unauthorized", newAuthContext(UNAUTHORIZED, DUMMY), HEADER_MAPPING, null, LIVE_EVENTS, LIVE_MESSAGES);
-        final Target emptyContext =
-                newTarget("live/unauthorized", newAuthContext(UNAUTHORIZED), HEADER_MAPPING, null, LIVE_EVENTS, LIVE_MESSAGES, TWIN_EVENTS,
-                        LIVE_COMMANDS);
+        final Target twinAuthd = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/authorized")
+                .authorizationContext(newAuthContext(AUTHORIZED, DUMMY))
+                .headerMapping(HEADER_MAPPING)
+                .topics(TWIN_EVENTS, LIVE_MESSAGES)
+                .build();
+        final Target twinUnauthd = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/unauthorized")
+                .authorizationContext(newAuthContext(DUMMY, UNAUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(TWIN_EVENTS, LIVE_MESSAGES)
+                .build();
+        final Target liveAuthd = ConnectivityModelFactory.newTargetBuilder()
+                .address("live/authorized")
+                .authorizationContext(newAuthContext(DUMMY, AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(LIVE_EVENTS, LIVE_MESSAGES)
+                .build();
+        final Target liveUnauthd = ConnectivityModelFactory.newTargetBuilder()
+                .address("live/unauthorized")
+                .authorizationContext(newAuthContext(UNAUTHORIZED, DUMMY))
+                .headerMapping(HEADER_MAPPING)
+                .topics(LIVE_EVENTS, LIVE_MESSAGES)
+                .build();
+        final Target emptyContext = ConnectivityModelFactory.newTargetBuilder()
+                .address("live/unauthorized")
+                .authorizationContext(newAuthContext(UNAUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(LIVE_EVENTS, LIVE_MESSAGES, TWIN_EVENTS, LIVE_COMMANDS)
+                .build();
 
         final Collection<Object[]> params = new ArrayList<>();
 
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twin_authd), asList(twin_authd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twin_authd, twin_unauthd), asList(twin_authd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twin_authd, twin_unauthd, live_authd),
-                asList(twin_authd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twin_authd, twin_unauthd, live_authd, live_unauthd),
-                asList(twin_authd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twinAuthd), asList(twinAuthd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd), asList(twinAuthd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd, liveAuthd),
+                asList(twinAuthd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
+                asList(twinAuthd)});
 
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twin_authd), emptyList()});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twin_authd, twin_unauthd), emptyList()});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twin_authd, twin_unauthd, live_authd),
-                asList(live_authd)});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twin_authd, twin_unauthd, live_authd, live_unauthd),
-                asList(live_authd)});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twinAuthd), emptyList()});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd), emptyList()});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd, liveAuthd),
+                asList(liveAuthd)});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
+                asList(liveAuthd)});
 
         params.add(new Object[]{LIVE_MESSAGES, readSubjects,
-                asList(twin_authd, twin_unauthd, live_authd, live_unauthd),
-                asList(twin_authd, live_authd)});
+                asList(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
+                asList(twinAuthd, liveAuthd)});
 
         // subject "ditto" is not authorized to read any signal
         addAllCombinationsExpectingEmptyResult(params,
                 Topic.values(),
                 asSet("ditto"),
-                asSet(twin_authd, twin_unauthd, live_authd, live_unauthd));
+                asSet(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd));
 
         // LIVE_COMMANDS are not subscribed
         addAllCombinationsExpectingEmptyResult(params,
                 new Topic[]{LIVE_COMMANDS},
                 asSet("authorized"),
-                asSet(twin_authd, twin_unauthd, live_authd, live_unauthd));
+                asSet(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd));
 
         // empty auth context
         addAllCombinationsExpectingEmptyResult(params,
@@ -167,7 +184,6 @@ public class SignalFilterTest {
     }
 
     private static Set<Set> getCombinations(final Set elements, final Set<Set> result) {
-
         result.add(elements);
 
         if (elements.size() == 1) {

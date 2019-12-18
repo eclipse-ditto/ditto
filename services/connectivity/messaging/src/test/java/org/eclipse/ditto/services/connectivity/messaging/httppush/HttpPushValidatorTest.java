@@ -112,8 +112,12 @@ public final class HttpPushValidatorTest {
     private static Connection getConnectionWithHostAndTarget(final String host, final String target) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.HTTP_PUSH,
                 ConnectivityStatus.OPEN, "http://" + host + ":80")
-                .targets(singletonList(
-                        ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+                .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address(target)
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .qos(1)
+                        .topics(Topic.LIVE_EVENTS)
+                        .build()))
                 .specificConfig(defaultSpecificConfig)
                 .build();
     }

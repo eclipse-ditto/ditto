@@ -12,10 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthContext;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newFilteredTopic;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.model.connectivity.Topic.LIVE_EVENTS;
 import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 
@@ -23,7 +22,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -63,18 +61,36 @@ public class SignalFilterWithFilterTest {
 
         // targetA does filter for namespaces "org.eclipse.ditto" and "foo"
         final List<String> namespacesA = Arrays.asList("org.eclipse.ditto", "foo");
-        final Target targetA = newTarget("twin/a", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
-                newFilteredTopic(TWIN_EVENTS, namespacesA));
+        final Target targetA = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/a")
+                .authorizationContext(newAuthContext(AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withNamespaces(namespacesA)
+                        .build())
+                .build();
 
         // targetB does filter for namespaces "org.example"
-        final List<String> namespacesB = Arrays.asList("org.example");
-        final Target targetB = newTarget("twin/b", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
-                newFilteredTopic(TWIN_EVENTS, namespacesB));
+        final List<String> namespacesB = Collections.singletonList("org.example");
+        final Target targetB = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/b")
+                .authorizationContext(newAuthContext(AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withNamespaces(namespacesB)
+                        .build())
+                .build();
 
         // targetC does filter for namespaces "foo", but uses the "UNAUTHORIZED" subjects
-        final List<String> namespacesC = Arrays.asList("foo");
-        final Target targetC = newTarget("twin/c", newAuthContext(UNAUTHORIZED), HEADER_MAPPING, null,
-                newFilteredTopic(TWIN_EVENTS, namespacesC));
+        final List<String> namespacesC = Collections.singletonList("foo");
+        final Target targetC = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/c")
+                .authorizationContext(newAuthContext(UNAUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withNamespaces(namespacesC)
+                        .build())
+                .build();
 
         final Connection connection = ConnectivityModelFactory
                 .newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
@@ -82,18 +98,18 @@ public class SignalFilterWithFilterTest {
                 .build();
 
         final Thing thing = Thing.newBuilder()
-                .setId(THING_ID) // WHEN: the namespace of the modifed thing is "foo"
+                .setId(THING_ID) // WHEN: the namespace of the modified thing is "foo"
                 .setAttribute(JsonPointer.of("test"), JsonValue.of(42))
                 .build();
-        final DittoHeaders headers = DittoHeaders.newBuilder().readSubjects(Arrays.asList(AUTHORIZED.getId()))
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .readSubjects(Collections.singletonList(AUTHORIZED.getId()))
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(thingModified);
-        Assertions
-                .assertThat(filteredTargets)
-                .isEqualTo(Collections.singletonList(targetA)); // THEN: only targetA should be in the filtered targets
+
+        assertThat(filteredTargets).containsOnly(targetA); // THEN: only targetA should be in the filtered targets
     }
 
     @Test
@@ -103,18 +119,39 @@ public class SignalFilterWithFilterTest {
 
         // targetA does filter for all namespaces and filters that attribute "test" > 23
         final String filterA = "gt(attributes/test,23)";
-        final Target targetA = newTarget("twin/a", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
-                newFilteredTopic(LIVE_EVENTS, allNamespaces, filterA));
+        final Target targetA = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/a")
+                .authorizationContext(newAuthContext(AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_EVENTS)
+                        .withNamespaces(allNamespaces)
+                        .withFilter(filterA)
+                        .build())
+                .build();
 
         // targetB does filter for all namespaces and filters that attribute "test" > 50
         final String filterB = "gt(attributes/test,50)";
-        final Target targetB = newTarget("twin/b", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
-                newFilteredTopic(LIVE_EVENTS, allNamespaces, filterB));
+        final Target targetB = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/b")
+                .authorizationContext(newAuthContext(AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_EVENTS)
+                        .withNamespaces(allNamespaces)
+                        .withFilter(filterB)
+                        .build())
+                .build();
 
         // targetC does filter for all namespaces and filters that attribute "test" > 23, but uses the "UNAUTHORIZED" subjects
         final String filterC = "gt(attributes/test,50)";
-        final Target targetC = newTarget("twin/c", newAuthContext(UNAUTHORIZED), HEADER_MAPPING, null,
-                newFilteredTopic(LIVE_EVENTS, allNamespaces, filterC));
+        final Target targetC = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/c")
+                .authorizationContext(newAuthContext(UNAUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_EVENTS)
+                        .withNamespaces(allNamespaces)
+                        .withFilter(filterC)
+                        .build())
+                .build();
 
         final Connection connection = ConnectivityModelFactory
                 .newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
@@ -125,16 +162,16 @@ public class SignalFilterWithFilterTest {
                 .setId(THING_ID)
                 .setAttribute(JsonPointer.of("test"), JsonValue.of(42)) // WHEN: the "test" value is 42
                 .build();
-        final DittoHeaders headers = DittoHeaders.newBuilder().readSubjects(Arrays.asList(AUTHORIZED.getId()))
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .readSubjects(Collections.singletonList(AUTHORIZED.getId()))
                 .channel(TopicPath.Channel.LIVE.getName())
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(thingModified);
-        Assertions
-                .assertThat(filteredTargets)
-                .isEqualTo(Collections.singletonList(targetA)); // THEN: only targetA should be in the filtered targets
+
+        assertThat(filteredTargets).containsOnly(targetA); // THEN: only targetA should be in the filtered targets
     }
 
     @Test
@@ -143,44 +180,74 @@ public class SignalFilterWithFilterTest {
         // targetA does filter for namespaces "org.eclipse.ditto" and "foo" and filters that attribute "test" > 23
         final List<String> namespacesA = Arrays.asList("org.eclipse.ditto", "foo");
         final String filterA = "gt(attributes/test,23)";
-        final Target targetA = newTarget("twin/a", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
-                newFilteredTopic(TWIN_EVENTS, namespacesA, filterA));
+        final Target targetA = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/a")
+                .authorizationContext(newAuthContext(AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withNamespaces(namespacesA)
+                        .withFilter(filterA)
+                        .build())
+                .build();
 
         // targetB does filter for namespaces "org.example" and filters that attribute "test" < 50
-        final List<String> namespacesB = Arrays.asList("org.example");
+        final List<String> namespacesB = Collections.singletonList("org.example");
         final String filterB = "lt(attributes/test,50)";
-        final Target targetB = newTarget("twin/b", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
-                newFilteredTopic(TWIN_EVENTS, namespacesB, filterB));
+        final Target targetB = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/b")
+                .authorizationContext(newAuthContext(AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withNamespaces(namespacesB)
+                        .withFilter(filterB)
+                        .build())
+                .build();
 
         // targetC does filter for namespaces "foo" and filters that attribute "test" ==  42, but uses the "UNAUTHORIZED" subjects
-        final List<String> namespacesC = Arrays.asList("foo");
+        final List<String> namespacesC = Collections.singletonList("foo");
         final String filterC = "eq(attributes/test,42)";
-        final Target targetC = newTarget("twin/c", newAuthContext(UNAUTHORIZED), HEADER_MAPPING, null,
-                newFilteredTopic(TWIN_EVENTS, namespacesC, filterC));
+        final Target targetC = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/c")
+                .authorizationContext(newAuthContext(UNAUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withNamespaces(namespacesC)
+                        .withFilter(filterC)
+                        .build())
+                .build();
 
         // targetD does filter for namespaces "foo" and filters that attribute "test" ==  42
-        final List<String> namespacesD = Arrays.asList("foo");
+        final List<String> namespacesD = Collections.singletonList("foo");
         final String filterD = "eq(attributes/test,42)";
-        final Target targetD = newTarget("twin/d", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
-                newFilteredTopic(TWIN_EVENTS, namespacesD, filterD));
-
-        final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
-                .targets(Arrays.asList(targetA, targetB, targetC, targetD))
+        final Target targetD = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/d")
+                .authorizationContext(newAuthContext(AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withNamespaces(namespacesD)
+                        .withFilter(filterD)
+                        .build())
                 .build();
+
+        final Connection connection =
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10,
+                        ConnectivityStatus.OPEN, URI)
+                        .targets(Arrays.asList(targetA, targetB, targetC, targetD))
+                        .build();
 
         final Thing thing = Thing.newBuilder()
-                .setId(THING_ID) // WHEN: the namespace of the modifed thing is "foo"
+                .setId(THING_ID) // WHEN: the namespace of the modified thing is "foo"
                 .setAttribute(JsonPointer.of("test"), JsonValue.of(42)) // WHEN: the "test" value is 42
                 .build();
-        final DittoHeaders headers = DittoHeaders.newBuilder().readSubjects(Arrays.asList(AUTHORIZED.getId()))
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .readSubjects(Collections.singletonList(AUTHORIZED.getId()))
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(thingModified);
-        Assertions
-                .assertThat(filteredTargets)
-                .contains(targetA, targetD); // THEN: only targetA and targetD should be in the filtered targets
+
+        assertThat(filteredTargets).containsOnly(targetA, targetD); // THEN: only targetA and targetD should be in the filtered targets
     }
+
 }

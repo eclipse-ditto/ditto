@@ -126,8 +126,12 @@ public final class KafkaValidatorTest {
     private static Connection getConnectionWithTarget(final String target) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
-                .targets(singletonList(
-                        ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+                .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address(target)
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .qos(1)
+                        .topics(Topic.LIVE_EVENTS)
+                        .build()))
                 .specificConfig(defaultSpecificConfig)
                 .build();
     }
@@ -137,8 +141,12 @@ public final class KafkaValidatorTest {
         specificConfig.put("bootstrapServers", bootstrapServers);
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
-                .targets(singletonList(ConnectivityModelFactory.newTarget("events", AUTHORIZATION_CONTEXT, null, 1,
-                        Topic.LIVE_EVENTS)))
+                .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address("events")
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .qos(1)
+                        .topics(Topic.LIVE_EVENTS)
+                        .build()))
                 .specificConfig(specificConfig)
                 .build();
     }
