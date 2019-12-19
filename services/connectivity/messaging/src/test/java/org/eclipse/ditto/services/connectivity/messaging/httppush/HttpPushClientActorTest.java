@@ -183,7 +183,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
                 .build();
         final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty())
-                .clientCertificate(credentials);
+                .get(credentials);
         final HttpsConnectionContext invalidHttpsContext = ConnectionContext.https(sslContext);
 
         final int port = binding.localAddress().getPort();
