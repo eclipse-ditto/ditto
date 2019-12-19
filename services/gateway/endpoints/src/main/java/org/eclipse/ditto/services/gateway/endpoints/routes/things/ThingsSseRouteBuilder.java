@@ -177,7 +177,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
         final String filterString = parameters.get(PARAM_FILTER);
         final List<String> namespaces = getNamespaces(parameters.get(PARAM_NAMESPACES));
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
-        @Nullable final JsonFieldSelector fieldSelector = getFieldSelector(parameters.get(PARAM_FILTER));
+        @Nullable final JsonFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
         @Nullable final JsonFieldSelector extraFields = getFieldSelector(parameters.get(PARAM_EXTRA_FIELDS));
 
         final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
@@ -194,7 +194,8 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
                     }
 
-                    return Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(EventAndResponsePublisher.props(10))
+                    return Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
+                            EventAndResponsePublisher.props(10))
                             .mapMaterializedValue(publisherActor -> {
                                 final String connectionCorrelationId = dittoHeaders.getCorrelationId().get();
                                 sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId,
@@ -226,13 +227,14 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                             .map(thing -> {
                                 final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
                                         .orElse(dittoHeaders.getImplementedSchemaVersion());
-                                return null != fieldSelector
-                                        ? thing.toJson(jsonSchemaVersion, fieldSelector)
+                                return null != fields
+                                        ? thing.toJson(jsonSchemaVersion, fields)
                                         : thing.toJson(jsonSchemaVersion);
                             })
-                            .filter(thingJson -> fieldSelector == null || fieldSelector.getPointers().stream()
+                            .filter(thingJson -> fields == null || fields.getPointers().stream()
                                     .filter(p -> !p.equals(Thing.JsonFields.ID.getPointer())) // ignore "thingId"
-                                    .anyMatch(thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
+                                    .anyMatch(
+                                            thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
                             .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
                             .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
                             .via(Flow.fromFunction(msg -> {

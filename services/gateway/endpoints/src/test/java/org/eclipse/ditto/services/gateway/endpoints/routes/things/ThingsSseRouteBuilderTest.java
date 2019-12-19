@@ -144,7 +144,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     }
 
     @Test
-    public void getWithAcceptHeaderAndFieldsParameterOpensSseConnection() {
+    public void getWithAcceptHeaderAndFilterParameterOpensSseConnection() {
         final String filter = "eq(attributes/manufacturer,\"ACME\")";
 
         final String requestUrl = THINGS_ROUTE + "?filter=" + filter;
