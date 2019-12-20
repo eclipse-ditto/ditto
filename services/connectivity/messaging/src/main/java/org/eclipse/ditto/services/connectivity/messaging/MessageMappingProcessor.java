@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -150,10 +151,43 @@ public final class MessageMappingProcessor {
         final MappingTimer timer = MappingTimer.outbound(connectionId);
         final Adaptable adaptable = timer.protocol(() -> protocolAdapter.toAdaptable(outboundSignal.getSource()));
         enhanceLogFromAdaptable(adaptable);
-        final List<MessageMapper> mappers = getMappers(outboundSignal);
-        log.debug("Resolved mappers for message {} to targets {}: {}",
-                outboundSignal.getSource().getDittoHeaders().getCorrelationId(), outboundSignal.getTargets(), mappers);
-        mappers.forEach(mapper -> convertOutboundMessage(outboundSignal, adaptable, mapper, timer, resultHandler));
+
+        if (outboundSignal.getTargets().isEmpty()) {
+            // responses/errors do not have a target assigned, read mapper from internal header
+            final PayloadMapping payloadMapping = outboundSignal.getSource()
+                    .getDittoHeaders()
+                    .getInboundPayloadMapper()
+                    .map(ConnectivityModelFactory::newPayloadMapping)
+                    .orElseGet(ConnectivityModelFactory::emptyPayloadMapping);
+            final OutboundSignal.Mappable mappableSignal =
+                    OutboundSignalFactory.newMappableOutboundSignal(outboundSignal.getSource(),
+                            outboundSignal.getTargets(), payloadMapping);
+            final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
+            log.debug("Resolved mappers for response {} to targets {}: {}",
+                    outboundSignal.getSource().getDittoHeaders().getCorrelationId(), outboundSignal.getTargets(),
+                    mappers);
+            mappers.forEach(
+                    mapper -> convertOutboundMessage(mappableSignal, adaptable, mapper, timer, resultHandler));
+        } else {
+            // group targets with exact same list of mappers together
+            final List<OutboundSignal.Mappable> outboundSignals = outboundSignal.getTargets()
+                    .stream()
+                    .collect(Collectors.groupingBy(Target::getPayloadMapping, Collectors.toList()))
+                    .entrySet()
+                    .stream()
+                    .map(e -> OutboundSignalFactory.newMappableOutboundSignal(outboundSignal.getSource(), e.getValue(),
+                            e.getKey()))
+                    .collect(Collectors.toList());
+
+            for (final OutboundSignal.Mappable mappableSignal : outboundSignals) {
+                final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
+                log.debug("Resolved mappers for message {} to targets {}: {}",
+                        outboundSignal.getSource().getDittoHeaders().getCorrelationId(), outboundSignal.getTargets(),
+                        mappers);
+                mappers.forEach(
+                        mapper -> convertOutboundMessage(mappableSignal, adaptable, mapper, timer, resultHandler));
+            }
+        }
     }
 
     /**
@@ -213,7 +247,7 @@ public final class MessageMappingProcessor {
     }
 
     private void convertOutboundMessage(
-            final OutboundSignal outboundSignal,
+            final OutboundSignal.Mappable outboundSignal,
             final Adaptable adaptable, final MessageMapper mapper,
             final MappingTimer timer, final MappingResultHandler<OutboundSignal.Mapped> resultHandler) {
         try {
@@ -274,24 +308,10 @@ public final class MessageMappingProcessor {
         }
     }
 
-    private List<MessageMapper> getMappers(final OutboundSignal outboundSignal) {
-        final PayloadMapping payloadMapping;
-        if (outboundSignal.getTargets().isEmpty()) {
-            // responses/errors do not have a target assigned, read mapper from internal header
-            payloadMapping = outboundSignal.getSource()
-                    .getDittoHeaders()
-                    .getInboundPayloadMapper()
-                    .map(ConnectivityModelFactory::newPayloadMapping)
-                    .orElseGet(ConnectivityModelFactory::emptyPayloadMapping);
-        } else {
-            // note: targets have been grouped by mapping -> all targets have the same mapping here
-            payloadMapping = outboundSignal.getTargets().get(0).getPayloadMapping();
-        }
-
+    private List<MessageMapper> getMappers(final PayloadMapping payloadMapping) {
         final List<MessageMapper> mappers = registry.getMappers(payloadMapping);
         if (mappers.isEmpty()) {
-            log.debug("Falling back to Default MessageMapper for mapping as no MessageMapper was present: {}",
-                    outboundSignal);
+            log.debug("Falling back to Default MessageMapper for mapping as no MessageMapper was present.");
             return Collections.singletonList(registry.getDefaultMapper());
         } else {
             return mappers;
