@@ -52,6 +52,12 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
     private static final String DEFAULT_DESCRIPTION_PUT =
             "Either delete the Thing ID from the request body or use the same Thing ID as in the request URL.";
 
+    private static final String MESSAGE_TEMPLATE_DITTO_PROTOCOL =
+            "The Thing ID in the thing JSON is not equal to the Thing ID in the topic path.";
+
+    private static final String DEFAULT_DESCRIPTION_DITTO_PROTOCOL =
+            "Either delete the Thing ID from the thing JSON or use the same Thing ID as in the topic path.";
+
     private static final long serialVersionUID = 5477658033219182854L;
 
     private ThingIdNotExplicitlySettableException(final DittoHeaders dittoHeaders,
@@ -68,23 +74,23 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
      * @param isPostMethod whether the exception is created for a POST request ({@code true}) or for a PUT request (
      * {@code false}).
      * @return the builder.
+     * @deprecated this is legacy use where we only needed to distinguish between put and post. Now whe have a third
+     * option "ditto protocol" as well.
      */
     public static Builder newBuilder(final boolean isPostMethod) {
-        return new Builder(isPostMethod);
+        return isPostMethod ? forPostMethod() : forPutMethod();
     }
 
-    /**
-     * Constructs a new {@code ThingIdNotExplicitlySettableException} object with the given exception message.
-     *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
-     * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ThingIdNotExplicitlySettableException.
-     */
-    public static ThingIdNotExplicitlySettableException fromMessage(final String message,
-            final DittoHeaders dittoHeaders) {
-        return new Builder(MESSAGE_TEMPLATE_POST.equalsIgnoreCase(message))
-                .dittoHeaders(dittoHeaders)
-                .build();
+    public static Builder forPostMethod() {
+        return new Builder(MESSAGE_TEMPLATE_POST, DEFAULT_DESCRIPTION_POST);
+    }
+
+    public static Builder forPutMethod() {
+        return new Builder(MESSAGE_TEMPLATE_PUT, DEFAULT_DESCRIPTION_PUT);
+    }
+
+    public static Builder forDittoProtocol() {
+        return new Builder(MESSAGE_TEMPLATE_DITTO_PROTOCOL, DEFAULT_DESCRIPTION_DITTO_PROTOCOL);
     }
 
     /**
@@ -101,20 +107,40 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
     public static ThingIdNotExplicitlySettableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         final String message = readMessage(jsonObject);
-        if (MESSAGE_TEMPLATE_POST.equalsIgnoreCase(message)) {
-            return new Builder(true)
-                    .dittoHeaders(dittoHeaders)
-                    .message(message)
-                    .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_POST))
-                    .href(readHRef(jsonObject).orElse(null))
-                    .build();
-        } else {
-            return new Builder(false)
-                    .dittoHeaders(dittoHeaders)
-                    .message(message)
-                    .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_PUT))
-                    .href(readHRef(jsonObject).orElse(null))
-                    .build();
+        final String description = readDescription(jsonObject).orElse("");
+        return new Builder(message, description)
+                .dittoHeaders(dittoHeaders)
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
+    }
+
+    /**
+     * Constructs a new {@code ThingIdNotExplicitlySettableException} object with the given exception message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new ThingIdNotExplicitlySettableException.
+     * @deprecated This method will eventually be deleted, because it's not used anywhere.
+     */
+    public static ThingIdNotExplicitlySettableException fromMessage(final String message,
+            final DittoHeaders dittoHeaders) {
+        switch (message) {
+            case MESSAGE_TEMPLATE_POST:
+                return forPostMethod()
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            case MESSAGE_TEMPLATE_PUT:
+                return forPutMethod()
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            case MESSAGE_TEMPLATE_DITTO_PROTOCOL:
+                return forDittoProtocol()
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            default:
+                return new Builder(message, "")
+                        .dittoHeaders(dittoHeaders)
+                        .build();
         }
     }
 
@@ -124,9 +150,9 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingIdNotExplicitlySettableException> {
 
-        private Builder(final boolean isPostMethod) {
-            message(isPostMethod ? MESSAGE_TEMPLATE_POST : MESSAGE_TEMPLATE_PUT);
-            description(isPostMethod ? DEFAULT_DESCRIPTION_POST : DEFAULT_DESCRIPTION_PUT);
+        private Builder(final String message, final String description) {
+            message(message);
+            description(description);
         }
 
         @Override

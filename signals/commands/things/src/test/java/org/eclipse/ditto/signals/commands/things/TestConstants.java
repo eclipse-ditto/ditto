@@ -255,7 +255,7 @@ public final class TestConstants {
          * A known {@code ThingIdNotExplicitlySettableException}.
          */
         public static final ThingIdNotExplicitlySettableException THING_ID_NOT_EXPLICITLY_SETTABLE_EXCEPTION =
-                ThingIdNotExplicitlySettableException.newBuilder(true).build();
+                ThingIdNotExplicitlySettableException.forPostMethod().build();
 
         /**
          * A known {@code ThingPreconditionFailedException}.
