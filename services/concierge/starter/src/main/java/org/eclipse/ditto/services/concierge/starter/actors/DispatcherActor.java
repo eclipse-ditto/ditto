@@ -26,7 +26,6 @@ import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
@@ -92,10 +91,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
 
     @Override
     protected Sink<ImmutableDispatch, ?> processedMessageSink() {
-        return Sink.foreach(dispatch -> {
-            LogUtil.enhanceLogWithCorrelationId(log, dispatch.getMessage());
-            log.warning("Unhandled Message in DispatcherActor: <{}>", dispatch);
-        });
+        return Sink.foreach(dispatch -> logger.withCorrelationId(dispatch.getMessage())
+                .warning("Unhandled Message in DispatcherActor: <{}>", dispatch));
     }
 
     @Override

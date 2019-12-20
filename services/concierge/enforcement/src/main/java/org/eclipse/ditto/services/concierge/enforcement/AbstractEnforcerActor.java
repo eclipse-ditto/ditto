@@ -90,7 +90,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         this.policyEnforcerCache = policyEnforcerCache;
 
         contextual = new Contextual<>(null, getSelf(), getContext().getSystem().deadLetters(),
-                pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), log, null, null,
+                pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), logger, null, null,
                 null, null, createResponseReceiversCache());
 
         // register for sending messages via pub/sub to this enforcer
@@ -101,7 +101,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(InvalidateCacheEntry.class, invalidateCacheEntry -> {
-            log.debug("received <{}>", invalidateCacheEntry);
+            logger.debug("Received <{}>.", invalidateCacheEntry);
             final EntityIdWithResourceType entityId = invalidateCacheEntry.getEntityId();
             invalidateCaches(entityId);
         });
@@ -110,15 +110,15 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     private void invalidateCaches(final EntityIdWithResourceType entityId) {
         if (thingIdCache != null) {
             final boolean invalidated = thingIdCache.invalidate(entityId);
-            log.debug("thingId cache for entity id <{}> was invalidated: {}", entityId, invalidated);
+            logger.debug("Thing ID cache for entity ID <{}> was invalidated: {}", entityId, invalidated);
         }
         if (aclEnforcerCache != null) {
             final boolean invalidated = aclEnforcerCache.invalidate(entityId);
-            log.debug("acl enforcer cache for entity id <{}> was invalidated: {}", entityId, invalidated);
+            logger.debug("ACL enforcer cache for entity ID <{}> was invalidated: {}", entityId, invalidated);
         }
         if (policyEnforcerCache != null) {
             final boolean invalidated = policyEnforcerCache.invalidate(entityId);
-            log.debug("policy enforcer cache for entity id <{}> was invalidated: {}", entityId, invalidated);
+            logger.debug("Policy enforcer cache for entity ID <{}> was invalidated: {}", entityId, invalidated);
         }
     }
 
@@ -166,4 +166,5 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     private static Cache<String, ResponseReceiver> createResponseReceiversCache() {
         return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(120, TimeUnit.SECONDS));
     }
+
 }
