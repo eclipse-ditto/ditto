@@ -29,8 +29,12 @@ ditto:A6BgmB8IEtPTs
 ## Start Eclipse Ditto
 
 ### Start Minikube
+
 ```bash
-minikube start 
+# Use this specific version for Ditto 1.0
+minikube start --kubernetes-version v1.15.1 
+# kubernetes greater than v1.16.0
+minikube start
 ```  
 
 ### Apply the pod reader role 
