@@ -20,10 +20,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
- * Asynchronous interface for retrieving fixed parts of things.
+ * Asynchronous interface for retrieving things to enrich signals from and to those things,
  * either by request-response, by caching or by any other source of information.
  */
-public interface ThingEnrichingFacade {
+public interface SignalEnrichmentFacade {
 
     /**
      * Retrieve parts of a thing.

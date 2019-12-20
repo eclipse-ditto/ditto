@@ -17,6 +17,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
+import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
@@ -30,17 +32,13 @@ public final class DefaultStreamingConfig implements StreamingConfig {
 
     private final Duration sessionCounterScrapeInterval;
     private final WebsocketConfig websocketConfig;
-    private final String thingEnrichmentProvider;
-    private final Config thingEnrichmentConfig;
+    private final SignalEnrichmentConfig signalEnrichmentConfig;
 
     private DefaultStreamingConfig(final ScopedConfig scopedConfig) {
         sessionCounterScrapeInterval =
                 scopedConfig.getDuration(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath());
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
-        this.thingEnrichmentProvider =
-                scopedConfig.getString(StreamingConfigValue.THING_ENRICHMENT_PROVIDER.getConfigPath());
-        this.thingEnrichmentConfig =
-                scopedConfig.getConfig(StreamingConfigValue.THING_ENRICHMENT_CONFIG.getConfigPath());
+        signalEnrichmentConfig = DefaultSignalEnrichmentConfig.of(scopedConfig);
     }
 
     /**
@@ -66,13 +64,8 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     }
 
     @Override
-    public String getThingEnrichmentProvider() {
-        return thingEnrichmentProvider;
-    }
-
-    @Override
-    public Config getThingEnrichmentConfig() {
-        return thingEnrichmentConfig;
+    public SignalEnrichmentConfig getSignalEnrichmentConfig() {
+        return signalEnrichmentConfig;
     }
 
     @Override
@@ -85,23 +78,20 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         }
         final DefaultStreamingConfig that = (DefaultStreamingConfig) o;
         return Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
-                Objects.equals(thingEnrichmentProvider, that.thingEnrichmentProvider) &&
-                Objects.equals(thingEnrichmentConfig, that.thingEnrichmentConfig) &&
+                Objects.equals(signalEnrichmentConfig, that.signalEnrichmentConfig) &&
                 Objects.equals(websocketConfig, that.websocketConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sessionCounterScrapeInterval, thingEnrichmentProvider, thingEnrichmentConfig,
-                websocketConfig);
+        return Objects.hash(sessionCounterScrapeInterval, signalEnrichmentConfig, websocketConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "sessionCounterScrapeInterval=" + sessionCounterScrapeInterval +
-                ", thingEnrichmentProvider=" + thingEnrichmentProvider +
-                ", thingEnrichmentConfig=" + thingEnrichmentConfig +
+                ", signalEnrichmentConfig=" + signalEnrichmentConfig +
                 ", websocketConfig=" + websocketConfig +
                 "]";
     }

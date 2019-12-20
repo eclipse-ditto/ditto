@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.models.things;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -30,14 +32,14 @@ import akka.pattern.Patterns;
 /**
  * Retrieve fixed parts of things by asking an actor.
  */
-public final class ThingEnrichingFacadeByRoundTrip implements ThingEnrichingFacade {
+public final class SignalEnrichmentFacadeByRoundTrip implements SignalEnrichmentFacade {
 
     private final ActorRef commandHandler;
     private final Duration askTimeout;
 
-    ThingEnrichingFacadeByRoundTrip(final ActorRef commandHandler, final Duration askTimeout) {
-        this.commandHandler = commandHandler;
-        this.askTimeout = askTimeout;
+    private SignalEnrichmentFacadeByRoundTrip(final ActorRef commandHandler, final Duration askTimeout) {
+        this.commandHandler = checkNotNull(commandHandler, "commandHandler");
+        this.askTimeout = checkNotNull(askTimeout, "askTimeout");
     }
 
     /**
@@ -46,9 +48,10 @@ public final class ThingEnrichingFacadeByRoundTrip implements ThingEnrichingFaca
      * @param commandHandler The recipient of retrieve-thing commands.
      * @param askTimeout How long to wait for each response.
      * @return The facade.
+     * @throws java.lang.NullPointerException if any argument is null.
      */
-    public static ThingEnrichingFacadeByRoundTrip of(final ActorRef commandHandler, final Duration askTimeout) {
-        return new ThingEnrichingFacadeByRoundTrip(commandHandler, askTimeout);
+    public static SignalEnrichmentFacadeByRoundTrip of(final ActorRef commandHandler, final Duration askTimeout) {
+        return new SignalEnrichmentFacadeByRoundTrip(commandHandler, askTimeout);
     }
 
     @Override
@@ -60,7 +63,7 @@ public final class ThingEnrichingFacadeByRoundTrip implements ThingEnrichingFaca
 
         final CompletionStage<Object> askResult = Patterns.ask(commandHandler, command, askTimeout);
 
-        return askResult.thenCompose(ThingEnrichingFacadeByRoundTrip::extractPartialThing);
+        return askResult.thenCompose(SignalEnrichmentFacadeByRoundTrip::extractPartialThing);
     }
 
     private static CompletionStage<JsonObject> extractPartialThing(final Object object) {

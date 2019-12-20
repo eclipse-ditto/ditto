@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
@@ -46,18 +47,11 @@ public interface StreamingConfig {
     WebsocketConfig getWebsocketConfig();
 
     /**
-     * Returns the provider of thing-enrichment facades.
+     * Returns the signal-enrichment config.
      *
-     * @return the class name of the facade provider.
+     * @return the signal-enrichment config.
      */
-    String getThingEnrichmentProvider();
-
-    /**
-     * Returns the configuration for the thing-enrichment facade provider.
-     *
-     * @return the configuration.
-     */
-    Config getThingEnrichmentConfig();
+    SignalEnrichmentConfig getSignalEnrichmentConfig();
 
     /**
      * Render this object into a Config object from which a copy of this object can be constructed.
@@ -68,10 +62,9 @@ public interface StreamingConfig {
         final Map<String, Object> map = new HashMap<>();
         map.put(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath(),
                 getSessionCounterScrapeInterval().toMillis() + "ms");
-        map.put(StreamingConfigValue.THING_ENRICHMENT_PROVIDER.getConfigPath(), getThingEnrichmentProvider());
-        map.put(StreamingConfigValue.THING_ENRICHMENT_CONFIG.getConfigPath(), getThingEnrichmentConfig().root());
         return ConfigFactory.parseMap(map)
                 .withFallback(getWebsocketConfig().render())
+                .withFallback(getSignalEnrichmentConfig().render())
                 .atKey(CONFIG_PATH);
     }
 
@@ -84,17 +77,7 @@ public interface StreamingConfig {
         /**
          * How often to update websocket session counter by counting child actors.
          */
-        SESSION_COUNTER_SCRAPE_INTERVAL("session-counter-scrape-interval", Duration.ofSeconds(30L)),
-
-        /**
-         * Fully qualified name of the thing-enriching facade provider.
-         */
-        THING_ENRICHMENT_PROVIDER("thing-enrichment.provider", ""),
-
-        /**
-         * Config for the thing-enriching facade provider.
-         */
-        THING_ENRICHMENT_CONFIG("thing-enrichment.config", ConfigFactory.empty().root());
+        SESSION_COUNTER_SCRAPE_INTERVAL("session-counter-scrape-interval", Duration.ofSeconds(30L));
 
         private final String path;
         private final Object defaultValue;

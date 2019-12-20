@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import akka.pattern.AskTimeoutException;
 
-public final class ThingEnrichingFacadeByRoundTripTest {
+public final class SignalEnrichmentFacadeByRoundTripTest {
 
     private static final JsonFieldSelector SELECTOR =
             JsonFieldSelector.newInstance("policyId,attributes/x,features/y/properties/z");
@@ -39,8 +39,8 @@ public final class ThingEnrichingFacadeByRoundTripTest {
     public void success() {
         DittoTestSystem.run(this, kit -> {
             // GIVEN: PartialThingFacadeByRoundTrip.retrievePartialThing()
-            final ThingEnrichingFacade underTest =
-                    new ThingEnrichingFacadeByRoundTrip(kit.getRef(), Duration.ofSeconds(10L));
+            final SignalEnrichmentFacade underTest =
+                    SignalEnrichmentFacadeByRoundTrip.of(kit.getRef(), Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, SELECTOR, headers);
@@ -64,8 +64,8 @@ public final class ThingEnrichingFacadeByRoundTripTest {
     public void thingNotAccessible() {
         DittoTestSystem.run(this, kit -> {
             // GIVEN: PartialThingFacadeByRoundTrip.retrievePartialThing()
-            final ThingEnrichingFacade underTest =
-                    new ThingEnrichingFacadeByRoundTrip(kit.getRef(), Duration.ofSeconds(10L));
+            final SignalEnrichmentFacade underTest =
+                    SignalEnrichmentFacadeByRoundTrip.of(kit.getRef(), Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, SELECTOR, headers);
@@ -86,8 +86,8 @@ public final class ThingEnrichingFacadeByRoundTripTest {
     public void unexpectedMessage() {
         DittoTestSystem.run(this, kit -> {
             // GIVEN: PartialThingFacadeByRoundTrip.retrievePartialThing()
-            final ThingEnrichingFacade underTest =
-                    new ThingEnrichingFacadeByRoundTrip(kit.getRef(), Duration.ofSeconds(10L));
+            final SignalEnrichmentFacade underTest =
+                    SignalEnrichmentFacadeByRoundTrip.of(kit.getRef(), Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, SELECTOR, headers);
@@ -109,8 +109,8 @@ public final class ThingEnrichingFacadeByRoundTripTest {
     public void timeout() {
         DittoTestSystem.run(this, kit -> {
             // GIVEN: PartialThingFacadeByRoundTrip.retrievePartialThing() with a short timeout
-            final ThingEnrichingFacade underTest =
-                    new ThingEnrichingFacadeByRoundTrip(kit.getRef(), Duration.ofMillis(1L));
+            final SignalEnrichmentFacade underTest =
+                    SignalEnrichmentFacadeByRoundTrip.of(kit.getRef(), Duration.ofMillis(1L));
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, SELECTOR, headers);

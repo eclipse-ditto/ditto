@@ -15,8 +15,8 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import java.time.Duration;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.services.models.things.ThingEnrichingFacade;
-import org.eclipse.ditto.services.models.things.ThingEnrichingFacadeByRoundTrip;
+import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.things.SignalEnrichmentFacadeByRoundTrip;
 
 import com.typesafe.config.Config;
 
@@ -46,7 +46,7 @@ public final class ConnectionByRoundTripProvider implements ConnectionEnrichment
     }
 
     @Override
-    public ThingEnrichingFacade createFacade(final ConnectionId connectionId) {
-        return ThingEnrichingFacadeByRoundTrip.of(commandHandler, askTimeout);
+    public SignalEnrichmentFacade createFacade(final ConnectionId connectionId) {
+        return SignalEnrichmentFacadeByRoundTrip.of(commandHandler, askTimeout);
     }
 }

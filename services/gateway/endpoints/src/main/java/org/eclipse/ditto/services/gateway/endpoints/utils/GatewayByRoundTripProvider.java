@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.gateway.endpoints.utils;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.models.things.ThingEnrichingFacade;
-import org.eclipse.ditto.services.models.things.ThingEnrichingFacadeByRoundTrip;
+import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.things.SignalEnrichmentFacadeByRoundTrip;
 
 import com.typesafe.config.Config;
 
@@ -26,14 +26,14 @@ import akka.http.javadsl.model.HttpRequest;
 /**
  * Creator of thing-enriching facade by round-trip.
  */
-public final class ByRoundTripFacadeProvider implements ThingEnrichingFacadeProvider {
+public final class GatewayByRoundTripProvider implements GatewaySignalEnrichmentProvider {
 
     private final ActorRef commandHandler;
     private final Duration askTimeout;
 
     // Called by reflection
     @SuppressWarnings("unused")
-    public ByRoundTripFacadeProvider(final ActorSystem actorSystem,
+    public GatewayByRoundTripProvider(final ActorSystem actorSystem,
             final ActorRef commandHandler,
             final Config config) {
         this.commandHandler = commandHandler;
@@ -41,7 +41,7 @@ public final class ByRoundTripFacadeProvider implements ThingEnrichingFacadeProv
     }
 
     @Override
-    public ThingEnrichingFacade createFacade(final HttpRequest request) {
-        return ThingEnrichingFacadeByRoundTrip.of(commandHandler, askTimeout);
+    public SignalEnrichmentFacade createFacade(final HttpRequest request) {
+        return SignalEnrichmentFacadeByRoundTrip.of(commandHandler, askTimeout);
     }
 }

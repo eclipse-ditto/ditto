@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import java.util.Arrays;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.services.models.things.ThingEnrichingFacade;
+import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 
 import com.typesafe.config.Config;
@@ -24,7 +24,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * Provider of {@link org.eclipse.ditto.services.models.things.ThingEnrichingFacade} to be loaded by reflection.
+ * Provider of {@link org.eclipse.ditto.services.models.things.SignalEnrichmentFacade} to be loaded by reflection.
  * Implementations MUST have a public constructor taking the following parameters as arguments:
  * <ul>
  * <li>ActorSystem actorSystem: actor system in which this provider is loaded,</li>
@@ -40,7 +40,7 @@ public interface ConnectionEnrichmentProvider {
      * @param connectionId the connection ID.
      * @return the facade.
      */
-    ThingEnrichingFacade createFacade(ConnectionId connectionId);
+    SignalEnrichmentFacade createFacade(ConnectionId connectionId);
 
     /**
      * Load a {@code ThingEnrichingFacadeProvider} dynamically according to the streaming configuration.
