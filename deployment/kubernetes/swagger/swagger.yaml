@@ -11,11 +11,14 @@ spec:
   selector:
     app: swagger-ui
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: swagger-ui
 spec:
+  selector:
+    matchLabels:
+      app: swagger-ui
   template:
     metadata:
       labels:
