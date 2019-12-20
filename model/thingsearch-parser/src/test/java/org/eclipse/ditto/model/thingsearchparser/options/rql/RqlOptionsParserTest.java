@@ -170,4 +170,15 @@ public final class RqlOptionsParserTest {
     public void invalidLimitArgumentsExceedsLong() throws ParserException {
         parser.parse("limit(100000000000000000000,10)");
     }
+
+    @Test(expected = ParserException.class)
+    public void cursorWithoutContentOrClosingParenthesis() throws ParserException {
+        parser.parse("cursor(");
+    }
+
+    @Test(expected = ParserException.class)
+    public void cursorWithoutClosingParenthesis() throws ParserException {
+        parser.parse("cursor(0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz");
+    }
+
 }
