@@ -20,8 +20,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
 import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -55,6 +57,8 @@ public final class DefaultConnectionConfigTest {
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 provided(DefaultSupervisorConfig.class,
                         SnapshotConfig.class,
+                        DefaultMappingConfig.class,
+                        DefaultSignalEnrichmentConfig.class,
                         DefaultMqttConfig.class,
                         DefaultKafkaConfig.class,
                         DefaultAmqp10Config.class
