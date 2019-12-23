@@ -60,7 +60,6 @@ import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import scala.concurrent.ExecutionContextExecutor;
 
 /**
  * Actor handling all supported {@link ThingSearchCommand}s. Currently those are {@link CountThings} and {@link
@@ -96,7 +95,6 @@ public final class SearchActor extends AbstractActor {
     private final QueryParser queryParser;
     private final ThingsSearchPersistence searchPersistence;
     private final ActorMaterializer materializer;
-    private final ExecutionContextExecutor dispatcher;
 
     @SuppressWarnings("unused")
     private SearchActor(
@@ -105,9 +103,7 @@ public final class SearchActor extends AbstractActor {
 
         this.queryParser = queryParser;
         this.searchPersistence = searchPersistence;
-        materializer = ActorMaterializer.create(getContext().system());
-
-        dispatcher = getContext().system().dispatchers().lookup(SEARCH_DISPATCHER_ID);
+        materializer = ActorMaterializer.create(getContext());
     }
 
     /**
@@ -121,7 +117,8 @@ public final class SearchActor extends AbstractActor {
             final QueryParser queryFactory,
             final ThingsSearchPersistence searchPersistence) {
 
-        return Props.create(SearchActor.class, queryFactory, searchPersistence);
+        return Props.create(SearchActor.class, queryFactory, searchPersistence)
+                .withDispatcher(SEARCH_DISPATCHER_ID);
     }
 
     @Override
@@ -141,7 +138,7 @@ public final class SearchActor extends AbstractActor {
         log.info("Processing SudoRetrieveNamespaceReport command: {}", namespaceReport);
 
         Patterns.pipe(searchPersistence.generateNamespaceCountReport()
-                .runWith(Sink.head(), materializer), dispatcher)
+                .runWith(Sink.head(), materializer), getContext().dispatcher())
                 .to(getSender());
     }
 
@@ -200,7 +197,7 @@ public final class SearchActor extends AbstractActor {
                         })
                         .build());
 
-        Patterns.pipe(replySource.runWith(Sink.head(), materializer), dispatcher).to(sender);
+        Patterns.pipe(replySource.runWith(Sink.head(), materializer), getContext().dispatcher()).to(sender);
     }
 
     private void query(final QueryThings queryThings) {
@@ -210,6 +207,7 @@ public final class SearchActor extends AbstractActor {
 
         final String queryType = "query";
         final StartedTimer searchTimer = startNewTimer(version, queryType);
+        // TODO: 'startNewSegment' is not thread safe
         final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
         final ActorRef sender = getSender();
@@ -257,7 +255,8 @@ public final class SearchActor extends AbstractActor {
                         })
                         .build());
 
-        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), materializer), dispatcher).to(sender);
+        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), materializer), getContext().dispatcher())
+                .to(sender);
     }
 
     private <T> Source<T, NotUsed> processSearchPersistenceResult(Source<T, NotUsed> source,
