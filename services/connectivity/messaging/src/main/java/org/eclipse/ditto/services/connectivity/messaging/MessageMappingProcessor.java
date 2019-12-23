@@ -103,7 +103,9 @@ public final class MessageMappingProcessor {
             final DiagnosticLoggingAdapter log) {
 
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(), log);
+                DefaultMessageMapperFactory.of(connectionId, actorSystem,
+                        connectivityConfig.getConnectionConfig().getMappingConfig(),
+                        log);
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 

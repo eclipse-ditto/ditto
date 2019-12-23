@@ -150,7 +150,7 @@ public abstract class AbstractProtocolValidator {
             final DittoHeaders dittoHeaders) {
         final MappingConfig mappingConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        ).getMappingConfig();
+        ).getConnectionConfig().getMappingConfig();
         final MessageMapperFactory messageMapperFactory =
                 DefaultMessageMapperFactory.of(connection.getId(), actorSystem, mappingConfig, actorSystem.log());
 

@@ -17,7 +17,9 @@ import java.util.Collection;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.base.config.supervision.WithSupervisorConfig;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithActivityCheckConfig;
@@ -50,6 +52,20 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
      * @return the config.
      */
     SnapshotConfig getSnapshotConfig();
+
+    /**
+     * Returns the config for Connectivity service's message mapping.
+     *
+     * @return the config.
+     */
+    MappingConfig getMappingConfig();
+
+    /**
+     * Returns the configuration for signal enrichment.
+     *
+     * @return the config.
+     */
+    SignalEnrichmentConfig getSignalEnrichmentConfig();
 
     /**
      * Returns the config specific to the AMQP 1.0 protocol.

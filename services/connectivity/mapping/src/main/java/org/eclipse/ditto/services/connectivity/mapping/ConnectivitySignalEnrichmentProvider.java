@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import java.util.Arrays;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 
@@ -32,7 +33,7 @@ import akka.actor.ActorSystem;
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
  */
-public interface ConnectionEnrichmentProvider {
+public interface ConnectivitySignalEnrichmentProvider {
 
     /**
      * Create a thing-enriching facade from the ID of a connection.
@@ -49,15 +50,13 @@ public interface ConnectionEnrichmentProvider {
      * @param commandHandler The recipient of retrieve-thing commands.
      * @return The configured facade provider.
      */
-    static ConnectionEnrichmentProvider load(final ActorSystem actorSystem, final ActorRef commandHandler) {
+    static ConnectivitySignalEnrichmentProvider load(final ActorSystem actorSystem, final ActorRef commandHandler,
+            final SignalEnrichmentConfig signalEnrichmentConfig) {
 
-        final ConnectionEnrichmentConfig connectionEnrichmentConfig =
-                DefaultConnectionEnrichmentConfig.forActorSystem(actorSystem);
-
-        return AkkaClassLoader.instantiate(actorSystem, ConnectionEnrichmentProvider.class,
-                connectionEnrichmentConfig.getProvider(),
+        return AkkaClassLoader.instantiate(actorSystem, ConnectivitySignalEnrichmentProvider.class,
+                signalEnrichmentConfig.getProvider(),
                 Arrays.asList(ActorSystem.class, ActorRef.class, Config.class),
-                Arrays.asList(actorSystem, commandHandler, connectionEnrichmentConfig.getConfig())
+                Arrays.asList(actorSystem, commandHandler, signalEnrichmentConfig.getConfig())
         );
     }
 }

@@ -57,7 +57,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.connectivity.mapping.ConnectionEnrichmentConfig;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
@@ -107,7 +107,7 @@ public final class MessageMappingProcessorActor extends
     private final ConnectionId connectionId;
     private final ActorRef conciergeForwarder;
     private final LimitsConfig limitsConfig;
-    private final ConnectionEnrichmentConfig connectionEnrichmentConfig;
+    private final MappingConfig mappingConfig;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseDispatchedMonitor;
     private final ConnectionMonitor responseDroppedMonitor;
@@ -132,7 +132,7 @@ public final class MessageMappingProcessorActor extends
 
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        connectionEnrichmentConfig = connectivityConfig.getConnectionEnrichmentConfig();
+        mappingConfig = connectivityConfig.getConnectionConfig().getMappingConfig();
 
         this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
@@ -160,12 +160,12 @@ public final class MessageMappingProcessorActor extends
 
     @Override
     protected int getBufferSize() {
-        return connectionEnrichmentConfig.getBufferSize();
+        return mappingConfig.getBufferSize();
     }
 
     @Override
     protected int getParallelism() {
-        return connectionEnrichmentConfig.getParallelism();
+        return mappingConfig.getParallelism();
     }
 
     @Override

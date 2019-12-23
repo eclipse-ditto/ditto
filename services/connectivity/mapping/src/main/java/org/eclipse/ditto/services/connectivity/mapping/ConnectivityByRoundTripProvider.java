@@ -26,7 +26,7 @@ import akka.actor.ActorSystem;
 /**
  * Provider for Connectivity-service of thing-enriching facades that make a round-trip for each query.
  */
-public final class ConnectionByRoundTripProvider implements ConnectionEnrichmentProvider {
+public final class ConnectivityByRoundTripProvider implements ConnectivitySignalEnrichmentProvider {
 
     private final ActorRef commandHandler;
     private final Duration askTimeout;
@@ -39,7 +39,7 @@ public final class ConnectionByRoundTripProvider implements ConnectionEnrichment
      * @param config Configuration for this provider.
      */
     @SuppressWarnings("unused")
-    public ConnectionByRoundTripProvider(final ActorSystem actorSystem, final ActorRef commandHandler,
+    public ConnectivityByRoundTripProvider(final ActorSystem actorSystem, final ActorRef commandHandler,
             final Config config) {
         this.commandHandler = commandHandler;
         askTimeout = config.getDuration("ask-timeout");

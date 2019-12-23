@@ -20,10 +20,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.connectivity.mapping.ConnectionEnrichmentConfig;
-import org.eclipse.ditto.services.connectivity.mapping.DefaultConnectionEnrichmentConfig;
-import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
@@ -49,11 +45,9 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final ConnectionConfig connectionConfig;
-    private final MappingConfig mappingConfig;
     private final ReconnectConfig reconnectConfig;
     private final ClientConfig clientConfig;
     private final ProtocolConfig protocolConfig;
-    private final ConnectionEnrichmentConfig connectionEnrichmentConfig;
     private final MonitoringConfig monitoringConfig;
 
     private DittoConnectivityConfig(final ScopedConfig dittoScopedConfig) {
@@ -63,10 +57,8 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
         connectionConfig = DefaultConnectionConfig.of(serviceSpecificConfig);
-        mappingConfig = DefaultMappingConfig.of(serviceSpecificConfig);
         reconnectConfig = DefaultReconnectConfig.of(serviceSpecificConfig);
         clientConfig = DefaultClientConfig.of(serviceSpecificConfig);
-        connectionEnrichmentConfig = DefaultConnectionEnrichmentConfig.of(serviceSpecificConfig);
         monitoringConfig = DefaultMonitoringConfig.of(serviceSpecificConfig);
     }
 
@@ -85,11 +77,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     @Override
     public ConnectionConfig getConnectionConfig() {
         return connectionConfig;
-    }
-
-    @Override
-    public MappingConfig getMappingConfig() {
-        return mappingConfig;
     }
 
     @Override
@@ -143,11 +130,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     }
 
     @Override
-    public ConnectionEnrichmentConfig getConnectionEnrichmentConfig() {
-        return connectionEnrichmentConfig;
-    }
-
-    @Override
     public MonitoringConfig getMonitoringConfig() {
         return monitoringConfig;
     }
@@ -167,19 +149,17 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(connectionConfig, that.connectionConfig) &&
-                Objects.equals(mappingConfig, that.mappingConfig) &&
                 Objects.equals(reconnectConfig, that.reconnectConfig) &&
                 Objects.equals(clientConfig, that.clientConfig) &&
                 Objects.equals(protocolConfig, that.protocolConfig) &&
-                Objects.equals(connectionEnrichmentConfig, that.connectionEnrichmentConfig) &&
                 Objects.equals(monitoringConfig, that.monitoringConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
-                connectionConfig, mappingConfig, reconnectConfig, clientConfig, protocolConfig,
-                connectionEnrichmentConfig, monitoringConfig);
+                connectionConfig, reconnectConfig, clientConfig, protocolConfig,
+                monitoringConfig);
     }
 
     @Override
@@ -190,11 +170,9 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", connectionConfig=" + connectionConfig +
-                ", mappingConfig=" + mappingConfig +
                 ", reconnectConfig=" + reconnectConfig +
                 ", clientConfig=" + clientConfig +
                 ", protocolConfig=" + protocolConfig +
-                ", connectionEnrichmentConfig=" + connectionEnrichmentConfig +
                 ", monitoringConfig=" + monitoringConfig +
                 "]";
     }
