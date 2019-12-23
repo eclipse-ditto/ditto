@@ -21,6 +21,9 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.io.IOException;
+import java.lang.ref.SoftReference;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1402,5 +1405,63 @@ public final class ImmutableJsonObjectTest {
 
         assertThat(CborTestUtils.serializeToHexString(ImmutableJsonObject.of(KNOWN_FIELDS))) // {"foo":"bar","bar":"baz","baz":42}
                 .isEqualToIgnoringCase(expectedString);
+    }
+
+    @Test
+    public void validateInternalCachingBehaviour() throws IOException {
+        final ImmutableJsonObject objectWithSelfGeneratedCache = ImmutableJsonObject.of(KNOWN_FIELDS);
+        assertInternalCachesAreAsExpected(objectWithSelfGeneratedCache, true, false);
+
+        final ByteBuffer byteBuffer = CborFactory.toByteBuffer(objectWithSelfGeneratedCache);
+        final JsonObject objectWithCborCache = CborFactory.readFrom(byteBuffer).asObject();
+        assertInternalCachesAreAsExpected(objectWithSelfGeneratedCache, true, false);
+        final JsonObject objectWithJsonCache = JsonFactory.newObject(objectWithSelfGeneratedCache.toString());
+        assertInternalCachesAreAsExpected(objectWithSelfGeneratedCache, true, true);
+
+        assertInternalCachesAreAsExpected(objectWithCborCache, true, false);
+        assertInternalCachesAreAsExpected(objectWithJsonCache, false, true);
+    }
+
+    @Test
+    public void validateSoftReferenceStrategy() throws IllegalAccessException, NoSuchFieldException {
+        final ImmutableJsonObject jsonObject = ImmutableJsonObject.of(KNOWN_FIELDS);
+        assertInternalCachesAreAsExpected(jsonObject, true, false);
+
+        final Field valueListField = jsonObject.getClass().getDeclaredField("fieldMap");
+        valueListField.setAccessible(true);
+        final SoftReferencedFieldMap valueList = (SoftReferencedFieldMap) valueListField.get(jsonObject);
+
+        final Field softReferenceField = valueList.getClass().getDeclaredField("fieldsReference");
+        softReferenceField.setAccessible(true);
+        SoftReference softReference = (SoftReference) softReferenceField.get(valueList);
+
+        softReference.clear();
+
+        assertThat(jsonObject.getValue(KNOWN_KEY_FOO).isPresent()).isTrue();
+    }
+
+    private void assertInternalCachesAreAsExpected(JsonObject jsonObject, boolean cborExpected, boolean jsonExpected) {
+        try {
+            final Field valueListField = jsonObject.getClass().getDeclaredField("fieldMap");
+            valueListField.setAccessible(true);
+            final SoftReferencedFieldMap fieldMap = (SoftReferencedFieldMap) valueListField.get(jsonObject);
+
+            final Field cborObjectField = fieldMap.getClass().getDeclaredField("cborObjectRepresentation");
+            cborObjectField.setAccessible(true);
+            byte[] cborObject = (byte[]) cborObjectField.get(fieldMap);
+
+            final Field jsonStringField = fieldMap.getClass().getDeclaredField("jsonObjectStringRepresentation");
+            jsonStringField.setAccessible(true);
+            String jsonString = (String) jsonStringField.get(fieldMap);
+
+            assertThat(cborObject != null).isEqualTo(cborExpected);
+            assertThat(jsonString != null).isEqualTo(jsonExpected);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            System.err.println(
+                    "Failed to access internal caching fields in JsonObject using reflection. " +
+                            "This might just be a bug in the test."
+            );
+            e.printStackTrace();
+        }
     }
 }

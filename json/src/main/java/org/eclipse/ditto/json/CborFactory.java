@@ -21,6 +21,8 @@ import java.text.MessageFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
+import javax.annotation.Nullable;
+
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORParser;
@@ -40,7 +42,7 @@ public final class CborFactory {
         try{
             final CBORParser parser = jacksonCborFactory.createParser(bytes);
             return parseValue(parser, byteBuffer);
-        } catch (IOException e){
+        } catch (IOException | IllegalArgumentException | ArrayIndexOutOfBoundsException e){
             throw createJsonParseException(byteBuffer, e);
         }
     }
@@ -50,7 +52,7 @@ public final class CborFactory {
         try{
             final CBORParser parser = jacksonCborFactory.createParser(bytes, offset, length);
             return parseValue(parser, byteBuffer);
-        } catch (IOException e){
+        } catch (IOException | IllegalArgumentException e){
             throw createJsonParseException(byteBuffer, e);
         }
     }
@@ -60,7 +62,7 @@ public final class CborFactory {
         try{
             final CBORParser parser = jacksonCborFactory.createParser(ByteBufferInputStream.of(byteBuffer));
             return parseValue(parser, byteBuffer);
-        } catch (IOException e){
+        } catch (IOException | IllegalArgumentException e){
             throw createJsonParseException(byteBuffer, e);
         }
     }
@@ -80,10 +82,10 @@ public final class CborFactory {
         writeToOutputStream(jsonValue, byteBufferOutputStream);
     }
 
-    private static JsonParseException createJsonParseException(ByteBuffer byteBuffer, IOException e){
+    private static JsonParseException createJsonParseException(ByteBuffer byteBuffer, Exception e){
         return JsonParseException.newBuilder()
                 .message(MessageFormat.format(
-                        "Failed to parse CBOR value ''{}''!",
+                        "Failed to parse CBOR value ''{0}''",
                         BinaryToHexConverter.tryToConvertToHexString(byteBuffer)))
                 .cause(e)
                 .build();
@@ -99,7 +101,10 @@ public final class CborFactory {
         return parseValue(parser, byteBuffer, parser.nextToken());
     }
 
-    private static JsonValue parseValue(CBORParser parser, ByteBuffer byteBuffer, JsonToken currentToken) throws IOException {
+    private static JsonValue parseValue(CBORParser parser, ByteBuffer byteBuffer, @Nullable JsonToken currentToken) throws IOException {
+        if (currentToken == null) {
+            throw new IOException("Unexpected end of input while expecting value.");
+        }
         switch (currentToken) {
             case START_OBJECT:
                 return parseObject(parser, byteBuffer);
@@ -145,7 +150,7 @@ public final class CborFactory {
             final JsonField jsonField = JsonField.newInstance(key, parseValue(parser, byteBuffer));
             map.put(key, jsonField);
         }
-        final long endOffset = parser.getTokenLocation().getByteOffset();// - 1; // current value ends before next token starts
+        final long endOffset = parser.getTokenLocation().getByteOffset();
         return ImmutableJsonObject.of(map, getBytesFromInputSource(startOffset, endOffset, byteBuffer));
         // TODO: trust that implementations in this package don't use passed maps to avoid copying them in JsonObject?
     }
@@ -157,7 +162,7 @@ public final class CborFactory {
             final JsonValue jsonValue = parseValue(parser, byteBuffer, parser.currentToken());
             list.add(jsonValue);
         }
-        final long endOffset = parser.getTokenLocation().getByteOffset() ;//- 1; // current value ends before next token starts
+        final long endOffset = parser.getTokenLocation().getByteOffset() ;
         return ImmutableJsonArray.of(list, getBytesFromInputSource(startOffset, endOffset, byteBuffer));
         // TODO: trust that implementations in this package don't use passed lists to avoid copying them in JsonArray?
     }

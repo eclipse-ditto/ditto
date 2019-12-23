@@ -24,6 +24,27 @@ import java.nio.ByteBuffer;
 public class BinaryToHexConverter {
     private static final char[] HEXCHARACTERS = "0123456789ABCDEF".toCharArray();
 
+    public static byte[] hexStringtoBytes(String hex){
+        if (hex.length() % 2 != 0){
+            hex = "0" + hex;
+        }
+        final int lengthInBytes = hex.length()/2;
+        final byte[] result = new byte[lengthInBytes];
+        for (int currentByte = 0; currentByte < lengthInBytes; currentByte++) {
+            result[currentByte] = twoHexCharsToByte(
+                    hex.charAt(currentByte * 2),
+                    hex.charAt(currentByte * 2 + 1)
+            );
+        }
+        return result;
+    }
+
+    private static byte twoHexCharsToByte(char first, char second){
+        final int first4bits = Character.digit(first, 16);
+        final int second4bits = Character.digit(second, 16);
+        return (byte) ((first4bits << 4) + second4bits);
+    }
+
     /**
      * This class should not be instantiated.
      */

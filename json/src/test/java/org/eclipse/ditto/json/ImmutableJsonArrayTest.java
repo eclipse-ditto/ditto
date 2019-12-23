@@ -21,6 +21,9 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.io.IOException;
+import java.lang.ref.SoftReference;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -451,4 +454,61 @@ public final class ImmutableJsonArrayTest {
         assertThat(jsonValue).contains(KNOWN_INT_VALUE_LIST.get(index));
     }
 
+    @Test
+    public void validateInternalCachingBehaviour() throws IOException {
+        final ImmutableJsonArray arrayWithSelfGeneratedCache = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
+        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, true, false);
+
+        final ByteBuffer byteBuffer = CborFactory.toByteBuffer(arrayWithSelfGeneratedCache);
+        final JsonArray arrayWithCborCache = CborFactory.readFrom(byteBuffer).asArray();
+        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, true, false);
+        final JsonArray arrayWithJsonCache = JsonFactory.newArray(arrayWithSelfGeneratedCache.toString());
+        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, true, true);
+
+        assertInternalCachesAreAsExpected(arrayWithCborCache, true, false);
+        assertInternalCachesAreAsExpected(arrayWithJsonCache, false, true);
+    }
+
+    @Test
+    public void validateSoftReferenceStrategy() throws IllegalAccessException, NoSuchFieldException {
+        final ImmutableJsonArray jsonArray = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
+        assertInternalCachesAreAsExpected(jsonArray, true, false);
+
+        final Field valueListField = jsonArray.getClass().getDeclaredField("valueList");
+        valueListField.setAccessible(true);
+        final SoftReferencedValueList valueList = (SoftReferencedValueList) valueListField.get(jsonArray);
+
+        final Field softReferenceField = valueList.getClass().getDeclaredField("valuesReference");
+        softReferenceField.setAccessible(true);
+        SoftReference softReference = (SoftReference) softReferenceField.get(valueList);
+
+        softReference.clear();
+
+        assertThat(jsonArray.get(0).isPresent()).isTrue();
+    }
+
+    private void assertInternalCachesAreAsExpected(JsonArray jsonArray, boolean cborExpected, boolean jsonExpected) {
+        try {
+            final Field valueListField = jsonArray.getClass().getDeclaredField("valueList");
+            valueListField.setAccessible(true);
+            final SoftReferencedValueList valueList = (SoftReferencedValueList) valueListField.get(jsonArray);
+
+            final Field cborArrayField = valueList.getClass().getDeclaredField("cborArrayRepresentation");
+            cborArrayField.setAccessible(true);
+            byte[] cborArray = (byte[]) cborArrayField.get(valueList);
+
+            final Field jsonStringField = valueList.getClass().getDeclaredField("jsonArrayStringRepresentation");
+            jsonStringField.setAccessible(true);
+            String jsonString = (String) jsonStringField.get(valueList);
+
+            assertThat(cborArray != null).isEqualTo(cborExpected);
+            assertThat(jsonString != null).isEqualTo(jsonExpected);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            System.err.println(
+                    "Failed to access internal caching fields in JsonArray using reflection. " +
+                    "This might just be a bug in the test."
+            );
+            e.printStackTrace();
+        }
+    }
 }
