@@ -48,7 +48,7 @@ public final class CborFactory {
     }
 
     public static JsonValue readFrom(final byte[] bytes, int offset, int length) {
-        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, offset, length);
+        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, offset, length).slice(); // ensure that buffers position is zero so that offsets determined by CBORParser map directly to positions in this buffer.
         try{
             final CBORParser parser = jacksonCborFactory.createParser(bytes, offset, length);
             return parseValue(parser, byteBuffer);
@@ -59,6 +59,7 @@ public final class CborFactory {
 
     public static JsonValue readFrom(ByteBuffer byteBuffer) {
         // TODO: move / duplicate the bytebuffer array shortcut here?
+        byteBuffer = byteBuffer.slice(); // ensure that buffers position is zero so that offsets determined by CBORParser map directly to positions in this buffer.
         try{
             final CBORParser parser = jacksonCborFactory.createParser(ByteBufferInputStream.of(byteBuffer));
             return parseValue(parser, byteBuffer);
