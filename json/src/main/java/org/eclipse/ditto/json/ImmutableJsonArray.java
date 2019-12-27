@@ -276,6 +276,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
                 try {
                     this.cborArrayRepresentation = createCborRepresentation(jsonValueList);
                 } catch (IOException e) {
+                    assert false; // this should not happen, so assertions will throw during testing
                     jsonArrayStringRepresentation = createStringRepresentation(jsonValueList);
                 }
             }
@@ -361,11 +362,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
 
         private List<JsonValue> recoverValues(){
             if (cborArrayRepresentation != null) {
-                try {
-                    return parseToList(cborArrayRepresentation);
-                } catch (IOException e) {
-                    // try JSON instead.
-                }
+                return parseToList(cborArrayRepresentation);
             }
             if (jsonArrayStringRepresentation != null){
                 return parseToList(jsonArrayStringRepresentation);
@@ -379,7 +376,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
             return jsonHandler.getValue();
         }
 
-        private static List<JsonValue> parseToList(final byte[] cborArrayRepresentation) throws IOException {
+        private static List<JsonValue> parseToList(final byte[] cborArrayRepresentation) {
             final JsonValue jsonArray = CborFactory.readFrom(cborArrayRepresentation);
             List<JsonValue> list = new LinkedList<>();
             for (JsonValue jsonValue : jsonArray.asArray()) {
@@ -449,11 +446,13 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
             final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(512);
             final SerializationContext serializationContext =
                     new SerializationContext(new CBORFactory(), byteArrayOutputStream);
+
             serializationContext.getJacksonGenerator().writeStartArray(list.size());
             for (final JsonValue jsonValue: list){
                 jsonValue.writeValue(serializationContext);
             }
             serializationContext.getJacksonGenerator().writeEndArray();
+
             serializationContext.close();
             return byteArrayOutputStream.toByteArray();
         }

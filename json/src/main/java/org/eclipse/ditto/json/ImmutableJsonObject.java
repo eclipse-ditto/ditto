@@ -546,6 +546,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                 try {
                     this.cborObjectRepresentation = createCborRepresentation(jsonFieldMap);
                 } catch (IOException e) {
+                    assert false; // this should not happen, so assertions will throw during testing
                     jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
                 }
             }
@@ -648,11 +649,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
         private Map<String, JsonField> recoverFields(){
             if (cborObjectRepresentation != null) {
-                try {
-                    return parseToMap(cborObjectRepresentation);
-                } catch (IOException e) {
-                    // try JSON instead.
-                }
+                return parseToMap(cborObjectRepresentation);
             }
             if (jsonObjectStringRepresentation != null){
                 return parseToMap(jsonObjectStringRepresentation);
@@ -666,7 +663,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
             return jsonHandler.getValue();
         }
 
-        private static Map<String, JsonField> parseToMap(final byte[] cborObjectRepresentation) throws IOException {
+        private static Map<String, JsonField> parseToMap(final byte[] cborObjectRepresentation) {
             final JsonValue jsonObject = CborFactory.readFrom(cborObjectRepresentation);
             final Map<String, JsonField> map = new LinkedHashMap<>();
             for (JsonField jsonValue: jsonObject.asObject()){
@@ -729,11 +726,13 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
             final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(512);
             final SerializationContext serializationContext =
                     new SerializationContext(new CBORFactory(), byteArrayOutputStream);
+
             writeStartObjectWithLength(serializationContext, jsonFieldMap.size());
             for (JsonField jsonField: jsonFieldMap.values()){
                 jsonField.writeKeyAndValue(serializationContext);
             }
             serializationContext.getJacksonGenerator().writeEndObject();
+
             serializationContext.close();
             return byteArrayOutputStream.toByteArray();
         }
