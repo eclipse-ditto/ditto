@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -44,6 +45,13 @@ public interface OutboundSignal extends Jsonifiable.WithFieldSelectorAndPredicat
      * @return the targets that are authorized to read and subscribed for the outbound signal.
      */
     List<Target> getTargets();
+
+    /**
+     * @return extra fields of an enriched signal. Only relevant during message mapping.
+     */
+    default Optional<JsonObject> getExtra() {
+        return Optional.empty();
+    }
 
     /**
      * Returns all non hidden marked fields of this {@code Connection}.

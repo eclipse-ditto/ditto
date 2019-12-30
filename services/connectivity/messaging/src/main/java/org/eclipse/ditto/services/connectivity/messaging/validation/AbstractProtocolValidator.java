@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
-
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.function.Supplier;
@@ -150,7 +146,7 @@ public abstract class AbstractProtocolValidator {
             final DittoHeaders dittoHeaders) {
         final MappingConfig mappingConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        ).getConnectionConfig().getMappingConfig();
+        ).getMappingConfig();
         final MessageMapperFactory messageMapperFactory =
                 DefaultMessageMapperFactory.of(connection.getId(), actorSystem, mappingConfig, actorSystem.log());
 

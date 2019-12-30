@@ -29,8 +29,10 @@ import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
+import org.eclipse.ditto.services.connectivity.mapping.ConnectivitySignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -151,6 +153,8 @@ public final class ConnectivityRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
+    private final ConnectivitySignalEnrichmentProvider signalEnrichmentProvider;
+
     @SuppressWarnings("unused")
     private ConnectivityRootActor(final ConnectivityConfig connectivityConfig,
             final ActorRef pubSubMediator,
@@ -163,6 +167,9 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         final ActorRef conciergeForwarder =
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
+        signalEnrichmentProvider = ConnectivitySignalEnrichmentProvider.load(actorSystem, conciergeForwarder,
+                connectivityConfig.getConnectionConfig().getSignalEnrichmentConfig());
+
         final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
         final Props connectionSupervisorProps =
                 getConnectionSupervisorProps(dittoProtocolSub, conciergeForwarder, commandValidator, pubSubMediator,
@@ -248,10 +255,18 @@ public final class ConnectivityRootActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
+                .matchEquals(MessageMappingProcessorActor.Request.GET_SIGNAL_ENRICHMENT_PROVIDER,
+                        this::sendSignalEnrichmentProvider)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
+    }
+
+    private void sendSignalEnrichmentProvider(final Object trigger) {
+        final ActorRef sender = getSender();
+        log.debug("Sending signalEnrichmentProvider to <{}>", sender);
+        sender.tell(signalEnrichmentProvider, getSelf());
     }
 
     private SupervisorStrategy.Directive restartChild() {

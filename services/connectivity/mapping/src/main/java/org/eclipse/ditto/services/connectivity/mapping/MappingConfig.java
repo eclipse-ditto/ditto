@@ -24,6 +24,15 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface MappingConfig {
 
     /**
+     * Returns the local path of the actor holding a signal-enrichment provider, usually the connectivity root actor.
+     * This has to be a string because mapping processor actors are supposed to use signal-enrichment providers local
+     * to the nodes where they are deployed to, which may be different from the nodes where their Props were created.
+     *
+     * @return the desired actor path.
+     */
+    String getSignalEnrichmentProviderPath();
+
+    /**
      * Returns the buffer size used for the queue in the message mapping processor actor responsible for doing the
      * enrichment.
      *
@@ -58,6 +67,11 @@ public interface MappingConfig {
      * {@code MappingConfig}.
      */
     enum MappingConfigValue implements KnownConfigValue {
+
+        /**
+         * The path of the actor holding a signal-enrichment provider.
+         */
+        SIGNAL_ENRICHMENT_PROVIDER_PATH("signal-enrichment-provider-path", "/deadLetters"),
 
         /**
          * The buffer size used for the queue in the message mapping processor actor.

@@ -18,18 +18,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -131,6 +138,33 @@ public class MessageMappingProcessorTest {
     @Test
     public void testOutboundMessageMapped() {
         testOutbound(1, 0, 0);
+    }
+
+    @Test
+    public void testOutboundMessageEnriched() {
+        final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
+                .address("target/address")
+                .authorizationContext(AuthorizationContext.newInstance(AuthorizationSubject.newInstance("auth:sub")))
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                        .withExtraFields(JsonFieldSelector.newInstance("attributes/x,attributes/y"))
+                        .build())
+                .build();
+        new TestKit(actorSystem) {{
+            final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
+            final JsonObject extra = JsonObject.newBuilder().set("x", 5).build();
+            final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
+            final MappingResultHandler<OutboundSignal.Mapped> mock = Mockito.mock(MappingResultHandler.class);
+            when(outboundSignal.getExtra()).thenReturn(Optional.of(extra));
+            when(outboundSignal.getSource()).thenReturn(signal);
+            underTest.process(outboundSignal, mock);
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(1)).onMessageMapped(captor.capture());
+            verify(mock, times(0)).onException(any(Exception.class));
+            verify(mock, times(0)).onMessageDropped();
+
+            assertThat(captor.getAllValues()).allSatisfy(em -> assertThat(em.getAdaptable().getPayload().getExtra())
+                    .contains(extra));
+        }};
     }
 
     @Test

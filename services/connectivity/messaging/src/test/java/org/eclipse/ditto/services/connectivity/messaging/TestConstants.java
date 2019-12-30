@@ -152,7 +152,7 @@ public final class TestConstants {
         final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(CONFIG);
 
         CONNECTIVITY_CONFIG = DittoConnectivityConfig.of(dittoScopedConfig);
-        MAPPING_CONFIG = CONNECTIVITY_CONFIG.getConnectionConfig().getMappingConfig();
+        MAPPING_CONFIG = CONNECTIVITY_CONFIG.getMappingConfig();
         CONNECTION_CONFIG = CONNECTIVITY_CONFIG.getConnectionConfig();
         CLIENT_CONFIG = CONNECTIVITY_CONFIG.getClientConfig();
         RECONNECT_CONFIG = CONNECTIVITY_CONFIG.getReconnectConfig();

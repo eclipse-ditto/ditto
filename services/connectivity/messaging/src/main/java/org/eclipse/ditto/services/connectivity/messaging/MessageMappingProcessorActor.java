@@ -17,13 +17,18 @@ import static org.eclipse.ditto.model.connectivity.MetricType.MAPPED;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.time.Duration;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,6 +36,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -45,8 +51,10 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
+import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogType;
+import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -57,18 +65,23 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.connectivity.mapping.ConnectivitySignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -76,13 +89,17 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import scala.util.Either;
@@ -112,6 +129,7 @@ public final class MessageMappingProcessorActor extends
     private final ConnectionMonitor responseDispatchedMonitor;
     private final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitor responseMappedMonitor;
+    private final CompletionStage<SignalEnrichmentFacade> signalEnrichmentFacade;
 
     @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef conciergeForwarder,
@@ -132,12 +150,15 @@ public final class MessageMappingProcessorActor extends
 
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        mappingConfig = connectivityConfig.getConnectionConfig().getMappingConfig();
+        mappingConfig = connectivityConfig.getMappingConfig();
 
         this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connectionId);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connectionId);
+        signalEnrichmentFacade = getSignalEnrichmentFacade(
+                getContext().getSystem().actorSelection(mappingConfig.getSignalEnrichmentProviderPath()),
+                connectionId, getContext().getParent(), getSelf());
     }
 
     /**
@@ -171,7 +192,8 @@ public final class MessageMappingProcessorActor extends
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder
-                .match(ExternalMessage.class, this::handleInboundMessage)   // ExternalMessages are handled directly, without first putting them into a stream
+                .match(ExternalMessage.class,
+                        this::handleInboundMessage)   // ExternalMessages are handled directly, without first putting them into a stream
                 .match(CommandResponse.class, this::handleCommandResponse)  // same for command responses
                 .match(Signal.class, this::handleSignal)                    // and all other Signals
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
@@ -192,15 +214,95 @@ public final class MessageMappingProcessorActor extends
 
     @Override
     protected Flow<OutboundSignalWithId, OutboundSignalWithId, NotUsed> processMessageFlow() {
-        // for now, don't pre-process the OutboundSignals:
-        return Flow.create();
-        // this is probably the place to do the "extra" fields enrichment
+        // Enrich outbound signals by extra fields if necessary.
+        return Flow.<OutboundSignalWithId>create()
+                .mapConcat(outboundSignal -> {
+                    final Pair<List<Target>, List<Pair<Target, JsonFieldSelector>>> splitTargets =
+                            splitTargetsByExtraFields(outboundSignal);
+
+                    if (splitTargets.second().isEmpty()) {
+                        // no enrichment needed; pass the signal onward
+                        return Collections.singletonList(CompletableFuture.completedFuture(outboundSignal));
+                    } else {
+                        // enrichment needed.
+                        final List<CompletionStage<OutboundSignalWithId>> outboundSignalFutures =
+                                new ArrayList<>(1 + splitTargets.second().size());
+                        final OutboundSignalWithId outboundSignalWithoutExtraFields =
+                                outboundSignal.setTargets(splitTargets.first());
+                        outboundSignalFutures.add(CompletableFuture.completedFuture(outboundSignalWithoutExtraFields));
+                        for (final Pair<Target, JsonFieldSelector> pair : splitTargets.second()) {
+                            outboundSignalFutures.add(enrichSignal(outboundSignal, pair.first(), pair.second()));
+                        }
+                        return outboundSignalFutures;
+                    }
+                })
+                .mapAsync(mappingConfig.getParallelism(), x -> x);
     }
 
     @Override
     protected Sink<OutboundSignalWithId, ?> processedMessageSink() {
         // simply handle each OutboundSignals:
         return Sink.foreach(this::handleOutboundSignal);
+    }
+
+    // Called inside stream; must be thread-safe
+    private CompletionStage<OutboundSignalWithId> enrichSignal(final OutboundSignalWithId outboundSignal,
+            final Target target, final JsonFieldSelector selector) {
+
+        final ThingId thingId = ThingId.of(outboundSignal.getEntityId());
+        final DittoHeaders headers = outboundSignal.getSource()
+                .getDittoHeaders()
+                .toBuilder()
+                .authorizationContext(target.getAuthorizationContext())
+                .build();
+        final CompletionStage<JsonObject> extraFuture =
+                signalEnrichmentFacade.thenCompose(facade -> facade.retrievePartialThing(thingId, selector, headers));
+
+        return extraFuture.thenApply(extra -> outboundSignal.setTargetAndExtra(target, extra))
+                .exceptionally(error ->
+                        // recover from all errors to keep message-mapping-stream running despite enrichment failures
+                        recoverFromEnrichmentError(outboundSignal, target, error)
+                );
+    }
+
+    // Called inside future; must be thread-safe
+    private OutboundSignalWithId recoverFromEnrichmentError(final OutboundSignalWithId outboundSignal,
+            final Target target, final Throwable error) {
+
+        // getContext().getParent() is thread-safe; it is okay to call inside a future
+        final ActorRef parentClientActor = getContext().getParent();
+        // show enrichment failure in the connection logs
+        logEnrichmentFailure(outboundSignal, connectionId, error);
+        // show enrichment failure in service logs according to severity
+        if (error instanceof ThingNotAccessibleException) {
+            // This error should be rare but possible due to user action; log on INFO level
+            log.info("Enrichment of  <{}> failed for <{}> due to <{}>", outboundSignal.getSource().getClass(),
+                    outboundSignal.getEntityId(), error);
+        } else {
+            // This error should not have happened during normal operation.
+            // There is a (possibly transient) problem with the Ditto cluster. Request parent to restart.
+            log.error("Enrichment of <{}> due to <{}>", outboundSignal, error);
+            final ConnectionFailure connectionFailure =
+                    new ImmutableConnectionFailure(getSelf(), error, "Signal enrichment failed");
+            parentClientActor.tell(connectionFailure, getSelf());
+        }
+        return outboundSignal.setTargets(Collections.singletonList(target));
+    }
+
+    private void logEnrichmentFailure(final OutboundSignal outboundSignal, final ConnectionId connectionId,
+            final Throwable error) {
+
+        final DittoRuntimeException errorToLog;
+        if (error instanceof DittoRuntimeException) {
+            errorToLog = (DittoRuntimeException) error;
+        } else {
+            // TODO: add enrichment failed exception
+            errorToLog = MessageMappingFailedException.newBuilder((String) null)
+                    .dittoHeaders(outboundSignal.getSource().getDittoHeaders())
+                    .build();
+        }
+        getMonitorsForMappedSignal(outboundSignal, connectionId)
+                .forEach(monitor -> monitor.failure(outboundSignal.getSource(), errorToLog));
     }
 
     private void handleInboundMessage(final ExternalMessage externalMessage) {
@@ -311,6 +413,33 @@ public final class MessageMappingProcessorActor extends
         return getThingId(exception)
                 .map(thingId -> ThingErrorResponse.of(thingId, exception, truncatedHeaders))
                 .orElseGet(() -> ThingErrorResponse.of(exception, truncatedHeaders));
+    }
+
+    private static CompletionStage<SignalEnrichmentFacade> getSignalEnrichmentFacade(
+            final ActorSelection signalEnrichmentProvider,
+            final ConnectionId connectionId,
+            final ActorRef parentClientActor,
+            final ActorRef self) {
+
+        final CompletionStage<SignalEnrichmentFacade> future =
+                Patterns.ask(signalEnrichmentProvider, Request.GET_SIGNAL_ENRICHMENT_PROVIDER, Duration.ofSeconds(10L))
+                        .thenApply(reply -> {
+                            // fail future with ClassCastException if the reply does not have the expected type
+                            final ConnectivitySignalEnrichmentProvider provider =
+                                    (ConnectivitySignalEnrichmentProvider) reply;
+                            return provider.createFacade(connectionId);
+                        });
+
+        // Handle errors in a separate stage so that the returned future stayed a failed future on failure.
+        future.exceptionally(e -> {
+            // If this future fails, then the service has a (possibly transient) problem.
+            // Request parent to restart connection.
+            final String description = "";
+            parentClientActor.tell(new ImmutableConnectionFailure(self, e, description), self);
+            return null;
+        });
+
+        return future;
     }
 
     private static Optional<ThingId> getThingId(final DittoRuntimeException e) {
@@ -547,16 +676,65 @@ public final class MessageMappingProcessorActor extends
     }
 
     /**
+     * Split the targets of an outbound signal into 2 parts: those without extra fields and those with.
      *
+     * @param outboundSignal The outbound signal.
+     * @return A pair of lists. The first list contains targets without matching extra fields.
+     * The second list contains targets together with their extra fields matching the outbound signal.
      */
+    private static Pair<List<Target>, List<Pair<Target, JsonFieldSelector>>> splitTargetsByExtraFields(
+            final OutboundSignal outboundSignal) {
+
+        final Optional<StreamingType> streamingTypeOptional = StreamingType.fromSignal(outboundSignal.getSource());
+        if (streamingTypeOptional.isPresent()) {
+            // Find targets with a matching topic with extra fields
+            final StreamingType streamingType = streamingTypeOptional.get();
+            final List<Target> targetsWithoutExtraFields = new ArrayList<>(outboundSignal.getTargets().size());
+            final List<Pair<Target, JsonFieldSelector>> targetsWithExtraFields =
+                    new ArrayList<>(outboundSignal.getTargets().size());
+            for (final Target target : outboundSignal.getTargets()) {
+                final Optional<JsonFieldSelector> matchingExtraFields = target.getTopics()
+                        .stream()
+                        .filter(filteredTopic -> filteredTopic.getExtraFields().isPresent() &&
+                                streamingType == StreamingType.fromTopic(filteredTopic.getTopic().getPubSubTopic()))
+                        .map(FilteredTopic::getExtraFields)
+                        .findAny()
+                        .flatMap(Function.identity());
+                if (matchingExtraFields.isPresent()) {
+                    targetsWithExtraFields.add(Pair.create(target, matchingExtraFields.get()));
+                } else {
+                    targetsWithoutExtraFields.add(target);
+                }
+            }
+            return Pair.create(targetsWithoutExtraFields, targetsWithExtraFields);
+        } else {
+            // The outbound signal has no streaming type: Do not attach extra fields.
+            return Pair.create(outboundSignal.getTargets(), Collections.emptyList());
+        }
+    }
+
     static class OutboundSignalWithId implements OutboundSignal, WithId {
 
         private final OutboundSignal delegate;
         private final EntityId entityId;
 
+        @Nullable
+        private final JsonObject extra;
+
         private OutboundSignalWithId(final OutboundSignal delegate, final EntityId entityId) {
+            this(delegate, entityId, null);
+        }
+
+        private OutboundSignalWithId(final OutboundSignal delegate, final EntityId entityId,
+                @Nullable final JsonObject extra) {
             this.delegate = delegate;
             this.entityId = entityId;
+            this.extra = extra;
+        }
+
+        @Override
+        public Optional<JsonObject> getExtra() {
+            return Optional.ofNullable(extra);
         }
 
         @Override
@@ -578,6 +756,30 @@ public final class MessageMappingProcessorActor extends
         public EntityId getEntityId() {
             return entityId;
         }
+
+        private OutboundSignalWithId setTargets(final List<Target> targets) {
+            return new OutboundSignalWithId(OutboundSignalFactory.newOutboundSignal(delegate.getSource(), targets),
+                    entityId);
+        }
+
+        private OutboundSignalWithId setTargetAndExtra(final Target target, final JsonObject extra) {
+            return new OutboundSignalWithId(
+                    OutboundSignalFactory.newOutboundSignal(delegate.getSource(), Collections.singletonList(target)),
+                    entityId,
+                    extra
+            );
+        }
+    }
+
+    /**
+     * Request made by this actor.
+     */
+    public enum Request {
+
+        /**
+         * Request a signal-enrichment provider.
+         */
+        GET_SIGNAL_ENRICHMENT_PROVIDER
     }
 
 }

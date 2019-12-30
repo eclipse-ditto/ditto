@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -28,11 +30,13 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
@@ -46,29 +50,32 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
-import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
-import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.connectivity.mapping.ConnectivitySignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.models.things.SignalEnrichmentFacadeByRoundTrip;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -76,6 +83,8 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.testkit.TestKit$;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -97,17 +106,17 @@ public final class MessageMappingProcessorActorTest {
                     .set("source", "{{ request:subjectId }}")
                     .build());
 
-    private static ActorSystem actorSystem;
-    private static ProtocolAdapterProvider protocolAdapterProvider;
+    private ActorSystem actorSystem;
+    private ProtocolAdapterProvider protocolAdapterProvider;
 
-    @BeforeClass
-    public static void setUp() {
+    @Before
+    public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
                     false);
@@ -160,6 +169,68 @@ public final class MessageMappingProcessorActorTest {
                             .hasValueSatisfying(desc -> assertThat(desc).contains(FAULTY_MAPPER));
                 }
         );
+    }
+
+    @Test
+    public void testSignalEnrichment() {
+        // GIVEN: test probe actor started with configured values
+        // Reset test kit test actor ID to ensure name of test probe matches configuration
+        TestKit$.MODULE$.testActorId().set(0);
+        final String userGuardianPrefix = "/system/";
+        final String testProbeSuffix = "-1";
+        final String commandHandlerPath = TestConstants.MAPPING_CONFIG.getSignalEnrichmentProviderPath();
+        assertThat(commandHandlerPath).startsWith(userGuardianPrefix).endsWith(testProbeSuffix);
+        final String commandHandlerName = commandHandlerPath.substring(userGuardianPrefix.length(),
+                commandHandlerPath.length() - testProbeSuffix.length());
+        final TestProbe commandHandlerProbe = TestProbe.apply(commandHandlerName, actorSystem);
+        assertThat(commandHandlerProbe.ref().path().toStringWithoutAddress())
+                .isEqualTo(TestConstants.MAPPING_CONFIG.getSignalEnrichmentProviderPath());
+
+        new TestKit(actorSystem) {{
+            // GIVEN: MessageMappingProcessor started with a test probe as the configured enrichment provider
+            final ActorRef underTest = createMessageMappingProcessorActor(this);
+
+            // WHEN: a signal is received with 2 targets, one with enrichment and one without
+            final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes/x,attributes/y");
+            final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
+            final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
+                    .address("target/address")
+                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .build())
+                    .build();
+            final Target targetWithoutEnrichment = ConnectivityModelFactory.newTargetBuilder(targetWithEnrichment)
+                    .topics(Topic.TWIN_EVENTS)
+                    .build();
+            final Signal signal = TestConstants.thingModified(Collections.emptyList());
+            final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(signal,
+                    Arrays.asList(targetWithEnrichment, targetWithoutEnrichment));
+            underTest.tell(outboundSignal, getRef());
+
+            // THEN: a mapped signal without enrichment arrives first
+            final PublishMappedMessage messageWithoutExtra = expectMsgClass(PublishMappedMessage.class);
+            assertThat(messageWithoutExtra.getOutboundSignal().getSource()).isEqualTo(signal);
+            assertThat(messageWithoutExtra.getOutboundSignal().getTargets()).containsExactly(targetWithoutEnrichment);
+
+            // THEN: MessageMappingProcessor loads a signal-enrichment-facade lazily
+            commandHandlerProbe.expectMsg(MessageMappingProcessorActor.Request.GET_SIGNAL_ENRICHMENT_PROVIDER);
+            commandHandlerProbe.reply((ConnectivitySignalEnrichmentProvider)
+                    connectionId -> SignalEnrichmentFacadeByRoundTrip.of(getRef(), Duration.ofSeconds(10L)));
+
+            // THEN: Receive a RetrieveThing command from the facade.
+            final RetrieveThing retrieveThing = expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
+            final JsonObject extra = JsonObject.newBuilder().set("attributes/x", 5).build();
+            reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extra, retrieveThing.getDittoHeaders()));
+
+            // THEN: Receive an outbound signal with extra fields.
+            final PublishMappedMessage messageWithExtra = expectMsgClass(PublishMappedMessage.class);
+            assertThat(messageWithExtra.getOutboundSignal().getSource()).isEqualTo(signal);
+            assertThat(messageWithExtra.getOutboundSignal().getTargets()).containsExactly(targetWithEnrichment);
+            assertThat(messageWithExtra.getOutboundSignal().getAdaptable().getPayload().getExtra()).contains(extra);
+        }};
     }
 
     private void testExternalMessageInDittoProtocolIsProcessed(
@@ -356,7 +427,7 @@ public final class MessageMappingProcessorActorTest {
                 });
     }
 
-    private static <T> void testMessageMapping(final String correlationId,
+    private <T> void testMessageMapping(final String correlationId,
             final AuthorizationContext context,
             final Class<T> expectedMessageClass,
             final Consumer<T> verifyReceivedMessage) {
@@ -454,14 +525,14 @@ public final class MessageMappingProcessorActorTest {
         }};
     }
 
-    private static ActorRef createMessageMappingProcessorActor(final TestKit kit) {
+    private ActorRef createMessageMappingProcessorActor(final TestKit kit) {
         final Props props =
                 MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
                         CONNECTION_ID);
         return actorSystem.actorOf(props);
     }
 
-    private static MessageMappingProcessor getMessageMappingProcessor() {
+    private MessageMappingProcessor getMessageMappingProcessor() {
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
@@ -478,15 +549,6 @@ public final class MessageMappingProcessorActorTest {
         headers.put("correlation-id", correlationId);
         headers.put("content-type", "application/json");
         return ModifyAttribute.of(KNOWN_THING_ID, JsonPointer.of("foo"), JsonValue.of(42), DittoHeaders.of(headers));
-    }
-
-    private static SendThingMessage<Object> createSendMessageCommand() {
-        final MessageHeaders messageHeaders =
-                MessageHeadersBuilder.newInstance(MessageDirection.TO, TestConstants.Things.THING_ID, "some-subject")
-                        .build();
-
-        return SendThingMessage.of(TestConstants.Things.THING_ID,
-                Message.newBuilder(messageHeaders).payload("payload").build(), DittoHeaders.empty());
     }
 
     private static final class TestPlaceholder implements Placeholder<String> {

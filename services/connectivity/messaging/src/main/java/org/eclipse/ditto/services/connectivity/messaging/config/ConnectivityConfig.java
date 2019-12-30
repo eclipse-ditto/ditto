@@ -56,4 +56,10 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
      */
     MonitoringConfig getMonitoringConfig();
 
+    /**
+     * Returns the config for Connectivity service's message mapping.
+     *
+     * @return the config.
+     */
+    MappingConfig getMappingConfig();
 }

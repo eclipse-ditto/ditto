@@ -61,7 +61,25 @@ public final class DefaultMappingConfigTest {
         final DefaultMappingConfig underTest = DefaultMappingConfig.of(mappingTestConfig);
 
         softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
-                .contains("javaScriptConfig", "mapperLimitsConfig");
+                .contains("javaScriptConfig", "mapperLimitsConfig", "signalEnrichmentProviderPath", "bufferSize",
+                        "parallelism");
+    }
+
+    @Test
+    public void underTestReturnsValuesOfConfigFile() {
+        final DefaultMappingConfig underTest = DefaultMappingConfig.of(mappingTestConfig);
+
+        softly.assertThat(underTest.getSignalEnrichmentProviderPath())
+                .describedAs(MappingConfig.MappingConfigValue.SIGNAL_ENRICHMENT_PROVIDER_PATH.getConfigPath())
+                .isEqualTo("/user/connectivityRoot");
+
+        softly.assertThat(underTest.getBufferSize())
+                .describedAs(MappingConfig.MappingConfigValue.BUFFER_SIZE.getConfigPath())
+                .isEqualTo(12345);
+
+        softly.assertThat(underTest.getParallelism())
+                .describedAs(MappingConfig.MappingConfigValue.PARALLELISM.getConfigPath())
+                .isEqualTo(67890);
     }
 
 }

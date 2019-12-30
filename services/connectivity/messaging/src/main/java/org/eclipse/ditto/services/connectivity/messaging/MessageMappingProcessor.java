@@ -34,7 +34,9 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
@@ -103,9 +105,7 @@ public final class MessageMappingProcessor {
             final DiagnosticLoggingAdapter log) {
 
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionId, actorSystem,
-                        connectivityConfig.getConnectionConfig().getMappingConfig(),
-                        log);
+                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(), log);
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 
@@ -150,7 +150,13 @@ public final class MessageMappingProcessor {
      */
     void process(final OutboundSignal outboundSignal, final MappingResultHandler<OutboundSignal.Mapped> resultHandler) {
         final MappingTimer timer = MappingTimer.outbound(connectionId);
-        final Adaptable adaptable = timer.protocol(() -> protocolAdapter.toAdaptable(outboundSignal.getSource()));
+        final Adaptable adaptableWithoutExtra =
+                timer.protocol(() -> protocolAdapter.toAdaptable(outboundSignal.getSource()));
+        final Adaptable adaptable = outboundSignal.getExtra()
+                .map(extra -> ProtocolFactory.newAdaptableBuilder(adaptableWithoutExtra)
+                        .withPayload(Payload.newBuilder(adaptableWithoutExtra.getPayload()).withExtra(extra).build())
+                        .build())
+                .orElse(adaptableWithoutExtra);
         enhanceLogFromAdaptable(adaptable);
         final List<MessageMapper> mappers = getMappers(outboundSignal);
         log.debug("Resolved mappers for message {} to targets {}: {}",

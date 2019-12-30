@@ -20,6 +20,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
@@ -49,6 +51,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private final ClientConfig clientConfig;
     private final ProtocolConfig protocolConfig;
     private final MonitoringConfig monitoringConfig;
+    private final MappingConfig mappingConfig;
 
     private DittoConnectivityConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -60,6 +63,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         reconnectConfig = DefaultReconnectConfig.of(serviceSpecificConfig);
         clientConfig = DefaultClientConfig.of(serviceSpecificConfig);
         monitoringConfig = DefaultMonitoringConfig.of(serviceSpecificConfig);
+        mappingConfig = DefaultMappingConfig.of(serviceSpecificConfig);
     }
 
     /**
@@ -132,6 +136,11 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     @Override
     public MonitoringConfig getMonitoringConfig() {
         return monitoringConfig;
+    }
+
+    @Override
+    public MappingConfig getMappingConfig() {
+        return mappingConfig;
     }
 
     @SuppressWarnings("OverlyComplexMethod")
