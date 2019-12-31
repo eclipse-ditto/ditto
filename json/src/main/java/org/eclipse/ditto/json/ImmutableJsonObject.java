@@ -577,8 +577,8 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
             return new SoftReferencedFieldMap(jsonFieldMap, stringRepresentation, cborObjectRepresentation);
         }
 
-        private static String createStringRepresentation(final Map<String, JsonField> jsonFieldMap) {
-            final StringBuilder stringBuilder = new StringBuilder(512);
+        private String createStringRepresentation(final Map<String, JsonField> jsonFieldMap) {
+            final StringBuilder stringBuilder = new StringBuilder(guessSerializedSize());
             stringBuilder.append('{');
             String delimiter = "";
             for (final JsonField jsonField : jsonFieldMap.values()) {
@@ -723,17 +723,15 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         private byte[] createCborRepresentation(final Map<String, JsonField> jsonFieldMap) throws IOException {
-            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(512);
-            final SerializationContext serializationContext =
-                    new SerializationContext(new CBORFactory(), byteArrayOutputStream);
+            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(guessSerializedSize());
 
-            writeStartObjectWithLength(serializationContext, jsonFieldMap.size());
-            for (JsonField jsonField: jsonFieldMap.values()){
-                jsonField.writeKeyAndValue(serializationContext);
+            try (final SerializationContext serializationContext = new SerializationContext(new CBORFactory(), byteArrayOutputStream)){
+                writeStartObjectWithLength(serializationContext, jsonFieldMap.size());
+                for (JsonField jsonField: jsonFieldMap.values()){
+                    jsonField.writeKeyAndValue(serializationContext);
+                }
+                serializationContext.getJacksonGenerator().writeEndObject();
             }
-            serializationContext.getJacksonGenerator().writeEndObject();
-
-            serializationContext.close();
             return byteArrayOutputStream.toByteArray();
         }
 
@@ -751,6 +749,17 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
             } else {
                 jacksonGenerator.writeStartObject();
             }
+        }
+
+        private int guessSerializedSize(){
+            // This function currently overestimates for CBOR and underestimates for JSON, but it should be better than a static guess.
+            if (jsonObjectStringRepresentation != null) {
+                return jsonObjectStringRepresentation.length();
+            }
+            if (cborObjectRepresentation != null) {
+                return cborObjectRepresentation.length;
+            }
+            return 512;
         }
 
     }

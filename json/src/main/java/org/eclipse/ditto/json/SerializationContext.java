@@ -72,7 +72,7 @@ public class SerializationContext implements Closeable, Flushable {
 
     /**
      * Allows the caller to directly embed cached data in the Buffer.
-     * This can only be used to write one element.
+     * This can only be used to write exactly one element.
      * @param cachedData The data to write in an appropriately sized array.
      */
     void writeCachedElement(byte[] cachedData) throws IOException {

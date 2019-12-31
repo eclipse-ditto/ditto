@@ -307,8 +307,8 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
             return new SoftReferencedValueList(jsonValueList, stringRepresentation, cborRepresentation);
         }
 
-        private static String createStringRepresentation(final Iterable<JsonValue> jsonValues) {
-            final StringBuilder stringBuilder = new StringBuilder(512);
+        private String createStringRepresentation(final Iterable<JsonValue> jsonValues) {
+            final StringBuilder stringBuilder = new StringBuilder(guessSerializedSize());
             stringBuilder.append('[');
             String delimiter = "";
             for (final JsonValue jsonValue : jsonValues) {
@@ -443,21 +443,28 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         }
 
         byte[] createCborRepresentation(final List<JsonValue> list) throws IOException {
-            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(512);
-            final SerializationContext serializationContext =
-                    new SerializationContext(new CBORFactory(), byteArrayOutputStream);
+            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(guessSerializedSize());
 
-            serializationContext.getJacksonGenerator().writeStartArray(list.size());
-            for (final JsonValue jsonValue: list){
-                jsonValue.writeValue(serializationContext);
+            try (final SerializationContext serializationContext = new SerializationContext(new CBORFactory(), byteArrayOutputStream)){
+                serializationContext.getJacksonGenerator().writeStartArray(list.size());
+                for (final JsonValue jsonValue: list){
+                    jsonValue.writeValue(serializationContext);
+                }
+                serializationContext.getJacksonGenerator().writeEndArray();
             }
-            serializationContext.getJacksonGenerator().writeEndArray();
-
-            serializationContext.close();
             return byteArrayOutputStream.toByteArray();
         }
 
-
+        private int guessSerializedSize(){
+            // This function currently overestimates for CBOR and underestimates for JSON, but it should be better than a static guess.
+            if (jsonArrayStringRepresentation != null) {
+                return jsonArrayStringRepresentation.length();
+            }
+            if (cborArrayRepresentation != null) {
+                return cborArrayRepresentation.length;
+            }
+            return 512;
+        }
     }
 
     /**
