@@ -43,6 +43,7 @@ import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -54,7 +55,6 @@ import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogType;
-import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -281,7 +281,7 @@ public final class MessageMappingProcessorActor extends
         } else {
             // This error should not have happened during normal operation.
             // There is a (possibly transient) problem with the Ditto cluster. Request parent to restart.
-            log.error("Enrichment of <{}> due to <{}>", outboundSignal, error);
+            log.error("Enrichment of <{}> failed due to <{}>", outboundSignal, error);
             final ConnectionFailure connectionFailure =
                     new ImmutableConnectionFailure(getSelf(), error, "Signal enrichment failed");
             parentClientActor.tell(connectionFailure, getSelf());
@@ -294,10 +294,9 @@ public final class MessageMappingProcessorActor extends
 
         final DittoRuntimeException errorToLog;
         if (error instanceof DittoRuntimeException) {
-            errorToLog = (DittoRuntimeException) error;
+            errorToLog = SignalEnrichmentFailedException.dueTo((DittoRuntimeException) error);
         } else {
-            // TODO: add enrichment failed exception
-            errorToLog = MessageMappingFailedException.newBuilder((String) null)
+            errorToLog = SignalEnrichmentFailedException.newBuilder()
                     .dittoHeaders(outboundSignal.getSource().getDittoHeaders())
                     .build();
         }
