@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
+import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 
 import akka.http.javadsl.server.Route;
 
@@ -63,13 +66,22 @@ public interface WebSocketRouteBuilder {
     WebSocketRouteBuilder withWebSocketSupervisor(WebSocketSupervisor webSocketSupervisor);
 
     /**
+     * Set the signal enrichment provider.
+     * If not set or set to null, all streaming requests with the 'extraFields' parameter result in error.
+     *
+     * @param provider the provider.
+     * @return this builder.
+     */
+    WebSocketRouteBuilder withSignalEnrichmentProvider(@Nullable GatewaySignalEnrichmentProvider provider);
+
+    /**
      * Creates the Akka HTTP route for websocket.
      *
-     * @param version
-     * @param correlationId
-     * @param connectionAuthContext
-     * @param additionalHeaders
-     * @param chosenProtocolAdapter
+     * @param version the WS API version.
+     * @param correlationId the correlation ID of the request to open the WS connection.
+     * @param connectionAuthContext the authorization context of the request to open the WS connection.
+     * @param additionalHeaders extra headers.
+     * @param chosenProtocolAdapter protocol adapter to map incoming and outgoing signals.
      * @return the route.
      * @throws NullPointerException if any argument is {@code null}.
      */

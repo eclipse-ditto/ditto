@@ -20,35 +20,45 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 
-final class StreamSession {
+/**
+ * Package-private store of the needed information about a streaming session of a single streaming type.
+ */
+final class StreamingSession {
 
     private final List<String> namespaces;
     @Nullable private final Criteria eventFilterCriteria;
     @Nullable private final JsonFieldSelector extraFields;
 
-    private StreamSession(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
+    private StreamingSession(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
             @Nullable final JsonFieldSelector extraFields) {
         this.namespaces = namespaces;
         this.eventFilterCriteria = eventFilterCriteria;
         this.extraFields = extraFields;
     }
 
-    static StreamSession of(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
+    static StreamingSession of(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
             @Nullable final JsonFieldSelector extraFields) {
 
-        return new StreamSession(namespaces, eventFilterCriteria, extraFields);
+        return new StreamingSession(namespaces, eventFilterCriteria, extraFields);
     }
 
-    // TODO: javadoc equals hashCode toString
-
+    /**
+     * @return namespaces of the session.
+     */
     public List<String> getNamespaces() {
         return namespaces;
     }
 
+    /**
+     * @return filter criteria of the session if any is given.
+     */
     public Optional<Criteria> getEventFilterCriteria() {
         return Optional.ofNullable(eventFilterCriteria);
     }
 
+    /**
+     * @return extra fields of the session if any is given.
+     */
     public Optional<JsonFieldSelector> getExtraFields() {
         return Optional.ofNullable(extraFields);
     }

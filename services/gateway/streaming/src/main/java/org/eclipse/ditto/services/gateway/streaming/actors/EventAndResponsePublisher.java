@@ -17,16 +17,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 
@@ -40,13 +35,12 @@ import scala.concurrent.duration.FiniteDuration;
  * Actor publishing {@link Event}s and {@link CommandResponse}s which were sent to him applying backpressure if
  * necessary.
  */
-public final class EventAndResponsePublisher
-        extends AbstractActorPublisherWithStash<Jsonifiable.WithPredicate<JsonObject, JsonField>> {
+public final class EventAndResponsePublisher extends AbstractActorPublisherWithStash<SessionedJsonifiable> {
 
     private static final int MESSAGE_CONSUMPTION_CHECK_SECONDS = 2;
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final int backpressureBufferSize;
-    private final List<Jsonifiable.WithPredicate<JsonObject, JsonField>> buffer = new ArrayList<>();
+    private final List<SessionedJsonifiable> buffer = new ArrayList<>();
     private final AtomicBoolean currentlyInMessageConsumedCheck = new AtomicBoolean(false);
 
     @SuppressWarnings("unused")
@@ -85,15 +79,13 @@ public final class EventAndResponsePublisher
         unstashAll();
 
         return ReceiveBuilder.create()
-                .match(Signal.class, signal -> buffer.size() >= backpressureBufferSize, signal -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, signal);
-                    handleBackpressureFor((Signal<?>) signal);
-                })
-                .match(Signal.class, signal -> {
+                .match(SessionedJsonifiable.class, j -> buffer.size() >= backpressureBufferSize,
+                        this::handleBackpressureFor)
+                .match(SessionedJsonifiable.class, jsonifiable -> {
                     if (buffer.isEmpty() && totalDemand() > 0) {
-                        onNext((Signal<?>) signal);
+                        onNext(jsonifiable);
                     } else {
-                        buffer.add((Signal<?>) signal);
+                        buffer.add(jsonifiable);
                         deliverBuf();
                     }
                 })
@@ -102,32 +94,9 @@ public final class EventAndResponsePublisher
                     logger.withCorrelationId(closeStreamExceptionally.getConnectionCorrelationId())
                             .info("Closing stream exceptionally because of <{}>.", reason);
                     if (0 < totalDemand()) {
-                        onNext(reason);
+                        onNext(SessionedJsonifiable.error(reason));
                     }
                     onErrorThenStop(reason);
-                })
-                .match(DittoRuntimeException.class, cre -> buffer.size() >= backpressureBufferSize, cre -> {
-                    logger.setCorrelationId(cre);
-                    handleBackpressureFor(cre);
-                    logger.discardCorrelationId();
-                })
-                .match(DittoRuntimeException.class, cre -> {
-                    if (buffer.isEmpty() && totalDemand() > 0) {
-                        onNext(cre);
-                    } else {
-                        buffer.add(cre);
-                        deliverBuf();
-                    }
-                })
-                .match(Jsonifiable.WithPredicate.class, signal -> buffer.size() >= backpressureBufferSize,
-                        this::handleBackpressureFor)
-                .match(Jsonifiable.WithPredicate.class, jsonifiable -> {
-                    if (buffer.isEmpty() && totalDemand() > 0) {
-                        onNext(jsonifiable);
-                    } else {
-                        buffer.add(jsonifiable);
-                        deliverBuf();
-                    }
                 })
                 .match(ActorPublisherMessage.Request.class, request -> {
                     logger.withCorrelationId(connectionCorrelationId).debug("Got new demand: {}", request);
@@ -141,9 +110,11 @@ public final class EventAndResponsePublisher
                 .build();
     }
 
-    private void handleBackpressureFor(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
+    private void handleBackpressureFor(final SessionedJsonifiable jsonifiable) {
+        logger.setCorrelationId(jsonifiable.getDittoHeaders());
         if (currentlyInMessageConsumedCheck.compareAndSet(false, true)) {
-            logger.warning("Backpressure - buffer of '{}' outstanding Events/CommandResponses is full, dropping '{}'",
+            logger.warning(
+                    "Backpressure - buffer of '{}' outstanding Events/CommandResponses is full, dropping '{}'",
                     backpressureBufferSize, jsonifiable);
 
             final long bufSize = buffer.size();
@@ -171,14 +142,12 @@ public final class EventAndResponsePublisher
              * what buffer.splitAt can accept
              */
             if (totalDemand() <= Integer.MAX_VALUE) {
-                final List<Jsonifiable.WithPredicate<JsonObject, JsonField>> took =
-                        buffer.subList(0, Math.min(buffer.size(), (int) totalDemand()));
+                final List<SessionedJsonifiable> took = buffer.subList(0, Math.min(buffer.size(), (int) totalDemand()));
                 took.forEach(this::onNext);
                 buffer.removeAll(took);
                 break;
             } else {
-                final List<Jsonifiable.WithPredicate<JsonObject, JsonField>> took =
-                        buffer.subList(0, Math.min(buffer.size(), Integer.MAX_VALUE));
+                final List<SessionedJsonifiable> took = buffer.subList(0, Math.min(buffer.size(), Integer.MAX_VALUE));
                 took.forEach(this::onNext);
                 buffer.removeAll(took);
             }

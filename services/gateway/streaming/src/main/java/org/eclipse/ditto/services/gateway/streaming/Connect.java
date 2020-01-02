@@ -14,10 +14,10 @@ package org.eclipse.ditto.services.gateway.streaming;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 
 import akka.actor.ActorRef;
@@ -35,7 +35,7 @@ public final class Connect {
     /**
      * Constructs a new {@link Connect} instance.
      *
-     * @param eventAndResponsePublisher the ActorRef to the correlating {@link EventAndResponsePublisher}.
+     * @param eventAndResponsePublisher the ActorRef to the correlating {@link org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher}.
      * @param connectionCorrelationId the correlationId of the connection/session.
      * @param type the type of the "streaming" connection to establish.
      */
@@ -59,8 +59,9 @@ public final class Connect {
         return type;
     }
 
-    @Nullable
-    public Instant getSessionExpirationTime() { return sessionExpirationTime; }
+    public Optional<Instant> getSessionExpirationTime() {
+        return Optional.ofNullable(sessionExpirationTime);
+    }
 
     @Override
     public boolean equals(final Object o) {

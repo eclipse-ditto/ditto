@@ -126,8 +126,7 @@ public final class StreamingActor extends AbstractActorWithTimers
                     eventAndResponsePublisher.forward(connect, getContext());
                     final String connectionCorrelationId = connect.getConnectionCorrelationId();
                     getContext().actorOf(
-                            StreamingSessionActor.props(connectionCorrelationId, connect.getType(), dittoProtocolSub,
-                                    eventAndResponsePublisher, connect.getSessionExpirationTime()),
+                            StreamingSessionActor.props(connect, dittoProtocolSub, eventAndResponsePublisher),
                             connectionCorrelationId);
                 })
                 .match(StartStreaming.class,

@@ -19,6 +19,7 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -34,14 +35,13 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
+import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
-import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -75,33 +75,27 @@ final class StreamingSessionActor extends AbstractActor {
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef eventAndResponsePublisher;
     private final Set<StreamingType> outstandingSubscriptionAcks;
-    private final Map<StreamingType, List<String>> namespacesForStreamingTypes;
-    private final Map<StreamingType, Criteria> eventFilterCriteriaForStreamingTypes;
+    private final Map<StreamingType, StreamingSession> streamingSessions;
     private final DittoDiagnosticLoggingAdapter logger;
 
     @Nullable private Cancellable sessionTerminationCancellable;
     private List<String> authorizationSubjects;
 
     @SuppressWarnings("unused")
-    private StreamingSessionActor(final String connectionCorrelationId,
-            final String type,
+    private StreamingSessionActor(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher,
-            @Nullable final Instant sessionExpirationTime) {
+            final ActorRef eventAndResponsePublisher) {
 
-        this.connectionCorrelationId = connectionCorrelationId;
-        this.type = type;
+        this.connectionCorrelationId = connect.getConnectionCorrelationId();
+        this.type = connect.getType();
         this.dittoProtocolSub = dittoProtocolSub;
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
         authorizationSubjects = Collections.emptyList();
-        eventFilterCriteriaForStreamingTypes = new EnumMap<>(StreamingType.class);
-        namespacesForStreamingTypes = new EnumMap<>(StreamingType.class);
-        if (sessionExpirationTime != null) {
-            sessionTerminationCancellable = startSessionTimeout(sessionExpirationTime);
-        } else {
-            sessionTerminationCancellable = null;
-        }
+        streamingSessions = new EnumMap<>(StreamingType.class);
+        connect.getSessionExpirationTime().ifPresent(expiration ->
+                sessionTerminationCancellable = startSessionTimeout(expiration)
+        );
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         logger.setCorrelationId(connectionCorrelationId);
 
@@ -111,18 +105,16 @@ final class StreamingSessionActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this StreamingSessionActor.
      *
+     * @param connect the command to start a streaming session.
      * @param dittoProtocolSub manager of subscriptions.
-     * @param eventAndResponsePublisher the {@link EventAndResponsePublisher} actor.
+     * @param eventAndResponsePublisher the {@link org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher} actor.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionCorrelationId,
-            final String type,
+    static Props props(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher,
-            @Nullable final Instant sessionExpirationTime) {
+            final ActorRef eventAndResponsePublisher) {
 
-        return Props.create(StreamingSessionActor.class, connectionCorrelationId, type, dittoProtocolSub,
-                eventAndResponsePublisher, sessionExpirationTime);
+        return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub, eventAndResponsePublisher);
     }
 
     @Override
@@ -134,39 +126,39 @@ final class StreamingSessionActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(CommandResponse.class, response -> {
+                .match(CommandResponse.class, StreamingSessionActor::isTwinSignal, response -> {
                     logger.withCorrelationId(response)
                             .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
                                     " about it: {}", type, response);
-                    eventAndResponsePublisher.forward(response, getContext());
+                    eventAndResponsePublisher.forward(SessionedJsonifiable.response(response), getContext());
                 })
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, cre -> {
                     logger.withCorrelationId(cre)
                             .info("Got 'DittoRuntimeException' message in <{}> session, telling" +
                                     " EventAndResponsePublisher about it: {}", type, cre);
-                    eventAndResponsePublisher.forward(cre, getContext());
+                    eventAndResponsePublisher.forward(SessionedJsonifiable.error(cre), getContext());
                 })
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationSubjects = startStreaming.getAuthorizationContext().getAuthorizationSubjectIds();
-                    namespacesForStreamingTypes
-                            .put(startStreaming.getStreamingType(), startStreaming.getNamespaces());
-
                     logger.setCorrelationId(connectionCorrelationId);
+                    Criteria criteria;
                     try {
-                        eventFilterCriteriaForStreamingTypes
-                                .put(startStreaming.getStreamingType(), startStreaming.getFilter()
-                                        .map(f -> parseCriteria(f, DittoHeaders.newBuilder()
-                                                .correlationId(startStreaming.getConnectionCorrelationId())
-                                                .build())
-                                        )
-                                        .orElse(null));
+                        criteria = startStreaming.getFilter()
+                                .map(f -> parseCriteria(f, DittoHeaders.newBuilder()
+                                        .correlationId(startStreaming.getConnectionCorrelationId())
+                                        .build()))
+                                .orElse(null);
                     } catch (final DittoRuntimeException e) {
                         logger.info("Got 'DittoRuntimeException' <{}> session during 'StartStreaming' processing:" +
                                 " {}: <{}>", type, e.getClass().getSimpleName(), e.getMessage());
-                        eventAndResponsePublisher.tell(e, getSelf());
+                        eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
                         return;
                     }
+                    final StreamingSession session = StreamingSession.of(startStreaming.getNamespaces(), criteria,
+                            startStreaming.getExtraFields().orElse(null));
+                    streamingSessions.put(startStreaming.getStreamingType(), session);
+
 
                     logger.debug("Got 'StartStreaming' message in <{}> session, subscribing for <{}> in Cluster ...",
                             type, startStreaming.getStreamingType().name());
@@ -175,7 +167,7 @@ final class StreamingSessionActor extends AbstractActor {
                     // In Cluster: Subscribe
                     final AcknowledgeSubscription subscribeAck =
                             new AcknowledgeSubscription(startStreaming.getStreamingType());
-                    final Collection<StreamingType> currentStreamingTypes = namespacesForStreamingTypes.keySet();
+                    final Collection<StreamingType> currentStreamingTypes = streamingSessions.keySet();
                     dittoProtocolSub.subscribe(currentStreamingTypes, authorizationSubjects, getSelf())
                             .thenAccept(ack -> getSelf().tell(subscribeAck, getSelf()));
                 })
@@ -183,13 +175,12 @@ final class StreamingSessionActor extends AbstractActor {
                     logger.debug("Got 'StopStreaming' message in <{}> session, unsubscribing from <{}> in Cluster ...",
                             type, stopStreaming.getStreamingType().name());
 
-                    namespacesForStreamingTypes.remove(stopStreaming.getStreamingType());
-                    eventFilterCriteriaForStreamingTypes.remove(stopStreaming.getStreamingType());
+                    streamingSessions.remove(stopStreaming.getStreamingType());
 
                     // In Cluster: Unsubscribe
                     final AcknowledgeUnsubscription unsubscribeAck =
                             new AcknowledgeUnsubscription(stopStreaming.getStreamingType());
-                    final Collection<StreamingType> currentStreamingTypes = namespacesForStreamingTypes.keySet();
+                    final Collection<StreamingType> currentStreamingTypes = streamingSessions.keySet();
                     if (stopStreaming.getStreamingType() != StreamingType.EVENTS) {
                         dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes, authorizationSubjects,
                                 getSelf())
@@ -235,15 +226,20 @@ final class StreamingSessionActor extends AbstractActor {
                     " EventAndResponsePublisher about it", signal.getType(), type);
         } else {
             // check if this session is "allowed" to receive the LiveSignal
-            if (authorizationSubjects != null &&
+            final StreamingSession session = streamingSessions.get(determineStreamingType(signal));
+            if (session != null &&
+                    authorizationSubjects != null &&
                     !Collections.disjoint(dittoHeaders.getReadSubjects(), authorizationSubjects)) {
 
-                if (matchesNamespaces(signal)) {
-                    if (matchesFilter(signal)) {
+                if (matchesNamespaces(signal, session)) {
+                    if (matchesFilter(signal, session)) {
                         logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
                                 signal.getType(), type, signal);
 
-                        eventAndResponsePublisher.tell(signal, getSelf());
+                        final SessionedJsonifiable sessionedJsonifiable =
+                                SessionedJsonifiable.signal(signal, authorizationSubjects,
+                                        session.getExtraFields().orElse(null));
+                        eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
                     } else {
                         logger.debug("Signal does not match filter");
                     }
@@ -302,11 +298,8 @@ final class StreamingSessionActor extends AbstractActor {
         }
     }
 
-    private boolean matchesNamespaces(final Signal<?> signal) {
-        final StreamingType streamingType = determineStreamingType(signal);
-        final List<String> namespaces =
-                namespacesForStreamingTypes.getOrDefault(streamingType, Collections.emptyList());
-
+    private boolean matchesNamespaces(final Signal<?> signal, final StreamingSession session) {
+        final List<String> namespaces = session.getNamespaces();
         return namespaces.isEmpty() || namespaces.contains(namespaceFromId(signal));
     }
 
@@ -325,6 +318,12 @@ final class StreamingSessionActor extends AbstractActor {
         return streamingType;
     }
 
+    private static boolean isTwinSignal(final Signal<?> signal) {
+        return signal.getDittoHeaders().getChannel()
+                .map(TopicPath.Channel.TWIN.getName()::equals)
+                .orElse(true);
+    }
+
     @Nullable
     private static String namespaceFromId(final WithId withId) {
         return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
@@ -340,31 +339,23 @@ final class StreamingSessionActor extends AbstractActor {
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }
 
-    private boolean matchesFilter(final Signal<?> signal) {
-        if (signal instanceof ThingEvent) {
-            final StreamingType streamingType = determineStreamingType(signal);
-
+    private boolean matchesFilter(final Signal<?> signal, final StreamingSession session) {
+        final Optional<Criteria> criteria = session.getEventFilterCriteria();
+        if (signal instanceof ThingEvent && criteria.isPresent()) {
             // currently only ThingEvents may be filtered with RQL
             return ThingEventToThingConverter.thingEventToThing((ThingEvent) signal)
-                    .filter(thing -> doMatchFilter(streamingType, thing))
+                    .filter(thing -> ThingPredicateVisitor.apply(criteria.get()).test(thing))
                     .isPresent();
         } else {
             return true;
         }
     }
 
-    private boolean doMatchFilter(final StreamingType streamingType, final Thing thing) {
-        @Nullable final Criteria criteria = eventFilterCriteriaForStreamingTypes.get(streamingType);
-        if (null != criteria) {
-            return ThingPredicateVisitor.apply(criteria).test(thing);
-        }
-        return true; // let all events through if there was no criteria/filter set
-    }
-
     private void acknowledgeSubscription(final StreamingType streamingType, final ActorRef self) {
         if (outstandingSubscriptionAcks.contains(streamingType)) {
             outstandingSubscriptionAcks.remove(streamingType);
-            eventAndResponsePublisher.tell(new StreamingAck(streamingType, true), self);
+            eventAndResponsePublisher.tell(SessionedJsonifiable.ack(streamingType, true, connectionCorrelationId),
+                    self);
             logger.debug("Subscribed to Cluster <{}> in <{}> session.", streamingType, type);
         } else {
             logger.debug("Subscription already acked for type <{}> in <{}> session.", streamingType, type);
@@ -372,7 +363,7 @@ final class StreamingSessionActor extends AbstractActor {
     }
 
     private void acknowledgeUnsubscription(final StreamingType streamingType, final ActorRef self) {
-        eventAndResponsePublisher.tell(new StreamingAck(streamingType, false), self);
+        eventAndResponsePublisher.tell(SessionedJsonifiable.ack(streamingType, false, connectionCorrelationId), self);
         logger.debug("Unsubscribed from Cluster <{}> in <{}> session.", streamingType, type);
     }
 

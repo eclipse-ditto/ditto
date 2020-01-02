@@ -35,6 +35,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsSseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.GatewayHttpReadinessCheck;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
@@ -297,6 +298,10 @@ final class GatewayRootActor extends AbstractActor {
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
 
+        final GatewaySignalEnrichmentProvider signalEnrichmentProvider =
+                GatewaySignalEnrichmentProvider.load(actorSystem, proxyActor,
+                        gatewayConfig.getStreamingConfig().getSignalEnrichmentConfig());
+
         return RootRoute.getBuilder(httpConfig)
                 .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))
                 .statusRoute(new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem))
@@ -309,7 +314,8 @@ final class GatewayRootActor extends AbstractActor {
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig(), httpConfig, headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(streamingActor, actorSystem.eventStream()))
+                .websocketRoute(WebSocketRoute.getInstance(streamingActor, actorSystem.eventStream())
+                        .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)
