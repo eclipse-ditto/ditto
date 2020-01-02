@@ -20,8 +20,6 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
-import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
@@ -44,7 +42,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final Collection<String> blacklistedHostnames;
     private final SupervisorConfig supervisorConfig;
     private final SnapshotConfig snapshotConfig;
-    private final SignalEnrichmentConfig signalEnrichmentConfig;
     private final Amqp10Config amqp10Config;
     private final MqttConfig mqttConfig;
     private final KafkaConfig kafkaConfig;
@@ -58,7 +55,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         blacklistedHostnames = Collections.unmodifiableCollection(Arrays.asList(blacklistedHostnamesStr.split(",")));
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
-        signalEnrichmentConfig = DefaultSignalEnrichmentConfig.of(config);
         amqp10Config = DefaultAmqp10Config.of(config);
         mqttConfig = DefaultMqttConfig.of(config);
         kafkaConfig = DefaultKafkaConfig.of(config);
@@ -99,11 +95,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
-    public SignalEnrichmentConfig getSignalEnrichmentConfig() {
-        return signalEnrichmentConfig;
-    }
-
-    @Override
     public Amqp10Config getAmqp10Config() {
         return amqp10Config;
     }
@@ -141,7 +132,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(blacklistedHostnames, that.blacklistedHostnames) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
-                Objects.equals(signalEnrichmentConfig, that.signalEnrichmentConfig) &&
                 Objects.equals(amqp10Config, that.amqp10Config) &&
                 Objects.equals(mqttConfig, that.mqttConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
@@ -152,8 +142,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, blacklistedHostnames, supervisorConfig, snapshotConfig,
-                signalEnrichmentConfig, activityCheckConfig, amqp10Config, mqttConfig, kafkaConfig,
-                httpPushConfig);
+                activityCheckConfig, amqp10Config, mqttConfig, kafkaConfig, httpPushConfig);
     }
 
     @Override
@@ -163,7 +152,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", blacklistedHostnames=" + blacklistedHostnames +
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
-                ", signalEnrichmentConfig=" + signalEnrichmentConfig +
                 ", amqp10Config=" + amqp10Config +
                 ", mqttConfig=" + mqttConfig +
                 ", kafkaConfig=" + kafkaConfig +
