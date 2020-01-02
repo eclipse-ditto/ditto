@@ -42,7 +42,7 @@ public interface SignalEnrichmentConfig {
      *
      * @return the configuration.
      */
-    Config getConfig();
+    Config getProviderConfig();
 
     /**
      * Render this object as a {@code Config}.
@@ -53,9 +53,9 @@ public interface SignalEnrichmentConfig {
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
-     * {@code ConnectionEnrichmentConfig}.
+     * {@code SignalEnrichmentConfig}.
      */
-    enum ConfigValue implements KnownConfigValue {
+    enum SignalEnrichmentConfigValue implements KnownConfigValue {
 
         /**
          * Canonical name of the thing-enriching facade provider for connections.
@@ -65,12 +65,12 @@ public interface SignalEnrichmentConfig {
         /**
          * Configuration for the provider.
          */
-        CONFIG("config", ConfigFactory.empty().root());
+        PROVIDER_CONFIG("provider-config", ConfigFactory.empty().root());
 
         private final String path;
         private final Object defaultValue;
 
-        ConfigValue(final String thePath, final Object theDefaultValue) {
+        SignalEnrichmentConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

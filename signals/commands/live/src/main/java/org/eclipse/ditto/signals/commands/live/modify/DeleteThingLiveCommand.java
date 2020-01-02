@@ -10,9 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-/*
- * Copyright (c) 2011-2017 Bosch Software Innovations GmbH, Germany. All rights reserved.
- */
 package org.eclipse.ditto.signals.commands.live.modify;
 
 import org.eclipse.ditto.signals.commands.live.base.LiveCommand;

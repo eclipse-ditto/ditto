@@ -22,6 +22,9 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
+/**
+ * Default implementation of {@link SignalEnrichmentConfig}.
+ */
 @Immutable
 public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConfig {
 
@@ -29,20 +32,20 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
     private final Config config;
 
     private DefaultSignalEnrichmentConfig(final ConfigWithFallback configWithFallback) {
-        this.provider = configWithFallback.getString(ConfigValue.PROVIDER.getConfigPath());
-        this.config = configWithFallback.getConfig(ConfigValue.CONFIG.getConfigPath());
+        this.provider = configWithFallback.getString(SignalEnrichmentConfigValue.PROVIDER.getConfigPath());
+        this.config = configWithFallback.getConfig(SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath());
     }
 
     /**
      * Returns an instance of {@code DefaultConnectionEnrichmentConfig} based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the JavaScript mapping config at {@value #CONFIG_PATH}.
+     * @param config is supposed to provide the settings of the config at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultSignalEnrichmentConfig of(final Config config) {
         return new DefaultSignalEnrichmentConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH,
-                ConfigValue.values()));
+                SignalEnrichmentConfigValue.values()));
     }
 
     @Override
@@ -51,15 +54,15 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
     }
 
     @Override
-    public Config getConfig() {
+    public Config getProviderConfig() {
         return config;
     }
 
     @Override
     public Config render() {
         return ConfigFactory.empty()
-                .withValue(ConfigValue.PROVIDER.getConfigPath(), ConfigValueFactory.fromAnyRef(provider))
-                .withValue(ConfigValue.CONFIG.getConfigPath(), config.root())
+                .withValue(SignalEnrichmentConfigValue.PROVIDER.getConfigPath(), ConfigValueFactory.fromAnyRef(provider))
+                .withValue(SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath(), config.root())
                 .atKey(CONFIG_PATH);
     }
 

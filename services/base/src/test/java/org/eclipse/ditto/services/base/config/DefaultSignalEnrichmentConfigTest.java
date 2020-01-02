@@ -63,11 +63,11 @@ public final class DefaultSignalEnrichmentConfigTest {
                 DefaultSignalEnrichmentConfig.of(signalEnrichmentTestConf);
 
         softly.assertThat(underTest.getProvider())
-                .as(SignalEnrichmentConfig.ConfigValue.PROVIDER.getConfigPath())
+                .as(SignalEnrichmentConfig.SignalEnrichmentConfigValue.PROVIDER.getConfigPath())
                 .isEqualTo("MySignalEnrichmentProvider");
 
-        softly.assertThat(underTest.getConfig().root())
-                .as(SignalEnrichmentConfig.ConfigValue.CONFIG.getConfigPath())
+        softly.assertThat(underTest.getProviderConfig().root())
+                .as(SignalEnrichmentConfig.SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath())
                 .containsOnlyKeys("key")
                 .containsValue(ConfigValueFactory.fromAnyRef("value"));
     }

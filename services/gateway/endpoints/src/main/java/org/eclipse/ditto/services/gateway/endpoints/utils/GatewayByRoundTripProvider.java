@@ -12,36 +12,42 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.utils;
 
-import java.time.Duration;
-
+import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
+import org.eclipse.ditto.services.models.things.DefaultSignalEnrichmentFacadeByRoundTripConfig;
 import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.things.SignalEnrichmentFacadeByRoundTrip;
-
-import com.typesafe.config.Config;
+import org.eclipse.ditto.services.models.things.SignalEnrichmentFacadeByRoundTripConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 
 /**
- * Creator of thing-enriching facade by round-trip.
+ * Provider for gateway-service of thing-enriching facades that make a round-trip for each query.
  */
 public final class GatewayByRoundTripProvider implements GatewaySignalEnrichmentProvider {
 
     private final ActorRef commandHandler;
-    private final Duration askTimeout;
+    private final SignalEnrichmentFacadeByRoundTripConfig signalEnrichmentFacadeByRoundTripConfig;
 
-    // Called by reflection
+    /**
+     * Instantiate this provider. Called by reflection.
+     *
+     * @param actorSystem The actor system for which this provider is instantiated.
+     * @param commandHandler The recipient of retrieve-thing commands.
+     * @param signalEnrichmentConfig Configuration for this provider.
+     */
     @SuppressWarnings("unused")
-    public GatewayByRoundTripProvider(final ActorSystem actorSystem,
-            final ActorRef commandHandler,
-            final Config config) {
+    public GatewayByRoundTripProvider(final ActorSystem actorSystem, final ActorRef commandHandler,
+            final SignalEnrichmentConfig signalEnrichmentConfig) {
         this.commandHandler = commandHandler;
-        askTimeout = config.getDuration("ask-timeout");
+        signalEnrichmentFacadeByRoundTripConfig =
+                DefaultSignalEnrichmentFacadeByRoundTripConfig.of(signalEnrichmentConfig.getProviderConfig());
     }
 
     @Override
     public SignalEnrichmentFacade createFacade(final HttpRequest request) {
-        return SignalEnrichmentFacadeByRoundTrip.of(commandHandler, askTimeout);
+        return SignalEnrichmentFacadeByRoundTrip.of(commandHandler,
+                signalEnrichmentFacadeByRoundTripConfig.getAskTimeout());
     }
 }

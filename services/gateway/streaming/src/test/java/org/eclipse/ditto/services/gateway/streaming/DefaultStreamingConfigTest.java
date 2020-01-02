@@ -84,8 +84,8 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSignalEnrichmentConfig().getProvider())
                 .as("signal-enrichment.provider")
                 .isEqualTo("MyEnrichmentProvider");
-        softly.assertThat(underTest.getSignalEnrichmentConfig().getConfig().root())
-                .as("signal-enrichment.config")
+        softly.assertThat(underTest.getSignalEnrichmentConfig().getProviderConfig().root())
+                .as("signal-enrichment.provider-config")
                 .containsOnlyKeys("key")
                 .containsValue(ConfigValueFactory.fromAnyRef("value"));
         softly.assertThat(underTest.getWebsocketConfig().getThrottlingConfig().getInterval())

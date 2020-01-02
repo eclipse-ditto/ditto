@@ -86,7 +86,7 @@ public final class GatewayByRoundTripProviderTest {
     public void loadProviderWithIncorrectConfig() {
         new TestKit(actorSystem) {{
             final SignalEnrichmentConfig badConfig = DefaultSignalEnrichmentConfig.of(signalEnrichmentConfig.render()
-                    .withValue("signal-enrichment.config.ask-timeout",
+                    .withValue("signal-enrichment.provider-config.ask-timeout",
                             ConfigValueFactory.fromAnyRef("This is not a duration")));
             assertThatExceptionOfType(ConfigException.class)
                     .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));

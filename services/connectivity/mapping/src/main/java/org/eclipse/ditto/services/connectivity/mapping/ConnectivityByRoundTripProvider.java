@@ -12,13 +12,12 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import java.time.Duration;
-
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
+import org.eclipse.ditto.services.models.things.DefaultSignalEnrichmentFacadeByRoundTripConfig;
 import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.things.SignalEnrichmentFacadeByRoundTrip;
-
-import com.typesafe.config.Config;
+import org.eclipse.ditto.services.models.things.SignalEnrichmentFacadeByRoundTripConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -29,24 +28,26 @@ import akka.actor.ActorSystem;
 public final class ConnectivityByRoundTripProvider implements ConnectivitySignalEnrichmentProvider {
 
     private final ActorRef commandHandler;
-    private final Duration askTimeout;
+    private final SignalEnrichmentFacadeByRoundTripConfig signalEnrichmentFacadeByRoundTripConfig;
 
     /**
      * Instantiate this provider. Called by reflection.
      *
      * @param actorSystem The actor system for which this provider is instantiated.
      * @param commandHandler The recipient of retrieve-thing commands.
-     * @param config Configuration for this provider.
+     * @param signalEnrichmentConfig Configuration for this provider.
      */
     @SuppressWarnings("unused")
     public ConnectivityByRoundTripProvider(final ActorSystem actorSystem, final ActorRef commandHandler,
-            final Config config) {
+            final SignalEnrichmentConfig signalEnrichmentConfig) {
         this.commandHandler = commandHandler;
-        askTimeout = config.getDuration("ask-timeout");
+        signalEnrichmentFacadeByRoundTripConfig =
+                DefaultSignalEnrichmentFacadeByRoundTripConfig.of(signalEnrichmentConfig.getProviderConfig());
     }
 
     @Override
     public SignalEnrichmentFacade createFacade(final ConnectionId connectionId) {
-        return SignalEnrichmentFacadeByRoundTrip.of(commandHandler, askTimeout);
+        return SignalEnrichmentFacadeByRoundTrip.of(commandHandler,
+                signalEnrichmentFacadeByRoundTripConfig.getAskTimeout());
     }
 }

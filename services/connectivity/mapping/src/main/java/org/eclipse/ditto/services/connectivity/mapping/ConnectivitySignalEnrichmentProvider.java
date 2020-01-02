@@ -19,8 +19,6 @@ import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 
-import com.typesafe.config.Config;
-
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
@@ -55,8 +53,8 @@ public interface ConnectivitySignalEnrichmentProvider {
 
         return AkkaClassLoader.instantiate(actorSystem, ConnectivitySignalEnrichmentProvider.class,
                 signalEnrichmentConfig.getProvider(),
-                Arrays.asList(ActorSystem.class, ActorRef.class, Config.class),
-                Arrays.asList(actorSystem, commandHandler, signalEnrichmentConfig.getConfig())
+                Arrays.asList(ActorSystem.class, ActorRef.class, SignalEnrichmentConfig.class),
+                Arrays.asList(actorSystem, commandHandler, signalEnrichmentConfig)
         );
     }
 }

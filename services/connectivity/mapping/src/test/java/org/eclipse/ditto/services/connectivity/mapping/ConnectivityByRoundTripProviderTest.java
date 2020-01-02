@@ -37,7 +37,7 @@ public final class ConnectivityByRoundTripProviderTest {
     private final SignalEnrichmentConfig config = DefaultSignalEnrichmentConfig.of(ConfigFactory.empty()
             .withValue("signal-enrichment.provider",
                     ConfigValueFactory.fromAnyRef(ConnectivityByRoundTripProvider.class.getCanonicalName()))
-            .withValue("signal-enrichment.config.ask-timeout",
+            .withValue("signal-enrichment.provider-config.ask-timeout",
                     ConfigValueFactory.fromAnyRef(Duration.ofDays(1L))));
 
     private ActorSystem actorSystem;
@@ -87,7 +87,7 @@ public final class ConnectivityByRoundTripProviderTest {
     @Test
     public void loadProviderWithIncorrectConfig() {
         final SignalEnrichmentConfig badConfig =
-                withValue("signal-enrichment.config.ask-timeout", "This is not a duration");
+                withValue("signal-enrichment.provider-config.ask-timeout", "This is not a duration");
         new TestKit(createActorSystem()) {{
             assertThatExceptionOfType(ConfigException.class)
                     .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));

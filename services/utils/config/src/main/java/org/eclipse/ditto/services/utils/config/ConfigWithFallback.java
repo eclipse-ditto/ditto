@@ -90,6 +90,30 @@ public final class ConfigWithFallback implements ScopedConfig, ConfigMergeable {
         return new ConfigWithFallback(baseConfig, configPathToUse);
     }
 
+    /**
+     * Returns a new instance of {@code ConfigWithFallback} based on the given arguments.
+     *
+     * @param originalConfig the original Config which is supposed to provide a nested Config at {@code configPath} and
+     * which will be extended by the fall back config based on {@code fallBackValues}.
+     * @param fallBackValues base for the fall back which is applied to the original Config within
+     * {@code originalConfig} at {@code configPath}.
+     * @return the instance.
+     * @throws DittoConfigError if any argument is {@code null} or if the value of {@code originalConfig} at
+     * {@code configPath} is not of type {@link com.typesafe.config.ConfigValueType#OBJECT}.
+     */
+    public static ConfigWithFallback newInstance(final Config originalConfig, final KnownConfigValue[] fallBackValues) {
+
+        validateArgument(originalConfig, "original Config");
+        validateArgument(fallBackValues, "fall-back values");
+
+        Config baseConfig = originalConfig;
+        if (0 < fallBackValues.length) {
+            baseConfig = baseConfig.withFallback(arrayToConfig(fallBackValues));
+        }
+
+        return new ConfigWithFallback(baseConfig, "");
+    }
+
     private static void validateArgument(final Object argument, final String argumentDescription) {
         try {
             checkNotNull(argument, argumentDescription);
