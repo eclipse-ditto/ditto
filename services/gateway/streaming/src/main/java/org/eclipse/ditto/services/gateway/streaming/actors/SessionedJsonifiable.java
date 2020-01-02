@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -24,7 +23,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
@@ -67,23 +65,23 @@ public interface SessionedJsonifiable {
     CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade);
 
     /**
-     * Retrieve JSON pointers for extra fields if any is defined for the session.
+     * Retrieve the streaming session if this is a signal and has an associated session.
      *
-     * @return the JSON pointers.
+     * @return the session if any exists.
      */
-    Iterable<JsonPointer> getPointers();
+    Optional<StreamingSession> getSession();
 
     /**
      * Create a sessioned Jsonifiable for a signal.
      *
      * @param signal the signal.
      * @param authorizationSubjects the authorization subjects of the streaming session.
-     * @param extraFields extra fields of the streaming session.
+     * @param session session information for the signal's streaming type.
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable signal(final Signal<?> signal, final List<String> authorizationSubjects,
-            @Nullable final JsonFieldSelector extraFields) {
-        return new SessionedSignal(signal, authorizationSubjects, extraFields);
+            final StreamingSession session) {
+        return new SessionedSignal(signal, authorizationSubjects, session);
     }
 
     /**
@@ -130,13 +128,13 @@ public interface SessionedJsonifiable {
 
         private final Signal<?> signal;
         private final List<String> authorizationSubjects;
-        @Nullable private final JsonFieldSelector extraFields;
+        private final StreamingSession session;
 
         private SessionedSignal(final Signal<?> signal, final List<String> authorizationSubjects,
-                @Nullable final JsonFieldSelector extraFields) {
+                final StreamingSession session) {
             this.signal = signal;
             this.authorizationSubjects = authorizationSubjects;
-            this.extraFields = extraFields;
+            this.session = session;
         }
 
         @Override
@@ -152,25 +150,25 @@ public interface SessionedJsonifiable {
         @Override
         public CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade) {
             final EntityId entityId = signal.getEntityId();
-            final CompletionStage<JsonObject> retrievalStage;
-            if (extraFields != null && (facade == null || !(entityId instanceof ThingId))) {
+            final Optional<JsonFieldSelector> extraFields = session.getExtraFields();
+            if (extraFields.isPresent() && (facade == null || !(entityId instanceof ThingId))) {
                 final CompletableFuture<JsonObject> future = new CompletableFuture<>();
                 future.completeExceptionally(SignalEnrichmentFailedException.newBuilder()
                         .dittoHeaders(signal.getDittoHeaders())
                         .build());
                 return future;
-            } else if (extraFields != null) {
+            } else if (extraFields.isPresent()) {
                 final DittoHeaders headers =
                         signal.getDittoHeaders().toBuilder().authorizationSubjects(authorizationSubjects).build();
-                return facade.retrievePartialThing((ThingId) entityId, extraFields, headers);
+                return facade.retrievePartialThing((ThingId) entityId, extraFields.get(), headers);
             } else {
                 return CompletableFuture.completedFuture(JsonObject.empty());
             }
         }
 
         @Override
-        public Iterable<JsonPointer> getPointers() {
-            return Optional.<Iterable<JsonPointer>>ofNullable(extraFields).orElseGet(Collections::emptyList);
+        public Optional<StreamingSession> getSession() {
+            return Optional.of(session);
         }
     }
 
@@ -206,8 +204,8 @@ public interface SessionedJsonifiable {
         }
 
         @Override
-        public Iterable<JsonPointer> getPointers() {
-            return Collections.emptyList();
+        public Optional<StreamingSession> getSession() {
+            return Optional.empty();
         }
     }
 }

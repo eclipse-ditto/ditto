@@ -19,7 +19,6 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -34,7 +33,6 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -53,8 +51,6 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessio
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -232,17 +228,12 @@ final class StreamingSessionActor extends AbstractActor {
                     !Collections.disjoint(dittoHeaders.getReadSubjects(), authorizationSubjects)) {
 
                 if (matchesNamespaces(signal, session)) {
-                    if (matchesFilter(signal, session)) {
-                        logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
-                                signal.getType(), type, signal);
+                    logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
+                            signal.getType(), type, signal);
 
-                        final SessionedJsonifiable sessionedJsonifiable =
-                                SessionedJsonifiable.signal(signal, authorizationSubjects,
-                                        session.getExtraFields().orElse(null));
-                        eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
-                    } else {
-                        logger.debug("Signal does not match filter");
-                    }
+                    final SessionedJsonifiable sessionedJsonifiable =
+                            SessionedJsonifiable.signal(signal, authorizationSubjects, session);
+                    eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
                 } else {
                     logger.debug("Signal does not match namespaces");
                 }
@@ -337,18 +328,6 @@ final class StreamingSessionActor extends AbstractActor {
                 new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
 
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
-    }
-
-    private boolean matchesFilter(final Signal<?> signal, final StreamingSession session) {
-        final Optional<Criteria> criteria = session.getEventFilterCriteria();
-        if (signal instanceof ThingEvent && criteria.isPresent()) {
-            // currently only ThingEvents may be filtered with RQL
-            return ThingEventToThingConverter.thingEventToThing((ThingEvent) signal)
-                    .filter(thing -> ThingPredicateVisitor.apply(criteria.get()).test(thing))
-                    .isPresent();
-        } else {
-            return true;
-        }
     }
 
     private void acknowledgeSubscription(final StreamingType streamingType, final ActorRef self) {

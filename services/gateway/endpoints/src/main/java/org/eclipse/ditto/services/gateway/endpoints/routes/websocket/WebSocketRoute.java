@@ -24,6 +24,8 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_MESSAGES;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -490,7 +492,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final int signalEnrichmentParallelism = streamingConfig.getParallelism();
         final Flow<SessionedJsonifiable, Message, NotUsed> messageFlow =
                 Flow.<SessionedJsonifiable>create()
-                        .mapAsync(signalEnrichmentParallelism, jsonifiableToString(adapter, signalEnrichmentFacade))
+                        .mapAsync(signalEnrichmentParallelism, postprocess(adapter, signalEnrichmentFacade))
+                        .mapConcat(x -> x)
                         .via(Flow.fromFunction(result -> {
                             LOGGER.withCorrelationId(connectionCorrelationId)
                                     .debug("Sending outgoing WebSocket message: {}", result);
@@ -621,43 +624,76 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return signal.setDittoHeaders(internalHeadersBuilder.build());
     }
 
-    private static Function<SessionedJsonifiable, CompletionStage<String>> jsonifiableToString(
+    private static Function<SessionedJsonifiable, CompletionStage<Collection<String>>> postprocess(
             final ProtocolAdapter adapter,
-            final SignalEnrichmentFacade signalEnrichmentFacade) {
+            final SignalEnrichmentFacade facade) {
+
         return sessionedJsonifiable -> {
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
             if (jsonifiable instanceof StreamingAck) {
-                return CompletableFuture.completedFuture(streamingAckToString((StreamingAck) jsonifiable));
+                return CompletableFuture.completedFuture(
+                        Collections.singletonList(streamingAckToString((StreamingAck) jsonifiable))
+                );
             }
 
-            final Adaptable adaptable;
-            if (sessionedJsonifiable.getDittoHeaders().getChannel().isPresent()) {
-                // if channel was present in headers, use that one:
-                final TopicPath.Channel channel =
-                        TopicPath.Channel.forName(sessionedJsonifiable.getDittoHeaders().getChannel().get())
-                                .orElse(TopicPath.Channel.TWIN);
-                adaptable = jsonifiableToAdaptable(jsonifiable, channel, adapter);
-            } else if (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable)) {
-                adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.LIVE, adapter);
-            } else {
-                adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.TWIN, adapter);
-            }
-            final CompletionStage<Adaptable> enrichedAdaptableFuture =
-                    sessionedJsonifiable.retrieveExtraFields(signalEnrichmentFacade)
-                            .exceptionally(error -> {
-                                if (error instanceof DittoRuntimeException) {
-                                    return ((DittoRuntimeException) error).toJson();
-                                } else {
-                                    return SignalEnrichmentFailedException.newBuilder().build().toJson();
-                                }
-                            })
-                            .thenApply(extra -> extra.isEmpty()
-                                    ? adaptable
-                                    : ProtocolFactory.setExtra(adaptable, extra));
-
-            return enrichedAdaptableFuture.thenApply(ProtocolFactory::wrapAsJsonifiableAdaptable)
-                    .thenApply(Jsonifiable::toJsonString);
+            final TopicPath.Channel channel = determineChannel(sessionedJsonifiable);
+            final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, channel, adapter);
+            final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
+            return extraFuture.<Collection<String>>thenApply(extra ->
+                    matchesFilter(sessionedJsonifiable, extra)
+                            ? Collections.singletonList(toJsonStringWithExtra(adaptable, extra))
+                            : Collections.emptyList())
+                    .exceptionally(WebSocketRoute::reportEnrichmentError);
         };
+    }
+
+    private static TopicPath.Channel determineChannel(final SessionedJsonifiable sessionedJsonifiable) {
+        return sessionedJsonifiable.getDittoHeaders()
+                .getChannel()
+                // if channel was present in headers, use that one:
+                .map(channel -> TopicPath.Channel.forName(channel).orElse(TopicPath.Channel.TWIN))
+                // otherwise determine the channel from the class of the jsonifiable
+                .orElseGet(() -> {
+                    final Jsonifiable.WithPredicate<?, ?> jsonifiable = sessionedJsonifiable.getJsonifiable();
+                    return (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable))
+                            ? TopicPath.Channel.LIVE
+                            : TopicPath.Channel.TWIN;
+                });
+    }
+
+    private static Collection<String> reportEnrichmentError(final Throwable error) {
+        final DittoRuntimeException errorToReport;
+        if (error instanceof DittoRuntimeException) {
+            errorToReport = ((DittoRuntimeException) error);
+        } else {
+            errorToReport = SignalEnrichmentFailedException.newBuilder().build();
+        }
+        return Collections.singletonList(errorToReport.toJsonString());
+    }
+
+    private static String toJsonStringWithExtra(final Adaptable adaptable, final JsonObject extra) {
+        final Adaptable enrichedAdaptable =
+                extra.isEmpty() ? adaptable : ProtocolFactory.setExtra(adaptable, extra);
+        return ProtocolFactory.wrapAsJsonifiableAdaptable(enrichedAdaptable).toJsonString();
+    }
+
+    /**
+     * Tests whether a signal together with enriched extra fields pass its filter defined in the session.
+     * Always return true for Jsonifiables without any session, e. g., errors, responses, stream control messages.
+     *
+     * @param sessionedJsonifiable the Jsonifiable with session information attached.
+     * @param extra extra fields from signal enrichment.
+     * @return whether the Jsonifiable passes filter defined in the session together with the extra fields.
+     */
+    private static boolean matchesFilter(final SessionedJsonifiable sessionedJsonifiable, final JsonObject extra) {
+        final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
+        return sessionedJsonifiable.getSession()
+                .filter(session -> jsonifiable instanceof Signal)
+                .flatMap(session ->
+                        session.mergeThingWithExtra((Signal<?>) jsonifiable, extra)
+                                .map(session::matchesFilter)
+                )
+                .orElse(true);
     }
 
     private static String streamingAckToString(final StreamingAck streamingAck) {

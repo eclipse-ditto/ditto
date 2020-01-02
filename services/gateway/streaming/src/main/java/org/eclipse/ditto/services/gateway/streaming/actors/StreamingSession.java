@@ -14,25 +14,37 @@ package org.eclipse.ditto.services.gateway.streaming.actors;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 /**
- * Package-private store of the needed information about a streaming session of a single streaming type.
+ * Store of the needed information about a streaming session of a single streaming type.
  */
-final class StreamingSession {
+public final class StreamingSession {
 
     private final List<String> namespaces;
-    @Nullable private final Criteria eventFilterCriteria;
+    private final Predicate<Thing> thingPredicate;
     @Nullable private final JsonFieldSelector extraFields;
 
     private StreamingSession(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
             @Nullable final JsonFieldSelector extraFields) {
         this.namespaces = namespaces;
-        this.eventFilterCriteria = eventFilterCriteria;
+        thingPredicate = eventFilterCriteria == null
+                ? thing -> true
+                : ThingPredicateVisitor.apply(eventFilterCriteria);
         this.extraFields = extraFields;
     }
 
@@ -50,16 +62,56 @@ final class StreamingSession {
     }
 
     /**
-     * @return filter criteria of the session if any is given.
-     */
-    public Optional<Criteria> getEventFilterCriteria() {
-        return Optional.ofNullable(eventFilterCriteria);
-    }
-
-    /**
      * @return extra fields of the session if any is given.
      */
     public Optional<JsonFieldSelector> getExtraFields() {
         return Optional.ofNullable(extraFields);
+    }
+
+    /**
+     * Merge any thing information in a signal event together with extra fields from signal enrichment.
+     * Thing events contain thing information. All other signals do not contain thing information.
+     *
+     * @param signal the signal.
+     * @param extra extra fields from signal enrichment.
+     * @return the merged thing if thing information exists in any of the 2 sources, or an empty optional otherwise.
+     */
+    public Optional<Thing> mergeThingWithExtra(final Signal<?> signal, final JsonObject extra) {
+        final Thing thing;
+        final Optional<Thing> thingFromSignal;
+        if (signal instanceof ThingEvent) {
+            thingFromSignal = ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal);
+        } else {
+            thingFromSignal = Optional.empty();
+        }
+        final boolean hasExtra = extraFields != null && !extra.isEmpty();
+        if (thingFromSignal.isPresent() && hasExtra) {
+            // merge
+            final Thing baseThing = thingFromSignal.get();
+            final JsonObjectBuilder mergedThingBuilder =
+                    baseThing.toJson(baseThing.getImplementedSchemaVersion()).toBuilder();
+            for (final JsonPointer pointer : extraFields) {
+                extra.getValue(pointer).ifPresent(value -> mergedThingBuilder.set(pointer, value));
+            }
+            thing = ThingsModelFactory.newThing(mergedThingBuilder.build());
+        } else if (thingFromSignal.isPresent()) {
+            thing = thingFromSignal.get();
+        } else if (hasExtra) {
+            thing = ThingsModelFactory.newThing(extra);
+        } else {
+            // no information; there is no thing.
+            return Optional.empty();
+        }
+        return Optional.of(thing);
+    }
+
+    /**
+     * Test whether a thing matches the filter defined in this session.
+     *
+     * @param thing the thing.
+     * @return whether the thing passes the filter.
+     */
+    public boolean matchesFilter(final Thing thing) {
+        return thingPredicate.test(thing);
     }
 }

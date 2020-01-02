@@ -35,8 +35,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -62,7 +60,6 @@ import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -221,7 +218,9 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
 
                     return publisherSource.mapMaterializedValue(
                             publisherActor -> {
-                                final String connectionCorrelationId = dittoHeaders.getCorrelationId().get();
+                                final String connectionCorrelationId = dittoHeaders.getCorrelationId()
+                                        .orElseThrow(() -> new IllegalStateException(
+                                                "Expect connectionCorrelationId: " + dittoHeaders));
                                 sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId,
                                         dittoHeaders);
                                 streamingActor.tell(
@@ -257,17 +256,28 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
             final SignalEnrichmentFacade facade,
             final Collection<ThingId> targetThingIds,
             final Collection<String> namespaces,
-            final JsonFieldSelector fields) {
+            @Nullable JsonFieldSelector fields) {
 
         final Supplier<CompletableFuture<Collection<JsonObject>>> emptySupplier =
                 () -> CompletableFuture.completedFuture(Collections.emptyList());
 
         if (jsonifiable.getJsonifiable() instanceof ThingEvent) {
             final ThingEvent<?> event = (ThingEvent<?>) jsonifiable.getJsonifiable();
-            if (namespaceMatches(event, namespaces) && targetTHingIdMatches(event, targetThingIds)) {
-                return toNonemptyThingJson(event, fields)
-                        .map(thingJson -> retrieveExtra(thingJson, jsonifiable, facade)
-                                .<Collection<JsonObject>>thenApply(Collections::singletonList)
+            final boolean isLiveEvent = StreamingType.isLiveSignal(event);
+            if (!isLiveEvent && namespaceMatches(event, namespaces) && targetThingIdMatches(event, targetThingIds)) {
+                return jsonifiable.getSession()
+                        .map(session -> jsonifiable.retrieveExtraFields(facade)
+                                .thenApply(extra -> session.mergeThingWithExtra(event, extra)
+                                        .filter(session::matchesFilter)
+                                        .map(thing -> toNonemptyThingJson(thing, event, fields))
+                                        .orElseGet(Collections::emptyList)
+                                )
+                                .exceptionally(error -> {
+                                    final DittoRuntimeException errorToReport = error instanceof DittoRuntimeException
+                                            ? ((DittoRuntimeException) error)
+                                            : SignalEnrichmentFailedException.newBuilder().build();
+                                    return Collections.singletonList(errorToReport.toJson());
+                                })
                         )
                         .orElseGet(emptySupplier);
             }
@@ -275,48 +285,23 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
         return emptySupplier.get();
     }
 
-    private static CompletionStage<JsonObject> retrieveExtra(final JsonObject thingJson,
-            final SessionedJsonifiable jsonifiable,
-            final SignalEnrichmentFacade facade) {
-        return jsonifiable.retrieveExtraFields(facade)
-                .thenApply(extraJson -> {
-                    if (extraJson.isEmpty()) {
-                        return thingJson;
-                    } else {
-                        final JsonObjectBuilder builder = thingJson.toBuilder();
-                        for (final JsonPointer pointer : jsonifiable.getPointers()) {
-                            extraJson.getValue(pointer).ifPresent(value -> builder.set(pointer, value));
-                        }
-                        return builder.build();
-                    }
-                })
-                .exceptionally(error -> {
-                    if (error instanceof DittoRuntimeException) {
-                        return ((DittoRuntimeException) error).toJson();
-                    } else {
-                        return SignalEnrichmentFailedException.newBuilder().build().toJson();
-                    }
-                });
-    }
-
     private static boolean namespaceMatches(final ThingEvent<?> event, final Collection<String> namespaces) {
         return namespaces.isEmpty() || namespaces.contains(namespaceFromId(event));
     }
 
-    private static boolean targetTHingIdMatches(final ThingEvent<?> event, final Collection<ThingId> targetThingIds) {
+    private static boolean targetThingIdMatches(final ThingEvent<?> event, final Collection<ThingId> targetThingIds) {
         return targetThingIds.isEmpty() || targetThingIds.contains(event.getEntityId());
     }
 
-    private static Optional<JsonObject> toNonemptyThingJson(final ThingEvent<?> event, final JsonFieldSelector fields) {
-        final Optional<Thing> thingOptional = ThingEventToThingConverter.thingEventToThing(event);
+    private static Collection<JsonObject> toNonemptyThingJson(final Thing thing, final ThingEvent<?> event,
+            final JsonFieldSelector fields) {
         final JsonSchemaVersion jsonSchemaVersion = event.getDittoHeaders()
                 .getSchemaVersion()
                 .orElse(event.getImplementedSchemaVersion());
-        final Optional<JsonObject> jsonOptional =
-                thingOptional.map(thing -> null != fields
-                        ? thing.toJson(jsonSchemaVersion, fields)
-                        : thing.toJson(jsonSchemaVersion));
-        return jsonOptional.filter(json -> !json.isEmpty());
+        final JsonObject thingJson = null != fields
+                ? thing.toJson(jsonSchemaVersion, fields)
+                : thing.toJson(jsonSchemaVersion);
+        return thingJson.isEmpty() ? Collections.emptyList() : Collections.singletonList(thingJson);
     }
 
     private static List<String> getNamespaces(@Nullable final String namespacesParameter) {
