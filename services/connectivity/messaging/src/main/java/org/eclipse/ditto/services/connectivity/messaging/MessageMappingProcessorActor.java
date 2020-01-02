@@ -109,8 +109,8 @@ import scala.util.Right;
 /**
  * This Actor processes incoming {@link Signal}s and dispatches them.
  */
-public final class MessageMappingProcessorActor extends
-        AbstractGraphActor<MessageMappingProcessorActor.OutboundSignalWithId, OutboundSignal> {
+public final class MessageMappingProcessorActor
+        extends AbstractGraphActor<MessageMappingProcessorActor.OutboundSignalWithId, OutboundSignal> {
 
     /**
      * The name of this Actor in the ActorSystem.

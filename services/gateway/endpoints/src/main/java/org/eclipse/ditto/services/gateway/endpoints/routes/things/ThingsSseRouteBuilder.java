@@ -16,11 +16,13 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -31,12 +33,14 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
@@ -47,10 +51,13 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseAuthorizationE
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseConnectionSupervisor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
+import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
+import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -92,6 +99,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     private SseAuthorizationEnforcer sseAuthorizationEnforcer;
     private SseConnectionSupervisor sseConnectionSupervisor;
     private EventSniffer<ServerSentEvent> eventSniffer;
+    @Nullable GatewaySignalEnrichmentProvider signalEnrichmentProvider;
 
     private ThingsSseRouteBuilder(final ActorRef streamingActor,
             final QueryFilterCriteriaFactory queryFilterCriteriaFactory) {
@@ -133,6 +141,12 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     @Override
     public SseRouteBuilder withSseConnectionSupervisor(final SseConnectionSupervisor sseConnectionSupervisor) {
         this.sseConnectionSupervisor = checkNotNull(sseConnectionSupervisor, "sseConnectionSupervisor");
+        return this;
+    }
+
+    @Override
+    public SseRouteBuilder withSignalEnrichmentProvider(@Nullable final GatewaySignalEnrichmentProvider provider) {
+        signalEnrichmentProvider = provider;
         return this;
     }
 
@@ -179,6 +193,8 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
         @Nullable final JsonFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
         @Nullable final JsonFieldSelector extraFields = getFieldSelector(parameters.get(PARAM_EXTRA_FIELDS));
+        final SignalEnrichmentFacade facade =
+                signalEnrichmentProvider == null ? null : signalEnrichmentProvider.createFacade(ctx.getRequest());
 
         final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
                 dittoHeadersStage.thenApply(dittoHeaders -> {
@@ -194,9 +210,11 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
                     }
 
-                    return Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
-                            EventAndResponsePublisher.props(10))
-                            .mapMaterializedValue(publisherActor -> {
+                    final Source<SessionedJsonifiable, ActorRef> publisherSource =
+                            Source.actorPublisher(EventAndResponsePublisher.props(10));
+
+                    return publisherSource.mapMaterializedValue(
+                            publisherActor -> {
                                 final String connectionCorrelationId = dittoHeaders.getCorrelationId().get();
                                 sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId,
                                         dittoHeaders);
@@ -213,29 +231,10 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                                 streamingActor.tell(startStreaming, null);
                                 return NotUsed.getInstance();
                             })
-                            .filter(jsonifiable -> jsonifiable instanceof ThingEvent)
-                            .map(jsonifiable -> (ThingEvent) jsonifiable)
-                            .filter(thingEvent -> targetThingIds.isEmpty() ||
-                                            targetThingIds.contains(thingEvent.getThingEntityId())
-                                    // only Events of the target thingIds
-                            )
-                            .filter(thingEvent -> namespaces.isEmpty() ||
-                                    namespaces.contains(namespaceFromId(thingEvent)))
-                            .map(ThingEventToThingConverter::thingEventToThing)
-                            .filter(Optional::isPresent)
-                            .map(Optional::get)
-                            .map(thing -> {
-                                final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
-                                        .orElse(dittoHeaders.getImplementedSchemaVersion());
-                                return null != fields
-                                        ? thing.toJson(jsonSchemaVersion, fields)
-                                        : thing.toJson(jsonSchemaVersion);
-                            })
-                            .filter(thingJson -> fields == null || fields.getPointers().stream()
-                                    .filter(p -> !p.equals(Thing.JsonFields.ID.getPointer())) // ignore "thingId"
-                                    .anyMatch(
-                                            thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
-                            .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
+                            // TODO: add parallelism to streaming config?
+                            .mapAsync(200, jsonifiable ->
+                                    postprocess(jsonifiable, facade, targetThingIds, namespaces, fields))
+                            .mapConcat(jsonObjects -> jsonObjects)
                             .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
                             .via(Flow.fromFunction(msg -> {
                                 messageCounter.increment();
@@ -247,6 +246,73 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                 });
 
         return Directives.completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
+    }
+
+    private CompletionStage<Collection<JsonObject>> postprocess(final SessionedJsonifiable jsonifiable,
+            final SignalEnrichmentFacade facade,
+            final Collection<ThingId> targetThingIds,
+            final Collection<String> namespaces,
+            final JsonFieldSelector fields) {
+
+        final Supplier<CompletableFuture<Collection<JsonObject>>> emptySupplier =
+                () -> CompletableFuture.completedFuture(Collections.emptyList());
+
+        if (jsonifiable.getJsonifiable() instanceof ThingEvent) {
+            final ThingEvent<?> event = (ThingEvent<?>) jsonifiable.getJsonifiable();
+            if (namespaceMatches(event, namespaces) && targetTHingIdMatches(event, targetThingIds)) {
+                return toNonemptyThingJson(event, fields)
+                        .map(thingJson -> retrieveExtra(thingJson, jsonifiable, facade)
+                                .<Collection<JsonObject>>thenApply(Collections::singletonList)
+                        )
+                        .orElseGet(emptySupplier);
+            }
+        } else {
+            return emptySupplier.get();
+        }
+    }
+
+    private static CompletionStage<JsonObject> retrieveExtra(final JsonObject thingJson,
+            final SessionedJsonifiable jsonifiable,
+            final SignalEnrichmentFacade facade) {
+        return jsonifiable.retrieveExtraFields(facade)
+                .thenApply(extraJson -> {
+                    if (extraJson.isEmpty()) {
+                        return thingJson;
+                    } else {
+                        final JsonObjectBuilder builder = thingJson.toBuilder();
+                        for (final JsonPointer pointer : jsonifiable.getPointers()) {
+                            extraJson.getValue(pointer).ifPresent(value -> builder.set(pointer, value));
+                        }
+                        return builder.build();
+                    }
+                })
+                .exceptionally(error -> {
+                    if (error instanceof DittoRuntimeException) {
+                        return ((DittoRuntimeException) error).toJson();
+                    } else {
+                        return SignalEnrichmentFailedException.newBuilder().build().toJson();
+                    }
+                });
+    }
+
+    private static boolean namespaceMatches(final ThingEvent<?> event, final Collection<String> namespaces) {
+        return namespaces.isEmpty() || namespaces.contains(namespaceFromId(event));
+    }
+
+    private static boolean targetTHingIdMatches(final ThingEvent<?> event, final Collection<ThingId> targetThingIds) {
+        return targetThingIds.isEmpty() || targetThingIds.contains(event.getEntityId());
+    }
+
+    private static Optional<JsonObject> toNonemptyThingJson(final ThingEvent<?> event, final JsonFieldSelector fields) {
+        final Optional<Thing> thingOptional = ThingEventToThingConverter.thingEventToThing(event);
+        final JsonSchemaVersion jsonSchemaVersion = event.getDittoHeaders()
+                .getSchemaVersion()
+                .orElse(event.getImplementedSchemaVersion());
+        final Optional<JsonObject> jsonOptional =
+                thingOptional.map(thing -> null != fields
+                        ? thing.toJson(jsonSchemaVersion, fields)
+                        : thing.toJson(jsonSchemaVersion));
+        return jsonOptional.filter(json -> !json.isEmpty());
     }
 
     private static List<String> getNamespaces(@Nullable final String namespacesParameter) {

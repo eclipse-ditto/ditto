@@ -72,6 +72,21 @@ public final class ProtocolFactory {
     }
 
     /**
+     * Returns a new {@code Adaptable} with the {@code extra} field set in the payload.
+     *
+     * @param existingAdaptable the existing adaptable.
+     * @param extra the extra fields.
+     * @return the new adaptable.
+     */
+    public static Adaptable setExtra(final Adaptable existingAdaptable, final JsonObject extra) {
+        return newAdaptableBuilder(existingAdaptable)
+                .withPayload(Payload.newBuilder(existingAdaptable.getPayload())
+                        .withExtra(extra)
+                        .build())
+                .build();
+    }
+
+    /**
      * Returns an empty {@code TopicPath}.
      *
      * @return the topic path.

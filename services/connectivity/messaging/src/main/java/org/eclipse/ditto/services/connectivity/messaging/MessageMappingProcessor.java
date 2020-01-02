@@ -34,7 +34,6 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
@@ -153,9 +152,7 @@ public final class MessageMappingProcessor {
         final Adaptable adaptableWithoutExtra =
                 timer.protocol(() -> protocolAdapter.toAdaptable(outboundSignal.getSource()));
         final Adaptable adaptable = outboundSignal.getExtra()
-                .map(extra -> ProtocolFactory.newAdaptableBuilder(adaptableWithoutExtra)
-                        .withPayload(Payload.newBuilder(adaptableWithoutExtra.getPayload()).withExtra(extra).build())
-                        .build())
+                .map(extra -> ProtocolFactory.setExtra(adaptableWithoutExtra, extra))
                 .orElse(adaptableWithoutExtra);
         enhanceLogFromAdaptable(adaptable);
         final List<MessageMapper> mappers = getMappers(outboundSignal);

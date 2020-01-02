@@ -50,7 +50,6 @@ import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
-import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -641,24 +640,15 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final CompletionStage<Adaptable> enrichedAdaptableFuture =
                     sessionedJsonifiable.retrieveExtraFields(signalEnrichmentFacade)
                             .exceptionally(error -> {
-                                // TODO: extract for reuse in SSE
                                 if (error instanceof DittoRuntimeException) {
                                     return ((DittoRuntimeException) error).toJson();
                                 } else {
                                     return SignalEnrichmentFailedException.newBuilder().build().toJson();
                                 }
                             })
-                            .thenApply(extra -> {
-                                if (extra.isEmpty()) {
-                                    return adaptable;
-                                } else {
-                                    return ProtocolFactory.newAdaptableBuilder(adaptable)
-                                            .withPayload(Payload.newBuilder(adaptable.getPayload())
-                                                    .withExtra(extra) // TODO: add "setExtra" method to protocol factory
-                                                    .build())
-                                            .build();
-                                }
-                            });
+                            .thenApply(extra -> extra.isEmpty()
+                                    ? adaptable
+                                    : ProtocolFactory.setExtra(adaptable, extra));
 
             return enrichedAdaptableFuture.thenApply(ProtocolFactory::wrapAsJsonifiableAdaptable)
                     .thenApply(Jsonifiable::toJsonString);
