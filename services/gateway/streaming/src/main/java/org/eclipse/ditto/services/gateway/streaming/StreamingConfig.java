@@ -54,6 +54,13 @@ public interface StreamingConfig {
     SignalEnrichmentConfig getSignalEnrichmentConfig();
 
     /**
+     * Returns maximum number of stream elements to process in parallel.
+     *
+     * @return the parallelism.
+     */
+    int getParallelism();
+
+    /**
      * Render this object into a Config object from which a copy of this object can be constructed.
      *
      * @return a config representation.
@@ -62,6 +69,7 @@ public interface StreamingConfig {
         final Map<String, Object> map = new HashMap<>();
         map.put(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath(),
                 getSessionCounterScrapeInterval().toMillis() + "ms");
+        map.put(StreamingConfigValue.PARALLELISM.getConfigPath(), getParallelism());
         return ConfigFactory.parseMap(map)
                 .withFallback(getWebsocketConfig().render())
                 .withFallback(getSignalEnrichmentConfig().render())
@@ -77,7 +85,12 @@ public interface StreamingConfig {
         /**
          * How often to update websocket session counter by counting child actors.
          */
-        SESSION_COUNTER_SCRAPE_INTERVAL("session-counter-scrape-interval", Duration.ofSeconds(30L));
+        SESSION_COUNTER_SCRAPE_INTERVAL("session-counter-scrape-interval", Duration.ofSeconds(30L)),
+
+        /**
+         * Maximum number of stream elements to process in parallel.
+         */
+        PARALLELISM("parallelism", 1);
 
         private final String path;
         private final Object defaultValue;

@@ -102,7 +102,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
             return CompletableFuture.completedFuture(dittoHeaders);
         };
 
-        final ThingsSseRouteBuilder sseRouteBuilder = ThingsSseRouteBuilder.getInstance(streamingActor.ref());
+        final ThingsSseRouteBuilder sseRouteBuilder =
+                ThingsSseRouteBuilder.getInstance(streamingActor.ref(), streamingConfig);
         sseRouteBuilder.withSseConnectionSupervisor(sseConnectionSupervisor);
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
         underTest = testRoute(sseRoute);

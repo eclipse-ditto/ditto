@@ -66,6 +66,9 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSessionCounterScrapeInterval())
                 .as(StreamingConfig.StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath())
                 .isEqualTo(StreamingConfig.StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getDefaultValue());
+        softly.assertThat(underTest.getParallelism())
+                .as(StreamingConfig.StreamingConfigValue.PARALLELISM.getConfigPath())
+                .isEqualTo(StreamingConfig.StreamingConfigValue.PARALLELISM.getDefaultValue());
     }
 
     @Test
@@ -75,6 +78,9 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSessionCounterScrapeInterval())
                 .as(StreamingConfig.StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(67L));
+        softly.assertThat(underTest.getParallelism())
+                .as(StreamingConfig.StreamingConfigValue.PARALLELISM.getConfigPath())
+                .isEqualTo(1024);
         softly.assertThat(underTest.getSignalEnrichmentConfig().getProvider())
                 .as("signal-enrichment.provider")
                 .isEqualTo("MyEnrichmentProvider");

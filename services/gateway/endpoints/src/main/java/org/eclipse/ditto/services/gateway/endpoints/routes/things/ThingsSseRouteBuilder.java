@@ -54,6 +54,7 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
+import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
@@ -94,6 +95,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     private static final String PARAM_EXTRA_FIELDS = "extraFields";
 
     private final ActorRef streamingActor;
+    private final StreamingConfig streamingConfig;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
 
     private SseAuthorizationEnforcer sseAuthorizationEnforcer;
@@ -102,9 +104,11 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     @Nullable GatewaySignalEnrichmentProvider signalEnrichmentProvider;
 
     private ThingsSseRouteBuilder(final ActorRef streamingActor,
+            final StreamingConfig streamingConfig,
             final QueryFilterCriteriaFactory queryFilterCriteriaFactory) {
 
         this.streamingActor = streamingActor;
+        this.streamingConfig = streamingConfig;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
         sseAuthorizationEnforcer = new NoOpSseAuthorizationEnforcer();
         sseConnectionSupervisor = new NoOpSseConnectionSupervisor();
@@ -115,15 +119,17 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
      * Returns an instance of this class.
      *
      * @param streamingActor is used for actual event streaming.
+     * @param streamingConfig the streaming configuration.
      * @return the instance.
      * @throws NullPointerException if {@code streamingActor} is {@code null}.
      */
-    public static ThingsSseRouteBuilder getInstance(final ActorRef streamingActor) {
+    public static ThingsSseRouteBuilder getInstance(final ActorRef streamingActor,
+            final StreamingConfig streamingConfig) {
         checkNotNull(streamingActor, "streamingActor");
         final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
                 new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ModelBasedThingsFieldExpressionFactory());
 
-        return new ThingsSseRouteBuilder(streamingActor, queryFilterCriteriaFactory);
+        return new ThingsSseRouteBuilder(streamingActor, streamingConfig, queryFilterCriteriaFactory);
     }
 
     @Override
@@ -231,8 +237,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                                 streamingActor.tell(startStreaming, null);
                                 return NotUsed.getInstance();
                             })
-                            // TODO: add parallelism to streaming config?
-                            .mapAsync(200, jsonifiable ->
+                            .mapAsync(streamingConfig.getParallelism(), jsonifiable ->
                                     postprocess(jsonifiable, facade, targetThingIds, namespaces, fields))
                             .mapConcat(jsonObjects -> jsonObjects)
                             .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
@@ -266,9 +271,8 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                         )
                         .orElseGet(emptySupplier);
             }
-        } else {
-            return emptySupplier.get();
         }
+        return emptySupplier.get();
     }
 
     private static CompletionStage<JsonObject> retrieveExtra(final JsonObject thingJson,

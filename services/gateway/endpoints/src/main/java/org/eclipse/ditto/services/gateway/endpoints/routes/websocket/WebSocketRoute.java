@@ -60,6 +60,7 @@ import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
+import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
@@ -149,6 +150,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             .tag(DIRECTION, "dropped");
 
     private final ActorRef streamingActor;
+    private final StreamingConfig streamingConfig;
     private final EventStream eventStream;
 
     private EventSniffer<String> incomingMessageSniffer;
@@ -157,9 +159,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
 
-    private WebSocketRoute(final ActorRef streamingActor, final EventStream eventStream) {
+    private WebSocketRoute(final ActorRef streamingActor, final StreamingConfig streamingConfig,
+            final EventStream eventStream) {
 
         this.streamingActor = checkNotNull(streamingActor, "streamingActor");
+        this.streamingConfig = streamingConfig;
         this.eventStream = checkNotNull(eventStream, "eventStream");
 
         final EventSniffer<String> noOpEventSniffer = EventSniffer.noOp();
@@ -174,13 +178,15 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      * Returns an instance of this class.
      *
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
+     * @param streamingConfig the streaming configuration.
      * @param eventStream eventStream used to publish events within the actor system
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static WebSocketRoute getInstance(final ActorRef streamingActor, final EventStream eventStream) {
+    public static WebSocketRoute getInstance(final ActorRef streamingActor,
+            final StreamingConfig streamingConfig, final EventStream eventStream) {
 
-        return new WebSocketRoute(streamingActor, eventStream);
+        return new WebSocketRoute(streamingActor, streamingConfig, eventStream);
     }
 
     @Override
@@ -481,8 +487,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final Flow<DittoRuntimeException, SessionedJsonifiable, NotUsed> errorFlow =
                 Flow.fromFunction(SessionedJsonifiable::error);
 
-        // TODO: add own key to websocket publisher config
-        final int signalEnrichmentParallelism = websocketConfig.getPublisherBackpressureBufferSize();
+        final int signalEnrichmentParallelism = streamingConfig.getParallelism();
         final Flow<SessionedJsonifiable, Message, NotUsed> messageFlow =
                 Flow.<SessionedJsonifiable>create()
                         .mapAsync(signalEnrichmentParallelism, jsonifiableToString(adapter, signalEnrichmentFacade))
