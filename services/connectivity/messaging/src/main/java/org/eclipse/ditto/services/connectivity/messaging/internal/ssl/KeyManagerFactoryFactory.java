@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.net.ssl.KeyManagerFactory;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -172,7 +172,7 @@ public final class KeyManagerFactoryFactory implements CredentialsVisitor<KeyMan
     }
 
     @Override
-    public KeyManagerFactory clientCertificate(@Nonnull final ClientCertificateCredentials credentials) {
+    public KeyManagerFactory clientCertificate(final ClientCertificateCredentials credentials) {
         final String clientKeyPem = credentials.getClientKey().orElse(null);
         final String clientCertificatePem = credentials.getClientCertificate().orElse(null);
 
@@ -184,6 +184,7 @@ public final class KeyManagerFactoryFactory implements CredentialsVisitor<KeyMan
     }
 
     @Override
+    @Nullable
     public KeyManagerFactory get(final ClientCertificateCredentials credentials) {
         final String clientKeyPem = credentials.getClientKey().orElse(null);
         final String clientCertificatePem = credentials.getClientCertificate().orElse(null);

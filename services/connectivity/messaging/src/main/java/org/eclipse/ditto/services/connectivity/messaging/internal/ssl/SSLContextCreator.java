@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -44,7 +43,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     private SSLContextCreator(@Nullable final String trustedCertificates,
             @Nullable final DittoHeaders dittoHeaders,
-            @Nullable String hostname) {
+            @Nullable final String hostname) {
         this.exceptionMapper = new ExceptionMapper(dittoHeaders);
         this.hostname = hostname;
         this.keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
@@ -55,7 +54,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     private SSLContextCreator(final TrustManager trustManager,
             @Nullable final DittoHeaders dittoHeaders,
-            @Nullable String hostname) {
+            @Nullable final String hostname) {
         this.exceptionMapper = new ExceptionMapper(dittoHeaders);
         this.hostname = hostname;
         this.keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
@@ -104,7 +103,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     }
 
     @Override
-    public SSLContext clientCertificate(@Nonnull final ClientCertificateCredentials credentials) {
+    public SSLContext clientCertificate(final ClientCertificateCredentials credentials) {
         final SSLContext sslContext = get(credentials);
         if (sslContext == null) {
             throw new IllegalArgumentException("cannot happen");
@@ -113,6 +112,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     }
 
     @Override
+    @Nullable
     public SSLContext get(final ClientCertificateCredentials credentials) {
         final String clientKeyPem = credentials.getClientKey().orElse(null);
         final String clientCertificatePem = credentials.getClientCertificate().orElse(null);
@@ -144,7 +144,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
      * @return the SSL context
      */
     public SSLContext withoutClientCertificate() {
-        return get(ClientCertificateCredentials.empty());
+        return clientCertificate(ClientCertificateCredentials.empty());
     }
 
     private SSLContext newTLSContext(@Nullable final KeyManager[] keyManagers,
