@@ -246,11 +246,13 @@ public final class MessageMappingProcessorActor
                     final Pair<List<Target>, List<Pair<Target, FilteredTopic>>> splitTargets =
                             splitTargetsByExtraFields(outboundSignal);
 
+                    final boolean shouldSendSignalWithoutExtraFields = !splitTargets.first().isEmpty() ||
+                            outboundSignal.getSource().getDittoHeaders().getReplyTarget().isPresent();
                     // TODO: if distinct payload per target is to be supported, duplicate this signal per target.
                     final Stream<Pair<OutboundSignalWithId, FilteredTopic>> outboundSignalWithoutExtraFields =
-                            splitTargets.first().isEmpty()
-                                    ? Stream.empty()
-                                    : Stream.of(Pair.create(outboundSignal.setTargets(splitTargets.first()), null));
+                            shouldSendSignalWithoutExtraFields
+                                    ? Stream.of(Pair.create(outboundSignal.setTargets(splitTargets.first()), null))
+                                    : Stream.empty();
 
                     final Stream<Pair<OutboundSignalWithId, FilteredTopic>> outboundSignalWithExtraFields =
                             splitTargets.second().stream()
