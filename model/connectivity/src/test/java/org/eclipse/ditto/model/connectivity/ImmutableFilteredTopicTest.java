@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.lang.ref.SoftReference;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.List;
@@ -42,13 +41,8 @@ public final class ImmutableFilteredTopicTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        final SoftReference<String> red = new SoftReference<>("Foo");
-        final SoftReference<String> black = new SoftReference<>("Bar");
-
         EqualsVerifier.forClass(ImmutableFilteredTopic.class)
                 .usingGetClass()
-                .withIgnoredFields("stringRepresentation")
-                .withPrefabValues(SoftReference.class, red, black)
                 .verify();
     }
 
@@ -57,8 +51,7 @@ public final class ImmutableFilteredTopicTest {
         assertInstancesOf(ImmutableFilteredTopic.class,
                 areImmutable(),
                 provided(Topic.class, JsonFieldSelector.class).areAlsoImmutable(),
-                assumingFields("namespaces").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                assumingFields("stringRepresentation").areModifiedAsPartOfAnUnobservableCachingStrategy());
+                assumingFields("namespaces").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

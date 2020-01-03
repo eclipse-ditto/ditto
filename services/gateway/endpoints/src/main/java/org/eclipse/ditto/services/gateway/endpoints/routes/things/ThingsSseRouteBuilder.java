@@ -191,7 +191,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     private Route createSseRoute(final RequestContext ctx, final CompletionStage<DittoHeaders> dittoHeadersStage,
             final Map<String, String> parameters) {
 
-        final String filterString = parameters.get(PARAM_FILTER);
+        @Nullable final String filterString = parameters.get(PARAM_FILTER);
         final List<String> namespaces = getNamespaces(parameters.get(PARAM_NAMESPACES));
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
         @Nullable final JsonFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));

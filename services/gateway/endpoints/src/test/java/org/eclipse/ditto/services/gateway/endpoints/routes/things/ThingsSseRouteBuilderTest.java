@@ -55,7 +55,7 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Unit test for the route built with {@link ThingsSseRouteBuilderTest}.
+ * Unit test for the route built with {@link ThingsSseRouteBuilder}.
  */
 @RunWith(MockitoJUnitRunner.class)
 public final class ThingsSseRouteBuilderTest extends EndpointTestBase {

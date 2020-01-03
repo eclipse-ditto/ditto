@@ -15,7 +15,6 @@ package org.eclipse.ditto.model.connectivity;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.ref.SoftReference;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -57,7 +56,6 @@ final class ImmutableFilteredTopic implements FilteredTopic {
     private final List<String> namespaces;
     @Nullable private final String filterString;
     @Nullable private final JsonFieldSelector extraFields;
-    @Nullable private SoftReference<String> stringRepresentation;
 
     private ImmutableFilteredTopic(final ImmutableFilteredTopicBuilder builder) {
         topic = builder.topic;
@@ -67,7 +65,6 @@ final class ImmutableFilteredTopic implements FilteredTopic {
                 : Collections.emptyList();
         filterString = Objects.toString(builder.filter, null);
         extraFields = builder.extraFields;
-        stringRepresentation = null;
     }
 
     /**
@@ -131,12 +128,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
     @Override
     public String toString() {
-        String result = null != stringRepresentation ? stringRepresentation.get() : null;
-        if (null == result) {
-            result = join(QUERY_DELIMITER, topic.getName(), getQueryParametersAsString());
-            stringRepresentation = new SoftReference<>(result);
-        }
-        return result;
+        return join(QUERY_DELIMITER, topic.getName(), getQueryParametersAsString());
     }
 
     private String getQueryParametersAsString() {
