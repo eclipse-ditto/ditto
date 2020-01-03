@@ -17,9 +17,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Helpers and utils for converting {@link ThingEvent}s to {@link Thing}s.
@@ -49,6 +57,50 @@ public final class ThingEventToThingConverter {
                             .setModified(thingEvent.getTimestamp().orElse(null));
                     return eventToThingMapper.apply(thingEvent, thingBuilder);
                 });
+    }
+
+    /**
+     * Merge any thing information in a signal event together with extra fields from signal enrichment.
+     * Thing events contain thing information. All other signals do not contain thing information.
+     * Extra fields contain thing information if it is not empty.
+     * If thing information exists in any of the 2 sources, then merge the information from both sources
+     * to create a thing, with priority given to extra fields.
+     *
+     * @param signal the signal.
+     * @param extraFields selected extra fields to enrich the signal with.
+     * @param extra value of the extra fields.
+     * @return the merged thing if thing information exists in any of the 2 sources, or an empty optional otherwise.
+     */
+    public static Optional<Thing> mergeThingWithExtraFields(final Signal<?> signal,
+            @Nullable final JsonFieldSelector extraFields,
+            final JsonObject extra) {
+
+        final Thing thing;
+        final Optional<Thing> thingFromSignal;
+        if (signal instanceof ThingEvent) {
+            thingFromSignal = thingEventToThing((ThingEvent<?>) signal);
+        } else {
+            thingFromSignal = Optional.empty();
+        }
+        final boolean hasExtra = extraFields != null && !extra.isEmpty();
+        if (thingFromSignal.isPresent() && hasExtra) {
+            // merge
+            final Thing baseThing = thingFromSignal.get();
+            final JsonObjectBuilder mergedThingBuilder =
+                    baseThing.toJson(baseThing.getImplementedSchemaVersion()).toBuilder();
+            for (final JsonPointer pointer : extraFields) {
+                extra.getValue(pointer).ifPresent(value -> mergedThingBuilder.set(pointer, value));
+            }
+            thing = ThingsModelFactory.newThing(mergedThingBuilder.build());
+        } else if (thingFromSignal.isPresent()) {
+            thing = thingFromSignal.get();
+        } else if (hasExtra) {
+            thing = ThingsModelFactory.newThing(extra);
+        } else {
+            // no information; there is no thing.
+            return Optional.empty();
+        }
+        return Optional.of(thing);
     }
 
     private static Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> createEventToThingMappers() {

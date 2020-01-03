@@ -20,14 +20,10 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 /**
@@ -77,32 +73,7 @@ public final class StreamingSession {
      * @return the merged thing if thing information exists in any of the 2 sources, or an empty optional otherwise.
      */
     public Optional<Thing> mergeThingWithExtra(final Signal<?> signal, final JsonObject extra) {
-        final Thing thing;
-        final Optional<Thing> thingFromSignal;
-        if (signal instanceof ThingEvent) {
-            thingFromSignal = ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal);
-        } else {
-            thingFromSignal = Optional.empty();
-        }
-        final boolean hasExtra = extraFields != null && !extra.isEmpty();
-        if (thingFromSignal.isPresent() && hasExtra) {
-            // merge
-            final Thing baseThing = thingFromSignal.get();
-            final JsonObjectBuilder mergedThingBuilder =
-                    baseThing.toJson(baseThing.getImplementedSchemaVersion()).toBuilder();
-            for (final JsonPointer pointer : extraFields) {
-                extra.getValue(pointer).ifPresent(value -> mergedThingBuilder.set(pointer, value));
-            }
-            thing = ThingsModelFactory.newThing(mergedThingBuilder.build());
-        } else if (thingFromSignal.isPresent()) {
-            thing = thingFromSignal.get();
-        } else if (hasExtra) {
-            thing = ThingsModelFactory.newThing(extra);
-        } else {
-            // no information; there is no thing.
-            return Optional.empty();
-        }
-        return Optional.of(thing);
+        return ThingEventToThingConverter.mergeThingWithExtraFields(signal, extraFields, extra);
     }
 
     /**

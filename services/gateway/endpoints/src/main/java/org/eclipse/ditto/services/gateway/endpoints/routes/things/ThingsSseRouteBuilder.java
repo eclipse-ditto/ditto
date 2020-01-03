@@ -244,8 +244,8 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                                 messageCounter.increment();
                                 return msg;
                             }))
-                            .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()),
-                                    Keep.left()) // sniffer shouldn't sniff heartbeats
+                            // sniffer shouldn't sniff heartbeats
+                            .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()), Keep.left())
                             .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
                 });
 

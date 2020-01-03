@@ -454,7 +454,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final ProtocolAdapter adapter,
             final HttpRequest request,
             final WebsocketConfig websocketConfig,
-            final SignalEnrichmentFacade signalEnrichmentFacade) {
+            @Nullable final SignalEnrichmentFacade signalEnrichmentFacade) {
 
         final Optional<JsonWebToken> optJsonWebToken = extractJwtFromRequestIfPresent(request);
 
@@ -626,7 +626,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private static Function<SessionedJsonifiable, CompletionStage<Collection<String>>> postprocess(
             final ProtocolAdapter adapter,
-            final SignalEnrichmentFacade facade) {
+            @Nullable final SignalEnrichmentFacade facade) {
 
         return sessionedJsonifiable -> {
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
@@ -689,9 +689,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
         return sessionedJsonifiable.getSession()
                 .filter(session -> jsonifiable instanceof Signal)
-                .flatMap(session ->
+                .map(session ->
+                        // evaluate to false if filter is present but does not match or has insufficient info to match
                         session.mergeThingWithExtra((Signal<?>) jsonifiable, extra)
-                                .map(session::matchesFilter)
+                                .filter(session::matchesFilter)
+                                .isPresent()
                 )
                 .orElse(true);
     }

@@ -20,6 +20,7 @@ import java.io.StringWriter;
 import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -61,6 +61,9 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
@@ -90,6 +93,7 @@ import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -215,28 +219,49 @@ public final class MessageMappingProcessorActor
     @Override
     protected Flow<OutboundSignalWithId, OutboundSignalWithId, NotUsed> processMessageFlow() {
         // Enrich outbound signals by extra fields if necessary.
+        return splitByTargetExtraFieldsFlow()
+                .mapAsync(mappingConfig.getParallelism(), this::enrichAndFilterSignal)
+                .mapConcat(x -> x);
+    }
+
+    /**
+     * Create a flow that splits 1 outbound signal into many as follows.
+     * <ol>
+     * <li>
+     *   Targets with matching filtered topics without extra fields are grouped into 1 outbound signal, followed by
+     * </li>
+     * <li>one outbound signal for each target with a matching filtered topic with extra fields.</li>
+     * </ol>
+     * The matching filtered topic is attached in the latter case.
+     * Consequently, for each outbound signal leaving this flow, if it has a filtered topic attached,
+     * then it has 1 unique target with a matching topic with extra fields.
+     * This satisfies the precondition of {@code this#enrichAndFilterSignal}.
+     *
+     * @return the flow.
+     */
+    private Flow<OutboundSignalWithId, Pair<OutboundSignalWithId, FilteredTopic>, NotUsed>
+    splitByTargetExtraFieldsFlow() {
         return Flow.<OutboundSignalWithId>create()
                 .mapConcat(outboundSignal -> {
-                    final Pair<List<Target>, List<Pair<Target, JsonFieldSelector>>> splitTargets =
+                    final Pair<List<Target>, List<Pair<Target, FilteredTopic>>> splitTargets =
                             splitTargetsByExtraFields(outboundSignal);
 
-                    if (splitTargets.second().isEmpty()) {
-                        // no enrichment needed; pass the signal onward
-                        return Collections.singletonList(CompletableFuture.completedFuture(outboundSignal));
-                    } else {
-                        // enrichment needed.
-                        final List<CompletionStage<OutboundSignalWithId>> outboundSignalFutures =
-                                new ArrayList<>(1 + splitTargets.second().size());
-                        final OutboundSignalWithId outboundSignalWithoutExtraFields =
-                                outboundSignal.setTargets(splitTargets.first());
-                        outboundSignalFutures.add(CompletableFuture.completedFuture(outboundSignalWithoutExtraFields));
-                        for (final Pair<Target, JsonFieldSelector> pair : splitTargets.second()) {
-                            outboundSignalFutures.add(enrichSignal(outboundSignal, pair.first(), pair.second()));
-                        }
-                        return outboundSignalFutures;
-                    }
-                })
-                .mapAsync(mappingConfig.getParallelism(), x -> x);
+                    // TODO: if distinct payload per target is to be supported, duplicate this signal per target.
+                    final Stream<Pair<OutboundSignalWithId, FilteredTopic>> outboundSignalWithoutExtraFields =
+                            splitTargets.first().isEmpty()
+                                    ? Stream.empty()
+                                    : Stream.of(Pair.create(outboundSignal.setTargets(splitTargets.first()), null));
+
+                    final Stream<Pair<OutboundSignalWithId, FilteredTopic>> outboundSignalWithExtraFields =
+                            splitTargets.second().stream()
+                                    .map(targetAndSelector -> Pair.create(
+                                            outboundSignal.setTargets(
+                                                    Collections.singletonList(targetAndSelector.first())),
+                                            targetAndSelector.second()));
+
+                    return Stream.concat(outboundSignalWithoutExtraFields, outboundSignalWithExtraFields)
+                            .collect(Collectors.toList());
+                });
     }
 
     @Override
@@ -246,8 +271,17 @@ public final class MessageMappingProcessorActor
     }
 
     // Called inside stream; must be thread-safe
-    private CompletionStage<OutboundSignalWithId> enrichSignal(final OutboundSignalWithId outboundSignal,
-            final Target target, final JsonFieldSelector selector) {
+    // precondition: whenever filteredTopic != null, it contains an extra fields
+    private CompletionStage<Collection<OutboundSignalWithId>> enrichAndFilterSignal(
+            final Pair<OutboundSignalWithId, FilteredTopic> outboundSignalWithExtraFields) {
+
+        final OutboundSignalWithId outboundSignal = outboundSignalWithExtraFields.first();
+        final FilteredTopic filteredTopic = outboundSignalWithExtraFields.second();
+        if (filteredTopic == null || !filteredTopic.getExtraFields().isPresent()) {
+            return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
+        }
+        final JsonFieldSelector extraFields = filteredTopic.getExtraFields().get();
+        final Target target = outboundSignal.getTargets().get(0);
 
         final ThingId thingId = ThingId.of(outboundSignal.getEntityId());
         final DittoHeaders headers = outboundSignal.getSource()
@@ -256,13 +290,39 @@ public final class MessageMappingProcessorActor
                 .authorizationContext(target.getAuthorizationContext())
                 .build();
         final CompletionStage<JsonObject> extraFuture =
-                signalEnrichmentFacade.thenCompose(facade -> facade.retrievePartialThing(thingId, selector, headers));
+                signalEnrichmentFacade.thenCompose(facade ->
+                        facade.retrievePartialThing(thingId, extraFields, headers));
 
-        return extraFuture.thenApply(extra -> outboundSignal.setTargetAndExtra(target, extra))
+        return extraFuture.thenApply(outboundSignal::setExtra)
+                .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))
                 .exceptionally(error ->
                         // recover from all errors to keep message-mapping-stream running despite enrichment failures
-                        recoverFromEnrichmentError(outboundSignal, target, error)
+                        Collections.singletonList(recoverFromEnrichmentError(outboundSignal, target, error))
                 );
+    }
+
+    private static Collection<OutboundSignalWithId> applyFilter(final OutboundSignalWithId outboundSignalWithExtra,
+            final FilteredTopic filteredTopic) {
+
+        final Optional<String> filter = filteredTopic.getFilter();
+        final Optional<JsonFieldSelector> extraFields = filteredTopic.getExtraFields();
+        if (filter.isPresent() && extraFields.isPresent()) {
+            // evaluate filter criteria again if signal enrichment is involved.
+            final Criteria criteria = QueryFilterCriteriaFactory.modelBased()
+                    .filterCriteria(filter.get(), outboundSignalWithExtra.getSource().getDittoHeaders());
+            return outboundSignalWithExtra.getExtra()
+                    .flatMap(extra -> {
+                        final Signal<?> signal = outboundSignalWithExtra.getSource();
+                        return ThingEventToThingConverter.mergeThingWithExtraFields(signal, extraFields.get(), extra)
+                                .filter(ThingPredicateVisitor.apply(criteria))
+                                .map(thing -> outboundSignalWithExtra);
+                    })
+                    .map(Collections::singletonList)
+                    .orElseGet(Collections::emptyList);
+        } else {
+            // no signal enrichment: filtering is already done in SignalFilter since there is no ignored field
+            return Collections.singletonList(outboundSignalWithExtra);
+        }
     }
 
     // Called inside future; must be thread-safe
@@ -681,7 +741,7 @@ public final class MessageMappingProcessorActor
      * @return A pair of lists. The first list contains targets without matching extra fields.
      * The second list contains targets together with their extra fields matching the outbound signal.
      */
-    private static Pair<List<Target>, List<Pair<Target, JsonFieldSelector>>> splitTargetsByExtraFields(
+    private static Pair<List<Target>, List<Pair<Target, FilteredTopic>>> splitTargetsByExtraFields(
             final OutboundSignal outboundSignal) {
 
         final Optional<StreamingType> streamingTypeOptional = StreamingType.fromSignal(outboundSignal.getSource());
@@ -689,16 +749,14 @@ public final class MessageMappingProcessorActor
             // Find targets with a matching topic with extra fields
             final StreamingType streamingType = streamingTypeOptional.get();
             final List<Target> targetsWithoutExtraFields = new ArrayList<>(outboundSignal.getTargets().size());
-            final List<Pair<Target, JsonFieldSelector>> targetsWithExtraFields =
+            final List<Pair<Target, FilteredTopic>> targetsWithExtraFields =
                     new ArrayList<>(outboundSignal.getTargets().size());
             for (final Target target : outboundSignal.getTargets()) {
-                final Optional<JsonFieldSelector> matchingExtraFields = target.getTopics()
+                final Optional<FilteredTopic> matchingExtraFields = target.getTopics()
                         .stream()
                         .filter(filteredTopic -> filteredTopic.getExtraFields().isPresent() &&
                                 streamingType == StreamingType.fromTopic(filteredTopic.getTopic().getPubSubTopic()))
-                        .map(FilteredTopic::getExtraFields)
-                        .findAny()
-                        .flatMap(Function.identity());
+                        .findAny();
                 if (matchingExtraFields.isPresent()) {
                     targetsWithExtraFields.add(Pair.create(target, matchingExtraFields.get()));
                 } else {
@@ -761,9 +819,9 @@ public final class MessageMappingProcessorActor
                     entityId);
         }
 
-        private OutboundSignalWithId setTargetAndExtra(final Target target, final JsonObject extra) {
+        private OutboundSignalWithId setExtra(final JsonObject extra) {
             return new OutboundSignalWithId(
-                    OutboundSignalFactory.newOutboundSignal(delegate.getSource(), Collections.singletonList(target)),
+                    OutboundSignalFactory.newOutboundSignal(delegate.getSource(), getTargets()),
                     entityId,
                     extra
             );

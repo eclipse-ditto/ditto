@@ -29,6 +29,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -102,6 +105,24 @@ public final class SignalFilterTest {
                 .headerMapping(HEADER_MAPPING)
                 .topics(LIVE_EVENTS, LIVE_MESSAGES, TWIN_EVENTS, LIVE_COMMANDS)
                 .build();
+        final Target enrichedFiltered = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(JsonFieldSelector.newInstance("attributes/y"))
+                        .withFilter("not(or(ne(attributes/x,5),and(eq(attributes/x,5),ne(attributes/y,5))))")
+                        .build())
+                .build();
+        final Target enrichedNotFiltered1 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(JsonFieldSelector.newInstance("attributes/y"))
+                        .withFilter("and(ne(attributes/x,5),or(eq(attributes/x,5),ne(attributes/y,5)))")
+                        .build())
+                .build();
+        final Target enrichedNotFiltered2 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(JsonFieldSelector.newInstance("attributes/y"))
+                        .withFilter("not(or(eq(attributes/x,5),and(eq(attributes/x,5),ne(attributes/y,5))))")
+                        .build())
+                .build();
 
         final Collection<Object[]> params = new ArrayList<>();
 
@@ -111,6 +132,9 @@ public final class SignalFilterTest {
                 asList(twinAuthd)});
         params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
                 asList(twinAuthd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects,
+                asList(enrichedFiltered, enrichedNotFiltered1, enrichedNotFiltered2),
+                asList(enrichedFiltered)});
 
         params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twinAuthd), emptyList()});
         params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd), emptyList()});
@@ -213,7 +237,9 @@ public final class SignalFilterTest {
     private static Signal<?> signal(final Topic topic, final Set<String> readSubjects) {
 
         final ThingId thingId = ThingId.of("org.eclipse.ditto:myThing");
-        final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
+        final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId)
+                .setAttribute(JsonPointer.of("x"), JsonValue.of(5))
+                .build();
         final ThingModified thingModified =
                 ThingModified.of(thing, 1L, DittoHeaders.newBuilder().readSubjects(readSubjects).build());
 
