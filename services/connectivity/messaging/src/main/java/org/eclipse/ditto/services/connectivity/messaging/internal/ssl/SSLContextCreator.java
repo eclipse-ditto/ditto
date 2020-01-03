@@ -104,16 +104,6 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     @Override
     public SSLContext clientCertificate(final ClientCertificateCredentials credentials) {
-        final SSLContext sslContext = get(credentials);
-        if (sslContext == null) {
-            throw new IllegalArgumentException("cannot happen");
-        }
-        return sslContext;
-    }
-
-    @Override
-    @Nullable
-    public SSLContext get(final ClientCertificateCredentials credentials) {
         final String clientKeyPem = credentials.getClientKey().orElse(null);
         final String clientCertificatePem = credentials.getClientCertificate().orElse(null);
 
@@ -132,7 +122,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
         } else if (trustManager != null) {
             trustManagers = new TrustManager[]{trustManager};
         } else {
-            return null;
+            trustManagers = null;
         }
 
         return newTLSContext(keyManagers, trustManagers);

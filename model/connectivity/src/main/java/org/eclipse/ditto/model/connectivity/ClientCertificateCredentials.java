@@ -50,7 +50,7 @@ public final class ClientCertificateCredentials implements Credentials {
 
     @Override
     public <T> T accept(final CredentialsVisitor<T> visitor) {
-        return visitor.get(this);
+        return visitor.clientCertificate(this);
     }
 
     /**

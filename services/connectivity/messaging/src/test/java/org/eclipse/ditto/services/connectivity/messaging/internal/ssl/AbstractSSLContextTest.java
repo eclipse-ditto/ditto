@@ -245,7 +245,7 @@ public abstract class AbstractSSLContextTest {
 
         final SSLServerSocket serverSocket =
                 (SSLServerSocket) SSLContextCreator.of(Certificates.CA_CRT, null, null)
-                        .get(credentials)
+                        .clientCertificate(credentials)
                         .getServerSocketFactory()
                         .createServerSocket(0);
 
