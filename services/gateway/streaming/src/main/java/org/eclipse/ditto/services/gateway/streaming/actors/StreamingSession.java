@@ -70,10 +70,11 @@ public final class StreamingSession {
      *
      * @param signal the signal.
      * @param extra extra fields from signal enrichment.
-     * @return the merged thing if thing information exists in any of the 2 sources, or an empty optional otherwise.
+     * @return the merged thing if thing information exists in any of the 2 sources, or an empty thing otherwise.
      */
-    public Optional<Thing> mergeThingWithExtra(final Signal<?> signal, final JsonObject extra) {
-        return ThingEventToThingConverter.mergeThingWithExtraFields(signal, extraFields, extra);
+    public Thing mergeThingWithExtra(final Signal<?> signal, final JsonObject extra) {
+        return ThingEventToThingConverter.mergeThingWithExtraFields(signal, extraFields, extra)
+                .orElseGet(() -> Thing.newBuilder().build());
     }
 
     /**

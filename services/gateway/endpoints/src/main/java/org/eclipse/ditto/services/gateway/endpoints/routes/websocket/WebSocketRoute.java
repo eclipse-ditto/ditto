@@ -691,9 +691,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .filter(session -> jsonifiable instanceof Signal)
                 .map(session ->
                         // evaluate to false if filter is present but does not match or has insufficient info to match
-                        session.mergeThingWithExtra((Signal<?>) jsonifiable, extra)
-                                .filter(session::matchesFilter)
-                                .isPresent()
+                        session.matchesFilter(session.mergeThingWithExtra((Signal<?>) jsonifiable, extra))
                 )
                 .orElse(true);
     }

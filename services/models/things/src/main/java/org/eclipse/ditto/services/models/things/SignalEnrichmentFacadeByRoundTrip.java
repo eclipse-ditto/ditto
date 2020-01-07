@@ -58,8 +58,11 @@ public final class SignalEnrichmentFacadeByRoundTrip implements SignalEnrichment
     public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
             final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders) {
 
+        // remove channel header to prevent looping on live messages
+        final DittoHeaders headersWithoutChannel = dittoHeaders.toBuilder().channel(null).build();
+
         final RetrieveThing command =
-                RetrieveThing.getBuilder(thingId, dittoHeaders).withSelectedFields(jsonFieldSelector).build();
+                RetrieveThing.getBuilder(thingId, headersWithoutChannel).withSelectedFields(jsonFieldSelector).build();
 
         final CompletionStage<Object> askResult = Patterns.ask(commandHandler, command, askTimeout);
 

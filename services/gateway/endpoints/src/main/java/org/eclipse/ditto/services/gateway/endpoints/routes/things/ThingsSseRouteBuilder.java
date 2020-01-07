@@ -267,10 +267,11 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
             if (!isLiveEvent && namespaceMatches(event, namespaces) && targetThingIdMatches(event, targetThingIds)) {
                 return jsonifiable.getSession()
                         .map(session -> jsonifiable.retrieveExtraFields(facade)
-                                .thenApply(extra -> session.mergeThingWithExtra(event, extra)
-                                        .filter(session::matchesFilter)
-                                        .map(thing -> toNonemptyThingJson(thing, event, fields))
-                                        .orElseGet(Collections::emptyList)
+                                .thenApply(extra ->
+                                        Optional.of(session.mergeThingWithExtra(event, extra))
+                                                .filter(session::matchesFilter)
+                                                .map(thing -> toNonemptyThingJson(thing, event, fields))
+                                                .orElseGet(Collections::emptyList)
                                 )
                                 .exceptionally(error -> {
                                     final DittoRuntimeException errorToReport = error instanceof DittoRuntimeException
