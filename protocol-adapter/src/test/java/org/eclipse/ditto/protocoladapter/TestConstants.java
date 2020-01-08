@@ -54,6 +54,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 
@@ -90,6 +91,10 @@ final class TestConstants {
     static final JsonObject ATTRIBUTES_JSON = JsonObject.newBuilder().set(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE).build();
 
     static final Attributes ATTRIBUTES = ThingsModelFactory.newAttributes(ATTRIBUTES_JSON);
+
+    static final ThingDefinition THING_DEFINITION = ThingsModelFactory.newDefinition("example:test:definition");
+
+    static final JsonValue JSON_THING_DEFINITION = JsonValue.of(THING_DEFINITION);
 
     static final String FEATURE_ID = "fluxCompensator";
 

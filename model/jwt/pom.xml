@@ -65,15 +65,12 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
-                    <!-- TODO remove this configuration after first release of this module -->
-                    <oldVersion>
-                        <dependency>
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>${project.artifactId}</artifactId>
-                            <version>${revision}</version>
-                            <type>${project.packaging}</type>
-                        </dependency>
-                    </oldVersion>
+                    <parameter>
+                        <excludes>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
+                        </excludes>
+                    </parameter>
                 </configuration>
             </plugin>
         </plugins>

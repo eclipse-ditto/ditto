@@ -30,11 +30,9 @@ public final class DefaultMqttConfig implements MqttConfig {
 
     private static final String CONFIG_PATH = "mqtt";
 
-    private final boolean experimental;
     private final int sourceBufferSize;
 
     private DefaultMqttConfig(final ScopedConfig config) {
-        experimental = config.getBoolean(MqttConfigValue.LEGACY_MODE.getConfigPath());
         sourceBufferSize = config.getInt(MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath());
     }
 
@@ -47,11 +45,6 @@ public final class DefaultMqttConfig implements MqttConfig {
      */
     public static DefaultMqttConfig of(final Config config) {
         return new DefaultMqttConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, MqttConfigValue.values()));
-    }
-
-    @Override
-    public boolean isLegacyMode() {
-        return experimental;
     }
 
     @Override
@@ -68,20 +61,18 @@ public final class DefaultMqttConfig implements MqttConfig {
             return false;
         }
         final DefaultMqttConfig that = (DefaultMqttConfig) o;
-        return experimental == that.experimental &&
-                sourceBufferSize == that.sourceBufferSize;
+        return sourceBufferSize == that.sourceBufferSize;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(experimental, sourceBufferSize);
+        return Objects.hash(sourceBufferSize);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "experimental=" + experimental +
-                ", sourceBufferSize=" + sourceBufferSize +
+                "sourceBufferSize=" + sourceBufferSize +
                 "]";
     }
 

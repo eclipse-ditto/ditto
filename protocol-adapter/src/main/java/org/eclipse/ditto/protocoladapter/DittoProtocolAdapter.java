@@ -46,9 +46,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     private final AdapterResolver thingsAdapters;
     private final AdapterResolver policiesAdapters;
+    private final HeaderTranslator headerTranslator;
 
     private DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
+        this.headerTranslator = headerTranslator;
         this.thingsAdapters = new ThingsAdapters(errorRegistry, headerTranslator);
         this.policiesAdapters = new PoliciesAdapters(errorRegistry, headerTranslator);
     }
@@ -265,4 +267,10 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         return (((Adapter<MessageCommandResponse>) thingsAdapters.getMessageCommandResponseAdapter())).toAdaptable(
                 messageCommandResponse);
     }
+
+    @Override
+    public HeaderTranslator headerTranslator() {
+        return headerTranslator;
+    }
+
 }

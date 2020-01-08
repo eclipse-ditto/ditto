@@ -12,13 +12,10 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
-import java.util.List;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Connection;
 
 import akka.actor.Props;
 
@@ -56,12 +53,8 @@ public final class DefaultKafkaPublisherActorFactory implements KafkaPublisherAc
     }
 
     @Override
-    public Props props(final ConnectionId connectionId,
-            final List<Target> targets,
-            final KafkaConnectionFactory factory,
-            final boolean dryRun) {
-
-        return KafkaPublisherActor.props(connectionId, targets, factory, dryRun);
+    public Props props(final Connection connection, final KafkaConnectionFactory factory, final boolean dryRun) {
+        return KafkaPublisherActor.props(connection, factory, dryRun);
     }
 
 }

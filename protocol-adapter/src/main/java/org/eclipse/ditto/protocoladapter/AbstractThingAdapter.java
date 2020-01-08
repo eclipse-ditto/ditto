@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithId;
 
@@ -58,6 +59,7 @@ abstract class AbstractThingAdapter<T extends Jsonifiable & WithId> extends Abst
         THING_PATH_PATTERNS.put("attribute", Pattern.compile("^/attributes/.*$"));
         THING_PATH_PATTERNS.put("features", Pattern.compile("^/features$"));
         THING_PATH_PATTERNS.put("feature", Pattern.compile("^/features/[^/]*$"));
+        THING_PATH_PATTERNS.put("definition", Pattern.compile("^/definition$"));
         THING_PATH_PATTERNS.put("featureDefinition", Pattern.compile("^/features/[^/]*/definition$"));
         THING_PATH_PATTERNS.put("featureProperties", Pattern.compile("^/features/[^/]*/properties$"));
         THING_PATH_PATTERNS.put("featureProperty", Pattern.compile("^/features/[^/]*/properties/.*$"));
@@ -182,4 +184,11 @@ abstract class AbstractThingAdapter<T extends Jsonifiable & WithId> extends Abst
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
+    protected static ThingDefinition thingDefinitionFrom(final Adaptable adaptable) {
+        return adaptable.getPayload()
+                .getValue()
+                .map(JsonValue::asString)
+                .map(ThingsModelFactory::newDefinition)
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
 }

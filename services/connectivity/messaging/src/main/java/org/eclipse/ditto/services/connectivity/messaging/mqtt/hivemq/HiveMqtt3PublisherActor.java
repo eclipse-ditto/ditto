@@ -19,13 +19,12 @@ import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
-import java.util.List;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -58,22 +57,27 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
     private final boolean dryRun;
 
     @SuppressWarnings("squid:UnusedPrivateConstructor") // used by akka
-    private HiveMqtt3PublisherActor(final ConnectionId connectionId, final List<Target> targets,
-            final Mqtt3Client client,
-            final boolean dryRun) {
-        super(connectionId, targets);
+    private HiveMqtt3PublisherActor(final Connection connection, final Mqtt3Client client, final boolean dryRun) {
+        super(connection);
         this.client = checkNotNull(client).toAsync();
         this.dryRun = dryRun;
     }
 
-    public static Props props(final ConnectionId connectionId, final List<Target> targets, final Mqtt3Client client,
-            final boolean dryRun) {
-        return Props.create(HiveMqtt3PublisherActor.class, connectionId, targets, client, dryRun);
+    /**
+     * Create Props object for this publisher actor.
+     *
+     * @param connection the connection the publisher actor belongs to.
+     * @param client the HiveMQ client.
+     * @param dryRun whether this publisher is only created for a test or not.
+     * @return the Props object.
+     */
+    public static Props props(final Connection connection, final Mqtt3Client client, final boolean dryRun) {
+        return Props.create(HiveMqtt3PublisherActor.class, connection, client, dryRun);
     }
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
+        receiveBuilder.match(OutboundSignal.Mapped.class, this::isDryRun,
                 outbound -> log().info("Message dropped in dry run mode: {}", outbound));
     }
 
@@ -85,11 +89,6 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
     @Override
     protected MqttPublishTarget toPublishTarget(final String address) {
         return MqttPublishTarget.of(address);
-    }
-
-    @Override
-    protected MqttPublishTarget toReplyTarget(final String replyToAddress) {
-        return MqttPublishTarget.of(replyToAddress);
     }
 
     @Override
@@ -127,10 +126,12 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
             }
             client.publish(mqttMessage).whenComplete((mqtt3Publish, throwable) -> {
                 if (null == throwable) {
-                    log().debug("Successfully published to message of type <{}> to target address <{}>", mqttMessage.getType(), publishTarget.getTopic());
+                    log().debug("Successfully published to message of type <{}> to target address <{}>",
+                            mqttMessage.getType(), publishTarget.getTopic());
                     publishedMonitor.success(message);
                 } else {
-                    final String logMessage = MessageFormat.format("Error while publishing message: {0}", throwable.getMessage());
+                    final String logMessage =
+                            MessageFormat.format("Error while publishing message: {0}", throwable.getMessage());
                     log().info(logMessage);
                     publishedMonitor.exception(message, logMessage);
                 }

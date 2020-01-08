@@ -125,12 +125,6 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S source(@Nullable final CharSequence source) {
-        putCharSequence(DittoHeaderDefinition.SOURCE, source);
-        return myself;
-    }
-
-    @Override
     public S schemaVersion(@Nullable final JsonSchemaVersion schemaVersion) {
         if (null != schemaVersion) {
             putCharSequence(DittoHeaderDefinition.SCHEMA_VERSION, schemaVersion.toString());
@@ -144,6 +138,16 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     public S authorizationContext(@Nullable final AuthorizationContext authorizationContext) {
         if (null != authorizationContext) {
             return authorizationSubjects(authorizationContext.getAuthorizationSubjectIds());
+        }
+        return myself;
+    }
+
+    @Override
+    public S replyTarget(@Nullable final Integer replyTarget) {
+        if (replyTarget != null) {
+            putCharSequence(DittoHeaderDefinition.REPLY_TARGET, String.valueOf(replyTarget));
+        } else {
+            removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey());
         }
         return myself;
     }

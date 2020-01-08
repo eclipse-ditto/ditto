@@ -16,12 +16,16 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructor;
 import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructorFactory;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -32,6 +36,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
@@ -42,6 +47,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 /**
@@ -71,13 +77,8 @@ final class ThingModifyCommandAdapter extends AbstractThingAdapter<ThingModifyCo
     private static Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies() {
         final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies = new HashMap<>();
 
-        mappingStrategies.put(CreateThing.TYPE,
-                adaptable -> CreateThing.of(thingFrom(adaptable), initialPolicyForCreateThingFrom(adaptable),
-                        policyIdOrPlaceholderForCreateThingFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(ModifyThing.TYPE,
-                adaptable -> ModifyThing.of(thingIdFrom(adaptable), thingFrom(adaptable),
-                        initialPolicyForModifyThingFrom(adaptable), policyIdOrPlaceholderForModifyThingFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(CreateThing.TYPE, ThingModifyCommandAdapter::createThingFrom);
+        mappingStrategies.put(ModifyThing.TYPE, ThingModifyCommandAdapter::modifyThingFrom);
         mappingStrategies.put(DeleteThing.TYPE,
                 adaptable -> DeleteThing.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
 
@@ -98,6 +99,11 @@ final class ThingModifyCommandAdapter extends AbstractThingAdapter<ThingModifyCo
                 attributePointerFrom(adaptable), attributeValueFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteAttribute.TYPE, adaptable -> DeleteAttribute.of(thingIdFrom(adaptable),
                 attributePointerFrom(adaptable), dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyThingDefinition.TYPE, adaptable -> ModifyThingDefinition.of(thingIdFrom(adaptable),
+                thingDefinitionFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(DeleteThingDefinition.TYPE,
+                adaptable -> DeleteThingDefinition.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(ModifyFeatures.TYPE, adaptable -> ModifyFeatures.of(thingIdFrom(adaptable),
                 featuresFrom(adaptable), dittoHeadersFrom(adaptable)));
@@ -133,17 +139,35 @@ final class ThingModifyCommandAdapter extends AbstractThingAdapter<ThingModifyCo
         return mappingStrategies;
     }
 
-    @Override
-    protected String getType(final Adaptable adaptable) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(pathMatcher.match(path));
-        return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
+    private static CreateThing createThingFrom(final Adaptable adaptable) {
+        return CreateThing.of(thingToCreateOrModifyFrom(adaptable), initialPolicyForCreateThingFrom(adaptable),
+                policyIdOrPlaceholderForCreateThingFrom(adaptable), dittoHeadersFrom(adaptable));
     }
 
-    @Override
-    public Adaptable constructAdaptable(final ThingModifyCommand command, final TopicPath.Channel channel) {
-        return adaptableConstructor.construct(command, channel);
+    private static ModifyThing modifyThingFrom(final Adaptable adaptable) {
+        final Thing thing = thingToCreateOrModifyFrom(adaptable);
+        final ThingId thingId = thing.getEntityId().orElseThrow(
+                () -> new IllegalStateException("ID should have been enforced in thingToCreateOrModifyFrom"));
+        return ModifyThing.of(thingId, thing, initialPolicyForModifyThingFrom(adaptable),
+                policyIdOrPlaceholderForModifyThingFrom(adaptable), dittoHeadersFrom(adaptable));
+    }
+
+    private static Thing thingToCreateOrModifyFrom(final Adaptable adaptable) {
+        final Thing thing = thingFrom(adaptable);
+
+        final Optional<ThingId> thingIdOptional = thing.getEntityId();
+        final ThingId thingIdFromTopic = thingIdFrom(adaptable);
+
+        if (thingIdOptional.isPresent()) {
+            if (!thingIdOptional.get().equals(thingIdFromTopic)) {
+                throw ThingIdNotExplicitlySettableException.forDittoProtocol().build();
+            }
+        } else {
+            return thing.toBuilder()
+                    .setId(thingIdFromTopic)
+                    .build();
+        }
+        return thing;
     }
 
     private static JsonObject initialPolicyForCreateThingFrom(final Adaptable adaptable) {
@@ -174,4 +198,16 @@ final class ThingModifyCommandAdapter extends AbstractThingAdapter<ThingModifyCo
                 .orElse(null);
     }
 
+    @Override
+    protected String getType(final Adaptable adaptable) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+        final JsonPointer path = adaptable.getPayload().getPath();
+        final String commandName = getAction(topicPath) + upperCaseFirst(pathMatcher.match(path));
+        return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
+    }
+
+    @Override
+    public Adaptable constructAdaptable(final ThingModifyCommand command, final TopicPath.Channel channel) {
+        return adaptableConstructor.construct(command, channel);
+    }
 }

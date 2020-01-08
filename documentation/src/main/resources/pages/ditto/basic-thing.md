@@ -38,6 +38,13 @@ Instead it contains a link to a [Policy](basic-policy.html) in form of a `policy
 authenticated subjects may READ and WRITE the Thing or even parts of it (hierarchically specified).
 
 
+### Definition
+
+A Thing may contain a definition. The definition can also be used to find Things. The definition is used to link a thing
+to a corresponding model defining the capabilities/features of it, e.g. via an 
+[Eclipse Vorto](https://www.eclipse.org/vorto/) "information model".
+
+
 ### Attributes
 
 Attributes describe the Thing in more detail and can be of any type. Attributes can also be used to find Things.
@@ -64,18 +71,13 @@ many Features" max-width=100 %}
 {% include docson.html schema="jsonschema/thing_v2.json" %}
 
 
-### Example (API version 1)
+### Example (API version 2)
 
 ```json
 {
   "thingId": "the.namespace:theId",
-  "acl": {
-    "subject-id": {
-      "READ": true,
-      "WRITE": true,
-      "ADMINISTRATE": true
-    }
-  },
+  "policyId": "the.namespace:thePolicyId",
+  "definition": "org.eclipse.ditto:HeatingDevice:2.1.0",
   "attributes": {
       "someAttr": 32,
       "manufacturer": "ACME corp"
@@ -91,6 +93,7 @@ many Features" max-width=100 %}
           }
       },
       "switchable": {
+          "definition": [ "org.eclipse.ditto:Switcher:1.0.0" ],
           "properties": {
               "on": true,
               "lastToggled": "2017-11-15T18:21Z"

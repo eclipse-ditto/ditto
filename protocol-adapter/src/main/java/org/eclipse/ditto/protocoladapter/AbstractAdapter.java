@@ -19,13 +19,16 @@ import java.util.Map;
 
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
@@ -178,5 +181,4 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         chars[0] = Character.toUpperCase(chars[0]);
         return new String(chars);
     }
-
 }

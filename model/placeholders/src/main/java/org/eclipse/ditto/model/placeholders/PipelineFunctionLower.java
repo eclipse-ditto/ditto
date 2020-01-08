@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.placeholders;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -25,9 +24,6 @@ import javax.annotation.concurrent.Immutable;
 final class PipelineFunctionLower implements PipelineFunction {
 
     private static final String FUNCTION_NAME = "lower";
-
-    private final PipelineFunctionParameterResolverFactory.EmptyParameterResolver parameterResolver =
-            PipelineFunctionParameterResolverFactory.forEmptyParameters();
 
     @Override
     public String getName() {
@@ -40,16 +36,16 @@ final class PipelineFunctionLower implements PipelineFunction {
     }
 
     @Override
-    public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
+    public PipelineElement apply(final PipelineElement element, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
         // check if signature matches (empty params!)
         validateOrThrow(paramsIncludingParentheses);
-        return value.map(String::toLowerCase);
+        return element.map(String::toLowerCase);
     }
 
     private void validateOrThrow(final String paramsIncludingParentheses) {
-        if (!parameterResolver.test(paramsIncludingParentheses)) {
+        if (!PipelineFunctionParameterResolverFactory.forEmptyParameters().test(paramsIncludingParentheses)) {
             throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                     .build();
         }
@@ -68,11 +64,6 @@ final class PipelineFunctionLower implements PipelineFunction {
         @Override
         public List<ParameterDefinition> getParameterDefinitions() {
             return Collections.emptyList();
-        }
-
-        @Override
-        public <T> ParameterDefinition<T> getParameterDefinition(final int index) {
-            throw new IllegalArgumentException("Signature does not define a parameter at index '" + index + "'");
         }
 
         @Override

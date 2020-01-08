@@ -1,92 +1,20 @@
 # Eclipse Ditto :: Helm
 
-This folder contains a example helm chart which can be used to start Eclipse Ditto
-with its backing Database - MongoDB - and a reverse proxy - nginx - in front of the HTTP and WebSocket API.
+The Ditto Helm chart is managed at the [Eclipse IoT Packages](https://github.com/eclipse/packages/tree/master/charts/ditto) project.
 
-## Configure nginx
+## Install Ditto via Helm
 
-The nginx's configuration is located in the `nginx.conf` file and contains a "Basic authentication"
-for accessing the HTTP and WebSocket API. The users for this sample authentication are configured
-in the `nginx.httpasswd` file also located in this directory.
+To install the chart with the release name eclipse-ditto, run the following command:
 
-In order to add a new entry to this file, use the "openssl passwd" tool to create a hashed password:
-
-```bash
-openssl passwd -quiet
- Password: <enter password>
- Verifying - Password: <enter password>
+```shell script
+# TODO: the helm chart is not yet published, this won't work yet:
+helm install eclipse-iot/ditto --name eclipse-ditto
 ```
 
-Append the printed hash in the `nginx.httpasswd` file placing the username who shall receive this
-password in front like this:
+# Uninstall the Chart
 
-```text
-ditto:A6BgmB8IEtPTs
-```
+To uninstall/delete the eclipse-ditto deployment:
 
-## Requirements
-
-- [Minikube](https://github.com/kubernetes/minikube/)
-- [kubectl](https://kubernetes.io/docs/tasks/kubectl/install/)
-- [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
-- [Helm](https://docs.helm.sh/using_helm/#installing-helm)
-
-## Start Eclipse Ditto
-
-### Start Minikube and install Helm into one node cluster
-
-```bash
-minikube start
-helm init
-```
-
-### Start Eclipse Ditto
-
-```bash
-cd <DITTO_PATH>/deployment/helm/
-kubectl create namespace dittons
-helm dependency update ./eclipse-ditto/
-```
-
-(Optional) we recommend to define a K8s [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) independent of the Helm release to ensure the data survives a helm delete:
-
-```bash
-kubectl apply -f ditto-mongodb-pvc.yaml
-```
-
-...in this case start Ditto with:
-
-```bash
-helm upgrade ditto ./eclipse-ditto/ --set mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-mongodb-pvc --wait --install
-```
-
-.. or else
-
-```bash
-helm upgrade ditto ./eclipse-ditto/ --set mongodb.persistence.enabled=true --wait --install
-```
-
-...or without persistence for the MongoDB at all:
-
-```bash
-helm upgrade ditto ./eclipse-ditto/ --wait --install
-```
-
-### Use Eclipse Ditto
-
-```bash
-minikube service -n dittons ditto
-```
-
-### Use Minikube Dashboard
-
-```bash
-minikube dashboard
-```
-
-### Delete Eclipse Ditto release
-
-```bash
-cd <DITTO_PATH>/deployment/helm/
-helm delete --purge ditto
+```shell script
+helm delete eclipse-ditto
 ```

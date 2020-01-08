@@ -1349,6 +1349,7 @@ h4.panel-title {
 }
 .highlight.who img {
     width: 60%;
+    max-width: 250px;
     height: 100%;
 }
 

@@ -43,7 +43,6 @@ public final class DefaultDittoHeadersBuilderTest {
     private static final List<String> AUTHORIZATION_SUBJECTS = Arrays.asList("Foo", "Bar");
     private static final String CORRELATION_ID = "correlationId";
     private static final JsonSchemaVersion JSON_SCHEMA_VERSION = JsonSchemaVersion.V_1;
-    private static final String SOURCE = "source";
     private static final String CHANNEL = "twin";
     private static final Collection<String> READ_SUBJECTS = Arrays.asList("read", "subjects");
 
@@ -60,7 +59,6 @@ public final class DefaultDittoHeadersBuilderTest {
 
         DittoBaseAssertions.assertThat(dittoHeaders)
                 .hasNoCorrelationId()
-                .hasNoSource()
                 .hasNoSchemaVersion()
                 .hasNoAuthorizationSubjects()
                 .hasNoReadSubjects();
@@ -112,14 +110,12 @@ public final class DefaultDittoHeadersBuilderTest {
     @Test
     public void buildReturnsExpected() {
         final DittoHeaders dittoHeaders = underTest.correlationId(CORRELATION_ID)
-                .source(SOURCE)
                 .readSubjects(READ_SUBJECTS)
                 .schemaVersion(JSON_SCHEMA_VERSION)
                 .build();
 
         DittoBaseAssertions.assertThat(dittoHeaders)
                 .hasCorrelationId(CORRELATION_ID)
-                .hasSource(SOURCE)
                 .hasSchemaVersion(JSON_SCHEMA_VERSION)
                 .hasReadSubject("read", "subjects");
     }
@@ -127,7 +123,6 @@ public final class DefaultDittoHeadersBuilderTest {
     @Test
     public void constructBuilderFromHeadersWorksExpected() {
         final DittoHeaders dittoHeaders = underTest.correlationId(CORRELATION_ID)
-                .source(SOURCE)
                 .readSubjects(READ_SUBJECTS)
                 .schemaVersion(JSON_SCHEMA_VERSION)
                 .build();
@@ -162,16 +157,6 @@ public final class DefaultDittoHeadersBuilderTest {
                 .hasSize(1)
                 .contains(JsonFactory.newKey(DittoHeaderDefinition.SCHEMA_VERSION.getKey()),
                         JsonFactory.newValue(JSON_SCHEMA_VERSION.toInt()));
-    }
-
-    @Test
-    public void jsonRepresentationOfDittoHeadersWithSourceOnlyIsExpected() {
-        final DittoHeaders dittoHeaders = underTest.source(SOURCE).build();
-        final JsonObject jsonObject = dittoHeaders.toJson();
-
-        assertThat(jsonObject)
-                .hasSize(1)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.SOURCE.getKey()), SOURCE);
     }
 
     @Test
@@ -265,15 +250,15 @@ public final class DefaultDittoHeadersBuilderTest {
 
     @Test
     public void removeValueWorksAsExpected() {
-        final String sourceKey = DittoHeaderDefinition.SOURCE.getKey();
+        final String rsKey = DittoHeaderDefinition.READ_SUBJECTS.getKey();
 
-        final DittoHeaders dittoHeaders = underTest.source(SOURCE)
+        final DittoHeaders dittoHeaders = underTest.readSubjects(READ_SUBJECTS)
                 .dryRun(true)
                 .correlationId(CORRELATION_ID)
-                .removeHeader(sourceKey)
+                .removeHeader(rsKey)
                 .build();
 
-        assertThat(dittoHeaders).hasSize(2).doesNotContainKeys(sourceKey);
+        assertThat(dittoHeaders).hasSize(2).doesNotContainKeys(rsKey);
     }
 
     @Test

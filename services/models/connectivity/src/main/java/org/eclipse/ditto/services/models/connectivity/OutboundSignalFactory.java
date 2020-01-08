@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -44,13 +45,14 @@ public final class OutboundSignalFactory {
      * {@link ExternalMessage} that was mapped from the outbound signal.
      *
      * @param outboundSignal the OutboundSignal to wrap.
+     * @param adaptable the Ditto protocol message adapted from the outbound signal by the protocol adapter.
      * @param externalMessage the mapped ExternalMessage.
      * @return the created OutboundSignal which is aware of the ExternalMessage
      */
-    public static OutboundSignal.WithExternalMessage newMappedOutboundSignal(final OutboundSignal outboundSignal,
-            final ExternalMessage externalMessage) {
+    public static OutboundSignal.Mapped newMappedOutboundSignal(final OutboundSignal outboundSignal,
+            final Adaptable adaptable, final ExternalMessage externalMessage) {
 
-        return new MappedOutboundSignal(outboundSignal, externalMessage);
+        return new MappedOutboundSignal(outboundSignal, adaptable, externalMessage);
     }
 
     /**

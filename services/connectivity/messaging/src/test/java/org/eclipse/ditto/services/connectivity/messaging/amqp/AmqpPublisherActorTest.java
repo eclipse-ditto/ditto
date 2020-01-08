@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.Map;
 
 import javax.jms.CompletionListener;
 import javax.jms.Destination;
@@ -34,9 +35,13 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
@@ -47,7 +52,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
@@ -89,22 +95,26 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
 
-            final OutboundSignal outboundSignal = mock(OutboundSignal.class);
-            final Signal source = mock(Signal.class);
-            when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
-            when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-            when(outboundSignal.getSource()).thenReturn(source);
-            final Target target = createTestTarget();
-            when(outboundSignal.getTargets()).thenReturn(Collections.singletonList(decorateTarget(target)));
-
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
+            final ThingEvent thingEvent = ThingDeleted.of(TestConstants.Things.THING_ID, 25L, dittoHeaders);
+            final Target target = decorateTarget(createTestTarget());
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(thingEvent, Collections.singletonList(target));
             final ExternalMessage externalMessage =
-                    ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders).withText("payload").build();
-            final OutboundSignal.WithExternalMessage mappedOutboundSignal =
-                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable =
+                    DittoProtocolAdapter.newInstance().toAdaptable(thingEvent, TopicPath.Channel.TWIN);
+            final OutboundSignal.Mapped mappedOutboundSignal =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
 
-            final Props props = AmqpPublisherActor.props(ConnectionId.generateRandom(),
-                    Collections.singletonList(TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())),
+            final Props props = AmqpPublisherActor.props(TestConstants.createConnection()
+                            .toBuilder()
+                            .setSources(Collections.emptyList())
+                            .setTargets(Collections.singletonList(
+                                    TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
+                            .build(),
                     session,
                     loadConnectionConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -142,22 +152,23 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
 
-            final OutboundSignal outboundSignal = mock(OutboundSignal.class);
-            final Signal source = mock(Signal.class);
-            when(source.getEntityId()).thenReturn(TestConstants.Things.THING_ID);
-            when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-            when(outboundSignal.getSource()).thenReturn(source);
-            final Target target = createTestTarget();
-            when(outboundSignal.getTargets()).thenReturn(Collections.singletonList(decorateTarget(target)));
-
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
+            final ThingEvent source = ThingDeleted.of(TestConstants.Things.THING_ID, 30L, dittoHeaders);
+            final Target target = createTestTarget();
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
             final ExternalMessage externalMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders).withText("payload").build();
-            final OutboundSignal.WithExternalMessage mappedOutboundSignal =
-                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, externalMessage);
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source, TopicPath.Channel.TWIN);
+            final OutboundSignal.Mapped mappedOutboundSignal =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
 
-            final Props props = AmqpPublisherActor.props(ConnectionId.generateRandom(),
-                    Collections.singletonList(TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())),
+            final Props props = AmqpPublisherActor.props(
+                    TestConstants.createConnection()
+                            .toBuilder()
+                            .setTargets(Collections.singletonList(
+                                    TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
+                            .build(),
                     session,
                     loadConnectionConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -178,10 +189,65 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
         }};
     }
 
+    @Test
+    public void testPublishMessageWithAmqpProperties() throws Exception {
+
+        new TestKit(actorSystem) {{
+
+            // GIVEN: a message is published with headers matching AMQP properties.
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+            final OutboundSignal.Mapped mappedOutboundSignal = getMockOutboundSignal(
+                    ConnectivityModelFactory.newTargetBuilder(createTestTarget())
+                            .headerMapping(ConnectivityModelFactory.newHeaderMapping(
+                                    JsonFactory.newObjectBuilder()
+                                            .set("creation-time", "-1")
+                                            .set("absolute-expiry-time", "1234")
+                                            .set("group-sequence", "abc")
+                                            .set("group-id", "hello")
+                                            .set("subject", "subjective")
+                                            .set("application-property-with-dash", "value0")
+                                            .set("amqp.application.property:to", "value1")
+                                            .set("amqp.application.property:anotherApplicationProperty", "value2")
+                                            .build()
+                            ))
+                            .build()
+            );
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+
+            // WHEN: the publisher sends the message to an AMQP target address
+            publisherCreated(this, publisherActor);
+
+            publisherActor.tell(mappedOutboundSignal, getRef());
+
+            final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
+            verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
+            final Message message = messageCaptor.getValue();
+            final Map<String, String> receivedHeaders =
+                    JMSPropertyMapper.getPropertiesAndApplicationProperties(message);
+
+            assertThat(message.getJMSTimestamp()).isEqualTo(-1L);
+            assertThat(message.getJMSType()).isEqualTo("subjective");
+
+            // THEN: valid AMQP properties and application properties are set and invalid ones are dropped.
+            assertThat(receivedHeaders).containsEntry("group-id", "hello");
+            assertThat(receivedHeaders).containsEntry("subject", "subjective");
+            assertThat(receivedHeaders).containsEntry("creation-time", "-1");
+            assertThat(receivedHeaders).containsEntry("absolute-expiry-time", "1234");
+            assertThat(receivedHeaders).containsEntry("application-property-with-dash", "value0");
+            assertThat(receivedHeaders).containsEntry("amqp.application.property:to", "value1");
+            assertThat(receivedHeaders).containsEntry("anotherApplicationProperty", "value2");
+            // group-sequence is an AMQP prop of type "int", therefore it must not be contained in the headers here
+            assertThat(receivedHeaders).doesNotContainKey("group-sequence");
+        }};
+
+    }
+
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(ConnectionId.of("theConnection"), Collections.emptyList(), session,
-                loadConnectionConfig());
+        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig());
     }
 
     @Override
@@ -200,6 +266,16 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(message.getStringProperty("eclipse")).isEqualTo("ditto");
         assertThat(message.getStringProperty("device_id"))
                 .isEqualTo(TestConstants.Things.THING_ID.toString());
+    }
+
+    @Override
+    protected void verifyPublishedMessageToReplyTarget() throws Exception {
+        final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
+        verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
+        final Message message = messageCaptor.getValue();
+
+        assertThat(message.getStringProperty("mappedHeader1")).isEqualTo("original-header-value");
+        assertThat(message.getStringProperty("mappedHeader2")).isEqualTo("thing:id");
     }
 
     @Override

@@ -20,25 +20,34 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Represent an outbound signal that was mapped to an external message. It wraps the original signal, the mapped
  * external message and the targets that are allowed to receive this external message.
  */
-final class MappedOutboundSignal implements OutboundSignal.WithExternalMessage {
+final class MappedOutboundSignal implements OutboundSignal.Mapped {
 
     private final OutboundSignal delegate;
+    private final Adaptable adaptable;
     private final ExternalMessage externalMessage;
 
-    MappedOutboundSignal(final OutboundSignal delegate, final ExternalMessage externalMessage) {
+    MappedOutboundSignal(final OutboundSignal delegate, final Adaptable adaptable,
+            final ExternalMessage externalMessage) {
         this.delegate = delegate;
+        this.adaptable = adaptable;
         this.externalMessage = externalMessage;
     }
 
     @Override
     public ExternalMessage getExternalMessage() {
         return externalMessage;
+    }
+
+    @Override
+    public Adaptable getAdaptable() {
+        return adaptable;
     }
 
     @Override

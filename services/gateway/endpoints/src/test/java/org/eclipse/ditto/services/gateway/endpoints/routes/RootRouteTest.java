@@ -24,8 +24,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
@@ -35,13 +37,13 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthe
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseThingsRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsSseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
@@ -141,12 +143,12 @@ public final class RootRouteTest extends EndpointTestBase {
                 .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig,
                         headerTranslator))
                 .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .sseThingsRoute(new SseThingsRoute(proxyActor, actorSystem, httpConfig, proxyActor, headerTranslator))
+                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor))
                 .thingsRoute(
                         new ThingsRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
                                 headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(new WebsocketRoute(proxyActor, actorSystem.eventStream()))
+                .websocketRoute(WebSocketRoute.getInstance(proxyActor, actorSystem.eventStream()))
                 .supportedSchemaVersions(config.getIntList("ditto.gateway.http.schema-versions"))
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)
@@ -214,6 +216,25 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getStatusClusterWithoutHttps() {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(STATUS_CLUSTER_PATH));
         result.assertStatusCode(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
+    public void getThingWithVeryLongId() {
+        final int numberOfUUIDs = 100;
+        final StringBuilder pathBuilder = new StringBuilder(THINGS_2_PATH).append("/");
+        final StringBuilder idBuilder = new StringBuilder("namespace");
+        for (int i = 0; i < numberOfUUIDs; ++i) {
+            idBuilder.append(':').append(UUID.randomUUID());
+        }
+        pathBuilder.append(idBuilder);
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(pathBuilder.toString()))));
+        final ThingIdInvalidException expectedEx = ThingIdInvalidException.newBuilder(idBuilder.toString())
+                .dittoHeaders(DittoHeaders.empty())
+                .build();
+        result.assertEntity(expectedEx.toJsonString());
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+
     }
 
     @Test

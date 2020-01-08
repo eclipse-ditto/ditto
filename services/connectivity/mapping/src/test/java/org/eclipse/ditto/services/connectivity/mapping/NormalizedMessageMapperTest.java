@@ -152,7 +152,7 @@ public final class NormalizedMessageMapperTest {
         underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
                 DefaultMessageMapperConfiguration.of("normalizer",
                         Collections.singletonMap(NormalizedMessageMapper.FIELDS,
-                        "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer")));
+                                "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer")));
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
         Assertions.assertThat(mapToJson(adaptable))
@@ -182,8 +182,8 @@ public final class NormalizedMessageMapperTest {
         underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
                 DefaultMessageMapperConfiguration.of("normalizer",
                         Collections.singletonMap(NormalizedMessageMapper.FIELDS,
-                        "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
-                                "_context/headers/correlation-id")));
+                                "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
+                                        "_context/headers/correlation-id")));
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
         Assertions.assertThat(mapToJson(adaptable))
@@ -234,10 +234,10 @@ public final class NormalizedMessageMapperTest {
 
     private JsonObject mapToJson(final Adaptable message) {
         return underTest.map(message)
-                .stream().findFirst()
+                .stream()
+                .findFirst()
                 .flatMap(ExternalMessage::getTextPayload)
                 .map(JsonObject::of)
                 .orElse(JsonObject.empty());
     }
-
 }

@@ -57,7 +57,7 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param mongoDbConfig the MongoDB configuration settings.
-     * @param config Configuration with info about event journal, snapshot store, suffix-builder and database.
+     * @param config Configuration with info about event journal, snapshot store and database.
      * @param persistenceOperationsConfig the persistence operations configuration settings.
      * @return a Props object.
      */

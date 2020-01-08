@@ -21,7 +21,6 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig
 import org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.DefaultKafkaPublisherActorFactory;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaClientActor;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka.MqttClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt3ClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQClientActor;
 
@@ -61,9 +60,6 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
             case AMQP_10:
                 return AmqpClientActor.props(connection, conciergeForwarder);
             case MQTT:
-                if (connectionConfig.getMqttConfig().isLegacyMode()) {
-                    return MqttClientActor.props(connection, conciergeForwarder);
-                }
                 return HiveMqtt3ClientActor.props(connection, conciergeForwarder);
             case KAFKA:
                 return KafkaClientActor.props(connection, conciergeForwarder,

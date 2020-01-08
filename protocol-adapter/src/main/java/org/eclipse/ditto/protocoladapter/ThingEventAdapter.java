@@ -52,6 +52,9 @@ import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionCreated;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionDeleted;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionModified;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
@@ -124,6 +127,18 @@ final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> {
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(AttributeDeleted.TYPE,
                 adaptable -> AttributeDeleted.of(thingIdFrom(adaptable), attributePointerFrom(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ThingDefinitionCreated.TYPE,
+                adaptable -> ThingDefinitionCreated.of(thingIdFrom(adaptable), thingDefinitionFrom(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(ThingDefinitionModified.TYPE,
+                adaptable -> ThingDefinitionModified.of(thingIdFrom(adaptable), thingDefinitionFrom(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(ThingDefinitionDeleted.TYPE,
+                adaptable -> ThingDefinitionDeleted.of(thingIdFrom(adaptable),
                         revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(FeaturesCreated.TYPE,

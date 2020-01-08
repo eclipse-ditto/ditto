@@ -45,7 +45,7 @@ final class NullFeatureDefinition implements FeatureDefinition {
     }
 
     @Override
-    public Identifier getFirstIdentifier() {
+    public DefinitionIdentifier getFirstIdentifier() {
         return new NullIdentifier();
     }
 
@@ -55,13 +55,13 @@ final class NullFeatureDefinition implements FeatureDefinition {
     }
 
     @Override
-    public Stream<Identifier> stream() {
+    public Stream<DefinitionIdentifier> stream() {
         return Stream.empty();
     }
 
     @Override
-    public Iterator<Identifier> iterator() {
-        final List<Identifier> emptyList = Collections.emptyList();
+    public Iterator<DefinitionIdentifier> iterator() {
+        final List<DefinitionIdentifier> emptyList = Collections.emptyList();
         return emptyList.iterator();
     }
 
@@ -93,7 +93,7 @@ final class NullFeatureDefinition implements FeatureDefinition {
         return getClass().getSimpleName() + " [wrapped=" + wrapped + "]";
     }
 
-    private static final class NullIdentifier implements FeatureDefinition.Identifier {
+    private static final class NullIdentifier implements DefinitionIdentifier {
 
         private NullIdentifier() {
             super();

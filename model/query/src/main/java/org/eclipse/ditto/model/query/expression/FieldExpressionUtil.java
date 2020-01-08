@@ -46,6 +46,7 @@ public final class FieldExpressionUtil {
     private static final String REGEX_FIELD_START = "^";
     private static final String REGEX_FIELD_END = "(/|\\z)";
     private static final String FIELD_NAME_ATTRIBUTES_PREFIX = "attributes/";
+    private static final String FIELD_NAME_DEFINITION_PREFIX = "definition/";
 
     private FieldExpressionUtil() {
         throw new AssertionError();
@@ -90,6 +91,17 @@ public final class FieldExpressionUtil {
      */
     public static String stripAttributesPrefix(final String attributesFieldName) {
         return requireNonNull(attributesFieldName).substring(FIELD_NAME_ATTRIBUTES_PREFIX.length());
+
+    }
+
+    /**
+     * Checks if the given field name is an definition field name.
+     *
+     * @param fieldName the field name
+     * @return {@code true}, if the field name is an attribute field name
+     */
+    public static boolean isDefinitionFieldName(final String fieldName) {
+        return requireNonNull(fieldName).startsWith(FIELD_NAME_DEFINITION_PREFIX);
     }
 
     /**

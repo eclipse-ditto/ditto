@@ -540,8 +540,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 TestConstants.createConnection(CONNECTION_ID,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
-                c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        Authorization.SOURCE_SPECIFIC_CONTEXT));
+                c -> assertThat(c.getDittoHeaders().getAuthorizationContext())
+                        .isEqualTo(Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarder(final Connection connection,
@@ -586,7 +586,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse() throws JMSException {
         testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
                 connection, (id, headers) -> ModifyThingResponse.modified(id, DittoHeaders.of(headers)),
-                "replies",
+                "replyTarget/",
                 message -> message.contains("\"status\":2"));
     }
 
@@ -601,7 +601,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
                 connectionWithoutTargets,
                 (id, headers) -> ModifyThingResponse.modified(id, DittoHeaders.of(headers)),
-                "replies",
+                "replyTarget/",
                 message -> message.contains("\"status\":2"));
     }
 
@@ -610,14 +610,14 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
                 connection, (id, headers) -> ThingErrorResponse.of(id,
                         ThingNotModifiableException.newBuilder(id).dittoHeaders(headers).build()),
-                "replies",
+                "replyTarget/",
                 message -> message.contains("ditto/thing/things/twin/errors"));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
             final Connection connection,
             final BiFunction<ThingId, DittoHeaders, CommandResponse> responseSupplier,
-            final String expectedAddress,
+            final String expectedAddressPrefix,
             final Predicate<String> messageTextPredicate) throws JMSException {
 
         new TestKit(actorSystem) {{
@@ -643,7 +643,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
             // verify that the message is published via the producer with the correct destination
-            final MessageProducer messageProducer = getProducerForAddress(expectedAddress);
+            final MessageProducer messageProducer =
+                    getProducerForAddress(expectedAddressPrefix + command.getEntityId());
             verify(messageProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
 
             final Message message = messageCaptor.getValue();
@@ -740,51 +741,44 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     @Test
     public void testConsumerRecreationFailureWhenConnected() throws JMSException {
-        final CountDownLatch latch = new CountDownLatch(1);
-        try {
-            new TestKit(actorSystem) {{
-                final Props props =
-                        AmqpClientActor.propsForTests(singleConsumerConnection(), getRef(),
-                                (ac, el) -> mockConnection);
-                final TestActorRef<AmqpClientActor> amqpClientActorRef = TestActorRef.apply(props, actorSystem);
-                final AmqpClientActor amqpClientActor = amqpClientActorRef.underlyingActor();
+        new TestKit(actorSystem) {{
+            final Props props =
+                    AmqpClientActor.propsForTests(singleConsumerConnection(), getRef(), (ac, el) -> mockConnection);
+            final TestActorRef<AmqpClientActor> amqpClientActorRef = TestActorRef.apply(props, actorSystem);
+            final AmqpClientActor amqpClientActor = amqpClientActorRef.underlyingActor();
 
-                amqpClientActorRef.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-                expectMsg(CONNECTED_SUCCESS);
+            amqpClientActorRef.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTED_SUCCESS);
 
-                // GIVEN: JMS session fails, but the JMS connection can create a new functional session
-                final Session mockSession2 = Mockito.mock(Session.class);
-                final MessageConsumer mockConsumer2 = Mockito.mock(JmsMessageConsumer.class);
-                doAnswer(invocation -> waitForLatchAndReturn(latch, mockConsumer))
-                        .when(mockSession)
-                        .createConsumer(any());
-                doReturn(mockSession2).when(mockConnection).createSession(anyInt());
-                doReturn(mockConsumer2).when(mockSession2).createConsumer(any());
+            // GIVEN: JMS session fails, but the JMS connection can create a new functional session
+            final Session mockSession2 = Mockito.mock(Session.class);
+            final MessageConsumer mockConsumer2 = Mockito.mock(JmsMessageConsumer.class);
+            doThrow(new IllegalStateException("expected exception"))
+                    .when(mockSession)
+                    .createConsumer(any());
+            doReturn(mockSession2).when(mockConnection).createSession(anyInt());
+            doReturn(mockConsumer2).when(mockSession2).createConsumer(any());
 
-                // WHEN: consumer is closed and cannot be recreated
-                final ActorRef amqpConsumerActor = amqpClientActor.context().children().toStream()
-                        .find(child -> child.path().name().startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX))
-                        .get();
-                final Throwable error = new IllegalStateException("Forcibly detached");
-                final Status.Failure failure = new Status.Failure(new AskTimeoutException("Consumer creation timeout"));
-                amqpClientActor.connectionListener.onConsumerClosed(mockConsumer, error);
-                verify(mockSession, atLeastOnce()).createConsumer(any());
-                amqpConsumerActor.tell(failure, amqpConsumerActor);
+            // WHEN: consumer is closed and cannot be recreated
+            final ActorRef amqpConsumerActor = amqpClientActor.context().children().toStream()
+                    .find(child -> child.path().name().startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX))
+                    .get();
+            final Throwable error = new IllegalStateException("Forcibly detached");
+            final Status.Failure failure = new Status.Failure(new AskTimeoutException("Consumer creation timeout"));
+            amqpClientActor.connectionListener.onConsumerClosed(mockConsumer, error);
+            verify(mockSession, atLeastOnce()).createConsumer(any());
+            amqpConsumerActor.tell(failure, amqpConsumerActor);
 
-                // THEN: connection gets restarted
-                verify(mockConnection).createSession(anyInt());
-                latch.countDown();
-                final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
-                verify(mockConsumer2, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
-                final MessageListener messageListener = captor.getValue();
+            // THEN: connection gets restarted
+            verify(mockConnection).createSession(anyInt());
+            final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
+            verify(mockConsumer2, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
+            final MessageListener messageListener = captor.getValue();
 
-                // THEN: recreated connection is working
-                messageListener.onMessage(mockMessage());
-                expectMsgClass(Command.class);
-            }};
-        } finally {
-            latch.countDown();
-        }
+            // THEN: recreated connection is working
+            messageListener.onMessage(mockMessage());
+            expectMsgClass(Command.class);
+        }};
     }
 
     @Test
@@ -972,7 +966,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 .atMost(Duration.TWO_SECONDS)
                 .pollInterval(Duration.TWO_HUNDRED_MILLISECONDS)
                 .until(() -> mockProducers.stream()
-                        .filter(p -> address.equals(wrapThrowable(() -> p.getDestination()).toString()))
+                        .filter(p -> address.equals(wrapThrowable(p::getDestination).toString()))
                         // we only want the latest producer (required to test session recovery)
                         .reduce((first, second) -> second)
                         .orElse(null), Matchers.notNullValue());

@@ -13,8 +13,10 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -44,8 +46,36 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableSource implements Source {
 
+    /**
+     * Default address to publish responses of incoming commands.
+     */
+    static final String DEFAULT_REPLY_TARGET_ADDRESS = "{{header:reply-to}}";
+
+    private static final String HEADER_CORRELATION_ID = "{{header:correlation-id}}";
+    private static final String HEADER_CONTENT_TYPE = "{{header:content-type}}";
+
+    /**
+     * Default header mapping for legacy sources (i. e., no reply-target defined)
+     */
+    static final HeaderMapping DEFAULT_SOURCE_HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
+                    .set("correlation-id", HEADER_CORRELATION_ID)
+                    .set("content-type", HEADER_CONTENT_TYPE)
+                    .set("reply-to", DEFAULT_REPLY_TARGET_ADDRESS)
+                    .build());
+
+    /**
+     * Default header mapping for the reply-target added to legacy sources.
+     */
+    static final HeaderMapping DEFAULT_REPLY_TARGET_HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
+                    .set("correlation-id", HEADER_CORRELATION_ID)
+                    .set("content-type", HEADER_CONTENT_TYPE)
+                    .build());
+
     private static final int DEFAULT_CONSUMER_COUNT = 1;
     private static final int DEFAULT_INDEX = 0;
+    private static final boolean DEFAULT_REPLY_TARGET_ENABLED = true;
 
     private final Set<String> addresses;
     private final int consumerCount;
@@ -55,6 +85,8 @@ final class ImmutableSource implements Source {
     @Nullable private final Enforcement enforcement;
     @Nullable private final HeaderMapping headerMapping;
     private final PayloadMapping payloadMapping;
+    private final boolean replyTargetEnabled;
+    @Nullable private final ReplyTarget replyTarget;
 
     private ImmutableSource(final Builder builder) {
         this.addresses = Collections.unmodifiableSet(
@@ -66,6 +98,8 @@ final class ImmutableSource implements Source {
         this.enforcement = builder.enforcement;
         this.headerMapping = builder.headerMapping;
         this.payloadMapping = builder.payloadMapping;
+        this.replyTargetEnabled = builder.replyTargetEnabled;
+        this.replyTarget = builder.replyTarget;
     }
 
     @Override
@@ -109,6 +143,16 @@ final class ImmutableSource implements Source {
     }
 
     @Override
+    public Optional<ReplyTarget> getReplyTarget() {
+        return Optional.ofNullable(replyTarget);
+    }
+
+    @Override
+    public boolean isReplyTargetEnabled() {
+        return replyTargetEnabled;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -140,6 +184,15 @@ final class ImmutableSource implements Source {
 
         if (!payloadMapping.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.PAYLOAD_MAPPING, payloadMapping.toJson(), predicate);
+        }
+
+        if (replyTarget != null) {
+            jsonObjectBuilder.set(JsonFields.REPLY_TARGET, replyTarget.toJson(schemaVersion, thePredicate), predicate);
+        }
+
+        if (!(replyTargetEnabled && replyTarget == null)) {
+            // only set replyTargetEnabled if it is not set by reply-target migration
+            jsonObjectBuilder.set(JsonFields.REPLY_TARGET_ENABLED, replyTargetEnabled, predicate);
         }
 
         return jsonObjectBuilder.build();
@@ -183,6 +236,14 @@ final class ImmutableSource implements Source {
                         .map(ImmutablePayloadMapping::fromJson)
                         .orElse(ConnectivityModelFactory.emptyPayloadMapping());
 
+        final boolean replyTargetEnabled =
+                jsonObject.getValue(JsonFields.REPLY_TARGET_ENABLED).orElse(DEFAULT_REPLY_TARGET_ENABLED);
+
+        final ReplyTarget readReplyTarget =
+                jsonObject.getValue(JsonFields.REPLY_TARGET)
+                        .flatMap(ImmutableReplyTarget::fromJsonOptional)
+                        .orElse(null);
+
         return new Builder()
                 .addresses(readSources)
                 .qos(readQos)
@@ -192,6 +253,8 @@ final class ImmutableSource implements Source {
                 .enforcement(readEnforcement)
                 .headerMapping(readHeaderMapping)
                 .payloadMapping(readPayloadMapping)
+                .replyTargetEnabled(replyTargetEnabled)
+                .replyTarget(readReplyTarget)
                 .build();
     }
 
@@ -207,13 +270,15 @@ final class ImmutableSource implements Source {
                 Objects.equals(enforcement, that.enforcement) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
                 Objects.equals(payloadMapping, that.payloadMapping) &&
-                Objects.equals(authorizationContext, that.authorizationContext);
+                Objects.equals(authorizationContext, that.authorizationContext) &&
+                replyTargetEnabled == that.replyTargetEnabled &&
+                Objects.equals(replyTarget, that.replyTarget);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement, headerMapping,
-                payloadMapping);
+                payloadMapping, replyTargetEnabled, replyTarget);
     }
 
     @Override
@@ -226,8 +291,46 @@ final class ImmutableSource implements Source {
                 ", authorizationContext=" + authorizationContext +
                 ", enforcement=" + enforcement +
                 ", headerMapping=" + headerMapping +
+                ", replyTargetEnabled=" + replyTargetEnabled +
+                ", replyTarget=" + replyTarget +
                 ", payloadMapping=" + payloadMapping +
                 "]";
+    }
+
+    static Source migrateReplyTarget(final Source source, final ConnectionType connectionType) {
+        final boolean isLegacySource = source.isReplyTargetEnabled() && !source.getReplyTarget().isPresent();
+        final boolean supportsHeaders = ConnectionType.supportsHeaders(connectionType);
+        if (isLegacySource && supportsHeaders) {
+            return migrateReplyTargetWithHeaders(source);
+        } else if (isLegacySource) {
+            return migrateReplyTargetWithoutHeaders(source);
+        } else {
+            return source;
+        }
+    }
+
+    private static Source migrateReplyTargetWithoutHeaders(final Source source) {
+        return ConnectivityModelFactory.newSourceBuilder(source)
+                .replyTarget(ReplyTarget.newBuilder().address(DEFAULT_REPLY_TARGET_ADDRESS).build())
+                .build();
+    }
+
+    private static Source migrateReplyTargetWithHeaders(final Source source) {
+        final HeaderMapping mapping = source.getHeaderMapping()
+                .map(sourceHeaderMapping -> {
+                    final Map<String, String> mergedMapping = new HashMap<>(DEFAULT_SOURCE_HEADER_MAPPING.getMapping());
+                    mergedMapping.putAll(sourceHeaderMapping.getMapping());
+                    return ConnectivityModelFactory.newHeaderMapping(mergedMapping);
+                })
+                .orElse(DEFAULT_SOURCE_HEADER_MAPPING);
+
+        return ConnectivityModelFactory.newSourceBuilder(source)
+                .headerMapping(mapping)
+                .replyTarget(ReplyTarget.newBuilder()
+                        .address(DEFAULT_REPLY_TARGET_ADDRESS)
+                        .headerMapping(DEFAULT_REPLY_TARGET_HEADER_MAPPING)
+                        .build())
+                .build();
     }
 
     /**
@@ -244,6 +347,8 @@ final class ImmutableSource implements Source {
         @Nullable private Enforcement enforcement;
         @Nullable private HeaderMapping headerMapping;
         @Nullable private Integer qos = null;
+        private boolean replyTargetEnabled = DEFAULT_REPLY_TARGET_ENABLED;
+        @Nullable private ReplyTarget replyTarget;
 
         // optional with default:
         private PayloadMapping payloadMapping = ConnectivityModelFactory.emptyPayloadMapping();
@@ -258,6 +363,7 @@ final class ImmutableSource implements Source {
                     .enforcement(source.getEnforcement().orElse(null))
                     .headerMapping(source.getHeaderMapping().orElse(null))
                     .qos(source.getQos().orElse(null))
+                    .replyTarget(source.getReplyTarget().orElse(null))
                     .payloadMapping(source.getPayloadMapping())
                     .index(source.getIndex())
                     .consumerCount(source.getConsumerCount());
@@ -265,7 +371,7 @@ final class ImmutableSource implements Source {
 
         @Override
         public SourceBuilder addresses(final Set<String> addresses) {
-            this.addresses = ConditionChecker.checkNotEmpty(addresses, "addresses");
+            this.addresses = addresses;
             return this;
         }
 
@@ -317,6 +423,18 @@ final class ImmutableSource implements Source {
         @Override
         public SourceBuilder payloadMapping(final PayloadMapping payloadMapping) {
             this.payloadMapping = payloadMapping;
+            return this;
+        }
+
+        @Override
+        public SourceBuilder replyTarget(@Nullable final ReplyTarget replyTarget) {
+            this.replyTarget = replyTarget;
+            return this;
+        }
+
+        @Override
+        public SourceBuilder replyTargetEnabled(final boolean replyTargetEnabled) {
+            this.replyTargetEnabled = replyTargetEnabled;
             return this;
         }
 

@@ -227,6 +227,56 @@ If the attribute did not yet exist before the command was applied, a `created` e
 
 **Example:** [Create a single Attribute](protocol-examples-createattribute.html)
 
+## Create or modify a single definition of a Thing
+
+Create or modify a definition of the Thing.
+The definition will be created in case it doesn't exist yet, otherwise the thing definition is updated.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **path**  | `/definition`     |
+| **value** | The specific definition of the Thing as JSON string value. |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **path**   |        | `/definition`                      |
+| **value**  |        | The created definition as JSON string value. This field is not available, if the definition already existed. |
+| **status** | _code_ |                          | 
+|            | `201`  | Success - The definition was created successfully.       |
+|            | `204`  | Success - The definition was modified successfully.       |
+|            | `403`  | Not Modifiable - The definition could not be modified as the requester had insufficient permissions ('WRITE' is required).         |
+|            | `404`  | Not Found - The Thing or definition was not found or requester had insufficient permissions.   |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+### Event
+
+If the definition already existed before the command was applied and it was thus overwritten by the command, a 
+`modified` event will be emitted.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **path**  | `/definition`     |
+| **value** | The modified definition of the Thing as JSON string value. |
+
+**Example:** [Modify a definition](protocol-examples-modifythingdefinition.html)
+
+If the definition did not yet exist before the command was applied, a `created` event will be emitted.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **path**  | `/definition`     |
+| **value** | The created definition of the Thing as JSON string value. |
+
+**Example:** [Create a definition](protocol-examples-createthingdefinition.html)
+
 ## Create or modify all Features of a Thing
 
 Create or modify the Features of a Thing identified by the `<namespace>` and the `<thingId>` in the topic.<br/>

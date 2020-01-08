@@ -24,7 +24,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
  */
 @Immutable
 public interface MonitoringLoggerConfig {
-    // TODO: rename to getXy
 
     /**
      * Returns the number of success logs stored for each {@link org.eclipse.ditto.model.connectivity.LogCategory} and

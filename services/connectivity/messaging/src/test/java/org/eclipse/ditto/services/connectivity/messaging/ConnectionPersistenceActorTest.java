@@ -977,7 +977,10 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 final OutboundSignal unmappedOutboundSignal =
                         probe.expectMsgClass(OutboundSignal.class);
                 assertThat(unmappedOutboundSignal.getSource()).isEqualTo(signal);
-                assertThat(unmappedOutboundSignal.getTargets()).isEqualTo(Collections.singletonList(expectedTarget));
+
+                // check target address only due to live migration
+                assertThat(unmappedOutboundSignal.getTargets().stream().map(Target::getAddress))
+                        .containsExactly(expectedTarget.getAddress());
             } else {
                 probe.expectNoMessage();
             }

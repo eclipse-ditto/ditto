@@ -157,6 +157,12 @@ public final class TestConstants {
                 .set("maker", "Bosch")
                 .build();
 
+
+        /**
+         * A known Definition for testing.
+         */
+        public static final ThingDefinition DEFINITION = ImmutableThingDefinition.ofParsed("Namespace.test.version:thing:1.0");
+
         /**
          * A known revision number of a Thing.
          */
@@ -187,6 +193,7 @@ public final class TestConstants {
          */
         public static final org.eclipse.ditto.model.things.Thing THING_V2 = ThingsModelFactory.newThingBuilder()
                 .setAttributes(ATTRIBUTES)
+                .setDefinition(DEFINITION)
                 .setFeatures(Feature.FEATURES)
                 .setLifecycle(LIFECYCLE)
                 .setPolicyId(POLICY_ID)

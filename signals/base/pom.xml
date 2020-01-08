@@ -68,14 +68,8 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>
-                                org.eclipse.ditto.signals.base.ShardedMessageEnvelope#of(java.lang.String,java.lang.String,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)
-                            </exclude>
-                            <exclude>org.eclipse.ditto.signals.base.WithId#getEntityId()</exclude>
-                            <exclude>
-                                <!--was moved to ditto-mode-things-->
-                                org.eclipse.ditto.signals.base.WithThingId
-                            </exclude>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>

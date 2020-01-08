@@ -356,4 +356,11 @@ public interface ProtocolAdapter {
      * ProtocolAdapter
      */
     Adaptable toAdaptable(PolicyErrorResponse policyErrorResponse, TopicPath.Channel channel);
+
+    /**
+     * Retrieve the header translator responsible for this protocol adapter.
+     *
+     * @return the header translator.
+     */
+    HeaderTranslator headerTranslator();
 }

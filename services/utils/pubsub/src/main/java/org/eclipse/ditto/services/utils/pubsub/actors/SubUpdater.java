@@ -29,6 +29,8 @@ import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;

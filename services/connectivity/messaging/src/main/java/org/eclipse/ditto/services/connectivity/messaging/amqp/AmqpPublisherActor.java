@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.connectivity.messaging.amqp.JmsExceptionThrowingBiConsumer.wrap;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -35,16 +33,11 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
-import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.message.JmsMessage;
-import org.apache.qpid.jms.message.facade.JmsMessageFacade;
-import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
-import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
@@ -74,22 +67,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     static final String ACTOR_NAME_PREFIX = "amqpPublisherActor";
 
     private static final Object START_PRODUCER = new Object();
-    private static final Map<String, BiConsumer<Message, String>> JMS_HEADER_MAPPING = new HashMap<>();
-
-    static {
-        JMS_HEADER_MAPPING.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), wrap(Message::setJMSCorrelationID));
-        JMS_HEADER_MAPPING.put("message-id", wrap(Message::setJMSMessageID));
-        JMS_HEADER_MAPPING.put("reply-to", wrap((message, value) -> message.setJMSReplyTo(new JmsQueue(value))));
-        JMS_HEADER_MAPPING.put("subject", wrap(Message::setJMSType));
-        JMS_HEADER_MAPPING.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), wrap((message, value) -> {
-            if (message instanceof JmsMessage) {
-                final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
-                if (facade instanceof AmqpJmsMessageFacade) {
-                    ((AmqpJmsMessageFacade) facade).setContentType(Symbol.getSymbol(value));
-                }
-            }
-        }));
-    }
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -102,9 +79,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private boolean isInBackOffMode = false;
 
     @SuppressWarnings("unused")
-    private AmqpPublisherActor(final ConnectionId connectionId, final List<Target> targets, final Session session,
+    private AmqpPublisherActor(final Connection connection, final Session session,
             final ConnectionConfig connectionConfig) {
-        super(connectionId, targets);
+        super(connection);
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         this.session = checkNotNull(session, "session");
         this.staticTargets = new HashMap<>();
@@ -129,16 +106,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     /**
      * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
-     * @param connectionId the id of the connection this publisher belongs to
-     * @param targets the targets configured for the connection
+     * @param connection the connection this publisher belongs to
      * @param session the jms session
      * @param connectionConfig configuration for all connections.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionId connectionId, final List<Target> targets, final Session session,
-            final ConnectionConfig connectionConfig) {
+    static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig) {
 
-        return Props.create(AmqpPublisherActor.class, connectionId, targets, session, connectionConfig);
+        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig);
     }
 
     @Override
@@ -170,8 +145,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
             this.backOff();
         } else {
-            log.info("Got closed JMS producer while already in backOff mode '{}'. Will ignore the closed info as this should" +
-                    " never happen (and also the backOff mechanism will create a producer soon)");
+            log.info("Got closed JMS producer while already in backOff mode '{}'." +
+                    " Will ignore the closed info as this should never happen " +
+                    "(and also the backOff mechanism will create a producer soon)");
         }
     }
 
@@ -188,11 +164,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @Override
     protected AmqpTarget toPublishTarget(final String address) {
         return AmqpTarget.fromTargetAddress(address);
-    }
-
-    @Override
-    protected AmqpTarget toReplyTarget(final String replyToAddress) {
-        return AmqpTarget.fromTargetAddress(replyToAddress);
     }
 
     @Override
@@ -280,8 +251,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         }
     }
 
-    private Message toJmsMessage(final ExternalMessage externalMessage)
-            throws JMSException {
+    private Message toJmsMessage(final ExternalMessage externalMessage) throws JMSException {
         final Message message;
         final Optional<String> optTextPayload = externalMessage.getTextPayload();
         if (optTextPayload.isPresent()) {
@@ -293,33 +263,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         } else {
             message = session.createMessage();
         }
+        JMSPropertyMapper.setPropertiesAndApplicationProperties(message, externalMessage.getHeaders(), log);
 
-        // some headers must be handled differently to be passed to amqp message
-        final Map<String, String> headers = externalMessage.getHeaders();
-        JMS_HEADER_MAPPING.entrySet().stream()
-                .filter(entry -> headers.containsKey(entry.getKey()))
-                .forEach(entry -> entry.getValue().accept(message, headers.get(entry.getKey())));
-
-        if (message instanceof JmsMessage) {
-            final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
-            if (facade instanceof AmqpJmsMessageFacade) {
-                final AmqpJmsMessageFacade amqpJmsMessageFacade = (AmqpJmsMessageFacade) facade;
-                externalMessage.getHeaders()
-                        .entrySet()
-                        .stream()
-                        // skip special jms properties in generic mapping
-                        .filter(h -> !JMS_HEADER_MAPPING.containsKey(h.getKey()))
-                        .forEach(entry -> {
-                            try {
-                                amqpJmsMessageFacade.setApplicationProperty(entry.getKey(), entry.getValue());
-                            } catch (final JMSException ex) {
-                                log.warning("Could not set application-property <{}>: {}",
-                                        entry.getKey(), jmsExceptionToString(ex));
-                            }
-                        });
-            }
-        }
-        return message;
+        // wrap the message to prevent Qpid client from setting properties willy-nilly.
+        return JMSMessageWorkaround.wrap((JmsMessage) message);
     }
 
     @Nullable

@@ -52,18 +52,18 @@
                 </configuration>
             </plugin>
 
-<!--            <plugin>-->
-<!--                <groupId>com.github.siom79.japicmp</groupId>-->
-<!--                <artifactId>japicmp-maven-plugin</artifactId>-->
-<!--                <configuration>-->
-<!--                    <parameter>-->
-<!--                        <excludes>-->
-<!--                            &lt;!&ndash; skip for now, it is a new module&ndash;&gt;-->
-<!--                            <skip>true</skip>-->
-<!--                        </excludes>-->
-<!--                    </parameter>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
+            <plugin>
+                <groupId>com.github.siom79.japicmp</groupId>
+                <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <excludes>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
+                        </excludes>
+                    </parameter>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

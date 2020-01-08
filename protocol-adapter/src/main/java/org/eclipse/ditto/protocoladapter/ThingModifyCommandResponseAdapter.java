@@ -29,6 +29,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertiesR
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesR
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 
@@ -75,6 +77,8 @@ final class ThingModifyCommandResponseAdapter extends AbstractThingAdapter<Thing
         addAclResponses(mappingStrategies);
 
         addAttributeResponses(mappingStrategies);
+
+        addDefinitionResponses(mappingStrategies);
 
         addFeatureResponses(mappingStrategies);
 
@@ -144,6 +148,17 @@ final class ThingModifyCommandResponseAdapter extends AbstractThingAdapter<Thing
         mappingStrategies.put(DeleteAttributeResponse.TYPE,
                 adaptable -> DeleteAttributeResponse.of(thingIdFrom(adaptable), attributePointerFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
+    }
+
+    private static void addDefinitionResponses(
+            final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
+        mappingStrategies.put(ModifyThingDefinitionResponse.TYPE,
+                adaptable -> isCreated(adaptable)
+                        ? ModifyThingDefinitionResponse.created(thingIdFrom(adaptable), thingDefinitionFrom(adaptable),
+                        dittoHeadersFrom(adaptable))
+                        : ModifyThingDefinitionResponse.modified(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(DeleteThingDefinitionResponse.TYPE,
+                adaptable -> DeleteThingDefinitionResponse.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
     }
 
     private static void addFeatureResponses(

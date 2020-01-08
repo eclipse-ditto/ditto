@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
@@ -32,19 +33,21 @@ import org.eclipse.ditto.model.policies.PolicyId;
 @NotThreadSafe
 final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuilder.FromScratch {
 
-   /*
-    * This builder is used by ImmutableThingFromCopyBuilder to reduce implementation overhead.
-    * Thus some fields and methods have to be package private - unfortunately.
-    */
+    /*
+     * This builder is used by ImmutableThingFromCopyBuilder to reduce implementation overhead.
+     * Thus some fields and methods have to be package private - unfortunately.
+     */
 
     @Nullable ThingId id;
     @Nullable ThingLifecycle lifecycle;
     @Nullable ThingRevision revision;
     @Nullable Instant modified;
+    @Nullable private JsonSchemaVersion schemaVersion;
     @Nullable private PolicyId policyId;
     @Nullable private AccessControlListBuilder aclBuilder;
     @Nullable private AttributesBuilder attributesBuilder;
     @Nullable private Attributes attributes;
+    @Nullable private ThingDefinition definition;
     @Nullable private FeaturesBuilder featuresBuilder;
     @Nullable private Features features;
 
@@ -54,6 +57,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         aclBuilder = null;
         attributesBuilder = null;
         attributes = null;
+        definition = null;
         featuresBuilder = null;
         features = null;
         lifecycle = null;
@@ -131,6 +135,24 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         if (null != attributesBuilder) {
             invokeOnAttributesBuilder(ab -> ab.remove(attributePath));
         }
+        return this;
+    }
+
+    @Override
+    public FromScratch setDefinition(@Nullable final ThingDefinition definition) {
+        this.definition = definition;
+        return this;
+    }
+
+    @Override
+    public FromScratch setNullDefinition() {
+        this.definition = NullThingDefinition.getInstance();
+        return this;
+    }
+
+    @Override
+    public FromScratch removeDefinition() {
+        definition = null;
         return this;
     }
 
@@ -404,9 +426,9 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Override
     public Thing build() {
         if (null != policyId) {
-            return ImmutableThing.of(id, policyId, getAttributes(), getFeatures(), lifecycle, revision, modified);
+            return ImmutableThing.of(id, null, policyId, definition, getAttributes(), getFeatures(), lifecycle, revision, modified);
         } else {
-            return ImmutableThing.of(id, getAcl(), getAttributes(), getFeatures(), lifecycle, revision, modified);
+            return ImmutableThing.of(id, getAcl(), null, definition, getAttributes(), getFeatures(), lifecycle, revision, modified);
         }
     }
 

@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
@@ -147,6 +148,9 @@ final class TestConstants {
 
         public static final String POLICY_ID = "example.com:testPolicy";
 
+        public static final ThingDefinition DEFINITION = ThingsModelFactory.newDefinition("example:test" +
+                ":definition");
+
         /**
          * A known lifecycle of a Thing.
          */
@@ -192,6 +196,7 @@ final class TestConstants {
         public static final org.eclipse.ditto.model.things.Thing THING = ThingsModelFactory.newThingBuilder()
                 .setId(THING_ID)
                 .setAttributes(ATTRIBUTES)
+                .setDefinition(DEFINITION)
                 .setFeatures(Feature.FEATURES)
                 .setLifecycle(LIFECYCLE)
                 .setPolicyId(POLICY_ID)

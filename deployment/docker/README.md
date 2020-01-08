@@ -28,12 +28,8 @@ service.
 
 ```yml
     ...
-    entrypoint:
-      - java
-      # Alternative approach for configuration of the service
-      - -Dditto.gateway.authentication.devops.password=foobar
-      - -jar
-      - starter.jar
+    # Alternative approach for configuration of the service
+    command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
 ```
 
 To get a list of available configuration options you may retrieve them from a running instance via:

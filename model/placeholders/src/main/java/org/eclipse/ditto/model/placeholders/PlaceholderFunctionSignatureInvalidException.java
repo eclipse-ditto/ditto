@@ -32,12 +32,13 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = PlaceholderFunctionSignatureInvalidException.ERROR_CODE)
-public final class PlaceholderFunctionSignatureInvalidException extends DittoRuntimeException {
+public final class PlaceholderFunctionSignatureInvalidException extends DittoRuntimeException
+        implements PlaceholderException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "placeholder.function.signature.invalid";
+    public static final String ERROR_CODE = PlaceholderException.ERROR_CODE_PREFIX + "function.signature.invalid";
 
     private static final String MESSAGE_TEMPLATE = "The function signature <fn:{0}{1}> could not be parsed.";
 
