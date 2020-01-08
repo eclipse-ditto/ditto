@@ -145,7 +145,7 @@ public class MessageMappingProcessorTest {
     @Test
     public void testGroupingOfTargets() {
         /*
-          expect 6 mapped messages:
+          expect 6 mappings:
            - 3 targets with 1 mapper  (can be grouped together, mapping is done once)  -> 1 message (with 3 targets)
            - 2 targets with 2 mappers (can be grouped together, mapping is done twice) -> 2 messages (with 2 targets)
            - 1 target  with 3 mappers (no grouping, mapping is done three times)       -> 3 messages (with 1 target)

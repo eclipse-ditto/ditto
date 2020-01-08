@@ -142,35 +142,28 @@ public final class MessageMappingProcessor {
     }
 
     /**
-     * Processes an {@link OutboundSignal} to 0..n {@link ExternalMessage}s.
+     * Processes an {@link OutboundSignal} to 0..n {@link OutboundSignal.Mapped} signals and passes them to the given
+     * {@link MappingResultHandler}.
      *
      * @param outboundSignal the outboundSignal to be processed
      * @param resultHandler handles the 0..n results of the mapping(s)
      */
     void process(final OutboundSignal outboundSignal, final MappingResultHandler<OutboundSignal.Mapped> resultHandler) {
-        final MappingTimer timer = MappingTimer.outbound(connectionId);
-        final Adaptable adaptable = timer.protocol(() -> protocolAdapter.toAdaptable(outboundSignal.getSource()));
-        enhanceLogFromAdaptable(adaptable);
-
+        final List<OutboundSignal.Mappable> mappableSignals;
         if (outboundSignal.getTargets().isEmpty()) {
-            // responses/errors do not have a target assigned, read mapper from internal header
+            // responses/errors do not have a target assigned, read mapper used for inbound message from internal header
             final PayloadMapping payloadMapping = outboundSignal.getSource()
                     .getDittoHeaders()
                     .getInboundPayloadMapper()
                     .map(ConnectivityModelFactory::newPayloadMapping)
-                    .orElseGet(ConnectivityModelFactory::emptyPayloadMapping);
+                    .orElseGet(ConnectivityModelFactory::emptyPayloadMapping); // fallback to default payload mapping
             final OutboundSignal.Mappable mappableSignal =
                     OutboundSignalFactory.newMappableOutboundSignal(outboundSignal.getSource(),
                             outboundSignal.getTargets(), payloadMapping);
-            final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
-            log.debug("Resolved mappers for response {} to targets {}: {}",
-                    outboundSignal.getSource().getDittoHeaders().getCorrelationId(), outboundSignal.getTargets(),
-                    mappers);
-            mappers.forEach(
-                    mapper -> convertOutboundMessage(mappableSignal, adaptable, mapper, timer, resultHandler));
+            mappableSignals = Collections.singletonList(mappableSignal);
         } else {
-            // group targets with exact same list of mappers together
-            final List<OutboundSignal.Mappable> outboundSignals = outboundSignal.getTargets()
+            // group targets with exact same list of mappers together to avoid redundant mappings
+            mappableSignals = outboundSignal.getTargets()
                     .stream()
                     .collect(Collectors.groupingBy(Target::getPayloadMapping, Collectors.toList()))
                     .entrySet()
@@ -178,15 +171,25 @@ public final class MessageMappingProcessor {
                     .map(e -> OutboundSignalFactory.newMappableOutboundSignal(outboundSignal.getSource(), e.getValue(),
                             e.getKey()))
                     .collect(Collectors.toList());
+        }
+        processMappableSignals(outboundSignal, mappableSignals, resultHandler);
+    }
 
-            for (final OutboundSignal.Mappable mappableSignal : outboundSignals) {
-                final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
-                log.debug("Resolved mappers for message {} to targets {}: {}",
-                        outboundSignal.getSource().getDittoHeaders().getCorrelationId(), outboundSignal.getTargets(),
-                        mappers);
-                mappers.forEach(
-                        mapper -> convertOutboundMessage(mappableSignal, adaptable, mapper, timer, resultHandler));
-            }
+    private void processMappableSignals(final OutboundSignal outboundSignal,
+            final List<OutboundSignal.Mappable> mappableSignals,
+            final MappingResultHandler<OutboundSignal.Mapped> resultHandler) {
+
+        final MappingTimer timer = MappingTimer.outbound(connectionId);
+        final Adaptable adaptable = timer.protocol(() -> protocolAdapter.toAdaptable(outboundSignal.getSource()));
+        enhanceLogFromAdaptable(adaptable);
+
+        for (final OutboundSignal.Mappable mappableSignal : mappableSignals) {
+            final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
+            final Optional<String> correlationId = mappableSignal.getSource().getDittoHeaders().getCorrelationId();
+            final List<Target> targets = mappableSignal.getTargets();
+            log.debug("Resolved mappers for message {} to targets {}: {}", correlationId, targets, mappers);
+            // convert messages in the order of payload mapping and forward to result handler
+            mappers.forEach(mapper -> convertOutboundMessage(mappableSignal, adaptable, mapper, timer, resultHandler));
         }
     }
 
