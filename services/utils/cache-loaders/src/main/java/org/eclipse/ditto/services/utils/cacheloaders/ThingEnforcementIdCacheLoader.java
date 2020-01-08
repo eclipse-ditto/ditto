@@ -16,18 +16,20 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -55,8 +57,8 @@ public final class ThingEnforcementIdCacheLoader
      * @param shardRegionProxy the shard-region-proxy.
      */
     public ThingEnforcementIdCacheLoader(final Duration askTimeout, final ActorRef shardRegionProxy) {
-        final Function<EntityId, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
-        final Function<Object, Entry<EntityIdWithResourceType>> responseTransformer =
+        final BiFunction<EntityId, CacheLookupContext, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
+        final BiFunction<Object, CacheLookupContext, Entry<EntityIdWithResourceType>> responseTransformer =
                 ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse;
 
         delegate =
@@ -70,7 +72,8 @@ public final class ThingEnforcementIdCacheLoader
         return delegate.asyncLoad(key, executor);
     }
 
-    private static Entry<EntityIdWithResourceType> handleSudoRetrieveThingResponse(final Object response) {
+    private static Entry<EntityIdWithResourceType> handleSudoRetrieveThingResponse(final Object response,
+            @Nullable final CacheLookupContext cacheLookupContext) {
         if (response instanceof SudoRetrieveThingResponse) {
             final SudoRetrieveThingResponse sudoRetrieveThingResponse = (SudoRetrieveThingResponse) response;
             final Thing thing = sudoRetrieveThingResponse.getThing();

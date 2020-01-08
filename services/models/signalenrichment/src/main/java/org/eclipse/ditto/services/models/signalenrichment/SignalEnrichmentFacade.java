@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.things;
+package org.eclipse.ditto.services.models.signalenrichment;
 
 import java.util.concurrent.CompletionStage;
 

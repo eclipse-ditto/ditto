@@ -10,28 +10,34 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.things;
+package org.eclipse.ditto.services.models.signalenrichment;
 
 import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
 
 /**
- * Default implementation of {@link SignalEnrichmentFacadeByRoundTripConfig}.
+ * Default implementation of {@link CachingSignalEnrichmentFacadeConfig}.
  */
 @Immutable
-public final class DefaultSignalEnrichmentFacadeByRoundTripConfig implements SignalEnrichmentFacadeByRoundTripConfig {
+public final class DefaultCachingSignalEnrichmentFacadeConfig implements CachingSignalEnrichmentFacadeConfig {
+
+    private static final String CACHE_CONFIG_PATH = "cache";
 
     private final Duration askTimeout;
+    private final CacheConfig cacheConfig;
 
-    private DefaultSignalEnrichmentFacadeByRoundTripConfig(final ConfigWithFallback configWithFallback) {
+    private DefaultCachingSignalEnrichmentFacadeConfig(final ConfigWithFallback configWithFallback) {
         this.askTimeout = configWithFallback.getDuration(
-                SignalEnrichmentFacadeByRoundTripConfigValue.ASK_TIMEOUT.getConfigPath());
+                CachingSignalEnrichmentFacadeConfigValue.ASK_TIMEOUT.getConfigPath());
+        cacheConfig = DefaultCacheConfig.of(configWithFallback, CACHE_CONFIG_PATH);
     }
 
     /**
@@ -41,14 +47,19 @@ public final class DefaultSignalEnrichmentFacadeByRoundTripConfig implements Sig
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultSignalEnrichmentFacadeByRoundTripConfig of(final Config config) {
-        return new DefaultSignalEnrichmentFacadeByRoundTripConfig(ConfigWithFallback.newInstance(config,
-                SignalEnrichmentFacadeByRoundTripConfigValue.values()));
+    public static DefaultCachingSignalEnrichmentFacadeConfig of(final Config config) {
+        return new DefaultCachingSignalEnrichmentFacadeConfig(ConfigWithFallback.newInstance(config,
+                CachingSignalEnrichmentFacadeConfigValue.values()));
     }
 
     @Override
     public Duration getAskTimeout() {
         return askTimeout;
+    }
+
+    @Override
+    public CacheConfig getCacheConfig() {
+        return cacheConfig;
     }
 
     @Override
@@ -59,19 +70,21 @@ public final class DefaultSignalEnrichmentFacadeByRoundTripConfig implements Sig
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultSignalEnrichmentFacadeByRoundTripConfig that = (DefaultSignalEnrichmentFacadeByRoundTripConfig) o;
-        return Objects.equals(askTimeout, that.askTimeout);
+        final DefaultCachingSignalEnrichmentFacadeConfig that = (DefaultCachingSignalEnrichmentFacadeConfig) o;
+        return Objects.equals(askTimeout, that.askTimeout) &&
+                Objects.equals(cacheConfig, that.cacheConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout);
+        return Objects.hash(askTimeout, cacheConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "askTimeout=" + askTimeout +
+                ", cacheConfig=" + cacheConfig +
                 "]";
     }
 }

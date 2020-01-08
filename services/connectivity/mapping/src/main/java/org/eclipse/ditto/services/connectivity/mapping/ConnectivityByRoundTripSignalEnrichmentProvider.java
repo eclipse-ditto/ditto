@@ -14,10 +14,10 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
-import org.eclipse.ditto.services.models.things.DefaultSignalEnrichmentFacadeByRoundTripConfig;
-import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.things.SignalEnrichmentFacadeByRoundTrip;
-import org.eclipse.ditto.services.models.things.SignalEnrichmentFacadeByRoundTripConfig;
+import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.signalenrichment.DefaultSignalEnrichmentFacadeByRoundTripConfig;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacadeByRoundTripConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -25,7 +25,7 @@ import akka.actor.ActorSystem;
 /**
  * Provider for Connectivity-service of thing-enriching facades that make a round-trip for each query.
  */
-public final class ConnectivityByRoundTripProvider implements ConnectivitySignalEnrichmentProvider {
+public final class ConnectivityByRoundTripSignalEnrichmentProvider implements ConnectivitySignalEnrichmentProvider {
 
     private final ActorRef commandHandler;
     private final SignalEnrichmentFacadeByRoundTripConfig signalEnrichmentFacadeByRoundTripConfig;
@@ -38,7 +38,7 @@ public final class ConnectivityByRoundTripProvider implements ConnectivitySignal
      * @param signalEnrichmentConfig Configuration for this provider.
      */
     @SuppressWarnings("unused")
-    public ConnectivityByRoundTripProvider(final ActorSystem actorSystem, final ActorRef commandHandler,
+    public ConnectivityByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem, final ActorRef commandHandler,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
         this.commandHandler = commandHandler;
         signalEnrichmentFacadeByRoundTripConfig =
@@ -47,7 +47,7 @@ public final class ConnectivityByRoundTripProvider implements ConnectivitySignal
 
     @Override
     public SignalEnrichmentFacade createFacade(final ConnectionId connectionId) {
-        return SignalEnrichmentFacadeByRoundTrip.of(commandHandler,
+        return ByRoundTripSignalEnrichmentFacade.of(commandHandler,
                 signalEnrichmentFacadeByRoundTripConfig.getAskTimeout());
     }
 }

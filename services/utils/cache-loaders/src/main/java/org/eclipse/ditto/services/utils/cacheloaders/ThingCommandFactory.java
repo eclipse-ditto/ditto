@@ -12,15 +12,18 @@
  */
 package org.eclipse.ditto.services.utils.cacheloaders;
 
+import java.util.Optional;
 import java.util.UUID;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,41 +42,66 @@ final class ThingCommandFactory {
      * Creates a sudo command for retrieving a thing.
      *
      * @param thingId the thingId.
+     * @param cacheLookupContext the context to apply when doing the cache lookup.
      * @return the created command.
-     * @deprecated thing ID is now typed. Use {@link #sudoRetrieveThing(org.eclipse.ditto.model.things.ThingId)}
-     * instead.
      */
-    @Deprecated
-    static SudoRetrieveThing sudoRetrieveThing(final String thingId) {
-        return sudoRetrieveThing(ThingId.of(thingId));
-    }
-
-
-    static SudoRetrieveThing sudoRetrieveThing(final EntityId thingId) {
-        return sudoRetrieveThing(ThingId.of(thingId));
+    static SudoRetrieveThing sudoRetrieveThing(final EntityId thingId,
+            @Nullable final CacheLookupContext cacheLookupContext) {
+        return sudoRetrieveThing(ThingId.of(thingId), cacheLookupContext);
     }
 
     /**
      * Creates a sudo command for retrieving a thing.
      *
      * @param thingId the thingId.
+     * @param cacheLookupContext the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrieveThing sudoRetrieveThing(final ThingId thingId) {
+    static SudoRetrieveThing sudoRetrieveThing(final ThingId thingId,
+            @Nullable final CacheLookupContext cacheLookupContext) {
         LOGGER.debug("Sending SudoRetrieveThing for Thing with ID <{}>", thingId);
-        final JsonFieldSelector jsonFieldSelector = JsonFieldSelector.newInstance(
-                Thing.JsonFields.ID.getPointer(),
-                Thing.JsonFields.REVISION.getPointer(),
-                Thing.JsonFields.ACL.getPointer(),
-                Thing.JsonFields.POLICY_ID.getPointer());
-        return SudoRetrieveThing.withOriginalSchemaVersion(thingId, jsonFieldSelector,
-                DittoHeaders.newBuilder().correlationId(getCorrelationId(thingId)).build());
+        return SudoRetrieveThing.withOriginalSchemaVersion(thingId,
+                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getJsonFieldSelector).orElse(null),
+                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders).orElseGet(() ->
+                        DittoHeaders.newBuilder().correlationId(getCorrelationId(thingId)).build())
+        );
+    }
+
+    /**
+     * Creates a command for retrieving a thing.
+     *
+     * @param thingId the thingId.
+     * @param cacheLookupContext the context to apply when doing the cache lookup.
+     * @return the created command.
+     */
+    static RetrieveThing retrieveThing(final EntityId thingId, @Nullable final CacheLookupContext cacheLookupContext) {
+        return retrieveThing(ThingId.of(thingId), cacheLookupContext);
+    }
+
+    /**
+     * Creates a command for retrieving a thing.
+     *
+     * @param thingId the thingId.
+     * @param cacheLookupContext the context to apply when doing the cache lookup.
+     * @return the created command.
+     */
+    static RetrieveThing retrieveThing(final ThingId thingId, @Nullable final CacheLookupContext cacheLookupContext) {
+        LOGGER.debug("Sending RetrieveThing for Thing with ID <{}>", thingId);
+        return RetrieveThing.getBuilder(thingId,
+                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders).orElseGet(() ->
+                        DittoHeaders.newBuilder().correlationId(getCorrelationId(thingId)).build())
+        )
+                .withSelectedFields(
+                        Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getJsonFieldSelector)
+                                .orElse(null)
+                )
+                .build();
     }
 
     private static String getCorrelationId(final ThingId thingId) {
         return LogUtil.getCorrelationId(() -> {
             final String correlationId = UUID.randomUUID().toString();
-            LOGGER.debug("Found no correlation-id for SudoRetrieveThing on Thing <{}>. " +
+            LOGGER.debug("Found no correlation-id for (Sudo)RetrieveThing on Thing <{}>. " +
                     "Using new correlation-id: {}", thingId, correlationId);
             return correlationId;
         });

@@ -56,7 +56,7 @@ import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.events.things.ThingEvent;

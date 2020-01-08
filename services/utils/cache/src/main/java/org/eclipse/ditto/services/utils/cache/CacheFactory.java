@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.concurrent.Executor;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
@@ -46,6 +47,19 @@ public final class CacheFactory {
     }
 
     /**
+     * Create a new entity ID from the given  {@code resourceType} and {@code id}.
+     *
+     * @param resourceType the resource type.
+     * @param id the entity ID.
+     * @param cacheLookupContext additional context information to use for the cache lookup.
+     * @return the entity ID with resource type object.
+     */
+    public static EntityIdWithResourceType newEntityId(final String resourceType, final EntityId id,
+            final CacheLookupContext cacheLookupContext) {
+        return ImmutableEntityIdWithResourceType.of(resourceType, id, cacheLookupContext);
+    }
+
+    /**
      * Deserialize entity ID with resource type from a string.
      *
      * @param string the string.
@@ -60,17 +74,17 @@ public final class CacheFactory {
      * Creates a cache.
      *
      * @param cacheConfig the {@link org.eclipse.ditto.services.utils.cache.config.CacheConfig} which defines the cache's configuration.
-     * @param cacheName the name of the cache. Used as metric label.
+     * @param cacheName the name of the cache or {@code null} if metrics should be disabled. Used as metric label.
      * @param executor the executor to use in the cache.
      * @param <K> the type of the cache keys.
      * @param <V> the type of the cache values.
      * @return the created cache.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <K, V> Cache<K, V> createCache(final CacheConfig cacheConfig, final String cacheName,
+    public static <K, V> Cache<K, V> createCache(final CacheConfig cacheConfig, @Nullable final String cacheName,
             final Executor executor) {
 
-        return CaffeineCache.of(caffeine(cacheConfig, executor), checkNotNull(cacheName, "cache name"));
+        return CaffeineCache.of(caffeine(cacheConfig, executor), cacheName);
     }
 
     /**
@@ -78,7 +92,7 @@ public final class CacheFactory {
      *
      * @param cacheLoader the cache loader.
      * @param cacheConfig the the cache's configuration.
-     * @param cacheName the name of the cache. Used as metric label.
+     * @param cacheName the name of the cache or {@code null} if metrics should be disabled. Used as metric label.
      * @param executor the executor to use in the cache.
      * @param <K> the type of the cache keys.
      * @param <V> the type of the cache values.
@@ -87,11 +101,10 @@ public final class CacheFactory {
      */
     public static <K, V> Cache<K, V> createCache(final AsyncCacheLoader<K, V> cacheLoader,
             final CacheConfig cacheConfig,
-            final String cacheName,
+            @Nullable final String cacheName,
             final Executor executor) {
 
         checkNotNull(cacheLoader, "AsyncCacheLoader");
-        checkNotNull(cacheName, "cache name");
 
         return CaffeineCache.of(caffeine(cacheConfig, executor), cacheLoader, cacheName);
     }

@@ -84,7 +84,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -283,7 +283,7 @@ public final class MessageMappingProcessorActor
             return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
         }
         final JsonFieldSelector extraFields = filteredTopic.getExtraFields().get();
-        final Target target = outboundSignal.getTargets().get(0);
+        final Target target = outboundSignal.getTargets().get(0); // TODO TJ is this sufficient to get target 0?
 
         final ThingId thingId = ThingId.of(outboundSignal.getEntityId());
         final DittoHeaders headers = outboundSignal.getSource()

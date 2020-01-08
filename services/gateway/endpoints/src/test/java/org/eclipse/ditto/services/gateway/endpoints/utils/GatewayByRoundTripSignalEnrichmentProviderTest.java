@@ -29,9 +29,9 @@ import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link GatewayByRoundTripProvider}.
+ * Tests {@link GatewayByRoundTripSignalEnrichmentProvider}.
  */
-public final class GatewayByRoundTripProviderTest {
+public final class GatewayByRoundTripSignalEnrichmentProviderTest {
 
     private ActorSystem actorSystem;
     private SignalEnrichmentConfig signalEnrichmentConfig;
@@ -55,7 +55,7 @@ public final class GatewayByRoundTripProviderTest {
         new TestKit(actorSystem) {{
             final GatewaySignalEnrichmentProvider underTest =
                     GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), signalEnrichmentConfig);
-            assertThat(underTest).isInstanceOf(GatewayByRoundTripProvider.class);
+            assertThat(underTest).isInstanceOf(GatewayByRoundTripSignalEnrichmentProvider.class);
         }};
     }
 

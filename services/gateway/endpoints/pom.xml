@@ -78,6 +78,10 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-signalenrichment</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-thingsearch</artifactId>
         </dependency>
 

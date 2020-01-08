@@ -1143,6 +1143,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
          * This however will also limit throughput as the used hashing key is often connection source address based
          * and does not yet "know" of the Thing ID.
          */
+        // TODO TJ does this even resize dynamically? there is no resizer configured
         return getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
                 .withDispatcher("message-mapping-processor-dispatcher")
                 .props(props), MessageMappingProcessorActor.ACTOR_NAME);

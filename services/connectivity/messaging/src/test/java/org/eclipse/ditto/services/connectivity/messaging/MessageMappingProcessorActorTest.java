@@ -65,7 +65,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.models.things.SignalEnrichmentFacadeByRoundTrip;
+import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -216,7 +216,7 @@ public final class MessageMappingProcessorActorTest {
             // THEN: MessageMappingProcessor loads a signal-enrichment-facade lazily
             commandHandlerProbe.expectMsg(MessageMappingProcessorActor.Request.GET_SIGNAL_ENRICHMENT_PROVIDER);
             commandHandlerProbe.reply((ConnectivitySignalEnrichmentProvider)
-                    connectionId -> SignalEnrichmentFacadeByRoundTrip.of(getRef(), Duration.ofSeconds(10L)));
+                    connectionId -> ByRoundTripSignalEnrichmentFacade.of(getRef(), Duration.ofSeconds(10L)));
 
             // THEN: Receive a RetrieveThing command from the facade.
             final RetrieveThing retrieveThing = expectMsgClass(RetrieveThing.class);

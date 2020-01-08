@@ -21,6 +21,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.junit.Test;
@@ -43,12 +44,14 @@ public class ImmutableEntityIdWithResourceTypeTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableEntityIdWithResourceType.class,
                 areImmutable(),
-                provided(EntityId.class).isAlsoImmutable());
+                provided(EntityId.class, JsonFieldSelector.class, CacheLookupContext.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableEntityIdWithResourceType.class).verify();
+        EqualsVerifier.forClass(ImmutableEntityIdWithResourceType.class)
+                .withIgnoredFields("cacheLookupContext")
+                .verify();
     }
 
     @Test

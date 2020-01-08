@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.things;
+package org.eclipse.ditto.services.models.signalenrichment;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -32,12 +32,12 @@ import akka.pattern.Patterns;
 /**
  * Retrieve fixed parts of things by asking an actor.
  */
-public final class SignalEnrichmentFacadeByRoundTrip implements SignalEnrichmentFacade {
+public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichmentFacade {
 
     private final ActorRef commandHandler;
     private final Duration askTimeout;
 
-    private SignalEnrichmentFacadeByRoundTrip(final ActorRef commandHandler, final Duration askTimeout) {
+    private ByRoundTripSignalEnrichmentFacade(final ActorRef commandHandler, final Duration askTimeout) {
         this.commandHandler = checkNotNull(commandHandler, "commandHandler");
         this.askTimeout = checkNotNull(askTimeout, "askTimeout");
     }
@@ -50,8 +50,8 @@ public final class SignalEnrichmentFacadeByRoundTrip implements SignalEnrichment
      * @return The facade.
      * @throws java.lang.NullPointerException if any argument is null.
      */
-    public static SignalEnrichmentFacadeByRoundTrip of(final ActorRef commandHandler, final Duration askTimeout) {
-        return new SignalEnrichmentFacadeByRoundTrip(commandHandler, askTimeout);
+    public static ByRoundTripSignalEnrichmentFacade of(final ActorRef commandHandler, final Duration askTimeout) {
+        return new ByRoundTripSignalEnrichmentFacade(commandHandler, askTimeout);
     }
 
     @Override
@@ -66,7 +66,7 @@ public final class SignalEnrichmentFacadeByRoundTrip implements SignalEnrichment
 
         final CompletionStage<Object> askResult = Patterns.ask(commandHandler, command, askTimeout);
 
-        return askResult.thenCompose(SignalEnrichmentFacadeByRoundTrip::extractPartialThing);
+        return askResult.thenCompose(ByRoundTripSignalEnrichmentFacade::extractPartialThing);
     }
 
     private static CompletionStage<JsonObject> extractPartialThing(final Object object) {

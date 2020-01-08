@@ -790,6 +790,11 @@
                 <artifactId>ditto-services-models-thingsearch</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-models-signalenrichment</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>

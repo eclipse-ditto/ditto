@@ -69,7 +69,7 @@ import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePubli
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.LimitRateByRejection;
 import org.eclipse.ditto.services.utils.akka.logging.AutoCloseableSlf4jLogger;

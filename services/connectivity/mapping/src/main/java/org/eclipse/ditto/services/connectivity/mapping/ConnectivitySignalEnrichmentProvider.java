@@ -16,14 +16,14 @@ import java.util.Arrays;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
-import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * Provider of {@link org.eclipse.ditto.services.models.things.SignalEnrichmentFacade} to be loaded by reflection.
+ * Provider of {@link SignalEnrichmentFacade} to be loaded by reflection.
  * Implementations MUST have a public constructor taking the following parameters as arguments:
  * <ul>
  * <li>ActorSystem actorSystem: actor system in which this provider is loaded,</li>

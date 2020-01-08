@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
@@ -62,7 +62,7 @@ public interface SessionedJsonifiable {
      * @param facade the signal enrichment facade with which extra fields are retrieved.
      * @return future of the result of retrieval.
      */
-    CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade);
+    CompletionStage<JsonObject> retrieveExtraFields(@Nullable SignalEnrichmentFacade facade);
 
     /**
      * Retrieve the streaming session if this is a signal and has an associated session.

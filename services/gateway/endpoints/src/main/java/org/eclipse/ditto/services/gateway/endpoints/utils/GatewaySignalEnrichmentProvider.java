@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.utils;
 import java.util.Arrays;
 
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
-import org.eclipse.ditto.services.models.things.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 
 import akka.actor.ActorRef;
@@ -23,7 +23,7 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 
 /**
- * Provider of {@link org.eclipse.ditto.services.models.things.SignalEnrichmentFacade} to be loaded by reflection.
+ * Provider of {@link SignalEnrichmentFacade} to be loaded by reflection.
  * Implementations MUST have a public constructor taking the following parameters as arguments:
  * <ul>
  * <li>ActorSystem actorSystem: actor system in which this provider is loaded,</li>
@@ -34,7 +34,7 @@ import akka.http.javadsl.model.HttpRequest;
 public interface GatewaySignalEnrichmentProvider {
 
     /**
-     * Create a {@link org.eclipse.ditto.services.models.things.SignalEnrichmentFacade} from the HTTP request that
+     * Create a {@link SignalEnrichmentFacade} from the HTTP request that
      * created the websocket or SSE stream that requires it.
      *
      * @param request the HTTP request.

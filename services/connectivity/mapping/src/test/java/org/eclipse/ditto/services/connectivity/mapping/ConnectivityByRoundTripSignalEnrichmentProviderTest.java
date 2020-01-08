@@ -30,13 +30,13 @@ import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link ConnectivityByRoundTripProvider}.
+ * Tests {@link ConnectivityByRoundTripSignalEnrichmentProvider}.
  */
-public final class ConnectivityByRoundTripProviderTest {
+public final class ConnectivityByRoundTripSignalEnrichmentProviderTest {
 
     private final SignalEnrichmentConfig config = DefaultSignalEnrichmentConfig.of(ConfigFactory.empty()
             .withValue("signal-enrichment.provider",
-                    ConfigValueFactory.fromAnyRef(ConnectivityByRoundTripProvider.class.getCanonicalName()))
+                    ConfigValueFactory.fromAnyRef(ConnectivityByRoundTripSignalEnrichmentProvider.class.getCanonicalName()))
             .withValue("signal-enrichment.provider-config.ask-timeout",
                     ConfigValueFactory.fromAnyRef(Duration.ofDays(1L))));
 
@@ -61,7 +61,7 @@ public final class ConnectivityByRoundTripProviderTest {
         new TestKit(createActorSystem()) {{
             final ConnectivitySignalEnrichmentProvider
                     underTest = ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), config);
-            assertThat(underTest).isInstanceOf(ConnectivityByRoundTripProvider.class);
+            assertThat(underTest).isInstanceOf(ConnectivityByRoundTripSignalEnrichmentProvider.class);
         }};
     }
 
