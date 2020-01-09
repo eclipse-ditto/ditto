@@ -19,6 +19,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -109,6 +112,40 @@ public class DittoRuntimeException extends RuntimeException
                 .cause(getCause())
                 .description(description)
                 .href(href);
+    }
+
+    /**
+     * Takes the throwable and tries to map it to a DittoRuntimeException.
+     * <p>
+     * If the throwable is a {@link CompletionException} or a {@link ExecutionException},
+     * this method tries to map the cause of this exception to a DittoRuntimeException.
+     * </p>
+     *
+     * @param throwable the throwable to map.
+     * @param alternativeExceptionBuilder used to build an alternative DittoRuntimeException if the throwable could not
+     * be mapped.
+     * @return either the mapped exception or the exception built by {@code alternativeExceptionBuilder}.
+     */
+    public static DittoRuntimeException asDittoRuntimeException(final Throwable throwable,
+            final Function<Throwable, DittoRuntimeException> alternativeExceptionBuilder) {
+
+        final Throwable cause = getRootCause(throwable);
+        if (cause instanceof DittoRuntimeException) {
+            return (DittoRuntimeException) cause;
+        }
+
+        return alternativeExceptionBuilder.apply(cause);
+    }
+
+    private static Throwable getRootCause(final Throwable throwable) {
+        if (throwable instanceof CompletionException || throwable instanceof ExecutionException) {
+            @Nullable final Throwable cause = throwable.getCause();
+            if (null != cause) {
+                return getRootCause(cause);
+            }
+        }
+
+        return throwable;
     }
 
     /**

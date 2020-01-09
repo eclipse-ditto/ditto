@@ -16,7 +16,6 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -333,19 +332,12 @@ public abstract class AbstractEnforcement<T extends Signal> {
     protected Contextual<WithDittoHeaders> handleExceptionally(final Throwable throwable) {
         final Contextual<T> newContext = context.withReceiver(context.getSender());
 
-        final Throwable cause;
-        if (throwable instanceof CompletionException || throwable instanceof ExecutionException) {
-            cause = throwable.getCause();
-        } else {
-            cause = throwable;
-        }
+        final DittoRuntimeException dittoRuntimeException =
+                DittoRuntimeException.asDittoRuntimeException(throwable,
+                        cause -> GatewayInternalErrorException.newBuilder()
+                                .cause(cause)
+                                .build());
 
-        if (cause instanceof DittoRuntimeException) {
-            return newContext.withMessage((WithDittoHeaders) cause);
-        } else {
-            return newContext.withMessage(GatewayInternalErrorException.newBuilder()
-                    .cause(cause)
-                    .build());
-        }
+        return newContext.withMessage(dittoRuntimeException);
     }
 }

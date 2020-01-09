@@ -46,6 +46,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableTarget implements Target {
 
+    /**
+     * Default header mapping for legacy targets with no header mapping configured.
+     */
+    static final HeaderMapping DEFAULT_HEADER_MAPPING = ImmutableSource.DEFAULT_SOURCE_HEADER_MAPPING;
+
     private final String address;
     private final Set<FilteredTopic> topics;
     @Nullable private final Integer qos;
@@ -110,14 +115,14 @@ final class ImmutableTarget implements Target {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(Target.JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(Target.JsonFields.ADDRESS, address, predicate);
-        jsonObjectBuilder.set(Target.JsonFields.TOPICS, topics.stream()
+        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
+        jsonObjectBuilder.set(JsonFields.ADDRESS, address, predicate);
+        jsonObjectBuilder.set(JsonFields.TOPICS, topics.stream()
                 .map(FilteredTopic::toString)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
         if (qos != null) {
-            jsonObjectBuilder.set(Target.JsonFields.QOS, qos, predicate);
+            jsonObjectBuilder.set(JsonFields.QOS, qos, predicate);
         }
         if (!authorizationContext.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
@@ -127,7 +132,7 @@ final class ImmutableTarget implements Target {
         }
 
         if (headerMapping != null) {
-            jsonObjectBuilder.set(Target.JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate),
+            jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate),
                     predicate);
         }
 
@@ -166,12 +171,12 @@ final class ImmutableTarget implements Target {
                 AuthorizationModelFactory.newAuthContext(authorizationSubjects);
 
         final HeaderMapping readHeaderMapping =
-                jsonObject.getValue(Target.JsonFields.HEADER_MAPPING)
+                jsonObject.getValue(JsonFields.HEADER_MAPPING)
                         .map(ImmutableHeaderMapping::fromJson)
                         .orElse(null);
 
         final PayloadMapping readMapping =
-                jsonObject.getValue(Target.JsonFields.PAYLOAD_MAPPING)
+                jsonObject.getValue(JsonFields.PAYLOAD_MAPPING)
                         .map(ImmutablePayloadMapping::fromJson)
                         .orElse(ConnectivityModelFactory.emptyPayloadMapping());
 

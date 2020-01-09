@@ -40,7 +40,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveConnectionStatus.TYPE_PREFIX, name = RetrieveConnectionStatus.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = RetrieveConnectionStatus.NAME)
 public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConnectionStatus>
         implements ConnectivityQueryCommand<RetrieveConnectionStatus> {
 
@@ -99,8 +99,7 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static RetrieveConnectionStatus fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
+    public static RetrieveConnectionStatus fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveConnectionStatus>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
             final ConnectionId connectionId = ConnectionId.of(readConnectionId);
@@ -112,6 +111,7 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
                 predicate);
@@ -139,14 +139,20 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveConnectionStatus);
+        return other instanceof RetrieveConnectionStatus;
     }
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) {return true;}
-        if (o == null || getClass() != o.getClass()) {return false;}
-        if (!super.equals(o)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final RetrieveConnectionStatus that = (RetrieveConnectionStatus) o;
         return Objects.equals(connectionId, that.connectionId);
     }

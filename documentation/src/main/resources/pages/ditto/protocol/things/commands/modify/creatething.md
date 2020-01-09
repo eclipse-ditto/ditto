@@ -10,6 +10,7 @@ Creates a new Thing with ID ``com.acme:xdk_53`` that uses an existing Policy wit
   "value": {
     "thingId": "com.acme:xdk_53",
     "policyId": "com.acme:the_policy_id",
+    "definition": "com.acme:XDKmodel:1.0.0",
     "attributes": {
       "location": {
         "latitude": 44.673856,

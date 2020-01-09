@@ -18,6 +18,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -40,8 +41,14 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping) {
         return RabbitMQConsumerActor.props("rmq-consumer", mappingActor,
-                TestConstants.Authorization.AUTHORIZATION_CONTEXT, ENFORCEMENT, TestConstants.HEADER_MAPPING,
-                payloadMapping, CONNECTION_ID);
+                ConnectivityModelFactory.newSourceBuilder()
+                        .address("rmq-consumer")
+                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                        .enforcement(ENFORCEMENT)
+                        .headerMapping(TestConstants.HEADER_MAPPING)
+                        .payloadMapping(payloadMapping)
+                        .build(),
+                CONNECTION_ID);
     }
 
     @Override

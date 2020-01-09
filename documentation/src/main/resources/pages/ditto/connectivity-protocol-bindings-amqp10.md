@@ -20,12 +20,49 @@ application/vnd.eclipse.ditto+json
 If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
 be configured for the AMQP 1.0 connection in order to transform the messages. 
 
-## AMQP 1.0 properties
+## AMQP 1.0 properties and application properties
 
-Supported AMQP 1.0 properties which are interpreted in a specific way are:
+When set as external headers by outgoing payload or header mapping, the properties defined by AMQP 1.0 specification are
+set to the corresponding header value. Conversely, the values of AMQP 1.0 properties are available for incoming payload
+and header mapping as external headers. The supported AMQP 1.0 properties are:
 
-* `content-type`: for defining the Ditto Protocol content-type
-* `correlation-id`: for correlating request messages to responses
+* `message-id`
+* `user-id`
+* `to`
+* `subject`
+* `reply-to`
+* `correlation-id`
+* `content-type`
+* `absolute-expiry-time`
+* `creation-time`
+* `group-id`
+* `group-sequence`
+* `reply-to-group-id`
+
+External headers not on this list are mapped to AMQP application properties.
+To set an application property whose name is identical to an AMQP 1.0 property, prefix it by
+`amqp.application.property:`. The following [target header mapping](basic-connections.html#target-header-mapping) sets
+the application property `to` to the value of the Ditto protocol header `reply-to`:
+```json
+{
+  "headerMapping": {
+    "amqp.application.property:to": "{%raw%}{{ header:reply-to }}{%endraw%}"
+  }
+}
+```
+
+To read an application property whose name is identical to an AMQP 1.0 property, prefix it by
+`amqp.application.property:`. The following [source header mapping](basic-connections.html#source-header-mapping) sets
+the Ditto protocol header `reply-to` to the value of the application property `to`:
+```json
+{
+  "headerMapping": {
+    "reply-to": "{%raw%}{{ header:amqp.application.property:to }}{%endraw%}"
+  }
+}
+```
+
+{% include note.html content="For now, setting or reading the AMQP 1.0 property 'content-encoding' is impossible." %}
 
 ## Specific connection configuration
 

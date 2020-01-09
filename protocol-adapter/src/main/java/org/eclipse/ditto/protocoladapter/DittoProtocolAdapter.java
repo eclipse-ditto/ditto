@@ -299,6 +299,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         return thingEventAdapter.toAdaptable(thingEvent, channel);
     }
 
+    @Override
+    public HeaderTranslator headerTranslator() {
+        return headerTranslator;
+    }
+
     private Signal<?> fromLiveAdaptable(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
 

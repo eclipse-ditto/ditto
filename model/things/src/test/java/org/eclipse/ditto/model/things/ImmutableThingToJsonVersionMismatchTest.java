@@ -61,6 +61,7 @@ public final class ImmutableThingToJsonVersionMismatchTest {
         final JsonObject expectedJsonV1 = jsonV2.toBuilder()
                 .set(Thing.JsonFields.ACL, EMPTY_ACL_JSON)
                 .remove(Thing.JsonFields.POLICY_ID)
+                .remove(Thing.JsonFields.DEFINITION)
                 .build();
 
         final JsonObject actualJsonV1 = THING_V2.toJson(JsonSchemaVersion.V_1);
@@ -74,6 +75,7 @@ public final class ImmutableThingToJsonVersionMismatchTest {
         final JsonObject expectedJsonV1WithAllFields = jsonV2WithAllFields.toBuilder()
                 .set(Thing.JsonFields.ACL, EMPTY_ACL_JSON)
                 .remove(Thing.JsonFields.POLICY_ID)
+                .remove(Thing.JsonFields.DEFINITION)
                 .set(Thing.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_1.toInt())
                 .build();
 

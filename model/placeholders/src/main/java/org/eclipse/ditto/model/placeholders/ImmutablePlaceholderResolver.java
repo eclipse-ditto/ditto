@@ -27,23 +27,15 @@ final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
 
     private final Placeholder<T> placeholder;
     @Nullable private final T placeholderSource;
-    private final boolean forValidation;
 
-    ImmutablePlaceholderResolver(final Placeholder<T> placeholder, @Nullable final T placeholderSource,
-            boolean forValidation) {
+    ImmutablePlaceholderResolver(final Placeholder<T> placeholder, @Nullable final T placeholderSource) {
         this.placeholder = placeholder;
         this.placeholderSource = placeholderSource;
-        this.forValidation = forValidation;
     }
 
     @Override
     public Optional<T> getPlaceholderSource() {
         return Optional.ofNullable(placeholderSource);
-    }
-
-    @Override
-    public boolean isForValidation() {
-        return forValidation;
     }
 
     @Override
@@ -75,14 +67,13 @@ final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
             return false;
         }
         final ImmutablePlaceholderResolver<?> that = (ImmutablePlaceholderResolver<?>) o;
-        return forValidation == that.forValidation &&
-                Objects.equals(placeholder, that.placeholder) &&
+        return Objects.equals(placeholder, that.placeholder) &&
                 Objects.equals(placeholderSource, that.placeholderSource);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(placeholder, placeholderSource, forValidation);
+        return Objects.hash(placeholder, placeholderSource);
     }
 
 
@@ -91,7 +82,6 @@ final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
         return getClass().getSimpleName() + " [" +
                 "placeholder=" + placeholder +
                 ", value=" + placeholderSource +
-                ", forValidation=" + forValidation +
                 "]";
     }
 }

@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
@@ -39,6 +41,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
@@ -50,6 +53,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinition;
 
 /**
  * Registry to map thing commands to access exceptions.
@@ -87,6 +91,9 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
 
         mappingStrategies.put(ModifyPolicyId.TYPE, ThingCommandToAccessExceptionRegistry::commandToThingException);
 
+        mappingStrategies.put(ModifyThingDefinition.TYPE, ThingCommandToAccessExceptionRegistry::commandToDefinitionException);
+        mappingStrategies.put(DeleteThingDefinition.TYPE, ThingCommandToAccessExceptionRegistry::commandToDefinitionException);
+
         mappingStrategies.put(ModifyAttributes.TYPE,
                 ThingCommandToAccessExceptionRegistry::commandToAttributesException);
         mappingStrategies.put(DeleteAttributes.TYPE,
@@ -122,7 +129,8 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
                         ((RetrieveAclEntry) command).getAuthorizationSubject())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
-
+        mappingStrategies.put(RetrieveThingDefinition.TYPE,
+                ThingCommandToAccessExceptionRegistry::commandToDefinitionException);
         mappingStrategies.put(RetrieveAttribute.TYPE,
                 ThingCommandToAccessExceptionRegistry::commandToAttributeException);
         mappingStrategies.put(RetrieveAttributes.TYPE,
@@ -141,6 +149,12 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
 
     private static ThingNotAccessibleException commandToThingException(final ThingCommand command) {
         return ThingNotAccessibleException.newBuilder(command.getThingEntityId())
+                .dittoHeaders(command.getDittoHeaders())
+                .build();
+    }
+
+    private static ThingDefinitionNotAccessibleException commandToDefinitionException(final ThingCommand command) {
+        return ThingDefinitionNotAccessibleException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }

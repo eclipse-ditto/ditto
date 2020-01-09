@@ -284,7 +284,6 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
                         JsonSchemaVersion.V_2);
 
         /**
-         *
          * JSON field definition for the Feature's properties as {@link org.eclipse.ditto.json.JsonObject}.
          */
         public static final JsonFieldDefinition<JsonObject> PROPERTIES =

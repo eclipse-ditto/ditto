@@ -14,11 +14,11 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -32,6 +32,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.HttpEntity;
+import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -80,7 +81,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                 });
 
                 // WHEN: the publisher is requested to send a message
-                final OutboundSignal.WithExternalMessage outboundSignal = getMockOutboundSignal();
+                final OutboundSignal.Mapped outboundSignal = getMockOutboundSignal();
                 final ActorRef underTest = childActorOf(getPublisherActorProps());
                 underTest.tell(outboundSignal, getRef());
 
@@ -94,8 +95,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return HttpPublisherActor.props(TestConstants.createRandomConnectionId(), Collections.emptyList(),
-                httpPushFactory);
+        return HttpPublisherActor.props(TestConstants.createConnection(), httpPushFactory);
     }
 
     @Override
@@ -129,8 +129,23 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                 .toStrict(60_000L, ActorMaterializer.create(actorSystem))
                 .toCompletableFuture()
                 .join();
-        assertThat(entity.getContentType().binary()).isFalse();
         assertThat(entity.getData().utf8String()).isEqualTo("payload");
+        if (!entity.getContentType().toString().equals(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)) {
+            // Ditto protocol content type is parsed as binary for some reason
+            assertThat(entity.getContentType().binary()).isFalse();
+        }
+    }
+
+    @Override
+    protected void verifyPublishedMessageToReplyTarget() throws Exception {
+        final HttpRequest request = received.take();
+        assertThat(received).hasSize(0);
+        assertThat(request.method()).isEqualTo(HttpMethods.POST);
+        assertThat(request.getUri().getPathString()).isEqualTo("/replyTarget/thing:id");
+        assertThat(request.getHeader("mappedHeader1"))
+                .contains(HttpHeader.parse("mappedHeader1", "original-header-value"));
+        assertThat(request.getHeader("mappedHeader2"))
+                .contains(HttpHeader.parse("mappedHeader2", "thing:id"));
     }
 
     private static final class DummyHttpPushFactory implements HttpPushFactory {
@@ -145,7 +160,9 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
         @Override
         public HttpRequest newRequest(final HttpPublishTarget httpPublishTarget) {
-            final Uri uri = Uri.create("http://" + hostname + ":12345/" + httpPublishTarget.getPathWithQuery());
+            final String separator = httpPublishTarget.getPathWithQuery().startsWith("/") ? "" : "/";
+            final Uri uri =
+                    Uri.create("http://" + hostname + ":12345" + separator + httpPublishTarget.getPathWithQuery());
             return HttpRequest.create().withMethod(httpPublishTarget.getMethod()).withUri(uri);
         }
 

@@ -211,7 +211,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     }
 
     private String applyPlaceholderReplacement(final String template, final ExpressionResolver expressionResolver) {
-        return PlaceholderFilter.apply(template, expressionResolver, false);
+        return PlaceholderFilter.apply(template, expressionResolver);
     }
 
     private static ExpressionResolver getExpressionResolver(final Map<String, String> headers) {

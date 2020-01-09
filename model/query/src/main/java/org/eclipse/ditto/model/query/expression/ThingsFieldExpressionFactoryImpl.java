@@ -129,6 +129,9 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
         if (FieldExpressionUtil.isAttributeFieldName(propertyName)) {
             return new AttributeExpressionImpl(FieldExpressionUtil.stripAttributesPrefix(propertyName));
         }
+        if (FieldExpressionUtil.isDefinitionFieldName(propertyName)){
+            return new SimpleFieldExpressionImpl(propertyName);
+        }
 
         final String fieldName = simpleFieldMappings.get(propertyName);
         if (fieldName != null) {

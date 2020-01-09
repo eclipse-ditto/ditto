@@ -12,6 +12,12 @@
       "type": "string",
       "description": "Links to the ID of an existing Policy which contains the authorization information applied for this Thing. The policy ID has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))."
     },
+    "definition": {
+      "title": "Definition",
+      "type": "string",
+      "description": "The definition of this Thing declaring its model in the form 'namespace:name:version'.",
+      "pattern": "([_a-zA-Z0-9\\-.]+):([_a-zA-Z0-9\\-.]+):([_a-zA-Z0-9\\-.]+)"
+    },
     "attributes": {
       "title": "Attributes",
       "type": "object",
@@ -32,13 +38,13 @@
             "definition": {
               "title": "Definition",
               "type": "array",
-              "description": "The Definition of the Feature, a list of Identifiers containing at least 1 Identifier in the form 'namespace:name:version'.",
+              "description": "The definition of the Feature declaring its model, a list of Identifiers containing at least 1 Identifier in the form 'namespace:name:version'.",
               "minItems": 1,
               "uniqueItems": true,
               "items": {
                 "type": "string",
-                "description": "A single fully qualified Identifier of a Feature Definition in the form 'namespace:name:version'.",
-                "pattern": "(?<namespace>[_a-zA-Z0-9\\-.]+):(?<name>[_a-zA-Z0-9\\-.]+):(?<version>[_a-zA-Z0-9\\-.]+)"
+                "description": "A single fully qualified Identifier of a Feature definition in the form 'namespace:name:version'.",
+                "pattern": "([_a-zA-Z0-9\\-.]+):([_a-zA-Z0-9\\-.]+):([_a-zA-Z0-9\\-.]+)"
               }
             },
             "properties": {

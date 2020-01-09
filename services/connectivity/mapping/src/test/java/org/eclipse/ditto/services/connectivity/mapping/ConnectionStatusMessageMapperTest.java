@@ -31,6 +31,7 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.model.things.DefinitionIdentifier;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -294,6 +295,6 @@ public class ConnectionStatusMessageMapperTest {
         return modifyFeature.getFeature()
                 .getDefinition()
                 .map(FeatureDefinition::getFirstIdentifier)
-                .map(FeatureDefinition.Identifier::toString);
+                .map(DefinitionIdentifier::toString);
     }
 }

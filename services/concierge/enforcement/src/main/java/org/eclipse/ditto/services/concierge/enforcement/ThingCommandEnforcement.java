@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -223,23 +222,19 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                     .thenApply(create -> create.withReceiver(thingsShardRegion))
                     )
                     .exceptionally(throwable -> {
-                        Throwable cause = throwable;
-                        if (throwable instanceof CompletionException) {
-                            cause = throwable.getCause();
-                        }
+                        final DittoRuntimeException dittoRuntimeException =
+                                DittoRuntimeException.asDittoRuntimeException(throwable, cause -> {
+                                    LOGGER.warn("Error during thing by itself enforcement - {}: {}",
+                                            cause.getClass().getSimpleName(), cause.getMessage());
+                                    throw GatewayInternalErrorException.newBuilder()
+                                            .cause(cause)
+                                            .build();
+                                });
 
-                        if (cause instanceof DittoRuntimeException) {
-                            LOGGER.debug(
-                                    "DittoRuntimeException during enforceThingCommandByNonexistentEnforcer - {}: {}",
-                                    cause.getClass().getSimpleName(), cause.getMessage());
-                            throw (DittoRuntimeException) cause;
-                        } else {
-                            LOGGER.warn("Error during thing by itself enforcement - {}: {}",
-                                    cause.getClass().getSimpleName(), cause.getMessage());
-                            throw GatewayInternalErrorException.newBuilder()
-                                    .cause(cause)
-                                    .build();
-                        }
+                        LOGGER.debug(
+                                "DittoRuntimeException during enforceThingCommandByNonexistentEnforcer - {}: {}",
+                                dittoRuntimeException.getClass().getSimpleName(), dittoRuntimeException.getMessage());
+                        throw dittoRuntimeException;
                     });
         }
     }

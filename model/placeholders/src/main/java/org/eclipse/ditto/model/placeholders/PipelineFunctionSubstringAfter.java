@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.placeholders;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -25,9 +24,6 @@ import javax.annotation.concurrent.Immutable;
 final class PipelineFunctionSubstringAfter implements PipelineFunction {
 
     private static final String FUNCTION_NAME = "substring-after";
-
-    private final PipelineFunctionParameterResolverFactory.SingleParameterResolver parameterResolver =
-            PipelineFunctionParameterResolverFactory.forStringParameter();
 
     @Override
     public String getName() {
@@ -40,24 +36,25 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
     }
 
     @Override
-    public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
+    public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
         final String splitValue = parseAndResolve(paramsIncludingParentheses, expressionResolver);
 
-        return value.map(previousStage -> {
+        return value.onResolved(previousStage -> {
             if (previousStage.contains(splitValue)) {
-                return previousStage.substring(previousStage.indexOf(splitValue) + 1);
+                return PipelineElement.resolved(previousStage.substring(previousStage.indexOf(splitValue) + 1));
             } else {
-                return null;
+                return PipelineElement.unresolved();
             }
         });
     }
 
     private String parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
-        final Optional<String> resolved = parameterResolver.apply(paramsIncludingParentheses, expressionResolver);
-        return resolved.orElseThrow(() ->
+        final PipelineElement resolved = PipelineFunctionParameterResolverFactory.forStringParameter()
+                .apply(paramsIncludingParentheses, expressionResolver, this);
+        return resolved.toOptional().orElseThrow(() ->
                 PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                         .build());
     }
@@ -78,14 +75,6 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
         @Override
         public List<ParameterDefinition> getParameterDefinitions() {
             return Collections.singletonList(givenStringDescription);
-        }
-
-        @Override
-        public <T> ParameterDefinition<T> getParameterDefinition(final int index) {
-            if (index == 0) {
-                return (ParameterDefinition<T>) givenStringDescription;
-            }
-            throw new IllegalArgumentException("Signature does not define a parameter at index '" + index + "'");
         }
 
         @Override

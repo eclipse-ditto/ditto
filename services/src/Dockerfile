@@ -12,14 +12,19 @@ ENV HTTP_PORT=8080 \
 EXPOSE 8080
 
 RUN set -x \
-    && apk upgrade libssl1.0 --update-cache \
-    && apk add --no-cache --virtual .tmp-deps wget ca-certificates \
+    && apk upgrade --update-cache \
+    && apk add --no-cache tini openssl \
+    && apk add --no-cache --virtual .tmp-deps wget ca-certificates shadow \
     && mkdir -p $DITTO_HOME \
+    && groupadd --system ditto \
+    && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
     && cd $DITTO_HOME \
     && wget -q --show-progress -O ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar ${MAVEN_REPO}${SERVICE_STARTER}/${SERVICE_VERSION}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
-    && apk del .tmp-deps \
-    && apk add --no-cache tini
+    && chown -R ditto:ditto $DITTO_HOME \
+    && apk del .tmp-deps
 
+USER ditto
 WORKDIR $DITTO_HOME
-ENTRYPOINT ["java","-jar","starter.jar"]
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["java", "-jar", "/opt/ditto/starter.jar"]

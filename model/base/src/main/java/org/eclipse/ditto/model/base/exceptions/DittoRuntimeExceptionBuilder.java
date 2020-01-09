@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.Json
 import static org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields.MESSAGE;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -128,6 +129,23 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
     public DittoRuntimeExceptionBuilder<T> cause(final Supplier<Throwable> causeSupplier) {
         checkSupplier(causeSupplier);
         return cause(causeSupplier.get());
+    }
+
+    /**
+     * Sets a link to a resource which provides further information about the exception to be built.
+     * If the provided href is no valid {@link java.net.URI} the href of this build will be set to null.
+     *
+     * @param href a link to further information.
+     * @return this builder to allow method chaining.
+     */
+    public DittoRuntimeExceptionBuilder<T> href(@Nullable final String href) {
+        try {
+            final URI uriHref = href == null ? null : new URI(href);
+            href(uriHref);
+        } catch (final URISyntaxException e) {
+            href((URI) null);
+        }
+        return this;
     }
 
     /**

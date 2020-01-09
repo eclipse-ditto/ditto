@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -35,13 +34,13 @@ final class ImmutablePipeline implements Pipeline {
     }
 
     @Override
-    public Optional<String> execute(final Optional<String> pipelineInput, final ExpressionResolver expressionResolver) {
+    public PipelineElement execute(final PipelineElement pipelineInput, final ExpressionResolver expressionResolver) {
 
-        Optional<String> stageValue = pipelineInput;
-        for (final String expression : stageExpressions) {
-            stageValue = functionExpression.resolve(expression, stageValue, expressionResolver);
-        }
-        return stageValue;
+        return stageExpressions.stream().reduce(
+                pipelineInput,
+                (element, expression) -> functionExpression.resolve(expression, element, expressionResolver),
+                ImmutablePipeline::combineElements
+        );
     }
 
     @Override
@@ -81,5 +80,19 @@ final class ImmutablePipeline implements Pipeline {
                 "functionExpression=" + functionExpression +
                 ", stageExpressions=" + stageExpressions +
                 "]";
+    }
+
+    private static PipelineElement combineElements(final PipelineElement self, final PipelineElement other) {
+        return self.onDeleted(() -> self)
+                .onUnresolved(() -> other)
+                .onResolved(s -> other.onDeleted(() -> other)
+                        .onUnresolved(() -> self)
+                        .onResolved(t -> {
+                            // should not happen - stream of stage expressions is not parallel
+                            throw new IllegalArgumentException(
+                                    String.format("Conflict: combining 2 resolved elements <%s> and <%s>", s, t)
+                            );
+                        })
+                );
     }
 }

@@ -18,17 +18,18 @@ import java.time.Instant;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
-import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
@@ -42,35 +43,40 @@ import akka.routing.ConsistentHashingRouter;
 public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     protected final String sourceAddress;
-    protected final AuthorizationContext authorizationContext;
+    protected final Source source;
     protected final ConnectionMonitor inboundMonitor;
     protected final ConnectionId connectionId;
 
-    @Nullable protected final HeaderMapping headerMapping;
-    @Nullable protected ResourceStatus resourceStatus;
-
     private final ActorRef messageMappingProcessor;
-    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
+
+    @Nullable private ResourceStatus resourceStatus;
+
 
     protected BaseConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping) {
+            final ActorRef messageMappingProcessor, final Source source) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
-        this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
-        this.headerMapping = headerMapping;
+        this.source = checkNotNull(source, "source");
         resetResourceStatus();
 
         final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         ).getMonitoringConfig();
 
-        this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
-        inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connectionId, sourceAddress);
+        inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig)
+                .forInboundConsumed(connectionId, sourceAddress);
     }
 
-    protected void forwardToMappingActor(final Object message, final String hashKey) {
+    protected void forwardToMappingActor(final ExternalMessage message, final String hashKey) {
+        doForwardToMappingActor(addReplyTarget(message), hashKey);
+    }
+
+    protected void forwardToMappingActor(final DittoRuntimeException message, final String hashKey) {
+        doForwardToMappingActor(message, hashKey);
+    }
+
+    private void doForwardToMappingActor(final Object message, final String hashKey) {
         final Object envelope = new ConsistentHashingRouter.ConsistentHashableEnvelope(message, hashKey);
         messageMappingProcessor.forward(envelope, getContext());
     }
@@ -94,6 +100,19 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                     resourceStatus.getStatusDetails().orElse(null));
         } else {
             this.resourceStatus = resourceStatus;
+        }
+    }
+
+    private ExternalMessage addReplyTarget(final ExternalMessage message) {
+        if (source.getReplyTarget().isPresent()) {
+            return ExternalMessageFactory.newExternalMessageBuilder(message)
+                    .withInternalHeaders(message.getInternalHeaders()
+                            .toBuilder()
+                            .replyTarget(source.getIndex())
+                            .build())
+                    .build();
+        } else {
+            return message;
         }
     }
 
