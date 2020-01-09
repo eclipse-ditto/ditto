@@ -160,7 +160,7 @@ public interface SessionedJsonifiable {
             } else if (extraFields.isPresent()) {
                 final DittoHeaders headers =
                         signal.getDittoHeaders().toBuilder().authorizationSubjects(authorizationSubjects).build();
-                return facade.retrievePartialThing((ThingId) entityId, extraFields.get(), headers);
+                return facade.retrievePartialThing((ThingId) entityId, extraFields.get(), headers, signal);
             } else {
                 return CompletableFuture.completedFuture(JsonObject.empty());
             }

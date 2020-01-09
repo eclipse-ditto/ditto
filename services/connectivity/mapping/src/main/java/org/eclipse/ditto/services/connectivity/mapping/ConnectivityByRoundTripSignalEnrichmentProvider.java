@@ -23,7 +23,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * Provider for Connectivity-service of thing-enriching facades that make a round-trip for each query.
+ * Provider for Connectivity-service of signal-enriching facades that make a round-trip for each query.
  */
 public final class ConnectivityByRoundTripSignalEnrichmentProvider implements ConnectivitySignalEnrichmentProvider {
 
@@ -34,11 +34,14 @@ public final class ConnectivityByRoundTripSignalEnrichmentProvider implements Co
      * Instantiate this provider. Called by reflection.
      *
      * @param actorSystem The actor system for which this provider is instantiated.
+     * @param policyObserver The {@code PolicyObserverActor} actor to use in order to subscribe to policy changes.
      * @param commandHandler The recipient of retrieve-thing commands.
      * @param signalEnrichmentConfig Configuration for this provider.
      */
     @SuppressWarnings("unused")
-    public ConnectivityByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem, final ActorRef commandHandler,
+    public ConnectivityByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem,
+            final ActorRef policyObserver,
+            final ActorRef commandHandler,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
         this.commandHandler = commandHandler;
         signalEnrichmentFacadeByRoundTripConfig =

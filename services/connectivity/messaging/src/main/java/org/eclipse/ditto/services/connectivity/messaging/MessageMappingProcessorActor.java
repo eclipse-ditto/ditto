@@ -283,7 +283,7 @@ public final class MessageMappingProcessorActor
             return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
         }
         final JsonFieldSelector extraFields = filteredTopic.getExtraFields().get();
-        final Target target = outboundSignal.getTargets().get(0); // TODO TJ is this sufficient to get target 0?
+        final Target target = outboundSignal.getTargets().get(0);
 
         final ThingId thingId = ThingId.of(outboundSignal.getEntityId());
         final DittoHeaders headers = outboundSignal.getSource()
@@ -293,7 +293,7 @@ public final class MessageMappingProcessorActor
                 .build();
         final CompletionStage<JsonObject> extraFuture =
                 signalEnrichmentFacade.thenCompose(facade ->
-                        facade.retrievePartialThing(thingId, extraFields, headers));
+                        facade.retrievePartialThing(thingId, extraFields, headers, outboundSignal.getSource()));
 
         return extraFuture.thenApply(outboundSignal::setExtra)
                 .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))

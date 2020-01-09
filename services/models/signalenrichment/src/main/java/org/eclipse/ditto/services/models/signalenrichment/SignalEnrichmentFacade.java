@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Asynchronous interface for retrieving things to enrich signals from and to those things,
@@ -31,9 +32,11 @@ public interface SignalEnrichmentFacade {
      * @param thingId ID of the thing.
      * @param jsonFieldSelector the selected fields of the thing.
      * @param dittoHeaders Ditto headers containing authorization information.
+     * @param concernedSignal the Signal which caused that this partial thing retrieval was triggered
+     * (e.g. a {@code ThingEvent})
      * @return future that completes with the parts of a thing or fails with an error.
      */
     CompletionStage<JsonObject> retrievePartialThing(ThingId thingId, JsonFieldSelector jsonFieldSelector,
-            DittoHeaders dittoHeaders);
+            DittoHeaders dittoHeaders, Signal concernedSignal);
 
 }

@@ -38,11 +38,10 @@ public final class GatewayMappingStrategies extends AbstractGlobalMappingStrateg
 
     private static Map<String, MappingStrategy> getIndividualStrategies() {
         final Map<String, MappingStrategy> combinedStrategy = new HashMap<>();
-        final ThingsMappingStrategies thingsMappingStrategy = new ThingsMappingStrategies();
+        combinedStrategy.putAll(new ThingsMappingStrategies().getStrategies());
         combinedStrategy.putAll(new PoliciesMappingStrategies().getStrategies());
         combinedStrategy.putAll(new ThingSearchMappingStrategies().getStrategies());
-        combinedStrategy.putAll(new ConnectivityMappingStrategies(thingsMappingStrategy).getStrategies());
-        combinedStrategy.putAll(thingsMappingStrategy.getStrategies());
+        combinedStrategy.putAll(new ConnectivityMappingStrategies().getStrategies());
 
         return combinedStrategy;
     }

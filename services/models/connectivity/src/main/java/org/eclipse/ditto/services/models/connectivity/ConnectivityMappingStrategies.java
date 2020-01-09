@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
+import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
@@ -43,20 +44,14 @@ public final class ConnectivityMappingStrategies implements MappingStrategies {
      * Constructs a new Mapping Strategy for Connectivity service.
      */
     public ConnectivityMappingStrategies() {
-        this(new ThingsMappingStrategies());
+        strategies = Collections.unmodifiableMap(getConnectivityMappingStrategies());
     }
 
-    /**
-     * Constructs a new Mapping Strategy for Connectivity service.
-     *
-     * @param thingsMappingStrategy the existing ThingsMappingStrategy to use.
-     */
-    public ConnectivityMappingStrategies(final ThingsMappingStrategies thingsMappingStrategy) {
-        strategies = Collections.unmodifiableMap(getConnectivityMappingStrategies(thingsMappingStrategy));
-    }
-
-    private Map<String, MappingStrategy> getConnectivityMappingStrategies(final MappingStrategies mappingStrategies) {
+    private Map<String, MappingStrategy> getConnectivityMappingStrategies() {
         final Map<String, MappingStrategy> combinedStrategies = new HashMap<>();
+
+        combinedStrategies.putAll(new ThingsMappingStrategies().getStrategies());
+        combinedStrategies.putAll(new PoliciesMappingStrategies().getStrategies());
 
         final MappingStrategies strategies = MappingStrategiesBuilder.newInstance()
                 .add(GlobalCommandRegistry.getInstance())
@@ -83,7 +78,6 @@ public final class ConnectivityMappingStrategies implements MappingStrategies {
                 .build();
 
         combinedStrategies.putAll(strategies.getStrategies());
-        combinedStrategies.putAll(mappingStrategies.getStrategies());
 
         return combinedStrategies;
     }

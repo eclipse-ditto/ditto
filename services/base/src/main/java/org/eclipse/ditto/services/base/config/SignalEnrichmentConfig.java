@@ -58,7 +58,7 @@ public interface SignalEnrichmentConfig {
     enum SignalEnrichmentConfigValue implements KnownConfigValue {
 
         /**
-         * Canonical name of the thing-enriching facade provider for connections.
+         * Canonical name of the signal-enriching facade provider for connections.
          */
         PROVIDER("provider", ""),
 

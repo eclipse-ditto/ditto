@@ -104,6 +104,7 @@ import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
+import akka.routing.DefaultResizer;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -1143,8 +1144,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
          * This however will also limit throughput as the used hashing key is often connection source address based
          * and does not yet "know" of the Thing ID.
          */
-        // TODO TJ does this even resize dynamically? there is no resizer configured
-        return getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
+        return getContext().actorOf(new ConsistentHashingPool(1)
+                .withResizer(new DefaultResizer(1, connection.getProcessorPoolSize()))
                 .withDispatcher("message-mapping-processor-dispatcher")
                 .props(props), MessageMappingProcessorActor.ACTOR_NAME);
     }

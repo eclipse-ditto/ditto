@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 
@@ -43,7 +44,7 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
     }
 
     /**
-     * Create a thing-enriching facade that retrieves partial things by round-trip.
+     * Create a signal-enriching facade that retrieves partial things by round-trip.
      *
      * @param commandHandler The recipient of retrieve-thing commands.
      * @param askTimeout How long to wait for each response.
@@ -56,7 +57,7 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
 
     @Override
     public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
-            final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders) {
+            final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders, final Signal concernedSignal) {
 
         // remove channel header to prevent looping on live messages
         final DittoHeaders headersWithoutChannel = dittoHeaders.toBuilder().channel(null).build();

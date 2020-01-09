@@ -253,10 +253,10 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     }
 
     private CompletionStage<Collection<JsonObject>> postprocess(final SessionedJsonifiable jsonifiable,
-            final SignalEnrichmentFacade facade,
+            @Nullable final SignalEnrichmentFacade facade,
             final Collection<ThingId> targetThingIds,
             final Collection<String> namespaces,
-            @Nullable JsonFieldSelector fields) {
+            @Nullable final JsonFieldSelector fields) {
 
         final Supplier<CompletableFuture<Collection<JsonObject>>> emptySupplier =
                 () -> CompletableFuture.completedFuture(Collections.emptyList());
@@ -295,7 +295,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     }
 
     private static Collection<JsonObject> toNonemptyThingJson(final Thing thing, final ThingEvent<?> event,
-            final JsonFieldSelector fields) {
+            @Nullable final JsonFieldSelector fields) {
         final JsonSchemaVersion jsonSchemaVersion = event.getDittoHeaders()
                 .getSchemaVersion()
                 .orElse(event.getImplementedSchemaVersion());
@@ -329,7 +329,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
         return null;
     }
 
-    private static String namespaceFromId(final ThingEvent thingEvent) {
+    private static String namespaceFromId(final ThingEvent<?> thingEvent) {
         return thingEvent.getEntityId().getNamespace();
     }
 
@@ -342,6 +342,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
         }
 
         @Override
+        @Nullable
         public Accept apply(final HttpHeader x, final boolean isCheck) {
             if (x instanceof Accept) {
                 if (isCheck) {

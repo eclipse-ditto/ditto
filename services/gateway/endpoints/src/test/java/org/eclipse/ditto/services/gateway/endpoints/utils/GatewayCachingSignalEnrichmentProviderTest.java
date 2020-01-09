@@ -29,9 +29,9 @@ import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link GatewayByRoundTripSignalEnrichmentProvider}.
+ * Tests {@link GatewayCachingSignalEnrichmentProvider}.
  */
-public final class GatewayByRoundTripSignalEnrichmentProviderTest {
+public final class GatewayCachingSignalEnrichmentProviderTest {
 
     private ActorSystem actorSystem;
     private SignalEnrichmentConfig signalEnrichmentConfig;
@@ -39,8 +39,9 @@ public final class GatewayByRoundTripSignalEnrichmentProviderTest {
     @Before
     public void createActorSystem() {
         signalEnrichmentConfig =
-                DefaultSignalEnrichmentConfig.of(ConfigFactory.load("gateway-by-round-trip-provider-test"));
-        actorSystem = ActorSystem.create(getClass().getSimpleName());
+                DefaultSignalEnrichmentConfig.of(ConfigFactory.load("gateway-caching-provider-test"));
+        actorSystem =
+                ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("gateway-caching-provider-test"));
     }
 
     @After
@@ -55,30 +56,7 @@ public final class GatewayByRoundTripSignalEnrichmentProviderTest {
         new TestKit(actorSystem) {{
             final GatewaySignalEnrichmentProvider underTest =
                     GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), signalEnrichmentConfig);
-            assertThat(underTest).isInstanceOf(GatewayByRoundTripSignalEnrichmentProvider.class);
-        }};
-    }
-
-    @Test
-    public void loadProviderWithNonexistentClass() {
-        new TestKit(actorSystem) {{
-            final SignalEnrichmentConfig badConfig = DefaultSignalEnrichmentConfig.of(signalEnrichmentConfig.render()
-                    .withValue("signal-enrichment.provider",
-                            ConfigValueFactory.fromAnyRef(getClass().getCanonicalName() + "_NonexistentClass")));
-            assertThatExceptionOfType(ClassNotFoundException.class)
-                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig))
-                    .withMessageContaining("_NonexistentClass");
-        }};
-    }
-
-    @Test
-    public void loadProviderWithIncorrectClass() {
-        new TestKit(actorSystem) {{
-            final SignalEnrichmentConfig badConfig = DefaultSignalEnrichmentConfig.of(signalEnrichmentConfig.render()
-                    .withValue("signal-enrichment.provider",
-                            ConfigValueFactory.fromAnyRef("java.lang.Object")));
-            assertThatExceptionOfType(ClassCastException.class)
-                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig));
+            assertThat(underTest).isInstanceOf(GatewayCachingSignalEnrichmentProvider.class);
         }};
     }
 

@@ -27,6 +27,7 @@ import akka.actor.ActorSystem;
  * Implementations MUST have a public constructor taking the following parameters as arguments:
  * <ul>
  * <li>ActorSystem actorSystem: actor system in which this provider is loaded,</li>
+ * <li>ActorRef policyObserver: {@code PolicyObserverActor} instance,</li>
  * <li>ActorRef commandHandler: recipient of retrieve-thing commands,</li>
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
@@ -34,7 +35,7 @@ import akka.actor.ActorSystem;
 public interface ConnectivitySignalEnrichmentProvider {
 
     /**
-     * Create a thing-enriching facade from the ID of a connection.
+     * Create a signal-enriching facade from the ID of a connection.
      *
      * @param connectionId the connection ID.
      * @return the facade.
@@ -45,16 +46,20 @@ public interface ConnectivitySignalEnrichmentProvider {
      * Load a {@code ThingEnrichingFacadeProvider} dynamically according to the streaming configuration.
      *
      * @param actorSystem The actor system in which to load the facade provider class.
+     * @param policyObserver The {@code PolicyObserverActor} actor to use in order to subscribe to policy changes.
      * @param commandHandler The recipient of retrieve-thing commands.
+     * @param signalEnrichmentConfig the SignalEnrichment config to use.
      * @return The configured facade provider.
      */
-    static ConnectivitySignalEnrichmentProvider load(final ActorSystem actorSystem, final ActorRef commandHandler,
+    static ConnectivitySignalEnrichmentProvider load(final ActorSystem actorSystem,
+            final ActorRef policyObserver,
+            final ActorRef commandHandler,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
 
         return AkkaClassLoader.instantiate(actorSystem, ConnectivitySignalEnrichmentProvider.class,
                 signalEnrichmentConfig.getProvider(),
-                Arrays.asList(ActorSystem.class, ActorRef.class, SignalEnrichmentConfig.class),
-                Arrays.asList(actorSystem, commandHandler, signalEnrichmentConfig)
+                Arrays.asList(ActorSystem.class, ActorRef.class, ActorRef.class, SignalEnrichmentConfig.class),
+                Arrays.asList(actorSystem, policyObserver, commandHandler, signalEnrichmentConfig)
         );
     }
 }

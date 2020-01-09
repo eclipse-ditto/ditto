@@ -26,7 +26,12 @@ import com.typesafe.config.ConfigFactory;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Unit tests for {@link org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade}.
+ * Unit tests for {@link CachingSignalEnrichmentFacade}.
+ *
+ * TODO TJ add unit tests for caching specifics:
+ * - not loading already cached entries having a expected revision
+ * - re-loading already cached entries having an unexpected revision
+ * - invalidating cache entries on policy change
  */
 public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnrichmentFacadeTest {
 

@@ -12,10 +12,17 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.utils;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.function.Consumer;
+
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacadeConfig;
 import org.eclipse.ditto.services.models.signalenrichment.DefaultCachingSignalEnrichmentFacadeConfig;
+import org.eclipse.ditto.services.models.signalenrichment.PolicyObserverActor;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 
 import akka.actor.ActorRef;
@@ -24,36 +31,52 @@ import akka.dispatch.MessageDispatcher;
 import akka.http.javadsl.model.HttpRequest;
 
 /**
- * Provider for gateway-service of thing-enriching facades that uses an async Caffeine cache in order to load
+ * Provider for gateway-service of signal-enriching facades that uses an async Caffeine cache in order to load
  * extra data to enrich.
  */
-public final class GatewayCachingSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
+public final class GatewayCachingSignalEnrichmentProvider
+        implements GatewaySignalEnrichmentProvider, Consumer<PolicyId> {
 
     private final ActorRef commandHandler;
     private final CachingSignalEnrichmentFacadeConfig cachingSignalEnrichmentFacadeConfig;
     private final MessageDispatcher cacheLoaderExecutor;
+    private final Set<CachingSignalEnrichmentFacade> createdFacades;
 
     /**
      * Instantiate this provider. Called by reflection.
      *
      * @param actorSystem The actor system for which this provider is instantiated.
+     * @param policyObserver The {@code PolicyObserverActor} actor to use in order to subscribe to policy changes.
      * @param commandHandler The recipient of retrieve-thing commands.
      * @param signalEnrichmentConfig Configuration for this provider.
      */
     @SuppressWarnings("unused")
-    public GatewayCachingSignalEnrichmentProvider(final ActorSystem actorSystem, final ActorRef commandHandler,
+    public GatewayCachingSignalEnrichmentProvider(final ActorSystem actorSystem,
+            final ActorRef policyObserver,
+            final ActorRef commandHandler,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
         this.commandHandler = commandHandler;
         cachingSignalEnrichmentFacadeConfig =
                 DefaultCachingSignalEnrichmentFacadeConfig.of(signalEnrichmentConfig.getProviderConfig());
         cacheLoaderExecutor = actorSystem.dispatchers().lookup("signal-enrichment-cache-dispatcher");
+        // create a set of "Weak references" - that way entries in this set may be deleted by the GC whenever no other
+        // reference to that object is existing any more:
+        createdFacades = Collections.newSetFromMap(new WeakHashMap<>());
+        policyObserver.tell(PolicyObserverActor.AddObserver.of(this), null);
+    }
+
+    @Override
+    public void accept(final PolicyId policyId) {
+        createdFacades.forEach(facade -> facade.accept(policyId));
     }
 
     @Override
     public SignalEnrichmentFacade createFacade(final HttpRequest request) {
-        return CachingSignalEnrichmentFacade.of(commandHandler,
+        final CachingSignalEnrichmentFacade facade = CachingSignalEnrichmentFacade.of(commandHandler,
                 cachingSignalEnrichmentFacadeConfig.getAskTimeout(),
                 cachingSignalEnrichmentFacadeConfig.getCacheConfig(),
                 cacheLoaderExecutor);
+        createdFacades.add(facade);
+        return facade;
     }
 }

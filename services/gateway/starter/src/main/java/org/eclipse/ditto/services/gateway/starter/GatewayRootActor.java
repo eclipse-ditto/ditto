@@ -52,6 +52,7 @@ import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.models.signalenrichment.PolicyObserverActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
@@ -204,8 +205,11 @@ final class GatewayRootActor extends AbstractActor {
             log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
-        final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor, healthCheckActor,
-                healthCheckConfig, jwtAuthenticationFactory);
+        final ActorRef policyObserver =
+                startChildActor(PolicyObserverActor.ACTOR_NAME, PolicyObserverActor.props(pubSubMediator));
+
+        final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor, policyObserver,
+                healthCheckActor, healthCheckConfig, jwtAuthenticationFactory);
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
         httpBinding = Http.get(actorSystem)
@@ -271,6 +275,7 @@ final class GatewayRootActor extends AbstractActor {
             final GatewayConfig gatewayConfig,
             final ActorRef proxyActor,
             final ActorRef streamingActor,
+            final ActorRef policyObserver,
             final ActorRef healthCheckingActor,
             final HealthCheckConfig healthCheckConfig,
             final JwtAuthenticationFactory jwtAuthenticationFactory) {
@@ -300,7 +305,7 @@ final class GatewayRootActor extends AbstractActor {
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
 
         final GatewaySignalEnrichmentProvider signalEnrichmentProvider =
-                GatewaySignalEnrichmentProvider.load(actorSystem, proxyActor,
+                GatewaySignalEnrichmentProvider.load(actorSystem, policyObserver, proxyActor,
                         gatewayConfig.getStreamingConfig().getSignalEnrichmentConfig());
 
         final StreamingConfig streamingConfig = gatewayConfig.getStreamingConfig();

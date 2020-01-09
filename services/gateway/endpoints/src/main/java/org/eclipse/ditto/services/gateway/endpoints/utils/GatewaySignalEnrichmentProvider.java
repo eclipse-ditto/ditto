@@ -38,7 +38,7 @@ public interface GatewaySignalEnrichmentProvider {
      * created the websocket or SSE stream that requires it.
      *
      * @param request the HTTP request.
-     * @return the thing-enriching facade.
+     * @return the signal-enriching facade.
      */
     SignalEnrichmentFacade createFacade(HttpRequest request);
 
@@ -46,17 +46,20 @@ public interface GatewaySignalEnrichmentProvider {
      * Load a {@code ThingEnrichingFacadeProvider} dynamically according to the streaming configuration.
      *
      * @param actorSystem The actor system in which to load the facade provider class.
+     * @param policyObserver The {@code PolicyObserverActor} actor to use in order to subscribe to policy changes.
      * @param commandHandler The recipient of retrieve-thing commands.
-     * @param signalEnrichmentConfig The configuration containing the fully qualified name of the facade provider.
+     * @param signalEnrichmentConfig The SignalEnrichment configuration.
      * @return The configured facade provider.
      */
     static GatewaySignalEnrichmentProvider load(final ActorSystem actorSystem,
-            final ActorRef commandHandler, final SignalEnrichmentConfig signalEnrichmentConfig) {
+            final ActorRef policyObserver,
+            final ActorRef commandHandler,
+            final SignalEnrichmentConfig signalEnrichmentConfig) {
 
         return AkkaClassLoader.instantiate(actorSystem, GatewaySignalEnrichmentProvider.class,
                 signalEnrichmentConfig.getProvider(),
-                Arrays.asList(ActorSystem.class, ActorRef.class, SignalEnrichmentConfig.class),
-                Arrays.asList(actorSystem, commandHandler, signalEnrichmentConfig)
+                Arrays.asList(ActorSystem.class, ActorRef.class, ActorRef.class, SignalEnrichmentConfig.class),
+                Arrays.asList(actorSystem, policyObserver, commandHandler, signalEnrichmentConfig)
         );
     }
 }

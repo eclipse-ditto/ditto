@@ -30,13 +30,13 @@ import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link ConnectivityByRoundTripSignalEnrichmentProvider}.
+ * Tests {@link ConnectivityCachingSignalEnrichmentProvider}.
  */
-public final class ConnectivityByRoundTripSignalEnrichmentProviderTest {
+public final class ConnectivityCachingSignalEnrichmentProviderTest {
 
     private final SignalEnrichmentConfig config = DefaultSignalEnrichmentConfig.of(ConfigFactory.empty()
             .withValue("signal-enrichment.provider",
-                    ConfigValueFactory.fromAnyRef(ConnectivityByRoundTripSignalEnrichmentProvider.class.getCanonicalName()))
+                    ConfigValueFactory.fromAnyRef(ConnectivityCachingSignalEnrichmentProvider.class.getCanonicalName()))
             .withValue("signal-enrichment.provider-config.ask-timeout",
                     ConfigValueFactory.fromAnyRef(Duration.ofDays(1L))));
 
@@ -44,7 +44,17 @@ public final class ConnectivityByRoundTripSignalEnrichmentProviderTest {
 
     private ActorSystem createActorSystem() {
         shutdownActorSystem();
-        actorSystem = ActorSystem.create(getClass().getSimpleName());
+        actorSystem = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.parseString(
+                "signal-enrichment-cache-dispatcher {\n" +
+                "  type = Dispatcher\n" +
+                "  executor = \"fork-join-executor\"\n" +
+                "  fork-join-executor {\n" +
+                "    parallelism-min = 4\n" +
+                "    parallelism-factor = 3.0\n" +
+                "    parallelism-max = 32\n" +
+                "  }\n" +
+                "  throughput = 5\n" +
+                "}"));
         return actorSystem;
     }
 
@@ -60,26 +70,7 @@ public final class ConnectivityByRoundTripSignalEnrichmentProviderTest {
         new TestKit(createActorSystem()) {{
             final ConnectivitySignalEnrichmentProvider
                     underTest = ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), config);
-            assertThat(underTest).isInstanceOf(ConnectivityByRoundTripSignalEnrichmentProvider.class);
-        }};
-    }
-
-    @Test
-    public void loadProviderWithNonexistentClass() {
-        final SignalEnrichmentConfig badConfig =
-                withValue("signal-enrichment.provider", getClass().getCanonicalName() + "_NonexistentClass");
-        new TestKit(createActorSystem()) {{
-            assertThatExceptionOfType(ClassNotFoundException.class)
-                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig));
-        }};
-    }
-
-    @Test
-    public void loadProviderWithIncorrectClass() {
-        final SignalEnrichmentConfig badConfig = withValue("signal-enrichment.provider", "java.lang.Object");
-        new TestKit(createActorSystem()) {{
-            assertThatExceptionOfType(ClassCastException.class)
-                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig));
+            assertThat(underTest).isInstanceOf(ConnectivityCachingSignalEnrichmentProvider.class);
         }};
     }
 

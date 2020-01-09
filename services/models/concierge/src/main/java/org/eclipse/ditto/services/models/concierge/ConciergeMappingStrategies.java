@@ -38,13 +38,12 @@ public final class ConciergeMappingStrategies extends AbstractGlobalMappingStrat
     }
 
     private static Map<String, MappingStrategy> getConciergeMappingStrategies() {
-        final ThingsMappingStrategies thingsMappingStrategy = new ThingsMappingStrategies();
 
         final Map<String, MappingStrategy> combinedStrategy = new HashMap<>();
+        combinedStrategy.putAll(new ThingsMappingStrategies().getStrategies());
         combinedStrategy.putAll(new PoliciesMappingStrategies().getStrategies());
         combinedStrategy.putAll(new ThingSearchMappingStrategies().getStrategies());
-        combinedStrategy.putAll(new ConnectivityMappingStrategies(thingsMappingStrategy).getStrategies());
-        combinedStrategy.putAll(thingsMappingStrategy.getStrategies());
+        combinedStrategy.putAll(new ConnectivityMappingStrategies().getStrategies());
 
         final MappingStrategies strategies = MappingStrategiesBuilder.newInstance()
                 .add(InvalidateCacheEntry.class, jsonObject -> InvalidateCacheEntry.fromJson(jsonObject)) // do not replace with lambda!

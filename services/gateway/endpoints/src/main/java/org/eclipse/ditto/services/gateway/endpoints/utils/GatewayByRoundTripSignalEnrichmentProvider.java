@@ -23,7 +23,7 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 
 /**
- * Provider for gateway-service of thing-enriching facades that make a round-trip for each query.
+ * Provider for gateway-service of signal-enriching facades that make a round-trip for each query.
  */
 public final class GatewayByRoundTripSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
 
@@ -34,11 +34,14 @@ public final class GatewayByRoundTripSignalEnrichmentProvider implements Gateway
      * Instantiate this provider. Called by reflection.
      *
      * @param actorSystem The actor system for which this provider is instantiated.
+     * @param policyObserver The {@code PolicyObserverActor} actor to use in order to subscribe to policy changes.
      * @param commandHandler The recipient of retrieve-thing commands.
      * @param signalEnrichmentConfig Configuration for this provider.
      */
     @SuppressWarnings("unused")
-    public GatewayByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem, final ActorRef commandHandler,
+    public GatewayByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem,
+            final ActorRef policyObserver,
+            final ActorRef commandHandler,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
         this.commandHandler = commandHandler;
         signalEnrichmentFacadeByRoundTripConfig =

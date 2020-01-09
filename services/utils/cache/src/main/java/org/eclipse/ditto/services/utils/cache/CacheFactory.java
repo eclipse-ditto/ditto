@@ -19,7 +19,9 @@ import java.util.concurrent.Executor;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -44,6 +46,18 @@ public final class CacheFactory {
      */
     public static EntityIdWithResourceType newEntityId(final String resourceType, final EntityId id) {
         return ImmutableEntityIdWithResourceType.of(resourceType, id);
+    }
+
+    /**
+     * Create a new context for cache lookups with the provided {@code dittoHeaders} and {@code jsonFieldSelector}.
+     *
+     *@param dittoHeaders the DittoHeaders to use in the cache lookup context.
+     *      * @param jsonFieldSelector the JsonFieldSelector to use in the cache lookup context.
+     *      * @return the created context.
+     */
+    public static CacheLookupContext newCacheLookupContext(
+            @Nullable final DittoHeaders dittoHeaders, @Nullable  final JsonFieldSelector jsonFieldSelector) {
+        return ImmutableCacheLookupContext.of(dittoHeaders, jsonFieldSelector);
     }
 
     /**
