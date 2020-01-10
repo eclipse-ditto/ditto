@@ -79,4 +79,13 @@ public final class GatewayCachingSignalEnrichmentProvider
         createdFacades.add(facade);
         return facade;
     }
+
+    /**
+     * For unit tests only.
+     *
+     * @return the created facades.
+     */
+    Set<CachingSignalEnrichmentFacade> getCreatedFacades() {
+        return createdFacades;
+    }
 }

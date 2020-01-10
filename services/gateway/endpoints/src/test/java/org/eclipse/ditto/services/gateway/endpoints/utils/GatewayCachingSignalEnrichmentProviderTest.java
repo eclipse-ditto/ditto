@@ -15,23 +15,28 @@ package org.eclipse.ditto.services.gateway.endpoints.utils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
+import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
+import akka.http.javadsl.model.HttpRequest;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link GatewayCachingSignalEnrichmentProvider}.
- *
- * TODO TJ add test for WeakReference subscription
  */
 public final class GatewayCachingSignalEnrichmentProviderTest {
 
@@ -70,6 +75,49 @@ public final class GatewayCachingSignalEnrichmentProviderTest {
                             ConfigValueFactory.fromAnyRef("This is not a duration")));
             assertThatExceptionOfType(ConfigException.class)
                     .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig));
+        }};
+    }
+
+    /**
+     * GatewayCachingSignalEnrichmentProvider uses a "WeakReference" Set of created instances of
+     * CachingSignalEnrichmentFacade which are notified whenever PolicyId changes were made.
+     * <p>
+     * This tests the construct be explicitly dereferencing created facades and ensuring that they are evicted from the
+     * "WeakReference" Set.
+     */
+    @Test
+    public void instantiateFacadesEnsureThatUnreferencedFacadesAreRemovedFromWeakSet() {
+        new TestKit(actorSystem) {{
+            final GatewayCachingSignalEnrichmentProvider underTest =
+                    new GatewayCachingSignalEnrichmentProvider(actorSystem, getRef(), getRef(),
+                            signalEnrichmentConfig);
+
+            // WHEN: creating 3 facades
+            final HttpRequest httpRequestMock = Mockito.mock(HttpRequest.class);
+            CachingSignalEnrichmentFacade facade1 =
+                    (CachingSignalEnrichmentFacade) underTest.createFacade(httpRequestMock);
+            CachingSignalEnrichmentFacade facade2 =
+                    (CachingSignalEnrichmentFacade) underTest.createFacade(httpRequestMock);
+            CachingSignalEnrichmentFacade facade3 =
+                    (CachingSignalEnrichmentFacade) underTest.createFacade(httpRequestMock);
+
+            final PolicyId policyId = PolicyId.of("test:policy");
+            underTest.accept(policyId);
+
+            // WHEN: explicitly removing the only reference to facade1 and facade2
+            facade1 = null;
+            facade2 = null;
+
+            // THEN: after the next GC cycle (or some GC cycles, not really deterministic)
+            Awaitility.await()
+                    .atMost(Duration.FIVE_SECONDS)
+                    .until(() -> {
+                        System.gc();
+                        return underTest.getCreatedFacades().size() != 1;
+                    });
+
+            // there must be only one still referenced facade left:
+            Assertions.assertThat(underTest.getCreatedFacades().size()).isEqualTo(1);
         }};
     }
 
