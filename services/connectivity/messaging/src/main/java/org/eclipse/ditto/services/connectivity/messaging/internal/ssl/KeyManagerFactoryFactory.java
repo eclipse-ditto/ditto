@@ -31,7 +31,6 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
 import javax.net.ssl.KeyManagerFactory;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -84,6 +83,7 @@ public final class KeyManagerFactoryFactory implements CredentialsVisitor<KeyMan
 
     /**
      * Instantiates a new {@link KeyManagerFactoryFactory}
+     *
      * @param exceptionMapper the {@link ExceptionMapper} to be used
      */
     KeyManagerFactoryFactory(final ExceptionMapper exceptionMapper) {
@@ -171,16 +171,15 @@ public final class KeyManagerFactoryFactory implements CredentialsVisitor<KeyMan
     }
 
     @Override
-    @Nonnull
-    public KeyManagerFactory clientCertificate(@Nonnull final ClientCertificateCredentials credentials) {
+    public KeyManagerFactory clientCertificate(final ClientCertificateCredentials credentials) {
         final String clientKeyPem = credentials.getClientKey().orElse(null);
         final String clientCertificatePem = credentials.getClientCertificate().orElse(null);
 
         if (clientKeyPem != null && clientCertificatePem != null) {
             return newKeyManagerFactory(clientKeyPem, clientCertificatePem);
         } else {
-            throw exceptionMapper.fatalError("Either client key or certificate were missing")
-                    .build();
+            throw exceptionMapper.fatalError("Either client key or certificate were missing").build();
         }
     }
+
 }
