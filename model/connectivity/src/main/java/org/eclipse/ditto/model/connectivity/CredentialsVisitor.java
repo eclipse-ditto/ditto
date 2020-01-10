@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import javax.annotation.Nullable;
+
 /**
  * Process credentials of a connection.
  *
@@ -26,4 +28,5 @@ public interface CredentialsVisitor<T> {
      * @return evaluation result.
      */
     T clientCertificate(ClientCertificateCredentials credentials);
+
 }
