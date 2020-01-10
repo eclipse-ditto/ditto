@@ -31,6 +31,8 @@ import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link ConnectivityCachingSignalEnrichmentProvider}.
+ *
+ * TODO TJ add test for WeakReference subscription
  */
 public final class ConnectivityCachingSignalEnrichmentProviderTest {
 

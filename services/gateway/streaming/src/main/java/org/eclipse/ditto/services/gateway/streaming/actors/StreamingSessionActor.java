@@ -72,7 +72,7 @@ final class StreamingSessionActor extends AbstractActor {
     private final ActorRef eventAndResponsePublisher;
     private final Set<StreamingType> outstandingSubscriptionAcks;
     private final Map<StreamingType, StreamingSession> streamingSessions;
-    private final DittoDiagnosticLoggingAdapter logger;
+    private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     @Nullable private Cancellable sessionTerminationCancellable;
     private List<String> authorizationSubjects;
@@ -89,11 +89,10 @@ final class StreamingSessionActor extends AbstractActor {
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
         authorizationSubjects = Collections.emptyList();
         streamingSessions = new EnumMap<>(StreamingType.class);
+        logger.setCorrelationId(connectionCorrelationId);
         connect.getSessionExpirationTime().ifPresent(expiration ->
                 sessionTerminationCancellable = startSessionTimeout(expiration)
         );
-        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        logger.setCorrelationId(connectionCorrelationId);
 
         getContext().watch(eventAndResponsePublisher);
     }
