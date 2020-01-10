@@ -19,6 +19,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -56,13 +57,25 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
         final Label label = policyEntry.getLabel();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+        final JsonObject policyJsonObject = nonNullPolicy.removeEntry(label).toJson();
+        final JsonObject policyEntryJsonObject = policyEntry.toJson();
+        final long labelLength = label.toString().length();
+
         try {
-            PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> {
-                final long policyLength = nonNullPolicy.removeEntry(label).toJsonString().length();
-                final long entryLength =
-                        policyEntry.toJsonString().length() + label.toString().length() + 5L;
-                return policyLength + entryLength;
-            }, command::getDittoHeaders);
+            PolicyCommandSizeValidator.getInstance().ensureValidSize(
+                    () -> {
+                        final long policyLength = policyJsonObject.getUpperBoundForStringSize();
+                        final long entryLengthWithoutLabel = policyEntryJsonObject.getUpperBoundForStringSize();
+                        final long entryLength = entryLengthWithoutLabel + labelLength + 5L;
+                        return policyLength + entryLength;
+                    },
+                    () -> {
+                        final long policyLength = policyJsonObject.toString().length();
+                        final long entryLengthWithoutLabel = policyEntryJsonObject.toString().length();
+                        final long entryLength = entryLengthWithoutLabel + labelLength + 5L;
+                        return policyLength + entryLength;
+                    },
+                    command::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
             return ResultFactory.newErrorResult(e);
         }

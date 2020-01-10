@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -50,14 +51,25 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
             final long nextRevision, final ModifyFeature command) {
 
         final Thing nonNullThing = getEntityOrThrow(thing);
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
-            final long lengthWithOutFeature = nonNullThing.removeFeature(command.getFeatureId())
-                    .toJsonString()
-                    .length();
-            final long featureLength = command.getFeature().toJsonString().length()
-                    + command.getFeatureId().length() + 5L;
-            return lengthWithOutFeature + featureLength;
-        }, command::getDittoHeaders);
+
+        final JsonObject thingWithoutFeatureJsonObject = nonNullThing.removeFeature(command.getFeatureId()).toJson();
+        final JsonObject featureJsonObject = command.getFeature().toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                () -> {
+                    final long lengthWithOutFeature = thingWithoutFeatureJsonObject.getUpperBoundForStringSize();
+                    final long featureLength = featureJsonObject.getUpperBoundForStringSize()
+                            + command.getFeatureId().length() + 5L;
+                    return lengthWithOutFeature + featureLength;
+                },
+                () -> {
+                    final long lengthWithOutFeature = thingWithoutFeatureJsonObject.toString()
+                            .length();
+                    final long featureLength = featureJsonObject.toString().length()
+                            + command.getFeatureId().length() + 5L;
+                    return lengthWithOutFeature + featureLength;
+                },
+                command::getDittoHeaders);
 
         return extractFeature(command, nonNullThing)
                 .map(feature -> getModifyResult(context, nextRevision, command, thing))

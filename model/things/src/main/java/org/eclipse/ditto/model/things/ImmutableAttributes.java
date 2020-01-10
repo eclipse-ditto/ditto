@@ -313,6 +313,11 @@ final class ImmutableAttributes implements Attributes {
         wrapped.writeValue(serializationContext);
     }
 
+    @Override
+    public long getUpperBoundForStringSize() {
+        return wrapped.getUpperBoundForStringSize();
+    }
+
     private Attributes determineResult(final Supplier<JsonObject> newWrappedSupplier) {
         final JsonObject newWrapped = newWrappedSupplier.get();
         if (!newWrapped.equals(wrapped)) {

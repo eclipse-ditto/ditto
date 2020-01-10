@@ -309,4 +309,9 @@ final class NullFeatureProperties implements FeatureProperties {
         JsonFactory.nullLiteral().writeValue(serializationContext);
     }
 
+    @Override
+    public long getUpperBoundForStringSize() {
+        return JsonFactory.nullLiteral().getUpperBoundForStringSize();
+    }
+
 }

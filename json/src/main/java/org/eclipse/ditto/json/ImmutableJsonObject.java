@@ -530,6 +530,11 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         fieldMap.writeValue(serializationContext);
     }
 
+    @Override
+    public long getUpperBoundForStringSize() {
+        return fieldMap.upperBoundForStringSize();
+    }
+
     @Immutable
     static final class SoftReferencedFieldMap {
 
@@ -654,7 +659,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
             if (jsonObjectStringRepresentation != null){
                 return parseToMap(jsonObjectStringRepresentation);
             }
-            throw new RuntimeException("Fatal cache miss on JsonObject");
+            throw new IllegalStateException("Fatal cache miss on JsonObject");
         }
 
         private static Map<String, JsonField> parseToMap(final String jsonObjectString) {
@@ -690,10 +695,9 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                 }
                 return false;
             }
-            if (cborObjectRepresentation != null && that.cborObjectRepresentation != null){
-                if (Arrays.equals(cborObjectRepresentation, that.cborObjectRepresentation)){
-                    return true;
-                }
+            if (cborObjectRepresentation != null && that.cborObjectRepresentation != null &&
+                    Arrays.equals(cborObjectRepresentation, that.cborObjectRepresentation)) {
+                return true;
             }
             return Objects.equals(fields(), that.fields());
         }
@@ -760,6 +764,18 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                 return cborObjectRepresentation.length;
             }
             return 512;
+        }
+
+        public long upperBoundForStringSize(){
+            if (jsonObjectStringRepresentation != null){
+                return jsonObjectStringRepresentation.length();
+            }
+            if (cborObjectRepresentation != null){
+                final long CBOR_MAX_COMPRESSION_RATIO = 5; // "false" compressed to one byte
+                return cborObjectRepresentation.length * CBOR_MAX_COMPRESSION_RATIO;
+            }
+            assert false; // this should never happen
+            return Long.MAX_VALUE;
         }
 
     }

@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -52,33 +53,42 @@ final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<Modify
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
             final long nextRevision, final ModifyResources command) {
-        checkNotNull(policy, "policy");
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
         final Resources resources = command.getResources();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+        final List<ResourceKey> rks = resources.stream()
+                .map(Resource::getResourceKey)
+                .collect(Collectors.toList());
+        Policy tmpPolicy = nonNullPolicy;
+        for (final ResourceKey rk : rks) {
+            tmpPolicy = tmpPolicy.removeResourceFor(label, rk);
+        }
+        final JsonObject tmpPolicyJsonObject = tmpPolicy.toJson();
+        final JsonObject resourceJsonObject = resources.toJson();
+
         try {
-            PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> {
-                final List<ResourceKey> rks = resources.stream()
-                        .map(Resource::getResourceKey)
-                        .collect(Collectors.toList());
-                Policy tmpPolicy = policy;
-                for (final ResourceKey rk : rks) {
-                    tmpPolicy = tmpPolicy.removeResourceFor(label, rk);
-                }
-                final long policyLength = tmpPolicy.toJsonString().length();
-                final long resourcesLength = resources.toJsonString()
-                        .length() + 5L;
-                return policyLength + resourcesLength;
-            }, command::getDittoHeaders);
+            PolicyCommandSizeValidator.getInstance().ensureValidSize(
+                    () -> {
+                        final long policyLength = tmpPolicyJsonObject.getUpperBoundForStringSize();
+                        final long resourcesLength = resourceJsonObject.getUpperBoundForStringSize() + 5L;
+                        return policyLength + resourcesLength;
+                    },
+                    () -> {
+                        final long policyLength = tmpPolicyJsonObject.toString().length();
+                        final long resourcesLength = resourceJsonObject.toString().length() + 5L;
+                        return policyLength + resourcesLength;
+                    },
+                    command::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
             return ResultFactory.newErrorResult(e);
         }
 
-        if (policy.getEntryFor(label).isPresent()) {
+        if (nonNullPolicy.getEntryFor(label).isPresent()) {
             final PoliciesValidator validator =
-                    PoliciesValidator.newInstance(policy.setResourcesFor(label, resources));
+                    PoliciesValidator.newInstance(nonNullPolicy.setResourcesFor(label, resources));
 
             if (validator.isValid()) {
                 final ResourcesModified event =

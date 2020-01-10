@@ -58,8 +58,11 @@ class MessagePayloadSerializer {
         } else if (payloadOptional.isPresent()) {
             final T payload = payloadOptional.get();
             if (payload instanceof JsonValue) {
-                MessageCommandSizeValidator.getInstance().ensureValidSize(() ->
-                                ((JsonValue) payload).toString().length(), message::getHeaders);
+                final JsonValue payloadAsJsonValue = (JsonValue) payload;
+                MessageCommandSizeValidator.getInstance().ensureValidSize(
+                        payloadAsJsonValue::getUpperBoundForStringSize,
+                        () -> payloadAsJsonValue.toString().length(),
+                        message::getHeaders);
 
                 messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, (JsonValue) payload, predicate);
             } else {

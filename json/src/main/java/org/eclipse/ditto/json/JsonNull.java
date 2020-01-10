@@ -15,5 +15,9 @@ package org.eclipse.ditto.json;
 /**
  * This is a interface to mark all classes that represent a JSON {@code null} value somehow.
  */
-interface JsonNull {
+interface JsonNull extends JsonValue {
+    @Override
+    default long getUpperBoundForStringSize(){
+        return 4; // "null"
+    }
 }

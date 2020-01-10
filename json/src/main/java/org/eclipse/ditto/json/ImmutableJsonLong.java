@@ -74,4 +74,9 @@ final class ImmutableJsonLong extends AbstractJsonNumber<Long> {
     public void writeValue(final SerializationContext serializationContext) throws IOException {
         serializationContext.getJacksonGenerator().writeNumber(getValue());
     }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        return 21; // 20 digits for the decimal representation of 2^64 plus a potential '-' character
+    }
 }

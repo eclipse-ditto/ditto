@@ -76,8 +76,11 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
         this.attributeValue = checkNotNull(attributeValue, "new attribute");
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributeValue.toString().length(), () ->
-                dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                attributeValue::getUpperBoundForStringSize,
+                () -> attributeValue.toString().length(),
+                () -> dittoHeaders);
+        // TODO: this only checks the size of the attribute; shouldn't it check the size of the entire Thing?
     }
 
     private static JsonPointer checkAttributePointer(final JsonPointer pointer, final DittoHeaders dittoHeaders) {

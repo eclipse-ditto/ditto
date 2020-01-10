@@ -19,6 +19,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -57,7 +58,10 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
 
         final Thing nonNullThing = getEntityOrThrow(thing);
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> nonNullThing.toJsonString().length(),
+        final JsonObject thingJsonObject = nonNullThing.toJson();
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                thingJsonObject::getUpperBoundForStringSize,
+                () -> thingJsonObject.toString().length(),
                 command::getDittoHeaders);
 
         if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {

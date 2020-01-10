@@ -47,9 +47,8 @@ public abstract class AbstractCommandSizeValidator<T extends DittoRuntimeExcepti
     }
 
     /**
-     * Guard function that throws when a size limit is specified and the given size supplier returns a size
+     * Guard function that throws when a size limit is specified, and the given size supplier returns a size
      * greater than the limit.
-     *
      * @param sizeSupplier the length calc function (only called when limit is present)
      * @param headersSupplier the headersSupplier for the exception
      * @throws T if size limit is set and exceeded
@@ -60,6 +59,22 @@ public abstract class AbstractCommandSizeValidator<T extends DittoRuntimeExcepti
             if (maxSize < actualSize) {
                 throw newInvalidSizeException(maxSize, actualSize, headersSupplier.get());
             }
+        }
+    }
+
+    /**
+     * Guard function that throws when a size limit is specified, and the given size supplier returns a size
+     * greater than the limit.
+     * Only calls the sizeSupplier, if the upper bound provided by the upperBoundSupplier exceeds the limit.
+     *
+     * @param upperBoundSupplier a calculation function that returns an upper bound for the size (possibly Long.MAX_VALUE)
+     * @param sizeSupplier the length calc function (only called when limit is present)
+     * @param headersSupplier the headersSupplier for the exception
+     * @throws T if size limit is set and exceeded
+     */
+    public void ensureValidSize(final LongSupplier upperBoundSupplier, final LongSupplier sizeSupplier, final Supplier<DittoHeaders> headersSupplier) {
+        if (null != maxSize && upperBoundSupplier.getAsLong() >= maxSize) {
+            ensureValidSize(sizeSupplier, headersSupplier);
         }
     }
 

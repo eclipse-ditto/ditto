@@ -75,8 +75,12 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
                     .build();
         }
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policy.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject policyJsonObject = policy.toJson();
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(
+                policyJsonObject::getUpperBoundForStringSize,
+                () -> policyJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**

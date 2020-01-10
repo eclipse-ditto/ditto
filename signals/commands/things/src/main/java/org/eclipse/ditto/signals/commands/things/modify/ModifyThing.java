@@ -114,8 +114,12 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         this.initialPolicy = initialPolicy;
         this.policyIdOrPlaceholder = policyIdOrPlaceholder;
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject thingJsonObject = thing.toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                thingJsonObject::getUpperBoundForStringSize,
+                () -> thingJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**

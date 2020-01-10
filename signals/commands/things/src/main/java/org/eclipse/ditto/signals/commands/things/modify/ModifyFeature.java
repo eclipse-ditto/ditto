@@ -33,8 +33,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -74,8 +74,12 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
         this.thingId = thingId;
         this.feature = checkNotNull(feature, "Feature");
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> feature.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject featureJsonObject = feature.toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                featureJsonObject::getUpperBoundForStringSize,
+                () -> featureJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**

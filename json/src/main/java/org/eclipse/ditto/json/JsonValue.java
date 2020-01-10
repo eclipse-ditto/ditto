@@ -285,4 +285,11 @@ public interface JsonValue {
      */
     void writeValue(SerializationContext serializationContext) throws IOException;
 
+
+    /**
+     * Returns an upper bound for the size (in chars), that the serialized version of this value might have.
+     * The result of toString().length() on this object is guaranteed to be lower or equal.
+     * @return the upper bound as defined above.
+     */
+    long getUpperBoundForStringSize();
 }

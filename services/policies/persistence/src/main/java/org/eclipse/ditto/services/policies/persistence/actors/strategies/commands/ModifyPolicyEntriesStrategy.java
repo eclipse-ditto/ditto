@@ -17,6 +17,7 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -48,13 +49,15 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
         final Iterable<PolicyEntry> policyEntries = command.getPolicyEntries();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+        final JsonArray policyEntriesJsonArray = StreamSupport.stream(policyEntries.spliterator(), false)
+                .map(PolicyEntry::toJson)
+                .collect(JsonCollectors.valuesToArray());
+
         try {
+            // TODO: this calculates only the size of the entries and ignores the PolicyID and surrounding JSON
             PolicyCommandSizeValidator.getInstance().ensureValidSize(
-                    () -> StreamSupport.stream(policyEntries.spliterator(), false)
-                            .map(PolicyEntry::toJson)
-                            .collect(JsonCollectors.valuesToArray())
-                            .toString()
-                            .length(),
+                    policyEntriesJsonArray::getUpperBoundForStringSize,
+                    () -> policyEntriesJsonArray.toString().length(),
                     command::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
             return ResultFactory.newErrorResult(e);

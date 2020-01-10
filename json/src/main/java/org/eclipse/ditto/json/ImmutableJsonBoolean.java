@@ -85,4 +85,8 @@ final class ImmutableJsonBoolean extends AbstractJsonValue {
         serializationContext.getJacksonGenerator().writeBoolean(value);
     }
 
+    @Override
+    public long getUpperBoundForStringSize() {
+        return 5;
+    }
 }

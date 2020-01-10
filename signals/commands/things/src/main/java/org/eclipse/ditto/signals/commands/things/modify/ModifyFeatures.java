@@ -67,8 +67,12 @@ public final class ModifyFeatures extends AbstractCommand<ModifyFeatures>
         this.thingId = thingId;
         this.features = checkNotNull(features, "Features");
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> features.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject featuresJsonObject = features.toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                featuresJsonObject::getUpperBoundForStringSize,
+                () -> featuresJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**

@@ -298,4 +298,8 @@ final class NullAttributes implements Attributes {
         JsonFactory.nullLiteral().writeValue(serializationContext);
     }
 
+    @Override
+    public long getUpperBoundForStringSize() {
+        return JsonFactory.nullLiteral().getUpperBoundForStringSize();
+    }
 }

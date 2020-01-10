@@ -91,4 +91,9 @@ final class ImmutableJsonDouble extends AbstractJsonNumber<Double> {
     public void writeValue(final SerializationContext serializationContext) throws IOException {
         serializationContext.getJacksonGenerator().writeNumber(getValue());
     }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        return 24; // source: https://stackoverflow.com/questions/21146544/what-is-the-maximum-length-of-double-tostringd
+    }
 }

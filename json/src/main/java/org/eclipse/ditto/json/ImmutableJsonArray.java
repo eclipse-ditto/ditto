@@ -259,6 +259,11 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         valueList.writeValue(serializationContext);
     }
 
+    @Override
+    public long getUpperBoundForStringSize() {
+        return valueList.upperBoundForStringSize();
+    }
+
     @Immutable
     static final class SoftReferencedValueList {
 
@@ -367,7 +372,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
             if (jsonArrayStringRepresentation != null){
                 return parseToList(jsonArrayStringRepresentation);
             }
-            throw new RuntimeException("Fatal cache miss on JsonObject");
+            throw new IllegalStateException("Fatal cache miss on JsonObject");
         }
 
         private static List<JsonValue> parseToList(final String jsonArrayString) {
@@ -410,10 +415,9 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
                 }
                 return false;
             }
-            if (cborArrayRepresentation != null && that.cborArrayRepresentation != null){
-                if (Arrays.equals(cborArrayRepresentation, that.cborArrayRepresentation)){
-                    return true;
-                }
+            if (cborArrayRepresentation != null && that.cborArrayRepresentation != null &&
+                    Arrays.equals(cborArrayRepresentation, that.cborArrayRepresentation)) {
+                return true;
             }
             return Objects.equals(values(), that.values());
         }
@@ -464,6 +468,18 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
                 return cborArrayRepresentation.length;
             }
             return 512;
+        }
+
+        public long upperBoundForStringSize(){
+            if (jsonArrayStringRepresentation != null){
+                return jsonArrayStringRepresentation.length();
+            }
+            if (cborArrayRepresentation != null){
+                final long CBOR_MAX_COMPRESSION_RATIO = 5; // "false" compressed to one byte
+                return cborArrayRepresentation.length * CBOR_MAX_COMPRESSION_RATIO;
+            }
+            assert false; // this should never happen
+            return Long.MAX_VALUE;
         }
     }
 
