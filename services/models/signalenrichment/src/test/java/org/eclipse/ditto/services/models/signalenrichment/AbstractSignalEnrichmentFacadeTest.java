@@ -20,29 +20,35 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.DittoTestSystem;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.eclipse.ditto.signals.events.things.AttributeModified;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Test;
 
 import akka.pattern.AskTimeoutException;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests different {@link org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade} implementations.
+ * Abstract base test for different {@link SignalEnrichmentFacade} implementations.
  */
 abstract class AbstractSignalEnrichmentFacadeTest {
 
     protected static final JsonFieldSelector SELECTOR =
             JsonFieldSelector.newInstance("policyId", "attributes/x", "features/y/properties/z");
 
-    private static final ThingEvent THING_EVENT = ThingModified.of(Thing.newBuilder().setId(ThingId.dummy()).build(), 3, DittoHeaders.empty());
+    protected static final String RESULT_POLICY_ID = "policy:id";
+    protected static final ThingEvent<?> THING_EVENT = AttributeModified.of(ThingId.dummy(),
+            JsonPointer.of("x"),
+            JsonValue.of(5),
+            3L,
+            DittoHeaders.empty());
 
     @Test
     public void success() {
@@ -59,12 +65,11 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             kit.expectMsg(RetrieveThing.getBuilder(thingId, headers)
                     .withSelectedFields(actualSelectedFields(SELECTOR))
                     .build());
-            final JsonObject partialThing = getSuccessPartialThingJson();
-            kit.reply(RetrieveThingResponse.of(thingId, partialThing, headers));
+            kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
 
             // THEN: The result future completes with the entity of the RetrieveThingResponse
             askResult.toCompletableFuture().join();
-            assertThat(askResult).isCompletedWithValue(partialThing);
+            assertThat(askResult).isCompletedWithValue(getExpectedThingJson());
         });
     }
 
@@ -72,12 +77,16 @@ abstract class AbstractSignalEnrichmentFacadeTest {
         return selector;
     }
 
-    protected JsonObject getSuccessPartialThingJson() {
+    protected JsonObject getThingResponseThingJson() {
         return JsonObject.of("{\n" +
-                "  \"policyId\": \"policy:id\",\n" +
+                "  \"policyId\": \"" + RESULT_POLICY_ID + "\",\n" +
                 "  \"attributes\": {\"x\":  5},\n" +
                 "  \"features\": {\"y\": {\"properties\": {\"z\":  true}}}\n" +
                 "}");
+    }
+
+    protected JsonObject getExpectedThingJson() {
+        return getThingResponseThingJson();
     }
 
     @Test

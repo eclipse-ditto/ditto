@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.models.signalenrichment;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -48,7 +48,7 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import akka.actor.ActorRef;
 
 /**
- * Retrieve fixed parts of things by asking an actor.
+ * Retrieve additional parts of things by asking an asynchronous cache.
  */
 public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFacade, Consumer<PolicyId> {
 
@@ -88,6 +88,27 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
     public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
             final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders, final Signal concernedSignal) {
 
+        // as second step only return what was originally requested as fields:
+        return doRetrievePartialThing(thingId, jsonFieldSelector, dittoHeaders, concernedSignal)
+                .thenApply(jsonObject -> jsonObject.get(jsonFieldSelector));
+    }
+
+    @Override
+    public void accept(final PolicyId policyId) {
+        final List<EntityIdWithResourceType> affectedIds = new ArrayList<>(
+                Optional.ofNullable(entitiesWithPolicyId.get(policyId))
+                        .orElse(Collections.emptyList())
+        );
+
+        affectedIds.forEach(entityIdWithResourceType -> {
+            extraFieldsCache.invalidate(entityIdWithResourceType);
+            entitiesWithPolicyId.get(policyId).remove(entityIdWithResourceType);
+        });
+    }
+
+    private CompletionStage<JsonObject> doRetrievePartialThing(final ThingId thingId,
+            final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders, final Signal concernedSignal) {
+
         final JsonFieldSelector enhancedFieldSelector = JsonFactory.newFieldSelectorBuilder()
                 .addPointers(jsonFieldSelector)
                 .addFieldDefinition(Thing.JsonFields.POLICY_ID) // additionally always select the policyId
@@ -99,85 +120,112 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
 
         if (concernedSignal instanceof ThingEvent) {
             final ThingEvent<?> thingEvent = (ThingEvent<?>) concernedSignal;
-            return extraFieldsCache.get(idWithResourceType)
-                    .thenCompose(optionalJsonObject -> optionalJsonObject.map(
-                            smartUpdateCachedObject(jsonFieldSelector, enhancedFieldSelector, idWithResourceType,
-                                    thingEvent)
-                            ).orElseGet(() -> CompletableFuture.completedFuture(JsonObject.empty()))
-                    );
+            return smartUpdateCachedObject(enhancedFieldSelector, idWithResourceType, thingEvent);
         }
-
-        return doCacheLookup(idWithResourceType, jsonFieldSelector);
+        return doCacheLookup(idWithResourceType);
     }
 
-    private Function<JsonObject, CompletableFuture<JsonObject>> smartUpdateCachedObject(
-            final JsonFieldSelector jsonFieldSelector, final JsonFieldSelector enhancedFieldSelector,
-            final EntityIdWithResourceType idWithResourceType, final ThingEvent<?> thingEvent) {
+    private CompletableFuture<JsonObject> smartUpdateCachedObject(
+            final JsonFieldSelector enhancedFieldSelector,
+            final EntityIdWithResourceType idWithResourceType,
+            final ThingEvent<?> thingEvent) {
 
-        return cachedJsonObject -> {
-            final JsonObjectBuilder jsonObjectBuilder = cachedJsonObject.toBuilder();
-            final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
-            if (cachedRevision == thingEvent.getRevision()) {
-                // case 1: the cache entry was not present before and just loaded
-                return CompletableFuture.completedFuture(cachedJsonObject);
-            } else if (cachedRevision + 1 == thingEvent.getRevision()) {
-                // case 2: the cache entry was already present and the thingEvent was the next expected
-                // revision number ->  we have all information necessary to calculate partial thing without
-                // making another roundtrip
-                final JsonPointer resourcePath = thingEvent.getResourcePath();
-                if (Thing.JsonFields.POLICY_ID.getPointer().equals(resourcePath)) {
-                    // invalidate the cache
+        if (thingEvent.getResourcePath().isEmpty()) {
+            // a complete Thing was created/modified -> no need to retrieve via cache as all information is there
+            return handleFullChangedThingEvent(enhancedFieldSelector, idWithResourceType, thingEvent);
+        } else {
+            return doCacheLookup(idWithResourceType).thenCompose(cachedJsonObject -> {
+                final JsonObjectBuilder jsonObjectBuilder = cachedJsonObject.toBuilder();
+                final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
+                if (cachedRevision == thingEvent.getRevision()) {
+                    // the cache entry was not present before and just loaded
+                    return CompletableFuture.completedFuture(cachedJsonObject);
+                } else if (cachedRevision + 1 == thingEvent.getRevision()) {
+                    // the cache entry was already present and the thingEvent was the next expected revision no
+                    // -> we have all information necessary to calculate it without making another roundtrip
+                    return handleNextExpectedThingEvent(enhancedFieldSelector, idWithResourceType, thingEvent,
+                            jsonObjectBuilder);
+                } else {
+                    // the cache entry was already present, but we missed sth and need to invalidate the cache
+                    // and to another cache lookup (via roundtrip)
                     extraFieldsCache.invalidate(idWithResourceType);
-                    // and to another cache lookup (via roundtrip):
-                    return doCacheLookup(idWithResourceType, jsonFieldSelector);
+                    return doCacheLookup(idWithResourceType);
                 }
-                final Optional<JsonValue> optEntity = thingEvent.getEntity();
-                optEntity.ifPresent(entity -> jsonObjectBuilder
-                        .set(resourcePath.toString(), entity)
-                        .set(Thing.JsonFields.REVISION, thingEvent.getRevision())
-                );
-                final JsonObject enhancedJsonObject = jsonObjectBuilder.build().get(enhancedFieldSelector);
-                // update local cache with enhanced object:
-                extraFieldsCache.put(idWithResourceType, enhancedJsonObject);
-                return CompletableFuture.completedFuture(enhancedJsonObject);
-            } else {
-                // case 3: the cache entry was already present, but we missed something and need to
-                // invalidate the cache
-                extraFieldsCache.invalidate(idWithResourceType);
-                // and to another cache lookup (via roundtrip):
-                return doCacheLookup(idWithResourceType, jsonFieldSelector);
-            }
-        };
+            });
+        }
     }
 
-    @Override
-    public void accept(final PolicyId policyId) {
-        Optional.ofNullable(entitiesWithPolicyId.get(policyId))
-                .ifPresent(entityIdWithResourceTypes -> {
-                    entityIdWithResourceTypes.forEach(extraFieldsCache::invalidate);
-                    entityIdWithResourceTypes.forEach(entityIdWithResourceType ->
-                            entitiesWithPolicyId.get(policyId).remove(entityIdWithResourceType));
-                });
+    private CompletableFuture<JsonObject> handleFullChangedThingEvent(final JsonFieldSelector enhancedFieldSelector,
+            final EntityIdWithResourceType idWithResourceType,
+            final ThingEvent<?> thingEvent) {
+
+        final JsonObject derivedObject = thingEvent.getEntity()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(JsonObject::toBuilder)
+                .map(jsonObjectBuilder -> {
+                    jsonObjectBuilder.set(Thing.JsonFields.REVISION, thingEvent.getRevision());
+                    thingEvent.getTimestamp().ifPresent(ts ->
+                            jsonObjectBuilder.set(Thing.JsonFields.MODIFIED, ts.toString())
+                    );
+                    return jsonObjectBuilder.build();
+                })
+                .map(jsonObject -> jsonObject.get(enhancedFieldSelector))
+                .orElse(null);
+
+        if (null != derivedObject) {
+            // add to cache and directly return as result
+            extraFieldsCache.put(idWithResourceType, derivedObject);
+            updatePolicyIdCache(derivedObject, idWithResourceType);
+            return CompletableFuture.completedFuture(derivedObject);
+        } else {
+            return doCacheLookup(idWithResourceType);
+        }
     }
 
-    private CompletableFuture<JsonObject> doCacheLookup(final EntityIdWithResourceType idWithResourceType,
-            final JsonFieldSelector jsonFieldSelector) {
+    private CompletionStage<JsonObject> handleNextExpectedThingEvent(final JsonFieldSelector enhancedFieldSelector,
+            final EntityIdWithResourceType idWithResourceType, final ThingEvent<?> thingEvent,
+            final JsonObjectBuilder jsonObjectBuilder) {
+
+        final JsonPointer resourcePath = thingEvent.getResourcePath();
+        if (Thing.JsonFields.POLICY_ID.getPointer().equals(resourcePath)) {
+            // invalidate the cache
+            extraFieldsCache.invalidate(idWithResourceType);
+            // and to another cache lookup (via roundtrip):
+            return doCacheLookup(idWithResourceType);
+        }
+        final Optional<JsonValue> optEntity = thingEvent.getEntity();
+        optEntity.ifPresent(entity -> jsonObjectBuilder
+                .set(resourcePath.toString(), entity)
+                .set(Thing.JsonFields.REVISION, thingEvent.getRevision())
+        );
+        final JsonObject enhancedJsonObject = jsonObjectBuilder.build().get(enhancedFieldSelector);
+        // update local cache with enhanced object:
+        extraFieldsCache.put(idWithResourceType, enhancedJsonObject);
+        updatePolicyIdCache(enhancedJsonObject, idWithResourceType);
+        return CompletableFuture.completedFuture(enhancedJsonObject);
+    }
+
+    private CompletableFuture<JsonObject> doCacheLookup(final EntityIdWithResourceType idWithResourceType) {
 
         return extraFieldsCache.get(idWithResourceType)
                 .thenApply(optionalJsonObject -> {
-                    optionalJsonObject.ifPresent(jsonObject -> {
-                        final Optional<String> policyIdOpt = jsonObject.getValue(Thing.JsonFields.POLICY_ID);
-                        policyIdOpt.map(PolicyId::of).ifPresent(policyId -> {
-                            if (!entitiesWithPolicyId.containsKey(policyId)) {
-                                entitiesWithPolicyId.put(policyId, new ArrayList<>());
-                            }
-                            entitiesWithPolicyId.get(policyId).add(idWithResourceType);
-                        });
-                    });
+                    optionalJsonObject.ifPresent(jsonObject -> updatePolicyIdCache(jsonObject, idWithResourceType));
                     return optionalJsonObject;
                 })
-                .thenApply(optionalJsonObject -> optionalJsonObject.map(jsonObject -> jsonObject.get(jsonFieldSelector))
-                        .orElse(JsonObject.empty()));
+                .thenApply(optionalJsonObject -> optionalJsonObject.orElse(JsonObject.empty()));
+    }
+
+    private void updatePolicyIdCache(final JsonObject jsonObject,
+            final EntityIdWithResourceType idWithResourceType) {
+
+        final Optional<String> policyIdOpt = jsonObject.getValue(Thing.JsonFields.POLICY_ID);
+        policyIdOpt.map(PolicyId::of).ifPresent(policyId -> {
+            if (!entitiesWithPolicyId.containsKey(policyId)) {
+                entitiesWithPolicyId.put(policyId, new ArrayList<>());
+            }
+            entitiesWithPolicyId.get(policyId).add(idWithResourceType);
+        });
     }
 
 }
