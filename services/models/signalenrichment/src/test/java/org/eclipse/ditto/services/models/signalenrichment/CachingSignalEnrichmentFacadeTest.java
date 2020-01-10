@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -151,7 +152,8 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             final Thing thing2WithUpdatedRev = thing2.toBuilder()
                     .setRevision(thing2.getRevision().get().increment().increment())
                     .build();
-            kit.reply(RetrieveThingResponse.of(thingId, thing2WithUpdatedRev, headers2));
+            kit.reply(RetrieveThingResponse.of(thingId, thing2WithUpdatedRev.toJson(
+                    thing2WithUpdatedRev.getImplementedSchemaVersion(), FieldType.all()), headers2));
             askResultCached.toCompletableFuture().join();
             assertThat(askResultCached).isCompletedWithValue(getExpectedThingJson());
         });
@@ -192,7 +194,8 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             final Thing thing2WithUpdatedRev = thing2.toBuilder()
                     .setRevision(thing2.getRevision().get().increment())
                     .build();
-            kit.reply(RetrieveThingResponse.of(thingId, thing2WithUpdatedRev, headers2));
+            kit.reply(RetrieveThingResponse.of(thingId, thing2WithUpdatedRev.toJson(
+                    thing2WithUpdatedRev.getImplementedSchemaVersion(), FieldType.all()), headers2));
             askResultCached.toCompletableFuture().join();
             assertThat(askResultCached).isCompletedWithValue(getExpectedThingJson());
         });

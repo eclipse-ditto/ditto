@@ -170,7 +170,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
             final DittoHeaders dittoHeaders) {
 
         final JsonObject thingJson = checkNotNull(thing, "Thing")
-                .toJson(dittoHeaders.getSchemaVersion().orElse(thing.getLatestSchemaVersion()), FieldType.all());
+                .toJson(dittoHeaders.getSchemaVersion().orElse(thing.getLatestSchemaVersion()));
         return new RetrieveThingResponse(thingId, HttpStatusCode.OK, thingJson, thingJson.toString(), dittoHeaders);
     }
 
