@@ -130,7 +130,7 @@ public final class ConnectivityCachingSignalEnrichmentProviderTest {
                     .atMost(org.awaitility.Duration.FIVE_SECONDS)
                     .until(() -> {
                         System.gc();
-                        return underTest.getCreatedFacades().size() != 1;
+                        return underTest.getCreatedFacades().size() == 1;
                     });
 
             // there must be only one still referenced facade left:

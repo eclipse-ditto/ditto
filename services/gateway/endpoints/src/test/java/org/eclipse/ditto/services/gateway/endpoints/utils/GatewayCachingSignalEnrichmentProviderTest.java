@@ -113,7 +113,7 @@ public final class GatewayCachingSignalEnrichmentProviderTest {
                     .atMost(Duration.FIVE_SECONDS)
                     .until(() -> {
                         System.gc();
-                        return underTest.getCreatedFacades().size() != 1;
+                        return underTest.getCreatedFacades().size() == 1;
                     });
 
             // there must be only one still referenced facade left:
