@@ -388,7 +388,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gateway
-  namespace: digitaltwins
   labels:
     app: gateway
 spec:
