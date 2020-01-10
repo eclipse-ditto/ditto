@@ -16,13 +16,12 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.services.gateway.endpoints.utils.UriEncoding;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
@@ -78,10 +77,6 @@ final class FeaturesRoute extends AbstractRoute {
 
         messagesRoute = new MessagesRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
                 headerTranslator);
-    }
-
-    private static String decodePath(final String attributePointerStr) {
-        return UriEncoding.decode(attributePointerStr, UriEncoding.EncodingType.RFC3986);
     }
 
     /**
@@ -273,8 +268,7 @@ final class FeaturesRoute extends AbstractRoute {
                                         extractUnmatchedPath(propertyJsonPointerStr ->
                                                 handlePerRequest(ctx, RetrieveFeatureProperty
                                                         .of(thingId, featureId,
-                                                                JsonFactory.newPointer(
-                                                                        decodePath(propertyJsonPointerStr)),
+                                                                JsonFactory.newPointer(propertyJsonPointerStr),
                                                                 dittoHeaders))
                                         )
                                 ),
@@ -288,8 +282,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                                                 thingId,
                                                                                 featureId,
                                                                                 JsonFactory.newPointer(
-                                                                                        decodePath(
-                                                                                                propertyJsonPointerStr)),
+                                                                                        propertyJsonPointerStr),
                                                                                 DittoJsonException.wrapJsonRuntimeException(
                                                                                         () -> JsonFactory.readFrom(
                                                                                                 propertyJson)),
@@ -300,12 +293,8 @@ final class FeaturesRoute extends AbstractRoute {
                                 delete(() ->
                                         // DELETE /features/{featureId}/properties/<propertyJsonPointerStr>
                                         extractUnmatchedPath(propertyJsonPointerStr ->
-                                                handlePerRequest(ctx, DeleteFeatureProperty
-                                                        .of(thingId, featureId,
-                                                                JsonFactory.newPointer(
-                                                                        decodePath(
-                                                                                propertyJsonPointerStr)),
-                                                                dittoHeaders))
+                                                handlePerRequest(ctx, DeleteFeatureProperty.of(thingId, featureId,
+                                                        JsonFactory.newPointer(propertyJsonPointerStr), dittoHeaders))
                                         )
                                 )
                         )
