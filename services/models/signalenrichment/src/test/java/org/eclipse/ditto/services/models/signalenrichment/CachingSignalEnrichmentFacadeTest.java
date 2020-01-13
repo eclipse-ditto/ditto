@@ -98,9 +98,8 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
-            kit.expectMsg(RetrieveThing.getBuilder(thingId, headers)
-                    .withSelectedFields(actualSelectedFields(SELECTOR))
-                    .build());
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             // WHEN: response is handled so that it is also added to the cache
             kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
             askResult.toCompletableFuture().join();
@@ -130,9 +129,8 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
-            kit.expectMsg(RetrieveThing.getBuilder(thingId, headers)
-                    .withSelectedFields(actualSelectedFields(SELECTOR))
-                    .build());
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             // WHEN: response is handled so that it is also added to the cache
             kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
             askResult.toCompletableFuture().join();
@@ -145,9 +143,8 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
                             THING_EVENT.setRevision(THING_EVENT.getRevision() + 2)); // notice +2 here
 
             // THEN: do another cache lookup after invalidation
-            kit.expectMsg(RetrieveThing.getBuilder(thingId, headers2)
-                    .withSelectedFields(actualSelectedFields(SELECTOR))
-                    .build());
+            final RetrieveThing retrieveThing2 = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing2.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             final Thing thing2 = ThingsModelFactory.newThing(getThingResponseThingJson());
             final Thing thing2WithUpdatedRev = thing2.toBuilder()
                     .setRevision(thing2.getRevision().get().increment().increment())
@@ -171,9 +168,8 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
-            kit.expectMsg(RetrieveThing.getBuilder(thingId, headers)
-                    .withSelectedFields(actualSelectedFields(SELECTOR))
-                    .build());
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             // WHEN: response is handled so that it is also added to the cache
             kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
             askResult.toCompletableFuture().join();
@@ -187,9 +183,8 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
                             THING_EVENT.setRevision(THING_EVENT.getRevision() + 1));
 
             // THEN: do another cache lookup after invalidation
-            kit.expectMsg(RetrieveThing.getBuilder(thingId, headers2)
-                    .withSelectedFields(actualSelectedFields(SELECTOR))
-                    .build());
+            final RetrieveThing retrieveThing2 = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing2.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             final Thing thing2 = ThingsModelFactory.newThing(getThingResponseThingJson());
             final Thing thing2WithUpdatedRev = thing2.toBuilder()
                     .setRevision(thing2.getRevision().get().increment())

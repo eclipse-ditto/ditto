@@ -62,9 +62,8 @@ abstract class AbstractSignalEnrichmentFacadeTest {
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
-            kit.expectMsg(RetrieveThing.getBuilder(thingId, headers)
-                    .withSelectedFields(actualSelectedFields(SELECTOR))
-                    .build());
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
 
             // THEN: The result future completes with the entity of the RetrieveThingResponse
@@ -101,9 +100,8 @@ abstract class AbstractSignalEnrichmentFacadeTest {
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with ThingNotAccessibleException
-            kit.expectMsg(RetrieveThing.getBuilder(thingId, headers)
-                    .withSelectedFields(actualSelectedFields(SELECTOR))
-                    .build());
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             final ThingNotAccessibleException thingNotAccessibleException =
                     ThingNotAccessibleException.newBuilder(thingId).dittoHeaders(headers).build();
             kit.reply(thingNotAccessibleException);
@@ -126,9 +124,8 @@ abstract class AbstractSignalEnrichmentFacadeTest {
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with a random object
-            kit.expectMsg(RetrieveThing.getBuilder(thingId, headers)
-                    .withSelectedFields(actualSelectedFields(SELECTOR))
-                    .build());
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             final Object randomObject = new Object();
             kit.reply(randomObject);
 
@@ -152,9 +149,8 @@ abstract class AbstractSignalEnrichmentFacadeTest {
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
 
             // WHEN: Command handler does not respond
-            kit.expectMsg(RetrieveThing.getBuilder(thingId, headers)
-                    .withSelectedFields(actualSelectedFields(SELECTOR))
-                    .build());
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
 
             // THEN: The result future fails with an AskTimeoutException.
             askResult.toCompletableFuture().exceptionally(e -> null).join();
