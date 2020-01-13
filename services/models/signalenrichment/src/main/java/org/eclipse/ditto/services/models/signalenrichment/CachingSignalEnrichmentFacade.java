@@ -130,57 +130,24 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             final EntityIdWithResourceType idWithResourceType,
             final ThingEvent<?> thingEvent) {
 
-        if (thingEvent.getResourcePath().isEmpty()) {
-            // a complete Thing was created/modified -> no need to retrieve via cache as all information is there
-            return handleFullChangedThingEvent(enhancedFieldSelector, idWithResourceType, thingEvent);
-        } else {
-            return doCacheLookup(idWithResourceType).thenCompose(cachedJsonObject -> {
-                final JsonObjectBuilder jsonObjectBuilder = cachedJsonObject.toBuilder();
-                final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
-                if (cachedRevision == thingEvent.getRevision()) {
-                    // the cache entry was not present before and just loaded
-                    return CompletableFuture.completedFuture(cachedJsonObject);
-                } else if (cachedRevision + 1 == thingEvent.getRevision()) {
-                    // the cache entry was already present and the thingEvent was the next expected revision no
-                    // -> we have all information necessary to calculate it without making another roundtrip
-                    return handleNextExpectedThingEvent(enhancedFieldSelector, idWithResourceType, thingEvent,
-                            jsonObjectBuilder);
-                } else {
-                    // the cache entry was already present, but we missed sth and need to invalidate the cache
-                    // and to another cache lookup (via roundtrip)
-                    extraFieldsCache.invalidate(idWithResourceType);
-                    return doCacheLookup(idWithResourceType);
-                }
-            });
-        }
-    }
-
-    private CompletableFuture<JsonObject> handleFullChangedThingEvent(final JsonFieldSelector enhancedFieldSelector,
-            final EntityIdWithResourceType idWithResourceType,
-            final ThingEvent<?> thingEvent) {
-
-        final JsonObject derivedObject = thingEvent.getEntity()
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .map(JsonObject::toBuilder)
-                .map(jsonObjectBuilder -> {
-                    jsonObjectBuilder.set(Thing.JsonFields.REVISION, thingEvent.getRevision());
-                    thingEvent.getTimestamp().ifPresent(ts ->
-                            jsonObjectBuilder.set(Thing.JsonFields.MODIFIED, ts.toString())
-                    );
-                    return jsonObjectBuilder.build();
-                })
-                .map(jsonObject -> jsonObject.get(enhancedFieldSelector))
-                .orElse(null);
-
-        if (null != derivedObject) {
-            // add to cache and directly return as result
-            extraFieldsCache.put(idWithResourceType, derivedObject);
-            updatePolicyIdCache(derivedObject, idWithResourceType);
-            return CompletableFuture.completedFuture(derivedObject);
-        } else {
-            return doCacheLookup(idWithResourceType);
-        }
+        return doCacheLookup(idWithResourceType).thenCompose(cachedJsonObject -> {
+            final JsonObjectBuilder jsonObjectBuilder = cachedJsonObject.toBuilder();
+            final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
+            if (cachedRevision == thingEvent.getRevision()) {
+                // the cache entry was not present before and just loaded
+                return CompletableFuture.completedFuture(cachedJsonObject);
+            } else if (cachedRevision + 1 == thingEvent.getRevision()) {
+                // the cache entry was already present and the thingEvent was the next expected revision no
+                // -> we have all information necessary to calculate it without making another roundtrip
+                return handleNextExpectedThingEvent(enhancedFieldSelector, idWithResourceType, thingEvent,
+                        jsonObjectBuilder);
+            } else {
+                // the cache entry was already present, but we missed sth and need to invalidate the cache
+                // and to another cache lookup (via roundtrip)
+                extraFieldsCache.invalidate(idWithResourceType);
+                return doCacheLookup(idWithResourceType);
+            }
+        });
     }
 
     private CompletionStage<JsonObject> handleNextExpectedThingEvent(final JsonFieldSelector enhancedFieldSelector,
@@ -188,7 +155,8 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             final JsonObjectBuilder jsonObjectBuilder) {
 
         final JsonPointer resourcePath = thingEvent.getResourcePath();
-        if (Thing.JsonFields.POLICY_ID.getPointer().equals(resourcePath)) {
+        if (Thing.JsonFields.POLICY_ID.getPointer().equals(resourcePath) ||
+                resourcePath.toString().startsWith(Thing.JsonFields.ACL.getPointer().toString())) {
             // invalidate the cache
             extraFieldsCache.invalidate(idWithResourceType);
             // and to another cache lookup (via roundtrip):
