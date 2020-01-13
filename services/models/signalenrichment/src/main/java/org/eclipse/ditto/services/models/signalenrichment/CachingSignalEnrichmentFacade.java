@@ -34,8 +34,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
+import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cacheloaders.ThingEnrichmentCacheLoader;
@@ -51,6 +54,8 @@ import akka.actor.ActorRef;
  * Retrieve additional parts of things by asking an asynchronous cache.
  */
 public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFacade, Consumer<PolicyId> {
+
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(CachingSignalEnrichmentFacade.class);
 
     private final Cache<EntityIdWithResourceType, JsonObject> extraFieldsCache;
     private final Map<PolicyId, List<EntityIdWithResourceType>> entitiesWithPolicyId;
@@ -176,6 +181,10 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
 
     private CompletableFuture<JsonObject> doCacheLookup(final EntityIdWithResourceType idWithResourceType) {
 
+        idWithResourceType.getCacheLookupContext().flatMap(CacheLookupContext::getDittoHeaders)
+                .ifPresent(LOGGER::setCorrelationId);
+        LOGGER.debug("Looking up cache entry for <{}>", idWithResourceType);
+        LOGGER.discardCorrelationId();
         return extraFieldsCache.get(idWithResourceType)
                 .thenApply(optionalJsonObject -> {
                     optionalJsonObject.ifPresent(jsonObject -> updatePolicyIdCache(jsonObject, idWithResourceType));

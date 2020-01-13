@@ -60,8 +60,18 @@ final class PolicyCommandFactory {
     static SudoRetrievePolicy sudoRetrievePolicy(final PolicyId policyId,
             @Nullable final CacheLookupContext cacheLookupContext) {
         return SudoRetrievePolicy.of(policyId,
-                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders).orElseGet(() ->
-                        DittoHeaders.newBuilder().correlationId(getCorrelationId(policyId)).build()));
+                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders)
+                        .map(headers -> DittoHeaders.newBuilder()
+                                .authorizationContext(headers.getAuthorizationContext())
+                                .schemaVersion(headers.getImplementedSchemaVersion())
+                                .correlationId("sudoRetrievePolicy-" +
+                                        headers.getCorrelationId().orElseGet(() -> getCorrelationId(policyId)))
+                                .build()
+                        )
+                        .orElseGet(() ->
+                                DittoHeaders.newBuilder()
+                                        .correlationId("sudoRetrievePolicy-" + getCorrelationId(policyId))
+                                        .build()));
     }
 
     private static String getCorrelationId(final PolicyId policyId) {

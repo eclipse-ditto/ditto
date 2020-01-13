@@ -62,8 +62,18 @@ final class ThingCommandFactory {
         LOGGER.debug("Sending SudoRetrieveThing for Thing with ID <{}>", thingId);
         return SudoRetrieveThing.withOriginalSchemaVersion(thingId,
                 Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getJsonFieldSelector).orElse(null),
-                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders).orElseGet(() ->
-                        DittoHeaders.newBuilder().correlationId(getCorrelationId(thingId)).build())
+                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders)
+                        .map(headers -> DittoHeaders.newBuilder()
+                                .authorizationContext(headers.getAuthorizationContext())
+                                .schemaVersion(headers.getImplementedSchemaVersion())
+                                .correlationId("sudoRetrieveThing-" +
+                                        headers.getCorrelationId().orElseGet(() -> getCorrelationId(thingId)))
+                                .build()
+                        )
+                        .orElseGet(() ->
+                                DittoHeaders.newBuilder()
+                                        .correlationId("sudoRetrieveThing-" + getCorrelationId(thingId))
+                                        .build())
         );
     }
 
@@ -88,8 +98,18 @@ final class ThingCommandFactory {
     static RetrieveThing retrieveThing(final ThingId thingId, @Nullable final CacheLookupContext cacheLookupContext) {
         LOGGER.debug("Sending RetrieveThing for Thing with ID <{}>", thingId);
         return RetrieveThing.getBuilder(thingId,
-                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders).orElseGet(() ->
-                        DittoHeaders.newBuilder().correlationId(getCorrelationId(thingId)).build())
+                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders)
+                        .map(headers -> DittoHeaders.newBuilder()
+                                .authorizationContext(headers.getAuthorizationContext())
+                                .schemaVersion(headers.getImplementedSchemaVersion())
+                                .correlationId("retrieveThing-" +
+                                        headers.getCorrelationId().orElseGet(() -> getCorrelationId(thingId)))
+                                .build()
+                        )
+                        .orElseGet(() ->
+                                DittoHeaders.newBuilder()
+                                        .correlationId("retrieveThing-" + getCorrelationId(thingId))
+                                        .build())
         )
                 .withSelectedFields(
                         Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getJsonFieldSelector)
