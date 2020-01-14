@@ -15,6 +15,12 @@ All connection related piggyback commands use the following HTTP endpoint:
 POST /devops/piggyback/connectivity
 ```
 
+## Authorization
+
+When creating new connections , an `authorizationContext` is needed which gives the _authorization subjects_ (think of authorized users) under which permissions the operations that are accepted via this connection are executed.
+If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html)) use the prefic `nginxg:`, e.g. `nginx:my-basic-auth-user`.
+See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
+
 ## CRUD commands
 
 The following commands are available in order to manage connections:

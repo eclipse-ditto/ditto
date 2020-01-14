@@ -57,6 +57,10 @@ For an MQTT connection:
 }
 ```
 
+Note: This example assumes that there is a valid user named `inbound-auth-subject` in ditto.
+If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html)) use the prefic `nginxg:`, e.g. `nginx:my-basic-auth-user`.
+See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
+
 #### Enforcement
 
 As MQTT 3.1.1 does not support headers in its protocol, headers may not be used during [source enforcement](basic-connections.html#source-enforcement).
