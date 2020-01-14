@@ -32,7 +32,10 @@ import org.eclipse.ditto.model.things.ThingId;
 /**
  * This exception indicates that the requested modification of the ACL of a Thing is invalid for some reason. The cause
  * of this exception is documented in the message.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
 @JsonParsableException(errorCode = AclModificationInvalidException.ERROR_CODE)
 public final class AclModificationInvalidException extends DittoRuntimeException implements ThingException {
@@ -105,7 +108,6 @@ public final class AclModificationInvalidException extends DittoRuntimeException
 
     /**
      * A mutable builder with a fluent API for a {@link AclModificationInvalidException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<AclModificationInvalidException> {

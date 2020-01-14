@@ -77,7 +77,9 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
      * The API v1 key for this strategy.
      *
      * @return the API v1 key for this strategy.
+     * @deprecated Part of deprecated API 1. Use API 2 {@link #getKey()}}
      */
+    @Deprecated
     public String getV1FallbackKey() {
         return v1FallbackKey;
     }

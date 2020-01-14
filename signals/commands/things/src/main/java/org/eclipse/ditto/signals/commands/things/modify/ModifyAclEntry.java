@@ -40,7 +40,10 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * This command modifies a single ACL Entry of a Thing.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
 @JsonParsableCommand(typePrefix = ModifyAclEntry.TYPE_PREFIX, name = ModifyAclEntry.NAME)
 public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>

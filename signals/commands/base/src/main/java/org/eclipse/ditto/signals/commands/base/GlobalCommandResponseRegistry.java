@@ -59,6 +59,7 @@ public final class GlobalCommandResponseRegistry
         private CommandResponseParsingStrategyFactory() {}
 
         @Override
+        @Deprecated
         protected String getV1FallbackKeyFor(final JsonParsableCommandResponse annotation) {
             return annotation.type();
         }

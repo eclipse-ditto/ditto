@@ -71,7 +71,8 @@ public final class GlobalEventRegistry
                         .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE)));
     }
 
-    @SuppressWarnings({"squid:CallToDeprecatedMethod", "deprecation"})
+    @SuppressWarnings({"squid:CallToDeprecatedMethod",})
+    @Deprecated
     private Optional<String> extractTypeV1(final JsonObject jsonObject) {
         return jsonObject.getValue(Event.JsonFields.ID);
     }
@@ -86,6 +87,7 @@ public final class GlobalEventRegistry
         private EventParsingStrategyFactory() {}
 
         @Override
+        @Deprecated
         protected String getV1FallbackKeyFor(final JsonParsableEvent annotation) {
             return annotation.name();
         }

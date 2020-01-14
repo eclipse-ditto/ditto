@@ -41,7 +41,10 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link ModifyAcl} command.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
 @JsonParsableCommandResponse(type = ModifyAclResponse.TYPE)
 public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclResponse> implements
