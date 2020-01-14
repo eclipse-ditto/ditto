@@ -60,7 +60,9 @@ public interface ThingBuilder {
          * @param furtherPermissions additional permissions of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(AuthorizationSubject authorizationSubject, Permission permission,
                 Permission... furtherPermissions);
 
@@ -72,7 +74,9 @@ public interface ThingBuilder {
          * @param permissions the permission of of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(AuthorizationSubject authorizationSubject, Permissions permissions);
 
         /**
@@ -82,7 +86,9 @@ public interface ThingBuilder {
          * @param aclEntries the entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code aclEntries} is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(Iterable<AclEntry> aclEntries);
 
         /**
@@ -94,7 +100,9 @@ public interface ThingBuilder {
          * @throws NullPointerException if {@code accessControlListJsonObject} is {@code null}.
          * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject} cannot be parsed
          * to {@link AccessControlList}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(JsonObject accessControlListJsonObject);
 
         /**
@@ -106,7 +114,9 @@ public interface ThingBuilder {
          * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString} cannot be parsed
          * to {@link AccessControlList}.
          * @see #setPermissions(JsonObject)
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(String accessControlListJsonString);
 
         /**
@@ -117,7 +127,9 @@ public interface ThingBuilder {
          * @param furtherAclEntries additional ACL entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(AclEntry aclEntry, AclEntry... furtherAclEntries);
 
         /**
@@ -126,14 +138,18 @@ public interface ThingBuilder {
          * @param authorizationSubject the authorization subject of which all permissions are to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code authorizationSubject} is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch removePermissionsOf(AuthorizationSubject authorizationSubject);
 
         /**
          * Removes all permissions from this builder.
          *
          * @return this builder to allow method chaining.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch removeAllPermissions();
 
         /**
@@ -509,7 +525,9 @@ public interface ThingBuilder {
          * @param furtherPermissions additional permissions of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final AuthorizationSubject authorizationSubject, final Permission permission,
                 final Permission... furtherPermissions) {
             return setPermissions(existingAcl -> true, authorizationSubject, permission, furtherPermissions);
@@ -526,7 +544,9 @@ public interface ThingBuilder {
          * @param furtherPermissions additional permissions of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate,
                 AuthorizationSubject authorizationSubject, Permission permission, Permission... furtherPermissions);
 
@@ -538,7 +558,9 @@ public interface ThingBuilder {
          * @param permissions the permission of of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final AuthorizationSubject authorizationSubject,
                 final Permissions permissions) {
 
@@ -555,7 +577,9 @@ public interface ThingBuilder {
          * @param permissions the permission of of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate,
                 AuthorizationSubject authorizationSubject, Permissions permissions);
 
@@ -566,7 +590,9 @@ public interface ThingBuilder {
          * @param aclEntries the entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code aclEntries} is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final Iterable<AclEntry> aclEntries) {
             return setPermissions(existingAcl -> true, aclEntries);
         }
@@ -580,7 +606,9 @@ public interface ThingBuilder {
          * @param aclEntries the entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate, Iterable<AclEntry> aclEntries);
 
         /**
@@ -592,7 +620,9 @@ public interface ThingBuilder {
          * @throws NullPointerException if {@code accessControlListJsonObject} is {@code null}.
          * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject} cannot be parsed
          * to {@link AccessControlList}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final JsonObject accessControlListJsonObject) {
             return setPermissions(existingAcl -> true, accessControlListJsonObject);
         }
@@ -608,7 +638,9 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject} cannot be parsed
          * to {@link AccessControlList}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate,
                 JsonObject accessControlListJsonObject);
 
@@ -619,7 +651,9 @@ public interface ThingBuilder {
          * @return this builder to allow method chaining.
          * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString} cannot be parsed
          * to {@link AccessControlList}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final String accessControlListJsonString) {
             return setPermissions(existingAcl -> true, accessControlListJsonString);
         }
@@ -634,7 +668,9 @@ public interface ThingBuilder {
          * @throws NullPointerException if {@code existingAclPredicate} is {@code null}.
          * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString} cannot be parsed
          * to {@link AccessControlList}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate, String accessControlListJsonString);
 
         /**
@@ -645,7 +681,9 @@ public interface ThingBuilder {
          * @param furtherAclEntries additional ACL entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final AclEntry aclEntry, final AclEntry... furtherAclEntries) {
             return setPermissions(existingAcl -> true, aclEntry, furtherAclEntries);
         }
@@ -660,7 +698,9 @@ public interface ThingBuilder {
          * @param furtherAclEntries additional ACL entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate, AclEntry aclEntry,
                 AclEntry... furtherAclEntries);
 
@@ -670,7 +710,9 @@ public interface ThingBuilder {
          * @param authorizationSubject the authorization subject of which all permissions are removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code authorizationSubject} is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy removePermissionsOf(final AuthorizationSubject authorizationSubject) {
             return removePermissionsOf(existingAcl -> true, authorizationSubject);
         }
@@ -683,7 +725,9 @@ public interface ThingBuilder {
          * @param authorizationSubject the authorization subject of which all permissions are removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy removePermissionsOf(Predicate<AccessControlList> existingAclPredicate,
                 AuthorizationSubject authorizationSubject);
 
@@ -691,7 +735,9 @@ public interface ThingBuilder {
          * Removes all permissions from this builder.
          *
          * @return this builder to allow method chaining.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy removeAllPermissions() {
             return removeAllPermissions(existingAcl -> true);
         }
@@ -703,7 +749,9 @@ public interface ThingBuilder {
          * receives the ACL which consists of the currently set permissions.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingAclPredicate} is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy removeAllPermissions(Predicate<AccessControlList> existingAclPredicate);
 
         /**

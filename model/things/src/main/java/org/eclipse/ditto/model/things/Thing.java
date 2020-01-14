@@ -59,8 +59,11 @@ public interface Thing extends Entity<ThingRevision> {
 
     /**
      * The set of permissions which at least must be present in the ACL of a Thing for one Authorization Subject.
+     *
+     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
      */
     @SuppressWarnings("squid:S2386")
+    @Deprecated
     Permissions MIN_REQUIRED_PERMISSIONS =
             ThingsModelFactory.newUnmodifiablePermissions(Permission.READ, Permission.WRITE, Permission.ADMINISTRATE);
 
@@ -446,7 +449,9 @@ public interface Thing extends Entity<ThingRevision> {
      * Returns the Access Control List of this Thing.
      *
      * @return the Access Control List of this Thing.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     Optional<AccessControlList> getAccessControlList();
 
     /**
@@ -454,7 +459,9 @@ public interface Thing extends Entity<ThingRevision> {
      *
      * @param accessControlList the Access Control List to be set.
      * @return a copy of this Thing with {@code accessControlList} as its ACL.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     Thing setAccessControlList(AccessControlList accessControlList);
 
     /**
@@ -464,7 +471,9 @@ public interface Thing extends Entity<ThingRevision> {
      * @param aclEntry the entry to be set.
      * @return a copy of this Thing with the changed ACL.
      * @throws NullPointerException if {@code aclEntry} is {@code null}.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     Thing setAclEntry(AclEntry aclEntry);
 
     /**
@@ -475,7 +484,9 @@ public interface Thing extends Entity<ThingRevision> {
      * @return a copy of this Thing whose ACL does not contain any entries which are associated with the specified
      * authorization subject.
      * @throws NullPointerException if {@code authorizationSubject} is {@code null}.
+     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     Thing removeAllPermissionsOf(AuthorizationSubject authorizationSubject);
 
     /**

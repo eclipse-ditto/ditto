@@ -34,8 +34,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * A mutable implementation of {@link Permissions}.
+ *
+ * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
  */
 @NotThreadSafe
+@Deprecated
 final class MutablePermissions extends AbstractSet<Permission> implements Permissions {
 
     private final Set<Permission> values;

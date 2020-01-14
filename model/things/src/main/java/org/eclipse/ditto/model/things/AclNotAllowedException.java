@@ -29,7 +29,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * This exception indicates that a {@link Thing}'s {@link JsonSchemaVersion} does not allow {@link AccessControlList}.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+
+@Deprecated
 @Immutable
 @JsonParsableException(errorCode = AclNotAllowedException.ERROR_CODE)
 public final class AclNotAllowedException extends DittoRuntimeException implements ThingException {

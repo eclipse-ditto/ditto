@@ -40,7 +40,9 @@ final class ImmutableThing implements Thing {
 
 
     @Nullable private final ThingId thingId;
-    @Nullable private final AccessControlList acl;
+    @Nullable
+    @Deprecated
+    private final AccessControlList acl;
     @Nullable private final PolicyId policyId;
     @Nullable private final ThingDefinition definition;
     @Nullable private final Attributes attributes;
@@ -110,7 +112,9 @@ final class ImmutableThing implements Thing {
      * @param revision the revision of the Thing to be created.
      * @param modified the modified timestamp of the thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
+     * @deprecated deprecated API version 1. Use API version 2 instead.
      */
+    @Deprecated
     static Thing of(@Nullable final ThingId thingId,
             @Nullable final AccessControlList accessControlList,
             @Nullable final Attributes attributes,
@@ -119,7 +123,7 @@ final class ImmutableThing implements Thing {
             @Nullable final ThingRevision revision,
             @Nullable final Instant modified) {
 
-        return new ImmutableThing(thingId, accessControlList, null, null, attributes,features, lifecycle,
+        return new ImmutableThing(thingId, accessControlList, null, null, attributes, features, lifecycle,
                 revision,
                 modified);
     }
@@ -138,6 +142,7 @@ final class ImmutableThing implements Thing {
      * @param modified the modified timestamp of the thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      */
+
     static Thing of(@Nullable final ThingId thingId,
 
             @Nullable final AccessControlList accessControlList,
@@ -379,11 +384,13 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
+    @Deprecated
     public Optional<AccessControlList> getAccessControlList() {
         return Optional.ofNullable(acl);
     }
 
     @Override
+    @Deprecated
     public Thing setAccessControlList(final AccessControlList accessControlList) {
         if (policyId != null) {
             throw AclInvalidException.newBuilder(thingId)
@@ -399,6 +406,7 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
+    @Deprecated
     public Thing setAclEntry(final AclEntry aclEntry) {
         final AccessControlList newAcl;
         if (null == acl || acl.isEmpty()) {
@@ -411,6 +419,7 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
+    @Deprecated
     public Thing removeAllPermissionsOf(final AuthorizationSubject authorizationSubject) {
         if (null == acl || acl.isEmpty()) {
             return this;

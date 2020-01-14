@@ -44,7 +44,9 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Nullable Instant modified;
     @Nullable private JsonSchemaVersion schemaVersion;
     @Nullable private PolicyId policyId;
-    @Nullable private AccessControlListBuilder aclBuilder;
+    @Nullable
+    @Deprecated
+    private AccessControlListBuilder aclBuilder;
     @Nullable private AttributesBuilder attributesBuilder;
     @Nullable private Attributes attributes;
     @Nullable private ThingDefinition definition;
@@ -335,24 +337,28 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    @Deprecated
     public FromScratch setPermissions(final JsonObject accessControlListJsonObject) {
         final AccessControlList accessControlList = ThingsModelFactory.newAcl(accessControlListJsonObject);
         return setPermissions(accessControlList);
     }
 
     @Override
+    @Deprecated
     public FromScratch setPermissions(final String accessControlListJsonString) {
         final AccessControlList accessControlList = ThingsModelFactory.newAcl(accessControlListJsonString);
         return setPermissions(accessControlList);
     }
 
     @Override
+    @Deprecated
     public FromScratch setPermissions(final AuthorizationSubject authorizationSubject, final Permissions permissions) {
         final AclEntry aclEntry = ThingsModelFactory.newAclEntry(authorizationSubject, permissions);
         return setPermissions(aclEntry);
     }
 
     @Override
+    @Deprecated
     public FromScratch setPermissions(final AuthorizationSubject authorizationSubject, final Permission permission,
             final Permission... furtherPermissions) {
 
@@ -361,6 +367,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    @Deprecated
     public FromScratch setPermissions(final AclEntry aclEntry, final AclEntry... furtherAclEntries) {
         invokeOnAclBuilder(ab -> ab.set(aclEntry));
         for (final AclEntry furtherAclEntry : furtherAclEntries) {
@@ -370,6 +377,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    @Deprecated
     public FromScratch setPermissions(final Iterable<AclEntry> aclEntries) {
         invokeOnAclBuilder(ab -> ab.setAll(aclEntries));
 
@@ -377,6 +385,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    @Deprecated
     public FromScratch removePermissionsOf(final AuthorizationSubject authorizationSubject) {
         checkNotNull(authorizationSubject, "authorization subject of which all permissions are to be removed");
 
@@ -387,6 +396,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    @Deprecated
     public FromScratch removeAllPermissions() {
         aclBuilder = null;
         return this;
@@ -426,12 +436,15 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Override
     public Thing build() {
         if (null != policyId) {
-            return ImmutableThing.of(id, null, policyId, definition, getAttributes(), getFeatures(), lifecycle, revision, modified);
+            return ImmutableThing.of(id, null, policyId, definition, getAttributes(), getFeatures(), lifecycle,
+                    revision, modified);
         } else {
-            return ImmutableThing.of(id, getAcl(), null, definition, getAttributes(), getFeatures(), lifecycle, revision, modified);
+            return ImmutableThing.of(id, getAcl(), null, definition, getAttributes(), getFeatures(), lifecycle,
+                    revision, modified);
         }
     }
 
+    @Deprecated
     private void invokeOnAclBuilder(final Consumer<AccessControlListBuilder> aclBuilderConsumer) {
         AccessControlListBuilder result = aclBuilder;
         if (null == result) {
@@ -462,6 +475,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Nullable
+    @Deprecated
     AccessControlList getAcl() {
         AccessControlList result = null;
         if (null != aclBuilder) {
