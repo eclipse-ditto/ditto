@@ -18,7 +18,6 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
-import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.strategies.commands.PolicyCommandStrategies;
@@ -166,15 +165,6 @@ public final class PolicyPersistenceActor
     @Override
     protected void publishEvent(final PolicyEvent event) {
         pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSelf());
-        if (event.getRevision() > 1L) {
-            // when an existing policy was modified
-            // issue a "policies.events:id" event sending only the PolicyId as payload
-            // used for subscribers which are not interested in the policyEvent but only the fact that a policy
-            // was modified
-            pubSubMediator.tell(DistPubSubAccess.publish(PolicyEvent.TYPE_PREFIX + "id",
-                    PolicyTag.of(event.getEntityId(), event.getRevision())),
-                    getSelf());
-        }
     }
 
     @Override

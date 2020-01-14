@@ -34,13 +34,11 @@ public final class ConnectivityByRoundTripSignalEnrichmentProvider implements Co
      * Instantiate this provider. Called by reflection.
      *
      * @param actorSystem The actor system for which this provider is instantiated.
-     * @param policyObserver The {@code PolicyObserverActor} actor to use in order to subscribe to policy changes.
      * @param commandHandler The recipient of retrieve-thing commands.
      * @param signalEnrichmentConfig Configuration for this provider.
      */
     @SuppressWarnings("unused")
     public ConnectivityByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem,
-            final ActorRef policyObserver,
             final ActorRef commandHandler,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
         this.commandHandler = commandHandler;

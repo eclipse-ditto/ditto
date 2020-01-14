@@ -46,20 +46,18 @@ public interface GatewaySignalEnrichmentProvider {
      * Load a {@code ThingEnrichingFacadeProvider} dynamically according to the streaming configuration.
      *
      * @param actorSystem The actor system in which to load the facade provider class.
-     * @param policyObserver The {@code PolicyObserverActor} actor to use in order to subscribe to policy changes.
      * @param commandHandler The recipient of retrieve-thing commands.
      * @param signalEnrichmentConfig The SignalEnrichment configuration.
      * @return The configured facade provider.
      */
     static GatewaySignalEnrichmentProvider load(final ActorSystem actorSystem,
-            final ActorRef policyObserver,
             final ActorRef commandHandler,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
 
         return AkkaClassLoader.instantiate(actorSystem, GatewaySignalEnrichmentProvider.class,
                 signalEnrichmentConfig.getProvider(),
-                Arrays.asList(ActorSystem.class, ActorRef.class, ActorRef.class, SignalEnrichmentConfig.class),
-                Arrays.asList(actorSystem, policyObserver, commandHandler, signalEnrichmentConfig)
+                Arrays.asList(ActorSystem.class, ActorRef.class, SignalEnrichmentConfig.class),
+                Arrays.asList(actorSystem, commandHandler, signalEnrichmentConfig)
         );
     }
 }

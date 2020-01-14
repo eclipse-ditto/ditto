@@ -17,13 +17,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Duration;
 
-import org.assertj.core.api.Assertions;
-import org.awaitility.Awaitility;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
-import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,7 +71,7 @@ public final class ConnectivityCachingSignalEnrichmentProviderTest {
     public void loadProvider() {
         new TestKit(actorSystem) {{
             final ConnectivitySignalEnrichmentProvider
-                    underTest = ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), config);
+                    underTest = ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), config);
             assertThat(underTest).isInstanceOf(ConnectivityCachingSignalEnrichmentProvider.class);
         }};
     }
@@ -87,8 +82,7 @@ public final class ConnectivityCachingSignalEnrichmentProviderTest {
                 withValue("signal-enrichment.provider-config.ask-timeout", "This is not a duration");
         new TestKit(actorSystem) {{
             assertThatExceptionOfType(ConfigException.class)
-                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(),
-                            badConfig));
+                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
         }};
     }
 
@@ -96,45 +90,4 @@ public final class ConnectivityCachingSignalEnrichmentProviderTest {
         return DefaultSignalEnrichmentConfig.of(config.render().withValue(key, ConfigValueFactory.fromAnyRef(value)));
     }
 
-    /**
-     * ConnectivityCachingSignalEnrichmentProvider uses a "WeakReference" Set of created instances of
-     * CachingSignalEnrichmentFacade which are notified whenever PolicyId changes were made.
-     * <p>
-     * This tests the construct be explicitly dereferencing created facades and ensuring that they are evicted from the
-     * "WeakReference" Set.
-     */
-    @Test
-    public void instantiateFacadesEnsureThatUnreferencedFacadesAreRemovedFromWeakSet() {
-        new TestKit(actorSystem) {{
-            final ConnectivityCachingSignalEnrichmentProvider underTest =
-                    new ConnectivityCachingSignalEnrichmentProvider(actorSystem, getRef(), getRef(), config);
-
-            // WHEN: creating 3 facades
-            final ConnectionId connectionId = ConnectionId.dummy();
-            CachingSignalEnrichmentFacade facade1 =
-                    (CachingSignalEnrichmentFacade) underTest.createFacade(connectionId);
-            CachingSignalEnrichmentFacade facade2 =
-                    (CachingSignalEnrichmentFacade) underTest.createFacade(connectionId);
-            CachingSignalEnrichmentFacade facade3 =
-                    (CachingSignalEnrichmentFacade) underTest.createFacade(connectionId);
-
-            final PolicyId policyId = PolicyId.of("test:policy");
-            underTest.accept(policyId);
-
-            // WHEN: explicitly removing the only reference to facade1 and facade2
-            facade1 = null;
-            facade2 = null;
-
-            // THEN: after the next GC cycle (or some GC cycles, not really deterministic)
-            Awaitility.await()
-                    .atMost(org.awaitility.Duration.FIVE_SECONDS)
-                    .until(() -> {
-                        System.gc();
-                        return underTest.getCreatedFacades().size() == 1;
-                    });
-
-            // there must be only one still referenced facade left:
-            Assertions.assertThat(underTest.getCreatedFacades().size()).isEqualTo(1);
-        }};
-    }
 }

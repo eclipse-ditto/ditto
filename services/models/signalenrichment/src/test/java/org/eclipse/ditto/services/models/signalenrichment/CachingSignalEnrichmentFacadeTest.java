@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -156,43 +155,4 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
         });
     }
 
-    @Test
-    public void invalidateAlreadyLoadedCacheEntryOnPolicyChange() {
-        DittoTestSystem.run(this, kit -> {
-            // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
-            final SignalEnrichmentFacade underTest =
-                    createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.dummy();
-            final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
-            final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
-
-            // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
-            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
-            // WHEN: response is handled so that it is also added to the cache
-            kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
-            askResult.toCompletableFuture().join();
-            assertThat(askResult).isCompletedWithValue(getExpectedThingJson());
-
-            // WHEN: policy of the cache thing is updated and same thing is asked again
-            ((CachingSignalEnrichmentFacade) underTest).accept(PolicyId.of(RESULT_POLICY_ID));
-            final DittoHeaders headers2 = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
-            final CompletionStage<JsonObject> askResultCached =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers2,
-                            THING_EVENT.setRevision(THING_EVENT.getRevision() + 1));
-
-            // THEN: do another cache lookup after invalidation
-            final RetrieveThing retrieveThing2 = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing2.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
-            final Thing thing2 = ThingsModelFactory.newThing(getThingResponseThingJson());
-            final Thing thing2WithUpdatedRev = thing2.toBuilder()
-                    .setRevision(thing2.getRevision().get().increment())
-                    .build();
-            kit.reply(RetrieveThingResponse.of(thingId, thing2WithUpdatedRev.toJson(
-                    thing2WithUpdatedRev.getImplementedSchemaVersion(), FieldType.all()), headers2));
-            askResultCached.toCompletableFuture().join();
-            assertThat(askResultCached).isCompletedWithValue(getExpectedThingJson());
-        });
-    }
 }

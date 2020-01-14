@@ -30,6 +30,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-model-things</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-protocol-adapter</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>

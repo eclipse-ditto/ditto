@@ -54,7 +54,7 @@ public final class GatewayByRoundTripSignalEnrichmentProviderTest {
     public void loadProvider() {
         new TestKit(actorSystem) {{
             final GatewaySignalEnrichmentProvider underTest =
-                    GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), signalEnrichmentConfig);
+                    GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), signalEnrichmentConfig);
             assertThat(underTest).isInstanceOf(GatewayByRoundTripSignalEnrichmentProvider.class);
         }};
     }
@@ -66,7 +66,7 @@ public final class GatewayByRoundTripSignalEnrichmentProviderTest {
                     .withValue("signal-enrichment.provider",
                             ConfigValueFactory.fromAnyRef(getClass().getCanonicalName() + "_NonexistentClass")));
             assertThatExceptionOfType(ClassNotFoundException.class)
-                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig))
+                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig))
                     .withMessageContaining("_NonexistentClass");
         }};
     }
@@ -78,7 +78,7 @@ public final class GatewayByRoundTripSignalEnrichmentProviderTest {
                     .withValue("signal-enrichment.provider",
                             ConfigValueFactory.fromAnyRef("java.lang.Object")));
             assertThatExceptionOfType(ClassCastException.class)
-                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig));
+                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
         }};
     }
 
@@ -89,7 +89,7 @@ public final class GatewayByRoundTripSignalEnrichmentProviderTest {
                     .withValue("signal-enrichment.provider-config.ask-timeout",
                             ConfigValueFactory.fromAnyRef("This is not a duration")));
             assertThatExceptionOfType(ConfigException.class)
-                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig));
+                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
         }};
     }
 

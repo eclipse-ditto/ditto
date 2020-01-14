@@ -122,7 +122,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     @Override
     public Adaptable toAdaptable(final Signal<?> signal) {
-        final boolean isLive = isLiveSignal(signal);
+        final boolean isLive = ProtocolAdapter.isLiveSignal(signal);
         final TopicPath.Channel channel = isLive ? TopicPath.Channel.LIVE : TopicPath.Channel.TWIN;
         if (signal instanceof MessageCommand) {
             return toAdaptable((MessageCommand<?, ?>) signal);
@@ -136,10 +136,6 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             return toAdaptable((Event<?>) signal, channel);
         }
         throw UnknownSignalException.newBuilder(signal.getName()).dittoHeaders(signal.getDittoHeaders()).build();
-    }
-
-    private static boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     @Override

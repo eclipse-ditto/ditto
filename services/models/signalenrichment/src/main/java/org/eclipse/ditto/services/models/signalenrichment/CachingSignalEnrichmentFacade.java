@@ -13,16 +13,10 @@
 package org.eclipse.ditto.services.models.signalenrichment;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.function.Consumer;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -31,9 +25,9 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.Cache;
@@ -53,12 +47,11 @@ import akka.actor.ActorRef;
 /**
  * Retrieve additional parts of things by asking an asynchronous cache.
  */
-public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFacade, Consumer<PolicyId> {
+public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFacade {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(CachingSignalEnrichmentFacade.class);
 
     private final Cache<EntityIdWithResourceType, JsonObject> extraFieldsCache;
-    private final Map<PolicyId, List<EntityIdWithResourceType>> entitiesWithPolicyId;
 
     private CachingSignalEnrichmentFacade(
             final ActorRef commandHandler,
@@ -71,7 +64,6 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
         extraFieldsCache = CacheFactory.createCache(thingEnrichmentCacheLoader, cacheConfig,
                 null, // explicitly disable metrics for this cache
                 cacheLoaderExecutor);
-        entitiesWithPolicyId = new HashMap<>();
     }
 
     /**
@@ -98,19 +90,6 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
                 .thenApply(jsonObject -> jsonObject.get(jsonFieldSelector));
     }
 
-    @Override
-    public void accept(final PolicyId policyId) {
-        final List<EntityIdWithResourceType> affectedIds = new ArrayList<>(
-                Optional.ofNullable(entitiesWithPolicyId.get(policyId))
-                        .orElse(Collections.emptyList())
-        );
-
-        affectedIds.forEach(entityIdWithResourceType -> {
-            extraFieldsCache.invalidate(entityIdWithResourceType);
-            entitiesWithPolicyId.get(policyId).remove(entityIdWithResourceType);
-        });
-    }
-
     private CompletionStage<JsonObject> doRetrievePartialThing(final ThingId thingId,
             final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders, final Signal concernedSignal) {
 
@@ -123,7 +102,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
                 ThingCommand.RESOURCE_TYPE, thingId,
                 CacheFactory.newCacheLookupContext(dittoHeaders, enhancedFieldSelector));
 
-        if (concernedSignal instanceof ThingEvent) {
+        if (concernedSignal instanceof ThingEvent && !(ProtocolAdapter.isLiveSignal(concernedSignal))) {
             final ThingEvent<?> thingEvent = (ThingEvent<?>) concernedSignal;
             return smartUpdateCachedObject(enhancedFieldSelector, idWithResourceType, thingEvent);
         }
@@ -175,7 +154,6 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
         final JsonObject enhancedJsonObject = jsonObjectBuilder.build().get(enhancedFieldSelector);
         // update local cache with enhanced object:
         extraFieldsCache.put(idWithResourceType, enhancedJsonObject);
-        updatePolicyIdCache(enhancedJsonObject, idWithResourceType);
         return CompletableFuture.completedFuture(enhancedJsonObject);
     }
 
@@ -186,23 +164,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
         LOGGER.debug("Looking up cache entry for <{}>", idWithResourceType);
         LOGGER.discardCorrelationId();
         return extraFieldsCache.get(idWithResourceType)
-                .thenApply(optionalJsonObject -> {
-                    optionalJsonObject.ifPresent(jsonObject -> updatePolicyIdCache(jsonObject, idWithResourceType));
-                    return optionalJsonObject;
-                })
                 .thenApply(optionalJsonObject -> optionalJsonObject.orElse(JsonObject.empty()));
-    }
-
-    private void updatePolicyIdCache(final JsonObject jsonObject,
-            final EntityIdWithResourceType idWithResourceType) {
-
-        final Optional<String> policyIdOpt = jsonObject.getValue(Thing.JsonFields.POLICY_ID);
-        policyIdOpt.map(PolicyId::of).ifPresent(policyId -> {
-            if (!entitiesWithPolicyId.containsKey(policyId)) {
-                entitiesWithPolicyId.put(policyId, new ArrayList<>());
-            }
-            entitiesWithPolicyId.get(policyId).add(idWithResourceType);
-        });
     }
 
 }

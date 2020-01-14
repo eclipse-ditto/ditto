@@ -43,7 +43,6 @@ import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClust
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
-import org.eclipse.ditto.services.models.signalenrichment.PolicyObserverActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
@@ -168,9 +167,7 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         final ActorRef conciergeForwarder =
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
-        final ActorRef policyObserver =
-                startChildActor(PolicyObserverActor.ACTOR_NAME, PolicyObserverActor.props(pubSubMediator));
-        signalEnrichmentProvider = ConnectivitySignalEnrichmentProvider.load(actorSystem, policyObserver,
+        signalEnrichmentProvider = ConnectivitySignalEnrichmentProvider.load(actorSystem,
                 conciergeForwarder, connectivityConfig.getSignalEnrichmentConfig());
 
         final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());

@@ -59,7 +59,7 @@ public final class ConnectivityByRoundTripSignalEnrichmentProviderTest {
     public void loadProvider() {
         new TestKit(createActorSystem()) {{
             final ConnectivitySignalEnrichmentProvider
-                    underTest = ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), config);
+                    underTest = ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), config);
             assertThat(underTest).isInstanceOf(ConnectivityByRoundTripSignalEnrichmentProvider.class);
         }};
     }
@@ -70,7 +70,7 @@ public final class ConnectivityByRoundTripSignalEnrichmentProviderTest {
                 withValue("signal-enrichment.provider", getClass().getCanonicalName() + "_NonexistentClass");
         new TestKit(createActorSystem()) {{
             assertThatExceptionOfType(ClassNotFoundException.class)
-                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig));
+                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
         }};
     }
 
@@ -79,7 +79,7 @@ public final class ConnectivityByRoundTripSignalEnrichmentProviderTest {
         final SignalEnrichmentConfig badConfig = withValue("signal-enrichment.provider", "java.lang.Object");
         new TestKit(createActorSystem()) {{
             assertThatExceptionOfType(ClassCastException.class)
-                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig));
+                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
         }};
     }
 
@@ -89,7 +89,7 @@ public final class ConnectivityByRoundTripSignalEnrichmentProviderTest {
                 withValue("signal-enrichment.provider-config.ask-timeout", "This is not a duration");
         new TestKit(createActorSystem()) {{
             assertThatExceptionOfType(ConfigException.class)
-                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), getRef(), badConfig));
+                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
         }};
     }
 

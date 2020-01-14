@@ -247,4 +247,14 @@ public interface ProtocolAdapter {
      * @return the header translator.
      */
     HeaderTranslator headerTranslator();
+
+    /**
+     * Test whether a signal belongs to the live channel.
+     *
+     * @param signal the signal.
+     * @return whether it is a live signal.
+     */
+    static boolean isLiveSignal(final Signal<?> signal) {
+        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+    }
 }
