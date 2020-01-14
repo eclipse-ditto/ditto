@@ -108,6 +108,12 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
+    /**
+     * @param adaptable the protocol message
+     * @return the ACL of the adaptable
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
+     */
+    @Deprecated
     protected static AccessControlList aclFrom(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
@@ -116,6 +122,12 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
+    /**
+     * @param adaptable the protocol message
+     * @return the ACL-entry of the adaptable
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
+     */
+    @Deprecated
     protected static AclEntry aclEntryFrom(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
