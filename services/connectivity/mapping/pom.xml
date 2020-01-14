@@ -55,7 +55,7 @@
 
         <dependency>
             <groupId>org.mozilla</groupId>
-            <artifactId>rhino</artifactId>
+            <artifactId>rhino-runtime</artifactId>
         </dependency>
 
         <dependency>

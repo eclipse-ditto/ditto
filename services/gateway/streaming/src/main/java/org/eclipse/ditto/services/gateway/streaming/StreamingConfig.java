@@ -90,7 +90,7 @@ public interface StreamingConfig {
         /**
          * Maximum number of stream elements to process in parallel.
          */
-        PARALLELISM("parallelism", 1);
+        PARALLELISM("parallelism", 64);
 
         private final String path;
         private final Object defaultValue;

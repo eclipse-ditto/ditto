@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -48,7 +48,7 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
 
 
     /**
-     * Constructs a new {@code DittoRuntimeException} object.
+     * Constructs a new {@code SignalEnrichmentFailedException} object.
      *
      * @param dittoHeaders the headers with which this Exception should be reported back to the user.
      * @param message the detail message for later retrieval with {@link #getMessage()}.
@@ -69,7 +69,7 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
     }
 
     /**
-     * A mutable builder for a {@code DittoHeaderInvalidException} in case of an invalid type.
+     * A mutable builder for a {@code SignalEnrichmentFailedException} in case of an invalid type.
      *
      * @return the builder.
      */
@@ -79,12 +79,12 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
     }
 
     /**
-     * Constructs a new {@code DittoHeaderInvalidException} object with the exception message extracted from the
+     * Constructs a new {@code SignalEnrichmentFailedException} object with the exception message extracted from the
      * given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new DittoHeaderInvalidException.
+     * @return the new SignalEnrichmentFailedException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
