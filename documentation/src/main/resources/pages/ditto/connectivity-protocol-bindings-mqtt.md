@@ -22,12 +22,10 @@ MQTT 3.1.1 messages have no application headers. Transmission-relevant propertie
 `"headers"` field as a part of [Ditto protocol messages](protocol-specification.html#dittoProtocolEnvelope) in the
 payload. 
 
-These properties are supported:
+This property is supported:
 
 * `correlation-id`: For correlating request messages and events. Twin events have the correlation IDs of
   [Twin commands](protocol-twinlive.html#twin) that produced them.
-* `reply-to`: The value should be an MQTT topic.
-  If a command sets the header `reply-to`, then its response is published at the topic equal to the header value.
 
 ## Specific connection configuration
 

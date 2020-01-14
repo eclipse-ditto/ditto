@@ -49,7 +49,8 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
     private static final String MESSAGE_TEMPLATE = "Namespaced entity ID ''{0}'' is not valid!";
 
     private static final String NAMESPACED_ENTITY_ID_DESCRIPTION =
-            "It must conform to the namespaced entity ID notation (see Ditto documentation)";
+            "It must conform to the namespaced entity ID notation (see Ditto documentation) with a maximum length of " +
+                    "256 characters.";
 
     private static final URI DEFAULT_HREF = URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
 

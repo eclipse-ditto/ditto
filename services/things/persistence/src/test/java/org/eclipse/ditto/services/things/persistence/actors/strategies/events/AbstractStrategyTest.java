@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
@@ -24,7 +25,9 @@ import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
  * Abstract base implementation for strategy unit tests.
@@ -73,6 +76,17 @@ abstract class AbstractStrategyTest {
      * Attributes for testing.
      */
     static final Attributes ATTRIBUTES = Attributes.newBuilder().set(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE).build();
+
+    /**
+     * A Thing Definition for testing.
+     */
+    static final ThingDefinition THING_DEFINITION = ThingsModelFactory.newDefinition("example:test" +
+            ":definition");
+
+    /**
+     * A Thing Definition for testing.
+     */
+    static final PolicyId POLICY_ID = PolicyId.of("example.com:testPolicy");
 
     /**
      * A Feature identifier for testing.

@@ -68,11 +68,8 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.model.base.common.EntityIdValidator</exclude>
-                            <exclude>org.eclipse.ditto.model.base.entity.Entity#getEntityId()</exclude>
-                            <exclude>org.eclipse.ditto.model.base.entity.Entity#NAMESPACE_REGEX</exclude>
-                            <exclude>org.eclipse.ditto.model.base.entity.Entity#ID_REGEX</exclude>
-                            <exclude>org.eclipse.ditto.model.base.entity.Entity#ENTITY_NAME_REGEX</exclude>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>

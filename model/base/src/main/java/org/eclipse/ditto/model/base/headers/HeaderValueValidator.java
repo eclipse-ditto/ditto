@@ -14,8 +14,6 @@ package org.eclipse.ditto.model.base.headers;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -30,7 +28,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
@@ -156,17 +153,9 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
     private void validateEntityTagMatcher(final String key, @Nullable final CharSequence charSequence) {
         final String headerValue = String.valueOf(charSequence);
         if (!EntityTagMatcher.isValid(headerValue)) {
-
-            final DittoRuntimeExceptionBuilder<DittoHeaderInvalidException> exceptionBuilder =
-                    DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "entity-tag");
-
-            try {
-                exceptionBuilder.href(new URI(RFC_7232_SECTION_2_3));
-            } catch (final URISyntaxException e) {
-                // Do nothing. If this happens, there is no href appended to the exception builder.
-            }
-
-            throw exceptionBuilder.build();
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "entity-tag")
+                    .href(RFC_7232_SECTION_2_3)
+                    .build();
         }
     }
 
@@ -177,17 +166,9 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
     private void validateEntityTag(final String key, @Nullable final CharSequence charSequence) {
         final String headerValue = String.valueOf(charSequence);
         if (!EntityTag.isValid(headerValue)) {
-
-            final DittoRuntimeExceptionBuilder<DittoHeaderInvalidException> exceptionBuilder =
-                    DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "entity-tag");
-
-            try {
-                exceptionBuilder.href(new URI(RFC_7232_SECTION_2_3));
-            } catch (final URISyntaxException e) {
-                // Do nothing. If this happens, there is no href appended to the exception builder.
-            }
-
-            throw exceptionBuilder.build();
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "entity-tag")
+                    .href(RFC_7232_SECTION_2_3)
+                    .build();
         }
     }
 }

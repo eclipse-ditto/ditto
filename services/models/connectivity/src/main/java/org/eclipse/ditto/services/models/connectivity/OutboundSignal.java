@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -62,12 +63,17 @@ public interface OutboundSignal extends Jsonifiable.WithFieldSelectorAndPredicat
     /**
      * Extends the {@link OutboundSignal} by adding the mapped message.
      */
-    interface WithExternalMessage extends OutboundSignal {
+    interface Mapped extends OutboundSignal {
 
         /**
          * @return the {@link ExternalMessage} that was mapped from the outbound signal.
          */
         ExternalMessage getExternalMessage();
+
+        /**
+         * @return the Ditto protocol message after adaptation.
+         */
+        Adaptable getAdaptable();
     }
 
     /**

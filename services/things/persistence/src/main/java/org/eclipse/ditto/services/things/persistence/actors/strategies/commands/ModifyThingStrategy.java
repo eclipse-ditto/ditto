@@ -211,6 +211,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
 
         thingWithModifications.getPolicyEntityId().ifPresent(builder::setPolicyId);
         thingWithModifications.getAccessControlList().ifPresent(builder::setPermissions);
+        thingWithModifications.getDefinition().ifPresent(builder::setDefinition);
         thingWithModifications.getAttributes().ifPresent(builder::setAttributes);
         thingWithModifications.getFeatures().ifPresent(builder::setFeatures);
 

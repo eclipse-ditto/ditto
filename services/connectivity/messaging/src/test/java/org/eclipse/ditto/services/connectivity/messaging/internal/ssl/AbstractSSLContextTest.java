@@ -27,8 +27,8 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLServerSocket;
 
-import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
-import org.eclipse.ditto.model.connectivity.credentials.Credentials;
+import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
+import org.eclipse.ditto.model.connectivity.Credentials;
 import org.junit.Test;
 
 /**

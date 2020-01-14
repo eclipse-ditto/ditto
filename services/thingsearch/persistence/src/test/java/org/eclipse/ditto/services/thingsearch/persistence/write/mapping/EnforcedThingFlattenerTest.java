@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectType;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.junit.Test;
@@ -41,6 +42,8 @@ import org.junit.Test;
  * Tests {@link EnforcedThingFlattener}
  */
 public final class EnforcedThingFlattenerTest {
+
+    final ThingDefinition DEFINITION = ThingsModelFactory.newDefinition("example:test:definition");
 
     @Test
     public void testWithAclEnforcer() {
@@ -274,6 +277,37 @@ public final class EnforcedThingFlattenerTest {
                 "    \"r\": []\n" +
                 "  }\n" +
                 "]");
+
+        final EnforcedThingFlattener underTest = new EnforcedThingFlattener("thing:id", emptyEnforcer, -1);
+
+        final String result = underTest.eval(inputJson)
+                .map(Document::toJson)
+                .collect(Collectors.joining(",", "[", "]"));
+
+        assertThat(JsonFactory.newArray(result)).isEqualTo(expectedOutputJson);
+    }
+
+    @Test
+    public void testDefinition() {
+        final JsonObject inputJson = JsonFactory.newObject("{\n" +
+                "  \"definition\":\n" +
+                "    \"example:test:definition\"}");
+
+        final Enforcer emptyEnforcer = PolicyEnforcers.defaultEvaluator(
+                PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy","id"))
+                        .forLabel("grant-root")
+                        .setSubject("grant:root", SubjectType.GENERATED)
+                        .setGrantedPermissions(THING, "/", Permission.READ)
+                        .build());
+
+        final JsonArray expectedOutputJson = JsonFactory.newArray("[\n" +
+                "  {\n" +
+                "    \"k\": \"/definition\",\n" +
+                "    \"v\": \"example:test:definition\",\n" +
+                "    \"g\": [\"grant:root\"],\n" +
+                "    \"r\": []\n" +
+                "  }\n" +
+                "  ]");
 
         final EnforcedThingFlattener underTest = new EnforcedThingFlattener("thing:id", emptyEnforcer, -1);
 

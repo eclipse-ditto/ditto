@@ -19,7 +19,6 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 
 /**
  * A mutable builder for a {@link Connection} with a fluent API.

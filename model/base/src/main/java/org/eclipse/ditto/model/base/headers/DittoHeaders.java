@@ -89,16 +89,6 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     }
 
     /**
-     * Returns a mutable builder with a fluent API for immutable {@code DittoHeaders}. The builder is initialised with
-     * the entries of this instance.
-     *
-     * @return the new builder.
-     */
-    default DittoHeadersBuilder toBuilder() {
-        return DefaultDittoHeadersBuilder.of(this);
-    }
-
-    /**
      * Creates a single-line String representation of the passed {@code readSubjects} which were retrieved by the
      * {@link #getReadSubjects()} of the DittoHeaders instance. Used when transmitting via a messaging header.
      *
@@ -125,6 +115,16 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     }
 
     /**
+     * Returns a mutable builder with a fluent API for immutable {@code DittoHeaders}. The builder is initialised with
+     * the entries of this instance.
+     *
+     * @return the new builder.
+     */
+    default DittoHeadersBuilder toBuilder() {
+        return DefaultDittoHeadersBuilder.of(this);
+    }
+
+    /**
      * Returns the ID that is used to mark messages which belong together between clients.
      *
      * @return the correlation identifier.
@@ -137,13 +137,6 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @return the content-type.
      */
     Optional<String> getContentType();
-
-    /**
-     * Returns the source which caused the command, e.g. a "clientId".
-     *
-     * @return the source which caused the command.
-     */
-    Optional<String> getSource();
 
     /**
      * Returns the json schema version.
@@ -230,6 +223,11 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @return the {@code MessageMapper} which mapped incoming payload.
      */
     Optional<String> getInboundPayloadMapper();
+
+    /**
+     * @return the reply target of a command-response.
+     */
+    Optional<Integer> getReplyTarget();
 
     /**
      * Indicates whether the size of the headers entries is greater than the specified size.

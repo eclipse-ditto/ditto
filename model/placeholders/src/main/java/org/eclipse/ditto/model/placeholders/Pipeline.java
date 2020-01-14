@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.model.placeholders;
 
-import java.util.Optional;
-
 /**
  * A Pipeline is able to execute its {@code stageExpressions} starting with a {@code pipelineInput} derived from a
  * {@link Placeholder}.
@@ -23,12 +21,12 @@ interface Pipeline {
     /**
      * Executes the Pipeline function expressions by first evaluating the placeholder variable by name.
      *
-     * @param pipelineInput the input into the pipe, usually an already resolved {@link Placeholder} - may also be an
+     * @param pipelineInput the input into the pipe, usually an already resolved {@link org.eclipse.ditto.model.placeholders.Placeholder} - may also be an
      * empty optional as there are pipeline stages which can make use of a default fallback value.
      * @param expressionResolver the resolver from which placeholders are resolved.
      * @return the result of the Pipeline execution after all stages were handled.
      */
-    Optional<String> execute(Optional<String> pipelineInput, ExpressionResolver expressionResolver);
+    PipelineElement execute(PipelineElement pipelineInput, ExpressionResolver expressionResolver);
 
     /**
      * Validates the instantiated Pipeline and checks whether all configured {@code stageExpressions} are supported.

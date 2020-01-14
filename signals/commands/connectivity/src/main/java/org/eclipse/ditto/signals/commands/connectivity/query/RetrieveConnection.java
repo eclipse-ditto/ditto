@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -38,7 +37,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command which retrieves a {@link Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveConnection.TYPE_PREFIX, name = RetrieveConnection.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = RetrieveConnection.NAME)
 public final class RetrieveConnection extends AbstractCommand<RetrieveConnection>
         implements ConnectivityQueryCommand<RetrieveConnection> {
 
@@ -109,6 +108,7 @@ public final class RetrieveConnection extends AbstractCommand<RetrieveConnection
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
                 predicate);
@@ -131,14 +131,20 @@ public final class RetrieveConnection extends AbstractCommand<RetrieveConnection
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveConnection);
+        return other instanceof RetrieveConnection;
     }
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) {return true;}
-        if (o == null || getClass() != o.getClass()) {return false;}
-        if (!super.equals(o)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final RetrieveConnection that = (RetrieveConnection) o;
         return Objects.equals(connectionId, that.connectionId);
     }

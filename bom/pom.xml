@@ -27,7 +27,7 @@
 
     <properties>
         <scala.version>2.12</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
-        <scala.full.version>2.12.8</scala.full.version>
+        <scala.full.version>2.12.10</scala.full.version>
 
         <javac.source>11</javac.source>
         <javac.target>11</javac.target>
@@ -36,13 +36,12 @@
         <minimal-json.version>0.9.5</minimal-json.version>
         <typesafe-config.version>1.3.4</typesafe-config.version>
         <ssl-config-core.version>0.3.8</ssl-config-core.version>
-        <akka.version>2.5.25</akka.version>
-        <akka-http.version>10.1.9</akka-http.version>
+        <akka.version>2.5.27</akka.version>
+        <akka-http.version>10.1.11</akka-http.version>
         <akka-persistence-mongo.version>2.3.1</akka-persistence-mongo.version>
-        <akka-management.version>1.0.3</akka-management.version>
+        <akka-management.version>1.0.4</akka-management.version>
         <simple-akka-downing.version>0.9.2</simple-akka-downing.version>
-        <alpakka-mqtt.version>1.0.0</alpakka-mqtt.version>
-        <hivemq-mqtt-client.version>1.1.2</hivemq-mqtt-client.version>
+        <hivemq-mqtt-client.version>1.1.3</hivemq-mqtt-client.version>
         <akka-stream-kafka.version>1.0.5</akka-stream-kafka.version>
 
         <mongo-scala-driver.version>2.7.0</mongo-scala-driver.version>
@@ -362,12 +361,6 @@
                 <groupId>com.rabbitmq</groupId>
                 <artifactId>amqp-client</artifactId>
                 <version>${amqp-client.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.lightbend.akka</groupId>
-                <artifactId>akka-stream-alpakka-mqtt_${scala.version}</artifactId>
-                <version>${alpakka-mqtt.version}</version>
             </dependency>
 
             <dependency>

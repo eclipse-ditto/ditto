@@ -109,9 +109,6 @@ public final class DefaultConnectionConfigTest {
                     softly.assertThat(mqttConfig.getSourceBufferSize())
                             .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
                             .isEqualTo(7);
-                    softly.assertThat(mqttConfig.isLegacyMode())
-                            .as(MqttConfig.MqttConfigValue.LEGACY_MODE.getConfigPath())
-                            .isEqualTo(true);
                 });
 
         softly.assertThat(underTest.getHttpPushConfig())

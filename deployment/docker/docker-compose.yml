@@ -1,3 +1,13 @@
+# Copyright (c) 2019 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
 version: '2.4'
 
 services:
@@ -13,7 +23,6 @@ services:
        TZ: Europe/Berlin
 
   policies:
-    init: true
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -24,17 +33,12 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
-      - REMOTING_IDLE_CPU_LEVEL=1
-    entrypoint:
-      - java
-      # Set additional configuration options here
-      # -Dditto.policies...
-      - -jar
-      - starter.jar
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+    # Set additional configuration options here
+    # -Dditto.policies...
+    command: java -jar starter.jar
 
   things:
-    init: true
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -47,17 +51,12 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
-      - REMOTING_IDLE_CPU_LEVEL=1
-    entrypoint:
-      - java
-      # Set additional configuration options here
-      # -Dditto.things...
-      - -jar
-      - starter.jar
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+    # Set additional configuration options here
+    # -Dditto.things...
+    command: java -jar starter.jar
 
   things-search:
-    init: true
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -70,17 +69,12 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
-      - REMOTING_IDLE_CPU_LEVEL=1
-    entrypoint:
-      - java
-      # Set additional configuration options here
-      # -Dditto.things-search...
-      - -jar
-      - starter.jar
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+    # Set additional configuration options here
+    # -Dditto.things-search...
+    command: java -jar starter.jar
 
   concierge:
-    init: true
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -93,17 +87,12 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
-      - REMOTING_IDLE_CPU_LEVEL=1
-    entrypoint:
-      - java
-      # Set additional configuration options here
-      # -Dditto.concierge...
-      - -jar
-      - starter.jar
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+    # Set additional configuration options here
+    # -Dditto.concierge...
+    command: java -jar starter.jar
 
   connectivity:
-    init: true
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -117,17 +106,12 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
-      - REMOTING_IDLE_CPU_LEVEL=1
-    entrypoint:
-      - java
-      # Set additional configuration options here
-      # -Dditto.connectivity...
-      - -jar
-      - starter.jar
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+    # Set additional configuration options here
+    # -Dditto.connectivity...
+    command: java -jar starter.jar
 
   gateway:
-    init: true
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
     mem_limit: 384m
     networks:
@@ -143,17 +127,14 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - REMOTING_IDLE_CPU_LEVEL=1
       - ENABLE_DUMMY_AUTH=true
-      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
       # You may use the environment for setting the devops password
       #- DEVOPS_PASSWORD=foobar
-    entrypoint:
-      - java
-      # Setting the devops password via java VM environment
-      - -Dditto.gateway.authentication.devops.password=foobar
-      - -jar
-      - starter.jar
+    # Set additional configuration options here
+    # -Dditto.gateway...
+    # Setting the devops password via java VM environment
+    command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v3.20.5

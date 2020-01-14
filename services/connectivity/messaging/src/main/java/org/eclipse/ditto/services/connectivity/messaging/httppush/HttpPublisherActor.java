@@ -24,7 +24,7 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
@@ -35,7 +35,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
@@ -84,9 +83,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final Collection<InetAddress> blacklistedAddresses;
 
     @SuppressWarnings("unused")
-    private HttpPublisherActor(final ConnectionId connectionId, final List<Target> targets,
-            final HttpPushFactory factory) {
-        super(connectionId, targets);
+    private HttpPublisherActor(final Connection connection, final HttpPushFactory factory) {
+        super(connection);
         this.factory = factory;
 
         final ActorSystem system = getContext().getSystem();
@@ -105,8 +103,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .run(materializer);
     }
 
-    static Props props(final ConnectionId connectionId, final List<Target> targets, final HttpPushFactory factory) {
-        return Props.create(HttpPublisherActor.class, connectionId, targets, factory);
+    static Props props(final Connection connection, final HttpPushFactory factory) {
+        return Props.create(HttpPublisherActor.class, connection, factory);
     }
 
     @Override
@@ -122,11 +120,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     @Override
     protected HttpPublishTarget toPublishTarget(final String address) {
         return HttpPublishTarget.of(address);
-    }
-
-    @Override
-    protected HttpPublishTarget toReplyTarget(final String replyToAddress) {
-        return HttpPublishTarget.of(replyToAddress);
     }
 
     @Override
@@ -148,13 +141,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     @Override
     protected DiagnosticLoggingAdapter log() {
         return log;
-    }
-
-    @Override
-    protected ExternalMessageBuilder withMappedHeaders(final ExternalMessageBuilder builder,
-            final Map<String, String> mappedHeaders) {
-        // instead of appending mapped headers, remove all but the mapped headers.
-        return builder.withHeaders(mappedHeaders);
     }
 
     private HttpRequest createRequest(final HttpPublishTarget publishTarget, final ExternalMessage message) {

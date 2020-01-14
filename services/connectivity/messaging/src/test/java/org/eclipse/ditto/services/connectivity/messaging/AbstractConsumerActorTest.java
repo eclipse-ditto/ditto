@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
-import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -156,13 +156,9 @@ public abstract class AbstractConsumerActorTest<M> {
         testInboundMessage(header("useless", "header"), false,
                 msg -> {},
                 response -> {
-                    final UnresolvedPlaceholderException exception =
-                            UnresolvedPlaceholderException.fromMessage(
-                                    response.getExternalMessage().getTextPayload().orElse(""),
-                                    response.getSource().getDittoHeaders());
-                    assertThat(exception.getErrorCode()).isEqualTo(UnresolvedPlaceholderException.ERROR_CODE);
-                    assertThat(exception.getDittoHeaders()).contains(REPLY_TO_HEADER);
-                    assertThat(exception.getMessage()).contains("{{ header:device_id }}");
+                    assertThat(response.getSource().getDittoHeaders()).contains(REPLY_TO_HEADER);
+                    assertThat(response.getExternalMessage().getTextPayload().orElse(""))
+                            .contains("{{ header:device_id }}");
                 }
         );
     }
@@ -174,7 +170,7 @@ public abstract class AbstractConsumerActorTest<M> {
     private void testInboundMessage(final Map.Entry<String, Object> header,
             final boolean isForwardedToConcierge,
             final Consumer<Signal<?>> verifySignal,
-            final Consumer<OutboundSignal.WithExternalMessage> verifyResponse) {
+            final Consumer<OutboundSignal.Mapped> verifyResponse) {
         testInboundMessage(header, isForwardedToConcierge ? 1 : 0, isForwardedToConcierge ? 0 : 1, verifySignal,
                 verifyResponse, ConnectivityModelFactory.emptyPayloadMapping());
     }
@@ -183,7 +179,7 @@ public abstract class AbstractConsumerActorTest<M> {
             final int forwardedToConcierge,
             final int respondedToCaller,
             final Consumer<Signal<?>> verifySignal,
-            final Consumer<OutboundSignal.WithExternalMessage> verifyResponse,
+            final Consumer<OutboundSignal.Mapped> verifyResponse,
             final PayloadMapping payloadMapping
     ) {
 

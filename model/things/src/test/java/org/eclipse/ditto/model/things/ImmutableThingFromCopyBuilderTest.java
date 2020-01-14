@@ -755,6 +755,23 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     @Test
+    public void setDefinition() {
+        underTestV2.setDefinition(TestConstants.Thing.DEFINITION);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasDefinition(TestConstants.Thing.DEFINITION);
+    }
+
+    @Test
+    public void removeDefinition() {
+        underTestV2.setDefinition(TestConstants.Thing.DEFINITION);
+        underTestV2.removeDefinition();
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing.getDefinition()).isEmpty();
+    }
+
+    @Test
     public void setIdWithTopLevelNamespace() {
         assertSetIdWithValidNamespace("ad");
     }

@@ -88,35 +88,9 @@
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
                     <parameter>
-                        <ignoreMissingClassesByRegularExpressions>
-                            <ignoreMissingClassesByRegularExpression>
-                                <!--org.eclipse.ditto.signals.base.WithThingId has been moved to org.eclipse.ditto.model.things.WithThingId-->
-                                org.eclipse.ditto.signals.base.WithThingId
-                            </ignoreMissingClassesByRegularExpression>
-                        </ignoreMissingClassesByRegularExpressions>
                         <excludes>
-                            <exclude>
-                                <!-- getEntityId has been added to this interface -->
-                                org.eclipse.ditto.signals.events.things.ThingEvent#getEntityId()
-                            </exclude>
-                            <exclude>
-                                <!-- getThingEntityId has been added to this interface -->
-                                org.eclipse.ditto.signals.events.things.ThingEvent#getThingEntityId()
-                            </exclude>
-                            <exclude>
-                                <!-- getThingId is still available but implemented in the interface WithThingId -->
-                                org.eclipse.ditto.signals.events.things.ThingEvent#getThingId()
-                            </exclude>
-
-                            <exclude>
-                                <!-- getThing is still available but implemented in the interface WithThingId -->
-                                org.eclipse.ditto.signals.events.things.AbstractThingEvent#getThingId()
-                            </exclude>
-
-                            <exclude>
-                                <!-- getId is still available but implemented in the interface WithId -->
-                                org.eclipse.ditto.signals.events.things.ThingEvent#getId()
-                            </exclude>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>

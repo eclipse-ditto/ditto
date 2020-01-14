@@ -12,17 +12,12 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
-import static java.util.stream.Collectors.toMap;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.AbstractMap;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,9 +33,6 @@ import javax.jms.TextMessage;
 
 import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.message.JmsMessage;
-import org.apache.qpid.jms.message.facade.JmsMessageFacade;
-import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
-import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -48,9 +40,9 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
+import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
-import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConsumerClosedStatusReport;
@@ -84,7 +76,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
     private static final String RESTART_MESSAGE_CONSUMER = "restartMessageConsumer";
-    private static final String CREATION_TIME_HEADER = "creation-time";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
@@ -110,8 +101,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         super(connectionId,
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 messageMappingProcessor,
-                consumerData.getSource().getAuthorizationContext(),
-                consumerData.getSource().getHeaderMapping().orElse(null));
+                consumerData.getSource());
         final ConnectionConfig connectionConfig =
                 DittoConnectivityConfig.of(
                         DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
@@ -287,13 +277,15 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             return new ThrottleState(interval, nextMessages);
         });
         if (state.currentMessagePerInterval >= throttlingLimit) {
-            // TODO: add monitoring logs after merge
             log.info("Stopping message consumer, message limit of {}/{} exceeded.", throttlingLimit,
                     throttlingInterval);
             stopMessageConsumer();
             // calculate timestamp of next interval when the consumer should be restarted
             final long restartConsumerAt = (interval + 1) * throttlingInterval.toMillis();
             getSelf().tell(new RestartMessageConsumer(restartConsumerAt), ActorRef.noSender());
+            inboundMonitor.getCounter().recordFailure();
+            inboundMonitor.getLogger()
+                    .failure("Source <{0}> is rate-limited due to excessive messaging.", sourceAddress);
         }
     }
 
@@ -321,8 +313,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
-                    .withAuthorizationContext(authorizationContext)
-                    .withEnforcement(headerEnforcementFilterFactory.getFilter(headers)).withHeaderMapping(headerMapping)
+                    .withAuthorizationContext(source.getAuthorizationContext())
+                    .withEnforcement(headerEnforcementFilterFactory.getFilter(headers))
+                    .withHeaderMapping(source.getHeaderMapping().orElse(null))
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(consumerData.getSource().getPayloadMapping())
                     .build();
@@ -380,66 +373,18 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 throw new IllegalArgumentException("Message too large...");
             }
         } else {
-            final Destination destination = message.getJMSDestination();
-            final Map<String, String> headersMapFromJmsMessage = extractHeadersMapFromJmsMessage(message);
-            log.debug("Received message at '{}' of unsupported type ({}) with headers: {}",
-                    destination, message.getClass().getName(), headersMapFromJmsMessage);
+            if (log.isDebugEnabled()) {
+                final Destination destination = message.getJMSDestination();
+                final Map<String, String> headersMapFromJmsMessage = extractHeadersMapFromJmsMessage(message);
+                log.debug("Received message at '{}' of unsupported type ({}) with headers: {}",
+                        destination, message.getClass().getName(), headersMapFromJmsMessage);
+            }
         }
         return builder;
     }
 
-    private Map<String, String> extractHeadersMapFromJmsMessage(final JmsMessage message) throws JMSException {
-
-        final Map<String, String> headersFromJmsProperties;
-
-        final JmsMessageFacade facade = message.getFacade();
-        if (facade instanceof AmqpJmsMessageFacade) {
-            final AmqpJmsMessageFacade amqpJmsMessageFacade = (AmqpJmsMessageFacade) facade;
-            final Set<String> names =
-                    amqpJmsMessageFacade.getApplicationPropertyNames(amqpJmsMessageFacade.getPropertyNames());
-            headersFromJmsProperties = new HashMap<>(names.stream()
-                    .map(key -> getPropertyAsEntry(amqpJmsMessageFacade, key))
-                    .filter(Objects::nonNull)
-                    .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
-
-            final Symbol contentType = amqpJmsMessageFacade.getContentType();
-            if (null != contentType) {
-                headersFromJmsProperties.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType.toString());
-            }
-        } else {
-            throw new JMSException("Message facade was not of type AmqpJmsMessageFacade");
-        }
-
-        final String replyTo = message.getJMSReplyTo() != null ? String.valueOf(message.getJMSReplyTo()) : null;
-        if (replyTo != null) {
-            headersFromJmsProperties.put(ExternalMessage.REPLY_TO_HEADER, replyTo);
-        }
-
-        final String jmsCorrelationId = message.getJMSCorrelationID() != null ? message.getJMSCorrelationID() :
-                message.getJMSMessageID();
-        if (jmsCorrelationId != null) {
-            headersFromJmsProperties.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), jmsCorrelationId);
-        }
-
-        headersFromJmsProperties.put(CREATION_TIME_HEADER, Long.toString(message.getJMSTimestamp()));
-
-        return headersFromJmsProperties;
-    }
-
-    @Nullable
-    private Map.Entry<String, String> getPropertyAsEntry(final AmqpJmsMessageFacade message, final String key) {
-        try {
-            final Object applicationProperty = message.getApplicationProperty(key);
-            if (applicationProperty != null) {
-                return new AbstractMap.SimpleImmutableEntry<>(key, applicationProperty.toString());
-            } else {
-                log.debug("Property '{}' was null", key);
-                return null;
-            }
-        } catch (final JMSException e) {
-            log.debug("Property '{}' could not be read, dropping...", key);
-            return null;
-        }
+    private Map<String, String> extractHeadersMapFromJmsMessage(final JmsMessage message) {
+        return JMSPropertyMapper.getPropertiesAndApplicationProperties(message);
     }
 
     private static final class RestartMessageConsumer {

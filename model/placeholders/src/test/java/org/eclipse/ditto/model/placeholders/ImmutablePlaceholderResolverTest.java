@@ -53,7 +53,7 @@ public class ImmutablePlaceholderResolverTest {
         inputMap.put("two", "2");
 
         final ImmutablePlaceholderResolver<Map<String, String>> underTest = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newHeadersPlaceholder(), inputMap, false);
+                PlaceholderFactory.newHeadersPlaceholder(), inputMap);
 
         assertThat(underTest.resolve("one"))
                 .contains("1");
@@ -66,7 +66,7 @@ public class ImmutablePlaceholderResolverTest {
         final ThingId thingId = ThingId.of("org.eclipse.ditto", "foobar199");
 
         final ImmutablePlaceholderResolver<CharSequence> underTest = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newThingPlaceholder(), thingId, false);
+                PlaceholderFactory.newThingPlaceholder(), thingId);
 
         assertThat(underTest.resolve("id"))
                 .contains(thingId.toString());
@@ -82,7 +82,7 @@ public class ImmutablePlaceholderResolverTest {
         final TopicPath topic = ProtocolFactory.newTopicPath(fullPath);
 
         final ImmutablePlaceholderResolver<TopicPath> underTest = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newTopicPathPlaceholder(), topic, false);
+                PlaceholderFactory.newTopicPathPlaceholder(), topic);
 
         assertThat(underTest.resolve("full"))
                 .contains(fullPath);

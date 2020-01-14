@@ -92,6 +92,31 @@ The Attribute (JSON) can be referenced hierarchically by applying [JSON Pointer 
 **Example:** 
 [Retrieve a single Attribute](protocol-examples-retrieveattribute.html)
 
+## Retrieve the definition of a Thing
+
+Retrieve the Definition of the Thing.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **path**  | `/definition`     |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **path**   |        | `/definition`                      |
+| **value**  |        | The specific Definition of the Thing as JSON. |
+| **status** | _code_ |                          | 
+|            | `200`  | Success.       |
+|            | `404`  | Not Found - the requested Definition does not exist or the requesting user does not have enough permission to retrieve it. |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+**Example:** 
+[Retrieve a single Attribute](protocol-examples-retrieveattribute.html)
 
 ## Retrieve all Features of a Thing
 

@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.placeholders;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Describes a pipeline function with {@code name}, {@code signature}, signature validation capability and
@@ -51,7 +50,7 @@ interface PipelineFunction {
      * function.
      * @return processed output value, or an empty optional otherwise.
      */
-    Optional<String> apply(Optional<String> value, String paramsIncludingParentheses,
+    PipelineElement apply(PipelineElement value, String paramsIncludingParentheses,
             ExpressionResolver expressionResolver);
 
     /**
@@ -63,15 +62,6 @@ interface PipelineFunction {
          * @return the function's signature as a List of {@link PipelineFunction.ParameterDefinition}s.
          */
         List<PipelineFunction.ParameterDefinition> getParameterDefinitions();
-
-        /**
-         * Determines the parameter definition at the passed {@code index} providing the requeste type {@code <T>}.
-         *
-         * @param index the index of the parameter whose definition to return.
-         * @param <T> the type of the parameter.
-         * @return the requested typed parameter definition
-         */
-        <T> PipelineFunction.ParameterDefinition<T> getParameterDefinition(int index);
 
         /**
          * @return renders a nice String description of the complete signature

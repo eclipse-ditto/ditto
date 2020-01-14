@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -121,7 +120,9 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.persistence.RecoveryCompleted;
 import akka.routing.Broadcast;
-import akka.routing.RoundRobinPool;
+import akka.routing.ConsistentHashingPool;
+import akka.routing.ConsistentHashingRouter;
+import akka.routing.Pool;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -150,10 +151,6 @@ public final class ConnectionPersistenceActor
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    /**
-     * Validator of all supported connections.
-     */
-    private final ConnectionValidator connectionValidator;
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef conciergeForwarder;
     private final ClientActorPropsFactory propsFactory;
@@ -192,12 +189,13 @@ public final class ConnectionPersistenceActor
         );
         config = connectivityConfig.getConnectionConfig();
 
-        connectionValidator = ConnectionValidator.of(connectivityConfig.getMappingConfig().getMapperLimitsConfig(),
-                RabbitMQValidator.newInstance(),
-                AmqpValidator.newInstance(),
-                MqttValidator.newInstance(),
-                KafkaValidator.getInstance(),
-                HttpPushValidator.newInstance());
+        final ConnectionValidator connectionValidator =
+                ConnectionValidator.of(connectivityConfig.getMappingConfig().getMapperLimitsConfig(),
+                        RabbitMQValidator.newInstance(),
+                        AmqpValidator.newInstance(),
+                        MqttValidator.newInstance(),
+                        KafkaValidator.getInstance(),
+                        HttpPushValidator.newInstance());
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
                 new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, connectionValidator,
@@ -493,7 +491,9 @@ public final class ConnectionPersistenceActor
                 subscribedAndAuthorizedTargets);
 
         final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
-        clientActorRouter.tell(outbound, getSender());
+        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(outbound,
+                outbound.getSource().getEntityId().toString());
+        clientActorRouter.tell(msg, getSender());
     }
 
     private void prepareForSignalForwarding(final StagedCommand command) {
@@ -640,7 +640,9 @@ public final class ConnectionPersistenceActor
 
     private CompletionStage<Object> startAndAskClientActors(final Command<?> cmd, final int clientCount) {
         startClientActorsIfRequired(clientCount);
-        return processClientAskResult(Patterns.ask(clientActorRouter, cmd, clientActorAskTimeout));
+        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(cmd,
+                cmd.getEntityId().toString());
+        return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));
     }
 
     private void broadcastToClientActorsIfStarted(final Command<?> cmd, final ActorRef sender) {
@@ -703,16 +705,7 @@ public final class ConnectionPersistenceActor
             final Throwable error,
             final boolean sendExceptionResponse) {
 
-        final Throwable cause = getRootCause(error);
-        final DittoRuntimeException dre;
-        if (cause instanceof DittoRuntimeException) {
-            dre = (DittoRuntimeException) cause;
-        } else {
-            dre = ConnectionFailedException.newBuilder(entityId)
-                    .description(cause.getMessage())
-                    .cause(cause)
-                    .build();
-        }
+        final DittoRuntimeException dre = toDittoRuntimeException(error, entityId, DittoHeaders.empty());
 
         if (sendExceptionResponse && origin != null) {
             origin.tell(dre, getSelf());
@@ -802,9 +795,9 @@ public final class ConnectionPersistenceActor
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, 1, true,
                             Collections.singleton(CLUSTER_ROLE));
-            final RoundRobinPool roundRobinPool = new RoundRobinPool(clientCount);
+            final Pool pool = new ConsistentHashingPool(clientCount);
             final Props clusterRouterPoolProps =
-                    new ClusterRouterPool(roundRobinPool, clusterRouterPoolSettings).props(props);
+                    new ClusterRouterPool(pool, clusterRouterPoolSettings).props(props);
 
             // start client actor without name so it does not conflict with its previous incarnation
             clientActorRouter = getContext().actorOf(clusterRouterPoolProps);
@@ -870,22 +863,15 @@ public final class ConnectionPersistenceActor
         return future;
     }
 
-    private static Throwable getRootCause(final Throwable error) {
-        return error instanceof CompletionException ? getRootCause(error.getCause()) : error;
-    }
-
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,
             final DittoHeaders headers) {
-        final Throwable cause = getRootCause(error);
-        if (cause instanceof DittoRuntimeException) {
-            return (DittoRuntimeException) cause;
-        } else {
-            return ConnectionFailedException.newBuilder(id)
-                    .description(cause.getMessage())
-                    .cause(cause)
-                    .dittoHeaders(headers)
-                    .build();
-        }
+
+        return DittoRuntimeException.asDittoRuntimeException(error,
+                cause -> ConnectionFailedException.newBuilder(id)
+                        .description(cause.getMessage())
+                        .cause(cause)
+                        .dittoHeaders(headers)
+                        .build());
     }
 
     private static CompletionStage<Object> processClientAskResult(final CompletionStage<Object> askResultFuture) {

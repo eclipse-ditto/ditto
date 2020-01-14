@@ -68,7 +68,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     private final Function<Object, Object> receiverWrapperFunction;
 
     // for live signal enforcement
-    private final Cache<String, ActorRef> responseReceivers;
+    private final Cache<String, ResponseReceiver> responseReceivers;
 
     Contextual(@Nullable final T message, final ActorRef self, final ActorRef sender,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
@@ -77,7 +77,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             @Nullable final StartedTimer startedTimer,
             @Nullable final ActorRef receiver,
             @Nullable final Function<Object, Object> receiverWrapperFunction,
-            final Cache<String, ActorRef> responseReceivers) {
+            final Cache<String, ResponseReceiver> responseReceivers) {
         this.message = message;
         this.self = self;
         this.sender = sender;
@@ -178,7 +178,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return receiverWrapperFunction != null ? receiverWrapperFunction : Function.identity();
     }
 
-    Cache<String, ActorRef> getResponseReceivers() {
+    Cache<String, ResponseReceiver> getResponseReceivers() {
         return responseReceivers;
     }
 

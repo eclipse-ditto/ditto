@@ -55,13 +55,12 @@ final class RabbitMQTarget implements PublishTarget {
      * For RabbitMQ connections the target can have the following format: [exchange]/[routingKey].
      *
      * @param target the configured target
-     * @return the exchange part of the target, {@link Optional#EMPTY} otherwise.
+     * @return the exchange part of the target, empty Optional otherwise.
      */
     private static Optional<String> getExchangeFromTarget(final String target) {
         return Optional.of(target.split("/"))
                 .filter(segments -> segments.length > 0)
-                .map(segments -> segments[0])
-                .filter(exchange -> !exchange.isEmpty());
+                .map(segments -> segments[0]);
     }
 
     /**

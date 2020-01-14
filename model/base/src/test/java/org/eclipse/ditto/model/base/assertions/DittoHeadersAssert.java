@@ -74,14 +74,6 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
         return myself;
     }
 
-    public DittoHeadersAssert hasSource(final CharSequence expectedSource) {
-        return assertContains(actual.getSource(), String.valueOf(expectedSource), "source");
-    }
-
-    public DittoHeadersAssert hasNoSource() {
-        return assertIsEmpty(actual.getSource(), "source");
-    }
-
     public DittoHeadersAssert hasSchemaVersion(final JsonSchemaVersion expectedSchemaVersion) {
         return assertContains(actual.getSchemaVersion(), expectedSchemaVersion, "schema version");
     }

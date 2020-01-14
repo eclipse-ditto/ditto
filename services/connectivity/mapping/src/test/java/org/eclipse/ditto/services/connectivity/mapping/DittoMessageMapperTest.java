@@ -102,7 +102,9 @@ public final class DittoMessageMapperTest {
                         .build())
                 .build());
 
-        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+        // by default, the DittoMessageMapper should not automatically use all headers from the ExternalMessage
+        //  those would have to be mapped by an explicit header mapping
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build();
@@ -123,7 +125,6 @@ public final class DittoMessageMapperTest {
 
         final List<Adaptable> expected = Collections.singletonList(
                 ProtocolFactory.newAdaptableBuilder(ProtocolFactory.jsonifiableAdaptableFromJson(json))
-                        .withHeaders(DittoHeaders.of(headers))
                         .build());
         final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .withText(json.toString())
@@ -173,7 +174,7 @@ public final class DittoMessageMapperTest {
                 .build());
 
         List<ExternalMessage> message =
-                Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                         .withTopicPath(adaptable.getTopicPath())
                         .withText(adaptable.toJsonString())
                         .build());
@@ -187,7 +188,7 @@ public final class DittoMessageMapperTest {
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withHeaders(DittoHeaders.of(headers)).build());
 
-        message = Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(headers)
+        message = Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build());

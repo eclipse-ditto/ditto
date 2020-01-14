@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.model.things.ThingId;
@@ -40,7 +39,8 @@ public class ImmutableFunctionExpressionTest {
             "substring-before",
             "substring-after",
             "lower",
-            "upper"
+            "upper",
+            "delete"
     )));
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
     private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
@@ -88,72 +88,76 @@ public class ImmutableFunctionExpressionTest {
     @Test
     public void testUnknownFunction() {
         assertThatExceptionOfType(PlaceholderFunctionUnknownException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:unknown", Optional.of(THING_ID.toString()), EXPRESSION_RESOLVER));
+                UNDER_TEST.resolve("fn:unknown", PipelineElement.resolved(THING_ID.toString()), EXPRESSION_RESOLVER));
     }
 
     @Test
     public void testFunctionUpper() {
-        assertThat(UNDER_TEST.resolve("fn:upper()", Optional.of(THING_ID.toString()), EXPRESSION_RESOLVER))
+        assertThat(UNDER_TEST.resolve("fn:upper()", PipelineElement.resolved(THING_ID.toString()), EXPRESSION_RESOLVER))
                 .contains(THING_ID.toString().toUpperCase());
     }
 
     @Test
     public void testFunctionUpperWrongSignature() {
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:upper('foo')", Optional.of(THING_ID.toString()), EXPRESSION_RESOLVER));
+                UNDER_TEST.resolve("fn:upper('foo')", PipelineElement.resolved(THING_ID.toString()),
+                        EXPRESSION_RESOLVER));
     }
 
     @Test
     public void testFunctionLower() {
-        assertThat(UNDER_TEST.resolve("fn:lower()", Optional.of(HEADER_VAL), EXPRESSION_RESOLVER))
+        assertThat(UNDER_TEST.resolve("fn:lower()", PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
                 .contains(HEADER_VAL.toLowerCase());
     }
 
     @Test
     public void testFunctionLowerWrongSignature() {
         assertThatExceptionOfType(PlaceholderFunctionUnknownException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:lower", Optional.of(THING_ID.toString()), EXPRESSION_RESOLVER));
+                UNDER_TEST.resolve("fn:lower", PipelineElement.resolved(THING_ID.toString()), EXPRESSION_RESOLVER));
     }
 
     @Test
     public void testFunctionDefaultWhenInputPresent() {
-        assertThat(UNDER_TEST.resolve("fn:default('constant')", Optional.of(HEADER_VAL), EXPRESSION_RESOLVER))
+        assertThat(
+                UNDER_TEST.resolve("fn:default('constant')", PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
                 .contains(HEADER_VAL);
     }
 
     @Test
     public void testFunctionDefaultWhenInputEmptyWithConstant() {
-        assertThat(UNDER_TEST.resolve("fn:default('constant')", Optional.empty(), EXPRESSION_RESOLVER))
+        assertThat(UNDER_TEST.resolve("fn:default('constant')", PipelineElement.unresolved(), EXPRESSION_RESOLVER))
                 .contains("constant");
     }
 
     @Test
     public void testFunctionDefaultWhenInputEmptyWithConstantDoubleQuotes() {
-        assertThat(UNDER_TEST.resolve("fn:default(\"constant\")", Optional.empty(), EXPRESSION_RESOLVER))
+        assertThat(UNDER_TEST.resolve("fn:default(\"constant\")", PipelineElement.unresolved(), EXPRESSION_RESOLVER))
                 .contains("constant");
     }
 
     @Test
     public void testFunctionDefaultWhenInputEmptyWithPlaceholder() {
-        assertThat(UNDER_TEST.resolve("fn:default(thing:id)", Optional.empty(), EXPRESSION_RESOLVER))
+        assertThat(UNDER_TEST.resolve("fn:default(thing:id)", PipelineElement.unresolved(), EXPRESSION_RESOLVER))
                 .contains(THING_ID.toString());
     }
 
     @Test
     public void testFunctionDefaultWithWrongSignature() {
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:default('constant',2)", Optional.empty(), EXPRESSION_RESOLVER));
+                UNDER_TEST.resolve("fn:default('constant',2)", PipelineElement.unresolved(), EXPRESSION_RESOLVER));
     }
 
     @Test
     public void testFunctionSubstringBefore() {
-        assertThat(UNDER_TEST.resolve("fn:substring-before(\"-\")", Optional.of(THING_NAME), EXPRESSION_RESOLVER))
+        assertThat(UNDER_TEST.resolve("fn:substring-before(\"-\")", PipelineElement.resolved(THING_NAME),
+                EXPRESSION_RESOLVER))
                 .contains("test");
     }
 
     @Test
     public void testFunctionSubstringAfter() {
-        assertThat(UNDER_TEST.resolve("fn:substring-after(\"-\")", Optional.of(THING_NAME), EXPRESSION_RESOLVER))
+        assertThat(UNDER_TEST.resolve("fn:substring-after(\"-\")", PipelineElement.resolved(THING_NAME),
+                EXPRESSION_RESOLVER))
                 .contains("id");
     }
 

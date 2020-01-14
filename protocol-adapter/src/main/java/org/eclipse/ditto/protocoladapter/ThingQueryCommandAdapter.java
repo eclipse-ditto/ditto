@@ -37,6 +37,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 
@@ -86,6 +87,9 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
         mappingStrategies.put(RetrieveAttribute.TYPE, adaptable -> RetrieveAttribute.of(thingIdFrom(adaptable),
                 attributePointerFrom(adaptable), dittoHeadersFrom(adaptable)));
 
+        mappingStrategies.put(RetrieveThingDefinition.TYPE, adaptable -> RetrieveThingDefinition.of(thingIdFrom(adaptable),
+                dittoHeadersFrom(adaptable)));
+
         mappingStrategies.put(RetrieveFeatures.TYPE, adaptable -> RetrieveFeatures.of(thingIdFrom(adaptable),
                 selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
 
@@ -105,27 +109,6 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
                         featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
-    }
-
-    @Override
-    protected String getType(final Adaptable adaptable) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        if (topicPath.isWildcardTopic()) {
-            return RetrieveThings.TYPE;
-        } else {
-            final JsonPointer path = adaptable.getPayload().getPath();
-            final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
-            return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
-        }
-    }
-
-    @Override
-    public Adaptable constructAdaptable(final ThingQueryCommand command, final TopicPath.Channel channel) {
-        if (command instanceof RetrieveThings) {
-            return handleMultipleRetrieve((RetrieveThings) command, channel);
-        } else {
-            return handleSingleRetrieve(command, channel);
-        }
     }
 
     private static Adaptable handleSingleRetrieve(final ThingQueryCommand<?> command, final TopicPath.Channel channel) {
@@ -194,6 +177,27 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray());
         return JsonFactory.newObject().setValue(RetrieveThings.JSON_THING_IDS.getPointer(), thingIdsArray);
+    }
+
+    @Override
+    protected String getType(final Adaptable adaptable) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+        if (topicPath.isWildcardTopic()) {
+            return RetrieveThings.TYPE;
+        } else {
+            final JsonPointer path = adaptable.getPayload().getPath();
+            final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
+            return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
+        }
+    }
+
+    @Override
+    public Adaptable constructAdaptable(final ThingQueryCommand command, final TopicPath.Channel channel) {
+        if (command instanceof RetrieveThings) {
+            return handleMultipleRetrieve((RetrieveThings) command, channel);
+        } else {
+            return handleSingleRetrieve(command, channel);
+        }
     }
 
 }

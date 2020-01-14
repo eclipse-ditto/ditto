@@ -88,22 +88,8 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.model.things.ThingIdValidator</exclude>
-                            <exclude>org.eclipse.ditto.model.things.ThingPolicyIdValidator</exclude>
-                            <exclude>org.eclipse.ditto.model.things.ThingPolicyIdInvalidException</exclude>
-                            <exclude>org.eclipse.ditto.model.things.ThingBuilder$FromScratch#setId(org.eclipse.ditto.model.things.ThingId)</exclude>
-                            <exclude>org.eclipse.ditto.model.things.ThingBuilder$FromScratch#setPolicyId(org.eclipse.ditto.model.policies.PolicyId)</exclude>
-                            <exclude>org.eclipse.ditto.model.things.ThingBuilder$FromCopy#setId(java.util.function.Predicate,org.eclipse.ditto.model.things.ThingId)</exclude>
-                            <exclude>org.eclipse.ditto.model.things.ThingBuilder$FromCopy#setId(org.eclipse.ditto.model.things.ThingId)</exclude>
-                            <exclude>org.eclipse.ditto.model.things.ThingBuilder$FromCopy#setPolicyId(org.eclipse.ditto.model.policies.PolicyId)</exclude>
-                            <exclude>org.eclipse.ditto.model.things.ThingBuilder#generateRandomTypedThingId()</exclude>
-                            <exclude>org.eclipse.ditto.model.things.Thing#getEntityId()</exclude>
-                            <exclude>org.eclipse.ditto.model.things.Thing#getPolicyEntityId()</exclude>
-                            <exclude>org.eclipse.ditto.model.things.Thing#setPolicyId(org.eclipse.ditto.model.policies.PolicyId)</exclude>
-                            <exclude>org.eclipse.ditto.model.things.PolicyIdMissingException#fromThingIdOnUpdate(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                            <exclude>org.eclipse.ditto.model.things.PolicyIdMissingException#fromThingIdOnCreate(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                            <exclude>org.eclipse.ditto.model.things.AclNotAllowedException#newBuilder(java.lang.String)</exclude>
-                            <exclude>org.eclipse.ditto.model.things.AclInvalidException#newBuilder(java.lang.String)</exclude>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>

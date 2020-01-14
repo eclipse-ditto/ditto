@@ -59,7 +59,7 @@ import akka.actor.ActorRef;
 public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
     private final EnforcerRetriever enforcerRetriever;
-    private final Cache<String, ActorRef> responseReceivers;
+    private final Cache<String, ResponseReceiver> responseReceivers;
     private final LiveSignalPub liveSignalPub;
 
     private LiveSignalEnforcement(final Contextual<Signal> context,
@@ -151,7 +151,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
             if (liveSignal instanceof SendClaimMessage) {
                 if (liveSignal.getDittoHeaders().isResponseRequired()) {
-                    responseReceivers.put(correlationId, sender);
+                    responseReceivers.put(correlationId, ResponseReceiver.of(sender, liveSignal.getDittoHeaders()));
                 }
                 // claim messages require no enforcement, publish them right away:
                 return CompletableFuture.completedFuture(
@@ -191,7 +191,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                         responseReceivers.invalidate(correlationId);
                         log().debug("Scheduling CommandResponse <{}> to original sender: <{}>", liveSignal,
                                 responseReceiver.get());
-                        return withMessageToReceiver(liveSignal, responseReceiver.get());
+                        final ResponseReceiver receiver = responseReceiver.get();
+                        return withMessageToReceiver(receiver.enhance(liveSignal), receiver.ref());
                     } else {
                         log(liveSignal).warning("No outstanding responses receiver for CommandResponse <{}>",
                                 liveSignal.getType());
@@ -208,7 +209,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                 final Contextual<WithDittoHeaders> contextual =
                         enforceMessageCommand((MessageCommand) liveSignal, enforcer);
                 if (liveSignal.getDittoHeaders().isResponseRequired()) {
-                    responseReceivers.put(correlationId, sender);
+                    responseReceivers.put(correlationId, ResponseReceiver.of(sender, liveSignal.getDittoHeaders()));
                 }
                 return CompletableFuture.completedFuture(contextual);
             case LIVE_EVENTS:
@@ -229,7 +230,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                             addReadSubjectsToThingSignal((Command<?>) liveSignal, enforcer);
                     log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
                     if (liveSignal.getDittoHeaders().isResponseRequired()) {
-                        responseReceivers.put(correlationId, sender);
+                        responseReceivers.put(correlationId, ResponseReceiver.of(sender, liveSignal.getDittoHeaders()));
                     }
                     return CompletableFuture.completedFuture(
                             publishLiveSignal(withReadSubjects, liveSignalPub.command()));

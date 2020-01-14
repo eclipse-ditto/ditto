@@ -92,7 +92,7 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
 
         final String substituted = underTest.substitute(input, DITTO_HEADERS);
 
-        assertThat(substituted).isSameAs(input);
+        assertThat(substituted).isEqualTo(input);
     }
 
     @Test
@@ -124,8 +124,8 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
 
     @Test
     public void unknownLegacyPlaceholderThrowsException() {
-        assertUnresolvedPlaceholdersRemainExceptionIsThrown(UNKNOWN_LEGACY_REPLACER,
-                () -> underTest.substitute(UNKNOWN_LEGACY_REPLACER, DITTO_HEADERS));
+        assertThatExceptionOfType(GatewayPlaceholderNotResolvableException.class)
+                .isThrownBy(() -> underTest.substitute(UNKNOWN_LEGACY_REPLACER, DITTO_HEADERS));
     }
 
     /**
@@ -135,8 +135,8 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
     @Test
     public void inputContainsNestedLegacyPlaceholderThrowsException() {
         final String nestedPlaceholder = "${" + LEGACY_REPLACER + "}";
-        assertUnresolvedPlaceholdersRemainExceptionIsThrown("${" + REPLACED_1 + "}",
-                () -> underTest.substitute(nestedPlaceholder, DITTO_HEADERS));
+        assertThatExceptionOfType(GatewayPlaceholderNotResolvableException.class)
+                .isThrownBy(() -> underTest.substitute(nestedPlaceholder, DITTO_HEADERS));
     }
 
     private void assertUnknownPlaceholderExceptionIsThrown(final String expectedPlaceholderKey,

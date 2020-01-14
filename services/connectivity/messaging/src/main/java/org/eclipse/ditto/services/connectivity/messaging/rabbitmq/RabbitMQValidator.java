@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.connectivity.messaging.Resolvers;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
 import akka.actor.ActorSystem;
@@ -68,7 +69,7 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
         target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(), newHeadersPlaceholder());
+        validateTemplate(target.getAddress(), dittoHeaders, Resolvers.getPlaceholders());
     }
 
     @Override
@@ -78,7 +79,7 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
 
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
-        validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES,"AMQP 0.9.1");
+        validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "AMQP 0.9.1");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
         validatePayloadMappings(connection, actorSystem, dittoHeaders);

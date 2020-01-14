@@ -48,12 +48,6 @@
         <!-- ### Testing ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-base</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
@@ -121,21 +115,9 @@
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
                     <parameter>
-                        <ignoreMissingClassesByRegularExpressions>
-                            <ignoreMissingClassesByRegularExpression>
-                                <!--org.eclipse.ditto.signals.base.WithThingId has been moved to org.eclipse.ditto.model.things.WithThingId-->
-                                org.eclipse.ditto.signals.base.WithThingId
-                            </ignoreMissingClassesByRegularExpression>
-                        </ignoreMissingClassesByRegularExpressions>
                         <excludes>
-                            <exclude>
-                                <!-- This method has been added to the interface on purpose-->
-                                org.eclipse.ditto.signals.commands.live.base.LiveCommandResponseFactory#errorResponse(org.eclipse.ditto.model.things.ThingId,org.eclipse.ditto.model.base.exceptions.DittoRuntimeException)
-                            </exclude>
-                            <exclude>
-                                <!-- This method has been added to the interface on purpose-->
-                                org.eclipse.ditto.signals.commands.live.query.RetrieveThingsLiveCommand#getThingEntityIds()
-                            </exclude>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>

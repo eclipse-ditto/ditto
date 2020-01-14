@@ -54,8 +54,10 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -73,6 +75,7 @@ import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -189,6 +192,9 @@ public final class TestConstants {
         map.put("prefixed_thing_id", "some.prefix.{{ thing:id }}");
         map.put("suffixed_thing_id", "{{ header:device_id }}.some.suffix");
         map.put("subject", "{{ topic:action-subject }}");
+        map.put("correlation-id", "{{ header:correlation-id }}");
+        map.put("content-type", "{{ header:content-type }}");
+        map.put("reply-to", "{{ header:reply-to }}");
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
     }
 
@@ -271,6 +277,15 @@ public final class TestConstants {
                         .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
                         .consumerCount(2)
                         .index(0)
+                        .replyTarget(ReplyTarget.newBuilder()
+                                .address("replyTarget/{{thing:id}}")
+                                .headerMapping(ConnectivityModelFactory.newHeaderMapping(JsonFactory.newObjectBuilder()
+                                        .set("mappedHeader1", "{{header:original-header}}")
+                                        .set("mappedHeader2", "{{thing:id}}")
+                                        .set("mappedHeader3",
+                                                "{{header:" + DittoHeaderDefinition.REPLY_TARGET.getKey() + "}}")
+                                        .build()))
+                                .build())
                         .build());
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
                 asList(ConnectivityModelFactory.newSourceBuilder()

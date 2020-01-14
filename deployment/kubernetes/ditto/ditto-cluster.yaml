@@ -17,8 +17,10 @@ spec:
       - name: concierge
         image: docker.io/eclipse/ditto-concierge:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -56,7 +58,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -76,8 +78,10 @@ spec:
       - name: connectivity
         image: docker.io/eclipse/ditto-connectivity:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -115,7 +119,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -135,8 +139,10 @@ spec:
       - name: things
         image: docker.io/eclipse/ditto-things:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -174,7 +180,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -193,8 +199,10 @@ spec:
       - name: things-search
         image: docker.io/eclipse/ditto-things-search:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -232,7 +240,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -251,8 +259,10 @@ spec:
       - name: policies
         image: docker.io/eclipse/ditto-policies:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -290,7 +300,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -309,8 +319,10 @@ spec:
       - name: gateway
         image: docker.io/eclipse/ditto-gateway:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
         - name: remoting
           containerPort: 2551
@@ -350,7 +362,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
 ---
 apiVersion: v1
 kind: Service

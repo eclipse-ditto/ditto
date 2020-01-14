@@ -260,7 +260,7 @@ paths:
 
         ### Partially updating an existing Thing
 
-        When updating an existing Thing already containing `attributes`, `policyId` or `features` the already existing fields
+        When updating an existing Thing already containing `attributes`, `definition`, `policyId` or `features` the already existing fields
         must not explicitly be provided again. For this "PUT Thing" request (and only for this top-level update on the
         Thing) the top-level field to update is merged with the existing top-level fields of the Thing.
 
@@ -272,6 +272,7 @@ paths:
         {
           "thingId": "namespace:thing-name",
           "policyId": "namespace:policy-name",
+          "definition": "namespace:name:version",
           "attributes": {
             "foo": 1
           },
@@ -280,8 +281,8 @@ paths:
 
         ```
 
-        The Thing's `attributes` may be modified without having to pass the `policyId` or the `features` in again. The content
-        of the request's body would be sufficient for updating the `attributes`:
+        The Thing's `attributes` and `definition` may be modified without having to pass the `policyId` or the `features` in again. The content
+        of the request's body would be sufficient for updating the `attributes` and `definition`:
 
         ```
 
@@ -294,6 +295,14 @@ paths:
 
         ```
 
+        ```
+
+              {
+                "definition": "example:test:01"
+              }
+
+              ```
+
         The `policyId` and `features` of the Thing will not be overwritten, the Thing will be merged as one would expect it:
 
         ```
@@ -301,6 +310,7 @@ paths:
         {
           "thingId": "namespace:thing-name",
           "policyId": "namespace:policy-name",
+          "definition": "example:test:01",
           "attributes": {
             "foo": 2,
             "bar": false
@@ -431,6 +441,179 @@ paths:
           description: |-
             The request could not be completed. The Thing with the given ID was
             not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/preconditionFailed'
+
+  '/things/{thingId}/definition':
+    get:
+      summary: Retrieve the definition of a specific Thing
+      description: |-
+        Returns the definition of the Thing identified by the `thingId` path parameter.
+      tags:
+        - Things
+      parameters:
+        - $ref: '#/components/parameters/thingIdPathParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
+      responses:
+        '200':
+          description: The request successfully returned the definition of the specific Thing.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Definition'
+        '304':
+          $ref: '#/components/responses/notModified'
+        '400':
+          description: |-
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or one of the defined query parameters was invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+
+        '404':
+          description: |-
+            The request could not be completed. The Thing with the given ID was
+            not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/preconditionFailed'
+    put:
+      summary: Create or update the definition of a specific Thing
+      description: |-
+        Create or update the definition of a Thing identified by the `thingId` path parameter.
+        The definition will be replaced by the request body's JSON string value.
+      tags:
+        - Things
+      parameters:
+        - $ref: '#/components/parameters/thingIdPathParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
+      responses:
+        '201':
+          description: The definition was successfully created.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            Location:
+              description: The location of the created definition resource
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Definition'
+        '204':
+          description: The definition was successfully updated.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+        '400':
+          description: |-
+            The request could not be completed. Either the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            or the JSON was invalid or was not a JSON object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+
+        '403':
+          description: |-
+            The request could not be completed as the caller had insufficient permissions. For modifying the definition of an existing Thing `WRITE` permission is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The Thing with the given ID was
+            not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
+      requestBody:
+        $ref: '#/components/requestBodies/Definition'
+    delete:
+      summary: Delete the definition of a specific Thing
+      description: |-
+        Deletes the definition of the Thing identified by the `thingId` path parameter.
+      tags:
+        - Things
+      parameters:
+        - $ref: '#/components/parameters/thingIdPathParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
+      responses:
+        '204':
+          description: The definition was successfully deleted.
+        '400':
+          description: |-
+            The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed as the caller had insufficient permissions. For deleting the definition of an existing Thing `WRITE` permission is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The Thing with the given ID or
+            its definition was not found.
           content:
             application/json:
               schema:
@@ -1302,9 +1485,9 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}/definition':
     get:
-      summary: List the Definition of a Feature
+      summary: List the definition of a Feature
       description: |-
-        Returns the complete Definition of the Feature identified by the `thingId` and
+        Returns the complete definition of the Feature identified by the `thingId` and
         `featureId` path parameter.
       tags:
         - Features
@@ -1315,7 +1498,7 @@ paths:
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
-          description: The Definition was successfully retrieved.
+          description: The definition was successfully retrieved.
           headers:
             ETag:
               description: |-
@@ -1347,7 +1530,7 @@ paths:
         '404':
           description: |-
             The request could not be completed. The specified Feature has no
-            Definition or the Thing with the specified `thingId` or the Feature
+            definition or the Thing with the specified `thingId` or the Feature
             with `featureId` was not found.
           content:
             application/json:
@@ -1356,10 +1539,10 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or update the Definition of a Feature
+      summary: Create or update the definition of a Feature
       description: |-
-        Create or update the complete Definition of a Feature identified by the `thingId`
-        and `featureId` path parameter at once. The Definition will be replaced
+        Create or update the complete definition of a Feature identified by the `thingId`
+        and `featureId` path parameter at once. The definition will be replaced
         by the request body's JSON array.
       tags:
         - Features
@@ -1370,7 +1553,7 @@ paths:
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
-          description: The Definition was successfully created.
+          description: The definition was successfully created.
           headers:
             ETag:
               description: |-
@@ -1379,7 +1562,7 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created Definition resource
+              description: The location of the created definition resource
               schema:
                 type: string
           content:
@@ -1387,7 +1570,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeatureDefinition'
         '204':
-          description: The Definition was successfully updated.
+          description: The definition was successfully updated.
           headers:
             ETag:
               description: |-
@@ -1413,7 +1596,7 @@ paths:
 
         '403':
           description: |-
-            The request could not be completed as the caller had insufficient permissions. For modifying the Definition of an existing Feature `WRITE` permission is required.
+            The request could not be completed as the caller had insufficient permissions. For modifying the definition of an existing Feature `WRITE` permission is required.
           content:
             application/json:
               schema:
@@ -1437,15 +1620,15 @@ paths:
               $ref: '#/components/schemas/FeatureDefinition'
             example: {}
         description: |-
-          JSON array of the complete Definition to be updated. Consider that the
+          JSON array of the complete definition to be updated. Consider that the
           value has to be a JSON array or `null`. The content of the JSON array
           are strings in the format `"namespace:name:version"` which is
           enforced.
         required: true
     delete:
-      summary: Delete the Definition of a Feature
+      summary: Delete the definition of a Feature
       description: |-
-        Deletes the complete Definition of the Feature identified by the `thingId` and
+        Deletes the complete definition of the Feature identified by the `thingId` and
         `featureId` path parameter.
       tags:
         - Features
@@ -1456,7 +1639,7 @@ paths:
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
-          description: The Definition was successfully deleted.
+          description: The definition was successfully deleted.
         '400':
           description: |-
             The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
@@ -1473,7 +1656,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '403':
           description: |-
-            The request could not be completed as the caller had insufficient permissions. For deleting the Definition of an existing Feature `WRITE` permission is required.
+            The request could not be completed as the caller had insufficient permissions. For deleting the definition of an existing Feature `WRITE` permission is required.
           content:
             application/json:
               schema:
@@ -1481,7 +1664,7 @@ paths:
         '404':
           description: |-
             The request could not be completed. The specified Feature has no
-            Definition or the Thing with the specified `thingId` or the Feature
+            definition or the Thing with the specified `thingId` or the Feature
             with `featureId` was not found.
           content:
             application/json:
@@ -3486,11 +3669,15 @@ components:
     Attributes:
       type: object
       description: "Attributes of a Thing: an arbitrary JSON object."
+    Definition:
+      type: string
+      description: "A single fully qualified identifier of a definition in the form 'namespace:name:version'"
+      pattern: ([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)
     FeatureDefinition:
       type: array
       items:
         type: string
-        description: "A single fully qualified identifier of a Feature Definition in the form 'namespace:name:version'"
+        description: "A single fully qualified identifier of a Feature definition in the form 'namespace:name:version'"
         pattern: ([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)
     FeatureProperties:
       type: object
@@ -3534,6 +3721,8 @@ components:
           description: |-
             The Policy ID used for controlling access to this Thing. Managed by
             resource `/policies/{policyId}`.
+        definition:
+          $ref: '#/components/schemas/Definition'
         attributes:
           $ref: '#/components/schemas/Attributes'
         features:
@@ -3544,6 +3733,7 @@ components:
         - thingId
         - policyId
         - attributes
+        - definition
         - features
       properties:
         thingId:
@@ -3555,6 +3745,8 @@ components:
           description: The policy ID used for controlling access to this thing, managed by resource `/policies/{policyId}`,
             has to conform to the namespaced entity ID notation
             (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+        definition:
+          $ref: '#/components/schemas/Definition'
         attributes:
           $ref: '#/components/schemas/Attributes'
         features:
@@ -3864,6 +4056,7 @@ components:
                * `?fields=attributes(location/longitude)` would select the `longitude` value inside the `location` object
                * `?fields=attributes/address/postal(city,street)` would select the `city` and `street` values inside the `postal` object inside the `address` object
 
+        * `definition`
 
         * `features`
 
@@ -4116,6 +4309,17 @@ components:
       description: |-
         Payload of the message with max size of 250 kB. It can be any HTTP
         supported content, including binary content.
+    Definition:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Definition'
+          example: '"example:test:definition"'
+      description: |-
+        JSON string of the definition to be modified. Consider that the
+        value has to be a JSON string or `null`, examples:
+
+          * an string: `{ ""value"}` -}. Currently the definition must follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
     Attributes:
       content:
         application/json:
@@ -4145,7 +4349,7 @@ components:
 
           * for a string, the JSON value must be quoted: `"aString"`
 
-          * for a boolean, the JSON value is the boolean: `true`
+          * for a boolean, the JSON vallue is the boolean: `true`
 
           * for an object, the JSON value is the object: `{ "key": "value"}` -} We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
 

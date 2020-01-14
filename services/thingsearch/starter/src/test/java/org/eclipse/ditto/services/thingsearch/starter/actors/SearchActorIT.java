@@ -90,14 +90,8 @@ public final class SearchActorIT {
     public void before() {
         actorSystem = ActorSystem.create(getClass().getSimpleName(),
                 ConfigFactory.parseString("search-dispatcher {\n" +
-                        "  type = Dispatcher\n" +
-                        "  executor = \"fork-join-executor\"\n" +
-                        "  fork-join-executor {\n" +
-                        "    parallelism-min = 4\n" +
-                        "    parallelism-factor = 3.0\n" +
-                        "    parallelism-max = 32\n" +
-                        "  }\n" +
-                        "  throughput = 5\n" +
+                        "  type = PinnedDispatcher\n" +
+                        "  executor = \"thread-pool-executor\"\n" +
                         "}"));
         materializer = ActorMaterializer.create(actorSystem);
         readPersistence = provideReadPersistence();

@@ -39,7 +39,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-protocol-adapter</artifactId>
+            <artifactId>ditto-model-placeholders</artifactId>
         </dependency>
 
         <!-- ### Testing ### -->
@@ -94,7 +94,8 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.model.connectivity.ConnectionType</exclude>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>
