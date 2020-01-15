@@ -52,7 +52,7 @@ final class Thing3ValuePredicateVisitor
      * @return whether the criteria may evaluate to true after replacing 'ignoredFields' by unknown values in
      * 'partialThing'.
      */
-    public static boolean couldBeTrue(final Criteria criteria, final Set<JsonPointer> unknownFields,
+    static boolean couldBeTrue(final Criteria criteria, final Set<JsonPointer> unknownFields,
             final Thing partialThing) {
         return Trilean.FALSE != criteria.accept(new Thing3ValuePredicateVisitor(unknownFields)).apply(partialThing);
     }

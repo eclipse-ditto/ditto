@@ -64,7 +64,7 @@ public final class ThingEventToThingConverter {
      * Thing events contain thing information. All other signals do not contain thing information.
      * Extra fields contain thing information if it is not empty.
      * If thing information exists in any of the 2 sources, then merge the information from both sources
-     * to create a thing, with priority given to extra fields.
+     * to create a thing, with priority given to the thing information extracted by the {@code signal}.
      *
      * @param signal the signal.
      * @param extraFields selected extra fields to enrich the signal with.

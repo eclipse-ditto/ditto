@@ -81,6 +81,7 @@ final class SignalFilter {
      * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the optional filter string of a
      * Target cannot be mapped to a valid criterion
      */
+    @SuppressWarnings("squid:S3864")
     List<Target> filter(final Signal<?> signal) {
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
