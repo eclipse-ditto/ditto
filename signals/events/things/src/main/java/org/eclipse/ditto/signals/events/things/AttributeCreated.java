@@ -253,15 +253,9 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
         jsonObjectBuilder.set(JSON_VALUE, attributeValue, predicate);
     }
 
-    @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = super.hashCode();
-        result = prime * result + Objects.hashCode(getThingEntityId().toString());
-        result = prime * result + Objects.hashCode(attributePointer);
-        result = prime * result + Objects.hashCode(attributeValue);
-        return result;
+        return Objects.hash(super.hashCode(), attributePointer, attributeValue);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})

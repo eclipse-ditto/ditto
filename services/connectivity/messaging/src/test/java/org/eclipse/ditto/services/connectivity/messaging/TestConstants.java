@@ -27,6 +27,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.AbstractQueue;
 import java.util.ArrayList;
@@ -460,7 +461,7 @@ public final class TestConstants {
 
     public static final class Metrics {
 
-        private static final Instant LAST_MESSAGE_AT = Instant.now();
+        private static final Instant LAST_MESSAGE_AT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
         private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
                 ConnectivityCounterRegistry.fromConfig(MONITORING_CONFIG.counter());
