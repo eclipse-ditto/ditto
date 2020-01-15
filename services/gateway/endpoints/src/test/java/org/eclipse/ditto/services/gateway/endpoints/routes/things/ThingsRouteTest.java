@@ -134,7 +134,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, body));
         final TestRouteResult result =
                 underTest.run(request);
-        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
     @Test
