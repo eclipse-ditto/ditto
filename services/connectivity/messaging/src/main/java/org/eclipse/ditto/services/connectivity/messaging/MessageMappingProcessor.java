@@ -173,7 +173,7 @@ public final class MessageMappingProcessor {
     private void convertInboundMessage(final MessageMapper mapper,
             final ExternalMessage message,
             final MappingTimer timer,
-            MappingResultHandler<MappedInboundExternalMessage> handler) {
+            final MappingResultHandler<MappedInboundExternalMessage> handler) {
 
         checkNotNull(message, "message");
         try {

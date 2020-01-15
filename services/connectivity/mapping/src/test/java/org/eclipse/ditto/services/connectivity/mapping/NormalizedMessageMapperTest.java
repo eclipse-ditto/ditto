@@ -46,7 +46,6 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
-import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
@@ -209,11 +208,9 @@ public final class NormalizedMessageMapperTest {
     @Test
     public void withExtraFieldsBeingIncluded() {
         final ThingId thingId = ThingId.of("thing:feature-modified");
-        final ThingEvent event = FeatureModified.of(thingId,
-                Feature.newBuilder()
-                        .properties(JsonObject.of("{\"abc\":false}"))
-                        .withId("my-feature")
-                        .build(), 2L, Instant.ofEpochSecond(1L), DittoHeaders.empty());
+        final ThingEvent<?> event =
+                FeaturePropertyModified.of(thingId, "my-feature", JsonPointer.of("abc"), JsonValue.of(false), 2L,
+                        Instant.ofEpochSecond(1L), DittoHeaders.empty());
 
         underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
                 DefaultMessageMapperConfiguration.of("normalizer",
@@ -227,18 +224,22 @@ public final class NormalizedMessageMapperTest {
                         .set("some-attr", 42)
                         .set("foo", "bar")
                         .build())
+                .setFeature(Feature.newBuilder()
+                        .properties(JsonObject.of("{\"abc\":false,\"def\":true}"))
+                        .withId("my-feature")
+                        .build())
                 .build();
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
         final Adaptable adaptableWithExtra = ProtocolFactory.setExtra(adaptable, thing.toJson(
-                        JsonFactory.newFieldSelector("policyId,attributes",
-                                JsonParseOptions.newBuilder().withoutUrlDecoding().build())));
+                JsonFactory.newFieldSelector("policyId,attributes,features/my-feature/properties/def",
+                        JsonParseOptions.newBuilder().withoutUrlDecoding().build())));
         Assertions.assertThat(mapToJson(adaptableWithExtra))
                 .isEqualTo(JsonObject.of("{\n" +
                         "  \"thingId\": \"thing:feature-modified\",\n" +
                         "  \"policyId\": \"thing:feature-modified\",\n" +
                         "  \"attributes\": {\"foo\": \"bar\"},\n" +
-                        "  \"features\":{\"my-feature\":{\"properties\":{\"abc\":false}}},\n" +
+                        "  \"features\":{\"my-feature\":{\"properties\":{\"abc\":false,\"def\":true}}},\n" +
                         "  \"_modified\": \"1970-01-01T00:00:01Z\",\n" +
                         "  \"_revision\": 2\n" +
                         "}"));

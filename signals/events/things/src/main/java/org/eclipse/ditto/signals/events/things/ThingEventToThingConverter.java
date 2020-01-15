@@ -86,10 +86,13 @@ public final class ThingEventToThingConverter {
         if (thingFromSignal.isPresent() && hasExtra) {
             // merge
             final Thing baseThing = thingFromSignal.get();
-            final JsonObjectBuilder mergedThingBuilder =
-                    baseThing.toJson(baseThing.getImplementedSchemaVersion()).toBuilder();
+            final JsonObject baseThingJson = baseThing.toJson(baseThing.getImplementedSchemaVersion());
+            final JsonObjectBuilder mergedThingBuilder = baseThingJson.toBuilder();
             for (final JsonPointer pointer : extraFields) {
-                extra.getValue(pointer).ifPresent(value -> mergedThingBuilder.set(pointer, value));
+                // set extra value only if absent in base thing: actual change data is more important than extra
+                extra.getValue(pointer)
+                        .filter(value -> !baseThingJson.getValue(pointer).isPresent())
+                        .ifPresent(value -> mergedThingBuilder.set(pointer, value));
             }
             thing = ThingsModelFactory.newThing(mergedThingBuilder.build());
         } else if (thingFromSignal.isPresent()) {
