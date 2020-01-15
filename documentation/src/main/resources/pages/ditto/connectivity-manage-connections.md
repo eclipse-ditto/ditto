@@ -17,8 +17,8 @@ POST /devops/piggyback/connectivity
 
 ## Authorization
 
-When creating new connections , an `authorizationContext` is needed which gives the _authorization subjects_ (think of authorized users) under which permissions the operations that are accepted via this connection are executed.
-If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html)) use the prefic `nginxg:`, e.g. `nginx:my-basic-auth-user`.
+When creating new connections, an `authorizationContext` is needed providing the _authorization subjects_ (e.g. IDs of authorized users) to use in order to determine the permissions for when the connection executes commands (e.g. modifying a Thing).
+If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html)) use the prefix `nginx:`, e.g. `nginx:ditto`.
 See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
 
 ## CRUD commands

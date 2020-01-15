@@ -37,8 +37,8 @@ Please find details at [ACL](basic-acl.html) and [Policies](basic-policy.html).
 ### Authorization Context in DevOps Commands
 
 An `authorizationContext` which is passed to [DevOps Commands](installation-operating.html#devops-commands) DevOps commands needs
-to be a subject known to dittos authentication. In the simplest case, its `nginx:{ditto-username}` where `{ditto-username}` is a ditto user 
-that is configured for basic auth. The `nginx:` prefix refers to basic authentication here.
+to be a subject known to Ditto's authentication. In the simplest case, it's `nginx:{username}` where `{username}` is a user 
+that is configured for basic auth in the included nginx's `nginx.htpasswd` file (where the `nginx:` prefix comes from).
 
 If you are using the provided docker quickstart example from [Getting Started](installation-running.html) you
 can simply use `nginx:ditto`, then the commands that are passed from the connection are executed as if they 
