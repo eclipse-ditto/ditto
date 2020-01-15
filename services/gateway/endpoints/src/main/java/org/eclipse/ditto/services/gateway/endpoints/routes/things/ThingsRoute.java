@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
@@ -413,49 +414,30 @@ public final class ThingsRoute extends AbstractRoute {
     private Route thingsEntryAttributesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
 
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_ATTRIBUTES), () ->
+        return rawPathPrefix(PathMatchers.slash()
+                .concat(PATH_ATTRIBUTES)
+                .concat(PathMatchers.slash())
+                .concat(PathMatchers.segment())
+                .map(JsonPointer::of), jsonPointer ->
                 concat(
-                        get(() -> // GET /things/<thingId>/attributes
-                                pathEnd(() -> // GET /things/<thingId>/attributes/
-                                        handlePerRequest(ctx, RetrieveAttributes.of(thingId, dittoHeaders))
-                                ).orElse( // GET /things/<thingId>/attributes/<attributePointerStr>
-                                        extractUnmatchedPath(attributePointerStr ->
-                                                handlePerRequest(ctx, RetrieveAttribute.of(thingId,
-                                                        JsonFactory.newPointer(attributePointerStr), dittoHeaders))
-                                        )
-                                )
+                        get(() -> // GET /things/<thingId>/attributes/<attributePointerStr>
+                                handlePerRequest(ctx, RetrieveAttribute.of(thingId,
+                                        JsonFactory.newPointer(jsonPointer), dittoHeaders))
                         ),
-                        put(() -> // PUT /things/<thingId>/attributes
+                        put(() -> // PUT /things/<thingId>/attributes/<attributePointerStr>
                                 extractDataBytes(payloadSource ->
-                                        pathEnd(() -> // PUT /things/<thingId>/attributes/
-                                                handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        attributesJson ->
-                                                                ModifyAttributes.of(thingId,
-                                                                        ThingsModelFactory.newAttributes(
-                                                                                attributesJson),
-                                                                        dittoHeaders))
-                                        ).orElse( // PUT /things/<thingId>/attributes/<attributePointerStr>
-                                                extractUnmatchedPath(attributePointerStr ->
-                                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                                attributeValueJson -> ModifyAttribute.of(thingId,
-                                                                        JsonFactory.newPointer(attributePointerStr),
-                                                                        DittoJsonException.wrapJsonRuntimeException(
-                                                                                () -> JsonFactory.readFrom(
-                                                                                        attributeValueJson)),
-                                                                        dittoHeaders))
-                                                )
-                                        )
+                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                attributeValueJson -> ModifyAttribute.of(thingId,
+                                                        JsonFactory.newPointer(jsonPointer),
+                                                        DittoJsonException.wrapJsonRuntimeException(
+                                                                () -> JsonFactory.readFrom(
+                                                                        attributeValueJson)),
+                                                        dittoHeaders))
                                 )
                         ),
-                        delete(() -> // DELETE /things/<thingId>/attributes
-                                pathEnd(() -> // DELETE /things/<thingId>/attributes/
-                                        handlePerRequest(ctx, DeleteAttributes.of(thingId, dittoHeaders))
-                                ).orElse( // DELETE /things/<thingId>/attributes/<attributePointerStr>
-                                        extractUnmatchedPath(attributePointerStr ->
-                                                handlePerRequest(ctx, DeleteAttribute.of(thingId,
-                                                        JsonFactory.newPointer(attributePointerStr), dittoHeaders))
-                                        )
-                                )
+                        delete(() -> // DELETE /things/<thingId>/attributes/<attributePointerStr>
+                                handlePerRequest(ctx,
+                                        DeleteAttribute.of(thingId, JsonFactory.newPointer(jsonPointer), dittoHeaders))
                         )
                 )
         );
