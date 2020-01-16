@@ -28,6 +28,7 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
@@ -61,7 +62,6 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
 import akka.Done;
-import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -87,7 +87,7 @@ import akka.stream.ActorMaterializer;
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
  */
-public final class ConnectivityRootActor extends AbstractActor {
+public final class ConnectivityRootActor extends DittoRootActor {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -246,12 +246,13 @@ public final class ConnectivityRootActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
-                .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
-                    unhandled(m);
-                }).build();
+        return super.createReceive()
+                .orElse(ReceiveBuilder.create()
+                        .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
+                        .matchAny(m -> {
+                            log.warning("Unknown message: {}", m);
+                            unhandled(m);
+                        }).build());
     }
 
     private SupervisorStrategy.Directive restartChild() {

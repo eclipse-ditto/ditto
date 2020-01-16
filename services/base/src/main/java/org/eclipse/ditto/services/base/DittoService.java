@@ -368,9 +368,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         startActor(actorSystem, StatusSupplierActor.props(rootActorName), StatusSupplierActor.ACTOR_NAME);
     }
 
-    private void startActor(final ActorSystem actorSystem, final Props actorProps, final String actorName) {
+    private ActorRef startActor(final ActorSystem actorSystem, final Props actorProps, final String actorName) {
         logStartingActor(actorName);
-        actorSystem.actorOf(actorProps, actorName);
+        return actorSystem.actorOf(actorProps, actorName);
     }
 
     private void logStartingActor(final String actorName) {
@@ -465,8 +465,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @param actorSystem Akka actor system for starting actors.
      * @param mainRootActorProps the Props of the main root actor.
      */
-    protected void startMainRootActor(final ActorSystem actorSystem, final Props mainRootActorProps) {
-        startActor(actorSystem, mainRootActorProps, rootActorName);
+    protected ActorRef startMainRootActor(final ActorSystem actorSystem, final Props mainRootActorProps) {
+        return startActor(actorSystem, mainRootActorProps, rootActorName);
     }
 
     /**
