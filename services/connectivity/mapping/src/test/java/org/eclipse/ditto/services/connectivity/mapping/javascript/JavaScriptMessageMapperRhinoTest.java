@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
@@ -137,7 +138,8 @@ public final class JavaScriptMessageMapperRhinoTest {
             "    path,\n" +
             "    dittoHeaders,\n" +
             "    value,\n" +
-            "    status\n" +
+            "    status,\n" +
+            "    extra\n" +
             ") {\n" +
             "\n" +
             "    // ###\n" +
@@ -178,7 +180,8 @@ public final class JavaScriptMessageMapperRhinoTest {
             "    path,\n" +
             "    dittoHeaders,\n" +
             "    value,\n" +
-            "    status\n" +
+            "    status,\n" +
+            "    extra\n" +
             ") {\n" +
             "\n" +
             "    return null;" +
@@ -229,7 +232,8 @@ public final class JavaScriptMessageMapperRhinoTest {
             "    path,\n" +
             "    dittoHeaders,\n" +
             "    value,\n" +
-            "    status\n" +
+            "    status,\n" +
+            "    extra\n" +
             ") {\n" +
             "\n" +
             "    // ###\n" +
@@ -287,6 +291,47 @@ public final class JavaScriptMessageMapperRhinoTest {
                     "    );\n" +
                     "}";
 
+    private static final String MAPPING_INCOMING_WITH_STATUS_AND_EXTRA =
+            "function mapToDittoProtocolMsg(\n" +
+                    "    headers,\n" +
+                    "    textPayload,\n" +
+                    "    bytePayload,\n" +
+                    "    contentType\n" +
+                    ") {\n" +
+                    "\n" +
+                    "    // ###\n" +
+                    "    // Insert your mapping logic here\n" +
+                    "    let namespace = \"" + MAPPING_INCOMING_NAMESPACE + "\";\n" +
+                    "    let id = \"" + MAPPING_INCOMING_ID + "\";\n" +
+                    "    let group = \"things\";\n" +
+                    "    let channel = \"twin\";\n" +
+                    "    let criterion = \"commands\";\n" +
+                    "    let action = \"modify\";\n" +
+                    "    let path = \"" + MAPPING_INCOMING_PATH + "\";\n" +
+                    "    let dittoHeaders = {};\n" +
+                    "    dittoHeaders[\"correlation-id\"] = headers[\"correlation-id\"];\n" +
+                    "    let value = textPayload;\n" +
+                    "    let status = 204;\n" +
+                    "    let extra = {};\n" +
+                    "    extra.attributes = {};\n" +
+                    "    extra.attributes.enriched = 'field';\n" +
+                    "    // ###\n" +
+                    "\n" +
+                    "    return Ditto.buildDittoProtocolMsg(\n" +
+                    "        namespace,\n" +
+                    "        id,\n" +
+                    "        group,\n" +
+                    "        channel,\n" +
+                    "        criterion,\n" +
+                    "        action,\n" +
+                    "        path,\n" +
+                    "        dittoHeaders,\n" +
+                    "        value,\n" +
+                    "        status,\n" +
+                    "        extra\n" +
+                    "    );\n" +
+                    "}";
+
     private static final String MAPPING_INCOMING_DEFAULT = "function mapToDittoProtocolMsg(\n" +
             "  headers,\n" +
             "  textPayload,\n" +
@@ -317,7 +362,8 @@ public final class JavaScriptMessageMapperRhinoTest {
             "    path, // The path which is affected by the message, e.g.: \"/attributes\"\n" +
             "    dittoHeaders, // The headers Object containing all Ditto Protocol header values\n" +
             "    value, // The value to apply / which was applied (e.g. in a \"modify\" action)\n" +
-            "    status // The status code that indicates the result of the command\n" +
+            "    status, // The status code that indicates the result of the command\n" +
+            "    extra // The enriched extra fields\n" +
             "  );\n" +
             "}\n";
 
@@ -331,7 +377,8 @@ public final class JavaScriptMessageMapperRhinoTest {
             "  path,\n" +
             "  dittoHeaders,\n" +
             "  value,\n" +
-            "  status\n" +
+            "  status,\n" +
+            "  extra\n" +
             ") {\n" +
             "\n" +
             "  // ###\n" +
@@ -354,6 +401,7 @@ public final class JavaScriptMessageMapperRhinoTest {
     private static MessageMapper javaScriptRhinoMapperNoop;
     private static MessageMapper javaScriptRhinoMapperPlain;
     private static MessageMapper javaScriptRhinoMapperPlainWithStatus;
+    private static MessageMapper javaScriptRhinoMapperPlainWithStatusAndExtra;
     private static MessageMapper javaScriptRhinoMapperEmpty;
     private static MessageMapper javaScriptRhinoMapperBinary;
     private static MessageMapper javaScriptRhinoMapperDefault;
@@ -383,6 +431,15 @@ public final class JavaScriptMessageMapperRhinoTest {
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("plainStatus", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_WITH_STATUS)
+                        .outgoingScript(MAPPING_OUTGOING_PLAIN)
+                        .build()
+        );
+
+        javaScriptRhinoMapperPlainWithStatusAndExtra = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
+        javaScriptRhinoMapperPlainWithStatusAndExtra.configure(MAPPING_CONFIG,
+                JavaScriptMessageMapperFactory
+                        .createJavaScriptMessageMapperConfigurationBuilder("plainStatus", Collections.emptyMap())
+                        .incomingScript(MAPPING_INCOMING_WITH_STATUS_AND_EXTRA)
                         .outgoingScript(MAPPING_OUTGOING_PLAIN)
                         .build()
         );
@@ -627,6 +684,45 @@ public final class JavaScriptMessageMapperRhinoTest {
         assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
         assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
         assertThat(adaptable.getPayload().getValue()).map(JsonValue::asString).contains(modifyThingResponse.toJsonString());
+        assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.NO_CONTENT);
+    }
+
+    @Test
+    public void testPlainJavascriptIncomingMappingWithStatusAndExtra() {
+        final String correlationId = UUID.randomUUID().toString();
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(HEADER_CORRELATION_ID, correlationId);
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE_PLAIN);
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:foo-bar-plain");
+        final ModifyThingResponse modifyThingResponse = ModifyThingResponse.modified(thingId, DittoHeaders.newBuilder()
+                .correlationId(correlationId)
+                .putHeader("subject", "{{topic:action-subject}}")
+                .build());
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withText(modifyThingResponse.toJsonString())
+                .build();
+
+
+        final long startTs = System.nanoTime();
+        final List<Adaptable> adaptables = javaScriptRhinoMapperPlainWithStatusAndExtra.map(message);
+        final Adaptable adaptable = adaptables.get(0);
+        System.out.println(adaptable);
+        System.out.println(
+                "testPlainJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+
+        assertThat(adaptable.getTopicPath().getChannel()).isEqualTo(TopicPath.Channel.TWIN);
+        assertThat(adaptable.getTopicPath().getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+        assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFY);
+        assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
+        assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
+        assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
+        assertThat(adaptable.getPayload().getValue()).map(JsonValue::asString).contains(modifyThingResponse.toJsonString());
+        assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.NO_CONTENT);
+        assertThat(adaptable.getPayload().getExtra()).map(JsonValue::asObject).contains(JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("enriched", "field")
+                        .build())
+                .build());
     }
 
     @Test

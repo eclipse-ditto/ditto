@@ -268,11 +268,12 @@ Ditto comes with a few helper functions, which makes writing the mapping scripts
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
  * @param {number} status - The status code that indicates the result of the command.
+ * @param {Object} extra - The enriched extra fields when selected via "extraFields" option.
  * @returns {DittoProtocolMessage} dittoProtocolMessage - 
  *  the mapped Ditto Protocol message or 
  *  <code>null</code> if the message could/should not be mapped
  */
-function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status) {
+function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
 
     let dittoProtocolMsg = {};
     dittoProtocolMsg.topic = namespace + "/" + id + "/" + group + "/" + channel + "/" + criterion + "/" + action;
@@ -280,6 +281,7 @@ function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action,
     dittoProtocolMsg.headers = dittoHeaders;
     dittoProtocolMsg.value = value;
     dittoProtocolMsg.status = status;
+    dittoProtocolMsg.extra = extra;
     return dittoProtocolMsg;
 }
 
@@ -409,6 +411,7 @@ can be mapped to external messages by implementing the following JavaScript func
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
  * @param {number} status - The status code that indicates the result of the command.
+ * @param {Object} extra - The enriched extra fields when selected via "extraFields" option.
  * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage -
  *  The mapped external message,
  *  an array of external messages or
@@ -424,7 +427,8 @@ function mapFromDittoProtocolMsg(
     path,
     dittoHeaders,
     value,
-    status
+    status,
+    extra
 ) {
 
     // ###
