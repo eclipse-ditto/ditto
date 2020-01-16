@@ -67,6 +67,7 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
+import akka.http.scaladsl.model.Uri;
 import akka.stream.javadsl.Source;
 
 /**
@@ -417,7 +418,8 @@ public final class ThingsRoute extends AbstractRoute {
         return rawPathPrefix(PathMatchers.slash()
                 .concat(PATH_ATTRIBUTES)
                 .concat(PathMatchers.slash())
-                .concat(PathMatchers.segment())
+                .concat(PathMatchers.remainingPath())
+                .map(Uri.Path::toString)
                 .map(JsonPointer::of), jsonPointer ->
                 concat(
                         get(() -> // GET /things/<thingId>/attributes/<attributePointerStr>

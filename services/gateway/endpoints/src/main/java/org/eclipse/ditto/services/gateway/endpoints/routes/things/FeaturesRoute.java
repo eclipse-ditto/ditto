@@ -44,6 +44,7 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
+import akka.http.scaladsl.model.Uri;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /features}.
@@ -266,7 +267,8 @@ final class FeaturesRoute extends AbstractRoute {
                 rawPathPrefix(PathMatchers.slash()
                         .concat(PATH_PROPERTIES)
                         .concat(PathMatchers.slash())
-                        .concat(PathMatchers.segment())
+                        .concat(PathMatchers.remainingPath())
+                        .map(Uri.Path::toString)
                         .map(JsonPointer::of), jsonPointer ->
                         concat(
                                 get(() -> // GET /features/{featureId}/properties/<propertyJsonPointerStr>
