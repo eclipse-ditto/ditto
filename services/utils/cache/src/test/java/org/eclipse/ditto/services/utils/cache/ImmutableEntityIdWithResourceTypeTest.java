@@ -49,7 +49,6 @@ public class ImmutableEntityIdWithResourceTypeTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableEntityIdWithResourceType.class)
-                .withIgnoredFields("cacheLookupContext")
                 .verify();
     }
 

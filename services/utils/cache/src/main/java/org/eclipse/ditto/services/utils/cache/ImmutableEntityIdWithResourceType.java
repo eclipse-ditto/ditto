@@ -34,11 +34,6 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
 
     private final String resourceType;
     private final EntityId id;
-
-    /**
-     * This field is intentionally not part of serialization/deserialization as it is only needed "locally" in order
-     * to provide more context when doing cache lookups.
-     */
     @Nullable private final CacheLookupContext cacheLookupContext;
 
     /**
@@ -129,7 +124,8 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
         if (o instanceof ImmutableEntityIdWithResourceType) {
             final ImmutableEntityIdWithResourceType that = (ImmutableEntityIdWithResourceType) o;
             return Objects.equals(resourceType, that.resourceType) &&
-                    Objects.equals(id, that.id);
+                    Objects.equals(id, that.id) &&
+                    Objects.equals(cacheLookupContext, that.cacheLookupContext);
         } else {
             return false;
         }
@@ -137,7 +133,7 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
 
     @Override
     public int hashCode() {
-        return Objects.hash(resourceType, id);
+        return Objects.hash(resourceType, id, cacheLookupContext);
     }
 
     @Override

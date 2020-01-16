@@ -37,7 +37,8 @@ final class ImmutableCacheLookupContext implements CacheLookupContext {
     }
 
     /**
-     * Creates a new CacheLookupContext from the passed optional {@code dittoHeaders} and {@code jsonFieldSelector}.
+     * Creates a new CacheLookupContext from the passed optional {@code dittoHeaders} and {@code jsonFieldSelector}
+     * retaining the for caching relevant {@code dittoHeaders} from the passed ones.
      *
      * @param dittoHeaders the DittoHeaders to use in the cache lookup context.
      * @param jsonFieldSelector the JsonFieldSelector to use in the cache lookup context.
@@ -45,7 +46,16 @@ final class ImmutableCacheLookupContext implements CacheLookupContext {
      */
     static CacheLookupContext of(@Nullable final DittoHeaders dittoHeaders,
             @Nullable final JsonFieldSelector jsonFieldSelector) {
-        return new ImmutableCacheLookupContext(dittoHeaders, jsonFieldSelector);
+
+        DittoHeaders cacheRelevantHeaders = dittoHeaders;
+        if (null != dittoHeaders) {
+            // only keep DittoHeaders which should be part of the caching key, authContext and schemaVersion:
+            cacheRelevantHeaders = DittoHeaders.newBuilder()
+                    .authorizationContext(dittoHeaders.getAuthorizationContext())
+                    .schemaVersion(dittoHeaders.getSchemaVersion().orElse(null))
+                    .build();
+        }
+        return new ImmutableCacheLookupContext(cacheRelevantHeaders, jsonFieldSelector);
     }
 
     @Override
