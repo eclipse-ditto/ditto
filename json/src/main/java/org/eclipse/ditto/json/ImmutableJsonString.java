@@ -98,7 +98,6 @@ final class ImmutableJsonString extends AbstractJsonValue {
         final long MAX_CHAR_ESCAPE_SEQUENCE_LENGTH = 6; // "\u1234"
         final long NUM_ENCLOSING_QUOTES = 2;
         return (value.length() * MAX_CHAR_ESCAPE_SEQUENCE_LENGTH) + NUM_ENCLOSING_QUOTES;
-        // TODO: maybe it's more efficient to just return toString().length()
     }
 
     private String createStringRepresentation() {

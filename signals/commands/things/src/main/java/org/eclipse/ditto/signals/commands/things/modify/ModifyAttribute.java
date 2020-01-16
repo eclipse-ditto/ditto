@@ -80,7 +80,6 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
                 attributeValue::getUpperBoundForStringSize,
                 () -> attributeValue.toString().length(),
                 () -> dittoHeaders);
-        // TODO: this only checks the size of the attribute; shouldn't it check the size of the entire Thing?
     }
 
     private static JsonPointer checkAttributePointer(final JsonPointer pointer, final DittoHeaders dittoHeaders) {
