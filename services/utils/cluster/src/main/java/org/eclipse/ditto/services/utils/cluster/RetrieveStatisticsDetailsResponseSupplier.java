@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonCollectors;
@@ -77,6 +78,9 @@ public final class RetrieveStatisticsDetailsResponseSupplier
                                         .build(),
                                 dittoHeaders);
                     } else if (result instanceof ShardRegion.CurrentShardRegionState) {
+                        final Collector<String, ?, Map<String, Long>> stringMapCollector =
+                                Collectors.groupingBy(Function.identity(),
+                                        Collectors.mapping(Function.identity(), Collectors.counting()));
                         final Map<String, Long> shardStats =
                                 ((ShardRegion.CurrentShardRegionState) result).getShards()
                                         .stream()
@@ -102,9 +106,7 @@ public final class RetrieveStatisticsDetailsResponseSupplier
                                                     }
                                                 })
                                         )
-                                        .collect(Collectors.groupingBy(Function.identity(),
-                                                Collectors.mapping(Function.identity(),
-                                                        Collectors.counting())));
+                                        .collect(stringMapCollector);
 
                         final JsonObject namespaceStats = shardStats.entrySet().stream()
                                 .map(entry -> JsonField.newInstance(entry.getKey(),

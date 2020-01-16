@@ -8,7 +8,7 @@ permalink: installation-building.html
 ## Building with Apache Maven
 
 In order to build Ditto with Maven, you'll need:
-* JDK 8 >= 1.8.0_92 (due to a bug in older versions of the JDK you'll get a compile error),
+* JDK 11 >= 1.0.5,
 * Apache Maven 3.x installed,
 * a running Docker daemon (at least version 18.06 CE).
 

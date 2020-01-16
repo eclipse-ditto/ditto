@@ -19,17 +19,16 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Ce
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLServerSocket;
 
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Credentials;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -197,18 +196,14 @@ public abstract class AbstractSSLContextTest {
     }
 
     @Test
-    public void distrustSelfSignedClient() {
+    public void distrustSelfSignedClient() throws Exception {
         try (final ServerSocket serverSocket = startServer(true);
                 final Socket underTest = createSSLContext(Certificates.CA_CRT, null, SELF_SIGNED_CLIENT_CREDENTIALS)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
-            underTest.getOutputStream().write(234);
-        } catch (SSLHandshakeException | SocketException expected) {
-            // one of these is expected. should only be SSLHandshakeException, but JDK has a bug
-        } catch (final Exception e) {
-            e.printStackTrace();
-            Assert.fail("Got different exception than expected");
+            assertThatExceptionOfType(SSLException.class).isThrownBy(() -> underTest.getOutputStream().write(234))
+                    .withMessage("readHandshakeRecord");
         }
     }
 

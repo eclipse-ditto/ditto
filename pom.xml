@@ -201,8 +201,8 @@
     <properties>
         <revision>0-SNAPSHOT</revision>
 
-        <javac.source>1.8</javac.source>
-        <javac.target>1.8</javac.target>
+        <javac.source>11</javac.source>
+        <javac.target>11</javac.target>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -228,6 +228,8 @@
         <ditto.thirdPartyLicences.excludedGroups>
             (org\.eclipse\.ditto.*)|(com\.lihaoyi.*)
         </ditto.thirdPartyLicences.excludedGroups>
+
+        <japicmp-maven-plugin.version>0.14.1</japicmp-maven-plugin.version>
     </properties>
 
     <build>
@@ -236,7 +238,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.7.0</version>
+                    <version>3.8.1</version>
                     <configuration>
                         <source>${javac.source}</source>
                         <target>${javac.target}</target>
@@ -262,17 +264,21 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.1.1</version>
+                    <configuration>
+                        <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
+                        <source>11</source>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.0.1</version>
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.0.2</version>
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -328,7 +334,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.0.0-M1</version>
+                    <version>3.0.0-M3</version>
                     <configuration>
                         <systemProperties>
                             <kamon.auto-start>true</kamon.auto-start>
@@ -343,7 +349,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>3.0.0-M1</version>
+                    <version>3.0.0-M3</version>
                     <executions>
                         <execution>
                             <id>integration-test</id>
@@ -389,10 +395,10 @@
                     <artifactId>docker-maven-plugin</artifactId>
                     <version>0.26.0</version>
                 </plugin>
-                <plugin>
+                <!-- TODO: enable again <plugin>
                     <groupId>com.github.siom79.japicmp</groupId>
                     <artifactId>japicmp-maven-plugin</artifactId>
-                    <version>0.11.0</version>
+                    <version>${japicmp-maven-plugin.version}</version>
                     <configuration>
                         <oldVersion>
                             <dependency>
@@ -418,8 +424,8 @@
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                             <excludes>
-                                <!-- Don't add excludes here before checking with the whole Ditto team -->
-                                <!--<exclude></exclude>-->
+                                &lt;!&ndash; Don't add excludes here before checking with the whole Ditto team &ndash;&gt;
+                                &lt;!&ndash;<exclude></exclude>&ndash;&gt;
                             </excludes>
                         </parameter>
                     </configuration>
@@ -431,16 +437,17 @@
                             </goals>
                         </execution>
                     </executions>
-                </plugin>
+                </plugin>-->
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>
-                    <version>3.5.0</version>
+                    <version>4.2.1</version>
                     <configuration>
                         <instructions>
                             <Bundle-Vendor>Eclipse Ditto</Bundle-Vendor>
                             <Bundle-DocURL>https://eclipse.org/ditto/</Bundle-DocURL>
                             <_noee>true</_noee>
+                            <!-- stays at 1.8 as all exported bundles (json, model, protocol-adapter, signals, ...) are 1.8 -->
                             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
                             <Include-Resource>META-INF=${project.build.outputDirectory}/META-INF</Include-Resource>
                             <!--<Include-Resource>{maven-resources},META-INF=${project.build.outputDirectory}/META-INF</Include-Resource>-->
@@ -463,7 +470,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>4.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
