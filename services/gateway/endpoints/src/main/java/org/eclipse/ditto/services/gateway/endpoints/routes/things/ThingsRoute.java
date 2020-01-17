@@ -118,7 +118,7 @@ public final class ThingsRoute extends AbstractRoute {
     private static Thing createThingForPost(final String jsonString) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         if (inputJson.contains(Thing.JsonFields.ID.getPointer())) {
-            throw ThingIdNotExplicitlySettableException.newBuilder(true).build();
+            throw ThingIdNotExplicitlySettableException.forPostMethod().build();
         }
 
         final ThingId thingId = ThingBuilder.generateRandomTypedThingId();
@@ -155,7 +155,7 @@ public final class ThingsRoute extends AbstractRoute {
         if (optThingId.isPresent()) {
             final JsonValue thingIdFromBody = optThingId.get();
             if (!thingIdFromBody.isString() || !thingId.equals(thingIdFromBody.asString())) {
-                throw ThingIdNotExplicitlySettableException.newBuilder(false).build();
+                throw ThingIdNotExplicitlySettableException.forPutMethod().build();
             }
         } else {
             outputJsonBuilder.set(Thing.JsonFields.ID, thingId).build();

@@ -1,3 +1,52 @@
+/**
+ * Database Migration 1.0.0
+ *
+ * This script migrates the suffixed journals and snapshot stores of things and policies before 1.0.0 to
+ * non-suffixed journals and snapshot stores post 1.0.0.
+ *
+ * === Prerequisite ===
+ *
+ * - Backup your database.
+ *
+ * - Enable server-side-scripting for your MongoDB:
+ *   This script uses server-side scripting to avoid transferring near the entire database across a network interface.
+ *
+ * === Usage: Multi-database setup ===
+ *
+ * 1. Connect to the MongoDB by Mongo Shell.
+ * 2. Paste this script into Mongo Shell.
+ * 3. Type the following into Mongo Shell:
+ *
+ *      use things # replace 'things' by the name of your things-service database
+ *      migrateThings();
+ *      use policies # replace 'policies' by the name of your policies-service database
+ *      migratePolicies();
+ *
+ * === Usage: Single-database setup ===
+ *
+ * 1. Connect to t he MongoDB by Mongo Shell.
+ * 2. Use the single database of your Ditto installation.
+ * 3. Type the following into Mongo Shell:
+ *
+ *      migrate();
+ *
+ * === Revert ===
+ *
+ * If there is an exception before suffixed collections are dropped (i. e., before the line
+ * "Dropping suffixed collections" show up in the log), migration can be reverted by calling the function
+ *
+ *   revert()
+ *
+ * in things- or policies-database, or in the single database of a single-database setup.
+ *
+ * === Index creation ===
+ *
+ * Indexes are created by the persistence plugin of Ditto after creating a thing and a policy and after writing a thing-
+ * and a policy-snapshot. Expect unresponsive persistence or sporadic circuit-breaker errors for some time after service
+ * startup. To trigger journal and snapshot writes, create a new V2 thing without specifying a policy: journal writes
+ * happen immediately and snapshot writes happen 15 minutes later under the default configuration.
+ */
+
 const THINGS_JOURNAL = 'things_journal';
 const THINGS_SNAPS = 'things_snaps';
 const POLICIES_JOURNAL = 'policies_journal';
@@ -149,60 +198,11 @@ function migrateThings() {
 }
 
 function dropAllToDelete() {
+  print("Dropping all suffixed collections...")
   db.getCollectionNames()
     .filter(name => name.includes(TO_DELETE))
     .forEach(collectionName => db.getCollection(collectionName).drop());
-}
-
-function createJournalIndexes(collection) {
-  checkOk(db[collection].createIndex(
-    {
-      pid: 1,
-      from: 1,
-      to: 1
-    },
-    {
-      name: collection + '_index',
-      background: true,
-      unique: true
-    }));
-  checkOk(db[collection].createIndex(
-    {
-      pid: 1,
-      to: -1
-    },
-    {
-      name: 'max_sequence_sort',
-      background: true
-    }));
-  checkOk(db[collection].createIndex(
-    {
-      _tg: 1
-    },
-    {
-      name: 'journal_tag_index',
-      background: true
-    }));
-}
-
-function createSnapsIndexes(collection) {
-  checkOk(db[collection].createIndex(
-    {
-      pid: 1,
-      sn: -1,
-      ts: -1
-    },
-    {
-      name: collection + '_index',
-      background: true
-    }));
-}
-
-function createIndexes() {
-  createJournalIndexes(THINGS_JOURNAL);
-  createJournalIndexes(POLICIES_JOURNAL);
-  createSnapsIndexes(THINGS_SNAPS);
-  createSnapsIndexes(POLICIES_SNAPS);
+  print("Done.")
 }
 
 /**
@@ -212,7 +212,6 @@ function createIndexes() {
 function migrate() {
   migratePolicies();
   migrateThings();
-  createIndexes();
   dropAllToDelete();
 }
 
@@ -231,5 +230,7 @@ function revert() {
 }
 
 // Choose one of 'migrate()' or 'revert()'.
-migrate();
+// migrate();
 // revert();
+
+// Expect high database resource consumption on service startup due to index creation.
