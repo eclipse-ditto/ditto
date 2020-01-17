@@ -52,7 +52,7 @@ import akka.stream.javadsl.SourceQueueWithComplete;
  *
  * @param <T> the type of the messages this actor processes in the stream graph.
  * @param <M> the type of the incoming messages which is translated to a message of type {@code <T>} in
- *  {@link #mapMessage(Object)}.
+ * {@link #mapMessage(Object)}.
  */
 public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
@@ -67,6 +67,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     public static final String DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE = "ditto-internal-special-enforcement-lane";
 
     protected final DittoDiagnosticLoggingAdapter logger;
+    protected final ActorMaterializer materializer;
 
     private final Class<M> matchClass;
     private final Counter receiveCounter;
@@ -92,6 +93,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
         dequeueCounter = DittoMetrics.counter("graph_actor_dequeue", tags);
 
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+        materializer = ActorMaterializer.create(getActorMaterializerSettings(), getContext());
     }
 
     /**
@@ -136,7 +138,6 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        final ActorMaterializer materializer = ActorMaterializer.create(getActorMaterializerSettings(), getContext());
         final SourceQueueWithComplete<T> sourceQueue = getSourceQueue(materializer);
 
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
@@ -256,7 +257,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     }
 
     private Void incrementEnqueueCounters(final QueueOfferResult result, final Throwable error) {
-        if  (QueueOfferResult.enqueued().equals(result)) {
+        if (QueueOfferResult.enqueued().equals(result)) {
             enqueueSuccessCounter.increment();
         } else if (QueueOfferResult.dropped().equals(result)) {
             enqueueDroppedCounter.increment();

@@ -1129,7 +1129,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                 connection.getProcessorPoolSize());
         final Props props = MessageMappingProcessorActor.props(conciergeForwarder, getSelf(), processor,
-                connectionId());
+                connectionId(), 1);
 
         /*
          * By using a ConsistentHashingPool, messages sent to this actor which are wrapped into

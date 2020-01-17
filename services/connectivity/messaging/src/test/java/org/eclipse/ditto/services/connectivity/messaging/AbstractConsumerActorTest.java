@@ -233,7 +233,7 @@ public abstract class AbstractConsumerActorTest<M> {
                         connectivityConfig, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(conciergeForwarderActor, clientActor, mappingProcessor,
-                        CONNECTION_ID);
+                        CONNECTION_ID, 1);
 
         return actorSystem.actorOf(new ConsistentHashingPool(PROCESSOR_POOL_SIZE)
                         .withDispatcher("message-mapping-processor-dispatcher")

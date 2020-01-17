@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
  * calls the {@link MappingResultHandler#onException(Exception)} method for exceptions thrown in these handlers and
  * increases the according counters for mapped, dropped failed messages.
  */
-public class OutboundMappingResultHandler implements MappingResultHandler<OutboundSignal.Mapped> {
+public class OutboundMappingResultHandler implements MappingResultHandler<OutboundSignal.Mapped, Void> {
 
     private final Consumer<OutboundSignal.Mapped> onMessageMapped;
     private final Runnable onMessageDropped;
@@ -45,33 +45,48 @@ public class OutboundMappingResultHandler implements MappingResultHandler<Outbou
     }
 
     @Override
-    public void onMessageMapped(final OutboundSignal.Mapped outboundMappedMessage) {
+    public Void onMessageMapped(final OutboundSignal.Mapped outboundMappedMessage) {
         try {
             outboundMapped.forEach(monitor -> monitor.success(infoProvider));
             onMessageMapped.accept(outboundMappedMessage);
+            return null;
         } catch (final Exception e) {
-            onException(e);
+            return onException(e);
         }
     }
 
     @Override
-    public void onMessageDropped() {
+    public Void onMessageDropped() {
         try {
             outboundDropped.forEach(monitor -> monitor.success(infoProvider));
             onMessageDropped.run();
+            return null;
         } catch (Exception e) {
-            onException(e);
+            return onException(e);
         }
     }
 
     @Override
-    public void onException(final Exception exception) {
+    public Void onException(final Exception exception) {
         if (exception instanceof DittoRuntimeException) {
             outboundMapped.forEach(monitor -> monitor.failure(((DittoRuntimeException) exception)));
         } else {
             outboundMapped.forEach(monitor -> monitor.exception(exception));
         }
         onException.accept(exception);
+        return null;
+    }
+
+    @Override
+    public Void combineResults(final Void left, final Void right) {
+        // TODO
+        return null;
+    }
+
+    @Override
+    public Void emptyResult() {
+        // TODO
+        return null;
     }
 
 }

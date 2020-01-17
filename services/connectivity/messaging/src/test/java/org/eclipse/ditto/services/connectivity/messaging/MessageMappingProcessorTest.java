@@ -167,7 +167,7 @@ public class MessageMappingProcessorTest {
             final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
             final JsonObject extra = JsonObject.newBuilder().set("x", 5).build();
             final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
-            final MappingResultHandler<OutboundSignal.Mapped> mock = Mockito.mock(MappingResultHandler.class);
+            final MappingResultHandler<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingResultHandler.class);
             when(outboundSignal.getExtra()).thenReturn(Optional.of(extra));
             when(outboundSignal.getSource()).thenReturn(signal);
             underTest.process(outboundSignal, mock);
@@ -303,7 +303,7 @@ public class MessageMappingProcessorTest {
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(targets));
             //noinspection unchecked
-            final MappingResultHandler<OutboundSignal.Mapped> mock = Mockito.mock(MappingResultHandler.class);
+            final MappingResultHandler<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingResultHandler.class);
             underTest.process(outboundSignal, mock);
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
             verify(mock, times(mapped)).onMessageMapped(captor.capture());
@@ -336,7 +336,8 @@ public class MessageMappingProcessorTest {
     private void testInbound(final ExternalMessage externalMessage, final int mapped, final int dropped,
             final int failed) {
         new TestKit(actorSystem) {{
-            final MappingResultHandler<MappedInboundExternalMessage> mock = Mockito.mock(MappingResultHandler.class);
+            final MappingResultHandler<MappedInboundExternalMessage, Void> mock =
+                    Mockito.mock(MappingResultHandler.class);
             underTest.process(externalMessage, mock);
             final ArgumentCaptor<MappedInboundExternalMessage> captor =
                     ArgumentCaptor.forClass(MappedInboundExternalMessage.class);

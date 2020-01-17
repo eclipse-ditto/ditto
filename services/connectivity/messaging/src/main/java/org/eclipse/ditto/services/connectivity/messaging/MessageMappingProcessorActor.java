@@ -104,8 +104,12 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
+import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SourceQueue;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -121,6 +125,11 @@ public final class MessageMappingProcessorActor
      */
     public static final String ACTOR_NAME = "messageMappingProcessor";
 
+    /**
+     * The name of the dispatcher that runs all mapping tasks and all message handling of this actor and its children.
+     */
+    private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef clientActor;
@@ -134,12 +143,15 @@ public final class MessageMappingProcessorActor
     private final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitor responseMappedMonitor;
     private final CompletionStage<SignalEnrichmentFacade> signalEnrichmentFacade;
+    private final int processorPoolSize;
+    private final SourceQueue<ExternalMessage> inboundSourceQueue;
 
     @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef conciergeForwarder,
             final ActorRef clientActor,
             final MessageMappingProcessor messageMappingProcessor,
-            final ConnectionId connectionId) {
+            final ConnectionId connectionId,
+            final int processorPoolSize) {
 
         super(OutboundSignal.class);
 
@@ -163,6 +175,8 @@ public final class MessageMappingProcessorActor
         signalEnrichmentFacade = getSignalEnrichmentFacade(
                 getContext().getSystem().actorSelection(mappingConfig.getSignalEnrichmentProviderPath()),
                 connectionId, getContext().getParent(), getSelf());
+        this.processorPoolSize = processorPoolSize;
+        inboundSourceQueue = materializeInboundStream(processorPoolSize);
     }
 
     /**
@@ -172,15 +186,17 @@ public final class MessageMappingProcessorActor
      * @param clientActor the client actor that created this mapping actor
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection ID.
+     * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef conciergeForwarder,
             final ActorRef clientActor,
             final MessageMappingProcessor processor,
-            final ConnectionId connectionId) {
+            final ConnectionId connectionId,
+            final int processorPoolSize) {
 
         return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, clientActor, processor,
-                connectionId);
+                connectionId, processorPoolSize).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
 
     @Override
@@ -196,12 +212,24 @@ public final class MessageMappingProcessorActor
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder
-                .match(ExternalMessage.class,
-                        this::handleInboundMessage)   // ExternalMessages are handled directly, without first putting them into a stream
-                .match(CommandResponse.class, this::handleCommandResponse)  // same for command responses
-                .match(Signal.class, this::handleSignal)                    // and all other Signals
+                // Incoming messages are handled in a separate stream parallelized by this actor's own dispatcher
+                .match(ExternalMessage.class, this::handleInboundMessage)
+                // Outgoing responses and signals go through the signal enrichment stream
+                .match(CommandResponse.class, this::handleCommandResponse)
+                .match(Signal.class, this::handleSignal)
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()));
+    }
+
+    private SourceQueue<ExternalMessage> materializeInboundStream(final int processorPoolSize) {
+        return Source.<ExternalMessage>queue(getBufferSize(), OverflowStrategy.dropNew())
+                .mapAsync(processorPoolSize, externalMessage -> CompletableFuture.supplyAsync(
+                        () -> mapInboundMessage(externalMessage),
+                        getContext().dispatcher())
+                )
+                .flatMapConcat(signalSource -> signalSource)
+                .toMat(Sink.foreach(signal -> conciergeForwarder.tell(signal, getSelf())), Keep.left())
+                .run(materializer);
     }
 
     @Override
@@ -297,7 +325,7 @@ public final class MessageMappingProcessorActor
                 .exceptionally(error -> {
                     logger.withCorrelationId(outboundSignal.getSource())
                             .warning("Could not retrieve extra data due to: {} {}",
-                            error.getClass().getSimpleName(), error.getMessage());
+                                    error.getClass().getSimpleName(), error.getMessage());
                     // recover from all errors to keep message-mapping-stream running despite enrichment failures
                     return Collections.singletonList(recoverFromEnrichmentError(outboundSignal, target, error));
                 });
@@ -368,17 +396,22 @@ public final class MessageMappingProcessorActor
 
     private void handleInboundMessage(final ExternalMessage externalMessage) {
         ConditionChecker.checkNotNull(externalMessage);
+        inboundSourceQueue.offer(externalMessage);
+    }
+
+    private Source<Signal<?>, ?> mapInboundMessage(final ExternalMessage externalMessage) {
         final String correlationId = externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, correlationId, connectionId);
         log.debug("Handling ExternalMessage: {}", externalMessage);
         try {
-            mapExternalMessageToSignalAndForwardToConcierge(externalMessage);
+            return mapExternalMessageToSignal(externalMessage);
         } catch (final Exception e) {
-            handleException(e, externalMessage, getAuthorizationContext(externalMessage).orElse(null));
+            handleInboundException(e, externalMessage, getAuthorizationContext(externalMessage).orElse(null));
+            return Source.empty();
         }
     }
 
-    private void handleException(final Exception e, final ExternalMessage message,
+    private void handleInboundException(final Exception e, final ExternalMessage message,
             @Nullable final AuthorizationContext authorizationContext) {
         if (e instanceof DittoRuntimeException) {
             final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) e;
@@ -398,20 +431,21 @@ public final class MessageMappingProcessorActor
         }
     }
 
-    private void mapExternalMessageToSignalAndForwardToConcierge(final ExternalMessage externalMessage) {
-        messageMappingProcessor.process(externalMessage,
+    private Source<Signal<?>, ?> mapExternalMessageToSignal(final ExternalMessage externalMessage) {
+        return messageMappingProcessor.process(externalMessage,
                 handleMappingResult(externalMessage, getAuthorizationContextOrThrow(externalMessage)));
     }
 
-    private MappingResultHandler<MappedInboundExternalMessage> handleMappingResult(
+    private MappingResultHandler<MappedInboundExternalMessage, Source<Signal<?>, ?>> handleMappingResult(
             final ExternalMessage incomingMessage,
             final AuthorizationContext authorizationContext) {
+
         final String source = incomingMessage.getSourceAddress().orElse("unknown");
         final ConnectionMonitor inboundMapped = connectionMonitorRegistry.forInboundMapped(connectionId, source);
         final ConnectionMonitor inboundDropped = connectionMonitorRegistry.forInboundDropped(connectionId, source);
 
-        return new InboundMappingResultHandler(
-                mappedInboundMessage -> {
+        return InboundMappingResultHandler.<Signal<?>>newSourceBuilder()
+                .onMessageMapped(mappedInboundMessage -> {
                     final Signal<?> signal = mappedInboundMessage.getSignal();
                     enhanceLogUtil(signal);
                     // the above throws an exception if signal id enforcement fails
@@ -431,14 +465,19 @@ public final class MessageMappingProcessorActor
                     // quite a lot this is going to the debug level. Use best with a connection-id filter.
                     log.debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder",
                             adjustedSignal.getType());
-                    conciergeForwarder.tell(adjustedSignal, getSelf());
-                },
-                () -> log.debug("Message mapping returned null, message is dropped."),
-                exception -> this.handleException(exception, incomingMessage, authorizationContext),
-                inboundMapped,
-                inboundDropped,
-                InfoProviderFactory.forExternalMessage(incomingMessage)
-        );
+                    return Source.single(adjustedSignal);
+                })
+                .onMessageDropped(() -> {
+                    log.debug("Message mapping returned null, message is dropped.");
+                })
+                .onException(exception -> {
+                    // skip the inbound stream directly to outbound stream
+                    this.handleInboundException(exception, incomingMessage, authorizationContext);
+                })
+                .inboundMapped(inboundMapped)
+                .inboundDropped(inboundDropped)
+                .infoProvider(InfoProviderFactory.forExternalMessage(incomingMessage))
+                .build();
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
@@ -570,6 +609,7 @@ public final class MessageMappingProcessorActor
     private void handleSignal(final Signal<?> signal) {
         // map to outbound signal without authorized target (responses and errors are only sent to its origin)
         log.debug("Handling raw signal: {}", signal);
+        // TODO: just add this to the outbound queue
         handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptyList()));
     }
 

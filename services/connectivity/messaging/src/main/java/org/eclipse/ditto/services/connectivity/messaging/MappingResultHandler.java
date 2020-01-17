@@ -12,32 +12,54 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import java.util.function.BinaryOperator;
+
 /**
  * Interface providing methods for the different outcomes of a mapping - dropped, error and success. As a message may
  * either be the input for multiple mappings or a single mapping my produce multiple results, the defined methods may
  * be called multiple times for a single processed message. Multiple mappers are independent, the result of mapper A
  * does not influence the result of mapper B. E.g. mapper A fails but mapper B is successful is a valid case.
  *
- * @param <T> the type parameter for successfully mapped messages
+ * @param <T> the type of successfully mapped messages
+ * @param <R> the type of results of the handler
  */
-interface MappingResultHandler<T> {
+interface MappingResultHandler<T, R> {
 
     /**
      * Is called when the mapping was successful.
      *
      * @param mappedMessage the successfully mapped message
+     * @return result for a mapped message.
      */
-    void onMessageMapped(T mappedMessage);
+    R onMessageMapped(T mappedMessage);
 
     /**
      * Is called when the mapping produced no result i.e. message should be dropped.
+     *
+     * @return result for a dropped message.
      */
-    void onMessageDropped();
+    R onMessageDropped();
 
     /**
      * Is called when the mapping failed.
      *
      * @param ex the exception that was thrown by the mapper
      */
-    void onException(Exception ex);
+    R onException(Exception ex);
+
+    /**
+     * Combine 2 results into 1 to cater to multiple mapping results produced from one input message.
+     *
+     * @param left the first result.
+     * @param right the second result.
+     * @return the combined result.
+     */
+    R combineResults(R left, R right);
+
+    /**
+     * Create an empty result. Should be the left and right identiy of the
+     *
+     * @return the empty result.
+     */
+    R emptyResult();
 }
