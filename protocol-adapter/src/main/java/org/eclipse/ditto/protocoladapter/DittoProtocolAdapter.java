@@ -17,6 +17,8 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.protocoladapter.policies.DefaultPolicyCommandAdapters;
+import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapters;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
@@ -44,15 +46,17 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 public final class DittoProtocolAdapter implements ProtocolAdapter {
 
-    private final AdapterResolver thingsAdapters;
-    private final AdapterResolver policiesAdapters;
     private final HeaderTranslator headerTranslator;
+    private final AdapterResolver adapterResolver;
+    private final DefaultThingCommandAdapters thingsAdapters;
+    private final DefaultPolicyCommandAdapters policiesAdapters;
 
     private DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
-        this.headerTranslator = headerTranslator;
-        this.thingsAdapters = new ThingsAdapters(errorRegistry, headerTranslator);
-        this.policiesAdapters = new PoliciesAdapters(errorRegistry, headerTranslator);
+        this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
+        this.thingsAdapters = new DefaultThingCommandAdapters(errorRegistry, headerTranslator);
+        this.policiesAdapters = new DefaultPolicyCommandAdapters(errorRegistry, headerTranslator);
+        this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters);
     }
 
     /**
@@ -61,7 +65,6 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
      * @param headerTranslator translator between external and Ditto headers.
      */
     public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
-        checkNotNull(headerTranslator, "headerTranslator");
         return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), headerTranslator);
     }
 
@@ -85,22 +88,12 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     @Override
     public Signal<?> fromAdaptable(final Adaptable adaptable) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        final Adapter<? extends Signal> adapter;
-        if (TopicPath.Group.THINGS.equals(topicPath.getGroup())) { // /things
-            adapter = thingsAdapters.getAdapter(adaptable);
-        } else if (TopicPath.Group.POLICIES.equals(topicPath.getGroup())) {  // /policies
-            adapter = policiesAdapters.getAdapter(adaptable);
-        } else {
-            throw UnknownTopicPathException.newBuilder(topicPath).build();
-        }
-        return adapter.fromAdaptable(adaptable);
+        return adapterResolver.getAdapter(adaptable).fromAdaptable(adaptable);
     }
 
     @Override
     public Adaptable toAdaptable(final Signal<?> signal) {
-        final boolean isLive = isLiveSignal(signal);
-        final TopicPath.Channel channel = isLive ? TopicPath.Channel.LIVE : TopicPath.Channel.TWIN;
+        final TopicPath.Channel channel = determineChannel(signal);
         if (signal instanceof MessageCommand) {
             return toAdaptable((MessageCommand<?, ?>) signal);
         } else if (signal instanceof MessageCommandResponse) {
@@ -115,18 +108,20 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         throw UnknownSignalException.newBuilder(signal.getName()).dittoHeaders(signal.getDittoHeaders()).build();
     }
 
-    private static boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+    private TopicPath.Channel determineChannel(final Signal<?> signal) {
+        final boolean isLiveSignal =
+                signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+        return isLiveSignal ? TopicPath.Channel.LIVE : TopicPath.Channel.TWIN;
     }
 
     @Override
     public Adaptable toAdaptable(final CommandResponse<?> commandResponse, final TopicPath.Channel channel) {
         if (commandResponse instanceof MessageCommandResponse && channel == TopicPath.Channel.LIVE) {
-            return toAdaptable((MessageCommandResponse) commandResponse);
+            return toAdaptable((MessageCommandResponse<?, ?>) commandResponse);
         } else if (commandResponse instanceof ThingCommandResponse) {
-            return toAdaptable((ThingCommandResponse) commandResponse, channel);
+            return toAdaptable((ThingCommandResponse<?>) commandResponse, channel);
         } else if (commandResponse instanceof PolicyCommandResponse) {
-            return toAdaptable((PolicyCommandResponse) commandResponse, channel);
+            return toAdaptable((PolicyCommandResponse<?>) commandResponse, channel);
         } else {
             throw UnknownCommandResponseException.newBuilder(commandResponse.getName()).build();
         }
@@ -135,9 +130,9 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     @Override
     public Adaptable toAdaptable(final ThingCommandResponse<?> thingCommandResponse, final TopicPath.Channel channel) {
         if (thingCommandResponse instanceof ThingQueryCommandResponse) {
-            return toAdaptable((ThingQueryCommandResponse) thingCommandResponse, channel);
+            return toAdaptable((ThingQueryCommandResponse<?>) thingCommandResponse, channel);
         } else if (thingCommandResponse instanceof ThingModifyCommandResponse) {
-            return toAdaptable((ThingModifyCommandResponse) thingCommandResponse, channel);
+            return toAdaptable((ThingModifyCommandResponse<?>) thingCommandResponse, channel);
         } else if (thingCommandResponse instanceof ThingErrorResponse) {
             return toAdaptable((ThingErrorResponse) thingCommandResponse, channel);
         } else {
@@ -149,9 +144,9 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     public Adaptable toAdaptable(final PolicyCommandResponse<?> policyCommandResponse,
             final TopicPath.Channel channel) {
         if (policyCommandResponse instanceof PolicyQueryCommandResponse) {
-            return toAdaptable((PolicyQueryCommandResponse) policyCommandResponse, channel);
+            return toAdaptable((PolicyQueryCommandResponse<?>) policyCommandResponse, channel);
         } else if (policyCommandResponse instanceof PolicyModifyCommandResponse) {
-            return toAdaptable((PolicyModifyCommandResponse) policyCommandResponse, channel);
+            return toAdaptable((PolicyModifyCommandResponse<?>) policyCommandResponse, channel);
         } else if (policyCommandResponse instanceof PolicyErrorResponse) {
             return toAdaptable((PolicyErrorResponse) policyCommandResponse, channel);
         } else {
@@ -162,15 +157,15 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     @Override
     public Adaptable toAdaptable(final Command<?> command, final TopicPath.Channel channel) {
         if (command instanceof MessageCommand && channel == TopicPath.Channel.LIVE) {
-            return toAdaptable((MessageCommand) command);
+            return toAdaptable((MessageCommand<?, ?>) command);
         } else if (command instanceof ThingModifyCommand) {
-            return toAdaptable((ThingModifyCommand) command, channel);
+            return toAdaptable((ThingModifyCommand<?>) command, channel);
         } else if (command instanceof ThingQueryCommand) {
-            return toAdaptable((ThingQueryCommand) command, channel);
+            return toAdaptable((ThingQueryCommand<?>) command, channel);
         } else if (command instanceof PolicyModifyCommand) {
-            return toAdaptable((PolicyModifyCommand) command, channel);
+            return toAdaptable((PolicyModifyCommand<?>) command, channel);
         } else if (command instanceof PolicyQueryCommand) {
-            return toAdaptable((PolicyQueryCommand) command, channel);
+            return toAdaptable((PolicyQueryCommand<?>) command, channel);
         } else {
             throw UnknownCommandException.newBuilder(command.getName()).build();
         }
@@ -178,75 +173,63 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     @Override
     public Adaptable toAdaptable(final ThingModifyCommand<?> thingModifyCommand, final TopicPath.Channel channel) {
-        // TODO DG avoid ugly cast
-        final Adapter<ThingModifyCommand> modifyCommandAdapter =
-                (Adapter<ThingModifyCommand>) thingsAdapters.getModifyCommandAdapter();
-        return modifyCommandAdapter.toAdaptable(thingModifyCommand, channel);
+        return thingsAdapters.getModifyCommandAdapter().toAdaptable(thingModifyCommand, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final PolicyModifyCommand<?> policyModifyCommand, final TopicPath.Channel channel) {
-        return (((Adapter<PolicyModifyCommand>) policiesAdapters.getModifyCommandAdapter())).toAdaptable(
-                policyModifyCommand, channel);
+        return policiesAdapters.getModifyCommandAdapter().toAdaptable(policyModifyCommand, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final ThingModifyCommandResponse<?> thingModifyCommandResponse,
             final TopicPath.Channel channel) {
-        return (((Adapter<ThingModifyCommandResponse>) thingsAdapters.getModifyCommandResponseAdapter())).toAdaptable(
-                thingModifyCommandResponse, channel);
+        return thingsAdapters.getModifyCommandResponseAdapter().toAdaptable(thingModifyCommandResponse, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final PolicyModifyCommandResponse<?> policyModifyCommandResponse,
             final TopicPath.Channel channel) {
-        return (((Adapter<PolicyModifyCommandResponse>) policiesAdapters.getModifyCommandResponseAdapter())).toAdaptable(
-                policyModifyCommandResponse, channel);
+        return policiesAdapters.getModifyCommandResponseAdapter().toAdaptable(policyModifyCommandResponse, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final ThingQueryCommand<?> thingQueryCommand, final TopicPath.Channel channel) {
-        return (((Adapter<ThingQueryCommand>) thingsAdapters.getQueryCommandAdapter())).toAdaptable(thingQueryCommand
-                , channel);
+        return thingsAdapters.getQueryCommandAdapter().toAdaptable(thingQueryCommand, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final PolicyQueryCommand<?> policyQueryCommand, final TopicPath.Channel channel) {
-        return (((Adapter<PolicyQueryCommand>) policiesAdapters.getQueryCommandAdapter())).toAdaptable(
-                policyQueryCommand, channel);
+        return policiesAdapters.getQueryCommandAdapter().toAdaptable(policyQueryCommand, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final ThingQueryCommandResponse<?> thingQueryCommandResponse,
             final TopicPath.Channel channel) {
-        return (((Adapter<ThingQueryCommandResponse>) thingsAdapters.getQueryCommandResponseAdapter())).toAdaptable(
-                thingQueryCommandResponse, channel);
+        return thingsAdapters.getQueryCommandResponseAdapter().toAdaptable(thingQueryCommandResponse, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final PolicyQueryCommandResponse<?> policyQueryCommandResponse,
             final TopicPath.Channel channel) {
-        return (((Adapter<PolicyQueryCommandResponse>) policiesAdapters.getQueryCommandResponseAdapter())).toAdaptable(
-                policyQueryCommandResponse, channel);
+        return policiesAdapters.getQueryCommandResponseAdapter().toAdaptable(policyQueryCommandResponse, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final ThingErrorResponse thingErrorResponse, final TopicPath.Channel channel) {
-        return (((Adapter<ThingErrorResponse>) thingsAdapters.getErrorResponseAdapter())).toAdaptable(
-                thingErrorResponse, channel);
+        return thingsAdapters.getErrorResponseAdapter().toAdaptable(thingErrorResponse, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final PolicyErrorResponse policyErrorResponse,
             final TopicPath.Channel channel) {
-        return (((Adapter<PolicyErrorResponse>) policiesAdapters.getErrorResponseAdapter())).toAdaptable(
-                policyErrorResponse, channel);
+        return policiesAdapters.getErrorResponseAdapter().toAdaptable(policyErrorResponse, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final Event<?> event, final TopicPath.Channel channel) {
         if (event instanceof ThingEvent) {
-            return toAdaptable((ThingEvent) event, channel);
+            return toAdaptable((ThingEvent<?>) event, channel);
         } else {
             throw UnknownEventException.newBuilder(event.getName()).build();
         }
@@ -254,18 +237,17 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     @Override
     public Adaptable toAdaptable(final ThingEvent<?> thingEvent, final TopicPath.Channel channel) {
-        return (((Adapter<ThingEvent<?>>) thingsAdapters.getEventAdapter())).toAdaptable(thingEvent, channel);
+        return thingsAdapters.getEventAdapter().toAdaptable(thingEvent, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final MessageCommand<?, ?> messageCommand) {
-        return (((Adapter<MessageCommand>) thingsAdapters.getMessageCommandAdapter())).toAdaptable(messageCommand);
+        return thingsAdapters.getMessageCommandAdapter().toAdaptable(messageCommand);
     }
 
     @Override
     public Adaptable toAdaptable(final MessageCommandResponse<?, ?> messageCommandResponse) {
-        return (((Adapter<MessageCommandResponse>) thingsAdapters.getMessageCommandResponseAdapter())).toAdaptable(
-                messageCommandResponse);
+        return thingsAdapters.getMessageCommandResponseAdapter().toAdaptable(messageCommandResponse);
     }
 
     @Override

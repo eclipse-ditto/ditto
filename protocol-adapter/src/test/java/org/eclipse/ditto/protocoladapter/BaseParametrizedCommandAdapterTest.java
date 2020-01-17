@@ -38,9 +38,9 @@ import org.junit.runners.Parameterized;
  * Base class for parameterized command adapter tests.
  */
 @RunWith(Parameterized.class)
-public abstract class BaseParametrizedCommandAdapterTest<T extends Signal> implements ProtocolAdapterTest {
+public abstract class BaseParametrizedCommandAdapterTest<T extends Signal<?>> implements ProtocolAdapterTest {
 
-    static final JsonPointer EMPTY_PATH = JsonPointer.empty();
+    public static final JsonPointer EMPTY_PATH = JsonPointer.empty();
 
     @Parameterized.Parameter(0)
     public String name;
@@ -51,7 +51,7 @@ public abstract class BaseParametrizedCommandAdapterTest<T extends Signal> imple
     @Parameterized.Parameter(2)
     public T command;
 
-    protected abstract AbstractPolicyAdapter<T> underTest();
+    protected abstract AbstractAdapter<T> underTest();
 
     @Test
     public void fromAdaptable() {
@@ -79,7 +79,7 @@ public abstract class BaseParametrizedCommandAdapterTest<T extends Signal> imple
         assertWithExternalHeadersThat(toAdaptableFromAdaptable).isEqualTo(command);
     }
 
-    static Collection<Object[]> toObjects(final TestParameter<?>... parameters) {
+    public static Collection<Object[]> toObjects(final TestParameter<?>... parameters) {
         return Stream.of(parameters).map(TestParameter::toObject).collect(Collectors.toList());
     }
 
@@ -89,38 +89,38 @@ public abstract class BaseParametrizedCommandAdapterTest<T extends Signal> imple
                 JsonPointer::append);
     }
 
-    static <T> JsonValue fromIterable(final Iterable<T> source, final Function<T, JsonKey> key,
+    public static <T> JsonValue fromIterable(final Iterable<T> source, final Function<T, JsonKey> key,
             final Function<T, JsonValue> value) {
         return StreamSupport.stream(source.spliterator(), false)
                 .map(t -> JsonFactory.newField(key.apply(t), value.apply(t)))
                 .collect(JsonCollectors.fieldsToObject());
     }
 
-    static JsonPointer entriesPath() {
+    public static JsonPointer entriesPath() {
         return newPointer("entries");
     }
 
-    static JsonPointer entriesPath(final Label label) {
+    public static JsonPointer entriesPath(final Label label) {
         return newPointer("entries", label.toString());
     }
 
-    static JsonPointer resourcesPath(final Label label) {
+    public static JsonPointer resourcesPath(final Label label) {
         return newPointer("entries", label.toString(), "resources");
     }
 
-    static JsonPointer resourcesPath(final Label label, final ResourceKey resourceKey) {
+    public static JsonPointer resourcesPath(final Label label, final ResourceKey resourceKey) {
         return newPointer("entries", label.toString(), "resources").append(JsonPointer.of(resourceKey));
     }
 
-    static JsonPointer subjectsPath(final Label label) {
+    public static JsonPointer subjectsPath(final Label label) {
         return newPointer("entries", label.toString(), "subjects");
     }
 
-    static JsonPointer subjectsPath(final Label label, final SubjectId subjectId) {
+    public static JsonPointer subjectsPath(final Label label, final SubjectId subjectId) {
         return newPointer("entries", label.toString(), "subjects", subjectId.toString());
     }
 
-    static class TestParameter<T> {
+    public static class TestParameter<T> {
 
         private final String name;
         private final Adaptable adaptable;
@@ -132,7 +132,7 @@ public abstract class BaseParametrizedCommandAdapterTest<T extends Signal> imple
             this.command = command;
         }
 
-        static <C extends Jsonifiable & WithDittoHeaders> TestParameter<C> of(final String name,
+        public static <C extends Jsonifiable & WithDittoHeaders> TestParameter<C> of(final String name,
                 final Adaptable adaptable, final C command) {
             return new TestParameter<>(name, adaptable, command);
         }

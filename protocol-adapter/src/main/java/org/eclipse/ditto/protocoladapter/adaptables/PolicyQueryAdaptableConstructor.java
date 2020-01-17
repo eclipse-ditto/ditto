@@ -16,10 +16,10 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 
-final class PolicyQueryAdaptableConstructor extends AbstractQueryAdaptableConstructor<PolicyQueryCommand> {
+final class PolicyQueryAdaptableConstructor extends AbstractQueryAdaptableConstructor<PolicyQueryCommand<?>> {
 
     @Override
-    public TopicPathBuilder getTopicPathBuilder(final PolicyQueryCommand command) {
+    public TopicPathBuilder getTopicPathBuilder(final PolicyQueryCommand<?> command) {
         return ProtocolFactory.newTopicPathBuilder(command.getEntityId()).policies();
     }
 

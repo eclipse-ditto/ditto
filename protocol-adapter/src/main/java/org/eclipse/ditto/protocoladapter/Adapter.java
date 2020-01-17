@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  *
  * @param <T> the type mapped by this {@code Adapter}.
  */
-public interface Adapter<T extends Jsonifiable> {
+public interface Adapter<T extends Jsonifiable<?>> {
 
     /**
      * Maps the given {@code adaptable} to it's corresponding {@code T}.

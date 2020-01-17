@@ -19,10 +19,10 @@ import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
 final class ThingQueryResponseAdaptableConstructor
-        extends AbstractQueryAdaptableConstructor<ThingQueryCommandResponse> {
+        extends AbstractQueryAdaptableConstructor<ThingQueryCommandResponse<?>> {
 
     @Override
-    public void validate(final ThingQueryCommandResponse commandResponse) {
+    public void validate(final ThingQueryCommandResponse<?> commandResponse) {
         final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
         if (!responseName.endsWith("response")) {
             throw UnknownCommandResponseException.newBuilder(responseName).build();
@@ -30,12 +30,12 @@ final class ThingQueryResponseAdaptableConstructor
     }
 
     @Override
-    public TopicPathBuilder getTopicPathBuilder(final ThingQueryCommandResponse command) {
+    public TopicPathBuilder getTopicPathBuilder(final ThingQueryCommandResponse<?> command) {
         return ProtocolFactory.newTopicPathBuilder(command.getThingEntityId()).things();
     }
 
     @Override
-    public void enhancePayloadBuilder(final ThingQueryCommandResponse commandResponse,
+    public void enhancePayloadBuilder(final ThingQueryCommandResponse<?> commandResponse,
             final PayloadBuilder payloadBuilder) {
         payloadBuilder.withStatus(commandResponse.getStatusCode());
         payloadBuilder.withValue(commandResponse.getEntity(commandResponse.getImplementedSchemaVersion()));

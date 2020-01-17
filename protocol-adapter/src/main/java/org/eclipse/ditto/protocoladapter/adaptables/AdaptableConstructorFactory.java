@@ -25,11 +25,11 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
 
 public class AdaptableConstructorFactory {
 
-    public static AdaptableConstructor<ThingModifyCommand> newThingModifyAdaptableConstructor() {
+    public static AdaptableConstructor<ThingModifyCommand<?>> newThingModifyAdaptableConstructor() {
         return new ThingModifyAdaptableConstructor();
     }
 
-    public static AdaptableConstructor<ThingModifyCommandResponse> newThingModifyResponseAdaptableConstructor() {
+    public static AdaptableConstructor<ThingModifyCommandResponse<?>> newThingModifyResponseAdaptableConstructor() {
         return new ThingModifyResponseAdaptableConstructor();
     }
 
@@ -37,7 +37,7 @@ public class AdaptableConstructorFactory {
         return new ThingQueryAdaptableConstructor();
     }
 
-    public static AdaptableConstructor<ThingQueryCommandResponse> newThingQueryResponseAdaptableConstructor() {
+    public static AdaptableConstructor<ThingQueryCommandResponse<?>> newThingQueryResponseAdaptableConstructor() {
         return new ThingQueryResponseAdaptableConstructor();
     }
 
@@ -52,19 +52,19 @@ public class AdaptableConstructorFactory {
     // -------------------------------------------------------------------------------------------------------------- //
 
 
-    public static AdaptableConstructor<PolicyModifyCommand> newPolicyModifyAdaptableConstructor() {
+    public static AdaptableConstructor<PolicyModifyCommand<?>> newPolicyModifyAdaptableConstructor() {
         return new PolicyModifyAdaptableConstructor();
     }
 
-    public static AdaptableConstructor<PolicyModifyCommandResponse> newPolicyModifyResponseAdaptableConstructor() {
+    public static AdaptableConstructor<PolicyModifyCommandResponse<?>> newPolicyModifyResponseAdaptableConstructor() {
         return new PolicyModifyResponseAdaptableConstructor();
     }
 
-    public static AdaptableConstructor<PolicyQueryCommand> newPolicyQueryAdaptableConstructor() {
+    public static AdaptableConstructor<PolicyQueryCommand<?>> newPolicyQueryAdaptableConstructor() {
         return new PolicyQueryAdaptableConstructor();
     }
 
-    public static AdaptableConstructor<PolicyQueryCommandResponse> newPolicyQueryResponseAdaptableConstructor() {
+    public static AdaptableConstructor<PolicyQueryCommandResponse<?>> newPolicyQueryResponseAdaptableConstructor() {
         return new PolicyQueryResponseAdaptableConstructor();
     }
 

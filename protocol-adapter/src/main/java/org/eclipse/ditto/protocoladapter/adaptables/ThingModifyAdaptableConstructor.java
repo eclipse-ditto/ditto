@@ -17,15 +17,15 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
-final class ThingModifyAdaptableConstructor extends AbstractModifyAdaptableConstructor<ThingModifyCommand> {
+final class ThingModifyAdaptableConstructor extends AbstractModifyAdaptableConstructor<ThingModifyCommand<?>> {
 
     @Override
-    public TopicPathBuilder getTopicPathBuilder(final ThingModifyCommand command) {
+    public TopicPathBuilder getTopicPathBuilder(final ThingModifyCommand<?> command) {
         return ProtocolFactory.newTopicPathBuilder(command.getEntityId()).things();
     }
 
     @Override
-    public void enhancePayloadBuilder(final ThingModifyCommand command, final PayloadBuilder payloadBuilder) {
+    public void enhancePayloadBuilder(final ThingModifyCommand<?> command, final PayloadBuilder payloadBuilder) {
         command.getEntity(command.getImplementedSchemaVersion()).ifPresent(payloadBuilder::withValue);
     }
 }

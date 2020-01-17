@@ -19,10 +19,10 @@ import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 
 final class PolicyQueryResponseAdaptableConstructor
-        extends AbstractQueryAdaptableConstructor<PolicyQueryCommandResponse> {
+        extends AbstractQueryAdaptableConstructor<PolicyQueryCommandResponse<?>> {
 
     @Override
-    public void validate(final PolicyQueryCommandResponse commandResponse) {
+    public void validate(final PolicyQueryCommandResponse<?> commandResponse) {
         final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
         if (!responseName.endsWith("response")) {
             throw UnknownCommandResponseException.newBuilder(responseName).build();
@@ -30,12 +30,12 @@ final class PolicyQueryResponseAdaptableConstructor
     }
 
     @Override
-    public TopicPathBuilder getTopicPathBuilder(final PolicyQueryCommandResponse command) {
+    public TopicPathBuilder getTopicPathBuilder(final PolicyQueryCommandResponse<?> command) {
         return ProtocolFactory.newTopicPathBuilder(command.getEntityId()).policies();
     }
 
     @Override
-    public void enhancePayloadBuilder(final PolicyQueryCommandResponse commandResponse,
+    public void enhancePayloadBuilder(final PolicyQueryCommandResponse<?> commandResponse,
             final PayloadBuilder payloadBuilder) {
         payloadBuilder.withStatus(commandResponse.getStatusCode());
         payloadBuilder.withValue(commandResponse.getEntity(commandResponse.getImplementedSchemaVersion()));

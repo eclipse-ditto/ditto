@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 final class ThingQueryAdaptableConstructor extends AbstractQueryAdaptableConstructor<ThingQueryCommand<?>> {
 
     @Override
-    public TopicPathBuilder getTopicPathBuilder(final ThingQueryCommand command) {
+    public TopicPathBuilder getTopicPathBuilder(final ThingQueryCommand<?> command) {
         return ProtocolFactory.newTopicPathBuilder(command.getEntityId()).things();
     }
 

@@ -21,6 +21,8 @@ import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.signals.base.WithId;
 
 /**
+ * TODO javadoc
+ *
  * @param <T> the type of the source signal
  */
 public interface AdaptableConstructor<T extends WithId> {

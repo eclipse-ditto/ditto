@@ -15,7 +15,7 @@ package org.eclipse.ditto.protocoladapter.adaptables;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.base.Signal;
 
-abstract class AbstractQueryAdaptableConstructor<T extends Signal> extends AbstractAdaptableConstructor<T> {
+abstract class AbstractQueryAdaptableConstructor<T extends Signal<?>> extends AbstractAdaptableConstructor<T> {
 
     private static final TopicPath.Action[] SUPPORTED_ACTIONS = {TopicPath.Action.RETRIEVE};
 

@@ -15,7 +15,7 @@ package org.eclipse.ditto.protocoladapter.adaptables;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.base.Signal;
 
-abstract class AbstractModifyAdaptableConstructor<T extends Signal> extends AbstractAdaptableConstructor<T> {
+abstract class AbstractModifyAdaptableConstructor<T extends Signal<?>> extends AbstractAdaptableConstructor<T> {
 
     private static final TopicPath.Action[] SUPPORTED_ACTIONS =
             {TopicPath.Action.CREATE, TopicPath.Action.MODIFY, TopicPath.Action.DELETE};

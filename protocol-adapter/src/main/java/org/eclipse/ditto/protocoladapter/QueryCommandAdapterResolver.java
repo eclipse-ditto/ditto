@@ -13,20 +13,23 @@
 package org.eclipse.ditto.protocoladapter;
 
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
  * Resolves the propert {@link Adapter} for the given {@link Adaptable}. Subclasses should extend the abstract class
- * {@link org.eclipse.ditto.protocoladapter.AbstractAdapterResolver} to provide the implementations of the {@link
+ * {@link AbstractAdapterResolver} to provide the implementations of the {@link
  * Adapter}s.
  */
-interface AdapterResolver {
+interface QueryCommandAdapterResolver<Q extends Signal<?>, R extends CommandResponse<?>> {
 
     /**
-     * Select the correct {@link Adapter} for the given {@link Adaptable}.
-     *
-     * @param adaptable the adaptable that is converted to a {@link Signal}
-     * @return the appropriate {@link Adaptable} capable of converting the {@link Adaptable} to a {@link Signal}
+     * @return the query command adapter
      */
-    Adapter<? extends Signal<?>> getAdapter(final Adaptable adaptable);
+    Adapter<Q> getQueryCommandAdapter();
+
+    /**
+     * @return the query command response adapter
+     */
+    Adapter<R> getQueryCommandResponseAdapter();
 
 }

@@ -30,7 +30,7 @@ import org.eclipse.ditto.signals.base.Signal;
  *
  * @param <T> the type of the signal
  */
-abstract class AbstractAdaptableConstructor<T extends Signal> implements AdaptableConstructor<T> {
+abstract class AbstractAdaptableConstructor<T extends Signal<?>> implements AdaptableConstructor<T> {
 
     @Override
     public Adaptable construct(final T command, final TopicPath.Channel channel) {

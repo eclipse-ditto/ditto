@@ -26,12 +26,12 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 /**
  * Adapter for mapping a {@link ErrorResponse} to and from an {@link Adaptable}.
  */
-abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> implements Adapter<T> {
+public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> implements Adapter<T> {
 
     private final HeaderTranslator headerTranslator;
     private final ErrorRegistry<DittoRuntimeException> errorRegistry;
 
-    AbstractErrorResponseAdapter(final HeaderTranslator headerTranslator,
+    protected AbstractErrorResponseAdapter(final HeaderTranslator headerTranslator,
             final ErrorRegistry<DittoRuntimeException> errorRegistry) {
         this.headerTranslator = headerTranslator;
         this.errorRegistry = errorRegistry;
@@ -90,9 +90,9 @@ abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> implemen
     }
 
     // TODO javadoc
-    abstract TopicPathBuilder getTopicPathBuilder(final T errorResponse);
+    public abstract TopicPathBuilder getTopicPathBuilder(final T errorResponse);
 
     // TODO javadoc
-    abstract T buildErrorResponse(final TopicPath topicPath, final DittoRuntimeException exception,
+    public abstract T buildErrorResponse(final TopicPath topicPath, final DittoRuntimeException exception,
             final DittoHeaders dittoHeaders);
 }

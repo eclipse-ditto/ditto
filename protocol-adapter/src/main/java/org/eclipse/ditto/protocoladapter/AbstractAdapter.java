@@ -17,23 +17,23 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
 
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
-import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
  */
-abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
+public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonObject, JsonField>>
+        implements Adapter<T> {
 
     private final Map<String, JsonifiableMapper<T>> mappingStrategies;
     private final HeaderTranslator headerTranslator;
@@ -140,7 +140,7 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      * @return headers containing extra information from topic path.
      */
     private static DittoHeaders mapTopicPathToHeaders(final TopicPath topicPath) {
-        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
+        final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder();
         if (topicPath.getNamespace() != null && topicPath.getId() != null) {
             // add thing ID for known topic-paths for error reporting.
             headersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(),
