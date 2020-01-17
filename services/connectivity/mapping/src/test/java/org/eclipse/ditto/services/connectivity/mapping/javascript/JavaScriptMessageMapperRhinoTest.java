@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -702,7 +703,6 @@ public final class JavaScriptMessageMapperRhinoTest {
                 .withText(modifyThingResponse.toJsonString())
                 .build();
 
-
         final long startTs = System.nanoTime();
         final List<Adaptable> adaptables = javaScriptRhinoMapperPlainWithStatusAndExtra.map(message);
         final Adaptable adaptable = adaptables.get(0);
@@ -710,19 +710,24 @@ public final class JavaScriptMessageMapperRhinoTest {
         System.out.println(
                 "testPlainJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
 
-        assertThat(adaptable.getTopicPath().getChannel()).isEqualTo(TopicPath.Channel.TWIN);
-        assertThat(adaptable.getTopicPath().getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
-        assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFY);
-        assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-        assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
-        assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
-        assertThat(adaptable.getPayload().getValue()).map(JsonValue::asString).contains(modifyThingResponse.toJsonString());
-        assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.NO_CONTENT);
-        assertThat(adaptable.getPayload().getExtra()).map(JsonValue::asObject).contains(JsonObject.newBuilder()
-                .set("attributes", JsonObject.newBuilder()
-                        .set("enriched", "field")
-                        .build())
-                .build());
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(adaptable.getTopicPath()).satisfies(topicPath -> {
+                softly.assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
+                softly.assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+                softly.assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
+                softly.assertThat(topicPath.getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
+                softly.assertThat(topicPath.getId()).isEqualTo(MAPPING_INCOMING_ID);
+            });
+            softly.assertThat(adaptable.getPayload()).satisfies(payload -> {
+                softly.assertThat(payload.getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
+                softly.assertThat(payload.getValue()).map(JsonValue::asString)
+                        .contains(modifyThingResponse.toJsonString());
+                softly.assertThat(payload.getStatus()).contains(HttpStatusCode.NO_CONTENT);
+                softly.assertThat(payload.getExtra()).contains(JsonObject.newBuilder()
+                        .set("attributes", JsonObject.newBuilder().set("enriched", "field").build())
+                        .build());
+            });
+        }
     }
 
     @Test
