@@ -367,7 +367,7 @@ public final class MessageMappingProcessorActorTest {
             commandHandlerProbe.expectMsg(MessageMappingProcessorActor.Request.GET_SIGNAL_ENRICHMENT_PROVIDER);
             commandHandlerProbe.reply((ConnectivitySignalEnrichmentProvider) connectionId ->
                     CachingSignalEnrichmentFacade.of(getRef(), Duration.ofSeconds(10L), cacheConfig,
-                            getSystem().getDispatcher()));
+                            getSystem().getDispatcher(), "test"));
 
             // THEN: Receive a RetrieveThing command from the facade.
             final RetrieveThing retrieveThing = expectMsgClass(RetrieveThing.class);

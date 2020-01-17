@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.utils;
 
+import java.util.concurrent.Executor;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacadeConfig;
@@ -20,7 +24,6 @@ import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.dispatch.MessageDispatcher;
 import akka.http.javadsl.model.HttpRequest;
 
 /**
@@ -29,9 +32,11 @@ import akka.http.javadsl.model.HttpRequest;
  */
 public final class GatewayCachingSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
 
+    @Nullable private static SignalEnrichmentFacade signalEnrichmentFacadeInstance = null;
+
     private final ActorRef commandHandler;
     private final CachingSignalEnrichmentFacadeConfig cachingSignalEnrichmentFacadeConfig;
-    private final MessageDispatcher cacheLoaderExecutor;
+    private final Executor cacheLoaderExecutor;
 
     /**
      * Instantiate this provider. Called by reflection.
@@ -52,10 +57,23 @@ public final class GatewayCachingSignalEnrichmentProvider implements GatewaySign
 
     @Override
     public SignalEnrichmentFacade createFacade(final HttpRequest request) {
-        return CachingSignalEnrichmentFacade.of(commandHandler,
-                cachingSignalEnrichmentFacadeConfig.getAskTimeout(),
-                cachingSignalEnrichmentFacadeConfig.getCacheConfig(),
+
+        return getSignalEnrichmentFacadeInstance(commandHandler, cachingSignalEnrichmentFacadeConfig,
                 cacheLoaderExecutor);
+    }
+
+    private static SignalEnrichmentFacade getSignalEnrichmentFacadeInstance(final ActorRef commandHandler,
+            final CachingSignalEnrichmentFacadeConfig cachingSignalEnrichmentFacadeConfig,
+            final Executor cacheLoaderExecutor) {
+
+        if (null == signalEnrichmentFacadeInstance) {
+            signalEnrichmentFacadeInstance = CachingSignalEnrichmentFacade.of(commandHandler,
+                    cachingSignalEnrichmentFacadeConfig.getAskTimeout(),
+                    cachingSignalEnrichmentFacadeConfig.getCacheConfig(),
+                    cacheLoaderExecutor,
+                    "gateway");
+        }
+        return signalEnrichmentFacadeInstance;
     }
 
 }

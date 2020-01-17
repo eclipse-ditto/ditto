@@ -45,6 +45,8 @@ import akka.actor.ActorRef;
 
 /**
  * Retrieve additional parts of things by asking an asynchronous cache.
+ * Instantiated once per cluster node so that it builds up a cache across all signal enrichments on a local cluster
+ * node.
  */
 public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFacade {
 
@@ -56,12 +58,13 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             final ActorRef commandHandler,
             final Duration askTimeout,
             final CacheConfig cacheConfig,
-            final Executor cacheLoaderExecutor) {
+            final Executor cacheLoaderExecutor,
+            final String cacheNamePrefix) {
 
         final AsyncCacheLoader<EntityIdWithResourceType, JsonObject> thingEnrichmentCacheLoader =
                 new ThingEnrichmentCacheLoader(askTimeout, commandHandler);
         extraFieldsCache = CacheFactory.createCache(thingEnrichmentCacheLoader, cacheConfig,
-                null, // explicitly disable metrics for this cache
+               cacheNamePrefix + "_signal_enrichment_cache",
                 cacheLoaderExecutor);
     }
 
@@ -72,12 +75,15 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
      * @param askTimeout How long to wait for the async cache loader when loading enriched things.
      * @param cacheConfig the cache configuration to use for the cache.
      * @param cacheLoaderExecutor the executor to use in order to asynchronously load cache entries.
+     * @param cacheNamePrefix the prefix to use as cacheName of the cache.
      * @return The facade.
      * @throws NullPointerException if any argument is null.
      */
     public static CachingSignalEnrichmentFacade of(final ActorRef commandHandler, final Duration askTimeout,
-            final CacheConfig cacheConfig, final Executor cacheLoaderExecutor) {
-        return new CachingSignalEnrichmentFacade(commandHandler, askTimeout, cacheConfig, cacheLoaderExecutor);
+            final CacheConfig cacheConfig, final Executor cacheLoaderExecutor, final String cacheNamePrefix) {
+
+        return new CachingSignalEnrichmentFacade(commandHandler, askTimeout, cacheConfig, cacheLoaderExecutor,
+                cacheNamePrefix);
     }
 
     @Override

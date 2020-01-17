@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.utils;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.DefaultSignalEnrichmentFacadeByRoundTripConfig;
@@ -26,6 +28,8 @@ import akka.http.javadsl.model.HttpRequest;
  * Provider for gateway-service of signal-enriching facades that make a round-trip for each query.
  */
 public final class GatewayByRoundTripSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
+
+    @Nullable private static SignalEnrichmentFacade signalEnrichmentFacadeInstance = null;
 
     private final ActorRef commandHandler;
     private final SignalEnrichmentFacadeByRoundTripConfig signalEnrichmentFacadeByRoundTripConfig;
@@ -48,7 +52,17 @@ public final class GatewayByRoundTripSignalEnrichmentProvider implements Gateway
 
     @Override
     public SignalEnrichmentFacade createFacade(final HttpRequest request) {
-        return ByRoundTripSignalEnrichmentFacade.of(commandHandler,
-                signalEnrichmentFacadeByRoundTripConfig.getAskTimeout());
+        
+        return getSignalEnrichmentFacadeInstance(commandHandler, signalEnrichmentFacadeByRoundTripConfig);
+    }
+
+    private static SignalEnrichmentFacade getSignalEnrichmentFacadeInstance(final ActorRef commandHandler,
+            final SignalEnrichmentFacadeByRoundTripConfig signalEnrichmentFacadeByRoundTripConfig) {
+
+        if (null == signalEnrichmentFacadeInstance) {
+            signalEnrichmentFacadeInstance = ByRoundTripSignalEnrichmentFacade.of(commandHandler,
+                    signalEnrichmentFacadeByRoundTripConfig.getAskTimeout());
+        }
+        return signalEnrichmentFacadeInstance;
     }
 }

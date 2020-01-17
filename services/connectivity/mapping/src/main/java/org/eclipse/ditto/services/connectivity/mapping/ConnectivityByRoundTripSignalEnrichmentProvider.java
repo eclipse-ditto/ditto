@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
@@ -26,6 +28,8 @@ import akka.actor.ActorSystem;
  * Provider for Connectivity-service of signal-enriching facades that make a round-trip for each query.
  */
 public final class ConnectivityByRoundTripSignalEnrichmentProvider implements ConnectivitySignalEnrichmentProvider {
+
+    @Nullable private static SignalEnrichmentFacade signalEnrichmentFacadeInstance = null;
 
     private final ActorRef commandHandler;
     private final SignalEnrichmentFacadeByRoundTripConfig signalEnrichmentFacadeByRoundTripConfig;
@@ -48,7 +52,17 @@ public final class ConnectivityByRoundTripSignalEnrichmentProvider implements Co
 
     @Override
     public SignalEnrichmentFacade createFacade(final ConnectionId connectionId) {
-        return ByRoundTripSignalEnrichmentFacade.of(commandHandler,
-                signalEnrichmentFacadeByRoundTripConfig.getAskTimeout());
+
+        return getSignalEnrichmentFacadeInstance(commandHandler, signalEnrichmentFacadeByRoundTripConfig);
+    }
+
+    private static SignalEnrichmentFacade getSignalEnrichmentFacadeInstance(final ActorRef commandHandler,
+            final SignalEnrichmentFacadeByRoundTripConfig signalEnrichmentFacadeByRoundTripConfig) {
+
+        if (null == signalEnrichmentFacadeInstance) {
+            signalEnrichmentFacadeInstance = ByRoundTripSignalEnrichmentFacade.of(commandHandler,
+                    signalEnrichmentFacadeByRoundTripConfig.getAskTimeout());
+        }
+        return signalEnrichmentFacadeInstance;
     }
 }

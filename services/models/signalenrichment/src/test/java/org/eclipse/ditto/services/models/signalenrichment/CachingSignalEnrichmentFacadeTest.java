@@ -55,7 +55,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
         final CacheConfig cacheConfig =
                 DefaultCacheConfig.of(ConfigFactory.parseString(CACHE_CONFIG), CACHE_CONFIG_KEY);
         return CachingSignalEnrichmentFacade.of(kit.getRef(), Duration.ofSeconds(10L), cacheConfig,
-                kit.getSystem().getDispatcher());
+                kit.getSystem().getDispatcher(), "test");
     }
 
     @Override

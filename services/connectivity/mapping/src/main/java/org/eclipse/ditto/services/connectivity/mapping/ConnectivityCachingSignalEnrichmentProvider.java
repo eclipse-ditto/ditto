@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import java.util.concurrent.Executor;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
@@ -29,6 +31,8 @@ import akka.actor.ActorSystem;
  * extra data to enrich.
  */
 public final class ConnectivityCachingSignalEnrichmentProvider implements ConnectivitySignalEnrichmentProvider {
+
+    @Nullable private static SignalEnrichmentFacade signalEnrichmentFacadeInstance = null;
 
     private final ActorRef commandHandler;
     private final CachingSignalEnrichmentFacadeConfig cachingSignalEnrichmentFacadeConfig;
@@ -53,10 +57,23 @@ public final class ConnectivityCachingSignalEnrichmentProvider implements Connec
 
     @Override
     public SignalEnrichmentFacade createFacade(final ConnectionId connectionId) {
-        return CachingSignalEnrichmentFacade.of(commandHandler,
-                cachingSignalEnrichmentFacadeConfig.getAskTimeout(),
-                cachingSignalEnrichmentFacadeConfig.getCacheConfig(),
+
+        return getSignalEnrichmentFacadeInstance(commandHandler, cachingSignalEnrichmentFacadeConfig,
                 cacheLoaderExecutor);
+    }
+
+    private static SignalEnrichmentFacade getSignalEnrichmentFacadeInstance(final ActorRef commandHandler,
+            final CachingSignalEnrichmentFacadeConfig cachingSignalEnrichmentFacadeConfig,
+            final Executor cacheLoaderExecutor) {
+
+        if (null == signalEnrichmentFacadeInstance) {
+            signalEnrichmentFacadeInstance = CachingSignalEnrichmentFacade.of(commandHandler,
+                    cachingSignalEnrichmentFacadeConfig.getAskTimeout(),
+                    cachingSignalEnrichmentFacadeConfig.getCacheConfig(),
+                    cacheLoaderExecutor,
+                    "connectivity");
+        }
+        return signalEnrichmentFacadeInstance;
     }
 
 }
