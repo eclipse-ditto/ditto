@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
@@ -39,6 +38,7 @@ import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.endpoints.utils.UriEncoding;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
@@ -67,7 +67,6 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.http.scaladsl.model.Uri;
 import akka.stream.javadsl.Source;
 
 /**
@@ -416,30 +415,26 @@ public final class ThingsRoute extends AbstractRoute {
             final ThingId thingId) {
 
         return rawPathPrefix(PathMatchers.slash()
-                .concat(PATH_ATTRIBUTES)
-                .concat(PathMatchers.slash())
-                .concat(PathMatchers.remainingPath())
-                .map(Uri.Path::toString)
-                .map(JsonPointer::of), jsonPointer ->
-                concat(
+                        .concat(PATH_ATTRIBUTES)
+                        .concat(PathMatchers.slash())
+                        .concat(PathMatchers.remaining())
+                        .map(path -> UriEncoding.decode(path, UriEncoding.EncodingType.RFC3986))
+                        .map(JsonFactory::newPointer),
+                jsonPointer -> concat(
                         get(() -> // GET /things/<thingId>/attributes/<attributePointerStr>
-                                handlePerRequest(ctx, RetrieveAttribute.of(thingId,
-                                        JsonFactory.newPointer(jsonPointer), dittoHeaders))
+                                handlePerRequest(ctx, RetrieveAttribute.of(thingId, jsonPointer, dittoHeaders))
                         ),
                         put(() -> // PUT /things/<thingId>/attributes/<attributePointerStr>
                                 extractDataBytes(payloadSource ->
-                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                attributeValueJson -> ModifyAttribute.of(thingId,
-                                                        JsonFactory.newPointer(jsonPointer),
-                                                        DittoJsonException.wrapJsonRuntimeException(
-                                                                () -> JsonFactory.readFrom(
-                                                                        attributeValueJson)),
+                                        handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
+                                                ModifyAttribute.of(thingId, jsonPointer,
+                                                        DittoJsonException.wrapJsonRuntimeException(() ->
+                                                                JsonFactory.readFrom(attributeValueJson)),
                                                         dittoHeaders))
                                 )
                         ),
                         delete(() -> // DELETE /things/<thingId>/attributes/<attributePointerStr>
-                                handlePerRequest(ctx,
-                                        DeleteAttribute.of(thingId, JsonFactory.newPointer(jsonPointer), dittoHeaders))
+                                handlePerRequest(ctx, DeleteAttribute.of(thingId, jsonPointer, dittoHeaders))
                         )
                 )
         );
