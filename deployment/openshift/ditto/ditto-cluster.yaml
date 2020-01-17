@@ -149,7 +149,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s -Dakka.cluster.distributed-data.durable.lmdb.dir=/var/tmp/ddata"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
@@ -388,7 +388,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gateway
-  namespace: digitaltwins
   labels:
     app: gateway
 spec:
