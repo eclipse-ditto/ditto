@@ -23,22 +23,18 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.Optional;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -167,13 +163,6 @@ public class MessageMappingProcessorTest {
 
     @Test
     public void testOutboundMessageEnriched() {
-        final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
-                .address("target/address")
-                .authorizationContext(AuthorizationContext.newInstance(AuthorizationSubject.newInstance("auth:sub")))
-                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                        .withExtraFields(JsonFieldSelector.newInstance("attributes/x,attributes/y"))
-                        .build())
-                .build();
         new TestKit(actorSystem) {{
             final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
             final JsonObject extra = JsonObject.newBuilder().set("x", 5).build();

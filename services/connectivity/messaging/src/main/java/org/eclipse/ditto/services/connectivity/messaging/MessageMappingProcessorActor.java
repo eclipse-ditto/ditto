@@ -212,7 +212,6 @@ public final class MessageMappingProcessorActor
 
     @Override
     protected OutboundSignalWithId mapMessage(final OutboundSignal message) {
-        // currently no need to further enhance the OutboundSignal with contextual information, so just use it:
         return new OutboundSignalWithId(message, message.getSource().getEntityId());
     }
 
@@ -248,7 +247,6 @@ public final class MessageMappingProcessorActor
 
                     final boolean shouldSendSignalWithoutExtraFields = !splitTargets.first().isEmpty() ||
                             outboundSignal.getSource().getDittoHeaders().getReplyTarget().isPresent();
-                    // TODO: if distinct payload per target is to be supported, duplicate this signal per target.
                     final Stream<Pair<OutboundSignalWithId, FilteredTopic>> outboundSignalWithoutExtraFields =
                             shouldSendSignalWithoutExtraFields
                                     ? Stream.of(Pair.create(outboundSignal.setTargets(splitTargets.first()), null))
@@ -268,7 +266,6 @@ public final class MessageMappingProcessorActor
 
     @Override
     protected Sink<OutboundSignalWithId, ?> processedMessageSink() {
-        // simply handle each OutboundSignals:
         return Sink.foreach(this::handleOutboundSignal);
     }
 
@@ -297,10 +294,13 @@ public final class MessageMappingProcessorActor
 
         return extraFuture.thenApply(outboundSignal::setExtra)
                 .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))
-                .exceptionally(error ->
-                        // recover from all errors to keep message-mapping-stream running despite enrichment failures
-                        Collections.singletonList(recoverFromEnrichmentError(outboundSignal, target, error))
-                );
+                .exceptionally(error -> {
+                    logger.withCorrelationId(outboundSignal.getSource())
+                            .warning("Could not retrieve extra data due to: {} {}",
+                            error.getClass().getSimpleName(), error.getMessage());
+                    // recover from all errors to keep message-mapping-stream running despite enrichment failures
+                    return Collections.singletonList(recoverFromEnrichmentError(outboundSignal, target, error));
+                });
     }
 
     private static Collection<OutboundSignalWithId> applyFilter(final OutboundSignalWithId outboundSignalWithExtra,

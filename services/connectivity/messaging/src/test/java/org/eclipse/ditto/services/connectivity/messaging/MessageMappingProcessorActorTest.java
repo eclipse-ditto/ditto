@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -55,6 +56,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -66,6 +68,9 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
+import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -78,6 +83,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -99,6 +106,7 @@ public final class MessageMappingProcessorActorTest {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String FAULTY_MAPPER = "faulty";
     private static final String ADD_HEADER_MAPPER = "header";
+    private static final String DUPLICATING_MAPPER = "duplicating";
 
     private static final HeaderMapping CORRELATION_ID_AND_SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
@@ -191,7 +199,7 @@ public final class MessageMappingProcessorActorTest {
             final ActorRef underTest = createMessageMappingProcessorActor(this);
 
             // WHEN: a signal is received with 2 targets, one with enrichment and one without
-            final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes/x,attributes/y");
+            final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes/x", "attributes/y");
             final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
             final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
                     .address("target/address")
@@ -203,15 +211,13 @@ public final class MessageMappingProcessorActorTest {
             final Target targetWithoutEnrichment = ConnectivityModelFactory.newTargetBuilder(targetWithEnrichment)
                     .topics(Topic.TWIN_EVENTS)
                     .build();
-            final Signal signal = TestConstants.thingModified(Collections.emptyList());
+            final Signal<?> signal = TestConstants.thingModified(Collections.emptyList());
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(signal,
                     Arrays.asList(targetWithEnrichment, targetWithoutEnrichment));
             underTest.tell(outboundSignal, getRef());
 
             // THEN: a mapped signal without enrichment arrives first
-            final PublishMappedMessage messageWithoutExtra = expectMsgClass(PublishMappedMessage.class);
-            assertThat(messageWithoutExtra.getOutboundSignal().getSource()).isEqualTo(signal);
-            assertThat(messageWithoutExtra.getOutboundSignal().getTargets()).containsExactly(targetWithoutEnrichment);
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithoutEnrichment);
 
             // THEN: MessageMappingProcessor loads a signal-enrichment-facade lazily
             commandHandlerProbe.expectMsg(MessageMappingProcessorActor.Request.GET_SIGNAL_ENRICHMENT_PROVIDER);
@@ -222,14 +228,200 @@ public final class MessageMappingProcessorActorTest {
             final RetrieveThing retrieveThing = expectMsgClass(RetrieveThing.class);
             assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
             assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
-            final JsonObject extra = JsonObject.newBuilder().set("attributes/x", 5).build();
+            final JsonObject extra = JsonObject.newBuilder().set("/attributes/x", 5).build();
             reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extra, retrieveThing.getDittoHeaders()));
 
             // THEN: Receive an outbound signal with extra fields.
-            final PublishMappedMessage messageWithExtra = expectMsgClass(PublishMappedMessage.class);
-            assertThat(messageWithExtra.getOutboundSignal().getSource()).isEqualTo(signal);
-            assertThat(messageWithExtra.getOutboundSignal().getTargets()).containsExactly(targetWithEnrichment);
-            assertThat(messageWithExtra.getOutboundSignal().getAdaptable().getPayload().getExtra()).contains(extra);
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithEnrichment,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra));
+        }};
+    }
+
+    @SafeVarargs
+    private static void expectPublishedMappedMessage(final PublishMappedMessage publishMappedMessage,
+            final Signal<?> signal,
+            final Target target,
+            final Consumer<OutboundSignal.Mapped>... otherAssertionConsumers) {
+        assertThat(publishMappedMessage.getOutboundSignal().getSource()).isEqualTo(signal);
+        assertThat(publishMappedMessage.getOutboundSignal().getTargets()).containsExactly(target);
+        Arrays.asList(otherAssertionConsumers)
+                .forEach(con -> con.accept(publishMappedMessage.getOutboundSignal()));
+    }
+
+    @Test
+    public void testSignalEnrichmentWithPayloadMappedTargets() {
+        // GIVEN: test probe actor started with configured values
+        // Reset test kit test actor ID to ensure name of test probe matches configuration
+        TestKit$.MODULE$.testActorId().set(0);
+        final String userGuardianPrefix = "/system/";
+        final String testProbeSuffix = "-1";
+        final String commandHandlerPath = TestConstants.MAPPING_CONFIG.getSignalEnrichmentProviderPath();
+        assertThat(commandHandlerPath).startsWith(userGuardianPrefix).endsWith(testProbeSuffix);
+        final String commandHandlerName = commandHandlerPath.substring(userGuardianPrefix.length(),
+                commandHandlerPath.length() - testProbeSuffix.length());
+        final TestProbe commandHandlerProbe = TestProbe.apply(commandHandlerName, actorSystem);
+        assertThat(commandHandlerProbe.ref().path().toStringWithoutAddress())
+                .isEqualTo(TestConstants.MAPPING_CONFIG.getSignalEnrichmentProviderPath());
+
+        final CacheConfig cacheConfig =
+                DefaultCacheConfig.of(ConfigFactory.parseString("my-cache {\n" +
+                        "  maximum-size = 10\n" +
+                        "  expire-after-write = 2m\n" +
+                        "  expire-after-access = 2m\n" +
+                        "}"), "my-cache");
+
+        new TestKit(actorSystem) {{
+            // GIVEN: MessageMappingProcessor started with a test probe as the configured enrichment provider
+            final ActorRef underTest = createMessageMappingProcessorActor(this);
+
+            // WHEN: a signal is received with 6 targets:
+            //  - 1 with enrichment w/o payload mapping
+            //  - 1 with enrichment with 1 payload mapping
+            //  - 1 with enrichment with 2 payload mappings
+            //  - 1 w/o enrichment w/o payload mapping
+            //  - 1 w/o enrichment with 1 payload mapping
+            //  - 1 w/o enrichment with 2 payload mappings
+            final JsonFieldSelector extraFields = JsonFactory.newFieldSelector("attributes/x,attributes/y",
+                    JsonParseOptions.newBuilder().withoutUrlDecoding().build());
+            final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
+            final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
+                    .address("target/address")
+                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .build())
+                    .build();
+            final Target targetWithEnrichmentAnd1PayloadMapper = ConnectivityModelFactory.newTargetBuilder()
+                    .address("target/address/mapped/1")
+                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .build())
+                    .payloadMapping(ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER))
+                    .build();
+            final Target targetWithEnrichmentAnd2PayloadMappers = ConnectivityModelFactory.newTargetBuilder()
+                    .address("target/address/mapped/2")
+                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .build())
+                    .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DUPLICATING_MAPPER, ADD_HEADER_MAPPER))
+                    .build();
+            final Target targetWithoutEnrichment = ConnectivityModelFactory.newTargetBuilder(targetWithEnrichment)
+                    .address("target/address/without/enrichment")
+                    .topics(Topic.TWIN_EVENTS)
+                    .build();
+            final Target targetWithoutEnrichmentAnd1PayloadMapper =
+                    ConnectivityModelFactory.newTargetBuilder(targetWithEnrichment)
+                            .address("target/address/without/enrichment/with/1/payloadmapper")
+                            .topics(Topic.TWIN_EVENTS)
+                            .payloadMapping(ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER))
+                            .build();
+            final Target targetWithoutEnrichmentAnd2PayloadMappers =
+                    ConnectivityModelFactory.newTargetBuilder(targetWithEnrichment)
+                            .address("target/address/without/enrichment/with/2/payloadmappers")
+                            .topics(Topic.TWIN_EVENTS)
+                            .payloadMapping(ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER, DUPLICATING_MAPPER))
+                            .build();
+            final Signal<?> signal = TestConstants.thingModified(Collections.emptyList())
+                    .setRevision(8L); // important to set revision to same value as cache lookup retrieves
+            final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(
+                    targetWithEnrichment,
+                    targetWithoutEnrichment,
+                    targetWithEnrichmentAnd1PayloadMapper,
+                    targetWithoutEnrichmentAnd1PayloadMapper,
+                    targetWithEnrichmentAnd2PayloadMappers,
+                    targetWithoutEnrichmentAnd2PayloadMappers)
+            );
+            underTest.tell(outboundSignal, getRef());
+
+            // THEN: a mapped signal without enrichment arrives first
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithoutEnrichment,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+
+            // THEN: a mapped signal without enrichment and applied 1 payload mapper arrives
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithoutEnrichmentAnd1PayloadMapper,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+
+            // THEN: a mapped signal without enrichment and applied 2 payload mappers arrives causing 3 messages
+            //  as 1 mapper duplicates the message
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+
+            // THEN: MessageMappingProcessor loads a signal-enrichment-facade lazily
+            commandHandlerProbe.expectMsg(MessageMappingProcessorActor.Request.GET_SIGNAL_ENRICHMENT_PROVIDER);
+            commandHandlerProbe.reply((ConnectivitySignalEnrichmentProvider) connectionId ->
+                    CachingSignalEnrichmentFacade.of(getRef(), Duration.ofSeconds(10L), cacheConfig,
+                            getSystem().getDispatcher()));
+
+            // THEN: Receive a RetrieveThing command from the facade.
+            final RetrieveThing retrieveThing = expectMsgClass(RetrieveThing.class);
+            final JsonFieldSelector extraFieldsWithAdditionalCachingSelectedOnes = JsonFactory.newFieldSelectorBuilder()
+                    .addPointers(extraFields)
+                    .addFieldDefinition(Thing.JsonFields.POLICY_ID) // additionally always select the policyId
+                    .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
+                    .build();
+            assertThat(retrieveThing.getSelectedFields()).contains(extraFieldsWithAdditionalCachingSelectedOnes);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
+            final JsonObject extra = JsonObject.newBuilder()
+                    .set("/attributes/x", 5)
+                    .build();
+            final JsonObject extraForCachingFacade = JsonObject.newBuilder()
+                    .set("_revision", 8)
+                    .set("policyId", TestConstants.Things.THING_ID.toString())
+                    .setAll(extra)
+                    .build();
+            reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extraForCachingFacade,
+                    retrieveThing.getDittoHeaders()));
+
+            // THEN: Receive an outbound signal with extra fields.
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithEnrichment,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+
+            // THEN: Receive an outbound signal with extra fields and with mapped payload.
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithEnrichmentAnd1PayloadMapper,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+
+            // THEN: a mapped signal with enrichment and applied 2 payload mappers arrives causing 3 messages
+            //  as 1 mapper duplicates the message
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
         }};
     }
 
@@ -536,6 +728,7 @@ public final class MessageMappingProcessorActorTest {
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
+        mappingDefinitions.put(DUPLICATING_MAPPER, DuplicatingMessageMapper.CONTEXT);
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
         return MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,

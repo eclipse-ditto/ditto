@@ -32,7 +32,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
-import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cacheloaders.ThingEnrichmentCacheLoader;
@@ -106,7 +105,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             final ThingEvent<?> thingEvent = (ThingEvent<?>) concernedSignal;
             return smartUpdateCachedObject(enhancedFieldSelector, idWithResourceType, thingEvent);
         }
-        return doCacheLookup(idWithResourceType);
+        return doCacheLookup(idWithResourceType, dittoHeaders);
     }
 
     private CompletableFuture<JsonObject> smartUpdateCachedObject(
@@ -114,7 +113,8 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             final EntityIdWithResourceType idWithResourceType,
             final ThingEvent<?> thingEvent) {
 
-        return doCacheLookup(idWithResourceType).thenCompose(cachedJsonObject -> {
+        final DittoHeaders dittoHeaders = thingEvent.getDittoHeaders();
+        return doCacheLookup(idWithResourceType, dittoHeaders).thenCompose(cachedJsonObject -> {
             final JsonObjectBuilder jsonObjectBuilder = cachedJsonObject.toBuilder();
             final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
             if (cachedRevision == thingEvent.getRevision()) {
@@ -129,7 +129,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
                 // the cache entry was already present, but we missed sth and need to invalidate the cache
                 // and to another cache lookup (via roundtrip)
                 extraFieldsCache.invalidate(idWithResourceType);
-                return doCacheLookup(idWithResourceType);
+                return doCacheLookup(idWithResourceType, dittoHeaders);
             }
         });
     }
@@ -144,7 +144,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             // invalidate the cache
             extraFieldsCache.invalidate(idWithResourceType);
             // and to another cache lookup (via roundtrip):
-            return doCacheLookup(idWithResourceType);
+            return doCacheLookup(idWithResourceType, thingEvent.getDittoHeaders());
         }
         final Optional<JsonValue> optEntity = thingEvent.getEntity();
         optEntity.ifPresent(entity -> jsonObjectBuilder
@@ -157,12 +157,11 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
         return CompletableFuture.completedFuture(enhancedJsonObject);
     }
 
-    private CompletableFuture<JsonObject> doCacheLookup(final EntityIdWithResourceType idWithResourceType) {
+    private CompletableFuture<JsonObject> doCacheLookup(final EntityIdWithResourceType idWithResourceType,
+            final DittoHeaders dittoHeaders) {
 
-        idWithResourceType.getCacheLookupContext().flatMap(CacheLookupContext::getDittoHeaders)
-                .ifPresent(LOGGER::setCorrelationId);
-        LOGGER.debug("Looking up cache entry for <{}>", idWithResourceType);
-        LOGGER.discardCorrelationId();
+        LOGGER.withCorrelationId(dittoHeaders)
+                .debug("Looking up cache entry for <{}>", idWithResourceType);
         return extraFieldsCache.get(idWithResourceType)
                 .thenApply(optionalJsonObject -> optionalJsonObject.orElse(JsonObject.empty()));
     }

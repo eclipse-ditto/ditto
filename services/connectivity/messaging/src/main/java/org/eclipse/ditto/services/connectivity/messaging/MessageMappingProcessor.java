@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -166,7 +167,7 @@ public final class MessageMappingProcessor {
             // group targets with exact same list of mappers together to avoid redundant mappings
             mappableSignals = outboundSignal.getTargets()
                     .stream()
-                    .collect(Collectors.groupingBy(Target::getPayloadMapping, Collectors.toList()))
+                    .collect(Collectors.groupingBy(Target::getPayloadMapping, LinkedHashMap::new, Collectors.toList()))
                     .entrySet()
                     .stream()
                     .map(e -> OutboundSignalFactory.newMappableOutboundSignal(outboundSignal.getSource(), e.getValue(),
