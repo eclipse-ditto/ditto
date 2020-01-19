@@ -102,9 +102,6 @@ import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
-import akka.routing.ConsistentHashingPool;
-import akka.routing.ConsistentHashingRouter;
-import akka.routing.DefaultResizer;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -1063,9 +1060,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> handleOutboundSignal(final OutboundSignal signal,
             final BaseClientData data) {
         enhanceLogUtil(signal.getSource());
-        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal,
-                signal.getSource().getEntityId().toString());
-        messageMappingProcessorActor.tell(msg, getSender());
+        messageMappingProcessorActor.tell(signal, getSender());
         return stay();
     }
 
@@ -1129,25 +1124,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                 connection.getProcessorPoolSize());
         final Props props = MessageMappingProcessorActor.props(conciergeForwarder, getSelf(), processor,
-                connectionId(), 1);
+                connectionId(), connection.getProcessorPoolSize());
 
-        /*
-         * By using a ConsistentHashingPool, messages sent to this actor which are wrapped into
-         * akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope may define which consistent hashing
-         * key to use.
-         * That way the message with the same hash are always sent to the same pooled instance of the
-         * MessageMappingProcessorActor.
-         *
-         * That is needed in order to guarantee message processing order. Otherwise two messages received for the
-         * same Thing may be processed out-of-order if the mapping of the first message takes longer than the
-         * mapping of the second message.
-         * This however will also limit throughput as the used hashing key is often connection source address based
-         * and does not yet "know" of the Thing ID.
-         */
-        return getContext().actorOf(new ConsistentHashingPool(1)
-                .withResizer(new DefaultResizer(1, connection.getProcessorPoolSize()))
-                .withDispatcher("message-mapping-processor-dispatcher")
-                .props(props), MessageMappingProcessorActor.ACTOR_NAME);
+        return getContext().actorOf(props, MessageMappingProcessorActor.ACTOR_NAME);
     }
 
     protected boolean isDryRun() {

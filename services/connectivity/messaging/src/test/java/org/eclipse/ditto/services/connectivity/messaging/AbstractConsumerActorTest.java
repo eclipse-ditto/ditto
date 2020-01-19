@@ -51,7 +51,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.routing.ConsistentHashingPool;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
@@ -233,11 +232,9 @@ public abstract class AbstractConsumerActorTest<M> {
                         connectivityConfig, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(conciergeForwarderActor, clientActor, mappingProcessor,
-                        CONNECTION_ID, 1);
+                        CONNECTION_ID, 43);
 
-        return actorSystem.actorOf(new ConsistentHashingPool(PROCESSOR_POOL_SIZE)
-                        .withDispatcher("message-mapping-processor-dispatcher")
-                        .props(messageMappingProcessorProps),
+        return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
     }
 

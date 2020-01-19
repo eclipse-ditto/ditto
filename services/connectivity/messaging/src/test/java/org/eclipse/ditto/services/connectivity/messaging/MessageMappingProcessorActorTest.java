@@ -720,7 +720,7 @@ public final class MessageMappingProcessorActorTest {
     private ActorRef createMessageMappingProcessorActor(final TestKit kit) {
         final Props props =
                 MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
-                        CONNECTION_ID, 10);
+                        CONNECTION_ID, 99);
         return actorSystem.actorOf(props);
     }
 

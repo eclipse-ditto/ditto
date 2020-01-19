@@ -54,10 +54,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.LoggingAdapter;
-import akka.routing.ConsistentHashingPool;
-import akka.routing.ConsistentHashingRouter;
-import akka.routing.DefaultResizer;
-import akka.routing.Resizer;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -188,10 +184,8 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     public void createWithDefaultMapperOnly() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = setupActor(getTestActor(), null);
-            final ExternalMessage in =
+            final ExternalMessage msg =
                     ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("").build();
-            final ConsistentHashingRouter.ConsistentHashableEnvelope msg =
-                    new ConsistentHashingRouter.ConsistentHashableEnvelope(in, "foo");
             underTest.tell(msg, null);
         }};
     }
@@ -201,14 +195,9 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION_ID, 1);
+                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION_ID, 17);
 
-        final Resizer resizer = new DefaultResizer(2, 2);
-
-        return actorSystem.actorOf(new ConsistentHashingPool(2)
-                        .withDispatcher("message-mapping-processor-dispatcher")
-                        .withResizer(resizer)
-                        .props(messageMappingProcessorProps),
+        return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
     }
 
