@@ -56,7 +56,6 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -69,6 +68,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -321,7 +321,8 @@ public final class MessageMappingProcessorActorTest {
                     ConnectivityModelFactory.newTargetBuilder(targetWithEnrichment)
                             .address("target/address/without/enrichment/with/2/payloadmappers")
                             .topics(Topic.TWIN_EVENTS)
-                            .payloadMapping(ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER, DUPLICATING_MAPPER))
+                            .payloadMapping(
+                                    ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER, DUPLICATING_MAPPER))
                             .build();
             final Signal<?> signal = TestConstants.thingModified(Collections.emptyList())
                     .setRevision(8L); // important to set revision to same value as cache lookup retrieves
@@ -365,33 +366,27 @@ public final class MessageMappingProcessorActorTest {
 
             // THEN: MessageMappingProcessor loads a signal-enrichment-facade lazily
             commandHandlerProbe.expectMsg(MessageMappingProcessorActor.Request.GET_SIGNAL_ENRICHMENT_PROVIDER);
-            commandHandlerProbe.reply((ConnectivitySignalEnrichmentProvider) connectionId ->
-                    CachingSignalEnrichmentFacade.of(getRef(), Duration.ofSeconds(10L), cacheConfig,
-                            getSystem().getDispatcher(), "test"));
+            commandHandlerProbe.reply((ConnectivitySignalEnrichmentProvider) connectionId -> {
+                final SignalEnrichmentFacade loaderFacade =
+                        ByRoundTripSignalEnrichmentFacade.of(getRef(), Duration.ofSeconds(10L));
+                return CachingSignalEnrichmentFacade.of(loaderFacade, cacheConfig, getSystem().getDispatcher(), "test");
+            });
 
             // THEN: Receive a RetrieveThing command from the facade.
             final RetrieveThing retrieveThing = expectMsgClass(RetrieveThing.class);
-            final JsonFieldSelector extraFieldsWithAdditionalCachingSelectedOnes = JsonFactory.newFieldSelectorBuilder()
-                    .addPointers(extraFields)
-                    .addFieldDefinition(Thing.JsonFields.POLICY_ID) // additionally always select the policyId
-                    .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
-                    .build();
-            assertThat(retrieveThing.getSelectedFields()).contains(extraFieldsWithAdditionalCachingSelectedOnes);
+            assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
             assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
             final JsonObject extra = JsonObject.newBuilder()
                     .set("/attributes/x", 5)
                     .build();
             final JsonObject extraForCachingFacade = JsonObject.newBuilder()
-                    .set("_revision", 8)
-                    .set("policyId", TestConstants.Things.THING_ID.toString())
                     .setAll(extra)
                     .build();
             reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extraForCachingFacade,
                     retrieveThing.getDittoHeaders()));
 
             // THEN: Receive an outbound signal with extra fields.
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
-                    targetWithEnrichment,
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithEnrichment,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
             );
