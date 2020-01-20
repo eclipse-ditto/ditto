@@ -22,7 +22,11 @@ import static org.mockito.Mockito.verify;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -130,7 +134,30 @@ public class MessageMappingProcessorTest {
 
     @Test
     public void testOutboundMessageMapped() {
+        testOutbound(1, 0, 0, targetWithMapping(DITTO_MAPPER));
+    }
+
+    @Test
+    public void testOutboundResponseMapped() {
         testOutbound(1, 0, 0);
+    }
+
+    @Test
+    public void testGroupingOfTargets() {
+        /*
+          expect 6 mappings:
+           - 3 targets with 1 mapper  (can be grouped together, mapping is done once)  -> 1 message (with 3 targets)
+           - 2 targets with 2 mappers (can be grouped together, mapping is done twice) -> 2 messages (with 2 targets)
+           - 1 target  with 3 mappers (no grouping, mapping is done three times)       -> 3 messages (with 1 target)
+         */
+        testOutbound(6, 0, 0,
+                targetWithMapping(DITTO_MAPPER),
+                targetWithMapping(DITTO_MAPPER),
+                targetWithMapping(DITTO_MAPPER),
+                targetWithMapping(DITTO_MAPPER, DITTO_MAPPER),
+                targetWithMapping(DITTO_MAPPER, DITTO_MAPPER),
+                targetWithMapping(DITTO_MAPPER, DITTO_MAPPER, DITTO_MAPPER)
+        );
     }
 
     @Test
@@ -140,7 +167,7 @@ public class MessageMappingProcessorTest {
 
     @Test
     public void testOutboundMessageDuplicated() {
-        testOutbound(2, 0, 0, targetWithMapping(DUPLICATING_MAPPER));
+        testOutbound(2, 0, 0, false, targetWithMapping(DUPLICATING_MAPPER));
     }
 
     @Test
@@ -150,7 +177,7 @@ public class MessageMappingProcessorTest {
 
     @Test
     public void testOutboundMessageDroppedFailedMappedDuplicated() {
-        testOutbound(2 /* duplicated */ + 1 /* mapped */, 1, 1,
+        testOutbound(2 /* duplicated */ + 1 /* mapped */, 1, 1, false,
                 targetWithMapping(DROPPING_MAPPER, FAILING_MAPPER, DITTO_MAPPER, DUPLICATING_MAPPER));
     }
 
@@ -233,15 +260,28 @@ public class MessageMappingProcessorTest {
 
     private static Target targetWithMapping(final String... mappings) {
         return ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                .address(UUID.randomUUID().toString())
                 .payloadMapping(ConnectivityModelFactory.newPayloadMapping(mappings))
                 .build();
     }
 
     private void testOutbound(final int mapped, final int dropped, final int failed, final Target... targets) {
+        testOutbound(mapped, dropped, failed, true, targets);
+    }
+
+    private void testOutbound(final int mapped, final int dropped, final int failed,
+            final boolean assertTargets, final Target... targets) {
         new TestKit(actorSystem) {{
-            final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
+
+            // expect one message per mapper per target
+            final List<Target> expectedTargets = Arrays.stream(targets)
+                    .flatMap(t -> Stream.generate(() -> t).limit(t.getPayloadMapping().getMappings().size()))
+                    .collect(Collectors.toList());
+
+            final ThingModifiedEvent<?> signal = TestConstants.thingModified(Collections.emptyList());
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(targets));
+            //noinspection unchecked
             final MappingResultHandler<OutboundSignal.Mapped> mock = Mockito.mock(MappingResultHandler.class);
             underTest.process(outboundSignal, mock);
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
@@ -252,6 +292,14 @@ public class MessageMappingProcessorTest {
             assertThat(captor.getAllValues()).allSatisfy(em ->
                     assertThat(em.getExternalMessage().getTextPayload())
                             .contains(TestConstants.signalToDittoProtocolJsonString(signal)));
+
+            if (assertTargets && mapped > 0) {
+                assertThat(captor.getAllValues()
+                        .stream()
+                        .flatMap(mapped -> mapped.getTargets().stream())
+                        .collect(Collectors.toList()))
+                        .containsExactlyInAnyOrderElementsOf(expectedTargets);
+            }
         }};
     }
 

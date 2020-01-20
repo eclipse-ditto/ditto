@@ -119,7 +119,7 @@ public final class PolicyTrieTest {
 
         final Iterator<JsonKey> jsonKeyIterator = PolicyTrie.getJsonKeyIterator(barResourceKey);
 
-        assertThat(jsonKeyIterator).containsExactlyElementsOf(expectedJsonKeys);
+        assertThat(jsonKeyIterator).toIterable().containsExactlyElementsOf(expectedJsonKeys);
     }
 
     /** */

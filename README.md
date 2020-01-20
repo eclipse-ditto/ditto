@@ -42,7 +42,7 @@ Or have a look at the ["Hello World"](https://eclipse.org/ditto/intro-hello-worl
 ### Build and start Ditto
 
 In order to build Ditto, you'll need
-* JDK 8 >= 1.8.0_92 (due to a bug in older versions of the JDK you'll get a compile error)
+* JDK 11 >= 11.0.5
 * Apache Maven 3.x installed
 
 In order to first build Ditto and then start the built Docker images

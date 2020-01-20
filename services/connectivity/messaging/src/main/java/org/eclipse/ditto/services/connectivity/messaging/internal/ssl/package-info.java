@@ -10,17 +10,5 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging;
-
-/**
- * The states an {@link BaseClientActor} can have.
- */
-public enum BaseClientState {
-    CONNECTING,
-    CONNECTED,
-    DISCONNECTING,
-    DISCONNECTED,
-    INITIALIZED,
-    UNKNOWN,
-    TESTING
-}
+@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
+package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
