@@ -326,10 +326,12 @@ public final class MessageMappingProcessorActor extends
         final ThingId thingId = ThingId.of(outboundSignal.getEntityId());
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .authorizationContext(target.getAuthorizationContext())
+                // schema version is always the latest for connectivity signal enrichment.
+                .schemaVersion(JsonSchemaVersion.LATEST)
                 .build();
         final CompletionStage<JsonObject> extraFuture =
                 signalEnrichmentFacade.thenCompose(facade ->
-                        facade.retrievePartialThing(thingId, extraFields, headers, outboundSignal.getSource()));
+                        facade.retrievePartialThing(thingId, extraFields, headers));
 
         return extraFuture.thenApply(outboundSignal::setExtra)
                 .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))

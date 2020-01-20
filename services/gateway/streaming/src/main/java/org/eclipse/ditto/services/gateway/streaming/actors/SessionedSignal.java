@@ -67,7 +67,7 @@ final class SessionedSignal implements SessionedJsonifiable {
                     .build());
             return future;
         } else if (extraFields.isPresent()) {
-            return facade.retrievePartialThing((ThingId) entityId, extraFields.get(), sessionHeaders, signal);
+            return facade.retrievePartialThing((ThingId) entityId, extraFields.get(), sessionHeaders);
         } else {
             return CompletableFuture.completedFuture(JsonObject.empty());
         }

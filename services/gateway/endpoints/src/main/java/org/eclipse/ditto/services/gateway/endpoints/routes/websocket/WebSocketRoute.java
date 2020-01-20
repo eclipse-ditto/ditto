@@ -268,8 +268,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request,
                             websocketConfig);
             final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
-                    createOutgoing(connectionCorrelationId, additionalHeaders, adapter, request, websocketConfig,
-                            signalEnrichmentFacade);
+                    createOutgoing(version, connectionCorrelationId, additionalHeaders, adapter, request,
+                            websocketConfig, signalEnrichmentFacade);
 
             return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing));
         });
@@ -449,7 +449,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         });
     }
 
-    private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(final String connectionCorrelationId,
+    private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(
+            final int version,
+            final String connectionCorrelationId,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request,
@@ -467,6 +469,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     webSocketSupervisor.supervise(publisherActor, connectionCorrelationId, additionalHeaders);
                     streamingActor.tell(
                             new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_WS,
+                                    JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST),
                                     optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null)),
                             ActorRef.noSender());
                     return NotUsed.getInstance();

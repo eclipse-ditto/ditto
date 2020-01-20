@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
@@ -66,6 +67,7 @@ import scala.concurrent.duration.FiniteDuration;
  */
 final class StreamingSessionActor extends AbstractActor {
 
+    private final JsonSchemaVersion jsonSchemaVersion;
     private final String connectionCorrelationId;
     private final String type;
     private final DittoProtocolSub dittoProtocolSub;
@@ -82,6 +84,7 @@ final class StreamingSessionActor extends AbstractActor {
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef eventAndResponsePublisher) {
 
+        jsonSchemaVersion = connect.getJsonSchemaVersion();
         this.connectionCorrelationId = connect.getConnectionCorrelationId();
         this.type = connect.getType();
         this.dittoProtocolSub = dittoProtocolSub;
@@ -232,6 +235,7 @@ final class StreamingSessionActor extends AbstractActor {
 
                     final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
                             .authorizationSubjects(authorizationSubjects)
+                            .schemaVersion(jsonSchemaVersion)
                             .build();
                     final SessionedJsonifiable sessionedJsonifiable =
                             SessionedJsonifiable.signal(signal, sessionHeaders, session);

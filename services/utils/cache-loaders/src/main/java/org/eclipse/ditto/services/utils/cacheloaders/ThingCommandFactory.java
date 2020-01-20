@@ -17,14 +17,12 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,36 +74,6 @@ final class ThingCommandFactory {
                                         .correlationId("sudoRetrieveThing-" + getCorrelationId(thingId))
                                         .build())
         );
-    }
-
-    /**
-     * Creates a command for retrieving a thing.
-     *
-     * @param thingId the thingId.
-     * @param cacheLookupContext the context to apply when doing the cache lookup.
-     * @return the created command.
-     */
-    static RetrieveThing retrieveThing(final EntityId thingId, @Nullable final CacheLookupContext cacheLookupContext) {
-        return retrieveThing(ThingId.of(thingId), cacheLookupContext);
-    }
-
-    /**
-     * Creates a command for retrieving a thing.
-     *
-     * @param thingId the thingId.
-     * @param cacheLookupContext the context to apply when doing the cache lookup.
-     * @return the created command.
-     */
-    static RetrieveThing retrieveThing(final ThingId thingId, @Nullable final CacheLookupContext cacheLookupContext) {
-        LOGGER.debug("Sending RetrieveThing for Thing with ID <{}>", thingId);
-        final Optional<CacheLookupContext> cacheLookupContextOptional = Optional.ofNullable(cacheLookupContext);
-        final DittoHeaders dittoHeaders =
-                cacheLookupContextOptional.flatMap(CacheLookupContext::getDittoHeaders).orElseGet(DittoHeaders::empty);
-        final JsonFieldSelector jsonFieldSelector =
-                cacheLookupContextOptional.flatMap(CacheLookupContext::getJsonFieldSelector).orElse(null);
-        return RetrieveThing.getBuilder(thingId, dittoHeaders)
-                .withSelectedFields(jsonFieldSelector)
-                .build();
     }
 
     private static String getCorrelationId(final ThingId thingId) {

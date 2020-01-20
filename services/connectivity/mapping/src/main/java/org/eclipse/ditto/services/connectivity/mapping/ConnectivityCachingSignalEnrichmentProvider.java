@@ -14,8 +14,6 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
@@ -32,9 +30,7 @@ import akka.actor.ActorSystem;
  */
 public final class ConnectivityCachingSignalEnrichmentProvider implements ConnectivitySignalEnrichmentProvider {
 
-    @Nullable private static SignalEnrichmentFacade signalEnrichmentFacadeInstance = null;
-
-    private final ActorRef commandHandler;
+    private final ConnectivitySignalEnrichmentProvider cacheLoaderProvider;
     private final CachingSignalEnrichmentFacadeConfig cachingSignalEnrichmentFacadeConfig;
     private final Executor cacheLoaderExecutor;
 
@@ -49,7 +45,8 @@ public final class ConnectivityCachingSignalEnrichmentProvider implements Connec
     public ConnectivityCachingSignalEnrichmentProvider(final ActorSystem actorSystem,
             final ActorRef commandHandler,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
-        this.commandHandler = commandHandler;
+        cacheLoaderProvider = new ConnectivityByRoundTripSignalEnrichmentProvider(actorSystem, commandHandler,
+                signalEnrichmentConfig);
         cachingSignalEnrichmentFacadeConfig =
                 DefaultCachingSignalEnrichmentFacadeConfig.of(signalEnrichmentConfig.getProviderConfig());
         cacheLoaderExecutor = actorSystem.dispatchers().lookup("signal-enrichment-cache-dispatcher");
@@ -57,23 +54,12 @@ public final class ConnectivityCachingSignalEnrichmentProvider implements Connec
 
     @Override
     public SignalEnrichmentFacade createFacade(final ConnectionId connectionId) {
-
-        return getSignalEnrichmentFacadeInstance(commandHandler, cachingSignalEnrichmentFacadeConfig,
-                cacheLoaderExecutor);
-    }
-
-    private static SignalEnrichmentFacade getSignalEnrichmentFacadeInstance(final ActorRef commandHandler,
-            final CachingSignalEnrichmentFacadeConfig cachingSignalEnrichmentFacadeConfig,
-            final Executor cacheLoaderExecutor) {
-
-        if (null == signalEnrichmentFacadeInstance) {
-            signalEnrichmentFacadeInstance = CachingSignalEnrichmentFacade.of(commandHandler,
-                    cachingSignalEnrichmentFacadeConfig.getAskTimeout(),
-                    cachingSignalEnrichmentFacadeConfig.getCacheConfig(),
-                    cacheLoaderExecutor,
-                    "connectivity");
-        }
-        return signalEnrichmentFacadeInstance;
+        return CachingSignalEnrichmentFacade.of(
+                cacheLoaderProvider.createFacade(connectionId),
+                cachingSignalEnrichmentFacadeConfig.getCacheConfig(),
+                cacheLoaderExecutor,
+                "connectivity"
+        );
     }
 
 }

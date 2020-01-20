@@ -221,10 +221,13 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                                 final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                                         .orElseThrow(() -> new IllegalStateException(
                                                 "Expect connectionCorrelationId: " + dittoHeaders));
+                                final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
+                                        .orElse(JsonSchemaVersion.LATEST);
                                 sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId,
                                         dittoHeaders);
                                 streamingActor.tell(
-                                        new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_SSE, null),
+                                        new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_SSE,
+                                                jsonSchemaVersion, null),
                                         null);
                                 final StartStreaming startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,

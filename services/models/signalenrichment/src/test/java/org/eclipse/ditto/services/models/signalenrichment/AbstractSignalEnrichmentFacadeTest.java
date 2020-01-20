@@ -59,7 +59,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
+                    underTest.retrievePartialThing(thingId, SELECTOR, headers);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
@@ -97,7 +97,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
+                    underTest.retrievePartialThing(thingId, SELECTOR, headers);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with ThingNotAccessibleException
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
@@ -121,7 +121,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
+                    underTest.retrievePartialThing(thingId, SELECTOR, headers);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with a random object
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
@@ -146,7 +146,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             final ThingId thingId = ThingId.dummy();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
+                    underTest.retrievePartialThing(thingId, SELECTOR, headers);
 
             // WHEN: Command handler does not respond
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);

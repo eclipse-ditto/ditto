@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 
 import akka.actor.ActorRef;
@@ -30,6 +31,7 @@ public final class Connect {
     private final ActorRef eventAndResponsePublisher;
     private final String connectionCorrelationId;
     private final String type;
+    private final JsonSchemaVersion jsonSchemaVersion;
     @Nullable private final Instant sessionExpirationTime;
 
     /**
@@ -38,12 +40,16 @@ public final class Connect {
      * @param eventAndResponsePublisher the ActorRef to the correlating {@link org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher}.
      * @param connectionCorrelationId the correlationId of the connection/session.
      * @param type the type of the "streaming" connection to establish.
+     * @param jsonSchemaVersion schema version of the request for the streaming session.
+     * @param sessionExpirationTime how long to keep the session alive when idling.
      */
     public Connect(final ActorRef eventAndResponsePublisher, final String connectionCorrelationId,
-            final String type, @Nullable final Instant sessionExpirationTime) {
+            final String type, final JsonSchemaVersion jsonSchemaVersion,
+            @Nullable final Instant sessionExpirationTime) {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         this.connectionCorrelationId = connectionCorrelationId;
         this.type = type;
+        this.jsonSchemaVersion = jsonSchemaVersion;
         this.sessionExpirationTime = sessionExpirationTime;
     }
 
@@ -61,6 +67,10 @@ public final class Connect {
 
     public Optional<Instant> getSessionExpirationTime() {
         return Optional.ofNullable(sessionExpirationTime);
+    }
+
+    public JsonSchemaVersion getJsonSchemaVersion() {
+        return jsonSchemaVersion;
     }
 
     @Override

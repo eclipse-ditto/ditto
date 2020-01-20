@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 
@@ -57,7 +56,7 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
 
     @Override
     public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
-            final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders, final Signal concernedSignal) {
+            final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders) {
 
         // remove channel header to prevent looping on live messages
         final DittoHeaders headersWithoutChannel = dittoHeaders.toBuilder().channel(null).build();
@@ -73,7 +72,10 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
     private static CompletionStage<JsonObject> extractPartialThing(final Object object) {
         if (object instanceof RetrieveThingResponse) {
             final RetrieveThingResponse retrieveThingResponse = (RetrieveThingResponse) object;
-            return CompletableFuture.completedFuture(retrieveThingResponse.getEntity(JsonSchemaVersion.LATEST));
+            final JsonSchemaVersion jsonSchemaVersion = retrieveThingResponse.getDittoHeaders()
+                    .getSchemaVersion()
+                    .orElse(JsonSchemaVersion.LATEST);
+            return CompletableFuture.completedFuture(retrieveThingResponse.getEntity(jsonSchemaVersion));
         } else {
             final CompletableFuture<JsonObject> failedFuture = new CompletableFuture<>();
             failedFuture.completeExceptionally(toThrowable(object));
