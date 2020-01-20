@@ -138,7 +138,9 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
 
     @Override
     public String toString() {
-        return String.format("%s%s%s[%s]", resourceType, DELIMITER, id, cacheLookupContext);
+        // cache context is not in the string representation
+        // because it is used for serialization and cache context is local
+        return String.format("%s%s%s", resourceType, DELIMITER, id);
     }
 
 }
