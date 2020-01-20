@@ -17,6 +17,7 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -97,24 +98,13 @@ final class ThingCommandFactory {
      */
     static RetrieveThing retrieveThing(final ThingId thingId, @Nullable final CacheLookupContext cacheLookupContext) {
         LOGGER.debug("Sending RetrieveThing for Thing with ID <{}>", thingId);
-        return RetrieveThing.getBuilder(thingId,
-                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders)
-                        .map(headers -> DittoHeaders.newBuilder()
-                                .authorizationContext(headers.getAuthorizationContext())
-                                .schemaVersion(headers.getImplementedSchemaVersion())
-                                .correlationId("retrieveThing-" +
-                                        headers.getCorrelationId().orElseGet(() -> getCorrelationId(thingId)))
-                                .build()
-                        )
-                        .orElseGet(() ->
-                                DittoHeaders.newBuilder()
-                                        .correlationId("retrieveThing-" + getCorrelationId(thingId))
-                                        .build())
-        )
-                .withSelectedFields(
-                        Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getJsonFieldSelector)
-                                .orElse(null)
-                )
+        final Optional<CacheLookupContext> cacheLookupContextOptional = Optional.ofNullable(cacheLookupContext);
+        final DittoHeaders dittoHeaders =
+                cacheLookupContextOptional.flatMap(CacheLookupContext::getDittoHeaders).orElseGet(DittoHeaders::empty);
+        final JsonFieldSelector jsonFieldSelector =
+                cacheLookupContextOptional.flatMap(CacheLookupContext::getJsonFieldSelector).orElse(null);
+        return RetrieveThing.getBuilder(thingId, dittoHeaders)
+                .withSelectedFields(jsonFieldSelector)
                 .build();
     }
 

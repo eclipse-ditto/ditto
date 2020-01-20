@@ -230,8 +230,11 @@ final class StreamingSessionActor extends AbstractActor {
                     logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
                             signal.getType(), type, signal);
 
+                    final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
+                            .authorizationSubjects(authorizationSubjects)
+                            .build();
                     final SessionedJsonifiable sessionedJsonifiable =
-                            SessionedJsonifiable.signal(signal, authorizationSubjects, session);
+                            SessionedJsonifiable.signal(signal, sessionHeaders, session);
                     eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
                 } else {
                     logger.debug("Signal does not match namespaces");

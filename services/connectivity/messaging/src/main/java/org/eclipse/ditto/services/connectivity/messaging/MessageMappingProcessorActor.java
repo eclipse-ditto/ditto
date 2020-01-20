@@ -324,9 +324,7 @@ public final class MessageMappingProcessorActor extends
         final Target target = outboundSignal.getTargets().get(0);
 
         final ThingId thingId = ThingId.of(outboundSignal.getEntityId());
-        final DittoHeaders headers = outboundSignal.getSource()
-                .getDittoHeaders()
-                .toBuilder()
+        final DittoHeaders headers = DittoHeaders.newBuilder()
                 .authorizationContext(target.getAuthorizationContext())
                 .build();
         final CompletionStage<JsonObject> extraFuture =

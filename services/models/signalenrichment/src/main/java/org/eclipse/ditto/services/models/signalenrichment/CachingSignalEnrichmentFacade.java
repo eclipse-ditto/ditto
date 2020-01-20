@@ -105,6 +105,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
                 .build();
         final EntityIdWithResourceType idWithResourceType = EntityIdWithResourceType.of(
                 ThingCommand.RESOURCE_TYPE, thingId,
+                // TODO: replace this by roundtrip facade because policy updates may be delayed indefinitely
                 CacheFactory.newCacheLookupContext(dittoHeaders, enhancedFieldSelector));
 
         if (concernedSignal instanceof ThingEvent && !(ProtocolAdapter.isLiveSignal(concernedSignal))) {

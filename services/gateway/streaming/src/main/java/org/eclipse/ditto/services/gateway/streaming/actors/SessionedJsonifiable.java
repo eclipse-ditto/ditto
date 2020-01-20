@@ -69,13 +69,13 @@ public interface SessionedJsonifiable {
      * Create a sessioned Jsonifiable for a signal.
      *
      * @param signal the signal.
-     * @param authorizationSubjects the authorization subjects of the streaming session.
+     * @param sessionHeaders headers of the request that created the streaming session.
      * @param session session information for the signal's streaming type.
      * @return the sessioned Jsonifiable.
      */
-    static SessionedJsonifiable signal(final Signal<?> signal, final List<String> authorizationSubjects,
+    static SessionedJsonifiable signal(final Signal<?> signal, final DittoHeaders sessionHeaders,
             final StreamingSession session) {
-        return new SessionedSignal(signal, authorizationSubjects, session);
+        return new SessionedSignal(signal, sessionHeaders, session);
     }
 
     /**

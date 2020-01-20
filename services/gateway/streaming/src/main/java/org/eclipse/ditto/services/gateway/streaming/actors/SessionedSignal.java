@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -38,13 +37,12 @@ import org.eclipse.ditto.signals.base.Signal;
 final class SessionedSignal implements SessionedJsonifiable {
 
     private final Signal<?> signal;
-    private final List<String> authorizationSubjects;
+    private final DittoHeaders sessionHeaders;
     private final StreamingSession session;
 
-    SessionedSignal(final Signal<?> signal, final List<String> authorizationSubjects,
-            final StreamingSession session) {
+    SessionedSignal(final Signal<?> signal, final DittoHeaders sessionHeaders, final StreamingSession session) {
         this.signal = signal;
-        this.authorizationSubjects = authorizationSubjects;
+        this.sessionHeaders = sessionHeaders;
         this.session = session;
     }
 
@@ -69,9 +67,7 @@ final class SessionedSignal implements SessionedJsonifiable {
                     .build());
             return future;
         } else if (extraFields.isPresent()) {
-            final DittoHeaders headers =
-                    signal.getDittoHeaders().toBuilder().authorizationSubjects(authorizationSubjects).build();
-            return facade.retrievePartialThing((ThingId) entityId, extraFields.get(), headers, signal);
+            return facade.retrievePartialThing((ThingId) entityId, extraFields.get(), sessionHeaders, signal);
         } else {
             return CompletableFuture.completedFuture(JsonObject.empty());
         }

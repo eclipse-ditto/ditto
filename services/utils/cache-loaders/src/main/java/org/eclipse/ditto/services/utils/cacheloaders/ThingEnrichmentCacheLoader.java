@@ -45,8 +45,7 @@ import akka.actor.ActorRef;
  * JSON result projection is done in user scope.
  */
 @Immutable
-public final class ThingEnrichmentCacheLoader
-        implements AsyncCacheLoader<EntityIdWithResourceType, JsonObject> {
+public final class ThingEnrichmentCacheLoader implements AsyncCacheLoader<EntityIdWithResourceType, JsonObject> {
 
     private final ActorAskCacheLoader<JsonObject, Command> delegate;
 
