@@ -54,7 +54,6 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
                 .collect(JsonCollectors.valuesToArray());
 
         try {
-            // TODO: this calculates only the size of the entries and ignores the PolicyID and surrounding JSON
             PolicyCommandSizeValidator.getInstance().ensureValidSize(
                     policyEntriesJsonArray::getUpperBoundForStringSize,
                     () -> policyEntriesJsonArray.toString().length(),

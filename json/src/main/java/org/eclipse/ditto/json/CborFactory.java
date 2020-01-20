@@ -58,7 +58,6 @@ public final class CborFactory {
     }
 
     public static JsonValue readFrom(ByteBuffer byteBuffer) {
-        // TODO: move / duplicate the bytebuffer array shortcut here?
         byteBuffer = byteBuffer.slice(); // ensure that buffers position is zero so that offsets determined by CBORParser map directly to positions in this buffer.
         try{
             final CBORParser parser = jacksonCborFactory.createParser(ByteBufferInputStream.of(byteBuffer));
@@ -153,7 +152,6 @@ public final class CborFactory {
         }
         final long endOffset = parser.getTokenLocation().getByteOffset();
         return ImmutableJsonObject.of(map, getBytesFromInputSource(startOffset, endOffset, byteBuffer));
-        // TODO: trust that implementations in this package don't use passed maps to avoid copying them in JsonObject?
     }
 
     private static JsonArray parseArray(CBORParser parser, ByteBuffer byteBuffer) throws IOException {
@@ -165,7 +163,6 @@ public final class CborFactory {
         }
         final long endOffset = parser.getTokenLocation().getByteOffset() ;
         return ImmutableJsonArray.of(list, getBytesFromInputSource(startOffset, endOffset, byteBuffer));
-        // TODO: trust that implementations in this package don't use passed lists to avoid copying them in JsonArray?
     }
 
     private static byte[] getBytesFromInputSource(final long startOffset, final long endOffset, final ByteBuffer byteBuffer){
