@@ -15,16 +15,23 @@ package org.eclipse.ditto.model.things;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
 
 /**
  * Factory that creates new {@code attributes} objects.
  */
 @Immutable
 public final class AttributesModelFactory {
+
+    private static final Pattern ATTRIBUTE_POINTER_PATTERN = Pattern.compile("^[^/].*[^/]$|[^/]");
 
     /*
      * Inhibit instantiation of this utility class.
@@ -62,6 +69,13 @@ public final class AttributesModelFactory {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
+            for (JsonKey key : jsonObject.getKeys()) {
+                final Matcher matcher =
+                        ATTRIBUTE_POINTER_PATTERN.matcher(key);
+                if (!matcher.matches()) {
+                    throw JsonPointerInvalidException.newBuilderForOuterSlashes(key).build();
+                }
+            }
             return ImmutableAttributes.of(jsonObject);
         } else {
             return nullAttributes();
