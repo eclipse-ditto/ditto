@@ -72,6 +72,7 @@ There are some pre-defined headers which have a special meaning for Ditto:
 | `response-required` | Configures for a sent **command** whether a **response** should be sent back. | `Boolean` - default: `true` |
 | `If-Match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
 | `If-None-Match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
+| `ditto-originator` | Contains the first authorization subject of the command that caused the sending of this message. Set by Ditto. | `String` |
 
 Custom headers of messages through the [live channel](protocol-twinlive.html) are delivered verbatim. When naming 
 custom headers, it is best to attach a prefix specific to your application that does not conflict with Ditto or
@@ -81,6 +82,7 @@ HTTP protocol, for example the prefix `ditto-*`.
   and will not be delivered.
   ```
   channel
+  ditto-*
   raw-request-url
   read-subjects
   subject

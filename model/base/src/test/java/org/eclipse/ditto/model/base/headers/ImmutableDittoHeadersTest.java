@@ -65,6 +65,7 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_ORIGIN = "knownOrigin";
     private static final String KNOWN_REPLY_TARGET = "5";
     private static final String KNOWN_MAPPER = "knownMapper";
+    private static final String KNOWN_ORIGINATOR = "known:originator";
 
     @Test
     public void assertImmutability() {
@@ -97,6 +98,7 @@ public final class ImmutableDittoHeadersTest {
                 .contentType(KNOWN_CONTENT_TYPE)
                 .replyTarget(Integer.valueOf(KNOWN_REPLY_TARGET))
                 .inboundPayloadMapper(KNOWN_MAPPER)
+                .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -216,6 +218,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE)
                 .set(DittoHeaderDefinition.REPLY_TARGET.getKey(), Integer.parseInt(KNOWN_REPLY_TARGET))
                 .set(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER)
+                .set(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -375,6 +378,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.ORIGIN.getKey(), KNOWN_ORIGIN);
         result.put(DittoHeaderDefinition.REPLY_TARGET.getKey(), KNOWN_REPLY_TARGET);
         result.put(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER);
+        result.put(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR);
 
         return result;
     }

@@ -26,7 +26,7 @@ public final class DittoHeaderDefinitionTest {
         for (DittoHeaderDefinition definition : DittoHeaderDefinition.values()) {
             if (!definition.shouldReadFromExternalHeaders() && !definition.shouldWriteToExternalHeaders()) {
                 assertThat(definition.getKey()).startsWith("ditto-");
-            } else {
+            } else if (definition.shouldReadFromExternalHeaders()) {
                 assertThat(definition.getKey()).doesNotStartWith("ditto-");
             }
         }
