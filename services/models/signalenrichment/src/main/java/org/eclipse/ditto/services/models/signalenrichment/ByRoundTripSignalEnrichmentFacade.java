@@ -18,11 +18,14 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 
@@ -56,7 +59,9 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
 
     @Override
     public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
-            final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders) {
+            final JsonFieldSelector jsonFieldSelector,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Signal<?> concernedSignal) {
 
         // remove channel header to prevent looping on live messages
         final DittoHeaders headersWithoutChannel = dittoHeaders.toBuilder().channel(null).build();

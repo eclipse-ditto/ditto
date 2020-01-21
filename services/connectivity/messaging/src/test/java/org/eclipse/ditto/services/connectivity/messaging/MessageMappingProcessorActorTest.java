@@ -266,8 +266,7 @@ public final class MessageMappingProcessorActorTest {
         final CacheConfig cacheConfig =
                 DefaultCacheConfig.of(ConfigFactory.parseString("my-cache {\n" +
                         "  maximum-size = 10\n" +
-                        "  expire-after-write = 2m\n" +
-                        "  expire-after-access = 2m\n" +
+                        "  expire-after-create = 2m\n" +
                         "}"), "my-cache");
 
         new TestKit(actorSystem) {{

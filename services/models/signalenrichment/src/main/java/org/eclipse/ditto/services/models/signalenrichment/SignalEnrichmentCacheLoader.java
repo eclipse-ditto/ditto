@@ -22,9 +22,14 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
+/**
+ * Loads partial things by using the passed in {@code SignalEnrichmentFacade}.
+ */
+@AllValuesAreNonnullByDefault
 final class SignalEnrichmentCacheLoader implements AsyncCacheLoader<EntityIdWithResourceType, JsonObject> {
 
     private final SignalEnrichmentFacade facade;
@@ -33,6 +38,12 @@ final class SignalEnrichmentCacheLoader implements AsyncCacheLoader<EntityIdWith
         this.facade = facade;
     }
 
+    /**
+     * Creates a new cache loader which uses the passed {@code facade} in order to retrieve partial things.
+     *
+     * @param facade the SignalEnrichmentFacade to delegate loading of partial things to.
+     * @return the instantiated cache loader.
+     */
     static SignalEnrichmentCacheLoader of(final SignalEnrichmentFacade facade) {
         return new SignalEnrichmentCacheLoader(facade);
     }
@@ -47,7 +58,8 @@ final class SignalEnrichmentCacheLoader implements AsyncCacheLoader<EntityIdWith
             final ThingId thingId = ThingId.of(key.getId());
             final JsonFieldSelector jsonFieldSelector = selectorOptional.get();
             final DittoHeaders dittoHeaders = context.getDittoHeaders().orElseGet(DittoHeaders::empty);
-            return facade.retrievePartialThing(thingId, jsonFieldSelector, dittoHeaders).toCompletableFuture();
+            return facade.retrievePartialThing(thingId, jsonFieldSelector, dittoHeaders, null)
+                    .toCompletableFuture();
         } else {
             // no context; nothing to load.
             return CompletableFuture.completedFuture(JsonObject.empty());

@@ -51,8 +51,8 @@ We provide 2 different facade implementations providing approach 2 and 3:
     * the overall size of this cache is configured, by default to `20,000` entries
 
 The configured default in Ditto is the `CachingSignalEnrichmentFacade` but may be configured via
-* connectivity service: environment variable `CONNECTION_ENRICHMENT_PROVIDER`
-* gateway service: environment variable `GATEWAY_STREAMING_SIGNAL_ENRICHMENT_PROVIDER`
+* connectivity service: environment variable `CONNECTIVITY_SIGNAL_ENRICHMENT_PROVIDER`
+* gateway service: environment variable `GATEWAY_SIGNAL_ENRICHMENT_PROVIDER`
 
 ## Consequences
 

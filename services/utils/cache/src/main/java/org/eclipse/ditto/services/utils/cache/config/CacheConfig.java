@@ -46,6 +46,14 @@ public interface CacheConfig {
     Duration getExpireAfterAccess();
 
     /**
+     * Returns the duration after which an created cache entry expires.<br/>
+     * Deactivated when {@link Duration#ZERO} is configured.
+     *
+     * @return the duration between creation and expiration.
+     */
+    Duration getExpireAfterCreate();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code CacheConfig}.
      */
     enum CacheConfigValue implements KnownConfigValue {
@@ -63,7 +71,12 @@ public interface CacheConfig {
         /**
          * Duration after which an accessed cache entry expires.
          */
-        EXPIRE_AFTER_ACCESS("expire-after-access", Duration.ofMinutes(15L));
+        EXPIRE_AFTER_ACCESS("expire-after-access", Duration.ofMinutes(15L)),
+
+        /**
+         * Duration after which an accessed cache entry expires.
+         */
+        EXPIRE_AFTER_CREATE("expire-after-create", Duration.ZERO);
 
         private final String path;
         private final Object defaultValue;

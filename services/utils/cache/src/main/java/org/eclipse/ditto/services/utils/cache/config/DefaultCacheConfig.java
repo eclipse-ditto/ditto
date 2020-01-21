@@ -30,11 +30,13 @@ public final class DefaultCacheConfig implements CacheConfig {
     private final long maximumSize;
     private final Duration expireAfterWrite;
     private final Duration expireAfterAccess;
+    private final Duration expireAfterCreate;
 
     private DefaultCacheConfig(final ConfigWithFallback configWithFallback) {
         maximumSize = configWithFallback.getLong(CacheConfigValue.MAXIMUM_SIZE.getConfigPath());
         expireAfterWrite = configWithFallback.getDuration(CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath());
         expireAfterAccess = configWithFallback.getDuration(CacheConfigValue.EXPIRE_AFTER_ACCESS.getConfigPath());
+        expireAfterCreate = configWithFallback.getDuration(CacheConfigValue.EXPIRE_AFTER_CREATE.getConfigPath());
     }
 
     /**
@@ -65,6 +67,11 @@ public final class DefaultCacheConfig implements CacheConfig {
     }
 
     @Override
+    public Duration getExpireAfterCreate() {
+        return expireAfterCreate;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -75,12 +82,13 @@ public final class DefaultCacheConfig implements CacheConfig {
         final DefaultCacheConfig that = (DefaultCacheConfig) o;
         return maximumSize == that.maximumSize &&
                 Objects.equals(expireAfterWrite, that.expireAfterWrite) &&
-                Objects.equals(expireAfterAccess, that.expireAfterAccess);
+                Objects.equals(expireAfterAccess, that.expireAfterAccess)&&
+                Objects.equals(expireAfterCreate, that.expireAfterCreate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maximumSize, expireAfterWrite, expireAfterAccess);
+        return Objects.hash(maximumSize, expireAfterWrite, expireAfterAccess, expireAfterCreate);
     }
 
     @Override
@@ -89,6 +97,7 @@ public final class DefaultCacheConfig implements CacheConfig {
                 "maximumSize=" + maximumSize +
                 ", expireAfterWrite=" + expireAfterWrite +
                 ", expireAfterAccess=" + expireAfterAccess +
+                ", expireAfterCreate=" + expireAfterCreate +
                 "]";
     }
 

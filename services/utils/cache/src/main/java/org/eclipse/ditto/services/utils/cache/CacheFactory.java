@@ -26,6 +26,7 @@ import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 
 /**
  * Creates a cache configured by a {@link org.eclipse.ditto.services.utils.cache.config.CacheConfig}.
@@ -129,8 +130,31 @@ public final class CacheFactory {
 
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
         caffeine.maximumSize(cacheConfig.getMaximumSize());
-        caffeine.expireAfterWrite(cacheConfig.getExpireAfterWrite());
-        caffeine.expireAfterAccess(cacheConfig.getExpireAfterAccess());
+
+        if (!cacheConfig.getExpireAfterCreate().isZero()) {
+            // special case "expire-after-create" needs the following API invocation of Caffeine:
+            caffeine.expireAfter(new Expiry<Object, Object>() {
+                @Override
+                public long expireAfterCreate(final Object key, final Object value, final long currentTime) {
+                    return cacheConfig.getExpireAfterCreate().toNanos();
+                }
+
+                @Override
+                public long expireAfterUpdate(final Object key, final Object value, final long currentTime,
+                        final long currentDuration) {
+                    return currentDuration;
+                }
+
+                @Override
+                public long expireAfterRead(final Object key, final Object value, final long currentTime,
+                        final long currentDuration) {
+                    return currentDuration;
+                }
+            });
+        } else {
+            caffeine.expireAfterWrite(cacheConfig.getExpireAfterWrite());
+            caffeine.expireAfterAccess(cacheConfig.getExpireAfterAccess());
+        }
         caffeine.executor(executor);
         return caffeine;
     }

@@ -331,7 +331,7 @@ public final class MessageMappingProcessorActor extends
                 .build();
         final CompletionStage<JsonObject> extraFuture =
                 signalEnrichmentFacade.thenCompose(facade ->
-                        facade.retrievePartialThing(thingId, extraFields, headers));
+                        facade.retrievePartialThing(thingId, extraFields, headers, outboundSignal.getSource()));
 
         return extraFuture.thenApply(outboundSignal::setExtra)
                 .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))
