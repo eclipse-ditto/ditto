@@ -226,7 +226,7 @@ final class EnforcementFlow {
                                 return EnforcedThingMapper.toWriteModel(thing, entry.getValueOrThrow(),
                                         entry.getRevision(),
                                         maxArraySize);
-                            } catch (JsonRuntimeException e) {
+                            } catch (final JsonRuntimeException e) {
                                 log.error(e.getMessage(), e);
                                 return ThingDeleteModel.of(metadata);
                             }
