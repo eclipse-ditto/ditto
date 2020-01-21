@@ -38,7 +38,6 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 
 /**
@@ -548,10 +547,14 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
             jsonObjectStringRepresentation = stringRepresentation;
             this.cborObjectRepresentation = cborObjectRepresentation;
             if (jsonObjectStringRepresentation == null && cborObjectRepresentation == null){
-                try {
-                    this.cborObjectRepresentation = createCborRepresentation(jsonFieldMap);
-                } catch (IOException e) {
-                    assert false; // this should not happen, so assertions will throw during testing
+                if (CborAvailabilityChecker.CBOR_AVAILABLE){
+                    try {
+                        this.cborObjectRepresentation = createCborRepresentation(jsonFieldMap);
+                    } catch (IOException e) {
+                        assert false; // this should not happen, so assertions will throw during testing
+                        jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
+                    }
+                } else {
                     jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
                 }
             }
@@ -729,7 +732,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         private byte[] createCborRepresentation(final Map<String, JsonField> jsonFieldMap) throws IOException {
             final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(guessSerializedSize());
 
-            try (final SerializationContext serializationContext = new SerializationContext(new CBORFactory(), byteArrayOutputStream)){
+            try (final SerializationContext serializationContext = new SerializationContext(byteArrayOutputStream)){
                 writeStartObjectWithLength(serializationContext, jsonFieldMap.size());
                 for (JsonField jsonField: jsonFieldMap.values()){
                     jsonField.writeKeyAndValue(serializationContext);

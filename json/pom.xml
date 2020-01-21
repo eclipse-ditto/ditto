@@ -40,10 +40,12 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
+            <scope>provided</scope> <!-- only needed in implementations, that actually use CBOR for serialization -->
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-cbor</artifactId>
+            <scope>provided</scope> <!-- only needed in implementations, that actually use CBOR for serialization -->
         </dependency>
 
         <!-- ### Provided ### -->

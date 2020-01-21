@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 
 /**
  * A class that bundles State and Configuration for serialization.
@@ -39,6 +40,10 @@ public class SerializationContext implements Closeable, Flushable {
     public SerializationContext(JsonFactory jacksonFactory, OutputStream outputStream) throws IOException {
         this.outputStream = new ControllableOutputStream(outputStream);
         jacksonGenerator = jacksonFactory.createGenerator(this.outputStream);
+    }
+
+    SerializationContext(OutputStream outputStream) throws IOException {
+        this(new CBORFactory(), outputStream);
     }
 
     /**

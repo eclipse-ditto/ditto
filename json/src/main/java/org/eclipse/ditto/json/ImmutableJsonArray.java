@@ -33,8 +33,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
-
 /**
  * Represents a JSON array, i.e. an ordered collection of JSON values.
  * <p>
@@ -278,10 +276,14 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
             jsonArrayStringRepresentation = stringRepresentation;
             this.cborArrayRepresentation = cborArrayRepresentation;
             if (jsonArrayStringRepresentation == null && cborArrayRepresentation == null){
-                try {
-                    this.cborArrayRepresentation = createCborRepresentation(jsonValueList);
-                } catch (IOException e) {
-                    assert false; // this should not happen, so assertions will throw during testing
+                if (CborAvailabilityChecker.CBOR_AVAILABLE){
+                    try {
+                        this.cborArrayRepresentation = createCborRepresentation(jsonValueList);
+                    } catch (IOException e) {
+                        assert false; // this should not happen, so assertions will throw during testing
+                        jsonArrayStringRepresentation = createStringRepresentation(jsonValueList);
+                    }
+                } else {
                     jsonArrayStringRepresentation = createStringRepresentation(jsonValueList);
                 }
             }
@@ -449,7 +451,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         byte[] createCborRepresentation(final List<JsonValue> list) throws IOException {
             final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(guessSerializedSize());
 
-            try (final SerializationContext serializationContext = new SerializationContext(new CBORFactory(), byteArrayOutputStream)){
+            try (final SerializationContext serializationContext = new SerializationContext(byteArrayOutputStream)){
                 serializationContext.getJacksonGenerator().writeStartArray(list.size());
                 for (final JsonValue jsonValue: list){
                     jsonValue.writeValue(serializationContext);

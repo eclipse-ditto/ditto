@@ -27,9 +27,16 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORParser;
 
+/**
+ * This class can not be loaded by Java unless jackson-core and jackson-dataformats-cbor are both available on the classpath.
+ * If they are not available, interacting with this class will cause NoClassDefFoundErrors
+ * Use CborAvailabilityChecker#isCborAvailable
+ */
 public final class CborFactory {
 
-    private static CBORFactory jacksonCborFactory = new CBORFactory();
+    private static final CBORFactory jacksonCborFactory = new CBORFactory();
+    // causes NoClassDefFoundErrors if loaded without Jackson support. See comment above class definition.
+
     /*
      * This utility class is not meant to be instantiated.
      */
