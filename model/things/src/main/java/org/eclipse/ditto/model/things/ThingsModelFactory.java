@@ -268,7 +268,7 @@ public final class ThingsModelFactory {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
-            for (CharSequence key :jsonObject.getKeys()
+            for (final CharSequence key :jsonObject.getKeys()
             ) {
                 final Matcher propertyMatcher =
                         FEATURE_PROPERTY_PATTERN.matcher(ConditionChecker.checkNotNull(key, "Property of the Feature"));

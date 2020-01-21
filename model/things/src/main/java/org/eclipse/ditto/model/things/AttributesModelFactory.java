@@ -69,7 +69,7 @@ public final class AttributesModelFactory {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
-            for (JsonKey key : jsonObject.getKeys()) {
+            for (final JsonKey key : jsonObject.getKeys()) {
                 final Matcher matcher =
                         ATTRIBUTE_POINTER_PATTERN.matcher(key);
                 if (!matcher.matches()) {

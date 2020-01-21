@@ -34,7 +34,7 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
             "Consecutive slashes in JSON pointers are not supported.";
 
     private static final String OUTER_SLASHES_DESCRIPTION =
-            "Leading or ending slashes in JSON pointers are not supported.";
+            "Leading or trailing slashes in JSON pointers are not supported.";
 
     private static final long serialVersionUID = -6773700329225961931L;
 
@@ -70,7 +70,7 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
     }
 
     /**
-     * Returns a new builder already containing a generic message that consecutive slashes are not supported for json
+     * Returns a new builder already containing a generic message that leading or trailing slashes are not supported for json
      * pointers.
      *
      * @param jsonPointer The json pointer containing the consecutive slashes.
