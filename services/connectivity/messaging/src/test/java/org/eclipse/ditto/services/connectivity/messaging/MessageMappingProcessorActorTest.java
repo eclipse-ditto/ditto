@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -70,6 +71,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -90,7 +92,6 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.testkit.TestKit$;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -105,9 +106,9 @@ public final class MessageMappingProcessorActorTest {
     private static final ConnectionId CONNECTION_ID = ConnectionId.of("testConnection");
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
-    private static final String FAULTY_MAPPER = "faulty";
-    private static final String ADD_HEADER_MAPPER = "header";
-    private static final String DUPLICATING_MAPPER = "duplicating";
+    private static final String FAULTY_MAPPER = FaultyMessageMapper.ALIAS;
+    private static final String ADD_HEADER_MAPPER = AddHeaderMessageMapper.ALIAS;
+    private static final String DUPLICATING_MAPPER = DuplicatingMessageMapper.ALIAS;
 
     private static final HeaderMapping CORRELATION_ID_AND_SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
@@ -229,6 +230,7 @@ public final class MessageMappingProcessorActorTest {
             final RetrieveThing retrieveThing = expectMsgClass(RetrieveThing.class);
             assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
             assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
+
             final JsonObject extra = JsonObject.newBuilder().set("/attributes/x", 5).build();
             reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extra, retrieveThing.getDittoHeaders()));
 
@@ -243,8 +245,13 @@ public final class MessageMappingProcessorActorTest {
             final Signal<?> signal,
             final Target target,
             final Consumer<OutboundSignal.Mapped>... otherAssertionConsumers) {
-        assertThat(publishMappedMessage.getOutboundSignal().getSource()).isEqualTo(signal);
-        assertThat(publishMappedMessage.getOutboundSignal().getTargets()).containsExactly(target);
+
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(publishMappedMessage.getOutboundSignal()).satisfies(outboundSignal -> {
+                softly.assertThat(outboundSignal.getSource()).as("source is expected").isEqualTo(signal);
+                softly.assertThat(outboundSignal.getTargets()).as("targets are expected").containsExactly(target);
+            });
+        }
         Arrays.asList(otherAssertionConsumers)
                 .forEach(con -> con.accept(publishMappedMessage.getOutboundSignal()));
     }
@@ -733,7 +740,7 @@ public final class MessageMappingProcessorActorTest {
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
         return MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
                 TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
+                protocolAdapterProvider, Mockito.mock(DittoDiagnosticLoggingAdapter.class));
     }
 
     private static ModifyAttribute createModifyAttributeCommand() {

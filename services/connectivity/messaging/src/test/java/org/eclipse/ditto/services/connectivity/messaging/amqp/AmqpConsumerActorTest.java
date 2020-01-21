@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
@@ -52,7 +53,6 @@ import org.mockito.Mockito;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.event.LoggingAdapter;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -60,7 +60,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests the AMQP {@link AmqpConsumerActor}.
  */
-public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage> {
+public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage> {
 
     private static final ConnectionId CONNECTION_ID = ConnectionId.of("connection");
 
@@ -190,8 +190,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         }};
     }
 
-    private ActorRef setupActor(final ActorRef testRef,
-            final MappingContext mappingContext) {
+    private ActorRef setupActor(final ActorRef testRef, final MappingContext mappingContext) {
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
@@ -250,13 +249,13 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     }
 
     private static MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        final HashMap<String, MappingContext> mappings = new HashMap<>();
+        final Map<String, MappingContext> mappings = new HashMap<>();
         if (mappingContext != null) {
             mappings.put("test", mappingContext);
         }
         return MessageMappingProcessor.of(CONNECTION_ID, ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
                 actorSystem, TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
+                protocolAdapterProvider, Mockito.mock(DittoDiagnosticLoggingAdapter.class));
     }
 
 }

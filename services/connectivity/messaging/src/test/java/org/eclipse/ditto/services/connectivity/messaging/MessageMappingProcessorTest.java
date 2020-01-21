@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -58,18 +59,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import akka.actor.ActorSystem;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link MessageMappingProcessor}.
  */
-public class MessageMappingProcessorTest {
-
-    private static ActorSystem actorSystem;
-    private static ConnectivityConfig connectivityConfig;
-    private static ProtocolAdapterProvider protocolAdapterProvider;
-    private static DiagnosticLoggingAdapter log;
+public final class MessageMappingProcessorTest {
 
     private MessageMappingProcessor underTest;
 
@@ -80,11 +75,16 @@ public class MessageMappingProcessorTest {
     private static final String FAILING_MAPPER = "faulty";
     private static final String DUPLICATING_MAPPER = "duplicating";
 
+    private static ActorSystem actorSystem;
+    private static ConnectivityConfig connectivityConfig;
+    private static ProtocolAdapterProvider protocolAdapterProvider;
+    private static DittoDiagnosticLoggingAdapter logger;
+
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
 
-        log = Mockito.mock(DiagnosticLoggingAdapter.class);
+        logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
 
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
@@ -130,7 +130,7 @@ public class MessageMappingProcessorTest {
 
         underTest =
                 MessageMappingProcessor.of(ConnectionId.of("theConnection"), payloadMappingDefinition, actorSystem,
-                        connectivityConfig, protocolAdapterProvider, log);
+                        connectivityConfig, protocolAdapterProvider, logger);
     }
 
     @Test
