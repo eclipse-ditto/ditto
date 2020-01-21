@@ -37,14 +37,13 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
  * custom mapping was applied.
  */
 @PayloadMapper(alias = AddHeaderMessageMapper.ALIAS)
-public class AddHeaderMessageMapper implements MessageMapper {
+public final class AddHeaderMessageMapper implements MessageMapper {
 
     static final String ALIAS = "header";
     /**
      * The context representing this mapper
      */
-    static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(ALIAS, Collections.emptyMap()
-    );
+    static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(ALIAS, Collections.emptyMap());
 
     static final Map.Entry<String, String> INBOUND_HEADER =
             new AbstractMap.SimpleImmutableEntry<>("inbound", "mapping");
@@ -84,4 +83,5 @@ public class AddHeaderMessageMapper implements MessageMapper {
                 .map(em -> em.withHeader(OUTBOUND_HEADER.getKey(), OUTBOUND_HEADER.getValue()))
                 .collect(Collectors.toList());
     }
+
 }

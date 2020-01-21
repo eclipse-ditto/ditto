@@ -26,7 +26,7 @@ import akka.stream.javadsl.Source;
  * calls the {@link MappingResultHandler#onException(Exception)} method for exceptions thrown in these handlers and
  * increases the according counters for mapped, dropped failed messages.
  */
-public class OutboundMappingResultHandler extends
+final class OutboundMappingResultHandler extends
         AbstractMappingResultHandler<OutboundSignal.Mapped, Source<OutboundSignalWithId, ?>> {
 
     private OutboundMappingResultHandler(final Builder builder) {
