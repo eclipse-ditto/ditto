@@ -6,10 +6,10 @@ permalink: basic-signals.html
 ---
 
 Ditto has a concept called `Signal` which combines common functionality of
-* [Commands,](basic-signals-command.html)
-* [Command Responses,](basic-signals-commandresponse.html)
+* [Commands](basic-signals-command.html),
+* [Command Responses](basic-signals-commandresponse.html),
 * [Error Responses](basic-signals-errorresponse.html) and
-* [Events.](basic-signals-event.html)
+* [Events](basic-signals-event.html).
 
 Such common functionality is for example that all those have header fields in which they can be for example correlated
 to each other. 

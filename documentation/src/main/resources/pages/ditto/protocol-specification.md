@@ -100,3 +100,8 @@ The JSON value to apply at the specified path.
 ## Status
 
 Some Protocol messages (for example **responses**) contain a HTTP status code which is stored in this field.
+
+## Extra
+
+When [signal enrichment](basic-enrichment.html) was used in order to ask for `extraFields` to be included, the
+Ditto Protocol message contains a field `extra` containing a JSON object with the selected extra fields.
