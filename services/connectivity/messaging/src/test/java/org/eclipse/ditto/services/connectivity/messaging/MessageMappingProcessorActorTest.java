@@ -56,6 +56,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -373,12 +374,17 @@ public final class MessageMappingProcessorActorTest {
 
             // THEN: Receive a RetrieveThing command from the facade.
             final RetrieveThing retrieveThing = expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
+            final JsonFieldSelector extraFieldsWithAdditionalCachingSelectedOnes = JsonFactory.newFieldSelectorBuilder()
+                    .addPointers(extraFields)
+                    .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
+                    .build();
+            assertThat(retrieveThing.getSelectedFields()).contains(extraFieldsWithAdditionalCachingSelectedOnes);
             assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
             final JsonObject extra = JsonObject.newBuilder()
                     .set("/attributes/x", 5)
                     .build();
             final JsonObject extraForCachingFacade = JsonObject.newBuilder()
+                    .set("_revision", 8)
                     .setAll(extra)
                     .build();
             reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extraForCachingFacade,
