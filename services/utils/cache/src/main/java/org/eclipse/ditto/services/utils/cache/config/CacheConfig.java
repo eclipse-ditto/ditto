@@ -46,7 +46,7 @@ public interface CacheConfig {
     Duration getExpireAfterAccess();
 
     /**
-     * Returns the duration after which an created cache entry expires.<br/>
+     * Returns the duration after which an created cache entry expires.
      * Deactivated when {@link Duration#ZERO} is configured.
      *
      * @return the duration between creation and expiration.

@@ -52,9 +52,9 @@ public final class CacheFactory {
     /**
      * Create a new context for cache lookups with the provided {@code dittoHeaders} and {@code jsonFieldSelector}.
      *
-     *@param dittoHeaders the DittoHeaders to use in the cache lookup context.
-     *      * @param jsonFieldSelector the JsonFieldSelector to use in the cache lookup context.
-     *      * @return the created context.
+     * @param dittoHeaders the DittoHeaders to use in the cache lookup context.
+     * @param jsonFieldSelector the JsonFieldSelector to use in the cache lookup context.
+     * @return the created context.
      */
     public static CacheLookupContext newCacheLookupContext(
             @Nullable final DittoHeaders dittoHeaders, @Nullable  final JsonFieldSelector jsonFieldSelector) {
