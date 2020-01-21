@@ -124,7 +124,7 @@ final class StreamingSessionActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(CommandResponse.class, StreamingSessionActor::isTwinSignal, response -> {
+                .match(CommandResponse.class, response -> {
                     logger.withCorrelationId(response)
                             .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
                                     " about it: {}", type, response);
@@ -313,12 +313,6 @@ final class StreamingSessionActor extends AbstractActor {
             streamingType = StreamingType.LIVE_COMMANDS;
         }
         return streamingType;
-    }
-
-    private static boolean isTwinSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel()
-                .map(TopicPath.Channel.TWIN.getName()::equals)
-                .orElse(true);
     }
 
     @Nullable
