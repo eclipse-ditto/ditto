@@ -17,7 +17,6 @@ import static org.eclipse.ditto.model.connectivity.MetricType.MAPPED;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -94,12 +93,11 @@ import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
@@ -136,7 +134,7 @@ public final class MessageMappingProcessorActor
     private final ConnectionMonitor responseDispatchedMonitor;
     private final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitor responseMappedMonitor;
-    private final CompletionStage<SignalEnrichmentFacade> signalEnrichmentFacade;
+    private final SignalEnrichmentFacade signalEnrichmentFacade;
     private final int processorPoolSize;
     private final SourceQueue<ExternalMessage> inboundSourceQueue;
 
@@ -166,9 +164,7 @@ public final class MessageMappingProcessorActor
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connectionId);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connectionId);
-        signalEnrichmentFacade = getSignalEnrichmentFacade(
-                getContext().getSystem().actorSelection(mappingConfig.getSignalEnrichmentProviderPath()),
-                connectionId, getContext().getParent(), getSelf());
+        signalEnrichmentFacade = getSignalEnrichmentFacade(getContext().getSystem(), connectionId);
         this.processorPoolSize = processorPoolSize;
         inboundSourceQueue = materializeInboundStream(processorPoolSize);
     }
@@ -324,8 +320,7 @@ public final class MessageMappingProcessorActor
                 .schemaVersion(JsonSchemaVersion.LATEST)
                 .build();
         final CompletionStage<JsonObject> extraFuture =
-                signalEnrichmentFacade.thenCompose(facade ->
-                        facade.retrievePartialThing(thingId, extraFields, headers, outboundSignal.getSource()));
+                signalEnrichmentFacade.retrievePartialThing(thingId, extraFields, headers, outboundSignal.getSource());
 
         return extraFuture.thenApply(outboundSignal::setExtra)
                 .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))
@@ -527,31 +522,8 @@ public final class MessageMappingProcessorActor
                 .orElseGet(() -> ThingErrorResponse.of(exception, truncatedHeaders));
     }
 
-    private static CompletionStage<SignalEnrichmentFacade> getSignalEnrichmentFacade(
-            final ActorSelection signalEnrichmentProvider,
-            final ConnectionId connectionId,
-            final ActorRef parentClientActor,
-            final ActorRef self) {
-
-        final CompletionStage<SignalEnrichmentFacade> future =
-                Patterns.ask(signalEnrichmentProvider, Request.GET_SIGNAL_ENRICHMENT_PROVIDER, Duration.ofSeconds(10L))
-                        .thenApply(reply -> {
-                            // fail future with ClassCastException if the reply does not have the expected type
-                            final ConnectivitySignalEnrichmentProvider provider =
-                                    (ConnectivitySignalEnrichmentProvider) reply;
-                            return provider.createFacade(connectionId);
-                        });
-
-        // Handle errors in a separate stage so that the returned future stayed a failed future on failure.
-        future.exceptionally(e -> {
-            // If this future fails, then the service has a (possibly transient) problem.
-            // Request parent to restart connection.
-            final String description = "";
-            parentClientActor.tell(new ImmutableConnectionFailure(self, e, description), self);
-            return null;
-        });
-
-        return future;
+    private static SignalEnrichmentFacade getSignalEnrichmentFacade(final ActorSystem system, final ConnectionId id) {
+        return ConnectivitySignalEnrichmentProvider.get(system).getFacade(id);
     }
 
     private static String stackTraceAsString(final DittoRuntimeException exception) {
@@ -907,16 +879,4 @@ public final class MessageMappingProcessorActor
         }
 
     }
-
-    /**
-     * Request made by this actor.
-     */
-    public enum Request {
-
-        /**
-         * Request a signal-enrichment provider.
-         */
-        GET_SIGNAL_ENRICHMENT_PROVIDER
-    }
-
 }

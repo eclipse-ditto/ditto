@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
+import akka.actor.ActorSelection;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -53,8 +54,9 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             final Duration duration) {
         final CacheConfig cacheConfig =
                 DefaultCacheConfig.of(ConfigFactory.parseString(CACHE_CONFIG), CACHE_CONFIG_KEY);
+        final ActorSelection commandHandler = ActorSelection.apply(kit.getRef(), "");
         final ByRoundTripSignalEnrichmentFacade cacheLoaderFacade =
-                ByRoundTripSignalEnrichmentFacade.of(kit.getRef(), Duration.ofSeconds(10L));
+                ByRoundTripSignalEnrichmentFacade.of(commandHandler, Duration.ofSeconds(10L));
         return CachingSignalEnrichmentFacade.of(cacheLoaderFacade, cacheConfig, kit.getSystem().getDispatcher(),
                 "test");
     }

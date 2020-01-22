@@ -15,14 +15,13 @@ package org.eclipse.ditto.services.gateway.endpoints.utils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
-import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
@@ -33,16 +32,9 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class GatewayCachingSignalEnrichmentProviderTest {
 
-    private ActorSystem actorSystem;
-    private SignalEnrichmentConfig signalEnrichmentConfig;
+    private static final Config CONFIG = ConfigFactory.load("gateway-caching-provider-test");
 
-    @Before
-    public void createActorSystem() {
-        signalEnrichmentConfig =
-                DefaultSignalEnrichmentConfig.of(ConfigFactory.load("gateway-caching-provider-test"));
-        actorSystem =
-                ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("gateway-caching-provider-test"));
-    }
+    private ActorSystem actorSystem;
 
     @After
     public void shutdownActorSystem() {
@@ -53,22 +45,19 @@ public final class GatewayCachingSignalEnrichmentProviderTest {
 
     @Test
     public void loadProvider() {
-        new TestKit(actorSystem) {{
-            final GatewaySignalEnrichmentProvider underTest =
-                    GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), signalEnrichmentConfig);
-            assertThat(underTest).isInstanceOf(GatewayCachingSignalEnrichmentProvider.class);
-        }};
+        actorSystem = ActorSystem.create("loadCachingProvider", CONFIG);
+        final GatewaySignalEnrichmentProvider underTest = GatewaySignalEnrichmentProvider.get(actorSystem);
+        assertThat(underTest).isInstanceOf(GatewayCachingSignalEnrichmentProvider.class);
     }
 
     @Test
     public void loadProviderWithIncorrectConfig() {
-        new TestKit(actorSystem) {{
-            final SignalEnrichmentConfig badConfig = DefaultSignalEnrichmentConfig.of(signalEnrichmentConfig.render()
-                    .withValue("signal-enrichment.provider-config.ask-timeout",
-                            ConfigValueFactory.fromAnyRef("This is not a duration")));
-            assertThatExceptionOfType(ConfigException.class)
-                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
-        }};
+        final ConfigValue string = ConfigValueFactory.fromAnyRef("This is not a duration");
+        final Config badConfig =
+                CONFIG.withValue("ditto.gateway.streaming.signal-enrichment.provider-config.ask-timeout", string);
+        actorSystem = ActorSystem.create("loadCachingProviderWithIncorrectConfig", badConfig);
+        assertThatExceptionOfType(ConfigException.class)
+                .isThrownBy(() -> GatewaySignalEnrichmentProvider.get(actorSystem));
     }
 
 }

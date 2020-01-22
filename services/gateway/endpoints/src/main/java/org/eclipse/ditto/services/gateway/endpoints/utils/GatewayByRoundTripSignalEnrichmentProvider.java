@@ -12,15 +12,14 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.utils;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.DefaultSignalEnrichmentFacadeByRoundTripConfig;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacadeByRoundTripConfig;
 
-import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 
@@ -29,40 +28,38 @@ import akka.http.javadsl.model.HttpRequest;
  */
 public final class GatewayByRoundTripSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
 
-    @Nullable private static SignalEnrichmentFacade signalEnrichmentFacadeInstance = null;
+    private static final String CONCIERGE_FORWARDER = "/user/gatewayRoot/" + ConciergeForwarderActor.ACTOR_NAME;
 
-    private final ActorRef commandHandler;
-    private final SignalEnrichmentFacadeByRoundTripConfig signalEnrichmentFacadeByRoundTripConfig;
+    private final ByRoundTripSignalEnrichmentFacade byRoundTripSignalEnrichmentFacade;
 
     /**
      * Instantiate this provider. Called by reflection.
      *
      * @param actorSystem The actor system for which this provider is instantiated.
-     * @param commandHandler The recipient of retrieve-thing commands.
      * @param signalEnrichmentConfig Configuration for this provider.
      */
     @SuppressWarnings("unused")
     public GatewayByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem,
-            final ActorRef commandHandler,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
-        this.commandHandler = commandHandler;
-        signalEnrichmentFacadeByRoundTripConfig =
+        final ActorSelection commandHandler = actorSystem.actorSelection(CONCIERGE_FORWARDER);
+        final SignalEnrichmentFacadeByRoundTripConfig config =
                 DefaultSignalEnrichmentFacadeByRoundTripConfig.of(signalEnrichmentConfig.getProviderConfig());
+        byRoundTripSignalEnrichmentFacade =
+                ByRoundTripSignalEnrichmentFacade.of(commandHandler, config.getAskTimeout());
     }
 
     @Override
-    public SignalEnrichmentFacade createFacade(final HttpRequest request) {
-        
-        return getSignalEnrichmentFacadeInstance(commandHandler, signalEnrichmentFacadeByRoundTripConfig);
+    public SignalEnrichmentFacade getFacade(final HttpRequest request) {
+        return getByRoundTripSignalEnrichmentFacade();
     }
 
-    private static SignalEnrichmentFacade getSignalEnrichmentFacadeInstance(final ActorRef commandHandler,
-            final SignalEnrichmentFacadeByRoundTripConfig signalEnrichmentFacadeByRoundTripConfig) {
-
-        if (null == signalEnrichmentFacadeInstance) {
-            signalEnrichmentFacadeInstance = ByRoundTripSignalEnrichmentFacade.of(commandHandler,
-                    signalEnrichmentFacadeByRoundTripConfig.getAskTimeout());
-        }
-        return signalEnrichmentFacadeInstance;
+    /**
+     * Package-private getter for the unique by-round-trip signal enrichment facade per provider instance.
+     *
+     * @return the unique by-round-trip signal enrichment facade.
+     */
+    ByRoundTripSignalEnrichmentFacade getByRoundTripSignalEnrichmentFacade() {
+        return byRoundTripSignalEnrichmentFacade;
     }
+
 }

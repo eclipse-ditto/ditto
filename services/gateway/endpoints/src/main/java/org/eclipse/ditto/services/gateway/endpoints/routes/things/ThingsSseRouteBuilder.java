@@ -197,7 +197,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
         @Nullable final JsonFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
         @Nullable final JsonFieldSelector extraFields = getFieldSelector(parameters.get(PARAM_EXTRA_FIELDS));
         final SignalEnrichmentFacade facade =
-                signalEnrichmentProvider == null ? null : signalEnrichmentProvider.createFacade(ctx.getRequest());
+                signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
         final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
                 dittoHeadersStage.thenApply(dittoHeaders -> {

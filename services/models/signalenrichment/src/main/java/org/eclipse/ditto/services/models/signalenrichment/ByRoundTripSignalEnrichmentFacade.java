@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 
-import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.pattern.Patterns;
 
 /**
@@ -37,10 +37,10 @@ import akka.pattern.Patterns;
  */
 public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichmentFacade {
 
-    private final ActorRef commandHandler;
+    private final ActorSelection commandHandler;
     private final Duration askTimeout;
 
-    private ByRoundTripSignalEnrichmentFacade(final ActorRef commandHandler, final Duration askTimeout) {
+    private ByRoundTripSignalEnrichmentFacade(final ActorSelection commandHandler, final Duration askTimeout) {
         this.commandHandler = checkNotNull(commandHandler, "commandHandler");
         this.askTimeout = checkNotNull(askTimeout, "askTimeout");
     }
@@ -53,7 +53,7 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
      * @return The facade.
      * @throws java.lang.NullPointerException if any argument is null.
      */
-    public static ByRoundTripSignalEnrichmentFacade of(final ActorRef commandHandler, final Duration askTimeout) {
+    public static ByRoundTripSignalEnrichmentFacade of(final ActorSelection commandHandler, final Duration askTimeout) {
         return new ByRoundTripSignalEnrichmentFacade(commandHandler, askTimeout);
     }
 
@@ -67,7 +67,9 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
         final DittoHeaders headersWithoutChannel = dittoHeaders.toBuilder().channel(null).build();
 
         final RetrieveThing command =
-                RetrieveThing.getBuilder(thingId, headersWithoutChannel).withSelectedFields(jsonFieldSelector).build();
+                RetrieveThing.getBuilder(thingId, headersWithoutChannel)
+                        .withSelectedFields(jsonFieldSelector)
+                        .build();
 
         final CompletionStage<Object> askResult = Patterns.ask(commandHandler, command, askTimeout);
 

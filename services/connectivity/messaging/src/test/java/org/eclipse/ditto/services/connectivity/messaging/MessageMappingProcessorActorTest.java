@@ -63,18 +63,14 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.services.connectivity.mapping.ConnectivitySignalEnrichmentProvider;
+import org.eclipse.ditto.services.connectivity.mapping.ConnectivityCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
+import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -88,12 +84,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.testkit.TestKit$;
+import akka.pattern.Patterns;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -124,6 +121,7 @@ public final class MessageMappingProcessorActorTest {
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
+        MockConciergeForwarderActor.create(actorSystem);
     }
 
     @After
@@ -185,17 +183,8 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testSignalEnrichment() {
         // GIVEN: test probe actor started with configured values
-        // Reset test kit test actor ID to ensure name of test probe matches configuration
-        TestKit$.MODULE$.testActorId().set(0);
-        final String userGuardianPrefix = "/system/";
-        final String testProbeSuffix = "-1";
-        final String commandHandlerPath = TestConstants.MAPPING_CONFIG.getSignalEnrichmentProviderPath();
-        assertThat(commandHandlerPath).startsWith(userGuardianPrefix).endsWith(testProbeSuffix);
-        final String commandHandlerName = commandHandlerPath.substring(userGuardianPrefix.length(),
-                commandHandlerPath.length() - testProbeSuffix.length());
-        final TestProbe commandHandlerProbe = TestProbe.apply(commandHandlerName, actorSystem);
-        assertThat(commandHandlerProbe.ref().path().toStringWithoutAddress())
-                .isEqualTo(TestConstants.MAPPING_CONFIG.getSignalEnrichmentProviderPath());
+        final TestProbe conciergeForwarderProbe = TestProbe.apply("mockConciergeForwarderProbe", actorSystem);
+        setUpConciergeForwarder(conciergeForwarderProbe.ref());
 
         new TestKit(actorSystem) {{
             // GIVEN: MessageMappingProcessor started with a test probe as the configured enrichment provider
@@ -222,18 +211,14 @@ public final class MessageMappingProcessorActorTest {
             // THEN: a mapped signal without enrichment arrives first
             expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithoutEnrichment);
 
-            // THEN: MessageMappingProcessor loads a signal-enrichment-facade lazily
-            commandHandlerProbe.expectMsg(MessageMappingProcessorActor.Request.GET_SIGNAL_ENRICHMENT_PROVIDER);
-            commandHandlerProbe.reply((ConnectivitySignalEnrichmentProvider)
-                    connectionId -> ByRoundTripSignalEnrichmentFacade.of(getRef(), Duration.ofSeconds(10L)));
-
             // THEN: Receive a RetrieveThing command from the facade.
-            final RetrieveThing retrieveThing = expectMsgClass(RetrieveThing.class);
+            final RetrieveThing retrieveThing = conciergeForwarderProbe.expectMsgClass(RetrieveThing.class);
             assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
             assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
 
             final JsonObject extra = JsonObject.newBuilder().set("/attributes/x", 5).build();
-            reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extra, retrieveThing.getDittoHeaders()));
+            conciergeForwarderProbe.reply(
+                    RetrieveThingResponse.of(retrieveThing.getEntityId(), extra, retrieveThing.getDittoHeaders()));
 
             // THEN: Receive an outbound signal with extra fields.
             expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithEnrichment,
@@ -259,24 +244,9 @@ public final class MessageMappingProcessorActorTest {
 
     @Test
     public void testSignalEnrichmentWithPayloadMappedTargets() {
-        // GIVEN: test probe actor started with configured values
-        // Reset test kit test actor ID to ensure name of test probe matches configuration
-        TestKit$.MODULE$.testActorId().set(0);
-        final String userGuardianPrefix = "/system/";
-        final String testProbeSuffix = "-1";
-        final String commandHandlerPath = TestConstants.MAPPING_CONFIG.getSignalEnrichmentProviderPath();
-        assertThat(commandHandlerPath).startsWith(userGuardianPrefix).endsWith(testProbeSuffix);
-        final String commandHandlerName = commandHandlerPath.substring(userGuardianPrefix.length(),
-                commandHandlerPath.length() - testProbeSuffix.length());
-        final TestProbe commandHandlerProbe = TestProbe.apply(commandHandlerName, actorSystem);
-        assertThat(commandHandlerProbe.ref().path().toStringWithoutAddress())
-                .isEqualTo(TestConstants.MAPPING_CONFIG.getSignalEnrichmentProviderPath());
-
-        final CacheConfig cacheConfig =
-                DefaultCacheConfig.of(ConfigFactory.parseString("my-cache {\n" +
-                        "  maximum-size = 10\n" +
-                        "  expire-after-create = 2m\n" +
-                        "}"), "my-cache");
+        resetActorSystemWithCachingSignalEnrichmentProvider();
+        final TestProbe conciergeForwarderProbe = TestProbe.apply("mockConciergeForwarder", actorSystem);
+        setUpConciergeForwarder(conciergeForwarderProbe.ref());
 
         new TestKit(actorSystem) {{
             // GIVEN: MessageMappingProcessor started with a test probe as the configured enrichment provider
@@ -372,16 +342,8 @@ public final class MessageMappingProcessorActorTest {
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
             );
 
-            // THEN: MessageMappingProcessor loads a signal-enrichment-facade lazily
-            commandHandlerProbe.expectMsg(MessageMappingProcessorActor.Request.GET_SIGNAL_ENRICHMENT_PROVIDER);
-            commandHandlerProbe.reply((ConnectivitySignalEnrichmentProvider) connectionId -> {
-                final SignalEnrichmentFacade loaderFacade =
-                        ByRoundTripSignalEnrichmentFacade.of(getRef(), Duration.ofSeconds(10L));
-                return CachingSignalEnrichmentFacade.of(loaderFacade, cacheConfig, getSystem().getDispatcher(), "test");
-            });
-
             // THEN: Receive a RetrieveThing command from the facade.
-            final RetrieveThing retrieveThing = expectMsgClass(RetrieveThing.class);
+            final RetrieveThing retrieveThing = conciergeForwarderProbe.expectMsgClass(RetrieveThing.class);
             final JsonFieldSelector extraFieldsWithAdditionalCachingSelectedOnes = JsonFactory.newFieldSelectorBuilder()
                     .addPointers(extraFields)
                     .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
@@ -395,7 +357,7 @@ public final class MessageMappingProcessorActorTest {
                     .set("_revision", 8)
                     .setAll(extra)
                     .build();
-            reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extraForCachingFacade,
+            conciergeForwarderProbe.reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extraForCachingFacade,
                     retrieveThing.getDittoHeaders()));
 
             // THEN: Receive an outbound signal with extra fields.
@@ -431,6 +393,18 @@ public final class MessageMappingProcessorActorTest {
                             .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
             );
         }};
+    }
+
+    private void resetActorSystemWithCachingSignalEnrichmentProvider() {
+        TestKit.shutdownActorSystem(actorSystem);
+        actorSystem = ActorSystem.create("AkkaTestSystemWithCachingSignalEnrichmentProvider",
+                TestConstants.CONFIG
+                        .withValue("ditto.connectivity.signal-enrichment.provider",
+                                ConfigValueFactory.fromAnyRef(
+                                        ConnectivityCachingSignalEnrichmentProvider.class.getCanonicalName())
+                        )
+        );
+        MockConciergeForwarderActor.create(actorSystem);
     }
 
     private void testExternalMessageInDittoProtocolIsProcessed(
@@ -749,6 +723,13 @@ public final class MessageMappingProcessorActorTest {
         return MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
                 TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider, logger);
+    }
+
+    private void setUpConciergeForwarder(final ActorRef recipient) {
+        final ActorSelection actorSelection = actorSystem.actorSelection("/user/connectivityRoot/conciergeForwarder");
+        Patterns.ask(actorSelection, recipient, Duration.ofSeconds(10L))
+                .toCompletableFuture()
+                .join();
     }
 
     private static ModifyAttribute createModifyAttributeCommand() {

@@ -14,12 +14,15 @@ package org.eclipse.ditto.services.gateway.endpoints.utils;
 
 import java.util.Arrays;
 
+import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 
-import akka.actor.ActorRef;
+import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
+import akka.actor.Extension;
 import akka.http.javadsl.model.HttpRequest;
 
 /**
@@ -27,11 +30,10 @@ import akka.http.javadsl.model.HttpRequest;
  * Implementations MUST have a public constructor taking the following parameters as arguments:
  * <ul>
  * <li>ActorSystem actorSystem: actor system in which this provider is loaded,</li>
- * <li>ActorRef commandHandler: recipient of retrieve-thing commands,</li>
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
  */
-public interface GatewaySignalEnrichmentProvider {
+public interface GatewaySignalEnrichmentProvider extends Extension {
 
     /**
      * Create a {@link SignalEnrichmentFacade} from the HTTP request that
@@ -40,24 +42,38 @@ public interface GatewaySignalEnrichmentProvider {
      * @param request the HTTP request.
      * @return the signal-enriching facade.
      */
-    SignalEnrichmentFacade createFacade(HttpRequest request);
+    SignalEnrichmentFacade getFacade(HttpRequest request);
 
     /**
-     * Load a {@code ThingEnrichingFacadeProvider} dynamically according to the streaming configuration.
+     * Get the {@code ThingEnrichingFacadeProvider} for the actor system.
+     * The provider is created dynamically according to the streaming configuration.
      *
      * @param actorSystem The actor system in which to load the facade provider class.
-     * @param commandHandler The recipient of retrieve-thing commands.
-     * @param signalEnrichmentConfig The SignalEnrichment configuration.
      * @return The configured facade provider.
      */
-    static GatewaySignalEnrichmentProvider load(final ActorSystem actorSystem,
-            final ActorRef commandHandler,
-            final SignalEnrichmentConfig signalEnrichmentConfig) {
+    static GatewaySignalEnrichmentProvider get(final ActorSystem actorSystem) {
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
 
-        return AkkaClassLoader.instantiate(actorSystem, GatewaySignalEnrichmentProvider.class,
-                signalEnrichmentConfig.getProvider(),
-                Arrays.asList(ActorSystem.class, ActorRef.class, SignalEnrichmentConfig.class),
-                Arrays.asList(actorSystem, commandHandler, signalEnrichmentConfig)
-        );
+    /**
+     * ID of the actor system extension to provide signal enrichment for gateway.
+     */
+    final class ExtensionId extends AbstractExtensionId<GatewaySignalEnrichmentProvider> {
+
+        private static final String SIGNAL_ENRICHMENT_CONFIG_PATH = "ditto.gateway.streaming";
+
+        private static final ExtensionId INSTANCE = new ExtensionId();
+
+        @Override
+        public GatewaySignalEnrichmentProvider createExtension(final ExtendedActorSystem system) {
+            final SignalEnrichmentConfig config =
+                    DefaultSignalEnrichmentConfig.of(
+                            system.settings().config().getConfig(SIGNAL_ENRICHMENT_CONFIG_PATH));
+            return AkkaClassLoader.instantiate(system, GatewaySignalEnrichmentProvider.class,
+                    config.getProvider(),
+                    Arrays.asList(ActorSystem.class, SignalEnrichmentConfig.class),
+                    Arrays.asList(system, config)
+            );
+        }
     }
 }

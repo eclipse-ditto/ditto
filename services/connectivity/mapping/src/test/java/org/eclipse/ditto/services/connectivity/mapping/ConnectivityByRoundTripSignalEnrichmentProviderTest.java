@@ -17,11 +17,10 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
-import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.junit.After;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -34,18 +33,18 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class ConnectivityByRoundTripSignalEnrichmentProviderTest {
 
-    private final SignalEnrichmentConfig config = DefaultSignalEnrichmentConfig.of(ConfigFactory.empty()
-            .withValue("signal-enrichment.provider",
-                    ConfigValueFactory.fromAnyRef(ConnectivityByRoundTripSignalEnrichmentProvider.class.getCanonicalName()))
-            .withValue("signal-enrichment.provider-config.ask-timeout",
-                    ConfigValueFactory.fromAnyRef(Duration.ofDays(1L))));
+    private static final Config CONFIG = ConfigFactory.empty()
+            .withValue("ditto.connectivity.signal-enrichment.provider",
+                    ConfigValueFactory.fromAnyRef(
+                            ConnectivityByRoundTripSignalEnrichmentProvider.class.getCanonicalName()))
+            .withValue("ditto.connectivity.signal-enrichment.provider-config.ask-timeout",
+                    ConfigValueFactory.fromAnyRef(Duration.ofDays(1L)));
 
     private ActorSystem actorSystem;
 
-    private ActorSystem createActorSystem() {
+    private void createActorSystem(final Config config) {
         shutdownActorSystem();
-        actorSystem = ActorSystem.create(getClass().getSimpleName());
-        return actorSystem;
+        actorSystem = ActorSystem.create(getClass().getSimpleName(), config);
     }
 
     @After
@@ -57,43 +56,35 @@ public final class ConnectivityByRoundTripSignalEnrichmentProviderTest {
 
     @Test
     public void loadProvider() {
-        new TestKit(createActorSystem()) {{
-            final ConnectivitySignalEnrichmentProvider
-                    underTest = ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), config);
-            assertThat(underTest).isInstanceOf(ConnectivityByRoundTripSignalEnrichmentProvider.class);
-        }};
+        createActorSystem(CONFIG);
+        final ConnectivitySignalEnrichmentProvider underTest = ConnectivitySignalEnrichmentProvider.get(actorSystem);
+        assertThat(underTest).isInstanceOf(ConnectivityByRoundTripSignalEnrichmentProvider.class);
     }
 
     @Test
     public void loadProviderWithNonexistentClass() {
-        final SignalEnrichmentConfig badConfig =
-                withValue("signal-enrichment.provider", getClass().getCanonicalName() + "_NonexistentClass");
-        new TestKit(createActorSystem()) {{
-            assertThatExceptionOfType(ClassNotFoundException.class)
-                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
-        }};
+        createActorSystem(withValue("ditto.connectivity.signal-enrichment.provider",
+                getClass().getCanonicalName() + "_NonexistentClass"));
+        assertThatExceptionOfType(ClassNotFoundException.class)
+                .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.get(actorSystem));
     }
 
     @Test
     public void loadProviderWithIncorrectClass() {
-        final SignalEnrichmentConfig badConfig = withValue("signal-enrichment.provider", "java.lang.Object");
-        new TestKit(createActorSystem()) {{
-            assertThatExceptionOfType(ClassCastException.class)
-                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
-        }};
+        createActorSystem(withValue("ditto.connectivity.signal-enrichment.provider", "java.lang.Object"));
+        assertThatExceptionOfType(ClassCastException.class)
+                .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.get(actorSystem));
     }
 
     @Test
     public void loadProviderWithIncorrectConfig() {
-        final SignalEnrichmentConfig badConfig =
-                withValue("signal-enrichment.provider-config.ask-timeout", "This is not a duration");
-        new TestKit(createActorSystem()) {{
-            assertThatExceptionOfType(ConfigException.class)
-                    .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
-        }};
+        createActorSystem(withValue("ditto.connectivity.signal-enrichment.provider-config.ask-timeout",
+                "This is not a duration"));
+        assertThatExceptionOfType(ConfigException.class)
+                .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.get(actorSystem));
     }
 
-    private DefaultSignalEnrichmentConfig withValue(final String key, final String value) {
-        return DefaultSignalEnrichmentConfig.of(config.render().withValue(key, ConfigValueFactory.fromAnyRef(value)));
+    private Config withValue(final String key, final String value) {
+        return CONFIG.withValue(key, ConfigValueFactory.fromAnyRef(value));
     }
 }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.models.signalenrichment;
 
 import java.time.Duration;
 
+import akka.actor.ActorSelection;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -23,6 +24,7 @@ public final class ByRoundTripSignalEnrichmentFacadeTest extends AbstractSignalE
 
     @Override
     protected SignalEnrichmentFacade createSignalEnrichmentFacadeUnderTest(final TestKit kit, final Duration duration) {
-        return ByRoundTripSignalEnrichmentFacade.of(kit.getRef(), duration);
+        final ActorSelection commandHandler = ActorSelection.apply(kit.getRef(), "");
+        return ByRoundTripSignalEnrichmentFacade.of(commandHandler, duration);
     }
 }

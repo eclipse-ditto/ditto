@@ -300,8 +300,7 @@ final class GatewayRootActor extends AbstractActor {
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
 
         final GatewaySignalEnrichmentProvider signalEnrichmentProvider =
-                GatewaySignalEnrichmentProvider.load(actorSystem, proxyActor,
-                        gatewayConfig.getStreamingConfig().getSignalEnrichmentConfig());
+                GatewaySignalEnrichmentProvider.get(actorSystem);
 
         final StreamingConfig streamingConfig = gatewayConfig.getStreamingConfig();
 

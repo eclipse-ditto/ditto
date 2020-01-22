@@ -15,14 +15,13 @@ package org.eclipse.ditto.services.gateway.endpoints.utils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
-import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
@@ -33,15 +32,9 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class GatewayByRoundTripSignalEnrichmentProviderTest {
 
-    private ActorSystem actorSystem;
-    private SignalEnrichmentConfig signalEnrichmentConfig;
+    private static final Config CONFIG = ConfigFactory.load("gateway-by-round-trip-provider-test");
 
-    @Before
-    public void createActorSystem() {
-        signalEnrichmentConfig =
-                DefaultSignalEnrichmentConfig.of(ConfigFactory.load("gateway-by-round-trip-provider-test"));
-        actorSystem = ActorSystem.create(getClass().getSimpleName());
-    }
+    private ActorSystem actorSystem;
 
     @After
     public void shutdownActorSystem() {
@@ -52,45 +45,41 @@ public final class GatewayByRoundTripSignalEnrichmentProviderTest {
 
     @Test
     public void loadProvider() {
-        new TestKit(actorSystem) {{
-            final GatewaySignalEnrichmentProvider underTest =
-                    GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), signalEnrichmentConfig);
-            assertThat(underTest).isInstanceOf(GatewayByRoundTripSignalEnrichmentProvider.class);
-        }};
+        actorSystem = ActorSystem.create("loadProvider", CONFIG);
+        final GatewaySignalEnrichmentProvider underTest = GatewaySignalEnrichmentProvider.get(actorSystem);
+        assertThat(underTest).isInstanceOf(GatewayByRoundTripSignalEnrichmentProvider.class);
     }
 
     @Test
     public void loadProviderWithNonexistentClass() {
-        new TestKit(actorSystem) {{
-            final SignalEnrichmentConfig badConfig = DefaultSignalEnrichmentConfig.of(signalEnrichmentConfig.render()
-                    .withValue("signal-enrichment.provider",
-                            ConfigValueFactory.fromAnyRef(getClass().getCanonicalName() + "_NonexistentClass")));
-            assertThatExceptionOfType(ClassNotFoundException.class)
-                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig))
-                    .withMessageContaining("_NonexistentClass");
-        }};
+        final ConfigValue nonexistentClassName =
+                ConfigValueFactory.fromAnyRef(getClass().getCanonicalName() + "_NonexistentClass");
+        final Config badConfig =
+                CONFIG.withValue("ditto.gateway.streaming.signal-enrichment.provider", nonexistentClassName);
+        actorSystem = ActorSystem.create("loadProviderWithNonexistentClass", badConfig);
+        assertThatExceptionOfType(ClassNotFoundException.class)
+                .isThrownBy(() -> GatewaySignalEnrichmentProvider.get(actorSystem))
+                .withMessageContaining("_NonexistentClass");
     }
 
     @Test
     public void loadProviderWithIncorrectClass() {
-        new TestKit(actorSystem) {{
-            final SignalEnrichmentConfig badConfig = DefaultSignalEnrichmentConfig.of(signalEnrichmentConfig.render()
-                    .withValue("signal-enrichment.provider",
-                            ConfigValueFactory.fromAnyRef("java.lang.Object")));
-            assertThatExceptionOfType(ClassCastException.class)
-                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
-        }};
+        final ConfigValue incorrectClassName = ConfigValueFactory.fromAnyRef("java.lang.Object");
+        final Config badConfig =
+                CONFIG.withValue("ditto.gateway.streaming.signal-enrichment.provider", incorrectClassName);
+        actorSystem = ActorSystem.create("loadProviderWithIncorrectClass", badConfig);
+        assertThatExceptionOfType(ClassCastException.class)
+                .isThrownBy(() -> GatewaySignalEnrichmentProvider.get(actorSystem));
     }
 
     @Test
     public void loadProviderWithIncorrectConfig() {
-        new TestKit(actorSystem) {{
-            final SignalEnrichmentConfig badConfig = DefaultSignalEnrichmentConfig.of(signalEnrichmentConfig.render()
-                    .withValue("signal-enrichment.provider-config.ask-timeout",
-                            ConfigValueFactory.fromAnyRef("This is not a duration")));
-            assertThatExceptionOfType(ConfigException.class)
-                    .isThrownBy(() -> GatewaySignalEnrichmentProvider.load(actorSystem, getRef(), badConfig));
-        }};
+        final ConfigValue string = ConfigValueFactory.fromAnyRef("This is not a duration");
+        final Config badConfig =
+                CONFIG.withValue("ditto.gateway.streaming.signal-enrichment.provider-config.ask-timeout", string);
+        actorSystem = ActorSystem.create("loadProviderWithIncorrectConfig", badConfig);
+        assertThatExceptionOfType(ConfigException.class)
+                .isThrownBy(() -> GatewaySignalEnrichmentProvider.get(actorSystem));
     }
 
 }

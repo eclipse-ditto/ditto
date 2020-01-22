@@ -258,7 +258,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final HttpRequest request) {
 
         @Nullable final SignalEnrichmentFacade signalEnrichmentFacade =
-                signalEnrichmentProvider == null ? null : signalEnrichmentProvider.createFacade(request);
+                signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(request);
 
         LOGGER.withCorrelationId(connectionCorrelationId)
                 .info("Creating WebSocket for connection authContext: <{}>", authContext);

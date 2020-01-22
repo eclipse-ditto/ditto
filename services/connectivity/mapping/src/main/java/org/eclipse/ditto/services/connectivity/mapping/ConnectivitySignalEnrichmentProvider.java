@@ -15,12 +15,15 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import java.util.Arrays;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 
-import akka.actor.ActorRef;
+import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
+import akka.actor.Extension;
 
 /**
  * Provider of {@link SignalEnrichmentFacade} to be loaded by reflection.
@@ -31,7 +34,7 @@ import akka.actor.ActorSystem;
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
  */
-public interface ConnectivitySignalEnrichmentProvider {
+public interface ConnectivitySignalEnrichmentProvider extends Extension {
 
     /**
      * Create a signal-enriching facade from the ID of a connection.
@@ -39,24 +42,37 @@ public interface ConnectivitySignalEnrichmentProvider {
      * @param connectionId the connection ID.
      * @return the facade.
      */
-    SignalEnrichmentFacade createFacade(ConnectionId connectionId);
+    SignalEnrichmentFacade getFacade(ConnectionId connectionId);
 
     /**
      * Load a {@code ThingEnrichingFacadeProvider} dynamically according to the streaming configuration.
      *
      * @param actorSystem The actor system in which to load the facade provider class.
-     * @param commandHandler The recipient of retrieve-thing commands.
-     * @param signalEnrichmentConfig the SignalEnrichment config to use.
      * @return The configured facade provider.
      */
-    static ConnectivitySignalEnrichmentProvider load(final ActorSystem actorSystem,
-            final ActorRef commandHandler,
-            final SignalEnrichmentConfig signalEnrichmentConfig) {
+    static ConnectivitySignalEnrichmentProvider get(final ActorSystem actorSystem) {
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
 
-        return AkkaClassLoader.instantiate(actorSystem, ConnectivitySignalEnrichmentProvider.class,
-                signalEnrichmentConfig.getProvider(),
-                Arrays.asList(ActorSystem.class, ActorRef.class, SignalEnrichmentConfig.class),
-                Arrays.asList(actorSystem, commandHandler, signalEnrichmentConfig)
-        );
+    /**
+     * ID of the actor system extension to provide signal enrichment for connectivity.
+     */
+    final class ExtensionId extends AbstractExtensionId<ConnectivitySignalEnrichmentProvider> {
+
+        private static final String SIGNAL_ENRICHMENT_CONFIG_PATH = "ditto.connectivity";
+
+        private static final ExtensionId INSTANCE = new ExtensionId();
+
+        @Override
+        public ConnectivitySignalEnrichmentProvider createExtension(final ExtendedActorSystem system) {
+            final SignalEnrichmentConfig signalEnrichmentConfig =
+                    DefaultSignalEnrichmentConfig.of(
+                            system.settings().config().getConfig(SIGNAL_ENRICHMENT_CONFIG_PATH));
+            return AkkaClassLoader.instantiate(system, ConnectivitySignalEnrichmentProvider.class,
+                    signalEnrichmentConfig.getProvider(),
+                    Arrays.asList(ActorSystem.class, SignalEnrichmentConfig.class),
+                    Arrays.asList(system, signalEnrichmentConfig)
+            );
+        }
     }
 }
