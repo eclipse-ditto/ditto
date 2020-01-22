@@ -32,6 +32,8 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -253,9 +255,16 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
         if (mappingContext != null) {
             mappings.put("test", mappingContext);
         }
+        final DittoDiagnosticLoggingAdapter logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
         return MessageMappingProcessor.of(CONNECTION_ID, ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
                 actorSystem, TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapterProvider, Mockito.mock(DittoDiagnosticLoggingAdapter.class));
+                protocolAdapterProvider, logger);
     }
 
 }

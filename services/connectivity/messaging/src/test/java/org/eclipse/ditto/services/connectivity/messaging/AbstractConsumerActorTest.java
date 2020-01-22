@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -227,9 +229,16 @@ public abstract class AbstractConsumerActorTest<M> {
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
 
         final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
+        final DittoDiagnosticLoggingAdapter logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
         final MessageMappingProcessor mappingProcessor =
                 MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
-                        connectivityConfig, protocolAdapterProvider, Mockito.mock(DittoDiagnosticLoggingAdapter.class));
+                        connectivityConfig, protocolAdapterProvider, logger);
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(conciergeForwarderActor, clientActor, mappingProcessor,
                         CONNECTION_ID, 43);

@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -738,9 +739,16 @@ public final class MessageMappingProcessorActorTest {
         mappingDefinitions.put(DUPLICATING_MAPPER, DuplicatingMessageMapper.CONTEXT);
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
+        final DittoDiagnosticLoggingAdapter logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
         return MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
                 TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapterProvider, Mockito.mock(DittoDiagnosticLoggingAdapter.class));
+                protocolAdapterProvider, logger);
     }
 
     private static ModifyAttribute createModifyAttributeCommand() {
