@@ -87,12 +87,9 @@ public final class MessageMappingProcessorTest {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
 
         logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
-        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
-                .thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.any(DittoHeaders.class))).thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class))).thenReturn(logger);
 
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
