@@ -175,32 +175,6 @@ Targets contain:
 * [header mapping](connectivity-header-mapping.html) to compute external headers from Ditto protocol headers.
 
 
-#### Target topics and enrichment
-
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
-
-When extra fields should be added to outgoing messages on a connection, an `extraFields` parameter can be added
-to the topic. This is supported for all topics:
-
-| Description | Topic | [Enrich by extra fields](basic-enrichment.html) |
-|-------------|-----------------|------------------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; |
-| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; |
-| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; |
-| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; |
-
-Example:
-```json
-{
-  "address": "<target-address>",
-  "topics": [
-    "_/_/things/twin/events?extraFields=attributes/placement",
-    "_/_/things/live/messages?extraFields=features/ConnectionStatus"
-  ],
-  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
-}
-```
-
 #### Target topics and filtering
 
 For targets it can be configured which types of messages should be published to the target address.
@@ -228,6 +202,32 @@ would match an attribute "counter" to be greater than 42. Additionally it would 
     "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
     "_/_/things/twin/events?extraFields=attributes/placement&filter=gt(attributes/placement,'Kitchen')",
     "_/_/things/live/messages?namespaces=org.eclipse.ditto"
+  ],
+  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
+}
+```
+
+#### Target topics and enrichment
+
+{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
+
+When extra fields should be added to outgoing messages on a connection, an `extraFields` parameter can be added
+to the topic. This is supported for all topics:
+
+| Description | Topic | [Enrich by extra fields](basic-enrichment.html) |
+|-------------|-----------------|------------------|
+| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; |
+| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; |
+| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; |
+| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; |
+
+Example:
+```json
+{
+  "address": "<target-address>",
+  "topics": [
+    "_/_/things/twin/events?extraFields=attributes/placement",
+    "_/_/things/live/messages?extraFields=features/ConnectionStatus"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject", "..."]
 }
