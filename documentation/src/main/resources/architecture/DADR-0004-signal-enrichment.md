@@ -46,9 +46,12 @@ We provide 2 different facade implementations providing approach 2 and 3:
 * `org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade`: 
     Round-trip for each to-be-enriched event resulting in a guaranteed up-to-dateness of data and applied policy.
 * `org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade`: 
-    Using cache for each to-be-enriched event resulting in reduces remoting efforts treated again a time interval where the cache might be out of sync with the current data or policy information.
+    Using cache for each to-be-enriched event resulting in reduced remoting effort and a time interval where the cache might be out of sync with the current data or policy information.
     * the implementation uses a cluster-instance wide cache using a cache key consisting of: `thingId, authSubjects, jsonFieldSelector`
     * the overall size of this cache is configured, by default to `20,000` entries
+    * there is an additional "smart-update" mechanism for cache entries related to enrichment of twin events:
+      in the absence of skipped events, the cache entry can be completely deduced from the twin events triggering
+      enrichment and will stay up-to-date with thing changes (but not with policy changes).
 
 The configured default in Ditto is the `CachingSignalEnrichmentFacade` but may be configured via
 * connectivity service: environment variable `CONNECTIVITY_SIGNAL_ENRICHMENT_PROVIDER`
