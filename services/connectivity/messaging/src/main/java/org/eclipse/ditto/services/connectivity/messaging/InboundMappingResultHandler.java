@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import java.util.Collections;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.signals.base.Signal;
@@ -36,17 +38,11 @@ final class InboundMappingResultHandler
         return new Builder().emptyResult(Source.empty()).combineResults(Source::concat);
     }
 
+    @NotThreadSafe
     static final class Builder extends AbstractBuilder<MappedInboundExternalMessage, Source<Signal<?>, ?>, Builder> {
 
-        private Builder() {}
-
-        @Override
-        protected Builder getSelf() {
-            return this;
-        }
-
-        InboundMappingResultHandler build() {
-            return new InboundMappingResultHandler(this);
+        private Builder() {
+            super(Builder.class);
         }
 
         Builder inboundMapped(final ConnectionMonitor inboundMapped) {
@@ -57,6 +53,10 @@ final class InboundMappingResultHandler
         Builder inboundDropped(final ConnectionMonitor inboundDropped) {
             droppedMonitors = Collections.singletonList(inboundDropped);
             return this;
+        }
+
+        InboundMappingResultHandler build() {
+            return new InboundMappingResultHandler(this);
         }
 
     }

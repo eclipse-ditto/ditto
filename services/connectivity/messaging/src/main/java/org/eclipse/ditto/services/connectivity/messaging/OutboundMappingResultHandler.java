@@ -16,6 +16,8 @@ import static org.eclipse.ditto.services.connectivity.messaging.MessageMappingPr
 
 import java.util.Collection;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 
@@ -37,16 +39,12 @@ final class OutboundMappingResultHandler extends
         return new Builder().emptyResult(Source.empty()).combineResults(Source::concat);
     }
 
-    static final class Builder extends
-            AbstractBuilder<OutboundSignal.Mapped, Source<OutboundSignalWithId, ?>, Builder> {
+    @NotThreadSafe
+    static final class Builder
+            extends AbstractBuilder<OutboundSignal.Mapped, Source<OutboundSignalWithId, ?>, Builder> {
 
-        @Override
-        protected Builder getSelf() {
-            return this;
-        }
-
-        OutboundMappingResultHandler build() {
-            return new OutboundMappingResultHandler(this);
+        private Builder() {
+            super(Builder.class);
         }
 
         Builder outboundMapped(final Collection<ConnectionMonitor> outboundMapped) {
@@ -58,6 +56,11 @@ final class OutboundMappingResultHandler extends
             droppedMonitors = outboundDropped;
             return this;
         }
+
+        OutboundMappingResultHandler build() {
+            return new OutboundMappingResultHandler(this);
+        }
+
     }
 
 }

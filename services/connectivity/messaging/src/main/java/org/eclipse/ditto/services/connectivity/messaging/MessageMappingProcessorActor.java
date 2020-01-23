@@ -447,8 +447,6 @@ public final class MessageMappingProcessorActor
             final AuthorizationContext authorizationContext) {
 
         final String source = incomingMessage.getSourceAddress().orElse("unknown");
-        final ConnectionMonitor inboundMapped = connectionMonitorRegistry.forInboundMapped(connectionId, source);
-        final ConnectionMonitor inboundDropped = connectionMonitorRegistry.forInboundDropped(connectionId, source);
 
         return InboundMappingResultHandler.newBuilder()
                 .onMessageMapped(mappedInboundMessage -> {
@@ -475,12 +473,10 @@ public final class MessageMappingProcessorActor
                     return Source.single(adjustedSignal);
                 })
                 .onMessageDropped(() -> logger.debug("Message mapping returned null, message is dropped."))
-                .onException(exception -> {
-                    // skip the inbound stream directly to outbound stream
-                    handleInboundException(exception, incomingMessage, authorizationContext);
-                })
-                .inboundMapped(inboundMapped)
-                .inboundDropped(inboundDropped)
+                // skip the inbound stream directly to outbound stream
+                .onException(exception -> handleInboundException(exception, incomingMessage, authorizationContext))
+                .inboundMapped(connectionMonitorRegistry.forInboundMapped(connectionId, source))
+                .inboundDropped(connectionMonitorRegistry.forInboundDropped(connectionId, source))
                 .infoProvider(InfoProviderFactory.forExternalMessage(incomingMessage))
                 .build();
     }
