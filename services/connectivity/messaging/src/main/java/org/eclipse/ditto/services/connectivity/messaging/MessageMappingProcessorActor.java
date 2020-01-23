@@ -307,10 +307,11 @@ public final class MessageMappingProcessorActor
 
         final OutboundSignalWithId outboundSignal = outboundSignalWithExtraFields.first();
         final FilteredTopic filteredTopic = outboundSignalWithExtraFields.second();
-        if (filteredTopic == null || !filteredTopic.getExtraFields().isPresent()) {
+        final Optional<JsonFieldSelector> extraFieldsOptional = filteredTopic.getExtraFields();
+        if (filteredTopic == null || extraFieldsOptional.isEmpty()) {
             return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
         }
-        final JsonFieldSelector extraFields = filteredTopic.getExtraFields().get();
+        final JsonFieldSelector extraFields = extraFieldsOptional.get();
         final Target target = outboundSignal.getTargets().get(0);
 
         final ThingId thingId = ThingId.of(outboundSignal.getEntityId());
