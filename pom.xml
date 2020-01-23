@@ -229,7 +229,7 @@
             (org\.eclipse\.ditto.*)|(com\.lihaoyi.*)
         </ditto.thirdPartyLicences.excludedGroups>
 
-        <japicmp-maven-plugin.version>0.14.1</japicmp-maven-plugin.version>
+        <japicmp-maven-plugin.version>0.14.3</japicmp-maven-plugin.version>
     </properties>
 
     <build>
@@ -418,11 +418,33 @@
                             <accessModifier>public</accessModifier>
                             <breakBuildOnModifications>false</breakBuildOnModifications>
                             <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
-                            <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
+                            <breakBuildOnSourceIncompatibleModifications>false</breakBuildOnSourceIncompatibleModifications>
+                            <onlyBinaryIncompatible>true</onlyBinaryIncompatible>
                             <includeSynthetic>false</includeSynthetic>
                             <ignoreMissingClasses>false</ignoreMissingClasses>
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
+                            <overrideCompatibilityChangeParameters>
+                                <!-- Consider new method added to interface as binary-compatible and not
+                                     source-compatible. Require only binary compatibility for semantic versioning,
+                                     due to ubiquitous usage of interfaces for information hiding in model packages.
+                                 -->
+                                <overrideCompatibilityChangeParameter>
+                                    <compatibilityChange>METHOD_NEW_DEFAULT</compatibilityChange>
+                                    <binaryCompatible>true</binaryCompatible>
+                                    <sourceCompatible>true</sourceCompatible>
+                                </overrideCompatibilityChangeParameter>
+                                <overrideCompatibilityChangeParameter>
+                                    <compatibilityChange>METHOD_ABSTRACT_NOW_DEFAULT</compatibilityChange>
+                                    <binaryCompatible>true</binaryCompatible>
+                                    <sourceCompatible>true</sourceCompatible>
+                                </overrideCompatibilityChangeParameter>
+                                <overrideCompatibilityChangeParameter>
+                                    <compatibilityChange>METHOD_ADDED_TO_INTERFACE</compatibilityChange>
+                                    <binaryCompatible>true</binaryCompatible>
+                                    <sourceCompatible>false</sourceCompatible>
+                                </overrideCompatibilityChangeParameter>
+                            </overrideCompatibilityChangeParameters>
                             <excludes>
                                 <!-- Don't add excludes here before checking with the whole Ditto team -->
                                 <!--<exclude></exclude>-->
