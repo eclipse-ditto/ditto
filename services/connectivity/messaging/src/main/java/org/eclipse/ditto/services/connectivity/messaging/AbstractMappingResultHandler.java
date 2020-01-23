@@ -15,18 +15,20 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 
 /**
- * {@link org.eclipse.ditto.services.connectivity.messaging.MappingResultHandler} for messages. This handler forwards to the given handlers. Additionally it
- * calls the {@link org.eclipse.ditto.services.connectivity.messaging.MappingResultHandler#onException(Exception)} method for exceptions thrown in handlers and
- * increases the according counters for mapped, dropped failed messages.
+ * {@link org.eclipse.ditto.services.connectivity.messaging.MappingResultHandler} for messages.
+ * This handler forwards to the given handlers. Additionally it
+ * calls the {@link org.eclipse.ditto.services.connectivity.messaging.MappingResultHandler#onException(Exception)}
+ * method for exceptions thrown in handlers and increases the according counters for mapped, dropped failed messages.
  *
  * @param <M> type of mapped messages.
  * @param <R> type of results.
@@ -54,10 +56,10 @@ abstract class AbstractMappingResultHandler<M, R> implements MappingResultHandle
     }
 
     @Override
-    public R onMessageMapped(final M message) {
+    public R onMessageMapped(final M mappedMessage) {
         try {
             mappedMonitors.forEach(monitor -> monitor.success(infoProvider));
-            return onMessageMapped.apply(message);
+            return onMessageMapped.apply(mappedMessage);
         } catch (final Exception e) {
             return onException(e);
         }
@@ -69,7 +71,7 @@ abstract class AbstractMappingResultHandler<M, R> implements MappingResultHandle
             droppedMonitors.forEach(monitor -> monitor.success(infoProvider));
             onMessageDropped.run();
             return emptyResult;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return onException(e);
         }
     }
@@ -77,7 +79,7 @@ abstract class AbstractMappingResultHandler<M, R> implements MappingResultHandle
     @Override
     public R onException(final Exception exception) {
         if (exception instanceof DittoRuntimeException) {
-            mappedMonitors.forEach(monitor -> monitor.failure(((DittoRuntimeException) exception)));
+            mappedMonitors.forEach(monitor -> monitor.failure((DittoRuntimeException) exception));
         } else {
             mappedMonitors.forEach(monitor -> monitor.exception(exception));
         }
@@ -95,10 +97,12 @@ abstract class AbstractMappingResultHandler<M, R> implements MappingResultHandle
         return emptyResult;
     }
 
-    static abstract class AbstractBuilder<M, R, T> {
+    @NotThreadSafe
+    abstract static class AbstractBuilder<M, R, T extends AbstractBuilder<M, R, T>> {
 
         protected Collection<ConnectionMonitor> mappedMonitors;
         protected Collection<ConnectionMonitor> droppedMonitors;
+        private final T myself;
         private ConnectionMonitor.InfoProvider infoProvider;
         private Function<M, R> onMessageMapped;
         private Runnable onMessageDropped;
@@ -106,39 +110,40 @@ abstract class AbstractMappingResultHandler<M, R> implements MappingResultHandle
         private R emptyResult;
         private BinaryOperator<R> combineResults;
 
-        protected AbstractBuilder() {}
-
-        protected abstract T getSelf();
+        protected AbstractBuilder(final Class<? extends T> selfType) {
+            myself = selfType.cast(this);
+        }
 
         T infoProvider(final ConnectionMonitor.InfoProvider infoProvider) {
             this.infoProvider = infoProvider;
-            return getSelf();
+            return myself;
         }
 
         T onMessageMapped(final Function<M, R> onMessageMapped) {
             this.onMessageMapped = onMessageMapped;
-            return getSelf();
+            return myself;
         }
 
         T onMessageDropped(final Runnable onMessageDropped) {
             this.onMessageDropped = onMessageDropped;
-            return getSelf();
+            return myself;
         }
 
         T onException(final Consumer<Exception> onException) {
             this.onException = onException;
-            return getSelf();
+            return myself;
         }
 
         T emptyResult(final R emptyResult) {
             this.emptyResult = emptyResult;
-            return getSelf();
+            return myself;
         }
 
         T combineResults(final BinaryOperator<R> combineResults) {
             this.combineResults = combineResults;
-            return getSelf();
+            return myself;
         }
+
     }
 
 }
