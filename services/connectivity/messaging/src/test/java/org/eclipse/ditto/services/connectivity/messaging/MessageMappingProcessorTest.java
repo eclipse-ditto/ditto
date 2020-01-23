@@ -89,7 +89,7 @@ public final class MessageMappingProcessorTest {
         logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
         when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class))).thenReturn(logger);
         when(logger.withCorrelationId(Mockito.any(DittoHeaders.class))).thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.any(CharSequence.class))).thenReturn(logger);
 
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
