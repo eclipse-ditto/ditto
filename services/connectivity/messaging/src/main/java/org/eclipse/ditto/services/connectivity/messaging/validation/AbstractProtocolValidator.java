@@ -140,6 +140,7 @@ public abstract class AbstractProtocolValidator {
      * Validate configurations of {@link org.eclipse.ditto.model.connectivity.PayloadMappingDefinition}.
      *
      * @param connection the connection to check the MappingContext in.
+     * @param actorSystem the ActorSystem to use for retrieving config.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      */
     protected void validatePayloadMappings(final Connection connection, final ActorSystem actorSystem,

@@ -19,6 +19,8 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -28,8 +30,10 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -38,6 +42,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  */
 @Immutable
 public final class ThingsModelFactory {
+
+    private static final Pattern FEATURE_PROPERTY_PATTERN = Pattern.compile("^[^/].*[^/]$|[^/]");
 
     /*
      * Inhibit instantiation of this utility class.
@@ -262,6 +268,13 @@ public final class ThingsModelFactory {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
+            for (final CharSequence key : jsonObject.getKeys()) {
+                final Matcher propertyMatcher =
+                        FEATURE_PROPERTY_PATTERN.matcher(ConditionChecker.checkNotNull(key, "Property of the Feature"));
+                if (!propertyMatcher.matches()) {
+                    throw JsonPointerInvalidException.newBuilderForOuterSlashes(key).build();
+                }
+            }
             return ImmutableFeatureProperties.of(jsonObject);
         } else {
             return nullFeatureProperties();

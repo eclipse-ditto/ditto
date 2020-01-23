@@ -23,8 +23,8 @@ import org.eclipse.ditto.model.things.ThingId;
  * <p>
  * A {@code TopicPath} complies with the scheme
  *
- * <tt>&lt;namespace&gt;/&lt;id&gt;/&lt;group&gt;/&lt;channel&gt;/&lt;criterion&gt;/&lt;action&gt;</tt> <br>
- * for example <tt>org.eclipse.ditto/myThing/things/twin/commands/modify</tt>
+ * <code>&lt;namespace&gt;/&lt;id&gt;/&lt;group&gt;/&lt;channel&gt;/&lt;criterion&gt;/&lt;action&gt;</code> <br>
+ * for example <code>org.eclipse.ditto/myThing/things/twin/commands/modify</code>
  * </p>
  */
 public interface TopicPath {

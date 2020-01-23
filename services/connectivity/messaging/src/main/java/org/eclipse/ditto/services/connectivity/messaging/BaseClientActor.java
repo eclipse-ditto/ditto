@@ -18,6 +18,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.CONNECTING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTED;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTING;
+import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.INITIALIZED;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.TESTING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.UNKNOWN;
 
@@ -94,7 +95,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 
 import akka.Done;
-import akka.actor.AbstractFSM;
+import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.FSM;
@@ -111,17 +112,19 @@ import akka.pattern.Patterns;
  * the required information from ConnectionActor.
  * </p>
  */
-public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseClientData> {
+public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientState, BaseClientData> {
 
     protected static final Status.Success DONE = new Status.Success(Done.getInstance());
+
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     protected final ConnectionLogger connectionLogger;
-
     protected final ConnectivityConfig connectivityConfig;
     protected final ClientConfig clientConfig;
+
+    private final Connection connection;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
     private final Gauge clientGauge;
@@ -129,13 +132,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
     private final ActorRef messageMappingProcessorActor;
-
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
 
     protected BaseClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder) {
+        this.connection = connection;
 
         checkNotNull(connection, "connection");
 
@@ -163,6 +166,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         // stable states
         when(UNKNOWN, inUnknownState());
+        when(INITIALIZED, inInitializedState());
         when(CONNECTED, inConnectedState());
         when(DISCONNECTED, inDisconnectedState());
 
@@ -176,12 +180,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
         startWith(UNKNOWN, startingData);
-
-        // Always open connection right away when desired---this actor may be deployed onto other instances and
-        // will not be directly controlled by the connection persistence actor.
-        if (connection.getConnectionStatus() == ConnectivityStatus.OPEN) {
-            getSelf().tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getSelf());
-        }
 
         onTransition(this::onTransition);
 
@@ -201,13 +199,43 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         messageMappingProcessorActor = startMessageMappingProcessorActor();
 
         initialize();
+
+        // Send init message to allow for unsafe initialization of subclasses.
+        getSelf().tell(Init.getInstance(), getSelf());
     }
 
     @Override
     public void postStop() {
         clientGauge.reset();
         clientConnectingGauge.reset();
-        super.postStop();
+        try {
+            super.postStop();
+        } catch (final Exception e) {
+            log.error(e, "An error occurred post stop.");
+        }
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> init() {
+        doInit();
+
+        final State<BaseClientState, BaseClientData> state = goTo(INITIALIZED);
+
+        // Always open connection right away when desired---this actor may be deployed onto other instances and
+        // will not be directly controlled by the connection persistence actor.
+        if (connection.getConnectionStatus() == ConnectivityStatus.OPEN) {
+            getSelf().tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getSelf());
+        }
+
+        unstashAll();
+
+        return state;
+    }
+
+    /**
+     * Subclasses should initialize in the implementation. This method is called once after construction.
+     */
+    protected void doInit() {
+        // do nothing by default
     }
 
     /**
@@ -417,7 +445,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             clientConnectingGauge.reset();
         }
         // cancel our own state timeout if target state is stable
-        if (to == CONNECTED || to == DISCONNECTED || to == UNKNOWN) {
+        if (to == CONNECTED || to == DISCONNECTED || to == INITIALIZED) {
             cancelStateTimeout();
         }
     }
@@ -441,6 +469,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
+        return matchEvent(Init.class, BaseClientData.class, (init, baseClientData) -> init())
+                .anyEvent((o, baseClientData) -> {
+                    stash();
+                    return stay();
+                });
+    }
+
+    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inInitializedState() {
         return matchEvent(OpenConnection.class, BaseClientData.class, this::openConnection)
                 .event(CloseConnection.class, BaseClientData.class, this::closeConnection)
                 .event(TestConnection.class, BaseClientData.class, this::testConnection);
@@ -686,7 +722,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
                         connectionId());
 
-                return goTo(UNKNOWN).using(data.resetSession()
+                return goTo(INITIALIZED).using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
                         .setConnectionStatusDetails(timeoutMessage +
                                 " Reached maximum retries and thus will not try to reconnect any longer."));
@@ -694,7 +730,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
 
         connectionLogger.failure("Connection timed out.");
-        return goTo(UNKNOWN).using(data.resetSession()
+        return goTo(INITIALIZED).using(data.resetSession()
                 .setConnectionStatus(ConnectivityStatus.FAILED)
                 .setConnectionStatusDetails(timeoutMessage));
     }
@@ -849,7 +885,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         connectionId());
 
                 // stay in UNKNOWN state until re-opened manually
-                return goTo(UNKNOWN).using(data.resetSession()
+                return goTo(INITIALIZED).using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
                         .setConnectionStatusDetails(event.getFailureDescription()
                                 + " Reached maximum retries and thus will not try to reconnect any longer."));
@@ -857,7 +893,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
 
         connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
-        return goTo(UNKNOWN)
+        return goTo(INITIALIZED)
                 .using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
                         .setConnectionStatusDetails(event.getFailureDescription())
@@ -1380,4 +1416,21 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     }
 
+    protected static class Init {
+
+        @Nullable private static Init instance = null;
+
+        private Init() {
+        }
+
+        static Init getInstance() {
+            Init result = instance;
+            if (null == result) {
+                result = new Init();
+                instance = result;
+            }
+            return result;
+        }
+
+    }
 }

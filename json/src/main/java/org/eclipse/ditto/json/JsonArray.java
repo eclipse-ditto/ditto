@@ -54,6 +54,7 @@ public interface JsonArray extends JsonValue, JsonValueContainer<JsonValue> {
      * This method tries to determine the appropriate {@link JsonValue}-counterpart for each
      * given value.
      *
+     * @param <T> the type of values for JsonArray
      * @param value the mandatory value of the returned JsonArray.
      * @param furtherValues further optional values of the returned JsonArray.
      * @return the JsonArray.
@@ -76,6 +77,7 @@ public interface JsonArray extends JsonValue, JsonValueContainer<JsonValue> {
      * This method tries to determine the appropriate {@link JsonValue}-counterpart for each
      * item of the specified Iterable.
      *
+     * @param <T> the type of values for JsonArray
      * @param values the values of the returned JsonArray. {@code null}  items are
      * @return the JsonArray.
      * @throws NullPointerException if {@code values} is {@code null}.

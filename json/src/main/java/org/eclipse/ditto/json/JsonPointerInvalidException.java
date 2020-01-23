@@ -33,6 +33,9 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
     private static final String MULTIPLE_SLASHES_DESCRIPTION =
             "Consecutive slashes in JSON pointers are not supported.";
 
+    private static final String OUTER_SLASHES_DESCRIPTION =
+            "Leading or trailing slashes in JSON pointers are not supported.";
+
     private static final long serialVersionUID = -6773700329225961931L;
 
     private JsonPointerInvalidException(@Nullable final String message,
@@ -53,10 +56,10 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
     }
 
     /**
-     * Returns a new builder already containing a generic message that consecutive slashes are not supported for json
+     * Returns a new builder already containing a generic message that consecutive slashes are not supported for JSON
      * pointers.
      *
-     * @param jsonPointer The json pointer containing the consecutive slashes.
+     * @param jsonPointer The JSON pointer containing the consecutive slashes.
      * @return a builder for {@code JsonPointerInvalidException} objects.
      */
     static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderForConsecutiveSlashes(
@@ -64,6 +67,20 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
         return new Builder()
                 .jsonPointer(jsonPointer)
                 .description(MULTIPLE_SLASHES_DESCRIPTION);
+    }
+
+    /**
+     * Returns a new builder already containing a generic message that leading or trailing slashes are not supported for JSON
+     * pointers.
+     *
+     * @param jsonPointer The JSON pointer containing the consecutive slashes.
+     * @return a builder for {@code JsonPointerInvalidException} objects.
+     */
+    public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderForOuterSlashes(
+            final CharSequence jsonPointer) {
+        return new Builder()
+                .jsonPointer(jsonPointer)
+                .description(OUTER_SLASHES_DESCRIPTION);
     }
 
     /**
