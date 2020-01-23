@@ -395,7 +395,7 @@
                     <artifactId>docker-maven-plugin</artifactId>
                     <version>0.26.0</version>
                 </plugin>
-                <!-- TODO: enable again <plugin>
+                <plugin>
                     <groupId>com.github.siom79.japicmp</groupId>
                     <artifactId>japicmp-maven-plugin</artifactId>
                     <version>${japicmp-maven-plugin.version}</version>
@@ -437,7 +437,7 @@
                             </goals>
                         </execution>
                     </executions>
-                </plugin>-->
+                </plugin>
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>
