@@ -206,7 +206,12 @@
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <!--<exclude></exclude>-->
+                            <!-- New method in interface: Payload.getExtra(); Payload.newBuilder() -->
+                            <exclude>org.eclipse.ditto.protocoladapter.Payload</exclude>
+                            <!-- New method in interface: PayloadBuilder.withExtra(JsonObject) -->
+                            <exclude>org.eclipse.ditto.protocoladapter.PayloadBuilder</exclude>
+                            <!-- New static method in interface: ProtocolAdaapter.isLiveSignal(Signal) -->
+                            <exclude>org.eclipse.ditto.protocoladapter.ProtocolAdapter</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
