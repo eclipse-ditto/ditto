@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.things.ThingId;
@@ -65,6 +66,13 @@ public interface Message<T> {
      * @see #getPayload()
      */
     Optional<ByteBuffer> getRawPayload();
+
+    /**
+     * Returns the extra data included via signal enrichment.
+     *
+     * @return the extra data.
+     */
+    Optional<JsonObject> getExtra();
 
     /**
      * Returns the MessageResponseConsumer which is invoked with a potential response message or an error.

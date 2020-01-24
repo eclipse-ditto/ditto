@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
@@ -80,6 +81,15 @@ public interface MessageBuilder<T> {
      * @throws UnsupportedOperationException if the parameter was already predefined for the Message to build.
      */
     MessageBuilder<T> rawPayload(@Nullable ByteBuffer rawPayload);
+
+    /**
+     * Sets the extra selected data of the Message.
+     *
+     * @param extra the extra data of the Message.
+     * @return this builder to allow method chaining.
+     * @throws UnsupportedOperationException if the parameter was already predefined for the Message to build.
+     */
+    MessageBuilder<T> extra(@Nullable JsonObject extra);
 
     /**
      * Adds a {@code responseConsumer} which is invoked with a potential response Message to the built Message.

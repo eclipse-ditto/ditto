@@ -17,6 +17,7 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
@@ -29,6 +30,7 @@ public final class ImmutableMessageBuilderTest {
     private final static String KNOWN_FEATURE_ID = "plop";
     private final static String KNOWN_SUBJECT = "this.is.a.subject";
     private final static String KNOWN_STRING_PAYLOAD = "some string payload;\nirrelevant what!";
+    private final static JsonObject KNOWN_EXTRA = JsonObject.newBuilder().set("foo", false).build();
     private static final String KNOWN_CONTENT_TYPE_TEXT_PLAIN = "text/plain";
     private static final Duration KNOWN_TIMEOUT = Duration.ofMinutes(1);
 
@@ -58,6 +60,7 @@ public final class ImmutableMessageBuilderTest {
 
         final Message<String> message = ImmutableMessageBuilder.<String>newInstance(messageHeaders)
                 .payload(KNOWN_STRING_PAYLOAD)
+                .extra(KNOWN_EXTRA)
                 .build();
 
         assertThat(message.getDirection()).isEqualTo(MessageDirection.FROM);
@@ -65,6 +68,7 @@ public final class ImmutableMessageBuilderTest {
         assertThat(message.getSubject()).isEqualTo(KNOWN_SUBJECT);
         assertThat(message.getFeatureId()).hasValue(KNOWN_FEATURE_ID);
         assertThat(message.getPayload()).hasValue(KNOWN_STRING_PAYLOAD);
+        assertThat(message.getExtra()).hasValue(KNOWN_EXTRA);
         assertThat(message.getContentType()).hasValue(KNOWN_CONTENT_TYPE_TEXT_PLAIN);
         assertThat(message.getTimeout()).hasValue(KNOWN_TIMEOUT);
     }

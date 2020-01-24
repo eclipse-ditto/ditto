@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.nio.ByteBuffer;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -36,7 +37,7 @@ public final class ImmutableMessageTest {
                 areImmutable(),
                 assumingFields("payload", "rawPayload").areNotModifiedAndDoNotEscape(),
                 provided(MessageHeaders.class, ByteBuffer.class, AuthorizationContext.class,
-                        MessageResponseConsumer.class).areAlsoImmutable());
+                        MessageResponseConsumer.class, JsonObject.class).areAlsoImmutable());
     }
 
     @Test

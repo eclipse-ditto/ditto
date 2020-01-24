@@ -23,6 +23,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -39,16 +40,19 @@ final class ImmutableMessage<T> implements Message<T> {
     private final MessageHeaders headers;
     @Nullable private final ByteBuffer rawPayload;
     @Nullable private final T payload;
+    @Nullable private final JsonObject extra;
     @Nullable private final MessageResponseConsumer<?> responseConsumer;
 
     private ImmutableMessage(final MessageHeaders headers,
             @Nullable final ByteBuffer rawPayload,
             @Nullable final T payload,
+            @Nullable final JsonObject extra,
             @Nullable final MessageResponseConsumer<?> responseConsumer) {
 
         this.headers = checkNotNull(headers, "headers");
         this.rawPayload = rawPayload != null ? ByteBufferUtils.clone(rawPayload) : null;
         this.payload = payload;
+        this.extra = extra;
         this.responseConsumer = responseConsumer;
     }
 
@@ -61,12 +65,13 @@ final class ImmutableMessage<T> implements Message<T> {
      * sender has provided no payload)
      * @param payload the payload of the message as provided by the message sender (maybe {@code null} if the sender has
      * provided no payload)
+     * @param extra the extra (enriched) data of the message.
      * @throws NullPointerException if {@code headers} is {@code null}.
      */
     public static <T> Message<T> of(final MessageHeaders headers, @Nullable final ByteBuffer rawPayload,
-            @Nullable final T payload) {
+            @Nullable final T payload, @Nullable final JsonObject extra) {
 
-        return of(headers, rawPayload, payload, null);
+        return of(headers, rawPayload, payload, extra, null);
     }
 
     /**
@@ -78,15 +83,17 @@ final class ImmutableMessage<T> implements Message<T> {
      * sender has provided no payload)
      * @param payload the payload of the message as provided by the message sender (maybe {@code null} if the sender has
      * provided no payload)
+     * @param extra the extra (enriched) data of the message.
      * @param responseConsumer MessageResponseConsumer which is invoked with a potential response message.
      * @throws NullPointerException if {@code headers} is {@code null}.
      */
     public static <T> Message<T> of(final MessageHeaders headers,
             @Nullable final ByteBuffer rawPayload,
             @Nullable final T payload,
+            @Nullable final JsonObject extra,
             @Nullable final MessageResponseConsumer<?> responseConsumer) {
 
-        return new ImmutableMessage<>(headers, rawPayload, payload, responseConsumer);
+        return new ImmutableMessage<>(headers, rawPayload, payload, extra, responseConsumer);
     }
 
     @Override
@@ -106,6 +113,11 @@ final class ImmutableMessage<T> implements Message<T> {
         } else {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public Optional<JsonObject> getExtra() {
+        return Optional.ofNullable(extra);
     }
 
     @Override
@@ -174,12 +186,12 @@ final class ImmutableMessage<T> implements Message<T> {
         }
         final ImmutableMessage<?> that = (ImmutableMessage<?>) o;
         return Objects.equals(rawPayload, that.rawPayload) && Objects.equals(payload, that.payload)
-                && Objects.equals(headers, that.headers);
+                && Objects.equals(extra, that.extra) && Objects.equals(headers, that.headers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(rawPayload, payload, headers);
+        return Objects.hash(rawPayload, payload, extra, headers);
     }
 
     @Override
@@ -187,6 +199,7 @@ final class ImmutableMessage<T> implements Message<T> {
         return getClass().getSimpleName() + " [" +
                 "rawPayload=" + rawPayload +
                 ", payload=" + payload +
+                ", extra=" + extra +
                 ", headers=" + headers +
                 "]";
     }
