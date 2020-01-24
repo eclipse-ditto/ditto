@@ -34,7 +34,7 @@ import akka.actor.Extension;
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
  */
-public interface ConnectivitySignalEnrichmentProvider extends Extension {
+public abstract class ConnectivitySignalEnrichmentProvider implements Extension {
 
     /**
      * Create a signal-enriching facade from the ID of a connection.
@@ -42,22 +42,22 @@ public interface ConnectivitySignalEnrichmentProvider extends Extension {
      * @param connectionId the connection ID.
      * @return the facade.
      */
-    SignalEnrichmentFacade getFacade(ConnectionId connectionId);
+    public abstract SignalEnrichmentFacade getFacade(ConnectionId connectionId);
 
     /**
-     * Load a {@code ThingEnrichingFacadeProvider} dynamically according to the streaming configuration.
+     * Load a {@code ConnectivitySignalEnrichmentProvider} dynamically according to the streaming configuration.
      *
      * @param actorSystem The actor system in which to load the facade provider class.
      * @return The configured facade provider.
      */
-    static ConnectivitySignalEnrichmentProvider get(final ActorSystem actorSystem) {
+    public static ConnectivitySignalEnrichmentProvider get(final ActorSystem actorSystem) {
         return ExtensionId.INSTANCE.get(actorSystem);
     }
 
     /**
      * ID of the actor system extension to provide signal enrichment for connectivity.
      */
-    final class ExtensionId extends AbstractExtensionId<ConnectivitySignalEnrichmentProvider> {
+    private static final class ExtensionId extends AbstractExtensionId<ConnectivitySignalEnrichmentProvider> {
 
         private static final String SIGNAL_ENRICHMENT_CONFIG_PATH = "ditto.connectivity";
 

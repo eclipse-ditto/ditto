@@ -29,7 +29,6 @@ import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
-import org.eclipse.ditto.services.connectivity.mapping.ConnectivitySignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
@@ -163,9 +162,6 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         final ActorRef conciergeForwarder =
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
-        // load connectivity enrichment provider eagerly to save on startup time of message mapping processor actor
-        // requires concierge forwarder to have started
-        ConnectivitySignalEnrichmentProvider.get(actorSystem);
 
         final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
         final Props connectionSupervisorProps =

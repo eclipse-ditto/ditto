@@ -33,7 +33,7 @@ import akka.http.javadsl.model.HttpRequest;
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
  */
-public interface GatewaySignalEnrichmentProvider extends Extension {
+public abstract class GatewaySignalEnrichmentProvider implements Extension {
 
     /**
      * Create a {@link SignalEnrichmentFacade} from the HTTP request that
@@ -42,23 +42,23 @@ public interface GatewaySignalEnrichmentProvider extends Extension {
      * @param request the HTTP request.
      * @return the signal-enriching facade.
      */
-    SignalEnrichmentFacade getFacade(HttpRequest request);
+    public abstract SignalEnrichmentFacade getFacade(HttpRequest request);
 
     /**
-     * Get the {@code ThingEnrichingFacadeProvider} for the actor system.
+     * Get the {@code GatewaySignalEnrichmentProvider} for the actor system.
      * The provider is created dynamically according to the streaming configuration.
      *
      * @param actorSystem The actor system in which to load the facade provider class.
      * @return The configured facade provider.
      */
-    static GatewaySignalEnrichmentProvider get(final ActorSystem actorSystem) {
+    public static GatewaySignalEnrichmentProvider get(final ActorSystem actorSystem) {
         return ExtensionId.INSTANCE.get(actorSystem);
     }
 
     /**
      * ID of the actor system extension to provide signal enrichment for gateway.
      */
-    final class ExtensionId extends AbstractExtensionId<GatewaySignalEnrichmentProvider> {
+    private static final class ExtensionId extends AbstractExtensionId<GatewaySignalEnrichmentProvider> {
 
         private static final String SIGNAL_ENRICHMENT_CONFIG_PATH = "ditto.gateway.streaming";
 

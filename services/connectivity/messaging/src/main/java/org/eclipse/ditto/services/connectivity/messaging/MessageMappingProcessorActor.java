@@ -93,7 +93,6 @@ import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
@@ -164,7 +163,8 @@ public final class MessageMappingProcessorActor
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connectionId);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connectionId);
-        signalEnrichmentFacade = getSignalEnrichmentFacade(getContext().getSystem(), connectionId);
+        signalEnrichmentFacade =
+                ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(connectionId);
         this.processorPoolSize = processorPoolSize;
         inboundSourceQueue = materializeInboundStream(processorPoolSize);
     }
@@ -516,10 +516,6 @@ public final class MessageMappingProcessorActor
         return getThingId(exception)
                 .map(thingId -> ThingErrorResponse.of(thingId, exception, truncatedHeaders))
                 .orElseGet(() -> ThingErrorResponse.of(exception, truncatedHeaders));
-    }
-
-    private static SignalEnrichmentFacade getSignalEnrichmentFacade(final ActorSystem system, final ConnectionId id) {
-        return ConnectivitySignalEnrichmentProvider.get(system).getFacade(id);
     }
 
     private static String stackTraceAsString(final DittoRuntimeException exception) {

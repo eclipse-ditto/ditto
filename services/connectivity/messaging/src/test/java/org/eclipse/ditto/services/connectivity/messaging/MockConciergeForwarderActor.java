@@ -19,9 +19,9 @@ import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Mock actor that forwards all messages to the final actor who sent it a message.
+ * Mock actor that forwards all messages to the final ActorRef message.
  */
-public final class MockConciergeForwarderActor extends AbstractActor {
+final class MockConciergeForwarderActor extends AbstractActor {
 
     /**
      * Create a mock /connectivityRoot/conciergeForwarder actor that forwards everything to the last ActorRef message it

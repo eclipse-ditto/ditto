@@ -27,7 +27,7 @@ import akka.actor.ActorSystem;
  * Provider for Connectivity-service of signal-enriching facades that uses an async Caffeine cache in order to load
  * extra data to enrich.
  */
-public final class ConnectivityCachingSignalEnrichmentProvider implements ConnectivitySignalEnrichmentProvider {
+public final class ConnectivityCachingSignalEnrichmentProvider extends ConnectivitySignalEnrichmentProvider {
 
     private final CachingSignalEnrichmentFacade cachingSignalEnrichmentFacade;
 

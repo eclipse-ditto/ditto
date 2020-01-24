@@ -25,7 +25,7 @@ import akka.actor.ActorSystem;
 /**
  * Provider for Connectivity-service of signal-enriching facades that make a round-trip for each query.
  */
-public final class ConnectivityByRoundTripSignalEnrichmentProvider implements ConnectivitySignalEnrichmentProvider {
+public final class ConnectivityByRoundTripSignalEnrichmentProvider extends ConnectivitySignalEnrichmentProvider {
 
     private static final String CONCIERGE_FORWARDER = "/user/connectivityRoot/conciergeForwarder";
 

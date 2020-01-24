@@ -27,7 +27,7 @@ import akka.http.javadsl.model.HttpRequest;
  * Provider for gateway-service of signal-enriching facades that uses an async Caffeine cache in order to load
  * extra data to enrich.
  */
-public final class GatewayCachingSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
+public final class GatewayCachingSignalEnrichmentProvider extends GatewaySignalEnrichmentProvider {
 
     private static final String CACHE_LOADER_DISPATCHER = "signal-enrichment-cache-dispatcher";
 

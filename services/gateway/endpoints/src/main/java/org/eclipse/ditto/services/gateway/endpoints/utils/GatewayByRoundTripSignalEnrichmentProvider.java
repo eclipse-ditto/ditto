@@ -26,7 +26,7 @@ import akka.http.javadsl.model.HttpRequest;
 /**
  * Provider for gateway-service of signal-enriching facades that make a round-trip for each query.
  */
-public final class GatewayByRoundTripSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
+public final class GatewayByRoundTripSignalEnrichmentProvider extends GatewaySignalEnrichmentProvider {
 
     private static final String CONCIERGE_FORWARDER = "/user/gatewayRoot/" + ConciergeForwarderActor.ACTOR_NAME;
 
