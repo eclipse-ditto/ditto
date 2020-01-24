@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
@@ -58,8 +58,8 @@ final class Thing3ValuePredicateVisitor
     }
 
     @Override
-    public Function<Thing, Trilean> visitAnd(final Stream<Function<Thing, Trilean>> conjuncts) {
-        return thing -> conjuncts.map(f -> f.apply(thing)).reduce(Trilean::and).orElse(Trilean.TRUE);
+    public Function<Thing, Trilean> visitAnd(final List<Function<Thing, Trilean>> conjuncts) {
+        return thing -> conjuncts.stream().map(f -> f.apply(thing)).reduce(Trilean::and).orElse(Trilean.TRUE);
     }
 
     @Override
@@ -89,13 +89,13 @@ final class Thing3ValuePredicateVisitor
     }
 
     @Override
-    public Function<Thing, Trilean> visitNor(final Stream<Function<Thing, Trilean>> negativeDisjoints) {
+    public Function<Thing, Trilean> visitNor(final List<Function<Thing, Trilean>> negativeDisjoints) {
         return visitOr(negativeDisjoints).andThen(Trilean::not);
     }
 
     @Override
-    public Function<Thing, Trilean> visitOr(final Stream<Function<Thing, Trilean>> disjoints) {
-        return thing -> disjoints.map(f -> f.apply(thing)).reduce(Trilean::or).orElse(Trilean.FALSE);
+    public Function<Thing, Trilean> visitOr(final List<Function<Thing, Trilean>> disjoints) {
+        return thing -> disjoints.stream().map(f -> f.apply(thing)).reduce(Trilean::or).orElse(Trilean.FALSE);
     }
 
     private boolean isUnknownField(final FieldExpression fieldExpression) {

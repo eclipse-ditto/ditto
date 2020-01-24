@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.model.query.things;
 
+import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.query.criteria.Criteria;
@@ -35,8 +37,13 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
     }
 
     @Override
+    public Predicate<Thing> visitAnd(final List<Predicate<Thing>> conjuncts) {
+        return thing -> conjuncts.stream().allMatch(p -> p.test(thing));
+    }
+
+    @Override
     public Predicate<Thing> visitAnd(final Stream<Predicate<Thing>> conjuncts) {
-        return thing -> conjuncts.allMatch(p -> p.test(thing));
+        return visitAnd(conjuncts.collect(Collectors.toList()));
     }
 
     @Override
@@ -57,12 +64,22 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
     }
 
     @Override
+    public Predicate<Thing> visitNor(final List<Predicate<Thing>> negativeDisjoints) {
+        return thing -> negativeDisjoints.stream().noneMatch(p -> p.test(thing));
+    }
+
+    @Override
     public Predicate<Thing> visitNor(final Stream<Predicate<Thing>> negativeDisjoints) {
-        return thing -> negativeDisjoints.noneMatch(p -> p.test(thing));
+        return visitNor(negativeDisjoints.collect(Collectors.toList()));
+    }
+
+    @Override
+    public Predicate<Thing> visitOr(final List<Predicate<Thing>> disjoints) {
+        return thing -> disjoints.stream().anyMatch(p -> p.test(thing));
     }
 
     @Override
     public Predicate<Thing> visitOr(final Stream<Predicate<Thing>> disjoints) {
-        return thing -> disjoints.anyMatch(p -> p.test(thing));
+        return visitOr(disjoints.collect(Collectors.toList()));
     }
 }
