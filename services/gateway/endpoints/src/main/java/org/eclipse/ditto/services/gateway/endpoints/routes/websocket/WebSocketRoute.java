@@ -646,7 +646,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     matchesFilter(sessionedJsonifiable, extra)
                             ? Collections.singletonList(toJsonStringWithExtra(adaptable, extra))
                             : Collections.emptyList())
-                    .exceptionally(WebSocketRoute::reportEnrichmentError);
+                    .exceptionally(error -> WebSocketRoute.reportEnrichmentError(error, adapter, adaptable));
         };
     }
 
@@ -664,14 +664,30 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 });
     }
 
-    private static Collection<String> reportEnrichmentError(final Throwable error) {
+    private static Collection<String> reportEnrichmentError(final Throwable error,
+            final ProtocolAdapter adapter,
+            final Adaptable adaptable) {
         final DittoRuntimeException errorToReport;
         if (error instanceof DittoRuntimeException) {
             errorToReport = ((DittoRuntimeException) error);
         } else {
-            errorToReport = SignalEnrichmentFailedException.newBuilder().build();
+            errorToReport = SignalEnrichmentFailedException.newBuilder()
+                    .dittoHeaders(adaptable.getDittoHeaders())
+                    .cause(error)
+                    .build();
         }
-        return Collections.singletonList(errorToReport.toJsonString());
+        LOGGER.withCorrelationId(adaptable.getDittoHeaders())
+                .error("Signal enrichment failed due to: {}", error.getMessage(), errorToReport);
+
+        final JsonifiableAdaptable errorAdaptable =
+                ProtocolFactory.wrapAsJsonifiableAdaptable(adapter.toAdaptable(
+                        ThingErrorResponse.of(
+                                ThingId.of(adaptable.getTopicPath().getNamespace(), adaptable.getTopicPath().getId()),
+                                errorToReport,
+                                adaptable.getDittoHeaders()
+                        )
+                ));
+        return Collections.singletonList(errorAdaptable.toJsonString());
     }
 
     private static String toJsonStringWithExtra(final Adaptable adaptable, final JsonObject extra) {
