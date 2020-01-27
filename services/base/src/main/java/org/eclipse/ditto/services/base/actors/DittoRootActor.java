@@ -29,6 +29,7 @@ import akka.actor.ActorRef;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
@@ -97,6 +98,11 @@ public abstract class DittoRootActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(StartChildActor.class, this::startChildActor)
+                .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure <{}>!", f))
+                .matchAny(m -> {
+                    log.warning("Unknown message <{}>.", m);
+                    unhandled(m);
+                })
                 .build();
     }
 

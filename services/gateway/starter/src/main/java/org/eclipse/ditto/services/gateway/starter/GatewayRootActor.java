@@ -67,7 +67,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
@@ -187,18 +186,12 @@ final class GatewayRootActor extends DittoRootActor {
 
     @Override
     public Receive createReceive() {
-        return super.createReceive()
-                .orElse(ReceiveBuilder.create()
-                        .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
-                        .matchEquals(GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE, msg -> {
-                            final ActorRef sender = getSender();
-                            httpBinding.thenAccept(binding -> sender.tell(
-                                    GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE_RESPONSE, ActorRef.noSender()));
-                        })
-                        .matchAny(m -> {
-                            log.warning("Unknown message: {}", m);
-                            unhandled(m);
-                        }).build());
+        return ReceiveBuilder.create()
+                .matchEquals(GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE, msg -> {
+                    final ActorRef sender = getSender();
+                    httpBinding.thenAccept(binding -> sender.tell(
+                            GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE_RESPONSE, ActorRef.noSender()));
+                }).build().orElse(super.createReceive());
     }
 
     private static Route createRoute(final ActorSystem actorSystem,

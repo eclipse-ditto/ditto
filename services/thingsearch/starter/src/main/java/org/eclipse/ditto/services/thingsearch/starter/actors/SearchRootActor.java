@@ -64,7 +64,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -72,7 +71,6 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 
 /**
@@ -224,18 +222,6 @@ public final class SearchRootActor extends DittoRootActor {
             final ActorMaterializer materializer) {
 
         return Props.create(SearchRootActor.class, searchConfig, pubSubMediator, materializer);
-    }
-
-    @Override
-    public Receive createReceive() {
-        return super.createReceive()
-                .orElse(ReceiveBuilder.create()
-                        .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
-                        .matchAny(m -> {
-                            log.warning("Unknown message: {}", m);
-                            unhandled(m);
-                        })
-                        .build());
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {

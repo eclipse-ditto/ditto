@@ -45,14 +45,12 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 
 /**
@@ -152,17 +150,6 @@ public final class ConciergeRootActor extends DittoRootActor {
 
         return logRequest("http-request", () ->
                 logResult("http-response", statusRoute::buildStatusRoute));
-    }
-
-    @Override
-    public Receive createReceive() {
-        return super.createReceive()
-                .orElse(ReceiveBuilder.create()
-                        .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure <{}>!", f))
-                        .matchAny(m -> {
-                            log.warning("Unknown message <{}>.", m);
-                            unhandled(m);
-                        }).build());
     }
 
     private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfig httpConfig,

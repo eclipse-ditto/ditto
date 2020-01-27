@@ -51,7 +51,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
@@ -175,14 +174,9 @@ public final class PoliciesRootActor extends DittoRootActor {
 
     @Override
     public Receive createReceive() {
-        return super.createReceive()
-                .orElse(ReceiveBuilder.create()
-                        .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
-                        .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
-                        .matchAny(m -> {
-                            log.warning("Unknown message: {}", m);
-                            unhandled(m);
-                        }).build());
+        return ReceiveBuilder.create()
+                .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
+                .build().orElse(super.createReceive());
     }
 
     private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {

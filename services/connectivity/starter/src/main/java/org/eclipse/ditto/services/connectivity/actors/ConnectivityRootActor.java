@@ -61,7 +61,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.sharding.ClusterSharding;
@@ -72,7 +71,6 @@ import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
-import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import scala.PartialFunction;
 
@@ -176,17 +174,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
         return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator, materializer,
                 conciergeForwarderSignalTransformer, null);
-    }
-
-    @Override
-    public Receive createReceive() {
-        return super.createReceive()
-                .orElse(ReceiveBuilder.create()
-                        .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
-                        .matchAny(m -> {
-                            log.warning("Unknown message: {}", m);
-                            unhandled(m);
-                        }).build());
     }
 
     @Override
