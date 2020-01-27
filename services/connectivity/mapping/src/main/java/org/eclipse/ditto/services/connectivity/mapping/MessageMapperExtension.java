@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import javax.annotation.Nullable;
 
+import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 
 import akka.actor.ExtendedActorSystem;
@@ -22,6 +23,7 @@ import akka.actor.ExtendedActorSystem;
  * Interface for wrapping an existing message mapper after creation.
  */
 @FunctionalInterface
+@IndexSubclasses
 public interface MessageMapperExtension {
 
     /**
