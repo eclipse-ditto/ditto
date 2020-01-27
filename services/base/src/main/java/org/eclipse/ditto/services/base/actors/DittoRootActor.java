@@ -16,6 +16,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.ConnectException;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -159,6 +160,32 @@ public abstract class DittoRootActor extends AbstractActor {
         public StartChildActor(final Props props, final String actorName) {
             this.props = props;
             this.actorName = actorName;
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final StartChildActor that = (StartChildActor) o;
+            return props.equals(that.props) &&
+                    actorName.equals(that.actorName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(props, actorName);
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "props=" + props +
+                    ", actorName=" + actorName +
+                    "]";
         }
 
     }
