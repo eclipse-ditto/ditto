@@ -17,11 +17,13 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
@@ -155,6 +157,25 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         return context.actorOf(enforcerProps, EnforcerActor.ACTOR_NAME);
     }
 
+    /**
+     * Set the "ditto-originator" header to the primary authorization subject of a signal.
+     *
+     * @param originalSignal A signal with authorization context.
+     * @return A copy of the signal with the header "ditto-originator" set.
+     */
+    public static WithDittoHeaders setOriginatorHeader(final WithDittoHeaders originalSignal) {
+        final List<String> authSubjects = originalSignal.getDittoHeaders().getAuthorizationSubjects();
+        if (authSubjects.isEmpty()) {
+            return originalSignal;
+        } else {
+            final String originatorSubjectId = authSubjects.get(0);
+            return originalSignal.setDittoHeaders(originalSignal.getDittoHeaders()
+                    .toBuilder()
+                    .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
+                    .build());
+        }
+    }
+
     private static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
             final BlockedNamespaces blockedNamespaces, final PlaceholderSubstitution placeholderSubstitution) {
 
@@ -163,6 +184,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                         .block(withDittoHeaders)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
                         .thenApply(DefaultEnforcerActorFactory::prependDefaultNamespaceToCreateThing)
+                        .thenApply(DefaultEnforcerActorFactory::setOriginatorHeader)
                         .thenCompose(placeholderSubstitution);
     }
 

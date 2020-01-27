@@ -185,6 +185,8 @@ The following DevOps commands are supported:
 * Dynamically retrieve service configuration
 * Piggyback commands
 
+{% include note.html content="The default credentials for the `/devops` HTTP endpoint are username: `devops`, password: `foobar`. The password can be changed by setting the environment variable `DEVOPS_PASSWORD` in the gateway service." %}
+
 
 ### Dynamically adjust log levels
 

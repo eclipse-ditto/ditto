@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.signals.base.Signal;
@@ -58,6 +59,18 @@ public interface OutboundSignal extends Jsonifiable.WithFieldSelectorAndPredicat
     @Override
     default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
         return toJson(schemaVersion, FieldType.notHidden()).get(fieldSelector);
+    }
+
+    /**
+     * Extends the {@link OutboundSignal} by adding the payload mapping used to map the signal.
+     */
+    interface Mappable extends OutboundSignal {
+
+        /**
+         * @return the {@link PayloadMapping} common to all {@link Target}s.
+         */
+        PayloadMapping getPayloadMapping();
+
     }
 
     /**

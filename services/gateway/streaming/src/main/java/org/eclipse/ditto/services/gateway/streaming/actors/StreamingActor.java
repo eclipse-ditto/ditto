@@ -17,6 +17,7 @@ import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
@@ -141,18 +142,21 @@ public final class StreamingActor extends AbstractActorWithTimers
                 .orElse(modifyConfigBehavior())
                 .orElse(ReceiveBuilder.create()
                         .match(Signal.class, signal -> {
-                            final Optional<String> originOpt = signal.getDittoHeaders().getOrigin();
+                            final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+                            final Optional<String> originOpt = dittoHeaders.getOrigin();
                             if (originOpt.isPresent()) {
                                 final String origin = originOpt.get();
                                 final Optional<ActorRef> sessionActor = getContext().findChild(origin);
                                 if (sessionActor.isPresent()) {
-                                    commandRouter.tell(signal, sessionActor.get());
+                                    final ActorRef sender = dittoHeaders.isResponseRequired() ? sessionActor.get() :
+                                            ActorRef.noSender();
+                                    commandRouter.tell(signal, sender);
                                 } else {
                                     logger.debug("No session actor found for origin: {}", origin);
                                 }
                             } else {
                                 logger.warning("Signal is missing the required origin header: {}",
-                                        signal.getDittoHeaders().getCorrelationId());
+                                        dittoHeaders.getCorrelationId());
                             }
                         })
                         .matchEquals(Control.RETRIEVE_WEBSOCKET_CONFIG, this::replyWebsocketConfig)

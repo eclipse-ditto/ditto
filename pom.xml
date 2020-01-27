@@ -395,7 +395,7 @@
                     <artifactId>docker-maven-plugin</artifactId>
                     <version>0.26.0</version>
                 </plugin>
-                <!-- TODO: enable again <plugin>
+                <plugin>
                     <groupId>com.github.siom79.japicmp</groupId>
                     <artifactId>japicmp-maven-plugin</artifactId>
                     <version>${japicmp-maven-plugin.version}</version>
@@ -424,8 +424,8 @@
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                             <excludes>
-                                &lt;!&ndash; Don't add excludes here before checking with the whole Ditto team &ndash;&gt;
-                                &lt;!&ndash;<exclude></exclude>&ndash;&gt;
+                                <!-- Don't add excludes here before checking with the whole Ditto team -->
+                                <!--<exclude></exclude>-->
                             </excludes>
                         </parameter>
                     </configuration>
@@ -437,7 +437,7 @@
                             </goals>
                         </execution>
                     </executions>
-                </plugin>-->
+                </plugin>
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>
@@ -566,6 +566,7 @@
                     <validHeaders>
                         <header>${project.basedir}/src/license-header-2017.txt</header>
                         <header>${project.basedir}/src/license-header-2018.txt</header>
+                        <header>${project.basedir}/src/license-header-2019.txt</header>
                     </validHeaders>
                     <aggregate>true</aggregate>
                     <quiet>false</quiet>

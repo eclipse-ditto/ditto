@@ -30,6 +30,11 @@
         <module>jsr305</module>
     </modules>
 
+    <properties>
+        <javac.source>1.8</javac.source>
+        <javac.target>1.8</javac.target>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -37,6 +42,14 @@
                 <artifactId>flatten-maven-plugin</artifactId>
                 <configuration>
                     <flattenMode>ossrh</flattenMode>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
                 </configuration>
             </plugin>
 

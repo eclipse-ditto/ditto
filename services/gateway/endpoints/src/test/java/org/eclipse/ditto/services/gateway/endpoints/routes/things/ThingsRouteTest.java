@@ -14,8 +14,6 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
-import java.util.UUID;
-
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -142,6 +140,16 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final String tooLongNumber = "89314404000484999942";
         final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes/attribute")
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, tooLongNumber));
+        final TestRouteResult result =
+                underTest.run(request);
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void putAttributeWithJsonPointerException() {
+        final String attributeJson = "{\"/attributeTest\":\"test\"}";
+        final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes")
+                .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, attributeJson));
         final TestRouteResult result =
                 underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
