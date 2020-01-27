@@ -169,6 +169,16 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Set<String> getReadSubjects();
 
     /**
+     * Returns the authorization subjects with explicitly revoked "READ" permissions for the key in the map defining a
+     * pointer in the Thing.
+     * Changes on the returned Set are not reflected back to this headers object.
+     *
+     * @return the revoked subjects for pointers in the Thing.
+     * @since 1.1.0
+     */
+    Set<String> getRevokedSubjects();
+
+    /**
      * Returns the channel (twin/live) on which a Signal/Exception was sent/occurred.
      *
      * @return the channel (twin/live).

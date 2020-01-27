@@ -197,6 +197,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S revokedSubjects(final Collection<String> revokedSubjects) {
+        putStringCollection(DittoHeaderDefinition.REVOKED_SUBJECTS, revokedSubjects);
+        return myself;
+    }
+
+    @Override
     public S channel(@Nullable final CharSequence channel) {
         putCharSequence(DittoHeaderDefinition.CHANNEL, channel);
         return myself;

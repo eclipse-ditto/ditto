@@ -98,6 +98,16 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B readSubjects(Collection<String> readSubjects);
 
     /**
+     * Sets the revokedSubjects value.
+     *
+     * @param revokedSubjects the revokedSubjects value to be set.
+     * @return this builder for Method Chaining.
+     * @throws NullPointerException if {@code revokedSubjects} is {@code null}.
+     * @since 1.1.0
+     */
+    B revokedSubjects(Collection<String> revokedSubjects);
+
+    /**
      * Sets the specified String as channel of the Signal/Exception.
      *
      * @param channel the channel of the Signal/Exception to be set.

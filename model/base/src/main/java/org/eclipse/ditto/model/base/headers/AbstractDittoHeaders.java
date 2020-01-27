@@ -107,10 +107,19 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     @Override
     public Set<String> getReadSubjects() {
-        final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.READ_SUBJECTS);
+        return getSubjects(DittoHeaderDefinition.READ_SUBJECTS);
+    }
+
+    private Set<String> getSubjects(final HeaderDefinition headerDefinition) {
+        final JsonArray jsonValueArray = getJsonArrayForDefinition(headerDefinition);
         return jsonValueArray.stream()
                 .map(JsonValue::asString)
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<String> getRevokedSubjects() {
+        return getSubjects(DittoHeaderDefinition.REVOKED_SUBJECTS);
     }
 
     @Override
