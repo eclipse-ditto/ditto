@@ -31,6 +31,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import akka.actor.ActorSystem;
+import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
@@ -261,6 +263,15 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     public void getNonExistingSubUrl() {
         final TestRouteResult result = underTest.run(HttpRequest.GET(FEATURE_ENTRY_PATH + UNKNOWN_PATH));
         result.assertStatusCode(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
+    public void putAttributeWithJsonPointerException() {
+        final String featureJson = "{\"/wrongProperty\":\"value\"}";
+        final TestRouteResult result =
+                underTest.run(HttpRequest.PUT(FEATURE_ENTRY_PROPERTIES_PATH)
+                        .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, featureJson)));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
 }

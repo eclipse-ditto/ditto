@@ -23,13 +23,14 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.thingsearch.common.config.StreamCacheConfig;
@@ -116,6 +117,42 @@ final class EnforcementFlow {
                 streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize(), deleteEvent);
     }
 
+    private static EntityIdWithResourceType getPolicyEntityId(final PolicyId policyId) {
+        return EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId);
+    }
+
+    /**
+     * Extract Thing ID from SudoRetrieveThingResponse.
+     * This is needed because SudoRetrieveThingResponse#id() is always the empty string.
+     *
+     * @param response the SudoRetrieveThingResponse.
+     * @return the extracted Thing ID.
+     */
+    private static ThingId getThingId(final SudoRetrieveThingResponse response) {
+        final String thingId = response.getEntity().asObject().getValueOrThrow(Thing.JsonFields.ID);
+        return ThingId.of(thingId);
+    }
+
+    /**
+     * Decide whether to reload an enforcer entry.
+     * An entry should be reload if it is out-of-date, nonexistent, or corresponds to a nonexistent entity.
+     *
+     * @param entry the enforcer cache entry
+     * @param metadata the metadata
+     * @param iteration how many times cache read was attempted
+     * @return whether to reload the cache
+     */
+    private static boolean shouldReloadCache(@Nullable final Entry<?> entry, final Metadata metadata,
+            final int iteration) {
+
+        if (iteration <= 0) {
+            return entry == null || !entry.exists() || entry.getRevision() < metadata.getPolicyRevision();
+        } else {
+            // never attempt to reload cache more than once
+            return false;
+        }
+    }
+
     /**
      * Create a flow from Thing changes to write models by retrieving data from Things shard region and enforcer cache.
      *
@@ -185,8 +222,14 @@ final class EnforcementFlow {
             return getEnforcer(metadata, thing)
                     .map(entry -> {
                         if (entry.exists()) {
-                            return EnforcedThingMapper.toWriteModel(thing, entry.getValueOrThrow(), entry.getRevision(),
-                                    maxArraySize);
+                            try {
+                                return EnforcedThingMapper.toWriteModel(thing, entry.getValueOrThrow(),
+                                        entry.getRevision(),
+                                        maxArraySize);
+                            } catch (final JsonRuntimeException e) {
+                                log.error(e.getMessage(), e);
+                                return ThingDeleteModel.of(metadata);
+                            }
                         } else {
                             // no enforcer; delete thing from search index
                             return ThingDeleteModel.of(metadata);
@@ -239,42 +282,6 @@ final class EnforcementFlow {
         });
 
         return lazySource.viaMat(Flow.create(), Keep.none());
-    }
-
-    private static EntityIdWithResourceType getPolicyEntityId(final PolicyId policyId) {
-        return EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId);
-    }
-
-    /**
-     * Extract Thing ID from SudoRetrieveThingResponse.
-     * This is needed because SudoRetrieveThingResponse#id() is always the empty string.
-     *
-     * @param response the SudoRetrieveThingResponse.
-     * @return the extracted Thing ID.
-     */
-    private static ThingId getThingId(final SudoRetrieveThingResponse response) {
-        final String thingId = response.getEntity().asObject().getValueOrThrow(Thing.JsonFields.ID);
-        return ThingId.of(thingId);
-    }
-
-    /**
-     * Decide whether to reload an enforcer entry.
-     * An entry should be reload if it is out-of-date, nonexistent, or corresponds to a nonexistent entity.
-     *
-     * @param entry the enforcer cache entry
-     * @param metadata the metadata
-     * @param iteration how many times cache read was attempted
-     * @return whether to reload the cache
-     */
-    private static boolean shouldReloadCache(@Nullable final Entry<?> entry, final Metadata metadata,
-            final int iteration) {
-
-        if (iteration <= 0) {
-            return entry == null || !entry.exists() || entry.getRevision() < metadata.getPolicyRevision();
-        } else {
-            // never attempt to reload cache more than once
-            return false;
-        }
     }
 
 }

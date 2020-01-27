@@ -16,6 +16,8 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -68,7 +70,7 @@ public abstract class AbstractWriteModel {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -76,7 +78,7 @@ public abstract class AbstractWriteModel {
             return false;
         }
         final AbstractWriteModel that = (AbstractWriteModel) o;
-        return metadata.equals(that.metadata);
+        return Objects.equals(metadata, that.metadata);
     }
 
     @Override
