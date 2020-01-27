@@ -14,7 +14,7 @@ http://localhost:8080/api/<apiVersion>
 
 ## API versioning
 
-Ditto's HTTP API is versioned in the URL: `/api/<apiVersion>`. Currently Ditto distinguishes between API version `1` and
+Ditto's HTTP API is versioned in the URL: `/api/<apiVersion>`. Currently Ditto distinguishes between deprecated API version `1` and
 API version `2`.
 
 The API version is a promise that no HTTP resources (the static ones defined by Ditto itself) are modified in an 
@@ -34,7 +34,7 @@ In the HTTP API, some endpoints are static and can be seen as the "schema" of Di
 representation of the model classes, e.g. [Thing](basic-thing.html#model-specification) for the layout of the `/things`
 endpoint and [Policy](basic-policy.html) for the layout of the `/policies` endpoint.
 
-### API version 1
+### API version 1 - Deprecated
 
 In API version 1, each `Thing` contains the information about the authorization in an inlined [ACL](basic-acl.html).
 

@@ -15,7 +15,7 @@ Nevertheless two coarse elements are defined in order to structure `Thing`s (see
 * Attributes: intended for managing static meta data of a `Thing` - as JSON object - which does not change frequently.
 * [Features](basic-feature.html): intended for managing state data (e.g. sensor data or configuration data) of a `Thing`.
 
-## API version 1
+## API version 1 - Deprecated
 
 In API version 1 the information which _subjects_ are allowed to READ, WRITE, ADMINISTRATE Things is inlined in the
 Things itself. This class diagram shows the structure Ditto requires for **API version 1**:

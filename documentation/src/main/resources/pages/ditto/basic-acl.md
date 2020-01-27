@@ -1,5 +1,5 @@
 ---
-title: Access control list (ACL)
+title: Access control list (ACL) - Deprecated
 keywords: authentication, authorization, auth, acl, access control
 tags: [model]
 permalink: basic-acl.html
