@@ -15,11 +15,7 @@ package org.eclipse.ditto.services.connectivity.actors;
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.net.ConnectException;
 import java.time.Duration;
-import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.UnaryOperator;
 
@@ -27,7 +23,6 @@ import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
@@ -62,12 +57,9 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
 import akka.Done;
-import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
-import akka.actor.InvalidActorNameException;
-import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
@@ -81,8 +73,8 @@ import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
+import scala.PartialFunction;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
@@ -97,59 +89,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
     private static final String CLUSTER_ROLE = "connectivity";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-    private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
-            .match(NullPointerException.class, e -> {
-                log.error(e, "NullPointer in child actor: {}", e.getMessage());
-                return restartChild();
-            }).match(IllegalArgumentException.class, e -> {
-                log.warning("Illegal Argument in child actor: {}", e.getMessage());
-
-                StringWriter sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw);
-                e.printStackTrace(pw);
-
-                log.warning("Illegal Argument in child actor: {}", sw.toString());
-                return SupervisorStrategy.resume();
-            }).match(IllegalStateException.class, e -> {
-                log.warning("Illegal State in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(IndexOutOfBoundsException.class, e -> {
-                log.warning("IndexOutOfBounds in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(NoSuchElementException.class, e -> {
-                log.warning("NoSuchElement in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(AskTimeoutException.class, e -> {
-                log.warning("AskTimeoutException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(ConnectException.class, e -> {
-                log.warning("ConnectException in child actor: {}", e.getMessage());
-                return restartChild();
-            }).match(InvalidActorNameException.class, e -> {
-                log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(ActorKilledException.class, e -> {
-                log.error(e, "ActorKilledException in child actor: {}", e.message());
-                return restartChild();
-            }).match(DittoRuntimeException.class, e -> {
-                log.error(e,
-                        "DittoRuntimeException '{}' should not be escalated to ConnectivityRootActor. Simply resuming Actor.",
-                        e.getErrorCode());
-                return SupervisorStrategy.resume();
-            }).match(JMSRuntimeException.class, e -> {
-                log.warning("JMSRuntimeException '{}' occurred.", e.getMessage());
-                return restartChild();
-            }).match(NamingException.class, e -> {
-                log.warning("NamingException '{}' occurred.", e.getMessage());
-                return restartChild();
-            }).match(Throwable.class, e -> {
-                log.error(e, "Escalating above root actor!");
-                return SupervisorStrategy.escalate();
-            }).matchAny(e -> {
-                log.error("Unknown message:'{}'! Escalating above root actor!", e);
-                return SupervisorStrategy.escalate();
-            }).build());
 
     @SuppressWarnings("unused")
     private ConnectivityRootActor(final ConnectivityConfig connectivityConfig,
@@ -240,11 +179,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
     }
 
     @Override
-    public SupervisorStrategy supervisorStrategy() {
-        return strategy;
-    }
-
-    @Override
     public Receive createReceive() {
         return super.createReceive()
                 .orElse(ReceiveBuilder.create()
@@ -255,14 +189,15 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         }).build());
     }
 
-    private SupervisorStrategy.Directive restartChild() {
-        log.info("Restarting child ...");
-        return SupervisorStrategy.restart();
-    }
-
-    private ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor <{}>.", actorName);
-        return getContext().actorOf(props, actorName);
+    @Override
+    protected PartialFunction<Throwable, SupervisorStrategy.Directive> getSupervisionDecider() {
+        return DeciderBuilder.match(JMSRuntimeException.class, e -> {
+            log.warning("JMSRuntimeException '{}' occurred.", e.getMessage());
+            return restartChild();
+        }).match(NamingException.class, e -> {
+            log.warning("NamingException '{}' occurred.", e.getMessage());
+            return restartChild();
+        }).build().orElse(super.getSupervisionDecider());
     }
 
     private void startClusterSingletonActor(final Props props, final String name) {

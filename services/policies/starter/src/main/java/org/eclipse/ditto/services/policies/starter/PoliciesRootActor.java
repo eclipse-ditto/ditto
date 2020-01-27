@@ -16,14 +16,12 @@ import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
 import static org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants.CLUSTER_ROLE;
 
-import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.policies.common.config.PoliciesConfig;
@@ -49,16 +47,11 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import akka.Done;
-import akka.actor.AbstractActor;
-import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
-import akka.actor.InvalidActorNameException;
-import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
@@ -67,69 +60,21 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
  */
-public final class PoliciesRootActor extends AbstractActor {
+public final class PoliciesRootActor extends DittoRootActor {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = "policiesRoot";
 
-    private static final String RESTARTING_CHILD_MESSAGE = "Restarting child...";
-
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-    private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
-            .match(NullPointerException.class, e -> {
-                log.error(e, "NullPointer in child actor: {}", e.getMessage());
-                log.info(RESTARTING_CHILD_MESSAGE);
-                return SupervisorStrategy.restart();
-            }).match(IllegalArgumentException.class, e -> {
-                log.warning("Illegal Argument in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(IndexOutOfBoundsException.class, e -> {
-                log.warning("IndexOutOfBounds in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(IllegalStateException.class, e -> {
-                log.warning("Illegal State in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(NoSuchElementException.class, e -> {
-                log.warning("NoSuchElement in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(AskTimeoutException.class, e -> {
-                log.warning("AskTimeoutException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(ConnectException.class, e -> {
-                log.warning("ConnectException in child actor: {}", e.getMessage());
-                log.info(RESTARTING_CHILD_MESSAGE);
-                return SupervisorStrategy.restart();
-            }).match(InvalidActorNameException.class, e -> {
-                log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(ActorKilledException.class, e -> {
-                log.error(e, "ActorKilledException in child actor: {}", e.message());
-                log.info(RESTARTING_CHILD_MESSAGE);
-                return SupervisorStrategy.restart();
-            }).match(DittoRuntimeException.class, e -> {
-                log.error(e,
-                        "DittoRuntimeException '{}' should not be escalated to PoliciesRootActor. Simply resuming Actor.",
-                        e.getErrorCode());
-                return SupervisorStrategy.resume();
-            }).match(Throwable.class, e -> {
-                log.error(e, "Escalating above root actor!");
-                return SupervisorStrategy.escalate();
-            }).matchAny(e -> {
-                log.error("Unknown message:'{}'! Escalating above root actor!", e);
-                return SupervisorStrategy.escalate();
-            }).build());
 
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
@@ -229,30 +174,21 @@ public final class PoliciesRootActor extends AbstractActor {
     }
 
     @Override
-    public SupervisorStrategy supervisorStrategy() {
-        return strategy;
-    }
-
-    @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
-                .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
-                .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
-                    unhandled(m);
-                }).build();
+        return super.createReceive()
+                .orElse(ReceiveBuilder.create()
+                        .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
+                        .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
+                        .matchAny(m -> {
+                            log.warning("Unknown message: {}", m);
+                            unhandled(m);
+                        }).build());
     }
 
     private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
         log.info("Sending the namespace stats of the policy shard as requested ...");
         Patterns.pipe(retrieveStatisticsDetailsResponseSupplier
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
-    }
-
-    private ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor <{}>.", actorName);
-        return getContext().actorOf(props, actorName);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
