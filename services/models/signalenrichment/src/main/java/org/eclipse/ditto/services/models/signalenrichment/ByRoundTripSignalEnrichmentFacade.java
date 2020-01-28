@@ -25,9 +25,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
 
 import akka.actor.ActorSelection;
 import akka.pattern.Patterns;
@@ -62,6 +64,11 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
             final JsonFieldSelector jsonFieldSelector,
             final DittoHeaders dittoHeaders,
             @Nullable final Signal<?> concernedSignal) {
+
+        if (concernedSignal instanceof ThingDeleted && !(ProtocolAdapter.isLiveSignal(concernedSignal))) {
+            // twin deleted events should not be enriched, return empty JsonObject
+            return CompletableFuture.completedFuture(JsonObject.empty());
+        }
 
         // remove channel header to prevent looping on live messages
         final DittoHeaders headersWithoutChannel = dittoHeaders.toBuilder().channel(null).build();

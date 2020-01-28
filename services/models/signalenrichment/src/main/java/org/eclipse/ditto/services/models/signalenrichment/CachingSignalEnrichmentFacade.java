@@ -37,6 +37,7 @@ import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
@@ -85,6 +86,11 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             final JsonFieldSelector jsonFieldSelector,
             final DittoHeaders dittoHeaders,
             @Nullable final Signal<?> concernedSignal) {
+
+        if (concernedSignal instanceof ThingDeleted && !(ProtocolAdapter.isLiveSignal(concernedSignal))) {
+            // twin deleted events should not be enriched, return empty JsonObject
+            return CompletableFuture.completedFuture(JsonObject.empty());
+        }
 
         // as second step only return what was originally requested as fields:
         return doRetrievePartialThing(thingId, jsonFieldSelector, dittoHeaders, concernedSignal)
