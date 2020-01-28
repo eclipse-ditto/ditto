@@ -29,6 +29,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Test;
 
@@ -157,7 +158,24 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             assertThat(askResult).hasFailedWithThrowableThat()
                     .isInstanceOf(AskTimeoutException.class);
         });
+    }
 
+    @Test
+    public void dontEnrichThingDeleted() {
+        DittoTestSystem.run(this, kit -> {
+            // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
+            final SignalEnrichmentFacade underTest =
+                    createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
+            final ThingId thingId = ThingId.dummy();
+            final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
+            final ThingDeleted thingDeleted = ThingDeleted.of(thingId, 2L, headers);
+
+            // WHEN: ThingDeleted event is about to be enriched by facade
+            underTest.retrievePartialThing(thingId, SELECTOR, headers, thingDeleted);
+
+            // THEN: expect that no RetrieveThing is sent in order to enrich the Thing
+            kit.expectNoMessage(Duration.ofSeconds(1));
+        });
     }
 
     protected abstract SignalEnrichmentFacade createSignalEnrichmentFacadeUnderTest(TestKit kit, Duration duration);
