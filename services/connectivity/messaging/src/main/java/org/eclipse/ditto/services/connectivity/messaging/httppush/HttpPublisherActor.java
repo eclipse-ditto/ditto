@@ -225,7 +225,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                             log.info("Got <{}> when reading body of publish response to <{}>", bodyReadError,
                                     message);
                             return null;
-                        });
+                        }).thenRun(() -> response.discardEntityBytes(materializer));
             }
         }
     }
