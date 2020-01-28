@@ -14,10 +14,10 @@ Henceforth any change to the Ditto API enters a Ditto release according to [sema
 - Compatible API changes increment minor version number (e. g., 1.2.3 -> 1.3.0);
 - Changes in the implementation without any API change increment patch version number (e. g., 1.0.0 -> 1.0.1).
 
-This documents defines what _API compatibility_ means,
+This document defines what _API compatibility_ means,
 the modules which are considered API and for which semantic versioning holds,
 and the enforcement of semantic versioning.
-    
+
 ## Decision
 
 ### API compatibility
