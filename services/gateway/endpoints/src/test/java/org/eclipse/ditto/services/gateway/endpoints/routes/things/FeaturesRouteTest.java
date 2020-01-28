@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_SUBJECT;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_THING_ID;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -266,11 +268,30 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void putAttributeWithJsonPointerException() {
+    public void putPropertyWithJsonPointerException() {
         final String featureJson = "{\"/wrongProperty\":\"value\"}";
         final TestRouteResult result =
                 underTest.run(HttpRequest.PUT(FEATURE_ENTRY_PROPERTIES_PATH)
                         .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, featureJson)));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void getPropertiesWithTrailingSlash() {
+        final HttpRequest request = HttpRequest.GET(FEATURE_ENTRY_PROPERTIES_PATH + "/");
+        final TestRouteResult result =
+                underTest.run(request);
+        result.assertStatusCode(StatusCodes.OK);
+        final String entityString = result.entityString();
+        assertThat(entityString).contains(RetrieveFeatureProperties.TYPE);
+    }
+
+    @Test
+    public void putPropertyWithEmptyPointer() {
+        final HttpRequest request = HttpRequest.PUT(FEATURE_ENTRY_PROPERTIES_PATH + "//bar")
+                .withEntity("bumlux");
+        final TestRouteResult result =
+                underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 

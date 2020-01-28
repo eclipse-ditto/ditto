@@ -416,25 +416,27 @@ public final class ThingsRoute extends AbstractRoute {
 
         return rawPathPrefix(PathMatchers.slash()
                         .concat(PATH_ATTRIBUTES)
-                        .concat(PathMatchers.slash())
                         .concat(PathMatchers.remaining())
-                        .map(path -> UriEncoding.decode(path, UriEncoding.EncodingType.RFC3986))
-                        .map(JsonFactory::newPointer),
-                jsonPointer -> concat(
+                        .map(path -> UriEncoding.decode(path, UriEncoding.EncodingType.RFC3986)),
+                jsonPointerString -> concat(
                         get(() -> // GET /things/<thingId>/attributes/<attributePointerStr>
-                                handlePerRequest(ctx, RetrieveAttribute.of(thingId, jsonPointer, dittoHeaders))
+                                handlePerRequest(ctx,
+                                        RetrieveAttribute.of(thingId, JsonFactory.newPointer(jsonPointerString),
+                                                dittoHeaders))
                         ),
                         put(() -> // PUT /things/<thingId>/attributes/<attributePointerStr>
                                 extractDataBytes(payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
-                                                ModifyAttribute.of(thingId, jsonPointer,
+                                                ModifyAttribute.of(thingId, JsonFactory.newPointer(jsonPointerString),
                                                         DittoJsonException.wrapJsonRuntimeException(() ->
                                                                 JsonFactory.readFrom(attributeValueJson)),
                                                         dittoHeaders))
                                 )
                         ),
                         delete(() -> // DELETE /things/<thingId>/attributes/<attributePointerStr>
-                                handlePerRequest(ctx, DeleteAttribute.of(thingId, jsonPointer, dittoHeaders))
+                                handlePerRequest(ctx,
+                                        DeleteAttribute.of(thingId, JsonFactory.newPointer(jsonPointerString),
+                                                dittoHeaders))
                         )
                 )
         );
