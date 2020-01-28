@@ -173,10 +173,10 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * pointer in the Thing.
      * Changes on the returned Set are not reflected back to this headers object.
      *
-     * @return the revoked subjects for pointers in the Thing.
+     * @return the read revoked subjects for pointers in the Thing.
      * @since 1.1.0
      */
-    Set<String> getRevokedSubjects();
+    Set<String> getReadRevokedSubjects();
 
     /**
      * Returns the channel (twin/live) on which a Signal/Exception was sent/occurred.

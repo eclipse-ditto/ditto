@@ -197,8 +197,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S revokedSubjects(final Collection<String> revokedSubjects) {
-        putStringCollection(DittoHeaderDefinition.REVOKED_SUBJECTS, revokedSubjects);
+    public S readRevokedSubjects(final Collection<String> readRevokedSubjects) {
+        putStringCollection(DittoHeaderDefinition.READ_REVOKED_SUBJECTS, readRevokedSubjects);
         return myself;
     }
 

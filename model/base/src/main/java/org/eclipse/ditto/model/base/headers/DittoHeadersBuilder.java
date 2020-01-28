@@ -98,14 +98,14 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B readSubjects(Collection<String> readSubjects);
 
     /**
-     * Sets the revokedSubjects value.
+     * Sets the subjects with explicitly revoked READ access.
      *
-     * @param revokedSubjects the revokedSubjects value to be set.
+     * @param readRevokedSubjects the value to be set.
      * @return this builder for Method Chaining.
-     * @throws NullPointerException if {@code revokedSubjects} is {@code null}.
+     * @throws NullPointerException if {@code readRevokedSubjects} is {@code null}.
      * @since 1.1.0
      */
-    B revokedSubjects(Collection<String> revokedSubjects);
+    B readRevokedSubjects(Collection<String> readRevokedSubjects);
 
     /**
      * Sets the specified String as channel of the Signal/Exception.

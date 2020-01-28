@@ -61,7 +61,7 @@ public final class ImmutableDittoHeadersTest {
             EntityTagMatchers.fromCommaSeparatedString("\"notOneValue\",\"notAnotherValue\"");
     private static final EntityTag KNOWN_ETAG = EntityTag.fromString("\"-12124212\"");
     private static final Collection<String> KNOWN_READ_SUBJECTS = Lists.list(KNOWN_READ_SUBJECT);
-    private static final Collection<String> KNOWN_REVOKED_SUBJECTS =
+    private static final Collection<String> KNOWN_READ_REVOKED_SUBJECTS =
             Lists.list("knownRevokedSubject1", "knownRevokedSubject2");
     private static final String KNOWN_CONTENT_TYPE = "application/json";
     private static final String KNOWN_ORIGIN = "knownOrigin";
@@ -90,7 +90,7 @@ public final class ImmutableDittoHeadersTest {
                 .authorizationSubjects(AUTH_SUBJECTS)
                 .correlationId(KNOWN_CORRELATION_ID)
                 .readSubjects(KNOWN_READ_SUBJECTS)
-                .revokedSubjects(KNOWN_REVOKED_SUBJECTS)
+                .readRevokedSubjects(KNOWN_READ_REVOKED_SUBJECTS)
                 .responseRequired(KNOWN_RESPONSE_REQUIRED)
                 .dryRun(false)
                 .schemaVersion(KNOWN_SCHEMA_VERSION)
@@ -178,9 +178,11 @@ public final class ImmutableDittoHeadersTest {
 
     @Test
     public void getRevokedSubjectsReturnsExpected() {
-        final DittoHeaders underTest = DittoHeaders.newBuilder().revokedSubjects(KNOWN_REVOKED_SUBJECTS).build();
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .readRevokedSubjects(KNOWN_READ_REVOKED_SUBJECTS)
+                .build();
 
-        assertThat(underTest.getRevokedSubjects()).containsExactlyInAnyOrderElementsOf(KNOWN_REVOKED_SUBJECTS);
+        assertThat(underTest.getReadRevokedSubjects()).containsExactlyInAnyOrderElementsOf(KNOWN_READ_REVOKED_SUBJECTS);
     }
 
     @Test
@@ -221,7 +223,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), KNOWN_RESPONSE_REQUIRED)
                 .set(DittoHeaderDefinition.DRY_RUN.getKey(), false)
                 .set(DittoHeaderDefinition.READ_SUBJECTS.getKey(), toJsonArray(KNOWN_READ_SUBJECTS))
-                .set(DittoHeaderDefinition.REVOKED_SUBJECTS.getKey(), toJsonArray(KNOWN_REVOKED_SUBJECTS))
+                .set(DittoHeaderDefinition.READ_REVOKED_SUBJECTS.getKey(), toJsonArray(KNOWN_READ_REVOKED_SUBJECTS))
                 .set(DittoHeaderDefinition.IF_MATCH.getKey(), KNOWN_IF_MATCH.toString())
                 .set(DittoHeaderDefinition.IF_NONE_MATCH.getKey(), KNOWN_IF_NONE_MATCH.toString())
                 .set(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG.toString())
@@ -382,7 +384,8 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), String.valueOf(KNOWN_RESPONSE_REQUIRED));
         result.put(DittoHeaderDefinition.DRY_RUN.getKey(), String.valueOf(false));
         result.put(DittoHeaderDefinition.READ_SUBJECTS.getKey(), toJsonArray(KNOWN_READ_SUBJECTS).toString());
-        result.put(DittoHeaderDefinition.REVOKED_SUBJECTS.getKey(), toJsonArray(KNOWN_REVOKED_SUBJECTS).toString());
+        result.put(DittoHeaderDefinition.READ_REVOKED_SUBJECTS.getKey(),
+                toJsonArray(KNOWN_READ_REVOKED_SUBJECTS).toString());
         result.put(DittoHeaderDefinition.IF_MATCH.getKey(), KNOWN_IF_MATCH.toString());
         result.put(DittoHeaderDefinition.IF_NONE_MATCH.getKey(), KNOWN_IF_NONE_MATCH.toString());
         result.put(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG.toString());

@@ -118,8 +118,8 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
-    public Set<String> getRevokedSubjects() {
-        return getSubjects(DittoHeaderDefinition.REVOKED_SUBJECTS);
+    public Set<String> getReadRevokedSubjects() {
+        return getSubjects(DittoHeaderDefinition.READ_REVOKED_SUBJECTS);
     }
 
     @Override
