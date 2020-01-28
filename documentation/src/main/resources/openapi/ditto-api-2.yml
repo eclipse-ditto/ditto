@@ -457,7 +457,7 @@ paths:
         - Things
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -510,7 +510,7 @@ paths:
         - Things
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -584,7 +584,7 @@ paths:
         - Things
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -629,7 +629,7 @@ paths:
         - Things
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -680,7 +680,7 @@ paths:
         - Things
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -755,7 +755,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/attributesFieldsQueryParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -807,7 +807,7 @@ paths:
         - Things
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -882,7 +882,7 @@ paths:
         - Things
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -932,7 +932,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/attributePathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -985,7 +985,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/attributePathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -1059,7 +1059,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/attributePathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -1109,7 +1109,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featuresFieldsQueryParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -1176,7 +1176,7 @@ paths:
         - Features
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -1261,7 +1261,7 @@ paths:
         - Features
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -1309,7 +1309,7 @@ paths:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
         - $ref: '#/components/parameters/featureFieldsQueryParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -1363,7 +1363,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -1447,7 +1447,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -1494,7 +1494,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -1549,7 +1549,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -1635,7 +1635,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -1684,7 +1684,7 @@ paths:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
         - $ref: '#/components/parameters/propertiesFieldsQueryParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -1740,7 +1740,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -1822,7 +1822,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -1874,7 +1874,7 @@ paths:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
         - $ref: '#/components/parameters/propertyPathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -1930,7 +1930,7 @@ paths:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
         - $ref: '#/components/parameters/propertyPathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -2002,7 +2002,7 @@ paths:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/featureIdPathPathParam'
         - $ref: '#/components/parameters/propertyPathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -2527,7 +2527,7 @@ paths:
         - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -2581,7 +2581,7 @@ paths:
         - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -2652,7 +2652,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -2709,7 +2709,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -2796,7 +2796,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -2844,7 +2844,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -2899,7 +2899,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -2972,7 +2972,7 @@ paths:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
         - $ref: '#/components/parameters/subjectIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -3030,7 +3030,7 @@ paths:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
         - $ref: '#/components/parameters/subjectIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -3115,7 +3115,7 @@ paths:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
         - $ref: '#/components/parameters/subjectIdPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -3164,7 +3164,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -3219,7 +3219,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -3288,7 +3288,7 @@ paths:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
         - $ref: '#/components/parameters/resourcePathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
@@ -3346,7 +3346,7 @@ paths:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
         - $ref: '#/components/parameters/resourcePathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
@@ -3433,7 +3433,7 @@ paths:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
         - $ref: '#/components/parameters/resourcePathPathParam'
-        - $ref: '#/components/parameters/ifMatchHeaderParam'
+        - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
@@ -3913,12 +3913,22 @@ components:
             $ref: '#/components/schemas/AdvancedError'
 
   parameters:
+    ifMatchHeaderParamHash:
+      name: If-Match
+      in: header
+      description:  >-
+        The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:
+          * optimistic locking by specifying the `ETag` from a previous HTTP response, e.g. `If-Match: "hash:a75ece4e"`
+          * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
+      required: false
+      schema:
+        type: string
     ifMatchHeaderParam:
       name: If-Match
       in: header
       description:  >-
         The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:
-          * optimistic locking by specifying the `ETag` from a previous GET response, e.g. `If-Match: "rev:4711"`
+          * optimistic locking by specifying the `ETag` from a previous HTTP response, e.g. `If-Match: "rev:4711"`
           * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
       required: false
       schema:
