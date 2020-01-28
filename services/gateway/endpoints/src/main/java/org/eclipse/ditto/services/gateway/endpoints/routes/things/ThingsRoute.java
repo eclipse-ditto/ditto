@@ -416,8 +416,10 @@ public final class ThingsRoute extends AbstractRoute {
 
         return rawPathPrefix(PathMatchers.slash()
                         .concat(PATH_ATTRIBUTES)
+                        .concat(PathMatchers.slash())
                         .concat(PathMatchers.remaining())
-                        .map(path -> UriEncoding.decode(path, UriEncoding.EncodingType.RFC3986)),
+                        .map(path -> UriEncoding.decode(path, UriEncoding.EncodingType.RFC3986))
+                        .map(path -> "/" + path), // Prepend slash to path to fail request with double slashes
                 jsonPointerString -> concat(
                         get(() -> // GET /things/<thingId>/attributes/<attributePointerStr>
                                 handlePerRequest(ctx,

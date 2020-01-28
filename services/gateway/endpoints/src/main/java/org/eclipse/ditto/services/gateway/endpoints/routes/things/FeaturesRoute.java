@@ -265,8 +265,10 @@ final class FeaturesRoute extends AbstractRoute {
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash()
                                 .concat(PATH_PROPERTIES)
+                                .concat(PathMatchers.slash())
                                 .concat(PathMatchers.remaining())
-                                .map(path -> UriEncoding.decode(path, UriEncoding.EncodingType.RFC3986)),
+                                .map(path -> UriEncoding.decode(path, UriEncoding.EncodingType.RFC3986))
+                                .map(path -> "/" + path), // Prepend slash to path to fail request with double slashes
                         jsonPointerString ->
                                 concat(
                                         get(() -> // GET /features/{featureId}/properties/<propertyJsonPointerStr>

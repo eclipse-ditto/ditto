@@ -137,6 +137,14 @@ public final class ThingsRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void getAttributesWithoutSlashButRandomText() {
+        final HttpRequest request = HttpRequest.GET("/things/org.eclipse.ditto%3Adummy/attributesasfsafa");
+        final TestRouteResult result =
+                underTest.run(request);
+        result.assertStatusCode(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
     public void putAttributeWithEmptyPointer() {
         final String body = "\"bumlux\"";
         final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes//bar")

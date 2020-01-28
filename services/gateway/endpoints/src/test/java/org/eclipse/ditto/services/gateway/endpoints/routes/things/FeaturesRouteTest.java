@@ -287,9 +287,17 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void getPropertiesWithoutSlashButOtherText() {
+        final HttpRequest request = HttpRequest.GET(FEATURE_ENTRY_PROPERTIES_PATH + "sfsdgsdg");
+        final TestRouteResult result =
+                underTest.run(request);
+        result.assertStatusCode(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
     public void putPropertyWithEmptyPointer() {
         final HttpRequest request = HttpRequest.PUT(FEATURE_ENTRY_PROPERTIES_PATH + "//bar")
-                .withEntity("bumlux");
+                .withEntity("\"bumlux\"");
         final TestRouteResult result =
                 underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
