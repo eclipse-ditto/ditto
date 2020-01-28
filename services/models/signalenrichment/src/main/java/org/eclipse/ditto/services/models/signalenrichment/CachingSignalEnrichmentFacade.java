@@ -160,10 +160,14 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             return doCacheLookup(idWithResourceType, thingEvent.getDittoHeaders());
         }
         final Optional<JsonValue> optEntity = thingEvent.getEntity();
-        optEntity.ifPresent(entity -> jsonObjectBuilder
-                .set(resourcePath.toString(), entity)
-                .set(Thing.JsonFields.REVISION, thingEvent.getRevision())
-        );
+        if (resourcePath.isEmpty() && optEntity.filter(JsonValue::isObject).isPresent()) {
+            optEntity.map(JsonValue::asObject).ifPresent(jsonObjectBuilder::setAll);
+        } else {
+            optEntity.ifPresent(entity -> jsonObjectBuilder
+                    .set(resourcePath.toString(), entity)
+            );
+        }
+        jsonObjectBuilder.set(Thing.JsonFields.REVISION, thingEvent.getRevision());
         final JsonObject enhancedJsonObject = jsonObjectBuilder.build().get(enhancedFieldSelector);
         // update local cache with enhanced object:
         extraFieldsCache.put(idWithResourceType, enhancedJsonObject);
