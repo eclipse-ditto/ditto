@@ -12,16 +12,26 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThings;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
@@ -50,17 +60,20 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     private final QueryThings queryThings;
     private final ActorRef aggregatorProxyActor;
     private final ActorRef originatingSender;
+    private final ActorRef pubSubMediator;
 
     private QueryThingsResponse queryThingsResponse;
+    private List<ThingId> queryThingsResponseThingIds;
 
     @SuppressWarnings("unused")
     private QueryThingsPerRequestActor(final QueryThings queryThings,
             final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender) {
+            final ActorRef originatingSender, final ActorRef pubSubMediator) {
 
         this.queryThings = queryThings;
         this.aggregatorProxyActor = aggregatorProxyActor;
         this.originatingSender = originatingSender;
+        this.pubSubMediator = pubSubMediator;
         queryThingsResponse = null;
 
         final HttpConfig httpConfig = GatewayHttpConfig.of(
@@ -77,9 +90,10 @@ final class QueryThingsPerRequestActor extends AbstractActor {
      */
     static Props props(final QueryThings queryThings,
             final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender) {
+            final ActorRef originatingSender, final ActorRef pubSubMediator) {
 
-        return Props.create(QueryThingsPerRequestActor.class, queryThings, aggregatorProxyActor, originatingSender);
+        return Props.create(QueryThingsPerRequestActor.class, queryThings, aggregatorProxyActor, originatingSender,
+                pubSubMediator);
     }
 
     @Override
@@ -95,20 +109,26 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
                     log.debug("Received QueryThingsResponse: {}", qtr);
 
-                    final List<ThingId> thingIds = qtr.getSearchResult().stream()
+                    queryThingsResponseThingIds = qtr.getSearchResult()
+                            .stream()
                             .map(val -> val.asObject().getValue(Thing.JsonFields.ID).orElse(null))
                             .map(ThingId::of)
                             .collect(Collectors.toList());
 
-                    if (thingIds.isEmpty()) {
+                    if (queryThingsResponseThingIds.isEmpty()) {
                         // shortcut - for no search results we don't have to lookup the things
                         originatingSender.tell(qtr, getSelf());
-
                         stopMyself();
                     } else {
-                        final RetrieveThings retrieveThings = RetrieveThings.getBuilder(thingIds)
+                        final Optional<JsonFieldSelector> selectedFieldsWithThingId = queryThings.getFields()
+                                .filter(fields -> !fields.getPointers().contains(Thing.JsonFields.ID.getPointer()))
+                                .map(jsonFieldSelector -> JsonFieldSelector.newInstance(
+                                        Thing.JsonFields.ID.getPointer(),
+                                        jsonFieldSelector.getPointers().toArray(new JsonPointer[0])))
+                                .or(queryThings::getFields);
+                        final RetrieveThings retrieveThings = RetrieveThings.getBuilder(queryThingsResponseThingIds)
                                 .dittoHeaders(qtr.getDittoHeaders())
-                                .selectedFields(queryThings.getFields())
+                                .selectedFields(selectedFieldsWithThingId)
                                 .build();
                         // delegate to the ThingsAggregatorProxyActor which receives the results via a cluster stream:
                         aggregatorProxyActor.tell(retrieveThings, getSelf());
@@ -119,14 +139,23 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     log.debug("Received RetrieveThingsResponse: {}", rtr);
 
                     if (queryThingsResponse != null) {
+                        final JsonArray rtrEntity = rtr.getEntity(rtr.getImplementedSchemaVersion()).asArray();
+                        final JsonArray retrievedEntitiesWithFieldSelection = queryThings.getFields()
+                                .filter(fields -> !fields.getPointers().contains(Thing.JsonFields.ID.getPointer()))
+                                .map(fields -> rtrEntity.stream()
+                                        .map(jsonValue -> jsonValue.asObject().get(fields))
+                                        .collect(JsonCollectors.valuesToArray())
+                                )
+                                .orElse(rtrEntity);
                         final SearchResult resultWithRetrievedItems = SearchModelFactory.newSearchResultBuilder()
-                                .addAll(rtr.getEntity(rtr.getImplementedSchemaVersion()).asArray())
+                                .addAll(retrievedEntitiesWithFieldSelection)
                                 .nextPageOffset(queryThingsResponse.getSearchResult().getNextPageOffset().orElse(null))
                                 .cursor(queryThingsResponse.getSearchResult().getCursor().orElse(null))
                                 .build();
                         final QueryThingsResponse theQueryThingsResponse =
                                 QueryThingsResponse.of(resultWithRetrievedItems, rtr.getDittoHeaders());
                         originatingSender.tell(theQueryThingsResponse, getSelf());
+                        notifyOutOfSyncThings(rtrEntity);
                     } else {
                         log.warning("Did not receive a QueryThingsResponse when a RetrieveThingsResponse occurred: {}",
                                 rtr);
@@ -141,6 +170,29 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     stopMyself();
                 })
                 .build();
+    }
+
+    /**
+     * Publish an UpdateThings command including thing IDs in QueryThingsResponse but not in results with retrieved
+     * items.
+     *
+     * @param rtrEntity entity of the RetrieveThingsResponse from the aggregator actor.
+     * @throws java.lang.NullPointerException if this.queryThingsResponse or this.queryThingsResponseThingIds is null.
+     */
+    private void notifyOutOfSyncThings(final JsonArray rtrEntity) {
+
+        final Set<ThingId> retrievedThingIds = rtrEntity.stream()
+                .filter(JsonValue::isObject)
+                .flatMap(item -> item.asObject().getValue(Thing.JsonFields.ID).stream())
+                .map(ThingId::of)
+                .collect(Collectors.toSet());
+
+        final Collection<ThingId> outOfSyncThingIds = queryThingsResponseThingIds.stream()
+                .filter(thingId -> !retrievedThingIds.contains(thingId))
+                .collect(Collectors.toList());
+
+        final UpdateThings updateThings = UpdateThings.of(outOfSyncThingIds, queryThingsResponse.getDittoHeaders());
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(UpdateThings.TYPE, updateThings), ActorRef.noSender());
     }
 
     private void stopMyself() {

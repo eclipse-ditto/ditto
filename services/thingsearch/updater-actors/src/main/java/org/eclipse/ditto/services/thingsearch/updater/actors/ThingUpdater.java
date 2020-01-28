@@ -25,9 +25,11 @@ import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -38,16 +40,13 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.cluster.sharding.ShardRegion;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.event.Logging;
 
 /**
  * This Actor initiates persistence updates related to 1 thing.
  */
 final class ThingUpdater extends AbstractActor {
 
-    private final DiagnosticLoggingAdapter log = Logging.apply(this);
-
+    private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
     private final ShutdownBehaviour shutdownBehaviour;
     private final ActorRef changeQueueActor;
@@ -59,11 +58,10 @@ final class ThingUpdater extends AbstractActor {
 
     @SuppressWarnings("unused") //It is used via reflection. See props method.
     private ThingUpdater(final ActorRef pubSubMediator, final ActorRef changeQueueActor) {
-
+        log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         final DittoSearchConfig dittoSearchConfig = DittoSearchConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
-
         thingId = tryToGetThingId();
         shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
         this.changeQueueActor = changeQueueActor;
@@ -89,6 +87,7 @@ final class ThingUpdater extends AbstractActor {
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
+                .match(UpdateThing.class, this::updateThing)
                 .match(ReceiveTimeout.class, this::stopThisActor)
                 .matchAny(m -> {
                     log.warning("Unknown message in 'eventProcessing' behavior: {}", m);
@@ -131,6 +130,13 @@ final class ThingUpdater extends AbstractActor {
         acknowledge(thingTag);
     }
 
+    private void updateThing(final UpdateThing updateThing) {
+        log.withCorrelationId(updateThing)
+                .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
+        enqueueMetadata();
+        // TODO: acknowledge from persistence
+    }
+
     private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {
         if (log.isDebugEnabled()) {
             log.debug("Received new Policy-Reference-Tag for thing <{}> with revision <{}>,  policy-id <{}> and " +
@@ -153,10 +159,8 @@ final class ThingUpdater extends AbstractActor {
     }
 
     private void processThingEvent(final ThingEvent thingEvent) {
-        LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
-
-        log.debug("Received new thing event for thing id <{}> with revision <{}>.", thingId,
-                thingEvent.getRevision());
+        log.withCorrelationId(thingEvent);
+        log.debug("Received new thing event for thing id <{}> with revision <{}>.", thingId, thingEvent.getRevision());
 
         // check if the revision is valid (thingEvent.revision = 1 + sequenceNumber)
         if (thingEvent.getRevision() <= thingRevision) {
@@ -185,6 +189,7 @@ final class ThingUpdater extends AbstractActor {
     }
 
     private void acknowledge(final IdentifiableStreamingMessage message) {
+        // TODO: acknowledge from persistence
         final ActorRef sender = getSender();
         if (!getContext().system().deadLetters().equals(sender)) {
             getSender().tell(StreamAck.success(message.asIdentifierString()), getSelf());

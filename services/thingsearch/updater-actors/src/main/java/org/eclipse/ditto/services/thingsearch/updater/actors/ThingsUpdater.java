@@ -21,6 +21,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -29,9 +31,14 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThings;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
@@ -44,9 +51,8 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ShardRegion;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.event.Logging;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 
@@ -62,7 +68,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
      */
     static final String ACTOR_NAME = "thingsUpdater";
 
-    private final DiagnosticLoggingAdapter log = Logging.apply(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final ActorRef shardRegion;
     private final BlockNamespaceBehavior namespaceBlockingBehavior;
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
@@ -74,7 +80,8 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     private ThingsUpdater(final DistributedSub thingEventSub,
             final ActorRef thingUpdaterShardRegion,
             final UpdaterConfig updaterConfig,
-            final BlockedNamespaces blockedNamespaces) {
+            final BlockedNamespaces blockedNamespaces,
+            @Nullable final ActorRef pubSubMediator) {
 
         this.thingEventSub = thingEventSub;
 
@@ -92,6 +99,11 @@ final class ThingsUpdater extends AbstractActorWithTimers {
             // subscribe for thing events immediately
             getSelf().tell(Clock.REBALANCE_TICK, getSelf());
         }
+
+        if (pubSubMediator != null) {
+            pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(UpdateThings.TYPE, ACTOR_NAME, getSelf()),
+                    getSelf());
+        }
     }
 
     /**
@@ -101,15 +113,18 @@ final class ThingsUpdater extends AbstractActorWithTimers {
      * @param thingUpdaterShardRegion shard region of thing-updaters
      * @param updaterConfig configuration for updaters.
      * @param blockedNamespaces cache of namespaces to block.
+     * @param pubSubMediator the pubsub mediator for subscription for UpdateThing commands, or null if
+     * the subscription is not wanted.
      * @return the Akka configuration Props object
      */
     static Props props(final DistributedSub thingEventSub,
             final ActorRef thingUpdaterShardRegion,
             final UpdaterConfig updaterConfig,
-            final BlockedNamespaces blockedNamespaces) {
+            final BlockedNamespaces blockedNamespaces,
+            @Nullable final ActorRef pubSubMediator) {
 
         return Props.create(ThingsUpdater.class, thingEventSub, thingUpdaterShardRegion, updaterConfig,
-                blockedNamespaces);
+                blockedNamespaces, pubSubMediator);
     }
 
     @Override
@@ -123,6 +138,10 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .matchEquals(Clock.REBALANCE_TICK, this::retrieveShardIds)
                 .match(ShardRegion.ShardRegionStats.class, this::updateSubscriptions)
+                .match(UpdateThings.class, this::updateThings)
+                .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck -> {
+                    log.debug("Got <{}>", subscribeAck);
+                })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -158,17 +177,34 @@ final class ThingsUpdater extends AbstractActorWithTimers {
         forwardJsonifiableToShardRegion(thingTag, ThingTag::getEntityId);
     }
 
+    private void updateThings(final UpdateThings updateThings) {
+        // log all thing IDs because getting this command implies out-of-sync things.
+        log.withCorrelationId(updateThings)
+                .warning("Out-of-sync things are reported: <{}>", updateThings);
+        updateThings.getThingIds().forEach(thingId ->
+                forwardToShardRegion(
+                        UpdateThing.of(thingId, updateThings.getDittoHeaders()),
+                        UpdateThing::getEntityId,
+                        UpdateThing::getType,
+                        UpdateThing::toJson,
+                        UpdateThing::getDittoHeaders
+                )
+        );
+    }
+
     private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {
         final String elementIdentifier = policyReferenceTag.asIdentifierString();
-        LogUtil.enhanceLogWithCorrelationId(log, "policies-tags-sync-" + elementIdentifier);
-        log.debug("Forwarding PolicyReferenceTag '{}'", elementIdentifier);
+        log.withCorrelationId("policies-tags-sync-" + elementIdentifier)
+                .debug("Forwarding PolicyReferenceTag '{}'", elementIdentifier);
         forwardJsonifiableToShardRegion(policyReferenceTag, unused -> policyReferenceTag.getEntityId());
     }
 
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
-        log.debug("Forwarding incoming ThingEvent for thingId '{}'", String.valueOf(thingEvent.getThingEntityId()));
+        log.withCorrelationId(thingEvent)
+                .debug("Forwarding incoming ThingEvent for thingId '{}'",
+                        String.valueOf(thingEvent.getThingEntityId()));
         forwardEventToShardRegion(thingEvent, ThingEvent::getThingEntityId);
     }
 

@@ -13,10 +13,18 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
@@ -29,6 +37,8 @@ import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThings;
 import org.eclipse.ditto.services.thingsearch.common.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
@@ -48,6 +58,7 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.cluster.sharding.ShardRegion;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -75,10 +86,7 @@ public final class ThingsUpdaterTest {
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TEST_CONFIG);
         shardMessageReceiver = TestProbe.apply(actorSystem);
-        shardRegionFactory = TestUtils.getMockedShardRegionFactory(
-                original -> actorSystem.actorOf(TestUtils.getForwarderActorProps(original, shardMessageReceiver.ref())),
-                ShardRegionFactory.getInstance(actorSystem)
-        );
+        shardRegionFactory = getMockedShardRegionFactory(shardMessageReceiver.ref());
         // create blocked namespaces cache without role and with the default replicator name
         blockedNamespaces =
                 BlockedNamespaces.create(DistributedData.createConfig(actorSystem, "replicator", ""), actorSystem);
@@ -119,6 +127,31 @@ public final class ThingsUpdaterTest {
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(message, getRef());
             expectShardedMessage(shardMessageReceiver, message, message.getEntityId());
+        }};
+    }
+
+    @Test
+    public void forwardUpdateThingOnCommand() {
+        new TestKit(actorSystem) {{
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+            final ActorRef underTest = createThingsUpdater();
+            final Collection<ThingId> thingIds = IntStream.range(0, 10)
+                    .mapToObj(i -> ThingId.of("a:" + i))
+                    .collect(Collectors.toList());
+            underTest.tell(UpdateThings.of(thingIds, dittoHeaders), getRef());
+
+            // command order not guaranteed due to namespace blocking
+            final Set<EntityId> expectedIds = new HashSet<>(thingIds);
+            for (final ThingId ignored : thingIds) {
+                final ShardedMessageEnvelope envelope =
+                        shardMessageReceiver.expectMsgClass(ShardedMessageEnvelope.class);
+                final EntityId envelopeId = envelope.getEntityId();
+                assertThat(expectedIds).contains(envelopeId);
+                expectedIds.remove(envelopeId);
+                assertThat(envelope.getDittoHeaders()).isEqualTo(dittoHeaders);
+                assertThat(envelope.getMessage())
+                        .isEqualTo(UpdateThing.of(ThingId.of(envelopeId), dittoHeaders).toJson());
+            }
         }};
     }
 
@@ -177,7 +210,25 @@ public final class ThingsUpdaterTest {
         final ActorRef thingsShardRegion = shardRegionFactory.getThingsShardRegion(NUMBER_OF_SHARDS);
         final DistributedSub mockDistributedSub = Mockito.mock(DistributedSub.class);
         return actorSystem.actorOf(
-                ThingsUpdater.props(mockDistributedSub, thingsShardRegion, config, blockedNamespaces));
+                ThingsUpdater.props(mockDistributedSub, thingsShardRegion, config, blockedNamespaces, null));
+    }
+
+    /**
+     * Creates a mocked shared region factory that allows you to modify the returned actor Refs. It will create the
+     * correct Actors using the original shardRegionFactory but return the modified Actor.
+     *
+     * @return The mocked ShardRegionFactory.
+     */
+    private static ShardRegionFactory getMockedShardRegionFactory(final ActorRef shardMessageReceiver) {
+
+        final ShardRegionFactory shardRegionFactory = Mockito.mock(ShardRegionFactory.class);
+        when(shardRegionFactory.getPoliciesShardRegion(anyInt()))
+                .thenAnswer(invocation -> shardMessageReceiver);
+        when(shardRegionFactory.getSearchUpdaterShardRegion(anyInt(), any(Props.class), any()))
+                .thenAnswer(invocation -> shardMessageReceiver);
+        when(shardRegionFactory.getThingsShardRegion(anyInt()))
+                .thenAnswer(invocation -> shardMessageReceiver);
+        return shardRegionFactory;
     }
 
 }
