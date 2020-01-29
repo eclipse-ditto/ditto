@@ -63,6 +63,7 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
@@ -270,7 +271,7 @@ public final class MessageMappingProcessorActor
 
                     final boolean shouldSendSignalWithoutExtraFields =
                             !splitTargets.first().isEmpty() ||
-                                    outboundSignal.getSource().getDittoHeaders().getReplyTarget().isPresent() ||
+                                    isTwinCommandResponseWithReplyTarget(outboundSignal.getSource()) ||
                                     outboundSignal.getTargets().isEmpty(); // no target - this is an error response
                     final Stream<Pair<OutboundSignalWithId, FilteredTopic>> outboundSignalWithoutExtraFields =
                             shouldSendSignalWithoutExtraFields
@@ -795,6 +796,12 @@ public final class MessageMappingProcessorActor
             // The outbound signal has no streaming type: Do not attach extra fields.
             return Pair.create(outboundSignal.getTargets(), Collections.emptyList());
         }
+    }
+
+    private static boolean isTwinCommandResponseWithReplyTarget(final Signal<?> signal) {
+        return signal instanceof CommandResponse &&
+                !ProtocolAdapter.isLiveSignal(signal) &&
+                signal.getDittoHeaders().getReplyTarget().isPresent();
     }
 
     static final class OutboundSignalWithId implements OutboundSignal, WithId {
