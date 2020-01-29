@@ -93,6 +93,12 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     }
 
     @Override
+    public Adaptable toAdaptable(Command<?> command) {
+        final TopicPath.Channel channel = determineChannel(command);
+        return toAdaptable(command, channel);
+    }
+
+    @Override
     public Adaptable toAdaptable(final Signal<?> signal) {
         final TopicPath.Channel channel = determineChannel(signal);
         if (signal instanceof MessageCommand) {
