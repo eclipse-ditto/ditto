@@ -140,7 +140,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-inbound-payload-mapper"}, Java type: {@link String}.
      * </p>
      */
-    INBOUND_PAYLOAD_MAPPER("ditto-inbound-payload-mapper", String.class, false, false);
+    INBOUND_PAYLOAD_MAPPER("ditto-inbound-payload-mapper", String.class, false, false),
+
+    /**
+     * Header definition for the authorization subject that caused an event.
+     * External header of the same name is always discarded.
+     * <p>
+     * Key: {@code "ditto-originator"}, Java type: {@link String}.
+     * </p>
+     */
+    ORIGINATOR("ditto-originator", String.class, false, true);
 
     /**
      * Map to speed up lookup of header definition by key.

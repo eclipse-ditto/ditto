@@ -34,10 +34,10 @@ import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
-import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
@@ -60,13 +60,10 @@ import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 
 import akka.Done;
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.actor.Status;
-import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -74,13 +71,12 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
  */
-public final class SearchRootActor extends AbstractActor {
+public final class SearchRootActor extends DittoRootActor {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -90,14 +86,12 @@ public final class SearchRootActor extends AbstractActor {
     private static final String KAMON_METRICS_PREFIX = "search";
 
     private final LoggingAdapter log;
-    private final SupervisorStrategy supervisorStrategy;
 
     @SuppressWarnings("unused")
     private SearchRootActor(final SearchConfig searchConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
         log = Logging.getLogger(getContext().system(), this);
-        supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
 
         final MongoDbConfig mongoDbConfig = searchConfig.getMongoDbConfig();
         final MongoDbConfig.MonitoringConfig monitoringConfig = mongoDbConfig.getMonitoringConfig();
@@ -228,27 +222,6 @@ public final class SearchRootActor extends AbstractActor {
             final ActorMaterializer materializer) {
 
         return Props.create(SearchRootActor.class, searchConfig, pubSubMediator, materializer);
-    }
-
-    @Override
-    public SupervisorStrategy supervisorStrategy() {
-        return supervisorStrategy;
-    }
-
-    @Override
-    public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
-                .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
-                    unhandled(m);
-                })
-                .build();
-    }
-
-    private ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor <{}>.", actorName);
-        return getContext().actorOf(props, actorName);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {

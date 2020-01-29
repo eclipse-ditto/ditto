@@ -202,8 +202,7 @@ public abstract class AbstractSSLContextTest {
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
-            assertThatExceptionOfType(SSLException.class).isThrownBy(() -> underTest.getOutputStream().write(234))
-                    .withMessage("readHandshakeRecord");
+            assertThatExceptionOfType(SSLException.class).isThrownBy(() -> underTest.getOutputStream().write(234));
         }
     }
 
