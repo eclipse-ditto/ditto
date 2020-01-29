@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -165,8 +166,20 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * Thing. Changes on the returned Set are not reflected back to this headers object.
      *
      * @return the read subjects for pointers in the Thing.
+     * @deprecated as of 1.1.0, please use {@link #getReadGrantedSubjects()} instead.
      */
+    @Deprecated
     Set<String> getReadSubjects();
+
+    /**
+     * Returns the authorization subjects with granted "READ" permissions for the key in the map defining a pointer in
+     * the Thing.
+     * Changes on the returned Set are not reflected back to this headers object.
+     *
+     * @return the read granted subjects for pointers in the Thing.
+     * @since 1.1.0
+     */
+    Set<AuthorizationSubject> getReadGrantedSubjects();
 
     /**
      * Returns the authorization subjects with explicitly revoked "READ" permissions for the key in the map defining a
@@ -176,7 +189,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @return the read revoked subjects for pointers in the Thing.
      * @since 1.1.0
      */
-    Set<String> getReadRevokedSubjects();
+    Set<AuthorizationSubject> getReadRevokedSubjects();
 
     /**
      * Returns the channel (twin/live) on which a Signal/Exception was sent/occurred.
