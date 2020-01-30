@@ -216,9 +216,6 @@ entries:
     - title: Server sent events
       url: /httpapi-sse.html
       output: web
-    - title: Run in Postman
-      url: /httpapi-postman.html
-      output: web
 
   - title: Connectivity API
     output: web
