@@ -39,6 +39,7 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebKey;
 import org.eclipse.ditto.model.jwt.JsonWebKey;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -47,6 +48,7 @@ import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,7 +165,10 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 .thenApply(jsonObject -> jsonObject.getValue(keysPointer).map(JsonValue::asArray)
                         .orElseThrow(() -> new JsonMissingFieldException(keysPointer)))
                 .exceptionally(t -> {
-                    throw new IllegalStateException("Failed to extract public keys from JSON response: " + body, t);
+                    final String message =
+                            MessageFormat.format("Failed to extract public keys from JSON response <{0}>", body);
+                    LOGGER.warn(message, t);
+                    throw new IllegalStateException(message, t);
                 });
     }
 
@@ -178,20 +183,48 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                     .thenCompose(jwksUri -> httpClient.createSingleHttpRequest(HttpRequest.GET(jwksUri)))
                     .toCompletableFuture()
                     .get(JWK_REQUEST_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
-        } catch (final ExecutionException | InterruptedException | TimeoutException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(
-                    MessageFormat.format("Got Exception from discovery endpoint <{0}>.", discoveryEndpoint), e);
+        } catch (final ExecutionException e) {
+            throw DittoRuntimeException.asDittoRuntimeException(e, cause -> {
+                throw handleUnexpectedException(cause, discoveryEndpoint);
+            });
+        } catch (final InterruptedException | TimeoutException e) {
+            throw handleUnexpectedException(e, discoveryEndpoint);
         }
         return response;
     }
 
     private CompletionStage<JsonObject> mapResponseToJsonObject(final HttpResponse response) {
+        if (!response.status().isSuccess()) {
+            handleNonSuccessResponse(response);
+        }
         return response.entity().getDataBytes().fold(ByteString.empty(), ByteString::concat)
                 .map(ByteString::utf8String)
                 .map(JsonFactory::readFrom)
                 .map(JsonValue::asObject)
                 .runWith(Sink.head(), httpClient.getActorMaterializer());
+    }
+
+    private void handleNonSuccessResponse(final HttpResponse response) {
+        getBodyAsString(response)
+                .thenAccept(stringBody -> LOGGER.info(
+                        "Got non success response from public key provider with status code: <{}> and body: <{}>.",
+                        response.status(), stringBody));
+
+        throw GatewayAuthenticationProviderUnavailableException.newBuilder()
+                .message("Got unexpected response from public key provider.")
+                .build();
+    }
+
+    private CompletionStage<String> getBodyAsString(final HttpResponse response) {
+        return response.entity().getDataBytes().fold(ByteString.empty(), ByteString::concat)
+                .map(ByteString::utf8String)
+                .runWith(Sink.head(), httpClient.getActorMaterializer());
+    }
+
+    private IllegalStateException handleUnexpectedException(final Throwable e, final String discoveryEndpoint) {
+        final String msg = MessageFormat.format("Got Exception from discovery endpoint <{0}>.", discoveryEndpoint);
+        LOGGER.warn(msg, e);
+        return new IllegalStateException(msg, e);
     }
 
     private static PublicKey mapToPublicKey(final JsonArray publicKeys, final String keyId,
@@ -211,8 +244,11 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                     return keyFactory.generatePublic(rsaPublicKeySpec);
                 }
             } catch (final NoSuchAlgorithmException | InvalidKeySpecException e) {
-                throw new IllegalStateException(MessageFormat.format("Got invalid key from JwkResource provider " +
-                        "at discovery endpoint <{0}>.", discoveryEndpoint), e);
+                final String msg =
+                        MessageFormat.format("Got invalid key from JwkResource provider at discovery endpoint <{0}>",
+                                discoveryEndpoint);
+                LOGGER.warn(msg, e);
+                throw new IllegalStateException(msg, e);
             }
         }
 
