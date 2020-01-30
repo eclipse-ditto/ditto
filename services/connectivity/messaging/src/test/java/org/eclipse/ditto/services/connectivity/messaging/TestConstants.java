@@ -259,12 +259,16 @@ public final class TestConstants {
         static final String SUBJECT_ID = "some:subject";
         static final String SOURCE_SUBJECT_ID = "source:subject";
         static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
-        public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-                AuthorizationSubject.newInstance(SUBJECT_ID));
+        static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance(SUBJECT_ID);
+        static final AuthorizationSubject SOURCE_SUBJECT = AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID);
+        static final AuthorizationSubject UNAUTHORIZED_SUBJECT =
+                AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID);
+
+        public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(SUBJECT);
         public static final AuthorizationContext SOURCE_SPECIFIC_CONTEXT = AuthorizationContext.newInstance(
-                AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID));
+                SOURCE_SUBJECT);
         private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-                AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID));
+                UNAUTHORIZED_SUBJECT);
 
     }
 
@@ -812,18 +816,20 @@ public final class TestConstants {
 
     }
 
-    public static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {
+    public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects) {
         return thingModified(readSubjects, Attributes.newBuilder().build());
     }
 
-    public static ThingModifiedEvent thingModified(final Collection<String> readSubjects, final Attributes attributes) {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readSubjects(readSubjects).build();
+    public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects,
+            final Attributes attributes) {
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).build();
         return ThingModified.of(Things.THING.toBuilder().setAttributes(attributes).build(), 1, dittoHeaders);
     }
 
-    public static MessageCommand sendThingMessage(final Collection<String> readSubjects) {
+    public static MessageCommand sendThingMessage(final Collection<AuthorizationSubject> readSubjects) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .readSubjects(readSubjects)
+                .readGrantedSubjects(readSubjects)
                 .channel(TopicPath.Channel.LIVE.getName())
                 .build();
         final Message<Object> message =

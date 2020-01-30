@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
@@ -101,7 +100,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     protected Connection connection;
 
     @ClassRule
-    public static final MqttServerRule mqttServer = new MqttServerRule(FREE_PORT.getPort());
+    public static final MqttServerRule MQTT_SERVER = new MqttServerRule(FREE_PORT.getPort());
 
     @After
     public void tearDown() {
@@ -378,7 +377,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
             controlProbe.expectMsg(CONNECTED_SUCCESS);
 
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singleton(""));
+            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
             final String expectedJson = TestConstants.signalToDittoProtocolJsonString(thingModifiedEvent);
 
             LOGGER.info("Sending thing modified message: {}", thingModifiedEvent);
@@ -429,7 +428,6 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             controlProbe.expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
-
 
     protected abstract Props createFailingClientActor(final ActorRef testProbe);
 

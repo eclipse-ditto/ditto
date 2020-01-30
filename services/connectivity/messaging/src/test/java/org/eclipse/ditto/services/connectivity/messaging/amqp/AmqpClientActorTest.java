@@ -614,8 +614,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 message -> message.contains("ditto/thing/things/twin/errors"));
     }
 
-    private void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
-            final Connection connection,
+    private void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(final Connection connection,
             final BiFunction<ThingId, DittoHeaders, CommandResponse> responseSupplier,
             final String expectedAddressPrefix,
             final Predicate<String> messageTextPredicate) throws JMSException {
@@ -673,7 +672,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
+            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
 
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
                     singletonList(ConnectivityModelFactory.newTargetBuilder()
@@ -926,18 +925,20 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         return actorSystem;
     }
 
-    private void consumeMockMessage(final MessageConsumer mockConsumer) throws JMSException {
+    private static void consumeMockMessage(final MessageConsumer mockConsumer) throws JMSException {
         final ArgumentCaptor<MessageListener> listener = ArgumentCaptor.forClass(MessageListener.class);
         verify(mockConsumer, timeout(1000).atLeast(1)).setMessageListener(listener.capture());
         listener.getValue().onMessage(mockMessage());
     }
 
-    private void sendThingEventAndExpectPublish(final ActorRef amqpClientActor, final Target target,
+    private static void sendThingEventAndExpectPublish(final ActorRef amqpClientActor,
+            final Target target,
             final Supplier<MessageProducer> messageProducerSupplier)
             throws JMSException {
+
         final String uuid = UUID.randomUUID().toString();
         final ThingModifiedEvent thingModifiedEvent =
-                TestConstants.thingModified(singletonList(""), Attributes.newBuilder().set("uuid", uuid).build())
+                TestConstants.thingModified(Collections.emptyList(), Attributes.newBuilder().set("uuid", uuid).build())
                         .setDittoHeaders(DittoHeaders.newBuilder().putHeader("reply-to", target.getAddress()).build());
         final OutboundSignal outboundSignal =
                 OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(target));
@@ -975,7 +976,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     /**
      * Wraps {@link Throwable} in {@link RuntimeException}.
      */
-    private <T> T wrapThrowable(Retry.ThrowingSupplier<T> supplier) {
+    private static <T> T wrapThrowable(final Retry.ThrowingSupplier<T> supplier) {
         try {
             return supplier.get();
         } catch (final Throwable t) {
@@ -983,20 +984,19 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         }
     }
 
-    private Connection singleConsumerConnection() {
+    private static Connection singleConsumerConnection() {
         final Source defaultSource = connection.getSources().get(0);
         return connection.toBuilder()
                 .clientCount(1)
-                .setSources(Collections.singletonList(
-                        ConnectivityModelFactory.newSourceBuilder()
-                                .address(defaultSource.getAddresses().iterator().next())
-                                .authorizationContext(defaultSource.getAuthorizationContext())
-                                .consumerCount(1)
-                                .enforcement(defaultSource.getEnforcement().orElse(null))
-                                .headerMapping(defaultSource.getHeaderMapping().orElse(null))
-                                .index(0)
-                                .build()
-                ))
+                .setSources(Collections.singletonList(ConnectivityModelFactory.newSourceBuilder()
+                        .address(defaultSource.getAddresses().iterator().next())
+                        .authorizationContext(defaultSource.getAuthorizationContext())
+                        .consumerCount(1)
+                        .enforcement(defaultSource.getEnforcement().orElse(null))
+                        .headerMapping(defaultSource.getHeaderMapping().orElse(null))
+                        .index(0)
+                        .build()))
                 .build();
     }
+
 }

@@ -21,7 +21,6 @@ import static org.eclipse.ditto.model.connectivity.Topic.LIVE_MESSAGES;
 import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -29,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.assertj.core.api.Assertions;
+import org.assertj.core.util.Lists;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -58,6 +58,7 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.internal.util.collections.Sets;
 
 @RunWith(Parameterized.class)
 public final class SignalFilterTest {
@@ -73,7 +74,8 @@ public final class SignalFilterTest {
     @Parameterized.Parameters(name = "topic={0}, readSubjects={1}, configuredTargets={2}, expectedTargets={3}")
     public static Collection<Object[]> data() {
 
-        final Set<String> readSubjects = asSet("authorized", "ditto");
+        final Set<AuthorizationSubject> readSubjects =
+                Sets.newSet(newAuthSubject("authorized"), newAuthSubject("ditto"));
 
         final Target twinAuthd = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/authorized")
@@ -126,44 +128,44 @@ public final class SignalFilterTest {
 
         final Collection<Object[]> params = new ArrayList<>();
 
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twinAuthd), asList(twinAuthd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd), asList(twinAuthd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd, liveAuthd),
-                asList(twinAuthd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
-                asList(twinAuthd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, Lists.list(twinAuthd), Lists.list(twinAuthd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd), Lists.list(twinAuthd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd, liveAuthd),
+                Lists.list(twinAuthd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
+                Lists.list(twinAuthd)});
         params.add(new Object[]{TWIN_EVENTS, readSubjects,
-                asList(enrichedFiltered, enrichedNotFiltered1, enrichedNotFiltered2),
-                asList(enrichedFiltered)});
+                Lists.list(enrichedFiltered, enrichedNotFiltered1, enrichedNotFiltered2),
+                Lists.list(enrichedFiltered)});
 
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twinAuthd), emptyList()});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd), emptyList()});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd, liveAuthd),
-                asList(liveAuthd)});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
-                asList(liveAuthd)});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd), emptyList()});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd), emptyList()});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd, liveAuthd),
+                Lists.list(liveAuthd)});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
+                Lists.list(liveAuthd)});
 
         params.add(new Object[]{LIVE_MESSAGES, readSubjects,
-                asList(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
-                asList(twinAuthd, liveAuthd)});
+                Lists.list(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
+                Lists.list(twinAuthd, liveAuthd)});
 
         // subject "ditto" is not authorized to read any signal
         addAllCombinationsExpectingEmptyResult(params,
                 Topic.values(),
-                asSet("ditto"),
-                asSet(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd));
+                Sets.newSet("ditto"),
+                Sets.newSet(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd));
 
         // LIVE_COMMANDS are not subscribed
         addAllCombinationsExpectingEmptyResult(params,
                 new Topic[]{LIVE_COMMANDS},
-                asSet("authorized"),
-                asSet(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd));
+                Sets.newSet("authorized"),
+                Sets.newSet(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd));
 
         // empty auth context
         addAllCombinationsExpectingEmptyResult(params,
                 Topic.values(),
-                asSet("authorized"),
-                asSet(emptyContext));
+                Sets.newSet("authorized"),
+                Sets.newSet(emptyContext));
 
         return params;
 
@@ -172,7 +174,7 @@ public final class SignalFilterTest {
     @Parameterized.Parameter
     public Topic signalTopic;
     @Parameterized.Parameter(1)
-    public Set<String> readSubjects;
+    public Set<AuthorizationSubject> readSubjects;
     @Parameterized.Parameter(2)
     public List<Target> targets;
     @Parameterized.Parameter(3)
@@ -215,7 +217,7 @@ public final class SignalFilterTest {
         }
 
         for (final Object element : elements) {
-            final Set sub = new HashSet(elements);
+            final Set<Object> sub = new HashSet<>(elements);
             sub.remove(element);
             result.add(sub);
             getCombinations(sub, result);
@@ -223,28 +225,21 @@ public final class SignalFilterTest {
         return result;
     }
 
-    @SafeVarargs
-    private static <T> List<T> asList(final T... elements) {
-        return Arrays.asList(elements);
-    }
-
-    @SafeVarargs
-    private static <T> Set<T> asSet(final T... elements) {
-        return new HashSet<>(asList(elements));
-    }
-
-
-    private static Signal<?> signal(final Topic topic, final Set<String> readSubjects) {
-
+    private static Signal<?> signal(final Topic topic, final Collection<AuthorizationSubject> readSubjects) {
         final ThingId thingId = ThingId.of("org.eclipse.ditto:myThing");
         final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId)
                 .setAttribute(JsonPointer.of("x"), JsonValue.of(5))
                 .build();
-        final ThingModified thingModified =
-                ThingModified.of(thing, 1L, DittoHeaders.newBuilder().readSubjects(readSubjects).build());
 
-        final DittoHeaders liveHeaders =
-                DittoHeaders.newBuilder().readSubjects(readSubjects).channel(TopicPath.Channel.LIVE.getName()).build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .readGrantedSubjects(readSubjects)
+                .build();
+
+        final ThingModified thingModified = ThingModified.of(thing, 1L, dittoHeaders);
+
+        final DittoHeaders liveHeaders = DittoHeaders.newBuilder(dittoHeaders)
+                .channel(TopicPath.Channel.LIVE.getName())
+                .build();
         switch (topic) {
             case TWIN_EVENTS:
                 return thingModified;

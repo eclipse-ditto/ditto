@@ -12,14 +12,14 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static java.util.Collections.singletonList;
-
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -82,9 +82,10 @@ public final class BasePublisherActorTest {
                         .withText("payload")
                         .build();
         final ThingModifiedEvent thingModifiedEvent =
-                TestConstants.thingModified(singletonList("")).setDittoHeaders(dittoHeaders);
+                TestConstants.thingModified(List.of(AuthorizationModelFactory.newAuthSubject("")))
+                        .setDittoHeaders(dittoHeaders);
         final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                singletonList(target));
+                List.of(target));
         final Adaptable adaptable =
                 DittoProtocolAdapter.newInstance().toAdaptable(thingModifiedEvent, TopicPath.Channel.TWIN);
         final OutboundSignal.Mapped mappedOutboundSignal =

@@ -44,7 +44,7 @@ import org.junit.Test;
 /**
  * Tests {@link org.eclipse.ditto.services.connectivity.messaging.persistence.SignalFilter} for filtering with namespace + RQL filter.
  */
-public class SignalFilterWithFilterTest {
+public final class SignalFilterWithFilterTest {
 
     private static final String URI = "amqp://user:pass@host:1111/path";
     private static final ConnectionId CONNECTION_ID = ConnectionId.of("id");
@@ -60,41 +60,38 @@ public class SignalFilterWithFilterTest {
     public void applySignalFilterWithNamespaces() {
 
         // targetA does filter for namespaces "org.eclipse.ditto" and "foo"
-        final List<String> namespacesA = Arrays.asList("org.eclipse.ditto", "foo");
         final Target targetA = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/a")
                 .authorizationContext(newAuthContext(AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
-                        .withNamespaces(namespacesA)
+                        .withNamespaces(List.of("org.eclipse.ditto", "foo"))
                         .build())
                 .build();
 
         // targetB does filter for namespaces "org.example"
-        final List<String> namespacesB = Collections.singletonList("org.example");
         final Target targetB = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/b")
                 .authorizationContext(newAuthContext(AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
-                        .withNamespaces(namespacesB)
+                        .withNamespaces(List.of("org.example"))
                         .build())
                 .build();
 
         // targetC does filter for namespaces "foo", but uses the "UNAUTHORIZED" subjects
-        final List<String> namespacesC = Collections.singletonList("foo");
         final Target targetC = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/c")
                 .authorizationContext(newAuthContext(UNAUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
-                        .withNamespaces(namespacesC)
+                        .withNamespaces(List.of("foo"))
                         .build())
                 .build();
 
         final Connection connection = ConnectivityModelFactory
                 .newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
-                .targets(Arrays.asList(targetA, targetB, targetC))
+                .targets(List.of(targetA, targetB, targetC))
                 .build();
 
         final Thing thing = Thing.newBuilder()
@@ -102,7 +99,7 @@ public class SignalFilterWithFilterTest {
                 .setAttribute(JsonPointer.of("test"), JsonValue.of(42))
                 .build();
         final DittoHeaders headers = DittoHeaders.newBuilder()
-                .readSubjects(Collections.singletonList(AUTHORIZED.getId()))
+                .readGrantedSubjects(List.of(AUTHORIZED))
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
@@ -163,7 +160,7 @@ public class SignalFilterWithFilterTest {
                 .setAttribute(JsonPointer.of("test"), JsonValue.of(42)) // WHEN: the "test" value is 42
                 .build();
         final DittoHeaders headers = DittoHeaders.newBuilder()
-                .readSubjects(Collections.singletonList(AUTHORIZED.getId()))
+                .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
                 .channel(TopicPath.Channel.LIVE.getName())
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
@@ -240,7 +237,7 @@ public class SignalFilterWithFilterTest {
                 .setAttribute(JsonPointer.of("test"), JsonValue.of(42)) // WHEN: the "test" value is 42
                 .build();
         final DittoHeaders headers = DittoHeaders.newBuilder()
-                .readSubjects(Collections.singletonList(AUTHORIZED.getId()))
+                .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
