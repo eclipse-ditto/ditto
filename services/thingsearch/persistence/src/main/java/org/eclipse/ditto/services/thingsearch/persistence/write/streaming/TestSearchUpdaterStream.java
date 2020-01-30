@@ -29,8 +29,8 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.Enforced
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingDeleteModel;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.WriteResultAndErrors;
 
-import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
@@ -66,7 +66,7 @@ public final class TestSearchUpdaterStream {
      * @param policyRevision the policy revision
      * @return source of write result.
      */
-    public Source<BulkWriteResult, NotUsed> write(final Thing thing,
+    public Source<WriteResultAndErrors, NotUsed> write(final Thing thing,
             final Enforcer enforcer,
             final long policyRevision) {
 
@@ -83,7 +83,7 @@ public final class TestSearchUpdaterStream {
      * @param thingWithAcl the thing with ACL.
      * @return source of write result.
      */
-    public Source<BulkWriteResult, NotUsed> writeThingWithAcl(final Thing thingWithAcl) {
+    public Source<WriteResultAndErrors, NotUsed> writeThingWithAcl(final Thing thingWithAcl) {
         final AccessControlList emptyAcl = AccessControlList.newBuilder().build();
         final Enforcer enforcer = AclEnforcer.of(thingWithAcl.getAccessControlList().orElse(emptyAcl));
         final long policyRevision = thingWithAcl.getRevision().orElse(ThingRevision.newInstance(-1L)).toLong();
@@ -92,13 +92,15 @@ public final class TestSearchUpdaterStream {
 
     /**
      * Deletes a thing from the updater stream.
+     *
      * @param thingId the thing id.
      * @param revision the revision.
      * @param policyId the policy id.
      * @param policyRevision the policy revision.
      * @return the write result.
      */
-    public Source<BulkWriteResult, NotUsed> delete(final ThingId thingId, final long revision, @Nullable final PolicyId policyId, final long policyRevision) {
+    public Source<WriteResultAndErrors, NotUsed> delete(final ThingId thingId, final long revision,
+            @Nullable final PolicyId policyId, final long policyRevision) {
         return delete(Metadata.of(thingId, revision, policyId != null ? policyId.toString() : null, policyRevision));
     }
 
@@ -108,7 +110,7 @@ public final class TestSearchUpdaterStream {
      * @param metadata the metadata.
      * @return source of write result.
      */
-    private Source<BulkWriteResult, NotUsed> delete(final Metadata metadata) {
+    private Source<WriteResultAndErrors, NotUsed> delete(final Metadata metadata) {
         final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata);
         return Source.single(Source.single(writeModel))
                 .via(mongoSearchUpdaterFlow.start(1, 1, Duration.ZERO));

@@ -57,7 +57,7 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> {
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private static JsonFieldDefinition<String> JSON_THING_ID = Thing.JsonFields.ID;
+    private static final JsonFieldDefinition<String> JSON_THING_ID = Thing.JsonFields.ID;
 
     private final ThingId thingId;
 

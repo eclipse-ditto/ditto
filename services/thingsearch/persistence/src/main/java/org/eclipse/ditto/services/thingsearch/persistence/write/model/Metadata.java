@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
 
 /**
  * Data class holding information about a "thingEntities" database record.
@@ -57,6 +58,17 @@ public final class Metadata {
             final long policyRevision) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision);
+    }
+
+    /**
+     * Recover the metadata from an UpdateThingResponse.
+     *
+     * @param updateThingResponse the response.
+     * @return the metadata.
+     */
+    public static Metadata fromResponse(final UpdateThingResponse updateThingResponse) {
+        return Metadata.of(updateThingResponse.getThingId(), updateThingResponse.getThingRevision(),
+                updateThingResponse.getPolicyId().orElse(null), updateThingResponse.getPolicyRevision());
     }
 
     /**

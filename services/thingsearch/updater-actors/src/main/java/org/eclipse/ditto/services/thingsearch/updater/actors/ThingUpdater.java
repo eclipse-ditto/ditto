@@ -26,6 +26,7 @@ import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -88,6 +89,7 @@ final class ThingUpdater extends AbstractActor {
                 .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .match(UpdateThing.class, this::updateThing)
+                .match(UpdateThingResponse.class, this::processUpdateThingResponse)
                 .match(ReceiveTimeout.class, this::stopThisActor)
                 .matchAny(m -> {
                     log.warning("Unknown message in 'eventProcessing' behavior: {}", m);
@@ -112,7 +114,11 @@ final class ThingUpdater extends AbstractActor {
      * Push metadata of this updater to the queue of thing-changes to be streamed into the persistence.
      */
     private void enqueueMetadata() {
-        changeQueueActor.tell(exportMetadata(), getSelf());
+        enqueueMetadata(exportMetadata());
+    }
+
+    private void enqueueMetadata(final Metadata metadata) {
+        changeQueueActor.tell(metadata, getSelf());
     }
 
     private void processThingTag(final ThingTag thingTag) {
@@ -134,7 +140,16 @@ final class ThingUpdater extends AbstractActor {
         log.withCorrelationId(updateThing)
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
         enqueueMetadata();
-        // TODO: acknowledge from persistence
+    }
+
+    private void processUpdateThingResponse(final UpdateThingResponse response) {
+        if (!response.isSuccess()) {
+            final Metadata metadata = exportMetadata();
+            log.warning("Got negative acknowledgement for <{}>; updating to <{}>.",
+                    Metadata.fromResponse(response),
+                    metadata);
+            enqueueMetadata(metadata);
+        }
     }
 
     private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {

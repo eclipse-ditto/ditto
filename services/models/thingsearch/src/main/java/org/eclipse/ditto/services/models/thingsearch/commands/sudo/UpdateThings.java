@@ -62,7 +62,7 @@ public final class UpdateThings extends AbstractCommand<UpdateThings> implements
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private static JsonFieldDefinition<JsonArray> JSON_THING_IDS =
+    private static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
             JsonFactory.newJsonArrayFieldDefinition("thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
