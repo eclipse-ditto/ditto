@@ -18,6 +18,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
+import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.services.utils.cluster.AbstractGlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
@@ -38,6 +39,7 @@ public final class ThingsMappingStrategies extends AbstractGlobalMappingStrategi
                 .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(ThingTag.class),
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> ThingTag.fromJson(jsonObject)))
+                .add(StreamedSnapshot.class, jsonObject -> StreamedSnapshot.fromJson(jsonObject))
                 .build().getStrategies();
     }
 

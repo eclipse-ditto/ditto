@@ -16,19 +16,24 @@ import static org.eclipse.ditto.model.base.json.FieldType.REGULAR;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -37,37 +42,30 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
- * Command which starts a stream of persistence IDs with their latest snapshot revisions.
+ * Command which starts a stream of snapshots.
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoStreamPids.TYPE_PREFIX, name = SudoStreamPids.NAME)
-public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
+@JsonParsableCommand(typePrefix = SudoStreamSnapshots.TYPE_PREFIX, name = SudoStreamSnapshots.NAME)
+public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapshots>
         implements StartStreamRequest, WithIdButActuallyNot {
 
-    static final String NAME = "SudoStreamPids";
+    static final String NAME = "SudoStreamSnapshots";
 
     /**
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition<Integer> JSON_BURST =
-            JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_1, V_2);
-
-    static final JsonFieldDefinition<Long> JSON_TIMEOUT_MILLIS =
-            JsonFactory.newLongFieldDefinition("payload/timeoutMillis", REGULAR, V_1, V_2);
-
-    static final JsonFieldDefinition<JsonObject> JSON_LOWER_BOUND =
-            JsonFactory.newJsonObjectFieldDefinition("payload/lowerBound", REGULAR, V_1, V_2);
-
     private final int burst;
-
     private final long timeoutMillis;
+    private final EntityId lowerBound;
+    private final JsonArray snapshotFields;
 
-    private final EntityIdWithRevision<?> lowerBound;
-
-    private SudoStreamPids(final Integer burst, final Long timeoutMillis, final EntityIdWithRevision lowerBound,
+    private SudoStreamSnapshots(final Integer burst,
+            final Long timeoutMillis,
+            final EntityId lowerBound,
+            final JsonArray snapshotFields,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
@@ -75,25 +73,30 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
         this.burst = burst;
         this.timeoutMillis = timeoutMillis;
         this.lowerBound = lowerBound;
+        this.snapshotFields = snapshotFields;
     }
 
     /**
-     * Creates a new {@code SudoStreamPids} command.
+     * Creates a new {@code SudoStreamSnapshots} command.
      *
-     * @param burst the amount of elements to be collected per message
+     * @param burst the amount of snapshots to read in a batch.
      * @param timeoutMillis maximum time to wait for acknowledgement of each stream element.
+     * @param fields selected fields of snapshots.
      * @param dittoHeaders the command headers of the request.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoStreamPids of(final Integer burst, final Long timeoutMillis,
+    public static SudoStreamSnapshots of(final Integer burst, final Long timeoutMillis, final List<String> fields,
             final DittoHeaders dittoHeaders) {
 
-        return new SudoStreamPids(burst, timeoutMillis, new LowerBound(), dittoHeaders);
+        final JsonArray snapshotFields = fields.stream()
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray());
+        return new SudoStreamSnapshots(burst, timeoutMillis, DefaultEntityId.dummy(), snapshotFields, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code SudoStreamSnapshotRevisions} from a JSON object.
+     * Creates a new {@code SudoStreamSnapshots} from a JSON object.
      *
      * @param jsonObject the JSON representation of the command.
      * @param dittoHeaders the optional command headers of the request.
@@ -101,14 +104,17 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected format.
      */
-    public static SudoStreamPids fromJson(final JsonObject jsonObject,
+    public static SudoStreamSnapshots fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        final int burst = jsonObject.getValueOrThrow(JSON_BURST);
-        final long timeoutMillis = jsonObject.getValueOrThrow(JSON_TIMEOUT_MILLIS);
-        final EntityIdWithRevision lowerBound =
-                jsonObject.getValue(JSON_LOWER_BOUND).map(LowerBound::new).orElseGet(LowerBound::new);
-        return new SudoStreamPids(burst, timeoutMillis, lowerBound, dittoHeaders);
+        final int burst = jsonObject.getValueOrThrow(JsonFields.JSON_BURST);
+        final long timeoutMillis = jsonObject.getValueOrThrow(JsonFields.JSON_TIMEOUT_MILLIS);
+        final EntityId lowerBound = jsonObject.getValue(JsonFields.JSON_LOWER_BOUND)
+                .map(DefaultEntityId::of)
+                .orElseGet(DefaultEntityId::dummy);
+        final JsonArray snapshotFields =
+                jsonObject.getValue(JsonFields.JSON_SNAPSHOT_FIELDS).orElseGet(JsonArray::empty);
+        return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, dittoHeaders);
     }
 
     /**
@@ -118,8 +124,8 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      * @param lowerBound the lower bound.
      * @return a copy of this command with lower-bound set.
      */
-    public SudoStreamPids withLowerBound(final EntityIdWithRevision lowerBound) {
-        return new SudoStreamPids(burst, timeoutMillis, lowerBound, getDittoHeaders());
+    public SudoStreamSnapshots withLowerBound(final EntityId lowerBound) {
+        return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, getDittoHeaders());
     }
 
     /**
@@ -127,7 +133,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      *
      * @return the lower-bound PID.
      */
-    public EntityIdWithRevision getLowerBound() {
+    public EntityId getLowerBound() {
         return lowerBound;
     }
 
@@ -137,7 +143,16 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      * @return whether the command has a non-empty lower bound.
      */
     public boolean hasNonEmptyLowerBound() {
-        return !lowerBound.getEntityId().isDummy();
+        return !lowerBound.isDummy();
+    }
+
+    /**
+     * Return snapshot fields to request for each streamed snapshot.
+     *
+     * @return the requested snapshot fields.
+     */
+    public JsonArray getSnapshotFields() {
+        return snapshotFields;
     }
 
     @Override
@@ -152,16 +167,20 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
 
     @Override
     public <T> T accept(final StartStreamRequestVisitor<T> visitor) {
-        return visitor.visit(this);
+        // TODO remove this method
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_BURST, burst, predicate);
-        jsonObjectBuilder.set(JSON_TIMEOUT_MILLIS, timeoutMillis, predicate);
-        jsonObjectBuilder.set(JSON_LOWER_BOUND, lowerBound.toJson(), predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_BURST, burst, predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_TIMEOUT_MILLIS, timeoutMillis, predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_LOWER_BOUND, lowerBound.toString(), predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_SNAPSHOT_FIELDS, snapshotFields, predicate);
     }
 
     @Override
@@ -175,20 +194,23 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     }
 
     @Override
-    public SudoStreamPids setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new SudoStreamPids(burst, timeoutMillis, lowerBound, dittoHeaders);
+    public SudoStreamSnapshots setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, dittoHeaders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), burst, timeoutMillis, lowerBound);
+        return Objects.hash(super.hashCode(), burst, timeoutMillis, lowerBound, snapshotFields);
     }
 
     @Override
     public boolean equals(@Nullable final Object obj) {
-        if (obj instanceof SudoStreamPids) {
-            final SudoStreamPids that = (SudoStreamPids) obj;
-            return burst == that.burst && timeoutMillis == that.timeoutMillis && lowerBound.equals(that.lowerBound) &&
+        if (obj instanceof SudoStreamSnapshots) {
+            final SudoStreamSnapshots that = (SudoStreamSnapshots) obj;
+            return burst == that.burst &&
+                    timeoutMillis == that.timeoutMillis &&
+                    Objects.equals(lowerBound, that.lowerBound) &&
+                    Objects.equals(snapshotFields, that.snapshotFields) &&
                     super.equals(that);
         } else {
             return false;
@@ -197,7 +219,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof SudoStreamPids;
+        return other instanceof SudoStreamSnapshots;
     }
 
     @Override
@@ -206,6 +228,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
                 + ", burst=" + burst
                 + ", timeoutMillis=" + timeoutMillis
                 + ", lowerBound=" + lowerBound
+                + ", snapshotFields=" + snapshotFields
                 + "]";
     }
 
@@ -219,15 +242,18 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
         return TYPE;
     }
 
-    static final class LowerBound extends AbstractEntityIdWithRevision {
+    static final class JsonFields {
 
-        private LowerBound() {
-            super(DefaultEntityId.dummy(), 0L);
-        }
+        static final JsonFieldDefinition<Integer> JSON_BURST =
+                JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_1, V_2);
 
-        LowerBound(final JsonObject jsonObject) {
-            super(DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ID)),
-                    jsonObject.getValueOrThrow(JsonFields.REVISION));
-        }
+        static final JsonFieldDefinition<Long> JSON_TIMEOUT_MILLIS =
+                JsonFactory.newLongFieldDefinition("payload/timeoutMillis", REGULAR, V_1, V_2);
+
+        static final JsonFieldDefinition<String> JSON_LOWER_BOUND =
+                JsonFactory.newStringFieldDefinition("payload/lowerBound", REGULAR, V_1, V_2);
+
+        static final JsonFieldDefinition<JsonArray> JSON_SNAPSHOT_FIELDS =
+                JsonFactory.newJsonArrayFieldDefinition("payload/fields", REGULAR, V_1, V_2);
     }
 }
