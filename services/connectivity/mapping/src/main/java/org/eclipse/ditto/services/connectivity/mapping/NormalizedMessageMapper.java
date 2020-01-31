@@ -13,9 +13,7 @@
 package org.eclipse.ditto.services.connectivity.mapping;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -116,16 +114,10 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
                 ? builder.build()
                 : builder.build().get(jsonFieldSelector);
 
-        final Map<String, String> headers = getHeaders(adaptable);
-
-        return ExternalMessageFactory.newExternalMessageBuilder(headers)
+        return ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(result.toString())
                 .build();
-    }
-
-    private Map<String, String> getHeaders(final Adaptable adaptable) {
-        return new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
     }
 
     private static JsonObject abridgeMessage(final Adaptable adaptable) {
