@@ -116,6 +116,11 @@ li.sidebarTitle {
 
 }
 
+li.sidebarTitle select {
+    direction: rtl;
+    width: 100%;
+}
+
 .navbar-inverse .navbar-toggle:focus, .navbar-inverse .navbar-toggle:hover {
     background-color: #000000;
 }
