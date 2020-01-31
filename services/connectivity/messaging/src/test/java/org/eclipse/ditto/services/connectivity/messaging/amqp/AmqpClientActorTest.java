@@ -708,37 +708,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testConsumerClosedWhenConnected() throws JMSException {
-        new TestKit(actorSystem) {{
-            final Props props = AmqpClientActor.propsForTests(singleConsumerConnection(), getRef(),
-                    (ac, el) -> mockConnection);
-            final TestActorRef<AmqpClientActor> amqpClientActorRef = TestActorRef.apply(props, actorSystem);
-            final AmqpClientActor amqpClientActor = amqpClientActorRef.underlyingActor();
-
-            amqpClientActorRef.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
-
-            // GIVEN: JMS session can create another consumer
-            final MessageConsumer mockConsumer2 = Mockito.mock(JmsMessageConsumer.class);
-            doReturn(mockConsumer2).when(mockSession).createConsumer(any());
-
-            // WHEN: consumer closed by remote end
-            final Throwable error = new IllegalStateException("Forcibly detached");
-            amqpClientActor.connectionListener.onConsumerClosed(mockConsumer, error);
-
-            // THEN: another consumer is created
-            verify(mockSession, atLeastOnce()).createConsumer(any());
-            final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
-            verify(mockConsumer2, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
-            final MessageListener messageListener = captor.getValue();
-
-            // THEN: the recreated consumer is working
-            messageListener.onMessage(mockMessage());
-            expectMsgClass(Command.class);
-        }};
-    }
-
-    @Test
     public void testConsumerRecreationFailureWhenConnected() throws JMSException {
         new TestKit(actorSystem) {{
             final Props props =
