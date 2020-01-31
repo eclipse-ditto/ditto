@@ -271,7 +271,7 @@ source addresses that are resolved when processing messages from a source. Of co
 message to provide necessary information about the original issuer of the message. 
 
   {%
-    include important.html content="Only use this kind of placeholder if you trust the source of the message. The value from the header is used as the **authorized subject**."
+    include important.html content="Only use this kind of placeholder if you trust the source of the message. The value from the header is used as the **authorized subject**." additionalStyle=""
   %}
                                                                            
 You can access any header value of the incoming message by using a placeholder like `{% raw %}{{ header:name }}{% endraw %}`.

@@ -1,7 +1,18 @@
 {% assign sidebar = site.data.sidebars[page.sidebar].entries %}
 
 <ul id="mysidebar" class="nav">
-  <li class="sidebarTitle">{{sidebar[0].product}} {{sidebar[0].version}}</li>
+  <li class="sidebarTitle">
+    <label for="docVersion">{{sidebar[0].product}} {{sidebar[0].version}} version:</label>
+    <select id="docVersion" name="docVersion">
+      {% for docV in site.docVersions %}
+      <option value="{{docV.basePath}}">{{docV.label}}</option>
+      {% endfor %}
+    </select>
+    <div id="dev-warning">
+      {% include important.html content="This documentation reflects the latest 'development'. You might want to choose a released version."
+        additionalStyle="font-size:0.6em" %}
+    </div>
+  </li>
   {% for entry in sidebar %}
   {% for folder in entry.folders %}
   {% if folder.output contains "web" %}
@@ -65,4 +76,31 @@
 </ul>
 
 <!-- this highlights the active parent class in the sidebar. this is critical so that the parent expands when you're viewing a page. This must appear below the sidebar code above. Otherwise, if placed inside customscripts.js, the script runs before the sidebar code runs and the class never gets inserted.-->
-<script>$("li.active").parents('li').toggleClass("active");</script>
+<script>$("li.active").parents('li').toggleClass("active");
+
+$(function() {
+  $("#dev-warning").hide();
+  changeSelectedDocVersionDropdownSelection($("#docVersion")[0]);
+  $("#docVersion").change(changeSelectedDocVersion);
+});
+
+function changeSelectedDocVersionDropdownSelection(element) {
+  var pathName = window.location.pathname;
+
+  var versionOptions = element.options;
+  for (var i = 0; i < versionOptions.length; i++) {
+    var versionValue = versionOptions[i].value;
+    if ((versionValue !== "") && pathName.startsWith("/"+versionValue+"/")) {
+      $("#docVersion").val(versionValue);
+      return;
+    }
+  }
+  // fallback: dev with "empty" version value:
+  $("#docVersion").val("");
+  $("#dev-warning").show();
+}
+function changeSelectedDocVersion() {
+  var versionValue = $('#docVersion').val();
+  window.location.pathname = versionValue + window.location.pathname;
+}
+</script>
