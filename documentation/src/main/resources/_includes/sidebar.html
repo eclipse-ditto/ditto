@@ -102,14 +102,20 @@ function changeSelectedDocVersionDropdownSelection(element) {
 function changeSelectedDocVersion() {
   var versionValue = $('#docVersion').val();
   var remainingPath = window.location.pathname.replace("/ditto/", "");
-  var splittedVersionAndRemaining = remainingPath.split("/", 2);
-  if (splittedVersionAndRemaining[0] === versionValue) {
+  var versionMatch = remainingPath.match("([0-9].[0.9])/(.*)");
+  if (versionValue === "" && !versionMatch) {
+    // do nothing, we're already on the correct "dev" version
+  } else if (versionMatch && (versionValue === versionMatch[1])) {
     // do nothing, we're already on the correct version
   } else {
-    if (versionValue === "") {
-      window.location.pathname = "ditto/" + splittedVersionAndRemaining[1] ? splittedVersionAndRemaining[1] : splittedVersionAndRemaining[0];
+    if (versionValue === "" && versionMatch) {
+      window.location.pathname = "ditto/" + versionMatch[2];
+    } else if (versionValue === "") {
+      window.location.pathname = "ditto/" + remainingPath;
+    } else if (versionMatch) {
+      window.location.pathname = "ditto/" + versionValue + "/" + versionMatch[2];
     } else {
-      window.location.pathname = "ditto/" + versionValue + "/" + splittedVersionAndRemaining[1] ? splittedVersionAndRemaining[1] : splittedVersionAndRemaining[0];
+      window.location.pathname = "ditto/" + versionValue + "/" + remainingPath;
     }
   }
 }
