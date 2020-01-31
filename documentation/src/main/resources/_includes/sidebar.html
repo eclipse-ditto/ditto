@@ -91,16 +91,26 @@ function changeSelectedDocVersionDropdownSelection(element) {
   for (var i = 0; i < versionOptions.length; i++) {
     var versionValue = versionOptions[i].value;
     if ((versionValue !== "") && pathName.startsWith("/ditto/"+versionValue+"/")) {
-      $("#docVersion").val(versionValue);
+      $("#docVersion").val(versionValue).change();
       return;
     }
   }
   // fallback: dev with "empty" version value:
-  $("#docVersion").val("");
+  $("#docVersion").val("").change();
   $("#dev-warning").show();
 }
 function changeSelectedDocVersion() {
   var versionValue = $('#docVersion').val();
-  window.location.pathname = "/ditto/" + versionValue + window.location.pathname.replace("/ditto/", "/");
+  var remainingPath = window.location.pathname.replace("/ditto/", "");
+  var splittedVersionAndRemaining = remainingPath.split("/", 2);
+  if (splittedVersionAndRemaining[0] === versionValue) {
+    // do nothing, we're already on the correct version
+  } else {
+    if (versionValue === "") {
+      window.location.pathname = "ditto/" + splittedVersionAndRemaining[1];
+    } else {
+      window.location.pathname = "ditto/" + versionValue + "/" + splittedVersionAndRemaining[1];
+    }
+  }
 }
 </script>
