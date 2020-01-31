@@ -107,3 +107,9 @@ url: https://www.eclipse.org/ditto
 
 plugins:
   - jekyll-sitemap
+
+docVersions:
+  - label: "development"
+    basePath: ""
+  - label: "1.0"
+    basePath: "1.0"
