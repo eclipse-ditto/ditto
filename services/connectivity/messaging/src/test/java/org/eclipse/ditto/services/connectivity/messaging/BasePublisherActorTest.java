@@ -19,7 +19,6 @@ import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -82,8 +81,7 @@ public final class BasePublisherActorTest {
                         .withText("payload")
                         .build();
         final ThingModifiedEvent thingModifiedEvent =
-                TestConstants.thingModified(List.of(AuthorizationModelFactory.newAuthSubject("")))
-                        .setDittoHeaders(dittoHeaders);
+                TestConstants.thingModified(Collections.emptySet()).setDittoHeaders(dittoHeaders);
         final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
                 List.of(target));
         final Adaptable adaptable =

@@ -152,19 +152,19 @@ public final class SignalFilterTest {
         // subject "ditto" is not authorized to read any signal
         addAllCombinationsExpectingEmptyResult(params,
                 Topic.values(),
-                Sets.newSet("ditto"),
+                Sets.newSet(newAuthSubject("ditto")),
                 Sets.newSet(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd));
 
         // LIVE_COMMANDS are not subscribed
         addAllCombinationsExpectingEmptyResult(params,
                 new Topic[]{LIVE_COMMANDS},
-                Sets.newSet("authorized"),
+                Sets.newSet(newAuthSubject("authorized")),
                 Sets.newSet(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd));
 
         // empty auth context
         addAllCombinationsExpectingEmptyResult(params,
                 Topic.values(),
-                Sets.newSet("authorized"),
+                Sets.newSet(newAuthSubject("authorized")),
                 Sets.newSet(emptyContext));
 
         return params;
@@ -196,8 +196,11 @@ public final class SignalFilterTest {
                 .isEqualTo(expectedTargets);
     }
 
-    private static void addAllCombinationsExpectingEmptyResult(final Collection<Object[]> params, final Topic[] topics,
-            final Set<String> readSubjects, final Set<Target> targets) {
+    private static void addAllCombinationsExpectingEmptyResult(final Collection<Object[]> params,
+            final Topic[] topics,
+            final Set<AuthorizationSubject> readSubjects,
+            final Set<Target> targets) {
+
         for (final Topic topic : topics) {
             final Set<Set> subjects = getCombinations(readSubjects, new HashSet<>());
             for (final Set subject : subjects) {
