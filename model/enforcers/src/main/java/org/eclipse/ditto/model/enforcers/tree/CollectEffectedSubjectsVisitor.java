@@ -15,43 +15,44 @@ package org.eclipse.ditto.model.enforcers.tree;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Permissions;
 
 /**
- * This visitor collects all subject IDs each of which has all the specified permissions granted on the specified
- * resource or on any sub resource down in the hierarchy. Revoked permissions are not taken into account.
- *
- * @deprecated as of 1.1.0 please use {@link CollectPartialGrantedSubjectsVisitor} instead.
+ * @since 1.1.0
  */
-@Deprecated
 @NotThreadSafe
-final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String>> {
+@ParametersAreNonnullByDefault
+final class CollectEffectedSubjectsVisitor implements Visitor<EffectedSubjects> {
 
     private final Permissions expectedPermissions;
 
     private final Function<JsonPointer, PointerLocation> pointerLocationEvaluator;
-    private final Set<String> grantedSubjects;
+    private final EffectedSubjectsBuilder effectedSubjectsBuilder;
     private final Collection<ResourceNodeEvaluator> evaluators;
-    @Nullable private ResourceNodeEvaluator currentEvaluator;
+    private ResourceNodeEvaluator currentEvaluator;
 
     /**
-     * Constructs a new {@code CollectPartialGrantedSubjectIdsVisitor} object.
+     * Constructs a new {@code CollectEffectedSubjectIdsVisitor} object.
      *
+     * @param resourcePointer
+     * @param expectedPermissions
      * @throws NullPointerException if any argument is {@code null}.
      */
-    CollectPartialGrantedSubjectIdsVisitor(final JsonPointer resourcePointer, final Permissions expectedPermissions) {
+    CollectEffectedSubjectsVisitor(final JsonPointer resourcePointer, final Permissions expectedPermissions) {
         this.expectedPermissions = expectedPermissions;
 
         pointerLocationEvaluator = new PointerLocationEvaluator(resourcePointer);
-        grantedSubjects = new HashSet<>();
+        effectedSubjectsBuilder = new EffectedSubjectsBuilder();
         evaluators = new HashSet<>();
         currentEvaluator = null;
     }
@@ -74,17 +75,15 @@ final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String
     }
 
     private void visitResourceNode(final ResourceNode resourceNode) {
-        if (null != currentEvaluator) {
-            currentEvaluator.aggregateWeightedPermissions(resourceNode);
-        }
+        currentEvaluator.aggregateWeightedPermissions(resourceNode);
     }
 
     @Override
-    public Set<String> get() {
+    public EffectedSubjects get() {
 
         // populate effectedSubjectIdsBuilder via side effect
         evaluators.forEach(ResourceNodeEvaluator::evaluate);
-        return new HashSet<>(grantedSubjects);
+        return effectedSubjectsBuilder.build();
     }
 
     /**
@@ -95,24 +94,22 @@ final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String
     @NotThreadSafe
     private final class ResourceNodeEvaluator {
 
-        private final String subjectId;
+        private final AuthorizationSubject subject;
         private final WeightedPermissions weightedPermissionsForSubjectId;
 
-        private ResourceNodeEvaluator(final String subjectId) {
-            this.subjectId = subjectId;
+        private ResourceNodeEvaluator(final CharSequence subjectId) {
+            subject = AuthorizationModelFactory.newAuthSubject(subjectId);
             weightedPermissionsForSubjectId = new WeightedPermissions();
         }
 
         private void aggregateWeightedPermissions(final ResourceNode resourceNode) {
             final PointerLocation pointerLocation = getLocationInRelationToTargetPointer(resourceNode);
-            final EffectedPermissions effectedPermissions = resourceNode.getPermissions();
-            final Permissions grantedPermissions = effectedPermissions.getGrantedPermissions();
             if (PointerLocation.ABOVE == pointerLocation || PointerLocation.SAME == pointerLocation) {
+                final EffectedPermissions effectedPermissions = resourceNode.getPermissions();
+                final Permissions grantedPermissions = effectedPermissions.getGrantedPermissions();
                 final Permissions revokedPermissions = effectedPermissions.getRevokedPermissions();
                 weightedPermissionsForSubjectId.addGranted(grantedPermissions, resourceNode.getLevel());
                 weightedPermissionsForSubjectId.addRevoked(revokedPermissions, resourceNode.getLevel());
-            } else if (PointerLocation.BELOW == pointerLocation) {
-                weightedPermissionsForSubjectId.addGranted(grantedPermissions, resourceNode.getLevel());
             }
         }
 
@@ -121,18 +118,18 @@ final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String
         }
 
         private void evaluate() {
+
             final Map<String, WeightedPermission> revoked =
                     weightedPermissionsForSubjectId.getRevokedWithHighestWeight(expectedPermissions);
             final Map<String, WeightedPermission> granted =
                     weightedPermissionsForSubjectId.getGrantedWithHighestWeight(expectedPermissions);
             if (areExpectedPermissionsEffectivelyRevoked(revoked, granted)) {
-                grantedSubjects.remove(subjectId);
+                effectedSubjectsBuilder.withRevoked(subject);
             } else if (areExpectedPermissionsEffectivelyGranted(granted, revoked)) {
-                grantedSubjects.add(subjectId);
+                effectedSubjectsBuilder.withGranted(subject);
             } // else the expected permissions are undefined
         }
 
-        @SuppressWarnings("MethodWithMultipleReturnPoints")
         private boolean areExpectedPermissionsEffectivelyRevoked(final Map<String, WeightedPermission> revoked,
                 final Map<String, WeightedPermission> granted) {
 
@@ -155,7 +152,6 @@ final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String
             return true;
         }
 
-        @SuppressWarnings("MethodWithMultipleReturnPoints")
         private boolean areExpectedPermissionsEffectivelyGranted(final Map<String, WeightedPermission> granted,
                 final Map<String, WeightedPermission> revoked) {
 

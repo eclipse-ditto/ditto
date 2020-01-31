@@ -98,10 +98,9 @@ final class SignalFilter {
     }
 
     private static boolean isTargetAuthorized(final Target target, final Signal<?> signal) {
-        final Set<String> authorizedReadSubjects = signal.getDittoHeaders().getReadSubjects();
         final AuthorizationContext authorizationContext = target.getAuthorizationContext();
-        final List<String> connectionSubjects = authorizationContext.getAuthorizationSubjectIds();
-        return !Collections.disjoint(authorizedReadSubjects, connectionSubjects);
+        final DittoHeaders headers = signal.getDittoHeaders();
+        return authorizationContext.isAuthorized(headers.getReadGrantedSubjects(), headers.getReadRevokedSubjects());
     }
 
     private boolean isTargetSubscribedForTopic(final Target target, final Signal<?> signal) {

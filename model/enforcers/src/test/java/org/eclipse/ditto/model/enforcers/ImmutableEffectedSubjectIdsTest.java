@@ -28,6 +28,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ImmutableEffectedSubjectIds}.
  */
+@Deprecated
 public final class ImmutableEffectedSubjectIdsTest {
 
     private static final Collection<String> GRANTED = Arrays.asList("granted1", "granted2");

@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Permissions;
 
@@ -29,16 +30,15 @@ import org.eclipse.ditto.model.policies.Permissions;
  * This visitor collects all subject IDs each of which has all the specified permissions granted on the specified
  * resource or on any sub resource down in the hierarchy. Revoked permissions are not taken into account.
  *
- * @deprecated as of 1.1.0 please use {@link CollectPartialGrantedSubjectsVisitor} instead.
+ * @since 1.1.0
  */
-@Deprecated
 @NotThreadSafe
-final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String>> {
+final class CollectPartialGrantedSubjectsVisitor implements Visitor<Set<AuthorizationSubject>> {
 
     private final Permissions expectedPermissions;
 
     private final Function<JsonPointer, PointerLocation> pointerLocationEvaluator;
-    private final Set<String> grantedSubjects;
+    private final Set<AuthorizationSubject> grantedSubjects;
     private final Collection<ResourceNodeEvaluator> evaluators;
     @Nullable private ResourceNodeEvaluator currentEvaluator;
 
@@ -47,7 +47,7 @@ final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String
      *
      * @throws NullPointerException if any argument is {@code null}.
      */
-    CollectPartialGrantedSubjectIdsVisitor(final JsonPointer resourcePointer, final Permissions expectedPermissions) {
+    CollectPartialGrantedSubjectsVisitor(final JsonPointer resourcePointer, final Permissions expectedPermissions) {
         this.expectedPermissions = expectedPermissions;
 
         pointerLocationEvaluator = new PointerLocationEvaluator(resourcePointer);
@@ -80,7 +80,7 @@ final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String
     }
 
     @Override
-    public Set<String> get() {
+    public Set<AuthorizationSubject> get() {
 
         // populate effectedSubjectIdsBuilder via side effect
         evaluators.forEach(ResourceNodeEvaluator::evaluate);
@@ -95,11 +95,11 @@ final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String
     @NotThreadSafe
     private final class ResourceNodeEvaluator {
 
-        private final String subjectId;
+        private final AuthorizationSubject authorizationSubject;
         private final WeightedPermissions weightedPermissionsForSubjectId;
 
-        private ResourceNodeEvaluator(final String subjectId) {
-            this.subjectId = subjectId;
+        private ResourceNodeEvaluator(final CharSequence subjectId) {
+            authorizationSubject = AuthorizationSubject.newInstance(subjectId);
             weightedPermissionsForSubjectId = new WeightedPermissions();
         }
 
@@ -126,9 +126,9 @@ final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String
             final Map<String, WeightedPermission> granted =
                     weightedPermissionsForSubjectId.getGrantedWithHighestWeight(expectedPermissions);
             if (areExpectedPermissionsEffectivelyRevoked(revoked, granted)) {
-                grantedSubjects.remove(subjectId);
+                grantedSubjects.remove(authorizationSubject);
             } else if (areExpectedPermissionsEffectivelyGranted(granted, revoked)) {
-                grantedSubjects.add(subjectId);
+                grantedSubjects.add(authorizationSubject);
             } // else the expected permissions are undefined
         }
 

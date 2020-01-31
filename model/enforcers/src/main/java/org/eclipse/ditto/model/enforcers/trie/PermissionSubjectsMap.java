@@ -86,7 +86,7 @@ final class PermissionSubjectsMap extends AbstractMap<String, Map<String, Intege
      * {@code Optional.empty()}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Optional<Integer> getMaxWeightForAllPermissions(final Set<String> subjectIds,
+    Optional<Integer> getMaxWeightForAllPermissions(final Collection<String> subjectIds,
             final Collection<String> permissions) {
 
         validateSubjectIds(subjectIds);
@@ -110,7 +110,7 @@ final class PermissionSubjectsMap extends AbstractMap<String, Map<String, Intege
      * {@code Optional.empty()}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Optional<Integer> getMaxNonemptyWeightForAllPermissions(final Set<String> subjectIds,
+    Optional<Integer> getMaxNonemptyWeightForAllPermissions(final Collection<String> subjectIds,
             final Collection<String> permissions) {
 
         validateSubjectIds(subjectIds);
@@ -279,7 +279,7 @@ final class PermissionSubjectsMap extends AbstractMap<String, Map<String, Intege
         });
     }
 
-    private static <T> Stream<T> intersect(final Set<T> set1, final Set<T> set2) {
+    private static <T> Stream<T> intersect(final Collection<T> set1, final Collection<T> set2) {
         return set1.size() <= set2.size()
                 ? set1.stream().filter(set2::contains)
                 : set2.stream().filter(set1::contains);

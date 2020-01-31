@@ -19,7 +19,6 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_VALUE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_REVOKED;
 
-import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -33,7 +32,8 @@ import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
@@ -111,9 +111,9 @@ final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<Document>
         final Optional<JsonValue> fixedJsonValue = indexLengthRestrictionEnforcer.enforce(key, jsonValue);
         if (fixedJsonValue.isPresent()) {
             final BsonValue bsonValue = JsonToBson.convert(fixedJsonValue.get());
-            final EffectedSubjectIds subjectIds = computeEffectedSubjectIds(key);
-            final BsonArray grants = toBsonArray(subjectIds.getGranted());
-            final BsonArray revokes = toBsonArray(subjectIds.getRevoked());
+            final EffectedSubjects subjects = computeEffectedSubjectIds(key);
+            final BsonArray grants = toBsonArray(subjects.getGranted());
+            final BsonArray revokes = toBsonArray(subjects.getRevoked());
             final Document document = assembleDocument(key, bsonValue, grants, revokes);
             return replaceFeatureIdByWildcard(key)
                     .map(replacedKey -> Stream.of(document, assembleDocument(replacedKey, bsonValue, grants, revokes)))
@@ -124,9 +124,15 @@ final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<Document>
         }
     }
 
-    private EffectedSubjectIds computeEffectedSubjectIds(final JsonPointer key) {
+    private EffectedSubjects computeEffectedSubjectIds(final JsonPointer key) {
         final ResourceKey resourceKey = ResourceKey.newInstance(THING, key.toString());
-        return enforcer.getSubjectIdsWithPermission(resourceKey, READ);
+        return enforcer.getSubjectsWithPermission(resourceKey, READ);
+    }
+
+    private static BsonArray toBsonArray(final Iterable<AuthorizationSubject> authorizationSubjects) {
+        final BsonArray bsonArray = new BsonArray();
+        authorizationSubjects.forEach(subject -> bsonArray.add(new BsonString(subject.getId())));
+        return bsonArray;
     }
 
     private static Document assembleDocument(final CharSequence key, final BsonValue value, final BsonArray grants,
@@ -145,9 +151,4 @@ final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<Document>
                 .map(WILDCARD_FEATURE_POINTER::append);
     }
 
-    private static BsonArray toBsonArray(final Collection<String> strings) {
-        final BsonArray bsonArray = new BsonArray();
-        strings.forEach(string -> bsonArray.add(new BsonString(string)));
-        return bsonArray;
-    }
 }
