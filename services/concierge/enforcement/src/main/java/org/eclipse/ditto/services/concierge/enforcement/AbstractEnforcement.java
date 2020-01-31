@@ -158,7 +158,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @param enforcer the enforcer.
      * @return the extended signal.
      */
-    protected static <T extends Signal<T>> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
+    protected static <T extends Signal> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
             final Enforcer enforcer) {
 
         final ResourceKey resourceKey = ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, signal.getResourcePath());

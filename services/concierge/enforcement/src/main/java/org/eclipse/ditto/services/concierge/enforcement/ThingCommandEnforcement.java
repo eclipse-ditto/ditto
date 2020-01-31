@@ -309,8 +309,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param enforcer the policy enforcer.
      * @return the completionStage of the contextual including message and receiver
      */
-    private CompletionStage<Contextual<WithDittoHeaders>> enforceThingCommandByPolicyEnforcer(final ThingCommand<?> thingCommand,
-            final PolicyId policyId, final Enforcer enforcer) {
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceThingCommandByPolicyEnforcer(
+            final ThingCommand<?> thingCommand, final PolicyId policyId, final Enforcer enforcer) {
+
         return authorizeByPolicy(enforcer, thingCommand)
                 .map(commandWithReadSubjects -> {
                     if (commandWithReadSubjects instanceof ThingQueryCommand) {
@@ -885,7 +886,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    static <T extends ThingCommand<T>> Optional<T> authorizeByPolicy(final Enforcer policyEnforcer,
+    static <T extends ThingCommand> Optional<T> authorizeByPolicy(final Enforcer policyEnforcer,
             final ThingCommand<T> command) {
 
         final ResourceKey thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
