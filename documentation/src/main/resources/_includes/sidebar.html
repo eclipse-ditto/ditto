@@ -107,9 +107,9 @@ function changeSelectedDocVersion() {
     // do nothing, we're already on the correct version
   } else {
     if (versionValue === "") {
-      window.location.pathname = "ditto/" + splittedVersionAndRemaining[1];
+      window.location.pathname = "ditto/" + splittedVersionAndRemaining[1] ? splittedVersionAndRemaining[1] : splittedVersionAndRemaining[0];
     } else {
-      window.location.pathname = "ditto/" + versionValue + "/" + splittedVersionAndRemaining[1];
+      window.location.pathname = "ditto/" + versionValue + "/" + splittedVersionAndRemaining[1] ? splittedVersionAndRemaining[1] : splittedVersionAndRemaining[0];
     }
   }
 }
