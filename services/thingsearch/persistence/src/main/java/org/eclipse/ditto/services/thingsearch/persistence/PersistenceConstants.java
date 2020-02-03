@@ -166,6 +166,16 @@ public final class PersistenceConstants {
      */
     public static final String FIELD_DELETE_AT = "deleteAt";
 
+    /**
+     * Field name for the last modified timestamp under FIELD_SORTING.
+     */
+    public static final String FIELD_MODIFIED = "_modified";
+
+    /**
+     * Expression of the full path of the last modified timestamp under FIELD_SORTING.
+     */
+    public static final String FIELD_PATH_MODIFIED = FIELD_SORTING + DOT + FIELD_MODIFIED;
+
     private PersistenceConstants() {
     }
 

@@ -13,11 +13,21 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETE_AT;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_MODIFIED;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_MODIFIED;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_ID;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_REVISION;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_SORTING;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +39,7 @@ import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.things.ThingId;
@@ -41,14 +52,19 @@ import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
+import org.reactivestreams.Publisher;
 
 import com.mongodb.MongoExecutionTimeoutException;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.model.CountOptions;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.AggregatePublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -133,7 +149,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         final AggregatePublisher<Document> aggregatePublisher = collection.aggregate(
                 Collections.singletonList(
                         new Document("$group",
-                                new Document(PersistenceConstants.FIELD_ID, "$_namespace")
+                                new Document(FIELD_ID, "$_namespace")
                                         .append(PersistenceConstants.FIELD_COUNT, new Document("$sum", 1))
                         )
                 )
@@ -141,8 +157,8 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
         return Source.fromPublisher(aggregatePublisher)
                 .map(document -> {
-                    final String namespace = document.get(PersistenceConstants.FIELD_ID) != null
-                            ? document.get(PersistenceConstants.FIELD_ID).toString()
+                    final String namespace = document.get(FIELD_ID) != null
+                            ? document.get(FIELD_ID).toString()
                             : "NOT_MIGRATED";
                     final long count = Long.parseLong(document.get(PersistenceConstants.FIELD_COUNT).toString());
                     return new SearchNamespaceResultEntry(namespace, count);
@@ -212,6 +228,22 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                 .log("findAll");
     }
 
+    @Override
+    public Source<Metadata, NotUsed> sudoStreamMetadata(final EntityId lowerBound) {
+        final Bson notDeletedFilter = Filters.exists(FIELD_DELETE_AT, false);
+        final Bson filter = lowerBound.isDummy()
+                ? notDeletedFilter
+                : Filters.and(notDeletedFilter, Filters.gt(FIELD_ID, lowerBound.toString()));
+        final Bson relevantFieldsProjection =
+                Projections.include(FIELD_ID, FIELD_REVISION, FIELD_POLICY_ID, FIELD_POLICY_REVISION,
+                        FIELD_PATH_MODIFIED);
+        final Bson sortById = Sorts.ascending(FIELD_ID);
+        final Publisher<Document> publisher = collection.find(filter)
+                .projection(relevantFieldsProjection)
+                .sort(sortById);
+        return Source.fromPublisher(publisher).map(MongoThingsSearchPersistence::readAsMetadata);
+    }
+
     private ResultList<ThingId> toResultList(final List<Document> resultsPlus0ne, final int skip, final int limit,
             final List<SortOption> sortOptions) {
 
@@ -236,7 +268,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     private static List<ThingId> toIds(final List<Document> docs) {
         return docs.stream()
-                .map(doc -> doc.getString(PersistenceConstants.FIELD_ID))
+                .map(doc -> doc.getString(FIELD_ID))
                 .map(ThingId::of)
                 .collect(Collectors.toList());
     }
@@ -264,6 +296,16 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                                 : error
                 )
                 .build();
+    }
+
+    private static Metadata readAsMetadata(final Document document) {
+        final ThingId thingId = ThingId.of(document.getString(FIELD_ID));
+        final long thingRevision = Optional.ofNullable(document.getLong(FIELD_REVISION)).orElse(0L);
+        final String policyId = document.getString(FIELD_POLICY_ID);
+        final long policyRevision = Optional.ofNullable(document.getLong(FIELD_POLICY_REVISION)).orElse(0L);
+        final String nullableTimestamp = document.getEmbedded(List.of(FIELD_SORTING, FIELD_MODIFIED), String.class);
+        final Instant modified = Optional.ofNullable(nullableTimestamp).map(Instant::parse).orElse(null);
+        return Metadata.of(thingId, thingRevision, policyId, policyRevision, modified);
     }
 
 }

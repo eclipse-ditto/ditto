@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -31,20 +32,23 @@ public final class Metadata {
     private final long thingRevision;
     @Nullable private final String policyId;
     private final long policyRevision;
+    @Nullable final Instant modified;
 
     private Metadata(final ThingId thingId,
             final long thingRevision,
             @Nullable final String policyId,
-            final long policyRevision) {
+            final long policyRevision,
+            @Nullable final Instant modified) {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
         this.policyId = policyId;
         this.policyRevision = policyRevision;
+        this.modified = modified;
     }
 
     /**
-     * Create an Metadata object with callback.
+     * Create an Metadata object.
      *
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
@@ -57,7 +61,26 @@ public final class Metadata {
             @Nullable final String policyId,
             final long policyRevision) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision);
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, null);
+    }
+
+    /**
+     * Create an Metadata object with timestamp for the last modification.
+     *
+     * @param thingId the Thing ID.
+     * @param thingRevision the Thing revision.
+     * @param policyId the Policy ID if the Thing has one.
+     * @param policyRevision the Policy revision if the Thing has a policy, or the Thing revision if it does not.
+     * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
+     * @return the new Metadata object.
+     */
+    public static Metadata of(final ThingId thingId,
+            final long thingRevision,
+            @Nullable final String policyId,
+            final long policyRevision,
+            @Nullable final Instant modified) {
+
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified);
     }
 
     /**
@@ -67,7 +90,7 @@ public final class Metadata {
      * @return the metadata.
      */
     public static Metadata fromResponse(final UpdateThingResponse updateThingResponse) {
-        return Metadata.of(updateThingResponse.getThingId(), updateThingResponse.getThingRevision(),
+        return of(updateThingResponse.getThingId(), updateThingResponse.getThingRevision(),
                 updateThingResponse.getPolicyId().orElse(null), updateThingResponse.getPolicyRevision());
     }
 
@@ -117,6 +140,15 @@ public final class Metadata {
         return policyRevision;
     }
 
+    /**
+     * Returns the timestamp of the last change if any exists.
+     *
+     * @return the optional timestamp.
+     */
+    public Optional<Instant> getModified() {
+        return Optional.ofNullable(modified);
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -129,12 +161,13 @@ public final class Metadata {
         return thingRevision == that.thingRevision &&
                 policyRevision == that.policyRevision &&
                 Objects.equals(thingId, that.thingId) &&
-                Objects.equals(policyId, that.policyId);
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(modified, that.modified);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, thingRevision, policyId, policyRevision);
+        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified);
     }
 
     @Override
@@ -144,6 +177,7 @@ public final class Metadata {
                 ", thingRevision=" + thingRevision +
                 ", policyId=" + policyId +
                 ", policyRevision=" + policyRevision +
+                ", modified=" + modified +
                 "]";
     }
 

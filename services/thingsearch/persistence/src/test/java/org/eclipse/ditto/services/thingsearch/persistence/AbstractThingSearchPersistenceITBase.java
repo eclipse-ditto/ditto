@@ -71,13 +71,13 @@ public abstract class AbstractThingSearchPersistenceITBase {
     private static MongoDbResource mongoResource;
     private static DittoMongoClient mongoClient;
 
-    private MongoThingsSearchPersistence readPersistence;
     private MongoCollection<Document> thingsCollection;
     private MongoCollection<Document> syncCollection;
+    protected MongoThingsSearchPersistence readPersistence;
     protected TestSearchUpdaterStream writePersistence;
 
     private ActorSystem actorSystem;
-    private ActorMaterializer actorMaterializer;
+    protected ActorMaterializer actorMaterializer;
     protected LoggingAdapter log;
 
     @BeforeClass
@@ -208,7 +208,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
         return actorMaterializer;
     }
 
-    private <T> List<T> waitFor(final Source<T, ?> source) {
+    protected <T> List<T> waitFor(final Source<T, ?> source) {
         return source.runWith(Sink.seq(), actorMaterializer)
                 .toCompletableFuture()
                 .join();
