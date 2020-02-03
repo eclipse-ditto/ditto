@@ -17,6 +17,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
+import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
@@ -29,12 +31,16 @@ import com.typesafe.config.Config;
 public final class DefaultStreamingConfig implements StreamingConfig {
 
     private final Duration sessionCounterScrapeInterval;
+    private final int parallelism;
     private final WebsocketConfig websocketConfig;
+    private final SignalEnrichmentConfig signalEnrichmentConfig;
 
     private DefaultStreamingConfig(final ScopedConfig scopedConfig) {
         sessionCounterScrapeInterval =
                 scopedConfig.getDuration(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath());
+        parallelism = scopedConfig.getInt(StreamingConfigValue.PARALLELISM.getConfigPath());
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
+        signalEnrichmentConfig = DefaultSignalEnrichmentConfig.of(scopedConfig);
     }
 
     /**
@@ -60,6 +66,16 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     }
 
     @Override
+    public SignalEnrichmentConfig getSignalEnrichmentConfig() {
+        return signalEnrichmentConfig;
+    }
+
+    @Override
+    public int getParallelism() {
+        return parallelism;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -68,19 +84,23 @@ public final class DefaultStreamingConfig implements StreamingConfig {
             return false;
         }
         final DefaultStreamingConfig that = (DefaultStreamingConfig) o;
-        return Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
+        return parallelism == that.parallelism &&
+                Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
+                Objects.equals(signalEnrichmentConfig, that.signalEnrichmentConfig) &&
                 Objects.equals(websocketConfig, that.websocketConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sessionCounterScrapeInterval, websocketConfig);
+        return Objects.hash(parallelism, sessionCounterScrapeInterval, signalEnrichmentConfig, websocketConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "sessionCounterScrapeInterval=" + sessionCounterScrapeInterval +
+                ", parallelism=" + parallelism +
+                ", signalEnrichmentConfig=" + signalEnrichmentConfig +
                 ", websocketConfig=" + websocketConfig +
                 "]";
     }

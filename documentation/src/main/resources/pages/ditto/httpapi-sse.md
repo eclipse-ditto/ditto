@@ -1,6 +1,6 @@
 ---
 title: HTTP API server sent events (SSE)
-keywords: http, api, sse, EventSource
+keywords: http, api, sse, EventSource, fields, projection, extra, enrich
 tags: [http, rql]
 permalink: httpapi-sse.html
 ---
@@ -77,6 +77,23 @@ http://localhost:8080/api/<1|2>/things?fields=thingId,attributes
 {% include tip.html content="The `thingId` should always be included in the `fields` query, otherwise it is no longer
     reproducible, for which Thing the change was made." %}
 
+#### Field enrichment
+
+{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
+
+In addition to the fields projection one can also choose to select [extra fields](basic-enrichment.html) 
+to return in addition to the actually changed fields, e.g.:
+```
+http://localhost:8080/api/<1|2>/things?extraFields=attributes
+```
+
+The result is that the sent out SSE messages are merged from the actually changed data + the extra fields.
+
+This can be used in combination with the below mentioned [RQL filter](#filtering-by-rql-expression), e.g.:
+```
+http://localhost:8080/api/<1|2>/things?extraFields=attributes/location&filter=eq(attributes/location,"kitchen")
+```
+
 #### Filtering by namespaces
 
 As described in [change notifications](basic-changenotifications.html#by-namespaces), it is possible to only subscribe
@@ -98,17 +115,11 @@ http://localhost:8080/api/<1|2>/things?filter=gt(attributes/counter,42)
 
 ### Example for SSE on Things
 
-Assuming we have a Thing (in API version 1) with the following JSON content:
+Assuming we have a Thing with the following JSON content:
 ```json
 {
   "thingId": "org.eclipse.ditto:fancy-thing",
-  "acl": {
-    "{userId}": {
-      "READ": true,
-      "WRITE": true,
-      "ADMINISTRATE": true
-    }
-  },
+  "policyId": "org.eclipse.ditto:fancy-thing",
   "attributes": {
     "manufacturer": "ACME corp",
     "complex": {
@@ -132,7 +143,7 @@ event to the console. This one tracks only changes to the Thing with ID `org.ecl
 for changes on the feature `lamp`:
 ```javascript
 // the javascript must be served from the same domain as Ditto is running in order to avoid CORS problems
-let source = new EventSource('/api/1/things?ids=org.eclipse.ditto:fancy-thing&fields=thingId,features/lamp');
+let source = new EventSource('/api/2/things?ids=org.eclipse.ditto:fancy-thing&fields=thingId,features/lamp');
 source.onmessage = function (event) {
     console.log(event.data);
 };

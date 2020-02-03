@@ -20,17 +20,17 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.assertj.core.util.Lists;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -48,14 +48,13 @@ public final class ImmutableMessageHeadersTest {
     private static final MessageDirection DIRECTION = MessageDirection.TO;
     private static final ThingId THING_ID = ThingId.of("test.ns", "theThingId");
     private static final String SUBJECT = KnownMessageSubjects.CLAIM_SUBJECT;
-    private static final Collection<String> AUTH_SUBJECTS = Arrays.asList("JohnOldman", "FrankGrimes");
+    private static final Collection<String> AUTH_SUBJECT_IDS = Lists.list("JohnOldman", "FrankGrimes");
     private static final String KNOWN_CORRELATION_ID = "knownCorrelationId";
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
-    private static final String KNOWN_READ_SUBJECT_WITHOUT_ISSUER = "knownReadSubject";
-    private static final String KNOWN_READ_SUBJECT = KNOWN_READ_SUBJECT_WITHOUT_ISSUER;
+    private static final AuthorizationSubject KNOWN_READ_SUBJECT = AuthorizationSubject.newInstance("knownReadSubject");
     private static final String KNOWN_CHANNEL = "twin";
     private static final boolean KNOWN_RESPONSE_REQUIRED = true;
-    private static final Collection<String> KNOWN_READ_SUBJECTS = Collections.singletonList(KNOWN_READ_SUBJECT);
+    private static final Collection<AuthorizationSubject> KNOWN_READ_SUBJECTS = Lists.list(KNOWN_READ_SUBJECT);
     private static final String FEATURE_ID = "flux-condensator-0815";
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
     private static final String TIMESTAMP = "2017-09-22T09:47:23+01:00";
@@ -79,13 +78,13 @@ public final class ImmutableMessageHeadersTest {
         final Map<String, String> expectedHeaderMap = createMapContainingAllKnownHeaders();
 
         final MessageHeaders messageHeaders = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT)
-                .authorizationSubjects(AUTH_SUBJECTS)
+                .authorizationSubjects(AUTH_SUBJECT_IDS)
                 .correlationId(KNOWN_CORRELATION_ID)
                 .schemaVersion(KNOWN_SCHEMA_VERSION)
                 .channel(KNOWN_CHANNEL)
                 .responseRequired(KNOWN_RESPONSE_REQUIRED)
                 .dryRun(false)
-                .readSubjects(KNOWN_READ_SUBJECTS)
+                .readGrantedSubjects(KNOWN_READ_SUBJECTS)
                 .featureId(FEATURE_ID)
                 .timeout(TIMEOUT)
                 .timestamp(TIMESTAMP)
@@ -257,13 +256,18 @@ public final class ImmutableMessageHeadersTest {
 
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
-        result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), toJsonArray(AUTH_SUBJECTS).toString());
+        result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), String.valueOf(AUTH_SUBJECT_IDS.stream()
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray())));
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "knownCorrelationId");
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
         result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);
         result.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), String.valueOf(KNOWN_RESPONSE_REQUIRED));
         result.put(DittoHeaderDefinition.DRY_RUN.getKey(), String.valueOf(false));
-        result.put(DittoHeaderDefinition.READ_SUBJECTS.getKey(), toJsonArray(KNOWN_READ_SUBJECTS).toString());
+        result.put(DittoHeaderDefinition.READ_SUBJECTS.getKey(), String.valueOf(KNOWN_READ_SUBJECTS.stream()
+                .map(AuthorizationSubject::getId)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray())));
         result.put(MessageHeaderDefinition.DIRECTION.getKey(), DIRECTION.toString());
         result.put(MessageHeaderDefinition.SUBJECT.getKey(), SUBJECT);
         result.put(MessageHeaderDefinition.THING_ID.getKey(), THING_ID.toString());
@@ -274,12 +278,6 @@ public final class ImmutableMessageHeadersTest {
         result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
 
         return result;
-    }
-
-    private static JsonArray toJsonArray(final Iterable<String> stringCollection) {
-        final JsonArrayBuilder jsonArrayBuilder = JsonFactory.newArrayBuilder();
-        stringCollection.forEach(jsonArrayBuilder::add);
-        return jsonArrayBuilder.build();
     }
 
 }

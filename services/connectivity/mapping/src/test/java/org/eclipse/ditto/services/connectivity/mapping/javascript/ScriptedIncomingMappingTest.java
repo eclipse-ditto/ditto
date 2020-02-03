@@ -14,13 +14,20 @@ package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
+import java.util.function.Consumer;
 
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.junit.Test;
 import org.mozilla.javascript.NativeObject;
+import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.typedarrays.NativeArrayBuffer;
 
 public class ScriptedIncomingMappingTest {
@@ -63,5 +70,75 @@ public class ScriptedIncomingMappingTest {
 
         final NativeArrayBuffer bytePayload = (NativeArrayBuffer) nativeObject.get("bytePayload");
         assertThat(bytePayload.getBuffer()).isEqualTo(BYTES);
+    }
+
+    @Test
+    public void mapExternalMessageProducingArrayOfDittoProtocolMessages() {
+
+        testJavascript("function createDittoCommand(namespace, id, headers, value) {\n" +
+                        "    var path = \"/attributes/test\";\n" +
+                        "    return Ditto.buildDittoProtocolMsg(\n" +
+                        "        namespace,\n" +
+                        "        id,\n" +
+                        "        \"things\",\n" +
+                        "        \"twin\",\n" +
+                        "        \"commands\",\n" +
+                        "        \"modify\",\n" +
+                        "        path,\n" +
+                        "        headers,\n" +
+                        "        value\n" +
+                        "    );\n" +
+                        "}\n" +
+                        "\n" +
+                        "function mapToDittoProtocolMsg(\n" +
+                        "  headers,\n" +
+                        "  textPayload,\n" +
+                        "  bytePayload,\n" +
+                        "  contentType\n" +
+                        ") {\n" +
+                        "  var namespace = 'org.eclipse.ditto';\n" +
+                        "  var id = 'thing-1';\n" +
+                        "\n" +
+                        "  var dittoCommands = [createDittoCommand(namespace, id, headers, textPayload)];\n" +
+                        "  dittoCommands = dittoCommands.concat(createDittoCommand(namespace, id, headers, textPayload + \"1\"));\n" +
+                        "  return dittoCommands;\n" +
+                        "}\n",
+                adaptables -> {
+                    assertThat(adaptables).isNotEmpty();
+                    assertThat(adaptables.size()).isEqualTo(2);
+                    final Adaptable adaptable0 = adaptables.get(0);
+                    assertThat(adaptable0.getPayload().getValue()).contains(JsonValue.of(PAYLOAD));
+                    final Adaptable adaptable1 = adaptables.get(1);
+                    assertThat(adaptable1.getPayload().getValue()).contains(JsonValue.of(PAYLOAD + "1"));
+                });
+    }
+
+    private void testJavascript(final String scriptToTest, final Consumer<List<Adaptable>> mappedAdaptables) {
+        final SandboxingContextFactory contextFactory = new SandboxingContextFactory(Duration.ofMillis(500), 10);
+        contextFactory.call(cx -> {
+            final Scriptable scope = cx.initSafeStandardObjects(); // that one disables "print, exit, quit", etc.
+            JavaScriptMessageMapperRhino.loadJavascriptLibrary(cx, scope, new InputStreamReader(
+                            getClass().getResourceAsStream(JavaScriptMessageMapperRhino.DITTO_SCOPE_SCRIPT)),
+                    JavaScriptMessageMapperRhino.DITTO_SCOPE_SCRIPT);
+            JavaScriptMessageMapperRhino.loadJavascriptLibrary(cx, scope,
+                    new InputStreamReader(getClass().getResourceAsStream(JavaScriptMessageMapperRhino.INCOMING_SCRIPT)),
+                    JavaScriptMessageMapperRhino.INCOMING_SCRIPT);
+            JavaScriptMessageMapperRhino.loadJavascriptLibrary(cx, scope,
+                    new InputStreamReader(getClass().getResourceAsStream(JavaScriptMessageMapperRhino.OUTGOING_SCRIPT)),
+                    JavaScriptMessageMapperRhino.OUTGOING_SCRIPT);
+
+            final ScriptedIncomingMapping incomingMapping = new ScriptedIncomingMapping(contextFactory, scope);
+            cx.evaluateString(scope, scriptToTest,
+                    JavaScriptMessageMapperConfigurationProperties.INCOMING_SCRIPT, 1, null);
+
+            final ExternalMessage externalMessage = ExternalMessageFactory
+                    .newExternalMessageBuilder(new HashMap<>())
+                    .withText(PAYLOAD)
+                    .build();
+            final List<Adaptable> adaptables = incomingMapping.apply(externalMessage);
+            mappedAdaptables.accept(adaptables);
+
+            return scope;
+        });
     }
 }

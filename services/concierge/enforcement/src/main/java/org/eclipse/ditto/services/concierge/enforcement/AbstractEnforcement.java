@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
-import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
@@ -24,6 +23,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.policies.Permission;
@@ -151,48 +151,24 @@ public abstract class AbstractEnforcement<T extends Signal> {
     }
 
     /**
-     * Extend a signal by read-subjects header given by an enforcer for the resource type {@code things}.
+     * Extend a signal by subject headers given with granted and revoked READ access.
+     * The subjects are provided by the given enforcer for the resource type {@value ThingCommand#RESOURCE_TYPE}.
      *
      * @param signal the signal to extend.
      * @param enforcer the enforcer.
      * @return the extended signal.
      */
-    protected static <T extends Signal> T addReadSubjectsToThingSignal(final Signal<T> signal,
+    protected static <T extends Signal> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
             final Enforcer enforcer) {
 
-        return addReadSubjectsToSignal(signal, getThingsReadSubjects(signal, enforcer));
-    }
-
-    /**
-     * Extend a signal by read-subjects header given explicitly.
-     *
-     * @param <T> type of the signal.
-     * @param signal the signal to extend.
-     * @param readSubjects explicitly-given read subjects.
-     * @return the extended signal.
-     */
-    protected static <T extends Signal> T addReadSubjectsToSignal(final Signal<T> signal,
-            final Set<String> readSubjects) {
-
-        final DittoHeaders newHeaders = signal.getDittoHeaders()
-                .toBuilder()
-                .readSubjects(readSubjects)
+        final ResourceKey resourceKey = ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, signal.getResourcePath());
+        final EffectedSubjects effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
+        final DittoHeaders newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
+                .readGrantedSubjects(effectedSubjects.getGranted())
+                .readRevokedSubjects(effectedSubjects.getRevoked())
                 .build();
 
         return signal.setDittoHeaders(newHeaders);
-    }
-
-    /**
-     * Get read subjects from an enforcer for the resource type {@code things}.
-     *
-     * @param signal the signal to get read subjects for.
-     * @param enforcer the enforcer.
-     * @return read subjects of the signal.
-     */
-    protected static Set<String> getThingsReadSubjects(final Signal<?> signal, final Enforcer enforcer) {
-        final ResourceKey resourceKey =
-                ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, signal.getResourcePath());
-        return enforcer.getSubjectIdsWithPermission(resourceKey, Permission.READ).getGranted();
     }
 
     /**

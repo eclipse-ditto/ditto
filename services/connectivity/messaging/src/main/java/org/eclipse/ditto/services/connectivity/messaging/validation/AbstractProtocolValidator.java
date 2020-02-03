@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
-
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.function.Supplier;

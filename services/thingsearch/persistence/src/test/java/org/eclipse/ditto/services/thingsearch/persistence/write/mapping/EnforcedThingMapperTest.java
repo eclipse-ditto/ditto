@@ -94,8 +94,8 @@ public final class EnforcedThingMapperTest {
                 "      \"v\": \"mars:v0:2\", \"g\": [ \"g:0\" ], \"r\": [] },\n" +
                 "    { \"k\": \"/features/*/definition\"," +
                 "      \"v\": \"mars:v0:2\", \"g\": [ \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/features/hi/properties/there\", \"v\": true, \"g\": [ \"g:0\", \"g:1\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/features/*/properties/there\", \"v\": true, \"g\": [ \"g:0\", \"g:1\" ], \"r\": [] },\n" +
+                "    { \"k\": \"/features/hi/properties/there\", \"v\": true, \"g\": [ \"g:1\", \"g:0\" ], \"r\": [] },\n" +
+                "    { \"k\": \"/features/*/properties/there\", \"v\": true, \"g\": [ \"g:1\", \"g:0\" ], \"r\": [] },\n" +
                 "    { \"k\": \"/attributes/hello\", \"v\": \"world\", \"g\": [ \"g:0\" ], \"r\": [] }\n" +
                 "  ]\n" +
                 "}");

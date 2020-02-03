@@ -20,12 +20,14 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -47,7 +49,7 @@ public final class DefaultStreamingConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultStreamingConfig.class, areImmutable(),
-                provided(WebsocketConfig.class).isAlsoImmutable());
+                provided(Config.class, WebsocketConfig.class, DefaultSignalEnrichmentConfig.class).areAlsoImmutable());
     }
 
     @Test
@@ -64,6 +66,9 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSessionCounterScrapeInterval())
                 .as(StreamingConfig.StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath())
                 .isEqualTo(StreamingConfig.StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getDefaultValue());
+        softly.assertThat(underTest.getParallelism())
+                .as(StreamingConfig.StreamingConfigValue.PARALLELISM.getConfigPath())
+                .isEqualTo(StreamingConfig.StreamingConfigValue.PARALLELISM.getDefaultValue());
     }
 
     @Test
@@ -73,6 +78,16 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSessionCounterScrapeInterval())
                 .as(StreamingConfig.StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(67L));
+        softly.assertThat(underTest.getParallelism())
+                .as(StreamingConfig.StreamingConfigValue.PARALLELISM.getConfigPath())
+                .isEqualTo(1024);
+        softly.assertThat(underTest.getSignalEnrichmentConfig().getProvider())
+                .as("signal-enrichment.provider")
+                .isEqualTo("MyEnrichmentProvider");
+        softly.assertThat(underTest.getSignalEnrichmentConfig().getProviderConfig().root())
+                .as("signal-enrichment.provider-config")
+                .containsOnlyKeys("key")
+                .containsValue(ConfigValueFactory.fromAnyRef("value"));
         softly.assertThat(underTest.getWebsocketConfig().getThrottlingConfig().getInterval())
                 .as("websocket.throttling.interval")
                 .isEqualTo(Duration.ofSeconds(8L));

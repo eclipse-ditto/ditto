@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -41,7 +43,11 @@ final class MappableOutboundSignal implements OutboundSignal.Mappable {
 
         checkNotNull(targets, "targets");
         checkArgument(targets, verifyPayloadMappings(payloadMapping), () -> "Payload mappings must all be equal.");
-        this.delegate = OutboundSignalFactory.newOutboundSignal(signal, targets);
+        delegate = OutboundSignalFactory.newOutboundSignal(signal, targets);
+    }
+
+    private static Predicate<List<Target>> verifyPayloadMappings(final PayloadMapping payloadMapping) {
+        return targets1 -> targets1.stream().allMatch(t -> payloadMapping.equals(t.getPayloadMapping()));
     }
 
     @Override
@@ -65,17 +71,16 @@ final class MappableOutboundSignal implements OutboundSignal.Mappable {
         return delegate.toJson(schemaVersion, thePredicate);
     }
 
-    private Predicate<List<Target>> verifyPayloadMappings(final PayloadMapping payloadMapping) {
-        return targets1 -> targets1.stream().allMatch(t -> payloadMapping.equals(t.getPayloadMapping()));
-    }
-
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final MappableOutboundSignal that = (MappableOutboundSignal) o;
-        return Objects.equals(delegate, that.delegate) &&
-                Objects.equals(payloadMapping, that.payloadMapping);
+        return Objects.equals(delegate, that.delegate) && Objects.equals(payloadMapping, that.payloadMapping);
     }
 
     @Override
@@ -90,4 +95,5 @@ final class MappableOutboundSignal implements OutboundSignal.Mappable {
                 ", payloadMapping=" + payloadMapping +
                 "]";
     }
+
 }

@@ -208,9 +208,12 @@ public final class KafkaAuthenticationSpecificConfigTest {
         final String uri = getUriWithUserAndPassword(username, password);
         return ConnectivityModelFactory.newConnectionBuilder(ConnectionId.of("kafka"), ConnectionType.KAFKA,
                 ConnectivityStatus.OPEN, uri)
-                .targets(singletonList(
-                        org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget("target",
-                                AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+                .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address("target")
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .qos(1)
+                        .topics(Topic.LIVE_EVENTS)
+                        .build()))
                 .specificConfig(specificConfig)
                 .build();
     }

@@ -17,9 +17,10 @@ import static java.util.Objects.requireNonNull;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
@@ -28,6 +29,7 @@ import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -57,8 +59,8 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
         requireNonNull(askTimeout);
         requireNonNull(policiesShardRegionProxy);
 
-        final Function<EntityId, Command> commandCreator = PolicyCommandFactory::sudoRetrievePolicy;
-        final Function<Object, Entry<Enforcer>> responseTransformer =
+        final BiFunction<EntityId, CacheLookupContext, Command> commandCreator = PolicyCommandFactory::sudoRetrievePolicy;
+        final BiFunction<Object, CacheLookupContext, Entry<Enforcer>> responseTransformer =
                 PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
 
         delegate = ActorAskCacheLoader.forShard(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy,
@@ -71,7 +73,8 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
         return delegate.asyncLoad(key, executor);
     }
 
-    private static Entry<Enforcer> handleSudoRetrievePolicyResponse(final Object response) {
+    private static Entry<Enforcer> handleSudoRetrievePolicyResponse(final Object response,
+            @Nullable final CacheLookupContext cacheLookupContext) {
         if (response instanceof SudoRetrievePolicyResponse) {
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse = (SudoRetrievePolicyResponse) response;
             final Policy policy = sudoRetrievePolicyResponse.getPolicy();

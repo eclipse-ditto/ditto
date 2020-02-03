@@ -268,12 +268,12 @@ final class FeaturesRoute extends AbstractRoute {
                                 .concat(PathMatchers.slash())
                                 .concat(PathMatchers.remaining())
                                 .map(path -> UriEncoding.decode(path, UriEncoding.EncodingType.RFC3986))
-                                .map(JsonFactory::newPointer),
-                        jsonPointer ->
+                                .map(path -> "/" + path), // Prepend slash to path to fail request with double slashes
+                        jsonPointerString ->
                                 concat(
                                         get(() -> // GET /features/{featureId}/properties/<propertyJsonPointerStr>
                                                 handlePerRequest(ctx, RetrieveFeatureProperty.of(thingId, featureId,
-                                                        JsonFactory.newPointer(jsonPointer), dittoHeaders))
+                                                        JsonFactory.newPointer(jsonPointerString), dittoHeaders))
                                         ),
                                         put(() ->
                                                 extractDataBytes(payloadSource ->
@@ -283,7 +283,8 @@ final class FeaturesRoute extends AbstractRoute {
                                                                         ModifyFeatureProperty.of(
                                                                                 thingId,
                                                                                 featureId,
-                                                                                JsonFactory.newPointer(jsonPointer),
+                                                                                JsonFactory.newPointer(
+                                                                                        jsonPointerString),
                                                                                 DittoJsonException.wrapJsonRuntimeException(
                                                                                         () -> JsonFactory.readFrom(
                                                                                                 propertyJson)),
@@ -293,7 +294,7 @@ final class FeaturesRoute extends AbstractRoute {
                                         delete(() ->
                                                 // DELETE /features/{featureId}/properties/<propertyJsonPointerStr>
                                                 handlePerRequest(ctx, DeleteFeatureProperty.of(thingId, featureId,
-                                                        JsonFactory.newPointer(jsonPointer), dittoHeaders))
+                                                        JsonFactory.newPointer(jsonPointerString), dittoHeaders))
                                         )
                                 )
                 )

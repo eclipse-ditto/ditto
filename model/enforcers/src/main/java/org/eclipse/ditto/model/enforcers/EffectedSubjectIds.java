@@ -17,7 +17,10 @@ import java.util.Set;
 /**
  * Contains "granted" and "revoked" {@code subjectId}s in the scope of a specific
  * {@link org.eclipse.ditto.model.policies.ResourceKey} and {@code Permissions} on that resource.
+ *
+ * @deprecated as of 1.1.0 please use {@link EffectedSubjects} instead.
  */
+@Deprecated
 public interface EffectedSubjectIds {
 
     /**

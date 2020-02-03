@@ -67,12 +67,14 @@ public final class ProducerSettingsFactoryTest {
                 .collect(Collectors.joining(","));
         specificConfig.put("bootstrapServers", additionalBootstrapServers);
 
-        connection =
-                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
-                        ConnectivityStatus.OPEN, uri)
-                .targets(singletonList(
-                        ConnectivityModelFactory.newTarget(TARGET_ADDRESS, AUTHORIZATION_CONTEXT, null, 1,
-                                Topic.LIVE_EVENTS)))
+        connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
+                ConnectivityStatus.OPEN, uri)
+                .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address(TARGET_ADDRESS)
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .qos(1)
+                        .topics(Topic.LIVE_EVENTS)
+                        .build()))
                 .specificConfig(specificConfig)
                 .build();
 

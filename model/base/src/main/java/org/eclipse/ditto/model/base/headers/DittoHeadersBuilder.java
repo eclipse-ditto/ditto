@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -94,8 +95,30 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @param readSubjects the readSubjects value to be set.
      * @return this builder for Method Chaining.
      * @throws NullPointerException if {@code readSubjects} is {@code null}.
+     * @deprecated as of 1.1.0, please use {@link #readGrantedSubjects(Collection)}.
      */
+    @Deprecated
     B readSubjects(Collection<String> readSubjects);
+
+    /**
+     * Sets the subjects with granted READ access.
+     *
+     * @param readGrantedSubjects the value to be set.
+     * @return this builder for Method Chaining.
+     * @throws NullPointerException if {@code readGrantedSubjects} is {@code null}.
+     * @since 1.1.0
+     */
+    B readGrantedSubjects(Collection<AuthorizationSubject> readGrantedSubjects);
+
+    /**
+     * Sets the subjects with explicitly revoked READ access.
+     *
+     * @param readRevokedSubjects the value to be set.
+     * @return this builder for Method Chaining.
+     * @throws NullPointerException if {@code readRevokedSubjects} is {@code null}.
+     * @since 1.1.0
+     */
+    B readRevokedSubjects(Collection<AuthorizationSubject> readRevokedSubjects);
 
     /**
      * Sets the specified String as channel of the Signal/Exception.

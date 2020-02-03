@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -32,12 +34,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -62,7 +59,6 @@ import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 final class SignalFilter {
 
     private final Connection connection;
-    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
 
     /**
@@ -70,56 +66,52 @@ final class SignalFilter {
      *
      * @param connection the connection to filter the signals on.
      */
-    SignalFilter(final Connection connection, final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry) {
+    SignalFilter(final Connection connection,
+            final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry) {
         this.connection = connection;
-        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
-        final ThingsFieldExpressionFactory fieldExpressionFactory =
-                new ModelBasedThingsFieldExpressionFactory();
-        queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
         this.connectionMonitorRegistry = connectionMonitorRegistry;
     }
 
     /**
      * Filters the passed {@code signal} by extracting those {@link Target}s which should receive the signal.
+     * Fields are ignored if they occur as "extra targets" to be evaluated later after signal enrichment.
      *
      * @param signal the signal to filter / determine the {@link Target}s for
      * @return the determined Targets for the passed in {@code signal}
      * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the optional filter string of a
      * Target cannot be mapped to a valid criterion
      */
+    @SuppressWarnings("squid:S3864")
     List<Target> filter(final Signal<?> signal) {
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 // count authorized targets
-                .peek(authorizedTarget -> connectionMonitorRegistry.forOutboundDispatched(connection.getId(), authorizedTarget.getAddress())
+                .peek(authorizedTarget -> connectionMonitorRegistry.forOutboundDispatched(connection.getId(),
+                        authorizedTarget.getAddress())
                         .success(signal))
                 .filter(t -> isTargetSubscribedForTopic(t, signal))
                 // count authorized + filtered targets
-                .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection.getId(), filteredTarget.getAddress())
+                .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection.getId(),
+                        filteredTarget.getAddress())
                         .success(signal))
                 .collect(Collectors.toList());
     }
 
     private static boolean isTargetAuthorized(final Target target, final Signal<?> signal) {
-        final Set<String> authorizedReadSubjects = signal.getDittoHeaders().getReadSubjects();
         final AuthorizationContext authorizationContext = target.getAuthorizationContext();
-        final List<String> connectionSubjects = authorizationContext.getAuthorizationSubjectIds();
-        return !Collections.disjoint(authorizedReadSubjects, connectionSubjects);
+        final DittoHeaders headers = signal.getDittoHeaders();
+        return authorizationContext.isAuthorized(headers.getReadGrantedSubjects(), headers.getReadRevokedSubjects());
     }
 
     private boolean isTargetSubscribedForTopic(final Target target, final Signal<?> signal) {
         return target.getTopics().stream()
                 .filter(applyTopicFilter(signal))
-                .filter(applyRqlFilter(signal))
-                .anyMatch(applyNamespaceFilter(signal));
+                .filter(applyNamespaceFilter(signal))
+                .anyMatch(filteredTopic -> matchesFilterBeforeEnrichment(filteredTopic, signal));
     }
 
     private static Predicate<FilteredTopic> applyTopicFilter(final Signal<?> signal) {
         return t -> t.getTopic().equals(topicFromSignal(signal).orElse(null));
-    }
-
-    private Predicate<FilteredTopic> applyRqlFilter(final Signal<?> signal) {
-        return t -> !t.hasFilter() || t.getFilter().filter(f -> matchesFilter(f, signal)).isPresent();
     }
 
     private static Predicate<FilteredTopic> applyNamespaceFilter(final WithId signal) {
@@ -131,15 +123,18 @@ final class SignalFilter {
         return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
     }
 
-    private boolean matchesFilter(final String filter, final Signal<?> signal) {
-
-        if (signal instanceof ThingEvent) {
-
-            // currently only ThingEvents may be filtered
-            return ThingEventToThingConverter.thingEventToThing((ThingEvent) signal)
-                    .filter(thing -> ThingPredicateVisitor.apply(parseCriteria(filter, signal.getDittoHeaders()))
-                            .test(thing)
-                    )
+    private boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal) {
+        final Optional<String> filterOptional = filteredTopic.getFilter();
+        if (filterOptional.isPresent() && signal instanceof ThingEvent) {
+            // match filter ignoring "extraFields"
+            return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
+                    .filter(thing -> {
+                        final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders());
+                        final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
+                                .map(JsonFieldSelector::getPointers)
+                                .orElse(Collections.emptySet());
+                        return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thing);
+                    })
                     .isPresent();
         } else {
             return true;
@@ -148,11 +143,10 @@ final class SignalFilter {
 
     /**
      * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the filter string cannot be
-     * mapped to a
-     * valid criterion
+     * mapped to a valid criterion
      */
     private Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
+        return QueryFilterCriteriaFactory.modelBased().filterCriteria(filter, dittoHeaders);
     }
 
     private static Optional<Topic> topicFromSignal(final Signal<?> signal) {

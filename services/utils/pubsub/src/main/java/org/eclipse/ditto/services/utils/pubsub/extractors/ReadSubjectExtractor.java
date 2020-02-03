@@ -13,7 +13,11 @@
 package org.eclipse.ditto.services.utils.pubsub.extractors;
 
 import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 /**
@@ -37,6 +41,12 @@ public final class ReadSubjectExtractor<T extends WithDittoHeaders> implements P
 
     @Override
     public Collection<String> getTopics(final T event) {
-        return event.getDittoHeaders().getReadSubjects();
+        final DittoHeaders dittoHeaders = event.getDittoHeaders();
+        final Set<AuthorizationSubject> readGrantedSubjects = dittoHeaders.getReadGrantedSubjects();
+
+        return readGrantedSubjects.stream()
+                .map(AuthorizationSubject::getId)
+                .collect(Collectors.toSet());
     }
+
 }

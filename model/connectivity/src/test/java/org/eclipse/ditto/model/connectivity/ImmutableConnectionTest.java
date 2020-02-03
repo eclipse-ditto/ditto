@@ -68,19 +68,24 @@ public final class ImmutableConnectionTest {
             .map(s -> ConnectivityModelFactory.newSourceBuilder(s).replyTargetEnabled(false).build())
             .collect(Collectors.toList());
     private static final HeaderMapping HEADER_MAPPING = null;
-    private static final Target TARGET1 =
-            ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
-                    Topic.TWIN_EVENTS,
-                    Topic.LIVE_EVENTS);
-    private static final Target TARGET2 =
-            ConnectivityModelFactory.newTarget("amqp/target2", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
-                    Topic.LIVE_MESSAGES,
-                    Topic.LIVE_MESSAGES,
-                    Topic.LIVE_EVENTS);
-    private static final Target TARGET3 =
-            ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
-                    Topic.LIVE_MESSAGES,
-                    Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS);
+    private static final Target TARGET1 = ConnectivityModelFactory.newTargetBuilder()
+            .address("amqp/target1")
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .headerMapping(HEADER_MAPPING)
+            .topics(Topic.TWIN_EVENTS, Topic.LIVE_EVENTS)
+            .build();
+    private static final Target TARGET2 = ConnectivityModelFactory.newTargetBuilder()
+            .address("amqp/target2")
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .headerMapping(HEADER_MAPPING)
+            .topics(Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES, Topic.LIVE_EVENTS)
+            .build();
+    private static final Target TARGET3 = ConnectivityModelFactory.newTargetBuilder()
+            .address("amqp/target3")
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .headerMapping(HEADER_MAPPING)
+            .topics(Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS)
+            .build();
     private static final List<Target> TARGETS = Arrays.asList(TARGET1, TARGET2, TARGET3);
 
     private static final JsonArray KNOWN_SOURCES_JSON =

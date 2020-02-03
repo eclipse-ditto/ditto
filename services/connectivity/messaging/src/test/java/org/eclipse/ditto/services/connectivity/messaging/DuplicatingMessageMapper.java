@@ -33,17 +33,16 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
  * Implementation of {@link MessageMapper} that always duplicates the incoming message.
  */
 @PayloadMapper(alias = DuplicatingMessageMapper.ALIAS)
-public class DuplicatingMessageMapper extends AbstractMessageMapper {
+public final class DuplicatingMessageMapper extends AbstractMessageMapper {
 
     static final String ALIAS = "duplicating";
 
     /**
      * The context representing this mapper
      */
-    static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
-            ALIAS, Collections.emptyMap()
-    );
-    private MessageMapper delegate = new DittoMessageMapper();
+    static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(ALIAS, Collections.emptyMap());
+
+    private final MessageMapper delegate = new DittoMessageMapper();
     private Long n;
 
     @Override
@@ -66,4 +65,5 @@ public class DuplicatingMessageMapper extends AbstractMessageMapper {
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
+
 }

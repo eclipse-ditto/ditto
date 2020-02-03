@@ -28,7 +28,10 @@ import org.eclipse.ditto.model.policies.Permissions;
 /**
  * This visitor collects all subject IDs each of which has all the specified permissions granted on the specified
  * resource or on any sub resource down in the hierarchy. Revoked permissions are not taken into account.
+ *
+ * @deprecated as of 1.1.0 please use {@link CollectPartialGrantedSubjectsVisitor} instead.
  */
+@Deprecated
 @NotThreadSafe
 final class CollectPartialGrantedSubjectIdsVisitor implements Visitor<Set<String>> {
 

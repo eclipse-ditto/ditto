@@ -141,8 +141,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(clientActorAskTimeout, blacklistedHostnames, supervisorConfig, snapshotConfig, amqp10Config,
-                mqttConfig, kafkaConfig, activityCheckConfig, httpPushConfig);
+        return Objects.hash(clientActorAskTimeout, blacklistedHostnames, supervisorConfig, snapshotConfig,
+                activityCheckConfig, amqp10Config, mqttConfig, kafkaConfig, httpPushConfig);
     }
 
     @Override

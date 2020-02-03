@@ -24,6 +24,22 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface MappingConfig {
 
     /**
+     * Returns the buffer size used for the queue in the message mapping processor actor responsible for doing the
+     * enrichment.
+     *
+     * @return the buffer size.
+     */
+    int getBufferSize();
+
+    /**
+     * Returns the parallelism used for processing messages in parallel in message mapping processor actor responsible
+     * for doing the enrichment.
+     *
+     * @return the parallelism.
+     */
+    int getParallelism();
+
+    /**
      * Returns the config of the JavaScript message mapping.
      *
      * @return the config.
@@ -43,7 +59,15 @@ public interface MappingConfig {
      */
     enum MappingConfigValue implements KnownConfigValue {
 
-        /* for now there are no config keys with defaults */;
+        /**
+         * The buffer size used for the queue in the message mapping processor actor.
+         */
+        BUFFER_SIZE("buffer-size", 500),
+
+        /**
+         * The parallelism used for processing messages in parallel in message mapping processor actor.
+         */
+        PARALLELISM("parallelism", 64);
 
         private final String path;
         private final Object defaultValue;

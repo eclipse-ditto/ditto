@@ -27,7 +27,9 @@ import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Permissions;
 
 /**
+ * @deprecated as of 1.1.0 please use {@link CollectEffectedSubjectsVisitor} instead.
  */
+@Deprecated
 @NotThreadSafe
 @ParametersAreNonnullByDefault
 final class CollectEffectedSubjectIdsVisitor implements Visitor<EffectedSubjectIds> {

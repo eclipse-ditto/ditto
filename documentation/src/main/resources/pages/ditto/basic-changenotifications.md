@@ -1,6 +1,6 @@
 ---
 title: Change notifications
-keywords: change, event, feature, notification, thing, filtering, rql, push, subscribe, consume
+keywords: change, event, feature, notification, thing, filtering, rql, push, subscribe, consume, enrich, extra
 tags: [model, rql]
 permalink: basic-changenotifications.html
 ---
