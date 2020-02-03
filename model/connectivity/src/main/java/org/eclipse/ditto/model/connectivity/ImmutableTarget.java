@@ -14,8 +14,9 @@ package org.eclipse.ditto.model.connectivity;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -60,14 +61,14 @@ final class ImmutableTarget implements Target {
     private final PayloadMapping payloadMapping;
 
     private ImmutableTarget(final ImmutableTarget.Builder builder) {
-        this.address = checkNotNull(builder.address, "address");
-        this.originalAddress = checkNotNull(builder.originalAddress, "originalAddress");
-        this.topics = Collections.unmodifiableSet(
+        address = checkNotNull(builder.address, "address");
+        originalAddress = checkNotNull(builder.originalAddress, "originalAddress");
+        topics = Collections.unmodifiableSet(
                 new HashSet<>(builder.topics == null ? Collections.emptySet() : builder.topics));
-        this.qos = builder.qos;
-        this.authorizationContext = checkNotNull(builder.authorizationContext, "authorizationContext");
-        this.headerMapping = builder.headerMapping;
-        this.payloadMapping = builder.payloadMapping;
+        qos = builder.qos;
+        authorizationContext = checkNotNull(builder.authorizationContext, "authorizationContext");
+        headerMapping = builder.headerMapping;
+        payloadMapping = builder.payloadMapping;
     }
 
     @Override
@@ -283,17 +284,22 @@ final class ImmutableTarget implements Target {
 
         @Override
         public TargetBuilder topics(final FilteredTopic requiredTopic, final FilteredTopic... additionalTopics) {
-            final Set<FilteredTopic> theTopics = new HashSet<>(Collections.singleton(requiredTopic));
-            theTopics.addAll(Arrays.asList(additionalTopics));
+            final Set<FilteredTopic> theTopics = new HashSet<>(1 + additionalTopics.length);
+            theTopics.add(requiredTopic);
+            Collections.addAll(theTopics, additionalTopics);
+
             return topics(theTopics);
         }
 
         @Override
         public TargetBuilder topics(final Topic requiredTopic, final Topic... additionalTopics) {
-            final Set<Topic> theTopics = new HashSet<>(Collections.singleton(requiredTopic));
-            theTopics.addAll(Arrays.asList(additionalTopics));
-            return topics(
-                    theTopics.stream().map(ConnectivityModelFactory::newFilteredTopic).collect(Collectors.toSet()));
+            final Collection<Topic> theTopics = EnumSet.of(requiredTopic, additionalTopics);
+            final Set<FilteredTopic> filteredTopics = theTopics.stream()
+                    .map(ConnectivityModelFactory::newFilteredTopicBuilder)
+                    .map(FilteredTopicBuilder::build)
+                    .collect(Collectors.toSet());
+
+            return topics(filteredTopics);
         }
 
         @Override

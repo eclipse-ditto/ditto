@@ -39,7 +39,8 @@ function mapToDittoProtocolMsg(
     path,
     dittoHeaders,
     value,
-    status
+    status,
+    extra
   );
 }
 

@@ -26,7 +26,10 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * An immutable implementation of {@link EffectedSubjectIds}.
+ *
+ * @deprecated as of 1.1.0 please use {@link DefaultEffectedSubjects} instead.
  */
+@Deprecated
 @Immutable
 public final class ImmutableEffectedSubjectIds implements EffectedSubjectIds {
 

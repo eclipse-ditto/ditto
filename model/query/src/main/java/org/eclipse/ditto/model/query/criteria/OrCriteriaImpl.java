@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
 
@@ -34,7 +35,7 @@ public class OrCriteriaImpl implements Criteria {
     @Override
     public <T> T accept(final CriteriaVisitor<T> visitor) {
         return visitor.visitOr(
-                criterias.stream().map(child -> child.accept(visitor)));
+                criterias.stream().map(child -> child.accept(visitor)).collect(Collectors.toList()));
     }
 
     @Override

@@ -28,7 +28,6 @@ import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
@@ -100,10 +99,10 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
         final ActorRef conciergeForwarder =
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
+
         final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
         final Props connectionSupervisorProps =
-                getConnectionSupervisorProps(dittoProtocolSub, conciergeForwarder, commandValidator, pubSubMediator,
-                        connectivityConfig.getConnectionConfig());
+                getConnectionSupervisorProps(dittoProtocolSub, conciergeForwarder, commandValidator, pubSubMediator);
 
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
@@ -237,11 +236,9 @@ public final class ConnectivityRootActor extends DittoRootActor {
     private static Props getConnectionSupervisorProps(final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             @Nullable final ConnectivityCommandInterceptor commandValidator,
-            final ActorRef pubSubMediator,
-            final ConnectionConfig connectionConfig) {
+            final ActorRef pubSubMediator) {
 
-        final ClientActorPropsFactory clientActorPropsFactory =
-                DefaultClientActorPropsFactory.getInstance(connectionConfig);
+        final ClientActorPropsFactory clientActorPropsFactory = DefaultClientActorPropsFactory.getInstance();
 
         return ConnectionSupervisorActor.props(dittoProtocolSub, conciergeForwarder,
                 clientActorPropsFactory, commandValidator, pubSubMediator);

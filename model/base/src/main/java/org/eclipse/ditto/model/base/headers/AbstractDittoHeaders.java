@@ -114,6 +114,24 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Set<AuthorizationSubject> getReadGrantedSubjects() {
+        return getAuthorizationSubjectSet(DittoHeaderDefinition.READ_SUBJECTS);
+    }
+
+    private Set<AuthorizationSubject> getAuthorizationSubjectSet(final HeaderDefinition definition) {
+        final JsonArray jsonValueArray = getJsonArrayForDefinition(definition);
+        return jsonValueArray.stream()
+                .map(JsonValue::asString)
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<AuthorizationSubject> getReadRevokedSubjects() {
+        return getAuthorizationSubjectSet(DittoHeaderDefinition.READ_REVOKED_SUBJECTS);
+    }
+
+    @Override
     public Optional<String> getChannel() {
         return getStringForDefinition(DittoHeaderDefinition.CHANNEL);
     }

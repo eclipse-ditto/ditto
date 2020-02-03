@@ -33,6 +33,7 @@
         <module>streaming</module>
         <module>things</module>
         <module>thingsearch</module>
+        <module>signalenrichment</module>
     </modules>
 
     <dependencies>

@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.config;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
@@ -34,13 +35,6 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
      * @return the config.
      */
     ConnectionConfig getConnectionConfig();
-
-    /**
-     * Returns the config for Connectivity service's message mapping.
-     *
-     * @return the config.
-     */
-    MappingConfig getMappingConfig();
 
     /**
      * Returns the config for Connectivity service's reconnect behaviour.
@@ -63,4 +57,17 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
      */
     MonitoringConfig getMonitoringConfig();
 
+    /**
+     * Returns the config for Connectivity service's message mapping.
+     *
+     * @return the config.
+     */
+    MappingConfig getMappingConfig();
+
+    /**
+     * Returns the configuration for signal enrichment.
+     *
+     * @return the config.
+     */
+    SignalEnrichmentConfig getSignalEnrichmentConfig();
 }

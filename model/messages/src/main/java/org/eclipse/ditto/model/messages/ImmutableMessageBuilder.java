@@ -19,6 +19,8 @@ import java.nio.ByteBuffer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonObject;
+
 /**
  * A mutable builder with a fluent API for an immutable {@link Message}.
  *
@@ -30,12 +32,14 @@ final class ImmutableMessageBuilder<T> implements MessageBuilder<T> {
     private final MessageHeaders headers;
     @Nullable private ByteBuffer rawPayload;
     @Nullable private T payload;
+    @Nullable private JsonObject extra;
     @Nullable private MessageResponseConsumer<?> responseConsumer;
 
     private ImmutableMessageBuilder(final MessageHeaders theHeaders) {
         headers = theHeaders;
         rawPayload = null;
         payload = null;
+        extra = null;
         responseConsumer = null;
     }
 
@@ -64,6 +68,12 @@ final class ImmutableMessageBuilder<T> implements MessageBuilder<T> {
     }
 
     @Override
+    public MessageBuilder<T> extra(@Nullable final JsonObject extra) {
+        this.extra = extra;
+        return this;
+    }
+
+    @Override
     public MessageBuilder<T> responseConsumer(@Nullable final MessageResponseConsumer<?> responseConsumer) {
         this.responseConsumer = responseConsumer;
         return this;
@@ -71,7 +81,7 @@ final class ImmutableMessageBuilder<T> implements MessageBuilder<T> {
 
     @Override
     public Message<T> build() {
-        return ImmutableMessage.of(headers, rawPayload, payload, responseConsumer);
+        return ImmutableMessage.of(headers, rawPayload, payload, extra, responseConsumer);
     }
 
 }

@@ -36,7 +36,7 @@
         <minimal-json.version>0.9.5</minimal-json.version>
         <typesafe-config.version>1.3.4</typesafe-config.version>
         <ssl-config-core.version>0.3.8</ssl-config-core.version>
-        <akka.version>2.5.27</akka.version>
+        <akka.version>2.5.29</akka.version>
         <akka-http.version>10.1.11</akka-http.version>
         <akka-persistence-mongo.version>2.3.1</akka-persistence-mongo.version>
         <akka-management.version>1.0.4</akka-management.version>
@@ -66,7 +66,7 @@
 
         <jsr302.version>3.0.1</jsr302.version>
 
-        <rhino.version>1.7.11</rhino.version>
+        <rhino.version>1.7.12</rhino.version>
         <!--
             be aware that connectivity mapping has a direct dependency on files inside this library.
             when updating this version, you should also check if the used paths and files still exist
@@ -790,6 +790,11 @@
                 <artifactId>ditto-services-models-thingsearch</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-models-signalenrichment</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
@@ -799,7 +804,7 @@
 
             <dependency>
                 <groupId>org.mozilla</groupId>
-                <artifactId>rhino</artifactId>
+                <artifactId>rhino-runtime</artifactId>
                 <version>${rhino.version}</version>
             </dependency>
             <dependency>

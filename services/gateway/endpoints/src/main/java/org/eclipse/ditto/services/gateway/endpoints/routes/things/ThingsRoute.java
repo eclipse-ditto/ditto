@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -125,6 +127,7 @@ public final class ThingsRoute extends AbstractRoute {
                 .build();
     }
 
+    @Nullable
     private static JsonObject createInlinePolicyJson(final String jsonString) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return inputJson.getValue(Policy.INLINED_FIELD_NAME)
@@ -132,6 +135,7 @@ public final class ThingsRoute extends AbstractRoute {
                 .orElse(null);
     }
 
+    @Nullable
     private static String getCopyPolicyFrom(final String jsonString) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return inputJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM)

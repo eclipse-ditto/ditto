@@ -81,6 +81,11 @@ public final class DefaultStreamCacheConfig implements StreamCacheConfig {
     }
 
     @Override
+    public Duration getExpireAfterCreate() {
+        return genericCacheConfig.getExpireAfterCreate();
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;

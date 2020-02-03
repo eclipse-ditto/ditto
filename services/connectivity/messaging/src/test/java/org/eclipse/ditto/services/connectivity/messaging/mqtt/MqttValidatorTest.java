@@ -94,13 +94,12 @@ public final class MqttValidatorTest {
 
     @Test
     public void testInvalidConsumerCount() {
-        final Source sourceWithInvalidConsumerCount =
-                ConnectivityModelFactory.newSourceBuilder()
-                        .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .address("ditto")
-                        .qos(1)
-                        .consumerCount(2)
-                        .build();
+        final Source sourceWithInvalidConsumerCount = ConnectivityModelFactory.newSourceBuilder()
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .address("ditto")
+                .qos(1)
+                .consumerCount(2)
+                .build();
         final Connection connectionWithInvalidConsumerCount =
                 connectionWithSource(sourceWithInvalidConsumerCount).toBuilder().clientCount(2).build();
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithInvalidConsumerCount);
@@ -139,7 +138,6 @@ public final class MqttValidatorTest {
 
     @Test
     public void testInvalidHeaderMapping() {
-
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .sources(singletonList(ConnectivityModelFactory.newSourceBuilder()
@@ -162,27 +160,24 @@ public final class MqttValidatorTest {
 
     @Test
     public void testInvalidSourceTopicFilters() {
-        final Source mqttSourceWithValidFilter =
-                ConnectivityModelFactory.newSourceBuilder()
-                        .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(newSourceAddressEnforcement("things/+/{{ thing:id }}/#"))
-                        .address("#")
-                        .qos(1)
-                        .build();
-        final Source mqttSourceWithInvalidFilter =
-                ConnectivityModelFactory.newSourceBuilder()
-                        .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(newSourceAddressEnforcement("things/#/{{ thing:id }}/+"))
-                        .address("#")
-                        .qos(1)
-                        .build();
+        final Source mqttSourceWithValidFilter = ConnectivityModelFactory.newSourceBuilder()
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .enforcement(newSourceAddressEnforcement("things/+/{{ thing:id }}/#"))
+                .address("#")
+                .qos(1)
+                .build();
+        final Source mqttSourceWithInvalidFilter = ConnectivityModelFactory.newSourceBuilder()
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .enforcement(newSourceAddressEnforcement("things/#/{{ thing:id }}/+"))
+                .address("#")
+                .qos(1)
+                .build();
 
         testInvalidSourceTopicFilters(mqttSourceWithValidFilter, mqttSourceWithInvalidFilter);
     }
 
     @Test
     public void testInvalidEnforcementOrigin() {
-
         final Source mqttSourceWithInvalidFilter =
                 ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
@@ -194,7 +189,7 @@ public final class MqttValidatorTest {
         testInvalidSourceTopicFilters(mqttSourceWithInvalidFilter);
     }
 
-    private void testInvalidSourceTopicFilters(final Source... sources) {
+    private static void testInvalidSourceTopicFilters(final Source... sources) {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .sources(Arrays.asList(sources))
@@ -202,36 +197,40 @@ public final class MqttValidatorTest {
         verifyConnectionConfigurationInvalidExceptionIsThrown(connection);
     }
 
-    private Connection connectionWithSource(final String source) {
-        final Source mqttSource =
-                ConnectivityModelFactory.newSourceBuilder()
-                        .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(
-                                TestConstants.asSet("things/{{ thing:id }}")))
-                        .address(source)
-                        .qos(1)
-                        .build();
+    private static Connection connectionWithSource(final String source) {
+        final Source mqttSource = ConnectivityModelFactory.newSourceBuilder()
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(
+                        TestConstants.asSet("things/{{ thing:id }}")))
+                .address(source)
+                .qos(1)
+                .build();
 
         return connectionWithSource(mqttSource);
     }
 
-    private Connection connectionWithSource(final Source mqttSource) {
+    private static Connection connectionWithSource(final Source mqttSource) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .sources(singletonList(mqttSource))
                 .build();
     }
 
-    private Connection connectionWithTarget(final String target) {
+    private static Connection connectionWithTarget(final String target) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
-                .targets(singletonList(
-                        ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+                .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address(target)
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .qos(1)
+                        .topics(Topic.LIVE_EVENTS)
+                        .build()))
                 .build();
     }
 
-    private void verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
+    private static void verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
         Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> MqttValidator.newInstance().validate(connection, DittoHeaders.empty(), actorSystem));
     }
+
 }

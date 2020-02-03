@@ -12,12 +12,15 @@
  */
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
-import java.util.Optional;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import java.util.Collections;
+import java.util.Map;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.WithId;
@@ -25,14 +28,13 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorEx
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
-import akka.actor.ActorSystem;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.function.Function;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.ActorMaterializerSettings;
 import akka.stream.Attributes;
 import akka.stream.FlowShape;
+import akka.stream.Graph;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
 import akka.stream.Supervision;
@@ -42,42 +44,56 @@ import akka.stream.javadsl.Merge;
 import akka.stream.javadsl.Partition;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SourceQueue;
 import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Actor whose behavior is defined entirely by an Akka stream graph.
+ *
+ * @param <T> the type of the messages this actor processes in the stream graph.
+ * @param <M> the type of the incoming messages which is translated to a message of type {@code <T>} in
+ * {@link #mapMessage(Object)}.
  */
-public abstract class AbstractGraphActor<T> extends AbstractActor {
+public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
     /**
-     * For {@code signals} marked with a DittoHeader with that key,  the "special enforcement lane" shall be used -
+     * For {@code signals} marked with a DittoHeader with that key, the "special enforcement lane" shall be used &ndash;
      * meaning that those messages are processed not based on the hash of their ID but in a common "special lane".
      * <p>
-     * Be aware that when using this all those signals will be effectively sequentially processed but they could
+     * Be aware that when using this, all those signals will be effectively sequentially processed but they could
      * be processed in parallel to other signals whose IDs have the same hash partition in {@link AbstractGraphActor}.
      * </p>
      */
     public static final String DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE = "ditto-internal-special-enforcement-lane";
 
-    protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    protected final DittoDiagnosticLoggingAdapter logger;
+    protected final ActorMaterializer materializer;
 
-    private final Counter receiveCounter = DittoMetrics.counter("graph_actor_receive")
-            .tag("class", getClass().getSimpleName());
+    private final Class<M> matchClass;
+    private final Counter receiveCounter;
+    private final Counter enqueueSuccessCounter;
+    private final Counter enqueueDroppedCounter;
+    private final Counter enqueueFailureCounter;
+    private final Counter dequeueCounter;
 
-    private final Counter enqueueSuccessCounter = DittoMetrics.counter("graph_actor_enqueue_success")
-            .tag("class", getClass().getSimpleName());
+    /**
+     * Constructs a new AbstractGraphActor object.
+     *
+     * @param matchClass the type of the message to be streamed if matched in this actor's receive handler.
+     * @throws NullPointerException if {@code matchClass} is {@code null}.
+     */
+    protected AbstractGraphActor(final Class<M> matchClass) {
+        this.matchClass = checkNotNull(matchClass, "matchClass");
 
-    private final Counter enqueueDroppedCounter = DittoMetrics.counter("graph_actor_enqueue_dropped")
-            .tag("class", getClass().getSimpleName());
+        final Map<String, String> tags = Collections.singletonMap("class", getClass().getSimpleName());
+        receiveCounter = DittoMetrics.counter("graph_actor_receive", tags);
+        enqueueSuccessCounter = DittoMetrics.counter("graph_actor_enqueue_success", tags);
+        enqueueDroppedCounter = DittoMetrics.counter("graph_actor_enqueue_dropped", tags);
+        enqueueFailureCounter = DittoMetrics.counter("graph_actor_enqueue_failure", tags);
+        dequeueCounter = DittoMetrics.counter("graph_actor_dequeue", tags);
 
-    private final Counter enqueueFailureCounter = DittoMetrics.counter("graph_actor_enqueue_failure")
-            .tag("class", getClass().getSimpleName());
-
-    private final Counter dequeueCounter = DittoMetrics.counter("graph_actor_dequeue")
-            .tag("class", getClass().getSimpleName());
-
-    protected AbstractGraphActor() {
-        // no-op
+        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+        materializer = ActorMaterializer.create(getActorMaterializerSettings(), getContext());
     }
 
     /**
@@ -86,11 +102,11 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      * @param message the currently processed message of this Actor.
      * @return the created Source.
      */
-    protected abstract T mapMessage(WithDittoHeaders message);
+    protected abstract T mapMessage(M message);
 
     /**
-     * Called before handling the actual message via the {@link #processMessageFlow()} in order to being able to enhance the
-     * message.
+     * Called before handling the actual message via the {@link #processMessageFlow()} in order to being able to enhance
+     * the message.
      *
      * @param message the message to be handled.
      * @return the (potentially) adjusted message before handling.
@@ -122,91 +138,54 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
 
     @Override
     public Receive createReceive() {
+        final SourceQueueWithComplete<T> sourceQueue = getSourceQueue(materializer);
 
+        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
+        preEnhancement(receiveBuilder);
+        return receiveBuilder
+                .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
+                .match(matchClass, match -> handleMatched(sourceQueue, match))
+                .match(Throwable.class, this::handleUnknownThrowable)
+                .matchAny(message -> logger.warning("Received unknown message <{}>.", message))
+                .build();
+    }
+
+    private ActorMaterializerSettings getActorMaterializerSettings() {
         final String graphActorClassName = getClass().getSimpleName();
-        final ActorSystem actorSystem = getContext().getSystem();
-        final ActorMaterializerSettings materializerSettings = ActorMaterializerSettings.create(actorSystem)
+        return ActorMaterializerSettings.create(getContext().getSystem())
                 .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc -> {
                             if (exc instanceof DittoRuntimeException) {
-                                LogUtil.enhanceLogWithCorrelationId(log, (DittoRuntimeException) exc);
-                                log.warning("DittoRuntimeException in stream of {}: [{}] {}",
-                                        graphActorClassName, exc.getClass().getSimpleName(), exc.getMessage());
+                                logger.withCorrelationId((WithDittoHeaders<?>) exc)
+                                        .warning("DittoRuntimeException in stream of {}: [{}] {}",
+                                                graphActorClassName, exc.getClass().getSimpleName(), exc.getMessage());
                             } else {
-                                log.error(exc, "Exception in stream of {}: {}",
+                                logger.error(exc, "Exception in stream of {}: {}",
                                         graphActorClassName, exc.getMessage());
                             }
                             return Supervision.resume(); // in any case, resume!
                         }
                 );
-        final ActorMaterializer materializer = ActorMaterializer.create(materializerSettings, getContext());
+    }
 
-        // log stream completion and failure at level ERROR because the stream is supposed to survive forever.
+    private SourceQueueWithComplete<T> getSourceQueue(final ActorMaterializer materializer) {
+        // Log stream completion and failure at level ERROR because the stream is supposed to survive forever.
         final Attributes streamLogLevels =
                 Attributes.logLevels(Attributes.logLevelDebug(), Attributes.logLevelError(),
                         Attributes.logLevelError());
 
-        final SourceQueueWithComplete<T> sourceQueue = Source.<T>queue(getBufferSize(), OverflowStrategy.dropNew())
+        return Source.<T>queue(getBufferSize(), OverflowStrategy.dropNew())
                 .map(this::incrementDequeueCounter)
-                .log("graph-actor-stream-1-dequeued", log)
+                .log("graph-actor-stream-1-dequeued", logger)
                 .withAttributes(streamLogLevels)
                 .via(Flow.fromFunction(this::beforeProcessMessage))
-                .log("graph-actor-stream-2-preprocessed", log)
+                .log("graph-actor-stream-2-preprocessed", logger)
                 .withAttributes(streamLogLevels)
                 // partition by the message's ID in order to maintain order per ID
                 .via(partitionById(processMessageFlow(), getParallelism()))
-                .log("graph-actor-stream-3-partitioned", log)
+                .log("graph-actor-stream-3-partitioned", logger)
                 .withAttributes(streamLogLevels)
                 .to(processedMessageSink())
                 .run(materializer);
-
-        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
-        preEnhancement(receiveBuilder);
-        return receiveBuilder
-                .match(DittoRuntimeException.class, dittoRuntimeException -> {
-                    log.debug("Received DittoRuntimeException: <{}>", dittoRuntimeException);
-                    getSender().tell(dittoRuntimeException, getSelf());
-                })
-                .match(WithDittoHeaders.class, withDittoHeaders -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, withDittoHeaders);
-                    if (withDittoHeaders instanceof WithId) {
-                        log.debug("Received <{}> with id <{}>", withDittoHeaders.getClass().getSimpleName(),
-                                ((WithId) withDittoHeaders).getEntityId());
-                    } else {
-                        log.debug("Received WithDittoHeaders: <{}>", withDittoHeaders);
-                    }
-                    incrementReceiveCounter();
-                    sourceQueue.offer(mapMessage(withDittoHeaders)).handle(this::incrementEnqueueCounters);
-                })
-                .match(Throwable.class, unknownThrowable -> {
-                    log.warning("Received unknown Throwable: <{}>", unknownThrowable);
-                    final GatewayInternalErrorException gatewayInternalError =
-                            GatewayInternalErrorException.newBuilder()
-                                    .cause(unknownThrowable)
-                                    .build();
-                    getSender().tell(gatewayInternalError, getSelf());
-                })
-                .matchAny(message -> log.warning("Received unknown message: <{}>", message))
-                .build();
-    }
-
-    private void incrementReceiveCounter() {
-        receiveCounter.increment();
-    }
-
-    private Void incrementEnqueueCounters(final QueueOfferResult result, final Throwable error) {
-        if  (QueueOfferResult.enqueued().equals(result)) {
-            enqueueSuccessCounter.increment();
-        } else if (QueueOfferResult.dropped().equals(result)) {
-            enqueueDroppedCounter.increment();
-        } else if (result instanceof QueueOfferResult.Failure) {
-            final QueueOfferResult.Failure failure = (QueueOfferResult.Failure) result;
-            log.error(failure.cause(), "enqueue failed");
-            enqueueFailureCounter.increment();
-        } else {
-            log.error(error, "enqueue failed without acknowledgement");
-            enqueueFailureCounter.increment();
-        }
-        return null;
     }
 
     private <E> E incrementDequeueCounter(final E element) {
@@ -222,33 +201,17 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      * @param flowToPartition the Flow to apply the partitioning on.
      * @param parallelism the parallelism to use (how many partitions to process in parallel) - which should be based
      * on the amount of available CPUs.
-     * @param <T> the type of the messages flowing through the stream
      * @return the partitioning flow
      */
-    private static <T> Flow<T, T, NotUsed> partitionById(final Flow<T, T, NotUsed> flowToPartition,
+    private static <T> Flow<T, T, NotUsed> partitionById(final Graph<FlowShape<T, T>, NotUsed> flowToPartition,
             final int parallelism) {
 
         final int parallelismWithSpecialLane = parallelism + 1;
 
-        return Flow.fromGraph(GraphDSL.create(
-                Partition.<T>create(parallelismWithSpecialLane, msg -> {
-                    if (checkForSpecialLane(msg)) {
-                        return 0; // 0 is a special "lane" which is required in some special cases
-                    } else if (msg instanceof WithId) {
-                        final EntityId id = ((WithId) msg).getEntityId();
-                        if (id.isDummy()) {
-                            // e.g. the case for RetrieveThings command - in that case it is important that not all
-                            // RetrieveThings message are processed in the same "lane", so use msg hash instead:
-                            return (msg.hashCode() % parallelism) + 1;
-                        } else {
-                            return Math.abs(id.hashCode() % parallelism) + 1;
-                        }
-                    } else {
-                        return 0;
-                    }
-                }),
-                Merge.<T>create(parallelismWithSpecialLane, true),
+        final IdPartitioner<T> partitioner = IdPartitioner.of(DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE, parallelism);
 
+        return Flow.fromGraph(GraphDSL.create(Partition.<T>create(parallelismWithSpecialLane, partitioner),
+                Merge.<T>create(parallelismWithSpecialLane, true),
                 (nA, nB) -> nA,
                 (builder, partition, merge) -> {
                     for (int i = 0; i < parallelismWithSpecialLane; i++) {
@@ -261,25 +224,60 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
     }
 
     /**
-     * Checks whether a special lane is required for the passed {@code msg}. This is for example required when during
-     * an enforcement another call to the enforcer is done, the hash of the 2 messages might collide and block
-     * each other.
-     *
-     * @param msg the message to check for whether to use the special lane.
-     * @param <T> the type of the message
-     * @return whether to use the special lane or not.
-     */
-    private static <T> boolean checkForSpecialLane(final T msg) {
-        return msg instanceof WithDittoHeaders && Optional.ofNullable(((WithDittoHeaders) msg).getDittoHeaders()
-                .get(DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE))
-                .isPresent();
-    }
-
-    /**
      * Provides the possibility to add custom matchers before applying the default matchers of the AbstractGraphActor.
      *
      * @param receiveBuilder the ReceiveBuilder to add other matchers to.
      */
-    protected abstract void preEnhancement(final ReceiveBuilder receiveBuilder);
+    protected abstract void preEnhancement(ReceiveBuilder receiveBuilder);
+
+    /**
+     * Handles DittoRuntimeExceptions by sending them back to the {@link #getSender() sender}.
+     * Overwrite to introduce a custom exception handling.
+     *
+     * @param dittoRuntimeException the DittoRuntimeException to handle.
+     */
+    protected void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
+        logger.withCorrelationId(dittoRuntimeException).debug("Received <{}>.", dittoRuntimeException);
+        getSender().tell(dittoRuntimeException, getSelf());
+    }
+
+    private void handleMatched(final SourceQueue<T> sourceQueue, final M match) {
+        if (match instanceof WithDittoHeaders) {
+            logger.setCorrelationId((WithDittoHeaders<?>) match);
+        }
+        if (match instanceof WithId) {
+            logger.debug("Received <{}> with ID <{}>.", match.getClass().getSimpleName(),
+                    ((WithId) match).getEntityId());
+        } else {
+            logger.debug("Received match: <{}>.", match);
+        }
+        logger.discardCorrelationId();
+        receiveCounter.increment();
+        sourceQueue.offer(mapMessage(match)).handle(this::incrementEnqueueCounters);
+    }
+
+    private Void incrementEnqueueCounters(final QueueOfferResult result, final Throwable error) {
+        if (QueueOfferResult.enqueued().equals(result)) {
+            enqueueSuccessCounter.increment();
+        } else if (QueueOfferResult.dropped().equals(result)) {
+            enqueueDroppedCounter.increment();
+        } else if (result instanceof QueueOfferResult.Failure) {
+            final QueueOfferResult.Failure failure = (QueueOfferResult.Failure) result;
+            logger.error(failure.cause(), "Enqueue failed!");
+            enqueueFailureCounter.increment();
+        } else {
+            logger.error(error, "Enqueue failed without acknowledgement!");
+            enqueueFailureCounter.increment();
+        }
+        return null;
+    }
+
+    private void handleUnknownThrowable(final Throwable unknownThrowable) {
+        logger.warning("Received unknown Throwable <{}>!", unknownThrowable);
+        final GatewayInternalErrorException gatewayInternalError = GatewayInternalErrorException.newBuilder()
+                .cause(unknownThrowable)
+                .build();
+        getSender().tell(gatewayInternalError, getSelf());
+    }
 
 }

@@ -94,9 +94,13 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         final Payload payload = adaptable.getPayload();
         final JsonPointer path = JsonPointer.of(payload.getPath());
         final Optional<JsonValue> payloadValue = payload.getValue();
+        final Optional<JsonObject> extraData = payload.getExtra();
         final JsonObjectBuilder builder = JsonObject.newBuilder();
-
         builder.set(THING_ID, ThingId.of(topicPath.getNamespace(), topicPath.getId()).toString());
+
+        // enrich with data selected by "extraFields", do this first - the actual changed data applied on top of that:
+        extraData.ifPresent(builder::setAll);
+
         if (path.isEmpty() && payloadValue.isPresent()) {
             final JsonValue value = payloadValue.get();
             if (value.isObject()) {
@@ -108,6 +112,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         } else {
             payloadValue.ifPresent(jsonValue -> builder.set(path, jsonValue));
         }
+
         payload.getTimestamp().ifPresent(timestamp -> builder.set(MODIFIED, timestamp.toString()));
         payload.getRevision().ifPresent(revision -> builder.set(REVISION, revision));
         builder.set(ABRIDGED_ORIGINAL_MESSAGE, abridgeMessage(adaptable));

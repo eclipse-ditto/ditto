@@ -31,7 +31,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
  * Implementation of {@link MessageMapper} that always throws an exception.
  */
 @PayloadMapper(alias = ALIAS)
-public class FaultyMessageMapper extends AbstractMessageMapper {
+public final class FaultyMessageMapper extends AbstractMessageMapper {
 
     static final String ALIAS = "faulty";
 

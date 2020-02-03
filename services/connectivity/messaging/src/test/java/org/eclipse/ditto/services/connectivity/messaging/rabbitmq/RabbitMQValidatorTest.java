@@ -138,11 +138,15 @@ public final class RabbitMQValidatorTest {
                         TestConstants.Authorization.AUTHORIZATION_CONTEXT);
     }
 
-    private Connection connectionWithTarget(final String target) {
+    private static Connection connectionWithTarget(final String target) {
         return ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
                 ConnectionType.AMQP_091, ConnectivityStatus.OPEN, "amqp://localhost:1883")
-                .targets(singletonList(
-                        ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+                .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address(target)
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .qos(1)
+                        .topics(Topic.LIVE_EVENTS)
+                        .build()))
                 .build();
     }
 

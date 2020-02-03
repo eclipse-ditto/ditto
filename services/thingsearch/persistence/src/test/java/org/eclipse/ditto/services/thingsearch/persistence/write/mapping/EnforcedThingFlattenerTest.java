@@ -186,13 +186,13 @@ public final class EnforcedThingFlattenerTest {
                 "  {\n" +
                 "    \"k\": \"/d/e/f\",\n" +
                 "    \"v\": \"g\",\n" +
-                "    \"g\": [ \"grant:d.e\", \"grant:root\" ],\n" +
+                "    \"g\": [ \"grant:root\", \"grant:d.e\" ],\n" +
                 "    \"r\": [ \"revoke:d.e\" ]\n" +
                 "  },\n" +
                 "  {\n" +
                 "    \"k\": \"/d/e/h\",\n" +
                 "    \"v\": \"i\",\n" +
-                "    \"g\": [ \"grant:d.e\", \"grant:root\" ],\n" +
+                "    \"g\": [ \"grant:root\", \"grant:d.e\" ],\n" +
                 "    \"r\": [ \"revoke:d.e\" ]\n" +
                 "  },\n" +
                 "  {\n" +

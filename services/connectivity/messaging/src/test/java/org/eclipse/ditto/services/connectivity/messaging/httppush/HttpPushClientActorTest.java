@@ -218,7 +218,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(new Status.Success(BaseClientState.CONNECTED));
 
             // WHEN: a thing event is sent to a target with header mapping content-type=application/json
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""))
+            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList())
                     .setDittoHeaders(DittoHeaders.newBuilder()
                             .correlationId("internal-correlation-id")
                             .build());
@@ -259,7 +259,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(new Status.Success(BaseClientState.CONNECTED));
 
             // WHEN: a thing event is sent to a target with header mapping content-type=application/json
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
+            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(target));
             underTest.tell(outboundSignal, getRef());

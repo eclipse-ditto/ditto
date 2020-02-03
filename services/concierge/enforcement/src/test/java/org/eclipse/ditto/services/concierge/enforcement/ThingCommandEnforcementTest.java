@@ -115,10 +115,10 @@ public final class ThingCommandEnforcementTest {
             mockEntitiesActorInstance.setReply(THING_SUDO, response);
 
             final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(readCommand(), getRef());
+            underTest.tell(getReadCommand(), getRef());
             fishForMsgClass(this, ThingNotAccessibleException.class);
 
-            underTest.tell(writeCommand(), getRef());
+            underTest.tell(getModifyCommand(), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
@@ -141,10 +141,10 @@ public final class ThingCommandEnforcementTest {
             mockEntitiesActorInstance.setReply(POLICY_SUDO, sudoRetrievePolicyResponse);
 
             final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(readCommand(), getRef());
+            underTest.tell(getReadCommand(), getRef());
             fishForMsgClass(this, ThingNotAccessibleException.class);
 
-            underTest.tell(writeCommand(), getRef());
+            underTest.tell(getModifyCommand(), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
@@ -157,7 +157,7 @@ public final class ThingCommandEnforcementTest {
             mockEntitiesActorInstance.setReply(THING_SUDO, error);
 
             final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(readCommand(), getRef());
+            underTest.tell(getReadCommand(), getRef());
             fishForMessage(Duration.create(500, TimeUnit.MILLISECONDS), "error", msg -> msg.equals(error));
         }};
     }
@@ -169,7 +169,7 @@ public final class ThingCommandEnforcementTest {
             mockEntitiesActorInstance.setReply(THING_SUDO, error);
 
             final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(writeCommand(), getRef());
+            underTest.tell(getModifyCommand(), getRef());
             fishForMsgClass(this, ThingNotAccessibleException.class);
         }};
     }
@@ -186,7 +186,7 @@ public final class ThingCommandEnforcementTest {
                     PolicyNotAccessibleException.newBuilder(policyId).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(readCommand(), getRef());
+            underTest.tell(getReadCommand(), getRef());
             final DittoRuntimeException error = fishForMsgClass(this, ThingNotAccessibleException.class);
             assertThat(error.getMessage()).contains(policyId);
             assertThat(error.getDescription().orElse("")).contains(policyId);
@@ -205,7 +205,7 @@ public final class ThingCommandEnforcementTest {
                     PolicyNotAccessibleException.newBuilder(policyId).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(writeCommand(), getRef());
+            underTest.tell(getModifyCommand(), getRef());
             final DittoRuntimeException error = fishForMsgClass(this, ThingNotModifiableException.class);
             assertThat(error.getMessage()).contains(policyId);
             assertThat(error.getDescription().orElse("")).contains(policyId);
@@ -270,13 +270,13 @@ public final class ThingCommandEnforcementTest {
             mockEntitiesActorInstance.setReply(THING_SUDO, response);
 
             final ActorRef underTest = newEnforcerActor(getRef());
-            final ThingCommand read = readCommand();
+            final ThingCommand read = getReadCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
             assertThat((CharSequence) fishForMsgClass(this, read.getClass()).getEntityId()).isEqualTo(
                     read.getEntityId());
 
-            final ThingCommand write = writeCommand();
+            final ThingCommand write = getModifyCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
             assertThat((CharSequence) expectMsgClass(write.getClass()).getEntityId()).isEqualTo(write.getEntityId());
@@ -308,13 +308,13 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final ThingCommand write = writeCommand();
+            final ThingCommand write = getModifyCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
             assertThat((CharSequence) fishForMsgClass(this, write.getClass()).getEntityId()).isEqualTo(
                     write.getEntityId());
 
-            final ThingCommand read = readCommand();
+            final ThingCommand read = getReadCommand();
             final RetrieveThingResponse retrieveThingResponse =
                     RetrieveThingResponse.of(THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             mockEntitiesActorInstance.setReply(retrieveThingResponse);
@@ -328,6 +328,7 @@ public final class ThingCommandEnforcementTest {
     public void acceptByPolicyWithRevokeOnAttribute() {
         final PolicyId policyId = PolicyId.of("policy:id");
         final JsonObject thingWithPolicy = newThingWithAttributeWithPolicyId(policyId);
+        final JsonPointer attributePointer = JsonPointer.of("/attributes/testAttr");
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
@@ -335,7 +336,7 @@ public final class ThingCommandEnforcementTest {
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         READ.name(),
                         WRITE.name())
-                .setRevokedPermissions(PoliciesResourceType.thingResource(JsonPointer.of("/attributes/testAttr")),
+                .setRevokedPermissions(PoliciesResourceType.thingResource(attributePointer),
                         READ.name())
                 .build()
                 .toJson(FieldType.all());
@@ -350,23 +351,21 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final ThingCommand write = writeCommand();
-            mockEntitiesActorInstance.setReply(write);
-            underTest.tell(write, getRef());
-            assertThat((CharSequence) fishForMsgClass(this, write.getClass()).getEntityId()).isEqualTo(
-                    write.getEntityId());
-
-            final ThingCommand read = readCommand();
+            final ThingCommand modifyCommand = getModifyCommand();
+            mockEntitiesActorInstance.setReply(modifyCommand);
+            underTest.tell(modifyCommand, getRef());
+            assertThat((CharSequence) fishForMsgClass(this, modifyCommand.getClass()).getEntityId())
+                    .isEqualTo(modifyCommand.getEntityId());
 
             final RetrieveThingResponse retrieveThingResponseWithAttr =
                     RetrieveThingResponse.of(THING_ID, thingWithPolicy, headers(V_2));
 
-            final JsonObject jsonObjectWithoutAttr = thingWithPolicy.remove("/attributes/testAttr");
+            final JsonObject jsonObjectWithoutAttr = thingWithPolicy.remove(attributePointer);
             final RetrieveThingResponse retrieveThingResponseWithoutAttr =
                     RetrieveThingResponse.of(THING_ID, jsonObjectWithoutAttr, headers(V_2));
 
             mockEntitiesActorInstance.setReply(retrieveThingResponseWithAttr);
-            underTest.tell(read, getRef());
+            underTest.tell(getReadCommand(), getRef());
 
             final RetrieveThingResponse retrieveThingResponse =
                     expectMsgClass(retrieveThingResponseWithoutAttr.getClass());
@@ -590,11 +589,11 @@ public final class ThingCommandEnforcementTest {
                 .toJson(V_2, FieldType.all());
     }
 
-    private static ThingCommand readCommand() {
+    private static ThingCommand getReadCommand() {
         return RetrieveThing.of(THING_ID, headers(V_2));
     }
 
-    private static ThingCommand writeCommand() {
+    private static ThingCommand getModifyCommand() {
         return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers(V_2));
     }
 

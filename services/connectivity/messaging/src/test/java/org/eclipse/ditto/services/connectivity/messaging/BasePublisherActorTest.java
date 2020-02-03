@@ -12,9 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static java.util.Collections.singletonList;
-
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -42,7 +41,7 @@ import akka.event.DiagnosticLoggingAdapter;
 /**
  * Unit tests for functionality in {@link BasePublisherActor}.
  */
-public class BasePublisherActorTest {
+public final class BasePublisherActorTest {
 
     private static final HeaderMapping HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
@@ -55,10 +54,12 @@ public class BasePublisherActorTest {
     public void ensureHeadersAreMappedAsExpected() {
 
         // given
-        final Target target =
-                ConnectivityModelFactory.newTarget("target", TestConstants.Authorization.AUTHORIZATION_CONTEXT,
-                        HEADER_MAPPING, null,
-                        Topic.TWIN_EVENTS);
+        final Target target = ConnectivityModelFactory.newTargetBuilder()
+                .address("target")
+                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
 
         final String correlationId = UUID.randomUUID().toString();
         final String correlationIdImportant = correlationId + "-important!";
@@ -80,9 +81,9 @@ public class BasePublisherActorTest {
                         .withText("payload")
                         .build();
         final ThingModifiedEvent thingModifiedEvent =
-                TestConstants.thingModified(singletonList("")).setDittoHeaders(dittoHeaders);
+                TestConstants.thingModified(Collections.emptySet()).setDittoHeaders(dittoHeaders);
         final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                singletonList(target));
+                List.of(target));
         final Adaptable adaptable =
                 DittoProtocolAdapter.newInstance().toAdaptable(thingModifiedEvent, TopicPath.Channel.TWIN);
         final OutboundSignal.Mapped mappedOutboundSignal =

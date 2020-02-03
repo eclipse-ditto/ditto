@@ -17,6 +17,7 @@ import java.time.Instant;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 
@@ -31,7 +32,16 @@ public interface PayloadBuilder {
      * @param value the value to set.
      * @return this builder to allow method chaining.
      */
-    PayloadBuilder withValue(JsonValue value);
+    PayloadBuilder withValue(@Nullable JsonValue value);
+
+    /**
+     * Sets the given extra information which enriches the actual value of the payload.
+     * Previously set extra is replaced.
+     *
+     * @param extra the extra payload information or {@code null}.
+     * @return this builder to allow method chaining.
+     */
+    PayloadBuilder withExtra(@Nullable JsonObject extra);
 
     /**
      * Sets the given {@code status} to this builder. A previously set status is replaced.
@@ -39,7 +49,7 @@ public interface PayloadBuilder {
      * @param status the status to set.
      * @return this builder to allow method chaining.
      */
-    PayloadBuilder withStatus(HttpStatusCode status);
+    PayloadBuilder withStatus(@Nullable HttpStatusCode status);
 
     /**
      * Sets the given {@code status} to this builder. A previously set status is replaced.
@@ -71,7 +81,7 @@ public interface PayloadBuilder {
      * @param fields the fields to set.
      * @return this builder to allow method chaining.
      */
-    PayloadBuilder withFields(JsonFieldSelector fields);
+    PayloadBuilder withFields(@Nullable JsonFieldSelector fields);
 
     /**
      * Sets the given {@code fields} to this builder. Previously set fields are replaced.
@@ -79,7 +89,7 @@ public interface PayloadBuilder {
      * @param fields the fields to set.
      * @return this builder to allow method chaining.
      */
-    PayloadBuilder withFields(String fields);
+    PayloadBuilder withFields(@Nullable String fields);
 
     /**
      * Creates a new {@code Payload} from the previously set values.

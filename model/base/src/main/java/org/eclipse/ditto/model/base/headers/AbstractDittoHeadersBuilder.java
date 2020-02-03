@@ -27,12 +27,14 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.JsonValueContainer;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -197,6 +199,29 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S readGrantedSubjects(final Collection<AuthorizationSubject> readGrantedSubjects) {
+        putAuthorizationSubjectCollection(readGrantedSubjects, DittoHeaderDefinition.READ_SUBJECTS);
+        return myself;
+    }
+
+    private void putAuthorizationSubjectCollection(final Collection<AuthorizationSubject> authorizationSubjects,
+            final HeaderDefinition definition) {
+
+        checkNotNull(authorizationSubjects, definition.getKey());
+        final JsonArray authorizationSubjectIdsJsonArray = authorizationSubjects.stream()
+                .map(AuthorizationSubject::getId)
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray());
+        putJsonValue(definition, authorizationSubjectIdsJsonArray);
+    }
+
+    @Override
+    public S readRevokedSubjects(final Collection<AuthorizationSubject> readRevokedSubjects) {
+        putAuthorizationSubjectCollection(readRevokedSubjects, DittoHeaderDefinition.READ_REVOKED_SUBJECTS);
+        return myself;
+    }
+
+    @Override
     public S channel(@Nullable final CharSequence channel) {
         putCharSequence(DittoHeaderDefinition.CHANNEL, channel);
         return myself;
@@ -308,4 +333,5 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     protected abstract R doBuild(DittoHeaders dittoHeaders);
+
 }

@@ -106,7 +106,6 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
         final BasicProperties properties = delivery.getProperties();
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
-        final String hashKey = envelope.getExchange() + ":" + envelope.getRoutingKey();
 
         Map<String, String> headers = null;
         try {
@@ -135,12 +134,12 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             externalMessageBuilder.withPayloadMapping(payloadMapping);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             inboundMonitor.success(externalMessage);
-            forwardToMappingActor(externalMessage, hashKey);
+            forwardToMappingActor(externalMessage);
         } catch (final DittoRuntimeException e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
                 // send response if headers were extracted successfully
-                forwardToMappingActor(e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
+                forwardToMappingActor(e.setDittoHeaders(DittoHeaders.of(headers)));
                 inboundMonitor.failure(headers, e);
             } else {
                 inboundMonitor.failure(e);
