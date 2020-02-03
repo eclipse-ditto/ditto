@@ -22,8 +22,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
@@ -50,8 +48,6 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      */
     public static final String ACTOR_NAME = "enforcer";
 
-    private final DittoDiagnosticLoggingAdapter logger;
-
     private final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> handler;
     private final Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> sink;
 
@@ -65,7 +61,6 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
         super(pubSubMediator, conciergeForwarder, thingIdCache, aclEnforcerCache, policyEnforcerCache);
-        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         handler = assembleHandler(enforcementProviders, preEnforcer);
         sink = assembleSink();

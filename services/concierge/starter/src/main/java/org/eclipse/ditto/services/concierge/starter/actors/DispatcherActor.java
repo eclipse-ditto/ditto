@@ -29,8 +29,6 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSu
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
@@ -59,8 +57,6 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      */
     public static final String ACTOR_NAME = "dispatcherActor";
 
-    private final DittoDiagnosticLoggingAdapter logger;
-
     private final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler;
     private final ActorRef thingsAggregatorActor;
     private final EnforcementConfig enforcementConfig;
@@ -71,7 +67,6 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
             final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler) {
 
         super(WithDittoHeaders.class);
-        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         enforcementConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
