@@ -66,7 +66,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
      */
     public static final String DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE = "ditto-internal-special-enforcement-lane";
 
-    protected final DittoDiagnosticLoggingAdapter logger;
+    private final DittoDiagnosticLoggingAdapter logger;
     protected final ActorMaterializer materializer;
 
     private final Class<M> matchClass;

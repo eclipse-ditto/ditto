@@ -21,6 +21,8 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
@@ -48,6 +50,8 @@ import akka.stream.javadsl.Sink;
 public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextual<WithDittoHeaders>, WithDittoHeaders> {
 
     private static final String TIMER_NAME = "concierge_enforcements";
+
+    private final DittoDiagnosticLoggingAdapter logger;
 
     /**
      * Contextual information about this actor.
@@ -80,6 +84,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
         super(WithDittoHeaders.class);
+        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         enforcementConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())

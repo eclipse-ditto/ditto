@@ -84,6 +84,8 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
@@ -124,6 +126,8 @@ public final class MessageMappingProcessorActor
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
+    private final DittoDiagnosticLoggingAdapter logger;
+
     private final ActorRef clientActor;
     private final MessageMappingProcessor messageMappingProcessor;
     private final ConnectionId connectionId;
@@ -146,6 +150,7 @@ public final class MessageMappingProcessorActor
             final int processorPoolSize) {
 
         super(OutboundSignal.class);
+        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         this.conciergeForwarder = conciergeForwarder;
         this.clientActor = clientActor;
