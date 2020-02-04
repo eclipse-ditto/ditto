@@ -128,9 +128,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      * @throws UnknownCommandException if the passed Command was not supported by the ProtocolAdapter
      */
-    default Adaptable toAdaptable(Command<?> command) {
-        return toAdaptable(command, TopicPath.Channel.TWIN);
-    }
+    Adaptable toAdaptable(Command<?> command);
 
     /**
      * Maps the given {@code command} to an {@code Adaptable}.
