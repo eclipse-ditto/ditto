@@ -36,8 +36,7 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommandResponse<?, ?>> {
 
     private static final SignalMapper<MessageCommandResponse<?, ?>>
-            MESSAGE_COMMAND_ADAPTABLE_CONSTRUCTOR =
-            SignalMapperFactory.newMessageCommandResponseSignalMapper();
+            TO_ADAPTABLE_MAPPER = SignalMapperFactory.newMessageCommandResponseSignalMapper();
 
     private MessageCommandResponseAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getMessageCommandResponseMappingStrategies(), headerTranslator,
@@ -53,7 +52,6 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     public static MessageCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
         return new MessageCommandResponseAdapter(requireNonNull(headerTranslator));
     }
-
 
     @Override
     public Adaptable toAdaptable(final MessageCommandResponse<?, ?> t) {
@@ -75,6 +73,6 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
 
     @Override
     public Adaptable mapSignalToAdaptable(final MessageCommandResponse<?, ?> command, final TopicPath.Channel channel) {
-        return MESSAGE_COMMAND_ADAPTABLE_CONSTRUCTOR.mapSignalToAdaptable(command, channel);
+        return TO_ADAPTABLE_MAPPER.mapSignalToAdaptable(command, channel);
     }
 }

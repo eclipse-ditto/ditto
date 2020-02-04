@@ -14,7 +14,6 @@ package org.eclipse.ditto.protocoladapter.policies;
 
 import static java.util.Objects.requireNonNull;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -42,12 +41,8 @@ final class PolicyModifyCommandAdapter extends AbstractPolicyAdapter<PolicyModif
         return new PolicyModifyCommandAdapter(requireNonNull(headerTranslator));
     }
 
-    @Override
-    protected String getType(final Adaptable adaptable) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(payloadPathMatcher.match(path));
-        return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
+    protected String getTypeCriterionAsString(final TopicPath topicPath) {
+        return topicPath.getCriterion().getName();
     }
 
 }

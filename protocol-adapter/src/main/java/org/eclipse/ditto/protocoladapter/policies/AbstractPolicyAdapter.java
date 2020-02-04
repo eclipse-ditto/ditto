@@ -67,4 +67,5 @@ abstract class AbstractPolicyAdapter<T extends Jsonifiable.WithPredicate<JsonObj
     protected Adaptable mapSignalToAdaptable(final T signal, final TopicPath.Channel channel) {
         return signalMapper.mapSignalToAdaptable(signal, channel);
     }
+
 }

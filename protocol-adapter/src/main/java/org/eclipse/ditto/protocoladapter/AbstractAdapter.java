@@ -19,6 +19,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -31,6 +32,11 @@ import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
  */
 public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonObject, JsonField>>
         implements Adapter<T> {
+
+    /**
+     * Fixed criterion part of the adaptable type used in response signals.
+     */
+    protected static final String RESPONSES_CRITERION = "responses";
 
     private final MappingStrategies<T> mappingStrategies;
     private final HeaderTranslator headerTranslator;
@@ -85,9 +91,28 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
     }
 
     /**
-     * TODO javadoc
+     * Determine the type from {@link Adaptable} (default implementation, subclasses may overwrite this method).
+     *
+     * @param adaptable the processed adaptable
+     * @return the type of the adaptable
      */
-    protected abstract String getType(Adaptable adaptable);
+    protected String getType(final Adaptable adaptable) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+        final JsonPointer path = adaptable.getPayload().getPath();
+        final String commandName = getAction(topicPath) + upperCaseFirst(payloadPathMatcher.match(path));
+        return topicPath.getGroup() + "." + getTypeCriterionAsString(topicPath) + ":" + commandName;
+    }
+
+    /**
+     * Extracts the criterion from the given topic path. By default the criterion is directly read from topic path, but
+     * subclasses may overwrite this method (e.g. responses have a fixed criterion).
+     *
+     * @param topicPath the topic path of the adaptable
+     * @return the criterion used in the type as a string
+     */
+    protected String getTypeCriterionAsString(final TopicPath topicPath) {
+        return topicPath.getCriterion().getName();
+    }
 
     /**
      * Add to headers any information that will be missing from topic path.
@@ -123,7 +148,6 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
     /*
      * inject header publishing phase to creation of protocol messages.
      */
-
     @Override
     public final Adaptable toAdaptable(final T signal, final TopicPath.Channel channel) {
         final Adaptable adaptable = mapSignalToAdaptable(signal, channel);

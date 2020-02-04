@@ -14,7 +14,6 @@ package org.eclipse.ditto.protocoladapter.things;
 
 import static java.util.Objects.requireNonNull;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -56,10 +55,13 @@ final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQ
         if (topicPath.isWildcardTopic()) {
             return RetrieveThingsResponse.TYPE;
         } else {
-            final JsonPointer path = adaptable.getPayload().getPath();
-            final String commandName = getAction(topicPath) + upperCaseFirst(payloadPathMatcher.match(path));
-            return topicPath.getGroup() + ".responses:" + commandName;
+            // use default for none wildcard topics
+            return super.getType(adaptable);
         }
+    }
+
+    protected String getTypeCriterionAsString(final TopicPath topicPath) {
+        return RESPONSES_CRITERION;
     }
 
     @Override
@@ -71,5 +73,4 @@ final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQ
             return thingQueryResponseSignalMapper.mapSignalToAdaptable(commandResponse, channel);
         }
     }
-
 }
