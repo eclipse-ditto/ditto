@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 public interface ProtocolAdapter {
 
     /**
-     * Maps the given {@code adaptable} to the corresponding {@code Signal}, which can be a {@code Command},
+     * Maps the given {@code Adaptable} to the corresponding {@code Signal}, which can be a {@code Command},
      * {@code CommandResponse} or an {@code Event}.
      *
      * @param adaptable the adaptable.

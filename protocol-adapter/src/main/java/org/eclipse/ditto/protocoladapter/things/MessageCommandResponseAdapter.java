@@ -14,17 +14,16 @@ package org.eclipse.ditto.protocoladapter.things;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.DefaultPathMatcher;
+import org.eclipse.ditto.protocoladapter.DefaultPayloadPathMatcher;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
+import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
+import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
@@ -36,10 +35,13 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
  */
 final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommandResponse<?, ?>> {
 
-    private MessageCommandResponseAdapter(
-            final Map<String, JsonifiableMapper<MessageCommandResponse<?, ?>>> mappingStrategies,
-            final HeaderTranslator headerTranslator) {
-        super(mappingStrategies, headerTranslator, DefaultPathMatcher.empty());
+    private static final SignalMapper<MessageCommandResponse<?, ?>>
+            MESSAGE_COMMAND_ADAPTABLE_CONSTRUCTOR =
+            SignalMapperFactory.newMessageCommandResponseSignalMapper();
+
+    private MessageCommandResponseAdapter(final HeaderTranslator headerTranslator) {
+        super(MappingStrategiesFactory.getMessageCommandResponseMappingStrategies(), headerTranslator,
+                DefaultPayloadPathMatcher.empty());
     }
 
     /**
@@ -49,31 +51,9 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
      * @return the adapter.
      */
     public static MessageCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
-        return new MessageCommandResponseAdapter(mappingStrategies(), requireNonNull(headerTranslator));
+        return new MessageCommandResponseAdapter(requireNonNull(headerTranslator));
     }
 
-    private static Map<String, JsonifiableMapper<MessageCommandResponse<?, ?>>> mappingStrategies() {
-        final Map<String, JsonifiableMapper<MessageCommandResponse<?, ?>>> mappingStrategies = new HashMap<>();
-
-        mappingStrategies.put(SendClaimMessageResponse.TYPE,
-                adaptable -> SendClaimMessageResponse.of(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageFrom(adaptable),
-                        statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(SendThingMessageResponse.TYPE,
-                adaptable -> SendThingMessageResponse.of(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageFrom(adaptable),
-                        statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(SendFeatureMessageResponse.TYPE,
-                adaptable -> SendFeatureMessageResponse.of(thingIdFrom(adaptable), featureIdForMessageFrom(adaptable),
-                        MessageAdaptableHelper.messageFrom(adaptable), statusCodeFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(SendMessageAcceptedResponse.TYPE,
-                adaptable -> SendMessageAcceptedResponse.newInstance(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageHeadersFrom(adaptable), statusCodeFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        return mappingStrategies;
-    }
 
     @Override
     public Adaptable toAdaptable(final MessageCommandResponse<?, ?> t) {
@@ -94,10 +74,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     }
 
     @Override
-    public Adaptable constructAdaptable(final MessageCommandResponse<?, ?> command, final TopicPath.Channel channel) {
-
-        return MessageAdaptableHelper.adaptableFrom(channel, command.getThingEntityId(), command.toJson(),
-                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), headerTranslator());
+    public Adaptable mapSignalToAdaptable(final MessageCommandResponse<?, ?> command, final TopicPath.Channel channel) {
+        return MESSAGE_COMMAND_ADAPTABLE_CONSTRUCTOR.mapSignalToAdaptable(command, channel);
     }
-
 }

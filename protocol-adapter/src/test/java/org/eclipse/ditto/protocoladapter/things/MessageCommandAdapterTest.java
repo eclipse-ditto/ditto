@@ -183,7 +183,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
         final MessageHeaders messageHeaders = messageHeaders(subject, contentType);
         final Message<Object> theMessage = message(messageHeaders, payload.asObject);
         final DittoHeaders theHeaders = dittoHeaders();
-        final MessageCommand messageCommand = messageCommand(type, theMessage, theHeaders);
+        final MessageCommand<?, ?> messageCommand = messageCommand(type, theMessage, theHeaders);
 
         // test
         final Adaptable actual = underTest.toAdaptable(messageCommand);

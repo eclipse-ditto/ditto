@@ -14,33 +14,22 @@ package org.eclipse.ditto.protocoladapter.policies;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructorFactory;
+import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
+import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
-import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
-import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntries;
-import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntry;
-import org.eclipse.ditto.signals.commands.policies.query.RetrieveResource;
-import org.eclipse.ditto.signals.commands.policies.query.RetrieveResources;
-import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject;
-import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjects;
 
 /**
  * Adapter for mapping a {@link PolicyQueryCommand} to and from an {@link Adaptable}.
  */
 final class PolicyQueryCommandAdapter extends AbstractPolicyAdapter<PolicyQueryCommand<?>> {
 
-    private PolicyQueryCommandAdapter(
-            final Map<String, JsonifiableMapper<PolicyQueryCommand<?>>> mappingStrategies,
-            final HeaderTranslator headerTranslator) {
-        super(mappingStrategies, headerTranslator, AdaptableConstructorFactory.newPolicyQueryAdaptableConstructor());
+    private PolicyQueryCommandAdapter(final HeaderTranslator headerTranslator) {
+        super(MappingStrategiesFactory.getPolicyQueryCommandMappingStrategies(),
+                SignalMapperFactory.newPolicyQuerySignalMapper(), headerTranslator);
     }
 
     /**
@@ -50,50 +39,14 @@ final class PolicyQueryCommandAdapter extends AbstractPolicyAdapter<PolicyQueryC
      * @return the adapter.
      */
     public static PolicyQueryCommandAdapter of(final HeaderTranslator headerTranslator) {
-        return new PolicyQueryCommandAdapter(mappingStrategies(), requireNonNull(headerTranslator));
-    }
-
-    private static Map<String, JsonifiableMapper<PolicyQueryCommand<?>>> mappingStrategies() {
-        final Map<String, JsonifiableMapper<PolicyQueryCommand<?>>> mappingStrategies = new HashMap<>();
-
-        mappingStrategies.put(RetrievePolicy.TYPE,
-                adaptable -> RetrievePolicy.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrievePolicyEntry.TYPE,
-                adaptable -> RetrievePolicyEntry.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        labelFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrievePolicyEntries.TYPE,
-                adaptable -> RetrievePolicyEntries.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveResource.TYPE,
-                adaptable -> RetrieveResource.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        labelFrom(adaptable), entryResourceKeyFromPath(adaptable.getPayload().getPath()),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveResources.TYPE,
-                adaptable -> RetrieveResources.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        labelFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveSubject.TYPE,
-                adaptable -> RetrieveSubject.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        labelFrom(adaptable),
-                        entrySubjectIdFromPath(adaptable.getPayload().getPath()), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveSubjects.TYPE,
-                adaptable -> RetrieveSubjects.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        labelFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        return mappingStrategies;
+        return new PolicyQueryCommandAdapter(requireNonNull(headerTranslator));
     }
 
     @Override
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(pathMatcher.match(path));
+        final String commandName = getAction(topicPath) + upperCaseFirst(payloadPathMatcher.match(path));
         return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
     }
 }

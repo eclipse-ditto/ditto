@@ -40,7 +40,7 @@ final class ThingErrorResponseAdapter extends AbstractErrorResponseAdapter<Thing
      * Returns a new ThingErrorResponseAdapter.
      *
      * @param headerTranslator translator between external and Ditto headers.
-     * @param errorRegistry TODO
+     * @param errorRegistry the {@link ErrorRegistry} used for the mapping
      * @return the adapter.
      */
     public static ThingErrorResponseAdapter of(final HeaderTranslator headerTranslator,

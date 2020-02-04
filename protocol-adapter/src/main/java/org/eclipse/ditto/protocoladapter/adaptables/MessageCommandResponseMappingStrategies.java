@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.protocoladapter.adaptables;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
+import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
+import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
+import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
+
+final class MessageCommandResponseMappingStrategies
+        extends AbstractMessageMappingStrategies<MessageCommandResponse<?, ?>> {
+
+    private static final MessageCommandResponseMappingStrategies INSTANCE =
+            new MessageCommandResponseMappingStrategies();
+
+    private MessageCommandResponseMappingStrategies() {
+        super(initMappingStrategies());
+    }
+
+    static MessageCommandResponseMappingStrategies getInstance() {
+        return INSTANCE;
+    }
+
+    private static Map<String, JsonifiableMapper<MessageCommandResponse<?, ?>>> initMappingStrategies() {
+        final Map<String, JsonifiableMapper<MessageCommandResponse<?, ?>>> mappingStrategies = new HashMap<>();
+        mappingStrategies.put(SendClaimMessageResponse.TYPE,
+                adaptable -> SendClaimMessageResponse.of(thingIdFrom(adaptable),
+                        messageFrom(adaptable),
+                        statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(SendThingMessageResponse.TYPE,
+                adaptable -> SendThingMessageResponse.of(thingIdFrom(adaptable),
+                        messageFrom(adaptable),
+                        statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(SendFeatureMessageResponse.TYPE,
+                adaptable -> SendFeatureMessageResponse.of(thingIdFrom(adaptable), featureIdForMessageFrom(adaptable),
+                        messageFrom(adaptable), statusCodeFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(SendMessageAcceptedResponse.TYPE,
+                adaptable -> SendMessageAcceptedResponse.newInstance(thingIdFrom(adaptable),
+                        messageHeadersFrom(adaptable), statusCodeFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+        return mappingStrategies;
+    }
+
+    protected static String featureIdForMessageFrom(final Adaptable adaptable) {
+        return adaptable.getPayload().getPath()
+                .getFeatureId()
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+}

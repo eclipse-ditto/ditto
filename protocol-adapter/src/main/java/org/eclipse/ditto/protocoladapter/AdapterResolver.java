@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -15,14 +15,13 @@ package org.eclipse.ditto.protocoladapter;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
- * Resolves the propert {@link Adapter} for the given {@link Adaptable}. Subclasses should extend the abstract class
- * {@link org.eclipse.ditto.protocoladapter.AbstractAdapterResolver} to provide the implementations of the {@link
- * Adapter}s.
+ * Resolves the matching {@link Adapter} for the given {@link Adaptable}.
  */
 interface AdapterResolver {
 
     /**
-     * Select the correct {@link Adapter} for the given {@link Adaptable}.
+     * Select the correct {@link Adapter} (e.g. things/policy, query/modify/...) for the given
+     * {@link Adaptable}.
      *
      * @param adaptable the adaptable that is converted to a {@link Signal}
      * @return the appropriate {@link Adaptable} capable of converting the {@link Adaptable} to a {@link Signal}

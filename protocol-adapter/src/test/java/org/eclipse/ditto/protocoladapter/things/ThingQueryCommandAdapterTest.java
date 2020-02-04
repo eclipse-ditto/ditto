@@ -110,7 +110,6 @@ public final class ThingQueryCommandAdapterTest implements ProtocolAdapterTest {
         final JsonifiableAdaptable jsonifiableAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(actual);
         final JsonObject jsonObject = jsonifiableAdaptable.toJson();
-        System.out.println(jsonObject.toString());
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

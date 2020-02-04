@@ -17,8 +17,8 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
-import org.eclipse.ditto.protocoladapter.policies.DefaultPolicyCommandAdapters;
-import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapters;
+import org.eclipse.ditto.protocoladapter.policies.DefaultPolicyCommandAdapterProvider;
+import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
@@ -48,14 +48,14 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     private final HeaderTranslator headerTranslator;
     private final AdapterResolver adapterResolver;
-    private final DefaultThingCommandAdapters thingsAdapters;
-    private final DefaultPolicyCommandAdapters policiesAdapters;
+    private final DefaultThingCommandAdapterProvider thingsAdapters;
+    private final DefaultPolicyCommandAdapterProvider policiesAdapters;
 
     private DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
-        this.thingsAdapters = new DefaultThingCommandAdapters(errorRegistry, headerTranslator);
-        this.policiesAdapters = new DefaultPolicyCommandAdapters(errorRegistry, headerTranslator);
+        this.thingsAdapters = new DefaultThingCommandAdapterProvider(errorRegistry, headerTranslator);
+        this.policiesAdapters = new DefaultPolicyCommandAdapterProvider(errorRegistry, headerTranslator);
         this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters);
     }
 

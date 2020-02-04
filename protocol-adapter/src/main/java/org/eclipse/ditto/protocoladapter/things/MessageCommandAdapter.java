@@ -16,16 +16,16 @@ package org.eclipse.ditto.protocoladapter.things;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.DefaultPathMatcher;
+import org.eclipse.ditto.protocoladapter.DefaultPayloadPathMatcher;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
+import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
+import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
@@ -36,10 +36,12 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
  */
 final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>> {
 
-    private MessageCommandAdapter(
-            final Map<String, JsonifiableMapper<MessageCommand<?, ?>>> mappingStrategies,
-            final HeaderTranslator headerTranslator) {
-        super(mappingStrategies, headerTranslator, DefaultPathMatcher.from(Collections.emptyMap()));
+    private static final SignalMapper<MessageCommand<?, ?>>
+            MESSAGE_SIGNAL_MAPPER = SignalMapperFactory.newMessageCommandSignalMapper();
+
+    private MessageCommandAdapter(final HeaderTranslator headerTranslator) {
+        super(MappingStrategiesFactory.getMessageCommandMappingStrategies(), headerTranslator,
+                DefaultPayloadPathMatcher.from(Collections.emptyMap()));
     }
 
     /**
@@ -49,24 +51,7 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>> 
      * @return the adapter.
      */
     public static MessageCommandAdapter of(final HeaderTranslator headerTranslator) {
-        return new MessageCommandAdapter(mappingStrategies(), requireNonNull(headerTranslator));
-    }
-
-    private static Map<String, JsonifiableMapper<MessageCommand<?, ?>>> mappingStrategies() {
-
-        final Map<String, JsonifiableMapper<MessageCommand<?, ?>>> mappingStrategies = new HashMap<>();
-
-        mappingStrategies.put(SendClaimMessage.TYPE,
-                adaptable -> SendClaimMessage.of(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(SendThingMessage.TYPE,
-                adaptable -> SendThingMessage.of(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(SendFeatureMessage.TYPE,
-                adaptable -> SendFeatureMessage.of(thingIdFrom(adaptable), featureIdForMessageFrom(adaptable),
-                        MessageAdaptableHelper.messageFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        return mappingStrategies;
+        return new MessageCommandAdapter(requireNonNull(headerTranslator));
     }
 
     @Override
@@ -86,10 +71,10 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>> 
     }
 
     @Override
-    public Adaptable constructAdaptable(final MessageCommand<?, ?> command, final TopicPath.Channel channel) {
-        return MessageAdaptableHelper.adaptableFrom(channel, command.getThingEntityId(), command.toJson(),
-                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(),
-                headerTranslator());
-    }
+    public Adaptable mapSignalToAdaptable(final MessageCommand<?, ?> command, final TopicPath.Channel channel) {
 
+        // TODO map inner message headers!!!!
+
+        return MESSAGE_SIGNAL_MAPPER.mapSignalToAdaptable(command, channel);
+    }
 }

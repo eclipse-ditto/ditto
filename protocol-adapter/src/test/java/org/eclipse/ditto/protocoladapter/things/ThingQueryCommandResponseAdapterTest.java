@@ -774,8 +774,6 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
 
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        System.out.println(actual.toJsonString());
-
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 

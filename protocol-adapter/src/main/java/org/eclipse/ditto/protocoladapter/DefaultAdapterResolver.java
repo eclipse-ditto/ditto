@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -17,25 +17,26 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.protocoladapter.policies.DefaultPolicyCommandAdapters;
-import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapters;
+import org.eclipse.ditto.protocoladapter.policies.DefaultPolicyCommandAdapterProvider;
+import org.eclipse.ditto.protocoladapter.provider.AdapterProvider;
+import org.eclipse.ditto.protocoladapter.provider.PolicyCommandAdapterProvider;
+import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
+import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
- * Base class for {@link AdapterResolver} implementations. Provides the logic to select the correct {@link Adapter}
- * implementation which are provided by subclasses of this class.
+ * Implements the logic to select the correct {@link Adapter} from a given {@link Adaptable}.
  */
-public class DefaultAdapterResolver implements AdapterResolver {
+final class DefaultAdapterResolver implements AdapterResolver {
 
-    private final DefaultThingCommandAdapters thingsAdapters;
-    private final PolicyCommandAdapters policyCommandAdapters;
+    private final ThingCommandAdapterProvider thingsAdapters;
+    private final PolicyCommandAdapterProvider policyCommandAdapters;
 
-    public DefaultAdapterResolver(DefaultThingCommandAdapters thingsAdapters,
-            DefaultPolicyCommandAdapters policiesAdapters) {
+    public DefaultAdapterResolver(DefaultThingCommandAdapterProvider thingsAdapters,
+            DefaultPolicyCommandAdapterProvider policiesAdapters) {
         this.thingsAdapters = thingsAdapters;
         this.policyCommandAdapters = policiesAdapters;
     }
-
 
     @Override
     public Adapter<? extends Signal<?>> getAdapter(final Adaptable adaptable) {
@@ -51,71 +52,74 @@ public class DefaultAdapterResolver implements AdapterResolver {
         return adapter;
     }
 
-    public Adapter<? extends Signal<?>> getAdapter(final Adaptable adaptable, final Adapters adapters) {
+    public Adapter<? extends Signal<?>> getAdapter(final Adaptable adaptable, final AdapterProvider adapterProvider) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final TopicPath.Channel channel = topicPath.getChannel();
         final Optional<Adapter<? extends Signal<?>>> adapter;
         if (TopicPath.Channel.LIVE.equals(channel)) { // /<group>/live
-            adapter = Optional.ofNullable(fromLiveAdaptable(adaptable, adapters));
+            adapter = Optional.ofNullable(fromLiveAdaptable(adaptable, adapterProvider));
         } else if (TopicPath.Channel.TWIN.equals(channel)) { // /<group>/twin
-            adapter = Optional.ofNullable(fromTwinAdaptable(adaptable, adapters));
+            adapter = Optional.ofNullable(fromTwinAdaptable(adaptable, adapterProvider));
         } else {
             adapter = Optional.empty();
         }
         return adapter.orElseThrow(() -> UnknownTopicPathException.newBuilder(topicPath).build());
     }
 
-    private Adapter<? extends Signal<?>> fromLiveAdaptable(final Adaptable adaptable, final Adapters adapters) {
+    private Adapter<? extends Signal<?>> fromLiveAdaptable(final Adaptable adaptable,
+            final AdapterProvider adapterProvider) {
         final TopicPath topicPath = adaptable.getTopicPath();
 
         if (TopicPath.Criterion.MESSAGES.equals(topicPath.getCriterion())) { // /<group>/live/messages
             final boolean isResponse = isResponse(adaptable);
             if (isResponse) {
-                return adapters.getMessageCommandResponseAdapter();
+                return adapterProvider.getMessageCommandResponseAdapter();
             } else {
-                return adapters.getMessageCommandAdapter();
+                return adapterProvider.getMessageCommandAdapter();
             }
         } else {
-            return signalFromThingAdaptable(adaptable, adapters); // /<group>/live/(commands|events)
+            return signalFromThingAdaptable(adaptable, adapterProvider); // /<group>/live/(commands|events)
         }
     }
 
-    private Adapter<? extends Signal<?>> fromTwinAdaptable(final Adaptable adaptable, final Adapters adapters) {
+    private Adapter<? extends Signal<?>> fromTwinAdaptable(final Adaptable adaptable,
+            final AdapterProvider adapterProvider) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        return signalFromThingAdaptable(adaptable, adapters); // /<group>/twin/(commands|events)
+        return signalFromThingAdaptable(adaptable, adapterProvider); // /<group>/twin/(commands|events)
     }
 
     @Nullable
-    private Adapter<? extends Signal<?>> signalFromThingAdaptable(final Adaptable adaptable, final Adapters adapters) {
+    private Adapter<? extends Signal<?>> signalFromThingAdaptable(final Adaptable adaptable,
+            final AdapterProvider adapterProvider) {
         final TopicPath topicPath = adaptable.getTopicPath();
         if (TopicPath.Criterion.COMMANDS.equals(topicPath.getCriterion())) {
 
             if (isResponse(adaptable)) {
                 // this was a command response:
-                return processCommandResponseSignalFromAdaptable(adaptable, adapters);
+                return processCommandResponseSignalFromAdaptable(adaptable, adapterProvider);
             } else if (TopicPath.Action.RETRIEVE.equals(topicPath.getAction().orElse(null))) {
-                return adapters.getQueryCommandAdapter();
+                return adapterProvider.getQueryCommandAdapter();
             } else {
-                return adapters.getModifyCommandAdapter();
+                return adapterProvider.getModifyCommandAdapter();
             }
 
         } else if (TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
-            return adapters.getEventAdapter();
+            return adapterProvider.getEventAdapter();
         } else if (TopicPath.Criterion.ERRORS.equals(topicPath.getCriterion())) {
-            return adapters.getErrorResponseAdapter();
+            return adapterProvider.getErrorResponseAdapter();
         }
         return null;
     }
 
     private Adapter<? extends Signal<?>> processCommandResponseSignalFromAdaptable(final Adaptable adaptable,
-            final Adapters adapters) {
+            final AdapterProvider adapterProvider) {
         final TopicPath topicPath = adaptable.getTopicPath();
         if (isErrorResponse(adaptable)) {
-            return adapters.getErrorResponseAdapter();
+            return adapterProvider.getErrorResponseAdapter();
         } else if (TopicPath.Action.RETRIEVE.equals(topicPath.getAction().orElse(null))) {
-            return adapters.getQueryCommandResponseAdapter();
+            return adapterProvider.getQueryCommandResponseAdapter();
         } else {
-            return adapters.getModifyCommandResponseAdapter();
+            return adapterProvider.getModifyCommandResponseAdapter();
         }
     }
 

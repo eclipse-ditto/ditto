@@ -25,6 +25,8 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Adapter for mapping a {@link ErrorResponse} to and from an {@link Adaptable}.
+ *
+ * @param <T> the type of the {@link ErrorResponse}
  */
 public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> implements Adapter<T> {
 
@@ -64,9 +66,9 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
 
         final TopicPathBuilder topicPathBuilder = getTopicPathBuilder(errorResponse);
 
-        final Payload payload = Payload.newBuilder(errorResponse.getResourcePath()) //
-                .withStatus(errorResponse.getStatusCode()) //
-                .withValue(errorResponse.toJson(errorResponse.getImplementedSchemaVersion()) //
+        final Payload payload = Payload.newBuilder(errorResponse.getResourcePath())
+                .withStatus(errorResponse.getStatusCode())
+                .withValue(errorResponse.toJson(errorResponse.getImplementedSchemaVersion())
                         .getValue(CommandResponse.JsonFields.PAYLOAD)
                         .orElse(JsonFactory.nullObject())) // only use the error payload
                 .build();
@@ -89,10 +91,22 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
                 .build();
     }
 
-    // TODO javadoc
+    /**
+     * Implementations must provide a {@link TopicPathBuilder} for the given {@code errorResponse}.
+     *
+     * @param errorResponse the processed error response
+     * @return the {@link TopicPathBuilder} used to processed the given {@code errorResponse}
+     */
     public abstract TopicPathBuilder getTopicPathBuilder(final T errorResponse);
 
-    // TODO javadoc
+    /**
+     * Implementations can build the {@link ErrorResponse} from the given parameters.
+     *
+     * @param topicPath the {@link TopicPath} used to build the error response
+     * @param exception the {@link DittoRuntimeException} used to build the error response
+     * @param dittoHeaders the {@link DittoHeaders} used to build the error response
+     * @return the built error response
+     */
     public abstract T buildErrorResponse(final TopicPath topicPath, final DittoRuntimeException exception,
             final DittoHeaders dittoHeaders);
 }

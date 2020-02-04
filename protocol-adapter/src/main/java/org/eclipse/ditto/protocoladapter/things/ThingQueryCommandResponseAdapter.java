@@ -14,27 +14,13 @@ package org.eclipse.ditto.protocoladapter.things;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructor;
-import org.eclipse.ditto.protocoladapter.adaptables.AdaptableConstructorFactory;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinitionResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
+import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
+import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
@@ -43,17 +29,15 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
  */
 final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQueryCommandResponse<?>> {
 
-    private final AdaptableConstructor<RetrieveThingsResponse>
-            retrieveThingsAdaptableConstructor =
-            AdaptableConstructorFactory.newRetrieveThingsResponseAdaptableConstructor();
-    private final AdaptableConstructor<ThingQueryCommandResponse<?>>
-            thingQueryResponseAdaptableConstructor =
-            AdaptableConstructorFactory.newThingQueryResponseAdaptableConstructor();
+    private final SignalMapper<RetrieveThingsResponse>
+            retrieveThingsSignalMapper =
+            SignalMapperFactory.newRetrieveThingsResponseSignalMapper();
+    private final SignalMapper<ThingQueryCommandResponse<?>>
+            thingQueryResponseSignalMapper =
+            SignalMapperFactory.newThingQueryResponseSignalMapper();
 
-    private ThingQueryCommandResponseAdapter(
-            final Map<String, JsonifiableMapper<ThingQueryCommandResponse<?>>> mappingStrategies,
-            final HeaderTranslator headerTranslator) {
-        super(mappingStrategies, headerTranslator);
+    private ThingQueryCommandResponseAdapter(final HeaderTranslator headerTranslator) {
+        super(MappingStrategiesFactory.getThingQueryCommandResponseMappingStrategies(), headerTranslator);
     }
 
     /**
@@ -63,67 +47,8 @@ final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQ
      * @return the adapter.
      */
     public static ThingQueryCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
-        return new ThingQueryCommandResponseAdapter(mappingStrategies(), requireNonNull(headerTranslator));
+        return new ThingQueryCommandResponseAdapter(requireNonNull(headerTranslator));
     }
-
-    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
-    private static Map<String, JsonifiableMapper<ThingQueryCommandResponse<?>>> mappingStrategies() {
-        final Map<String, JsonifiableMapper<ThingQueryCommandResponse<?>>> mappingStrategies = new HashMap<>();
-
-        mappingStrategies.put(RetrieveThingResponse.TYPE,
-                adaptable -> RetrieveThingResponse.of(thingIdFrom(adaptable), thingFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveThingsResponse.TYPE,
-                adaptable -> RetrieveThingsResponse.of(thingsArrayFrom(adaptable),
-                        namespaceFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveAclResponse.TYPE,
-                adaptable -> RetrieveAclResponse.of(thingIdFrom(adaptable), aclFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveAclEntryResponse.TYPE,
-                adaptable -> RetrieveAclEntryResponse.of(thingIdFrom(adaptable), aclEntryFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveAttributesResponse.TYPE,
-                adaptable -> RetrieveAttributesResponse.of(thingIdFrom(adaptable), attributesFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveAttributeResponse.TYPE, adaptable -> RetrieveAttributeResponse
-                .of(thingIdFrom(adaptable), attributePointerFrom(adaptable), attributeValueFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveThingDefinitionResponse.TYPE,
-                adaptable -> RetrieveThingDefinitionResponse.of(thingIdFrom(adaptable), thingDefinitionFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveFeaturesResponse.TYPE,
-                adaptable -> RetrieveFeaturesResponse.of(thingIdFrom(adaptable), featuresFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveFeatureResponse.TYPE, adaptable -> RetrieveFeatureResponse
-                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertiesFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveFeatureDefinitionResponse.TYPE, adaptable -> RetrieveFeatureDefinitionResponse
-                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featureDefinitionFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveFeaturePropertiesResponse.TYPE, adaptable -> RetrieveFeaturePropertiesResponse
-                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertiesFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies
-                .put(RetrieveFeaturePropertyResponse.TYPE,
-                        adaptable -> RetrieveFeaturePropertyResponse.of(thingIdFrom(adaptable),
-                                featureIdFrom(adaptable),
-                                featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
-                                dittoHeadersFrom(adaptable)));
-
-        return mappingStrategies;
-    }
-
 
     @Override
     protected String getType(final Adaptable adaptable) {
@@ -132,18 +57,18 @@ final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQ
             return RetrieveThingsResponse.TYPE;
         } else {
             final JsonPointer path = adaptable.getPayload().getPath();
-            final String commandName = getAction(topicPath) + upperCaseFirst(pathMatcher.match(path));
+            final String commandName = getAction(topicPath) + upperCaseFirst(payloadPathMatcher.match(path));
             return topicPath.getGroup() + ".responses:" + commandName;
         }
     }
 
     @Override
-    public Adaptable constructAdaptable(final ThingQueryCommandResponse<?> commandResponse,
+    public Adaptable mapSignalToAdaptable(final ThingQueryCommandResponse<?> commandResponse,
             final TopicPath.Channel channel) {
         if (commandResponse instanceof RetrieveThingsResponse) {
-            return retrieveThingsAdaptableConstructor.construct((RetrieveThingsResponse) commandResponse, channel);
+            return retrieveThingsSignalMapper.mapSignalToAdaptable((RetrieveThingsResponse) commandResponse, channel);
         } else {
-            return thingQueryResponseAdaptableConstructor.construct(commandResponse, channel);
+            return thingQueryResponseSignalMapper.mapSignalToAdaptable(commandResponse, channel);
         }
     }
 

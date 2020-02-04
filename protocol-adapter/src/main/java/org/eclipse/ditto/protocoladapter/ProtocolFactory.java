@@ -119,7 +119,7 @@ public final class ProtocolFactory {
                 case MESSAGES:
                     // messages Path always contain a subject:
                     final String[] subjectParts = Arrays.copyOfRange(parts, 5, parts.length);
-                    final String subject = String.join("/", (CharSequence[]) subjectParts);
+                    final String subject = String.join("/", subjectParts);
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
                 default:
                     throw UnknownTopicPathException.newBuilder(path).build();

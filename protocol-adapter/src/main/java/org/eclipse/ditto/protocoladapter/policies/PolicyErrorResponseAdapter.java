@@ -40,7 +40,7 @@ final class PolicyErrorResponseAdapter extends AbstractErrorResponseAdapter<Poli
      * Returns a new PolicyErrorResponseAdapter.
      *
      * @param headerTranslator translator between external and Ditto headers.
-     * @param errorRegistry TODO
+     * @param errorRegistry the {@link ErrorRegistry} used for the mapping
      * @return the adapter.
      */
     public static PolicyErrorResponseAdapter of(final HeaderTranslator headerTranslator,
