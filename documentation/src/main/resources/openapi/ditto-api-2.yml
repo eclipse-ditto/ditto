@@ -3534,9 +3534,8 @@ paths:
             The deprecated paging option `limit` may not combine with the other paging options `size` and `cursor`.
           required: false
           schema:
-            type: array
-            items:
-              type: string
+            type: string
+
       tags:
         - Things-Search
       responses:
