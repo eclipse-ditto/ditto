@@ -20,6 +20,11 @@ import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.signals.base.Signal;
 
+/**
+ * Base class of {@link SignalMapper}s for commands (e.g. query, modify commands).
+ *
+ * @param <T> the type of the command
+ */
 abstract class AbstractCommandSignalMapper<T extends Signal<?>> extends AbstractSignalMapper<T> {
 
     @Override
@@ -32,12 +37,13 @@ abstract class AbstractCommandSignalMapper<T extends Signal<?>> extends Abstract
     }
 
     /**
-     * TODO
+     * @param command the command that is processed
+     * @return a {@link TopicPathBuilder} for the given command.
      */
     abstract TopicPathBuilder getTopicPathBuilder(final T command);
 
     /**
-     * @return array aof {@link org.eclipse.ditto.protocoladapter.TopicPath.Action}s the implementation supports.
+     * @return array of {@link org.eclipse.ditto.protocoladapter.TopicPath.Action}s the implementation supports.
      */
     abstract TopicPath.Action[] getSupportedActions();
 

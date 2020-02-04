@@ -55,17 +55,29 @@ abstract class AbstractMessageSignalMapper<T extends Signal<?> & WithThingId> ex
     }
 
     /**
-     * TODO
+     * Extract subject from the message (message commands and message command responses do not have a common
+     * interface to extract that kind of information).
+     *
+     * @param command the command that is processed
+     * @return the message subject
      */
     abstract String extractSubject(final T command);
 
     /**
-     * TODO
+     * Extract status code from the message (message commands and message command responses do not have a common
+     * interface to extract that kind of information).
+     *
+     * @param command the command that is processed
+     * @return the status code
      */
     abstract Optional<HttpStatusCode> extractStatusCode(final T command);
 
     /**
-     * TODO
+     * Extract status code from the message (message commands and message command responses do not have a common
+     * interface to extract that kind of information).
+     *
+     * @param command the command that is processed
+     * @return the message headers
      */
     abstract MessageHeaders extractMessageHeaders(final T command);
 

@@ -49,6 +49,9 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
+/**
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing modify commands.
+ */
 final class ThingModifyCommandMappingStrategies extends AbstractThingMappingStrategies<ThingModifyCommand<?>> {
 
     private static final ThingModifyCommandMappingStrategies INSTANCE = new ThingModifyCommandMappingStrategies();

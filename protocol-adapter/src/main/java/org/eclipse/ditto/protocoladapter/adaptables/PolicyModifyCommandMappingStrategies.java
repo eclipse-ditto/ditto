@@ -30,6 +30,9 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 
+/**
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy modify commands.
+ */
 final class PolicyModifyCommandMappingStrategies extends AbstractPolicyMappingStrategies<PolicyModifyCommand<?>> {
 
     private static final PolicyModifyCommandMappingStrategies INSTANCE = new PolicyModifyCommandMappingStrategies();

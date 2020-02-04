@@ -24,6 +24,9 @@ import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 
+/**
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for message command responses.
+ */
 final class MessageCommandResponseMappingStrategies
         extends AbstractMessageMappingStrategies<MessageCommandResponse<?, ?>> {
 

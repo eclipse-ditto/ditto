@@ -25,6 +25,9 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveResources;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjects;
 
+/**
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy query commands.
+ */
 final class PolicyQueryCommandMappingStrategies extends AbstractPolicyMappingStrategies<PolicyQueryCommand<?>> {
 
     private static final PolicyQueryCommandMappingStrategies INSTANCE = new PolicyQueryCommandMappingStrategies();

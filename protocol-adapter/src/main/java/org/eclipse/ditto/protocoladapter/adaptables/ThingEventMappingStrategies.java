@@ -57,6 +57,9 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
+/**
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing events.
+ */
 final class ThingEventMappingStrategies extends AbstractThingMappingStrategies<ThingEvent<?>> {
 
     private static final ThingEventMappingStrategies INSTANCE = new ThingEventMappingStrategies();

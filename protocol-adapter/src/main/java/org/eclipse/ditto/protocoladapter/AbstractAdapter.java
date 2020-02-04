@@ -156,12 +156,15 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
     }
 
     /**
-     * TODO javadoc
+     * Subclasses must implement the method to map from the given {@link org.eclipse.ditto.signals.base.Signal} to an
+     * {@link Adaptable}.
+     *
+     * @return the mapped {@link Adaptable}
      */
     protected abstract Adaptable mapSignalToAdaptable(final T signal, final TopicPath.Channel channel);
 
     /**
-     * TODO
+     * @return the {@link HeaderTranslator} used for the mapping
      */
     protected final HeaderTranslator headerTranslator() {
         return headerTranslator;

@@ -37,6 +37,9 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 
+/**
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing query commands.
+ */
 final class ThingQueryCommandMappingStrategies extends AbstractThingMappingStrategies<ThingQueryCommand<?>> {
 
     private static final ThingQueryCommandMappingStrategies INSTANCE = new ThingQueryCommandMappingStrategies();

@@ -23,6 +23,9 @@ import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 
+/**
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for message commands.
+ */
 final class MessageCommandMappingStrategies extends AbstractMessageMappingStrategies<MessageCommand<?, ?>> {
 
     private static final MessageCommandMappingStrategies INSTANCE = new MessageCommandMappingStrategies();

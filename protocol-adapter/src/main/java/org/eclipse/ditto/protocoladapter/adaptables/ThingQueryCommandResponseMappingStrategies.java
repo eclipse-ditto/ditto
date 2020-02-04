@@ -34,6 +34,9 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
+/**
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing query command responses.
+ */
 final class ThingQueryCommandResponseMappingStrategies
         extends AbstractThingMappingStrategies<ThingQueryCommandResponse<?>> {
 

@@ -29,9 +29,9 @@ import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
 import org.eclipse.ditto.signals.base.WithId;
 
 /**
- * TODO
+ * Base class for {@link org.eclipse.ditto.protocoladapter.Adapter}s that handle policy commands.
  *
- * @param <T> the type parameter
+ * @param <T> the type of the policy command
  */
 abstract class AbstractPolicyAdapter<T extends Jsonifiable.WithPredicate<JsonObject, JsonField> & WithId>
         extends AbstractAdapter<T> {
@@ -67,5 +67,4 @@ abstract class AbstractPolicyAdapter<T extends Jsonifiable.WithPredicate<JsonObj
     protected Adaptable mapSignalToAdaptable(final T signal, final TopicPath.Channel channel) {
         return signalMapper.mapSignalToAdaptable(signal, channel);
     }
-
 }

@@ -50,7 +50,7 @@ abstract class AbstractSignalMapper<T extends Signal<?>> implements SignalMapper
     }
 
     /**
-     * TODO
+     * Generates the proper topic path for the given {@link Signal}.
      *
      * @param signal the {@code signal} for which the {@link TopicPathBuilder} should be returned
      * @return the {@link TopicPathBuilder} for the given {@code signal}

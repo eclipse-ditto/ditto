@@ -26,7 +26,9 @@ import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
 import org.eclipse.ditto.signals.base.WithId;
 
 /**
- * TODO
+ * Base class for {@link org.eclipse.ditto.protocoladapter.Adapter}s that handle thing commands.
+ *
+ * @param <T> the type of the thing commands
  */
 abstract class AbstractThingAdapter<T extends Jsonifiable.WithPredicate<JsonObject, JsonField> & WithId> extends
         AbstractAdapter<T> {
@@ -55,6 +57,13 @@ abstract class AbstractThingAdapter<T extends Jsonifiable.WithPredicate<JsonObje
         THING_PATH_PATTERNS.put("featureProperty", Pattern.compile("^/features/[^/]*/properties/.*$"));
     }
 
+    /**
+     * Constructor.
+     *
+     * @param mappingStrategies the mapping strategies used to convert from
+     * {@link org.eclipse.ditto.protocoladapter.Adaptable}s to {@link org.eclipse.ditto.signals.base.Signal}s
+     * @param headerTranslator the header translator used for the mapping
+     */
     protected AbstractThingAdapter(final MappingStrategies<T> mappingStrategies,
             final HeaderTranslator headerTranslator) {
         super(mappingStrategies, headerTranslator, DefaultPayloadPathMatcher.from(THING_PATH_PATTERNS));

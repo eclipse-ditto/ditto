@@ -37,7 +37,7 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectsResponse
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
 
 /**
- * TODO
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy modify command responses.
  */
 final class PolicyModifyCommandResponseMappingStrategies
         extends AbstractPolicyMappingStrategies<PolicyModifyCommandResponse<?>> {

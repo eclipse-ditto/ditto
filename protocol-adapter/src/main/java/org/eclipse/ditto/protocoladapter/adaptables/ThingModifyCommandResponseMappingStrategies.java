@@ -40,6 +40,9 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinitionRes
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 
+/**
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing modify command responses.
+ */
 final class ThingModifyCommandResponseMappingStrategies
         extends AbstractThingMappingStrategies<ThingModifyCommandResponse<?>> {
 

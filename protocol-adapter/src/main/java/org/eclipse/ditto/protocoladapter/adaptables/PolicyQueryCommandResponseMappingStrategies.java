@@ -15,7 +15,6 @@ package org.eclipse.ditto.protocoladapter.adaptables;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntriesResponse;
@@ -27,7 +26,7 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectResponse
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectsResponse;
 
 /**
- * Adapter for mapping a {@link PolicyQueryCommandResponse} to and from an {@link Adaptable}.
+ * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy query command responses.
  */
 final class PolicyQueryCommandResponseMappingStrategies
         extends AbstractPolicyMappingStrategies<PolicyQueryCommandResponse<?>> {
