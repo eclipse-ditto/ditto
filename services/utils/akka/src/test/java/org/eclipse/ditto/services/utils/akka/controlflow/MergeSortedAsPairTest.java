@@ -85,32 +85,36 @@ public final class MergeSortedAsPairTest {
     }
 
     @Test
-    public void testBehaviorSpecificationByMergeSort() {
+    public void testBehaviorSpecificationByMergeSortOnExample() {
         final Source<Integer, NotUsed> source1 = Source.from(List.of(1, 3, 5, 7, 9));
         final Source<Integer, NotUsed> source2 = Source.from(List.of(2, 3, 4, 5, 6));
         final List<Integer> specifiedMergeSortedResult = runSource(source1.mergeSorted(source2, Integer::compare));
-        final List<Integer> actualMergeSortedResult = runSource(mergeSortedAsPair(source1, source2)
-                .mapConcat(pair -> pair.first() < pair.second()
-                        ? List.of(pair.first())
-                        : pair.first() > pair.second()
-                        ? List.of(pair.second())
-                        : List.of(pair.first(), pair.second())
-                ));
+        final List<Integer> actualMergeSortedResult = runSource(equivalentOfMergeSortedUnderTest(source1, source2));
+        assertThat(actualMergeSortedResult).isEqualTo(specifiedMergeSortedResult);
+    }
+
+    @Test
+    public void testBehaviorSpecificationByMergeSortOnEarlyExhaustion() {
+        final Source<Integer, NotUsed> source1 = Source.from(List.of(1, 3));
+        final Source<Integer, NotUsed> source2 = Source.from(List.of(2, 4, 6, 8));
+        final List<Integer> specifiedMergeSortedResult = runSource(source1.mergeSorted(source2, Integer::compare));
+        final List<Integer> actualMergeSortedResult = runSource(equivalentOfMergeSortedUnderTest(source1, source2));
         assertThat(actualMergeSortedResult).isEqualTo(specifiedMergeSortedResult);
     }
 
     @Test
     public void testIdenticalStartAndEnd() {
-        final Source<Integer, NotUsed> source1 = Source.from(List.of(1, 3, 4));
-        final Source<Integer, NotUsed> source2 = Source.from(List.of(1, 2, 4));
-        final List<Pair<Integer, Integer>> mergeResult = runWithMergeSortedAsPair(source1, source2);
-        assertThat(mergeResult)
-                .containsExactlyElementsOf(List.of(
-                        Pair.create(1, 1),
-                        Pair.create(3, 2),
-                        Pair.create(3, 4),
-                        Pair.create(4, 4)
-                ));
+        materializeTestProbes();
+        List.of(1, 3, 4).forEach(source1Probe::sendNext);
+        List.of(1, 2, 4).forEach(source2Probe::sendNext);
+        source1Probe.sendComplete();
+        source2Probe.sendComplete();
+        sinkProbe.request(9);
+        sinkProbe.expectNext(Pair.create(1, 1));
+        sinkProbe.expectNext(Pair.create(3, 2));
+        sinkProbe.expectNext(Pair.create(3, 4));
+        sinkProbe.expectNext(Pair.create(4, 4));
+        sinkProbe.expectComplete();
     }
 
     @Test
@@ -163,12 +167,13 @@ public final class MergeSortedAsPairTest {
     public void testSourcesDisjointInTimeWithTheEarlierSourceExhaustedFirst() {
         materializeTestProbes();
         source1Probe.sendNext(1).sendNext(3).sendComplete();
-        sinkProbe.request(5);
+        sinkProbe.request(6);
         sinkProbe.expectNoMsg(FiniteDuration.create(250L, TimeUnit.MILLISECONDS));
         source2Probe.sendNext(2).sendNext(4).sendNext(6).sendNext(8).sendComplete();
         sinkProbe.expectNext(Pair.create(1, 2))
                 .expectNext(Pair.create(3, 2))
                 .expectNext(Pair.create(3, 4))
+                .expectNext(Pair.create(Integer.MAX_VALUE, 4))
                 .expectNext(Pair.create(Integer.MAX_VALUE, 6))
                 .expectNext(Pair.create(Integer.MAX_VALUE, 8))
                 .expectComplete();
@@ -200,6 +205,20 @@ public final class MergeSortedAsPairTest {
         source1Probe = probes.first().first();
         source2Probe = probes.first().second();
         sinkProbe = probes.second();
+    }
+
+    private static Source<Integer, NotUsed> equivalentOfMergeSortedUnderTest(
+            final Source<Integer, ?> source1,
+            final Source<Integer, ?> source2) {
+
+        return mergeSortedAsPair(source1, source2)
+                .mapConcat(pair -> pair.first() < pair.second()
+                        ? List.of(pair.first())
+                        : pair.first() > pair.second()
+                        ? List.of(pair.second())
+                        : List.of(pair.first(), pair.second())
+                )
+                .mapMaterializedValue(ignored -> NotUsed.getInstance());
     }
 
     private static Source<Pair<Integer, Integer>, NotUsed> mergeSortedAsPair(

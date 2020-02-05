@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import java.util.Comparator;
+import java.util.List;
 
 import akka.NotUsed;
 import akka.japi.Pair;
@@ -21,7 +22,6 @@ import akka.stream.FanInShape2;
 import akka.stream.Graph;
 import akka.stream.Inlet;
 import akka.stream.Outlet;
-import akka.stream.stage.AbstractInHandler;
 import akka.stream.stage.GraphStage;
 import akka.stream.stage.GraphStageLogic;
 
@@ -35,19 +35,19 @@ import akka.stream.stage.GraphStageLogic;
  * }</pre>
  * is behaviorally equivalent as stream component with
  * <pre>{@code
- * MergeSortAsPair ~> Flow.create().flatMapConcat(pair -> {
+ * MergeSortAsPair ~> Flow.create().mapConcat(pair -> {
  *                        if (pair.first() < pair.second()) {
- *                            return Source.single(pair.first());
+ *                            return List.of(pair.first());
  *                        } else if (pair.first() > pair.second()) {
- *                            return Source.single(pair.second());
+ *                            return List.of(pair.second());
  *                        } else {
  *                            // pair.first() == pair.second()
- *                            return Source.from(List.of(pair.first(), pair.second()));
+ *                            return List.of(pair.first(), pair.second());
  *                        }
  *                    })
  * }</pre>
  * <p>
- * The first component of each pair element is always an element of the first stream; the second component
+ * The first component of each output pair is always an element of the first stream; the second component
  * is always an element of the second stream. If one stream completes before the other, then it is padded
  * by a user-supplied maximal element.
  * <p>
@@ -77,6 +77,9 @@ import akka.stream.stage.GraphStageLogic;
  *   Pair.create(9, Integer.MAX_VALUE)
  * ))
  * }</pre>
+ * <p>
+ *
+ * @since 1.1.0
  */
 public final class MergeSortedAsPair<T> extends GraphStage<FanInShape2<T, T, Pair<T, T>>> {
 
@@ -96,6 +99,8 @@ public final class MergeSortedAsPair<T> extends GraphStage<FanInShape2<T, T, Pai
     /**
      * Create a {@code MergeSortedAsPair} stage for a comparable type from a maximal element.
      * An element {@code e} is maximal if {@code x.compareTo(e) <= 0} for all instances {@code x} of the element type.
+     * However, comparison is never made on the provided "maximal" element; not satisfying maximality
+     * will not cause any strange behavior.
      *
      * @param maximalElement a maximal element of the comparable type.
      * @param <T> the comparable type of elements.
@@ -109,7 +114,10 @@ public final class MergeSortedAsPair<T> extends GraphStage<FanInShape2<T, T, Pai
 
     /**
      * Create a {@code MergeSortedAsPair} stage from a comparator and a maximal element of it.
-     * An element {@code e} is maximal if {@code x.compareTo(e) <= 0} for all instances {@code x} of the element type.
+     * An element {@code e} is maximal for the comparator if {@code comparator.compare(x,e) <= 0}
+     * for all instances {@code x} of the element type.
+     * However, the comparator is never called on the provided "maximal" element; not satisfying maximality
+     * will not cause any strange behavior.
      *
      * @param maximalElement a maximal element according to the comparator.
      * @param comparator the comparator.
@@ -132,148 +140,141 @@ public final class MergeSortedAsPair<T> extends GraphStage<FanInShape2<T, T, Pai
         return shape;
     }
 
-    // GraphStageLogic as non-static inner class to have all fields of MergeSortAsPair in scope
-    private final class MergeSortAsPairLogic extends GraphStageLogic {
+    /**
+     * GraphStageLogic for MergeSortedAsPair.
+     * Adapted from {@code akka.stream.scaladsl.MergeSorted}.
+     */
+    private final class MergeSortAsPairLogic extends AbstractDittoGraphStageLogic {
 
-        // TODO: attempt another MergeSortAsPairLogic following the structure of MergeSorted.
-
-        private boolean in1IsWaiting = true;
-        private boolean in2IsWaiting = true;
-        private boolean in1IsComplete = false;
-        private boolean in2IsComplete = false;
-        private boolean in1HasFinalElement = false;
-        private boolean in2HasFinalElement = false;
-        private T in1Element;
-        private T in2Element;
+        private T lastElement1;
+        private T lastElement2;
 
         private MergeSortAsPairLogic() {
             super(shape);
-            setHandler(in1, new In1Handler());
-            setHandler(in2, new In2Handler());
+            setHandler(in1, ignoreTerminateInput());
+            setHandler(in2, ignoreTerminateInput());
             setHandler(out, eagerTerminateOutput());
         }
 
         @Override
         public void preStart() {
-            demandNext1();
-            demandNext2();
+            // kick-start the stream by pulling both inlets
+            advanceBothInlets();
         }
 
-        private void reactToInletStateTransition() {
-            if (!in1IsWaiting && !in2IsWaiting) {
-                emit(out, Pair.create(in1Element, in2Element));
-                compareAndDemand();
-            }
-            // otherwise wait until the other stream has element
+        private void advanceBothInlets() {
+            read(in1,
+                    element1 -> {
+                        // set lastElement1 to satisfy the precondition of this::in2CompleteAfterGrabbingIn1
+                        lastElement1 = element1;
+                        read(in2,
+                                element2 -> dispatch(element1, element2),
+                                this::in2CompleteAfterGrabbingIn1);
+                    },
+                    this::in1Complete
+            );
         }
 
-        private void padIn1ByMaximalElementAfterCompletion() {
-            in1Element = maximalElement;
-            in1HasFinalElement = false;
-        }
-
-        private void padIn2ByMaximalElementAfterCompletion() {
-            in2Element = maximalElement;
-            in2HasFinalElement = false;
-        }
-
-        private void demandNext1() {
-            if (in1IsComplete) {
-                padIn1ByMaximalElementAfterCompletion();
+        // precondition: both elements were grabbed from the inlets
+        private void dispatch(final T element1, final T element2) {
+            final int comparison = comparator.compare(element1, element2);
+            final Pair<T, T> toEmit = Pair.create(element1, element2);
+            if (comparison < 0) {
+                // store element2 and pull the next one from in1
+                lastElement1 = null;
+                lastElement2 = element2;
+                emit(out, toEmit, this::advanceIn1AfterGrabbingIn2);
+            } else if (comparison > 0) {
+                // store element1 and pull the next one from in2
+                lastElement1 = element1;
+                lastElement2 = null;
+                emit(out, toEmit, this::advanceIn2AfterGrabbingIn1);
             } else {
-                in1IsWaiting = true;
-                pull(in1);
+                // neither elements will be emitted again - discard and pull the next pair from the inlets
+                //
+                // While technically unnecessary, the null assignments maintain the invariant that
+                // non-null values of lastElement1 and lastElement2 will be emitted at least one more time.
+                // This is handy in the debugger.
+                lastElement1 = null;
+                lastElement2 = null;
+                emit(out, toEmit, this::advanceBothInlets);
             }
         }
 
-        private void demandNext2() {
-            if (in2IsComplete) {
-                padIn2ByMaximalElementAfterCompletion();
+        // precondition: lastElement2 was grabbed from in2
+        private void advanceIn1AfterGrabbingIn2() {
+            read(in1, element1 -> dispatch(element1, lastElement2), this::in1CompleteAfterGrabbingIn2);
+        }
+
+        // precondition: lastElement1 was grabbed from in1
+        private void advanceIn2AfterGrabbingIn1() {
+            read(in2, element2 -> dispatch(lastElement1, element2), this::in2CompleteAfterGrabbingIn1);
+        }
+
+        // precondition: lastElement2 was grabbed from in2
+        private void in1CompleteAfterGrabbingIn2() {
+            final T nextElement1 = lastElement1 != null ? lastElement1 : maximalElement;
+            emit(out, Pair.create(nextElement1, lastElement2), this::in1Complete);
+        }
+
+        // precondition: lastElement1 was grabbed from in1
+        private void in2CompleteAfterGrabbingIn1() {
+            final T nextElement2 = lastElement2 != null ? lastElement2 : maximalElement;
+            emit(out, Pair.create(lastElement1, nextElement2), this::in2Complete);
+        }
+
+        private void in1Complete() {
+            passAlongMapConcat(in2, out, this::mapIn2ElementsAfterIn1Complete);
+        }
+
+        private void in2Complete() {
+            passAlongMapConcat(in1, out, this::mapIn1ElementsAfterIn2Complete);
+        }
+
+        private List<Pair<T, T>> mapIn2ElementsAfterIn1Complete(final T element2) {
+            if (lastElement1 == null) {
+                // final element of in1 is nonexistent or has been emitted as the smaller of a pair
+                return List.of(Pair.create(maximalElement, element2));
             } else {
-                in2IsWaiting = true;
-                pull(in2);
-            }
-        }
-
-        private void compareAndDemand() {
-            final int comparison = comparator.compare(in1Element, in2Element);
-            if (comparison <= 0 || in2IsComplete) {
-                demandNext1();
-            }
-            if (comparison >= 0 || in1IsComplete) {
-                demandNext2();
-            }
-        }
-
-        private void setStatesForIn1Completion() {
-            in1IsComplete = true;
-            if (in1IsWaiting) {
-                in1IsWaiting = false;
-                padIn1ByMaximalElementAfterCompletion();
-            } else {
-                in1HasFinalElement = true;
-            }
-        }
-
-        private void setStatesForIn2Completion() {
-            in2IsComplete = true;
-            if (in2IsWaiting) {
-                in2IsWaiting = false;
-                padIn2ByMaximalElementAfterCompletion();
-            } else {
-                in2HasFinalElement = true;
-            }
-        }
-
-        private void checkForFinalStageCompletion() {
-            if (in1IsComplete && in2IsComplete) {
-                if (in1HasFinalElement || in2HasFinalElement) {
-                    // Should not happen. Entering this branch indicates a bug.
-                    throw new IllegalStateException(
-                            "Contract breach: MergeSortedAsPair.checkForFinalStageCompletion() " +
-                                    "called before all input stream elements were emitted."
-                    );
+                final int comparison = comparator.compare(lastElement1, element2);
+                if (comparison < 0) {
+                    // final element of in1 is emitted here as the smaller of a pair
+                    final T finalElement1 = lastElement1;
+                    lastElement1 = null;
+                    return List.of(Pair.create(finalElement1, element2), Pair.create(maximalElement, element2));
+                } else if (comparison > 0) {
+                    return List.of(Pair.create(lastElement1, element2));
+                } else {
+                    // comparison == 0
+                    final T finalElement1 = lastElement1;
+                    lastElement1 = null;
+                    return List.of(Pair.create(finalElement1, element2));
                 }
-                completeStage();
             }
         }
 
-        private final class In1Handler extends AbstractInHandler {
-
-            @Override
-            public void onPush() {
-                in1Element = grab(in1);
-                in1IsWaiting = false;
-                reactToInletStateTransition();
-            }
-
-            @Override
-            public void onUpstreamFinish() {
-                setStatesForIn1Completion();
-                if (!in2IsComplete || in1HasFinalElement || in2HasFinalElement) {
-                    reactToInletStateTransition();
+        private List<Pair<T, T>> mapIn1ElementsAfterIn2Complete(final T element1) {
+            if (lastElement2 == null) {
+                // final element of in2 is nonexistent or has been emitted as the smaller of a pair
+                return List.of(Pair.create(element1, maximalElement));
+            } else {
+                final int comparison = comparator.compare(element1, lastElement2);
+                if (comparison < 0) {
+                    return List.of(Pair.create(element1, lastElement2));
                 }
-                checkForFinalStageCompletion();
-            }
-        }
-
-        private final class In2Handler extends AbstractInHandler {
-
-            @Override
-            public void onPush() {
-                in2Element = grab(in2);
-                in2IsWaiting = false;
-                reactToInletStateTransition();
-            }
-
-            @Override
-            public void onUpstreamFinish() {
-                setStatesForIn2Completion();
-                if (!in1IsComplete || in1HasFinalElement || in2HasFinalElement) {
-                    reactToInletStateTransition();
+                if (comparison > 0) {
+                    // final element of in2 is emitted here as the smaller of a pair
+                    final T finalElement2 = lastElement2;
+                    lastElement2 = null;
+                    return List.of(Pair.create(element1, finalElement2), Pair.create(element1, maximalElement));
+                } else {
+                    // comparison == 0
+                    final T finalElement2 = lastElement2;
+                    lastElement2 = null;
+                    return List.of(Pair.create(element1, finalElement2));
                 }
-                checkForFinalStageCompletion();
             }
         }
     }
+
 }
