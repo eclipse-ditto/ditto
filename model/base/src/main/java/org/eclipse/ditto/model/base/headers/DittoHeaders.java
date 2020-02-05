@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.base.headers;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -269,5 +270,17 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @throws IllegalArgumentException if {@code maxSizeBytes} is negative.
      */
     DittoHeaders truncate(long maxSizeBytes);
+
+    /**
+     * Returns the acknowledgement ("ack") labels which were requested together with an issued Ditto {@code Command}.
+     * Such ack labels are sent back to the issuer of the {@code Command} so that it can be verified which steps were
+     * successful.<br>
+     * In addition to built-in ack labels like "ditto-persisted" also custom labels may be specified which can be
+     * sent back even by external systems.
+     *
+     * @return the requested acknowledgement labels.
+     * @since 1.1.0
+     */
+    Collection<String> getRequestedAckLabels();
 
 }

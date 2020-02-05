@@ -74,6 +74,8 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_REPLY_TARGET = "5";
     private static final String KNOWN_MAPPER = "knownMapper";
     private static final String KNOWN_ORIGINATOR = "known:originator";
+    private static final String KNOWN_ACK_LABEL = "ack-label-1";
+    private static final Collection<String> KNOWN_REQUESTED_ACK_LABELS = Lists.list(KNOWN_ACK_LABEL);
 
     @Test
     public void assertImmutability() {
@@ -108,6 +110,7 @@ public final class ImmutableDittoHeadersTest {
                 .replyTarget(Integer.valueOf(KNOWN_REPLY_TARGET))
                 .inboundPayloadMapper(KNOWN_MAPPER)
                 .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
+                .requestedAckLabels(KNOWN_REQUESTED_ACK_LABELS)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -229,6 +232,15 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
+    public void getRequestedAckLabelsReturnsExpected() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .requestedAckLabels(KNOWN_REQUESTED_ACK_LABELS)
+                .build();
+
+        assertThat(underTest.getRequestedAckLabels()).containsExactlyInAnyOrderElementsOf(KNOWN_REQUESTED_ACK_LABELS);
+    }
+
+    @Test
     public void toJsonReturnsExpected() {
         final JsonObject expectedHeadersJsonObject = JsonFactory.newObjectBuilder()
                 .set(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), stringCollectionToJsonArray(AUTH_SUBJECTS))
@@ -248,6 +260,8 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.REPLY_TARGET.getKey(), Integer.parseInt(KNOWN_REPLY_TARGET))
                 .set(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER)
                 .set(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
+                .set(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(),
+                        stringCollectionToJsonArray(KNOWN_REQUESTED_ACK_LABELS))
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -412,6 +426,8 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.REPLY_TARGET.getKey(), KNOWN_REPLY_TARGET);
         result.put(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER);
         result.put(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR);
+        result.put(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(),
+                stringCollectionToJsonArray(KNOWN_REQUESTED_ACK_LABELS).toString());
 
         return result;
     }

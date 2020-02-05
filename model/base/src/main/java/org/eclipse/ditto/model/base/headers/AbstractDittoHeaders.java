@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -197,6 +198,14 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Collection<String> getRequestedAckLabels() {
+        final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.REQUESTED_ACK_LABELS);
+        return jsonValueArray.stream()
+                .map(JsonValue::asString)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         forEach((key, value) -> {
@@ -268,7 +277,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         checkArgument(maxSizeBytes, s -> 0 <= maxSizeBytes,
                 () -> MessageFormat.format("The max size bytes must not be negative but it was <{0}>!", maxSizeBytes));
 
-        final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
+        final DittoHeadersBuilder<?, ?> builder = DittoHeaders.newBuilder();
         long quota = maxSizeBytes;
 
         for (final Map.Entry<String, String> entry : getSortedEntriesByLength()) {

@@ -280,6 +280,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S requestedAckLabels(final Collection<String> ackLabels) {
+        putStringCollection(DittoHeaderDefinition.REQUESTED_ACK_LABELS, ackLabels);
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");
@@ -294,7 +300,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     protected void validateValueType(final CharSequence key, final CharSequence value) {
         definitions.stream()
-                .filter(definition -> Objects.equals(definition.getKey(), key))
+                .filter(definition -> Objects.equals(definition.getKey(), key.toString()))
                 .findAny()
                 .ifPresent(definition -> definition.validateValue(value));
     }

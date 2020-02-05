@@ -159,7 +159,20 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-originator"}, Java type: {@link String}.
      * </p>
      */
-    ORIGINATOR("ditto-originator", String.class, false, true);
+    ORIGINATOR("ditto-originator", String.class, false, true),
+
+    /**
+     * Header definition for defining which acknowledgements ("ack") labels are requested for a command processed by
+     * Ditto.
+     * <p>
+     * Key: {@code "requested-ack-labels"}, Java type: {@link JsonArray}.
+     * </p>
+     * @since 1.1.0
+     */
+    REQUESTED_ACK_LABELS("requested-ack-labels", JsonArray.class, true, true)
+
+    ;
+
 
     /**
      * Map to speed up lookup of header definition by key.
