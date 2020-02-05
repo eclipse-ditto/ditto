@@ -33,6 +33,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsSseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.GatewayHttpReadinessCheck;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
@@ -44,6 +45,7 @@ import org.eclipse.ditto.services.gateway.security.config.AuthenticationConfig;
 import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.security.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
+import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
@@ -146,8 +148,8 @@ final class GatewayRootActor extends DittoRootActor {
             log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
-        final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor, healthCheckActor,
-                healthCheckConfig, jwtAuthenticationFactory);
+        final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor,
+                healthCheckActor, healthCheckConfig, jwtAuthenticationFactory);
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
         httpBinding = Http.get(actorSystem)
@@ -226,6 +228,11 @@ final class GatewayRootActor extends DittoRootActor {
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
 
+        final GatewaySignalEnrichmentProvider signalEnrichmentProvider =
+                GatewaySignalEnrichmentProvider.get(actorSystem);
+
+        final StreamingConfig streamingConfig = gatewayConfig.getStreamingConfig();
+
         return RootRoute.getBuilder(httpConfig)
                 .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))
                 .statusRoute(new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem))
@@ -234,11 +241,13 @@ final class GatewayRootActor extends DittoRootActor {
                         new CachingHealthRoute(statusAndHealthProvider, gatewayConfig.getPublicHealthConfig()))
                 .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))
                 .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(streamingActor))
+                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(streamingActor, streamingConfig)
+                        .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig(), httpConfig, headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(streamingActor, actorSystem.eventStream()))
+                .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig, actorSystem.eventStream())
+                        .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)

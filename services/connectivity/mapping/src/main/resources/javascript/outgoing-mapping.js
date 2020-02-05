@@ -10,6 +10,7 @@
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
  * @param {number} status - The status code that indicates the result of the command.
+ * @param {Object} extra - The enriched extra fields when selected via "extraFields" option.
  * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage -
  *  The mapped external message,
  *  an array of external messages or
@@ -25,14 +26,15 @@ function mapFromDittoProtocolMsg(
   path,
   dittoHeaders,
   value,
-  status
+  status,
+  extra
 ) {
 
   // ###
   // Insert your mapping logic here:
   let headers = dittoHeaders;
   let textPayload = JSON.stringify(
-    Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value));
+    Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status, extra));
   // TODO replace with something useful, this will publish the message in Ditto Protocol JSON
   let bytePayload = null;
   let contentType = 'application/vnd.eclipse.ditto+json';
@@ -70,6 +72,7 @@ function mapFromDittoProtocolMsgWrapper(dittoProtocolMsg) {
   let dittoHeaders = dittoProtocolMsg.headers;
   let value = dittoProtocolMsg.value;
   let status = dittoProtocolMsg.status;
+  let extra = dittoProtocolMsg.extra;
 
-  return mapFromDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status);
+  return mapFromDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status, extra);
 }

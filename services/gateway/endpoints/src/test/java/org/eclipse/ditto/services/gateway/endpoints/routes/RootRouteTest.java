@@ -143,12 +143,12 @@ public final class RootRouteTest extends EndpointTestBase {
                 .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig,
                         headerTranslator))
                 .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor))
+                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor, streamingConfig))
                 .thingsRoute(
                         new ThingsRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
                                 headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(proxyActor, actorSystem.eventStream()))
+                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig, actorSystem.eventStream()))
                 .supportedSchemaVersions(config.getIntList("ditto.gateway.http.schema-versions"))
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)

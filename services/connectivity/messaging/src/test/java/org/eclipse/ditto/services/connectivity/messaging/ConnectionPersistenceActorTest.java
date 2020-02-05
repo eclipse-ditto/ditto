@@ -16,7 +16,6 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
-import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.asSet;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,7 +30,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.compress.utils.Sets;
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -101,12 +103,12 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class ConnectionPersistenceActorTest extends WithMockServers {
 
-    private static final Set<String> SUBJECTS =
-            asSet(TestConstants.Authorization.SUBJECT_ID, TestConstants.Authorization.UNAUTHORIZED_SUBJECT_ID);
+    private static final Set<String> SUBJECTS = Sets.newHashSet(TestConstants.Authorization.SUBJECT_ID,
+            TestConstants.Authorization.UNAUTHORIZED_SUBJECT_ID);
     private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS =
-            asSet(StreamingType.EVENTS, StreamingType.LIVE_EVENTS);
-    private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS_AND_MESSAGES = asSet(StreamingType.EVENTS,
-            StreamingType.LIVE_EVENTS, StreamingType.MESSAGES);
+            Sets.newHashSet(StreamingType.EVENTS, StreamingType.LIVE_EVENTS);
+    private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS_AND_MESSAGES =
+            Sets.newHashSet(StreamingType.EVENTS, StreamingType.LIVE_EVENTS, StreamingType.MESSAGES);
     private ActorSystem actorSystem;
     private ActorRef pubSubMediator;
     private ActorRef conciergeForwarder;
@@ -205,7 +207,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                         "publisher started")))
                         .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
-        thingModified = TestConstants.thingModified(Collections.singleton(TestConstants.Authorization.SUBJECT_ID));
+        thingModified = TestConstants.thingModified(Collections.singleton(TestConstants.Authorization.SUBJECT));
         dittoProtocolSubMock = Mockito.mock(DittoProtocolSub.class);
     }
 
@@ -698,7 +700,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void testThingEventWithAuthorizedSubjectExpectIsForwarded() {
-        final Set<String> valid = Collections.singleton(TestConstants.Authorization.SUBJECT_ID);
+        final Set<AuthorizationSubject> valid = Collections.singleton(TestConstants.Authorization.SUBJECT);
         testForwardThingEvent(true, TestConstants.thingModified(valid));
     }
 
@@ -717,13 +719,14 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void testThingEventWithUnauthorizedSubjectExpectIsNotForwarded() {
-        final Set<String> invalid = Collections.singleton("iot:user");
+        final Set<AuthorizationSubject> invalid =
+                Collections.singleton(AuthorizationModelFactory.newAuthSubject("iot:user"));
         testForwardThingEvent(false, TestConstants.thingModified(invalid));
     }
 
     @Test
     public void testLiveMessageWithAuthorizedSubjectExpectIsNotForwarded() {
-        final Set<String> valid = Collections.singleton(TestConstants.Authorization.SUBJECT_ID);
+        final Set<AuthorizationSubject> valid = Collections.singleton(TestConstants.Authorization.SUBJECT);
         testForwardThingEvent(false, TestConstants.sendThingMessage(valid));
     }
 

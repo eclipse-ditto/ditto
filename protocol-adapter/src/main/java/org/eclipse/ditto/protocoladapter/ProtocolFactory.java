@@ -17,6 +17,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -69,6 +71,21 @@ public final class ProtocolFactory {
             final TopicPath overwriteTopicPath) {
         return ImmutableAdaptableBuilder.of(overwriteTopicPath).withPayload(existingAdaptable.getPayload())
                 .withHeaders(existingAdaptable.getHeaders().orElse(null));
+    }
+
+    /**
+     * Returns a new {@code Adaptable} with the {@code extra} field set in the payload.
+     *
+     * @param existingAdaptable the existing adaptable.
+     * @param extra the extra fields.
+     * @return the new adaptable.
+     */
+    public static Adaptable setExtra(final Adaptable existingAdaptable, final JsonObject extra) {
+        return newAdaptableBuilder(existingAdaptable)
+                .withPayload(Payload.newBuilder(existingAdaptable.getPayload())
+                        .withExtra(extra)
+                        .build())
+                .build();
     }
 
     /**
@@ -231,7 +248,7 @@ public final class ProtocolFactory {
      * @return the builder.
      */
     public static PayloadBuilder newPayloadBuilder() {
-        return ImmutablePayloadBuilder.of();
+        return newPayloadBuilder(null);
     }
 
     /**
@@ -240,8 +257,8 @@ public final class ProtocolFactory {
      * @param path the path.
      * @return the builder.
      */
-    public static PayloadBuilder newPayloadBuilder(final JsonPointer path) {
-        return ImmutablePayloadBuilder.of(path);
+    public static PayloadBuilder newPayloadBuilder(@Nullable final JsonPointer path) {
+        return ImmutablePayload.getBuilder(path);
     }
 
 

@@ -22,7 +22,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
@@ -170,16 +169,18 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      */
     private Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> assembleSink() {
         return Sink.foreach(theContextual -> {
-            LogUtil.enhanceLogWithCorrelationId(log, theContextual.getMessage());
+            logger.setCorrelationId(theContextual.getMessage());
             final Optional<ActorRef> receiverOpt = theContextual.getReceiver();
             if (receiverOpt.isPresent()) {
                 final ActorRef receiver = receiverOpt.get();
                 final Object wrappedMsg = theContextual.getReceiverWrapperFunction().apply(theContextual.getMessage());
-                log.debug("About to send contextual message <{}> to receiver: <{}>", wrappedMsg, receiver);
+                logger.debug("About to send contextual message <{}> to receiver: <{}>", wrappedMsg, receiver);
                 receiver.tell(wrappedMsg, theContextual.getSender());
             } else {
-                log.debug("No receiver found in Contextual - as a result just ignoring it: <{}>", theContextual);
+                logger.debug("No receiver found in Contextual - as a result just ignoring it: <{}>", theContextual);
             }
+            logger.discardCorrelationId();
         });
     }
+
 }

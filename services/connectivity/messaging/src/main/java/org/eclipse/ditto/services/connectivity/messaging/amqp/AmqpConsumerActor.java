@@ -307,9 +307,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     private void handleJmsMessage(final JmsMessage message) {
         Map<String, String> headers = null;
-        String hashKey = "";
         try {
-            hashKey = message.getJMSDestination() != null ? message.getJMSDestination().toString() : sourceAddress;
             headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
@@ -327,14 +325,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
                         externalMessage.getTextPayload().orElse("binary"));
             }
-            forwardToMappingActor(externalMessage, hashKey);
+            forwardToMappingActor(externalMessage);
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
                 inboundMonitor.failure(headers, e);
-                forwardToMappingActor(e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
+                forwardToMappingActor(e.setDittoHeaders(DittoHeaders.of(headers)));
             } else {
                 inboundMonitor.failure(e);
             }

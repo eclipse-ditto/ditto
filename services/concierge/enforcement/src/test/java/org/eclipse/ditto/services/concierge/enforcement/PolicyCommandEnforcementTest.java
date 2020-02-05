@@ -98,7 +98,7 @@ public class PolicyCommandEnforcementTest {
             .build();
 
     private static final DittoHeaders DITTO_HEADERS_WITH_CORRELATION_ID = DittoHeaders.newBuilder()
-            .correlationId(CORRELATION_ID)
+            .correlationId("sudoRetrievePolicy-" + CORRELATION_ID)
             .build();
 
     private static final SudoRetrievePolicy SUDO_RETRIEVE_POLICY =

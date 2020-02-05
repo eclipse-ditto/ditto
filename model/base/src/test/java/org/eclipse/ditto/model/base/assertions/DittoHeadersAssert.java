@@ -112,8 +112,13 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
         return myself;
     }
 
+    /**
+     * @deprecated as of 1.1.0 {@link DittoHeaders#getReadSubjects()} is deprecated.
+     */
+    @Deprecated
     public DittoHeadersAssert hasReadSubject(final String expectedReadSubject,
             final String... furtherExpectedReadSubjects) {
+
         isNotNull();
         final Set<String> actualReadSubjects = actual.getReadSubjects();
         Assertions.assertThat(actualReadSubjects)
@@ -122,6 +127,10 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
         return myself;
     }
 
+    /**
+     * @deprecated as of 1.1.0 {@link DittoHeaders#getReadSubjects()} is deprecated.
+     */
+    @Deprecated
     public DittoHeadersAssert hasNoReadSubjects() {
         isNotNull();
         final Set<String> actualReadSubjects = actual.getReadSubjects();

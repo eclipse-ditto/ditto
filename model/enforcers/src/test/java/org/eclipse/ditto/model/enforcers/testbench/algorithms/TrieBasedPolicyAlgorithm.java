@@ -17,7 +17,9 @@ import java.util.Set;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.trie.TrieBasedPolicyEnforcer;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.Policy;
@@ -47,10 +49,22 @@ public final class TrieBasedPolicyAlgorithm implements PolicyAlgorithm {
     }
 
     @Override
+    public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
+        return trieBasedPolicyEvaluator.getSubjectsWithPermission(resourceKey, permissions);
+    }
+
+    @Override
     public Set<String> getSubjectIdsWithPartialPermission(final ResourceKey resourceKey,
             final Permissions permissions) {
 
         return trieBasedPolicyEvaluator.getSubjectIdsWithPartialPermission(resourceKey, permissions);
+    }
+
+    @Override
+    public Set<AuthorizationSubject> getSubjectsWithPartialPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+
+        return trieBasedPolicyEvaluator.getSubjectsWithPartialPermission(resourceKey, permissions);
     }
 
     @Override

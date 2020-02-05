@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.enforcers;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -91,17 +92,32 @@ public final class AclEnforcer implements Enforcer {
     @Override
     public EffectedSubjectIds getSubjectIdsWithPermission(final ResourceKey resourceKey,
             final Permissions permissions) {
+
         final Set<String> grantedSubjects = getSubjectIdsWithPartialPermission(resourceKey, permissions);
         return ImmutableEffectedSubjectIds.ofGranted(grantedSubjects);
     }
 
     @Override
+    public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
+        final Set<AuthorizationSubject> grantedSubjects = getSubjectsWithPartialPermission(resourceKey, permissions);
+        return DefaultEffectedSubjects.of(grantedSubjects, Collections.emptySet());
+    }
+
+    @Override
     public Set<String> getSubjectIdsWithPartialPermission(final ResourceKey resourceKey,
             final Permissions permissions) {
+
         return acl.getAuthorizedSubjectsFor(mapPermissions(permissions))
                 .stream()
                 .map(AuthorizationSubject::getId)
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<AuthorizationSubject> getSubjectsWithPartialPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+
+        return acl.getAuthorizedSubjectsFor(mapPermissions(permissions));
     }
 
     /**

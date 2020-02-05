@@ -137,7 +137,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      *
      * @param caffeine a (pre-configured) caffeine instance.
      * @param loader the algorithm used for loading values asynchronously.
-     * @param cacheName The name of the cache {@code null}. Will be used for metrics.
+     * @param cacheName The name of the cache or {@code null} if metrics should be disabled. Will be used for metrics.
      * @param <K> the type of the key.
      * @param <V> the type of the value.
      * @return the created instance

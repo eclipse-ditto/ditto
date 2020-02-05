@@ -78,6 +78,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     READ_SUBJECTS("ditto-read-subjects", JsonArray.class, false, false),
 
     /**
+     * Header definition for subjects with revoked READ subjects.
+     *
+     * <p>
+     * Key: {@code "read-revoked-subjects"}, Java type: {@link JsonArray}.
+     * </p>
+     * @since 1.1.0
+     */
+    READ_REVOKED_SUBJECTS("ditto-read-revoked-subjects", JsonArray.class, false, false),
+
+    /**
      * Header definition for a signal's content-type.
      * <p>
      * Key: {@code "content-type"}, Java type: String.

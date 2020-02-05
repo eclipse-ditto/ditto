@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -126,9 +127,27 @@ public final class ThingsRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void getAttributesWithTrailingSlash() {
+        final HttpRequest request = HttpRequest.GET("/things/org.eclipse.ditto%3Adummy/attributes/");
+        final TestRouteResult result =
+                underTest.run(request);
+        result.assertStatusCode(StatusCodes.OK);
+        final String entityString = result.entityString();
+        assertThat(entityString).contains(RetrieveAttributes.TYPE);
+    }
+
+    @Test
+    public void getAttributesWithoutSlashButRandomText() {
+        final HttpRequest request = HttpRequest.GET("/things/org.eclipse.ditto%3Adummy/attributesasfsafa");
+        final TestRouteResult result =
+                underTest.run(request);
+        result.assertStatusCode(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
     public void putAttributeWithEmptyPointer() {
         final String body = "\"bumlux\"";
-        final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes//")
+        final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes//bar")
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, body));
         final TestRouteResult result =
                 underTest.run(request);

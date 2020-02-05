@@ -18,21 +18,19 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.connectivity.ImmutableLogEntry;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.model.connectivity.LogLevel;
 import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 /**
  * Implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger} that
@@ -40,7 +38,7 @@ import org.slf4j.LoggerFactory;
  */
 final class EvictingConnectionLogger implements ConnectionLogger {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(EvictingConnectionLogger.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(EvictingConnectionLogger.class);
 
     private static final String FALLBACK_EXCEPTION_TEXT = "not specified";
 
@@ -59,18 +57,18 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Nullable private final String address;
 
     private EvictingConnectionLogger(final Builder builder) {
-        this.category = builder.category;
-        this.type = builder.type;
-        this.address = builder.address;
+        category = builder.category;
+        type = builder.type;
+        address = builder.address;
 
-        this.successLogs = DefaultEvictingQueue.withCapacity(builder.successCapacity);
-        this.failureLogs = DefaultEvictingQueue.withCapacity(builder.failureCapacity);
+        successLogs = DefaultEvictingQueue.withCapacity(builder.successCapacity);
+        failureLogs = DefaultEvictingQueue.withCapacity(builder.failureCapacity);
 
-        this.defaultSuccessMessage = builder.defaultSuccessMessage;
-        this.defaultFailureMessage = builder.defaultFailureMessage;
-        this.defaultExceptionMessage = builder.defaultExceptionMessage;
+        defaultSuccessMessage = builder.defaultSuccessMessage;
+        defaultFailureMessage = builder.defaultFailureMessage;
+        defaultExceptionMessage = builder.defaultExceptionMessage;
 
-        this.logHeadersAndPayload = builder.logHeadersAndPayload;
+        logHeadersAndPayload = builder.logHeadersAndPayload;
 
         LOGGER.trace("Successfully built new EvictingConnectionLogger: {}", this);
     }
@@ -84,9 +82,11 @@ final class EvictingConnectionLogger implements ConnectionLogger {
      * @return a new Builder for {@code EvictingConnectionLogger}.
      * @throws java.lang.NullPointerException if any non-nullable argument is {@code null}.
      */
-    static Builder newBuilder(final int successCapacity, final int failureCapacity,
+    static Builder newBuilder(final int successCapacity,
+            final int failureCapacity,
             final LogCategory category,
             final LogType type) {
+
         return new Builder(successCapacity, failureCapacity, category, type);
     }
 
@@ -103,11 +103,12 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     }
 
     @Override
-    public void success(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments) {
+    public void success(final ConnectionMonitor.InfoProvider infoProvider, final String message,
+            final Object... messageArguments) {
+
         final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
         logTraceWithCorrelationId(infoProvider.getCorrelationId(), "success", infoProvider, formattedMessage);
         successLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.SUCCESS));
-
     }
 
     @Override
@@ -124,6 +125,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void failure(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
+
         final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
         logTraceWithCorrelationId(infoProvider.getCorrelationId(), "failure", infoProvider, formattedMessage);
         failureLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.FAILURE));
@@ -137,6 +139,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void exception(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
+
         final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
         logTraceWithCorrelationId(infoProvider.getCorrelationId(), "exception", infoProvider, formattedMessage);
         failureLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.FAILURE));
@@ -151,7 +154,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
     @Override
     public Collection<LogEntry> getLogs() {
-        final List<LogEntry> logs = new ArrayList<>(successLogs.size() + failureLogs.size());
+        final Collection<LogEntry> logs = new ArrayList<>(successLogs.size() + failureLogs.size());
         logs.addAll(successLogs);
         logs.addAll(failureLogs);
 
@@ -159,14 +162,17 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         return logs;
     }
 
-    private String formatMessage(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments) {
+    private String formatMessage(final ConnectionMonitor.InfoProvider infoProvider, final String message,
+            final Object... messageArguments) {
+
         final String formattedMessage = formatMessage(message, messageArguments);
         return addHeadersAndPayloadToMessage(infoProvider, formattedMessage);
     }
 
-    private String addHeadersAndPayloadToMessage(final ConnectionMonitor.InfoProvider infoProvider, final String initialMessage) {
+    private String addHeadersAndPayloadToMessage(final ConnectionMonitor.InfoProvider infoProvider,
+            final String initialMessage) {
 
-        if (this.logHeadersAndPayload) {
+        if (logHeadersAndPayload) {
             final String headersMessage = getDebugHeaderMessage(infoProvider);
             final String payloadMessage = getDebugPayloadMessage(infoProvider);
             return initialMessage + headersMessage + payloadMessage;
@@ -176,7 +182,6 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     }
 
     private static String getDebugHeaderMessage(final ConnectionMonitor.InfoProvider infoProvider) {
-
         if (ConnectivityHeaders.isHeadersDebugLogEnabled(infoProvider.getHeaders())) {
             return MessageFormat.format(" - Message headers: {0}", infoProvider.getHeaders().entrySet());
         }
@@ -184,13 +189,13 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     }
 
     private static String getDebugPayloadMessage(final ConnectionMonitor.InfoProvider infoProvider) {
-
         if (ConnectivityHeaders.isPayloadDebugLogEnabled(infoProvider.getHeaders())) {
             return MessageFormat.format(" - Message payload: {0}", infoProvider.getPayload());
         }
         return "";
     }
 
+    @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -234,24 +239,30 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
     private LogEntry getLogEntry(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final LogLevel logLevel) {
-        return ImmutableLogEntry.getBuilder(infoProvider.getCorrelationId(), infoProvider.getTimestamp(), category, type, logLevel, message,
-                address, infoProvider.getThingId())
+
+        return ConnectivityModelFactory.newLogEntryBuilder(infoProvider.getCorrelationId(), infoProvider.getTimestamp(),
+                category, type, logLevel, message)
+                .address(address)
+                .thingId(infoProvider.getThingId())
                 .build();
     }
 
-    private void logTraceWithCorrelationId(final String correlationId, final String level,
-            final ConnectionMonitor.InfoProvider infoProvider, final String message) {
+    private static void logTraceWithCorrelationId(final CharSequence correlationId,
+            final String level,
+            final ConnectionMonitor.InfoProvider infoProvider,
+            final String message) {
+
         if (LOGGER.isTraceEnabled()) {
-            LogUtil.enhanceLogWithCorrelationId(correlationId);
-            LOGGER.trace("Saving {} log at <{}> for thing <{}> with message: {}", level,
-                    infoProvider.getTimestamp(), infoProvider.getThingId(), message);
+            LOGGER.withCorrelationId(correlationId)
+                    .trace("Saving {} log at <{}> for thing <{}> with message: {}", level, infoProvider.getTimestamp(),
+                            infoProvider.getThingId(), message);
         }
     }
 
     /**
      * Builder for {@code EvictingConnectionLogger}.
      */
-    static class Builder {
+    static final class Builder {
 
         private static final String DEFAULT_SUCCESS_MESSAGE = "Processed message.";
         private static final String DEFAULT_FAILURE_MESSAGE = "Failure while processing message : {0}";
@@ -268,9 +279,11 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
         @Nullable private String address;
 
-        private Builder(final int successCapacity, final int failureCapacity,
+        private Builder(final int successCapacity,
+                final int failureCapacity,
                 final LogCategory category,
                 final LogType type) {
+
             this.successCapacity = successCapacity;
             this.failureCapacity = failureCapacity;
             this.category = checkNotNull(category, "Logging category");
@@ -326,7 +339,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
          * @return the builder for method chaining.
          */
         Builder logHeadersAndPayload() {
-            this.logHeadersAndPayload = true;
+            logHeadersAndPayload = true;
             return this;
         }
 

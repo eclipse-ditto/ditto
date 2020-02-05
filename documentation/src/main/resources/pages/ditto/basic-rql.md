@@ -1,7 +1,7 @@
 ---
 title: RQL expressions
 keywords: rql, query, filter, filtering, search
-tags: [rql]
+tags: [rql, protocol]
 permalink: basic-rql.html
 ---
 

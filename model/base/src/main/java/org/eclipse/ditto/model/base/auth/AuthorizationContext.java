@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.base.auth;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -117,6 +118,21 @@ public interface AuthorizationContext
      * @return a sequential stream of the authorization subjects of this context.
      */
     Stream<AuthorizationSubject> stream();
+
+    /**
+     * Checks if this authorization context is authorized for a certain operation by evaluating the given granted and
+     * revoked authorization subjects.
+     * In evaluation revoked subjects weigh more than granted subjects, i. e. if the revoked and the granted set contain
+     * a common subject the subject is regarded to be revoked.
+     *
+     * @param granted the authorization subjects which are granted to perform the operation.
+     * @param revoked the authorization subjects which are revoked to perform the operation.
+     * @return {@code true} if the authorization subjects of this authorization context are regarded as authorized to
+     * perform a certain operation when the given granted and revoked subjects are taken into account.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    boolean isAuthorized(Collection<AuthorizationSubject> granted, Collection<AuthorizationSubject> revoked);
 
     /**
      * Returns all non hidden marked fields of this authorization context.

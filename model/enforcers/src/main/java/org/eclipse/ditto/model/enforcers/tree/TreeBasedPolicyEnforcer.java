@@ -40,12 +40,17 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.policies.Resources;
+import org.eclipse.ditto.model.policies.SubjectId;
+import org.eclipse.ditto.model.policies.Subjects;
 
 /**
  * Holds Algorithms to create a policy tree and to perform different policy checks on this tree.
@@ -75,28 +80,25 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         checkNotNull(policy, "policy");
         final Map<String, PolicyTreeNode> tree = new HashMap<>();
 
-        policy.getEntriesSet().forEach(policyEntry ->
-                policyEntry.getSubjects().forEach(subject -> {
-                    final PolicyTreeNode parentNode = Optional.ofNullable(tree.get(subject.getId().toString())).
-                            orElseGet(() -> {
-                                final PolicyTreeNode subjectNode = SubjectNode.of(subject.getId().toString());
-                                tree.put(subject.getId().toString(), subjectNode);
-                                return subjectNode;
-                            });
+        final Set<PolicyEntry> policyEntries = policy.getEntriesSet();
+        policyEntries.forEach(policyEntry -> {
 
-                    policyEntry.getResources().forEach(resource -> {
-                                final ResourceNode rootChild = (ResourceNode) parentNode.getChild(resource.getType())
-                                        .orElseGet(() -> {
-                                            final ResourceNode child = ResourceNode.of(parentNode, resource.getType(),
-                                                    EffectedPermissions.newInstance(new ArrayList<>(), new ArrayList<>()));
-                                            parentNode.addChild(child);
-                                            return child;
-                                        });
-                                addResourceSubTree(rootChild, resource, resource.getPath());
-                            }
-                    );
-                })
-        );
+            final Subjects subjects = policyEntry.getSubjects();
+            subjects.forEach(subject -> {
+                final SubjectId subjectId = subject.getId();
+                final String subjectIdString = subjectId.toString();
+                final PolicyTreeNode parentNode = tree.computeIfAbsent(subjectIdString, SubjectNode::of);
+
+                final Resources resources = policyEntry.getResources();
+                resources.forEach(resource -> {
+                    final PolicyTreeNode rootChild = parentNode.computeIfAbsent(resource.getType(), t -> {
+                        final Set<String> emptySet = Collections.emptySet();
+                        return ResourceNode.of(parentNode, t, EffectedPermissions.newInstance(emptySet, emptySet));
+                    });
+                    addResourceSubTree((ResourceNode) rootChild, resource, resource.getPath());
+                });
+            });
+        });
 
         return new TreeBasedPolicyEnforcer(tree);
     }
@@ -195,6 +197,14 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         return visitTree(new CollectEffectedSubjectIdsVisitor(resourcePointer, permissions));
     }
 
+    @Override
+    public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
+        checkResourceKey(resourceKey);
+        checkPermissions(permissions);
+        final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
+        return visitTree(new CollectEffectedSubjectsVisitor(resourcePointer, permissions));
+    }
+
     private static void checkResourceKey(final ResourceKey resourceKey) {
         checkNotNull(resourceKey, "resource key");
     }
@@ -207,6 +217,16 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         checkPermissions(permissions);
         final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
         return visitTree(new CollectPartialGrantedSubjectIdsVisitor(resourcePointer, permissions));
+    }
+
+    @Override
+    public Set<AuthorizationSubject> getSubjectsWithPartialPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+
+        checkResourceKey(resourceKey);
+        checkPermissions(permissions);
+        final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
+        return visitTree(new CollectPartialGrantedSubjectsVisitor(resourcePointer, permissions));
     }
 
     @Override

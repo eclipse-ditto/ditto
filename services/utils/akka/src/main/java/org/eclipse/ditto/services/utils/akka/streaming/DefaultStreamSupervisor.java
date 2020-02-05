@@ -50,7 +50,6 @@ import akka.stream.javadsl.Source;
  * {@code StreamMetadataPersistence} and starts streams whenever the timestamp becomes too old. It collaborates
  * with {@code AbstractStreamingActor} and {@code AbstractStreamForwarder} to ensure that the recipient of stream
  * messages eventually receive all messages up until the recent past.
- * <p>
  * <pre>
  * {@code
  * Streaming                                                      Supervisor                            Stream

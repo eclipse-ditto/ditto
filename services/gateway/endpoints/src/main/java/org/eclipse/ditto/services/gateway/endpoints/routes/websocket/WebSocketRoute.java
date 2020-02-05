@@ -14,20 +14,24 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_EVENTS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_COMMANDS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_EVENTS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_MESSAGES;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_EVENTS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_LIVE_COMMANDS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_LIVE_EVENTS;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_MESSAGES;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_EVENTS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_LIVE_COMMANDS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_LIVE_EVENTS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_MESSAGES;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_EVENTS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_LIVE_COMMANDS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_LIVE_EVENTS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_MESSAGES;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -36,10 +40,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.exceptions.TooManyRequestsException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
@@ -52,19 +56,25 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
+import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
+import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
+import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.LimitRateByRejection;
+import org.eclipse.ditto.services.utils.akka.logging.AutoCloseableSlf4jLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -76,8 +86,6 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessio
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.events.base.Event;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -125,7 +133,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private static final String BEARER = "Bearer";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketRoute.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(WebSocketRoute.class);
 
     private static final Duration CONFIG_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
@@ -144,16 +152,20 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             .tag(DIRECTION, "dropped");
 
     private final ActorRef streamingActor;
+    private final StreamingConfig streamingConfig;
     private final EventStream eventStream;
 
     private EventSniffer<String> incomingMessageSniffer;
     private EventSniffer<String> outgoingMessageSniffer;
     private WebSocketAuthorizationEnforcer authorizationEnforcer;
     private WebSocketSupervisor webSocketSupervisor;
+    @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
 
-    private WebSocketRoute(final ActorRef streamingActor, final EventStream eventStream) {
+    private WebSocketRoute(final ActorRef streamingActor, final StreamingConfig streamingConfig,
+            final EventStream eventStream) {
 
         this.streamingActor = checkNotNull(streamingActor, "streamingActor");
+        this.streamingConfig = streamingConfig;
         this.eventStream = checkNotNull(eventStream, "eventStream");
 
         final EventSniffer<String> noOpEventSniffer = EventSniffer.noOp();
@@ -161,19 +173,22 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         outgoingMessageSniffer = noOpEventSniffer;
         authorizationEnforcer = new NoOpAuthorizationEnforcer();
         webSocketSupervisor = new NoOpWebSocketSupervisor();
+        signalEnrichmentProvider = null;
     }
 
     /**
      * Returns an instance of this class.
      *
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
+     * @param streamingConfig the streaming configuration.
      * @param eventStream eventStream used to publish events within the actor system
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static WebSocketRoute getInstance(final ActorRef streamingActor, final EventStream eventStream) {
+    public static WebSocketRoute getInstance(final ActorRef streamingActor,
+            final StreamingConfig streamingConfig, final EventStream eventStream) {
 
-        return new WebSocketRoute(streamingActor, eventStream);
+        return new WebSocketRoute(streamingActor, streamingConfig, eventStream);
     }
 
     @Override
@@ -200,6 +215,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return this;
     }
 
+    @Override
+    public WebSocketRouteBuilder withSignalEnrichmentProvider(
+            @Nullable final GatewaySignalEnrichmentProvider provider) {
+        signalEnrichmentProvider = provider;
+        return this;
+    }
+
     /**
      * Builds the {@code /ws} route.
      *
@@ -217,7 +239,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         request -> {
                             authorizationEnforcer.checkAuthorization(request, connectionAuthContext, additionalHeaders);
                             return Directives.completeWithFuture(
-                                    createWebsocket(upgradeToWebSocketHeader, version, correlationId.toString(),
+                                    createWebSocket(upgradeToWebSocketHeader, version, correlationId.toString(),
                                             connectionAuthContext, additionalHeaders, chosenProtocolAdapter, request));
                         }));
     }
@@ -227,7 +249,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .thenApply(reply -> (WebsocketConfig) reply); // fail future with ClassCastException on type error
     }
 
-    private CompletionStage<HttpResponse> createWebsocket(final UpgradeToWebSocket upgradeToWebSocket,
+    private CompletionStage<HttpResponse> createWebSocket(final UpgradeToWebSocket upgradeToWebSocket,
             final Integer version,
             final String connectionCorrelationId,
             final AuthorizationContext authContext,
@@ -235,15 +257,19 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
-        LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
-                logger.info("Creating WebSocket for connection authContext: <{}>", authContext));
+        @Nullable final SignalEnrichmentFacade signalEnrichmentFacade =
+                signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(request);
+
+        LOGGER.withCorrelationId(connectionCorrelationId)
+                .info("Creating WebSocket for connection authContext: <{}>", authContext);
 
         return retrieveWebsocketConfig().thenApply(websocketConfig -> {
             final Flow<Message, DittoRuntimeException, NotUsed> incoming =
                     createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request,
                             websocketConfig);
             final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
-                    createOutgoing(connectionCorrelationId, additionalHeaders, adapter, request, websocketConfig);
+                    createOutgoing(version, connectionCorrelationId, additionalHeaders, adapter, request,
+                            websocketConfig, signalEnrichmentFacade);
 
             return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing));
         });
@@ -334,6 +360,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     @SuppressWarnings("unchecked")
     private Graph<SinkShape<Either<StreamControlMessage, Signal>>, NotUsed> getStreamControlOrSignalSink(
             final WebsocketConfig config) {
+
         return GraphDSL.create(builder -> {
             final FanOutShape2<Either<StreamControlMessage, Signal>, Signal, StreamControlMessage> multiplexer =
                     builder.add(Filter.multiplexByEither(java.util.function.Function.identity()));
@@ -372,8 +399,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .flatMapConcat(textMsg -> textMsg.fold("", (str1, str2) -> str1 + str2))
                 .via(incomingMessageSniffer.toAsyncFlow(request))
                 .via(Flow.fromFunction(result -> {
-                    LogUtil.logWithCorrelationId(LOGGER, correlationId, logger ->
-                            logger.debug("Received incoming WebSocket message: {}", result));
+                    LOGGER.withCorrelationId(correlationId).debug("Received incoming WebSocket message: {}", result);
                     return result;
                 }))
                 .withAttributes(Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(),
@@ -408,60 +434,72 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     return Right.apply(Right.apply(signal));
                 } catch (final DittoRuntimeException dre) {
                     // This is a client error usually; log at level DEBUG without stack trace.
-                    LOGGER.debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
+                    LOGGER.withCorrelationId(dre)
+                            .debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
                     return Left.apply(dre);
                 } catch (final Exception throwable) {
                     LOGGER.warn("Error building signal from <{}>: {}: <{}>", cmdString,
                             throwable.getClass().getSimpleName(), throwable.getMessage());
                     final DittoRuntimeException dittoRuntimeException = GatewayInternalErrorException.newBuilder()
-                            .cause(throwable).build();
+                            .cause(throwable)
+                            .build();
                     return Left.apply(dittoRuntimeException);
                 }
             }
         });
     }
 
-    private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(final String connectionCorrelationId,
+    private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(
+            final int version,
+            final String connectionCorrelationId,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
-            final HttpRequest request, final WebsocketConfig websocketConfig) {
+            final HttpRequest request,
+            final WebsocketConfig websocketConfig,
+            @Nullable final SignalEnrichmentFacade signalEnrichmentFacade) {
 
         final Optional<JsonWebToken> optJsonWebToken = extractJwtFromRequestIfPresent(request);
 
-        final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
-                Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
-                        EventAndResponsePublisher.props(websocketConfig.getPublisherBackpressureBufferSize()))
-                        .mapMaterializedValue(publisherActor -> {
-                            webSocketSupervisor.supervise(publisherActor, connectionCorrelationId, additionalHeaders);
-                            streamingActor.tell(
-                                    new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_WS,
-                                            optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null)),
-                                    ActorRef.noSender());
-                            return NotUsed.getInstance();
-                        })
-                        .map(this::publishResponsePublishedEvent)
-                        .recoverWithRetries(1, new PFBuilder().match(GatewayWebsocketSessionExpiredException.class,
+        final Source<SessionedJsonifiable, ActorRef> publisherSource =
+                Source.actorPublisher(EventAndResponsePublisher.props(
+                        websocketConfig.getPublisherBackpressureBufferSize()));
+
+        final Source<SessionedJsonifiable, NotUsed> eventAndResponseSource = publisherSource.mapMaterializedValue(
+                publisherActor -> {
+                    webSocketSupervisor.supervise(publisherActor, connectionCorrelationId, additionalHeaders);
+                    streamingActor.tell(
+                            new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_WS,
+                                    JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST),
+                                    optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null)),
+                            ActorRef.noSender());
+                    return NotUsed.getInstance();
+                })
+                .map(this::publishResponsePublishedEvent)
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
+                        .match(GatewayWebsocketSessionExpiredException.class,
                                 ex -> {
-                                    LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
-                                            logger.info("WebSocket connection terminated because JWT expired!"));
+                                    LOGGER.withCorrelationId(connectionCorrelationId)
+                                            .info("WebSocket connection terminated because JWT expired!");
                                     return Source.empty();
                                 }).match(GatewayWebsocketSessionClosedException.class,
                                 ex -> {
-                                    LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
-                                            logger.info("WebSocket connection terminated because authorization " +
-                                                    "context changed!"));
+                                    LOGGER.withCorrelationId(connectionCorrelationId).info("WebSocket connection" +
+                                            " terminated because authorization context changed!");
                                     return Source.empty();
                                 })
-                                .build());
+                        .build());
 
-        final Flow<DittoRuntimeException, Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> errorFlow =
-                Flow.fromFunction(x -> x);
+        final Flow<DittoRuntimeException, SessionedJsonifiable, NotUsed> errorFlow =
+                Flow.fromFunction(SessionedJsonifiable::error);
 
-        final Flow<Jsonifiable.WithPredicate<JsonObject, JsonField>, Message, NotUsed> messageFlow =
-                Flow.fromFunction(jsonifiableToString(adapter))
+        final int signalEnrichmentParallelism = streamingConfig.getParallelism();
+        final Flow<SessionedJsonifiable, Message, NotUsed> messageFlow =
+                Flow.<SessionedJsonifiable>create()
+                        .mapAsync(signalEnrichmentParallelism, postprocess(adapter, signalEnrichmentFacade))
+                        .mapConcat(x -> x)
                         .via(Flow.fromFunction(result -> {
-                            LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
-                                    logger.debug("Sending outgoing WebSocket message: {}", result));
+                            LOGGER.withCorrelationId(connectionCorrelationId)
+                                    .debug("Sending outgoing WebSocket message: {}", result);
                             return result;
                         }))
                         .via(outgoingMessageSniffer.toAsyncFlow(request))
@@ -493,13 +531,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 }));
     }
 
-    private Jsonifiable.WithPredicate<JsonObject, JsonField> publishResponsePublishedEvent(
-            final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
-
-        if (jsonifiable instanceof CommandResponse || jsonifiable instanceof DittoRuntimeException) {
+    private SessionedJsonifiable publishResponsePublishedEvent(final SessionedJsonifiable jsonifiable) {
+        final Jsonifiable.WithPredicate<JsonObject, JsonField> content = jsonifiable.getJsonifiable();
+        if (content instanceof CommandResponse || content instanceof DittoRuntimeException) {
             // only create ResponsePublished for CommandResponses and DittoRuntimeExceptions
             // not for Events with the same correlation ID
-            ((WithDittoHeaders) jsonifiable).getDittoHeaders()
+            jsonifiable.getDittoHeaders()
                     .getCorrelationId()
                     .map(ResponsePublished::new)
                     .ifPresent(eventStream::publish);
@@ -565,7 +602,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
         final DittoHeadersBuilder internalHeadersBuilder = DittoHeaders.newBuilder();
 
-        LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger -> {
+        try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(connectionCorrelationId)) {
             logger.debug("WebSocket message has been converted to signal <{}>.", signal);
             final DittoHeaders signalHeaders = signal.getDittoHeaders();
 
@@ -585,35 +622,97 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 internalHeadersBuilder.correlationId(correlationId);
             }
             logger.debug("Generated internalHeaders are: <{}>.", internalHeadersBuilder);
-        });
+        }
 
         return signal.setDittoHeaders(internalHeadersBuilder.build());
     }
 
-    private static Function<Jsonifiable.WithPredicate<JsonObject, JsonField>, String> jsonifiableToString(
-            final ProtocolAdapter adapter) {
-        return jsonifiable -> {
+    private static Function<SessionedJsonifiable, CompletionStage<Collection<String>>> postprocess(
+            final ProtocolAdapter adapter,
+            @Nullable final SignalEnrichmentFacade facade) {
+
+        return sessionedJsonifiable -> {
+            final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
             if (jsonifiable instanceof StreamingAck) {
-                return streamingAckToString((StreamingAck) jsonifiable);
+                return CompletableFuture.completedFuture(
+                        Collections.singletonList(streamingAckToString((StreamingAck) jsonifiable))
+                );
             }
 
-            final Adaptable adaptable;
-            if (jsonifiable instanceof WithDittoHeaders
-                    && ((WithDittoHeaders) jsonifiable).getDittoHeaders().getChannel().isPresent()) {
-                // if channel was present in headers, use that one:
-                final TopicPath.Channel channel =
-                        TopicPath.Channel.forName(((WithDittoHeaders) jsonifiable).getDittoHeaders().getChannel().get())
-                                .orElse(TopicPath.Channel.TWIN);
-                adaptable = jsonifiableToAdaptable(jsonifiable, channel, adapter);
-            } else if (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable)) {
-                adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.LIVE, adapter);
-            } else {
-                adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.TWIN, adapter);
-            }
-
-            final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
-            return jsonifiableAdaptable.toJsonString();
+            final TopicPath.Channel channel = determineChannel(sessionedJsonifiable);
+            final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, channel, adapter);
+            final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
+            return extraFuture.<Collection<String>>thenApply(extra ->
+                    matchesFilter(sessionedJsonifiable, extra)
+                            ? Collections.singletonList(toJsonStringWithExtra(adaptable, extra))
+                            : Collections.emptyList())
+                    .exceptionally(error -> WebSocketRoute.reportEnrichmentError(error, adapter, adaptable));
         };
+    }
+
+    private static TopicPath.Channel determineChannel(final SessionedJsonifiable sessionedJsonifiable) {
+        return sessionedJsonifiable.getDittoHeaders()
+                .getChannel()
+                // if channel was present in headers, use that one:
+                .map(channel -> TopicPath.Channel.forName(channel).orElse(TopicPath.Channel.TWIN))
+                // otherwise determine the channel from the class of the jsonifiable
+                .orElseGet(() -> {
+                    final Jsonifiable.WithPredicate<?, ?> jsonifiable = sessionedJsonifiable.getJsonifiable();
+                    return (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable))
+                            ? TopicPath.Channel.LIVE
+                            : TopicPath.Channel.TWIN;
+                });
+    }
+
+    private static Collection<String> reportEnrichmentError(final Throwable error,
+            final ProtocolAdapter adapter,
+            final Adaptable adaptable) {
+        final DittoRuntimeException errorToReport;
+        if (error instanceof DittoRuntimeException) {
+            errorToReport = ((DittoRuntimeException) error);
+        } else {
+            errorToReport = SignalEnrichmentFailedException.newBuilder()
+                    .dittoHeaders(adaptable.getDittoHeaders())
+                    .cause(error)
+                    .build();
+        }
+        LOGGER.withCorrelationId(adaptable.getDittoHeaders())
+                .error("Signal enrichment failed due to: {}", error.getMessage(), errorToReport);
+
+        final JsonifiableAdaptable errorAdaptable =
+                ProtocolFactory.wrapAsJsonifiableAdaptable(adapter.toAdaptable(
+                        ThingErrorResponse.of(
+                                ThingId.of(adaptable.getTopicPath().getNamespace(), adaptable.getTopicPath().getId()),
+                                errorToReport,
+                                adaptable.getDittoHeaders()
+                        )
+                ));
+        return Collections.singletonList(errorAdaptable.toJsonString());
+    }
+
+    private static String toJsonStringWithExtra(final Adaptable adaptable, final JsonObject extra) {
+        final Adaptable enrichedAdaptable =
+                extra.isEmpty() ? adaptable : ProtocolFactory.setExtra(adaptable, extra);
+        return ProtocolFactory.wrapAsJsonifiableAdaptable(enrichedAdaptable).toJsonString();
+    }
+
+    /**
+     * Tests whether a signal together with enriched extra fields pass its filter defined in the session.
+     * Always return true for Jsonifiables without any session, e. g., errors, responses, stream control messages.
+     *
+     * @param sessionedJsonifiable the Jsonifiable with session information attached.
+     * @param extra extra fields from signal enrichment.
+     * @return whether the Jsonifiable passes filter defined in the session together with the extra fields.
+     */
+    private static boolean matchesFilter(final SessionedJsonifiable sessionedJsonifiable, final JsonObject extra) {
+        final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
+        return sessionedJsonifiable.getSession()
+                .filter(session -> jsonifiable instanceof Signal)
+                .map(session ->
+                        // evaluate to false if filter is present but does not match or has insufficient info to match
+                        session.matchesFilter(session.mergeThingWithExtra((Signal<?>) jsonifiable, extra))
+                )
+                .orElse(true);
     }
 
     private static String streamingAckToString(final StreamingAck streamingAck) {

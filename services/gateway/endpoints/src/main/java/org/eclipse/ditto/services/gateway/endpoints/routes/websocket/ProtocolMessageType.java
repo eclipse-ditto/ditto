@@ -12,21 +12,23 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
-import java.util.Optional;
+import java.text.MessageFormat;
+import java.util.NoSuchElementException;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 
 /**
- * Defines the protocol messages used to control emitting of events and messages via WebSocket.
+ * Enumeration of the protocol message types used to control emitting of events and messages via WebSocket.
  */
-public enum ProtocolMessages {
+enum ProtocolMessageType {
 
     /**
      * Message indicating that the Websocket should start emitting twin events.
      */
     START_SEND_EVENTS("START-SEND-EVENTS", StreamingType.EVENTS),
+
     /**
      * Message indicating that the Websocket should stop emitting twin events.
      */
@@ -36,6 +38,7 @@ public enum ProtocolMessages {
      * Message indicating that the Websocket should start emitting live messages.
      */
     START_SEND_MESSAGES("START-SEND-MESSAGES", StreamingType.MESSAGES),
+
     /**
      * Message indicating that the Websocket should stop emitting live messages.
      */
@@ -45,6 +48,7 @@ public enum ProtocolMessages {
      * Message indicating that the Websocket should start emitting live commands.
      */
     START_SEND_LIVE_COMMANDS("START-SEND-LIVE-COMMANDS", StreamingType.LIVE_COMMANDS),
+
     /**
      * Message indicating that the Websocket should stop emitting live commands.
      */
@@ -54,17 +58,16 @@ public enum ProtocolMessages {
      * Message indicating that the Websocket should start emitting live events.
      */
     START_SEND_LIVE_EVENTS("START-SEND-LIVE-EVENTS",StreamingType.LIVE_EVENTS),
+
     /**
      * Message indicating that the Websocket should stop emitting live events.
      */
     STOP_SEND_LIVE_EVENTS("STOP-SEND-LIVE-EVENTS", StreamingType.LIVE_EVENTS),
 
     /**
-     * Message indicating that a new JWT token was send.
+     * Message indicating that a new JSON Web Token was send.
      */
-    JWT_TOKEN("JWT-TOKEN", null);
-
-    static final String PARAMETER_SEPARATOR = "?";
+    JWT("JWT-TOKEN", null);
 
     private final String identifier;
     @Nullable private final StreamingType streamingType;
@@ -74,37 +77,50 @@ public enum ProtocolMessages {
      * @param identifier the string identifier that is sent over the wire
      * @param streamingType the associated {@link StreamingType}
      */
-    ProtocolMessages(final String identifier, @Nullable final StreamingType streamingType) {
+    private ProtocolMessageType(final String identifier, @Nullable final StreamingType streamingType) {
         this.identifier = identifier;
         this.streamingType = streamingType;
     }
 
-    String getIdentifier() {
+    /**
+     * Returns the identifier of this protocol message type.
+     *
+     * @return the identifier.
+     * @see #toString()
+     */
+    public String getIdentifier() {
         return identifier;
     }
 
-    Optional<StreamingType> getStreamingType() {
-        return Optional.ofNullable(streamingType);
+    /**
+     * Indicates whether this protocol message type denotes a messages which starts streaming.
+     *
+     * @return {@code true} if this protocol message type denotes a message for start sending, {@code false} else.
+     */
+    public boolean isStartSending() {
+        return identifier.startsWith("START");
     }
 
     /**
-     * @param message message to be checked for a protocol message
-     * @return {@code true} if the given message starts with the protocol message identifier
+     * Expects this ProtocolMessage to have a streaming type and tries to return the streaming type.
+     * If this ProtocolMessage does not have a streaming type a NoSuchElementException is thrown.
+     *
+     * @return the streaming type.
+     * @throws java.util.NoSuchElementException if this ProtocolMessage does not have a streaming type.
      */
-    boolean matches(final String message) {
-        return message != null && message.startsWith(getIdentifier());
+    public StreamingType getStreamingTypeOrThrow() {
+        if (null != streamingType) {
+            return streamingType;
+        }
+        throw new NoSuchElementException(MessageFormat.format("{0} does not have a streaming type!", identifier));
     }
 
     /**
-     * @param message message to be checked for a protocol message
-     * @return {@code true} if the given message starts with the protocol message identifier incl. parameter separator
+     * @return the same as {@link #getIdentifier()}
      */
-    boolean matchesWithParameters(final String message) {
-        return message != null && message.startsWith(getIdentifier() + PARAMETER_SEPARATOR);
-    }
-
     @Override
     public String toString() {
         return getIdentifier();
     }
+
 }

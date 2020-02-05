@@ -31,17 +31,16 @@ public final class DefaultMappingConfig implements MappingConfig {
 
     private static final String CONFIG_PATH = "mapping";
 
+    private final int bufferSize;
+    private final int parallelism;
     private final JavaScriptConfig javaScriptConfig;
     private final MapperLimitsConfig mapperLimitsConfig;
 
     private DefaultMappingConfig(final ScopedConfig config) {
+        bufferSize = config.getInt(MappingConfigValue.BUFFER_SIZE.getConfigPath());
+        parallelism = config.getInt(MappingConfigValue.PARALLELISM.getConfigPath());
         mapperLimitsConfig = DefaultMapperLimitsConfig.of(config);
         javaScriptConfig = DefaultJavaScriptConfig.of(config);
-    }
-
-    private DefaultMappingConfig(final ScopedConfig config, final JavaScriptConfig theJavaScriptConfig) {
-        javaScriptConfig = theJavaScriptConfig;
-        mapperLimitsConfig = DefaultMapperLimitsConfig.of(config);
     }
 
     /**
@@ -56,6 +55,16 @@ public final class DefaultMappingConfig implements MappingConfig {
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, MappingConfigValue.values());
 
         return new DefaultMappingConfig(mappingScopedConfig);
+    }
+
+    @Override
+    public int getBufferSize() {
+        return bufferSize;
+    }
+
+    @Override
+    public int getParallelism() {
+        return parallelism;
     }
 
     @Override
@@ -77,20 +86,24 @@ public final class DefaultMappingConfig implements MappingConfig {
             return false;
         }
         final DefaultMappingConfig that = (DefaultMappingConfig) o;
-        return Objects.equals(javaScriptConfig, that.javaScriptConfig) &&
+        return bufferSize == that.bufferSize &&
+                parallelism == that.parallelism &&
+                Objects.equals(javaScriptConfig, that.javaScriptConfig) &&
                 Objects.equals(mapperLimitsConfig, that.mapperLimitsConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(javaScriptConfig, mapperLimitsConfig);
+        return Objects.hash(bufferSize, parallelism, javaScriptConfig, mapperLimitsConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "javaScriptConfig=" + javaScriptConfig +
-                "mapperLimitsConfig=" + mapperLimitsConfig +
+                "bufferSize=" + bufferSize +
+                ", parallelism=" + parallelism +
+                ", javaScriptConfig=" + javaScriptConfig +
+                ", mapperLimitsConfig=" + mapperLimitsConfig +
                 "]";
     }
 
