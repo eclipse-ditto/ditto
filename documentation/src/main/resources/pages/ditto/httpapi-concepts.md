@@ -38,6 +38,29 @@ endpoint and [Policy](basic-policy.html) for the layout of the `/policies` endpo
 
 In API version 1, each `Thing` contains the information about the authorization in an inlined [ACL](basic-acl.html).
 
+#### Migration from API 1 to API 2
+
+In case you need to migrate a thing which was created via API 1 to API 2, 
+please note that you need to migrate the access control list entries (ACL) into a **policy**, and to assign your thing to such a policy.
+
+1.  Request the thing to be migrated, via API 2 and use the field-selector to specify that the inline policy (i.e. `_policy`) should also be retrieved.
+    
+    `GET {{host}}/api/2/things/{$thingId}?fields=_policy`
+    
+    [Retrieve a specific Thing](https://www.eclipse.org/ditto/http-api-doc.html#/Things/get_things__thingId_)
+2.  Create a new policy from the content of the requested inline policy, with a `policyId` of your choice (e.g. same as the `thingId`).
+
+    `PUT {{host}}/api/2/policies/{$policyId}`
+    
+    [Create or update a Policy with a specified ID](https://www.eclipse.org/ditto/http-api-doc.html#/Policies/put_policies__policyId_)
+3. Assign the new `policyId` to the thing to be migrated.
+
+    `PUT {{host}}/api/2/things/{$thingId}/policyId`
+    
+    [Create or update the Policy ID of a Thing](https://www.eclipse.org/ditto/http-api-doc.html#/Things/put_things__thingId__policyId)
+
+**Note**: Henceforth the thing cannot be read nor written via API 1.
+
 #### `/things` in API 1
 
 The base endpoint for accessing and working with `Things`.<br/>
