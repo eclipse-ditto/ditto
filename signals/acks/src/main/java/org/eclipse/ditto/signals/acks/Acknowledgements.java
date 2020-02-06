@@ -16,11 +16,15 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabels;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * The entry point for creating instances around (end-2-end) Acknowledgements.
+ * The entry point for creating instances around (end-to-end) acknowledgements.
+ *
+ * @since 1.1.0
  */
 public final class Acknowledgements {
 
@@ -29,15 +33,16 @@ public final class Acknowledgements {
     }
 
     /**
-     * Creates a new AcknowledgementLabel based on the provided {@code label}.
+     * Returns a new AcknowledgementLabel for the given character sequence.
      *
-     * @param label the character sequence forming the label's value.
-     * @return a new AcknowledgementLabel.
+     * @param label the character sequence value of the AcknowledgementLabel to be created.
+     * @return a new AcknowledgementLabel with {@code label} as its value.
      * @throws NullPointerException if {@code label} is {@code null}.
-     * @throws IllegalArgumentException if {@code label} is empty.
+     * @throws AcknowledgementLabelInvalidException if {@code label} did not match the regex
+     * {@link AcknowledgementLabels#ACK_LABEL_PATTERN}.
      */
     public static AcknowledgementLabel newLabel(final CharSequence label) {
-        return ImmutableAcknowledgementLabel.of(label);
+        return AcknowledgementLabels.newLabel(label);
     }
 
     /**
@@ -50,9 +55,10 @@ public final class Acknowledgements {
      * @param dittoHeaders the DittoHeaders.
      * @return the ImmutableAcknowledgement.
      * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @throws IllegalArgumentException if {@code entity} is empty.
      */
     public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
-            final EntityId entityId,
+            final CharSequence entityId,
             final int statusCode,
             @Nullable final JsonValue payload,
             final DittoHeaders dittoHeaders) {
@@ -71,4 +77,5 @@ public final class Acknowledgements {
     public static Acknowledgement acknowledgementFromJson(final JsonObject jsonObject) {
         return ImmutableAcknowledgement.fromJson(jsonObject);
     }
+
 }

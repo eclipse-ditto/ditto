@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -29,11 +30,11 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit tests for {@link ImmutableAcknowledgement}.
  */
-public class ImmutableAcknowledgementTest {
+public final class ImmutableAcknowledgementTest {
 
-    protected static final AcknowledgementLabel KNOWN_ACK_LABEL = AcknowledgementLabel.of("welcome-ack");
-    protected static final ThingId KNOWN_ENTITY_ID = ThingId.dummy();
-    protected static final int KNOWN_STATUS_CODE = 200;
+    private static final AcknowledgementLabel KNOWN_ACK_LABEL = AcknowledgementLabel.of("welcome-ack");
+    private static final ThingId KNOWN_ENTITY_ID = ThingId.dummy();
+    private static final int KNOWN_STATUS_CODE = 200;
     private static final JsonValue KNOWN_PAYLOAD = JsonObject.newBuilder().set("known", "payload").build();
     private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId("some-correlation-id")
@@ -57,6 +58,7 @@ public class ImmutableAcknowledgementTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableAcknowledgement.class)
+                .usingGetClass()
                 .verify();
     }
 
@@ -77,4 +79,5 @@ public class ImmutableAcknowledgementTest {
         final ImmutableAcknowledgement actual = ImmutableAcknowledgement.fromJson(KNOWN_ACK_JSON);
         assertThat(actual).isEqualTo(KNOWN_ACK);
     }
+
 }

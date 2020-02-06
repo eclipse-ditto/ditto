@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.signals.base.WithOptionalEntity;
  * <p>
  * Can contain built-in Ditto ACK labels as well as custom ones emitted by external applications.
  * </p>
+ * @since 1.1.0
  */
 public interface Acknowledgement extends Jsonifiable.WithPredicate<JsonObject, JsonField>,
         WithDittoHeaders<Acknowledgement>, WithId, WithOptionalEntity {
@@ -115,4 +117,5 @@ public interface Acknowledgement extends Jsonifiable.WithPredicate<JsonObject, J
                         FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
     }
+
 }

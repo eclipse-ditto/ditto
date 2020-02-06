@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -66,9 +67,10 @@ final class ImmutableAcknowledgement implements Acknowledgement {
      * @param dittoHeaders the DittoHeaders.
      * @return the ImmutableAcknowledgement.
      * @throws java.lang.NullPointerException if one of the required parameters was {@code null}.
+     * @throws IllegalArgumentException if {@code entityId} is empty.
      */
     public static ImmutableAcknowledgement of(final AcknowledgementLabel label,
-            final EntityId entityId,
+            final CharSequence entityId,
             final int statusCode,
             @Nullable final JsonValue payload,
             final DittoHeaders dittoHeaders) {
@@ -144,7 +146,7 @@ final class ImmutableAcknowledgement implements Acknowledgement {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -174,4 +176,5 @@ final class ImmutableAcknowledgement implements Acknowledgement {
                 ", dittoHeaders=" + dittoHeaders +
                 "]";
     }
+
 }
