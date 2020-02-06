@@ -30,6 +30,8 @@ import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
+import org.eclipse.ditto.signals.acks.AckFactory;
+import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 
@@ -68,6 +70,8 @@ public final class MappingStrategiesBuilder {
                 jsonObject -> SimpleCommandResponse.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(StatusInfo.class,
                 jsonObject -> StatusInfo.fromJson(jsonObject)); // do not replace with lambda!
+        builder.add(Acknowledgement.class,
+                jsonObject -> AckFactory.acknowledgementFromJson(jsonObject)); // do not replace with lambda!
         builder.add(StreamAck.class, StreamAck::fromJson);
 
         return builder;
@@ -110,17 +114,17 @@ public final class MappingStrategiesBuilder {
     /**
      * Adds the given JSON deserialization function for the given class to this builder.
      *
-     * @param klasse a class whose simple name is the key for {@code jsonDeserializer}.
+     * @param clazz a class whose simple name is the key for {@code jsonDeserializer}.
      * @param jsonDeserializer a function for creating a particular Jsonifiable based on a JSON object.
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public MappingStrategiesBuilder add(@Nonnull final Class<?> klasse,
+    public MappingStrategiesBuilder add(@Nonnull final Class<?> clazz,
             @Nonnull final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer) {
-        checkNotNull(klasse, "class");
+        checkNotNull(clazz, "class");
         checkNotNull(jsonDeserializer, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
         // Translate simple Function to BiFunction ignoring the command headers
-        strategies.put(klasse.getSimpleName(), jsonDeserializer::apply);
+        strategies.put(clazz.getSimpleName(), jsonDeserializer::apply);
         return this;
     }
 
