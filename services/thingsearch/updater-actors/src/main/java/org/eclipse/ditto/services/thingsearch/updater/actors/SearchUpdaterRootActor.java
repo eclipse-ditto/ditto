@@ -18,6 +18,7 @@ import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.ChangeQueueActor;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -63,7 +65,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "searchUpdaterRoot";
 
-    static final String CLUSTER_ROLE = "things-search";
+    /**
+     * The main cluster role of the cluster member where this actor and its children start.
+     */
+    public static final String CLUSTER_ROLE = "things-search";
 
     private static final String KAMON_METRICS_PREFIX = "updater";
 
@@ -75,12 +80,14 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
     private final KillSwitch updaterStreamKillSwitch;
     private final ActorRef thingsUpdaterActor;
+    private final ActorRef backgroundSyncActorProxy;
     private final DittoMongoClient dittoMongoClient;
 
     @SuppressWarnings("unused")
     private SearchUpdaterRootActor(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
+            final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence thingsSyncPersistence,
             final TimestampPersistence policiesSyncPersistence) {
 
@@ -136,6 +143,19 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         // start manual updater as cluster singleton
         final Props manualUpdaterProps = ManualUpdater.props(dittoMongoClient.getDefaultDatabase(), thingsUpdaterActor);
         startClusterSingletonActor(ManualUpdater.ACTOR_NAME, manualUpdaterProps);
+
+        // start background sync actor as cluster singleton
+        final Props backgroundSyncActorProps = BackgroundSyncActor.props(
+                updaterConfig.getBackgroundSyncConfig(),
+                pubSubMediator,
+                thingsSearchPersistence,
+                shardRegionFactory.getPoliciesShardRegion(numberOfShards),
+                thingsUpdaterActor
+        );
+        backgroundSyncActorProxy =
+                ClusterUtil.startSingletonProxy(getContext(), CLUSTER_ROLE,
+                        startClusterSingletonActor(BackgroundSyncActor.ACTOR_NAME, backgroundSyncActorProps)
+                );
 
         startChildActor(ThingsSearchPersistenceOperationsActor.ACTOR_NAME,
                 ThingsSearchPersistenceOperationsActor.props(pubSubMediator, searchUpdaterPersistence,
@@ -197,6 +217,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      * @param searchConfig the configuration settings of the Things-Search service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer actor materializer to create stream actors.
+     * @param thingsSearchPersistence persistence to access the search index in read-only mode.
      * @param thingsSyncPersistence persistence for background synchronization of things.
      * @param policiesSyncPersistence persistence for background synchronization of policies.
      * @return a Props object to create this actor.
@@ -204,11 +225,12 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     public static Props props(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
+            final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence thingsSyncPersistence,
             final TimestampPersistence policiesSyncPersistence) {
 
         return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, materializer,
-                thingsSyncPersistence, policiesSyncPersistence);
+                thingsSearchPersistence, thingsSyncPersistence, policiesSyncPersistence);
     }
 
     @Override
@@ -222,6 +244,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(RetrieveStatisticsDetails.class, cmd -> thingsUpdaterActor.forward(cmd, getContext()))
+                .match(RetrieveHealth.class, cmd -> backgroundSyncActorProxy.forward(cmd, getContext()))
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -240,8 +263,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         return getContext().actorOf(props, actorName);
     }
 
-    private void startClusterSingletonActor(final String actorName, final Props props) {
-        ClusterUtil.startSingleton(getContext(), SEARCH_ROLE, actorName, props);
+    private ActorRef startClusterSingletonActor(final String actorName, final Props props) {
+        return ClusterUtil.startSingleton(getContext(), SEARCH_ROLE, actorName, props);
     }
 
     private KillSwitch startSearchUpdaterStream(final SearchConfig searchConfig,

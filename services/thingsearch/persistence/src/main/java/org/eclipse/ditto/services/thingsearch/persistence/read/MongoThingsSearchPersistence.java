@@ -301,7 +301,8 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
     private static Metadata readAsMetadata(final Document document) {
         final ThingId thingId = ThingId.of(document.getString(FIELD_ID));
         final long thingRevision = Optional.ofNullable(document.getLong(FIELD_REVISION)).orElse(0L);
-        final String policyId = document.getString(FIELD_POLICY_ID);
+        final String policyIdInPersistence = document.getString(FIELD_POLICY_ID);
+        final String policyId = policyIdInPersistence.isEmpty() ? null : policyIdInPersistence;
         final long policyRevision = Optional.ofNullable(document.getLong(FIELD_POLICY_REVISION)).orElse(0L);
         final String nullableTimestamp = document.getEmbedded(List.of(FIELD_SORTING, FIELD_MODIFIED), String.class);
         final Instant modified = Optional.ofNullable(nullableTimestamp).map(Instant::parse).orElse(null);

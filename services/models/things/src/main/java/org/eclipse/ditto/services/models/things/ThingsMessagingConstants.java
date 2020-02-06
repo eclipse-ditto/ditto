@@ -29,9 +29,14 @@ public final class ThingsMessagingConstants {
     public static final String ROOT_ACTOR_PATH = USER_PATH + "/thingsRoot";
 
     /**
-     * Path of the things-stream-provider actor.
+     * Path of the actor that streams from the event journal.
      */
     public static final String THINGS_STREAM_PROVIDER_ACTOR_PATH = ROOT_ACTOR_PATH + "/persistenceStreamingActor";
+
+    /**
+     * Path of the actor that streams from the snapshot store.
+     */
+    public static final String THINGS_SNAPSHOT_STREAMING_ACTOR_PATH = ROOT_ACTOR_PATH + "/snapshotStreamingActor";
 
     /**
      * Name of the shard region for Thing entities.

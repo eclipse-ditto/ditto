@@ -170,6 +170,20 @@ public final class MongoReadJournalIT {
                 .append("sn", 4L)
                 .append("s2", new Document().append("_modified", "1970-01-01T00:00:00.000Z"))
         );
+        // latest snapshot of pid5 is deleted; it should not show up
+        insert("test_snaps", new Document()
+                .append("pid", "pid5")
+                .append("sn", 4L)
+                .append("s2", new Document().append("_modified", "1970-01-01T00:00:00.001Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid5")
+                .append("sn", 5L)
+                .append("s2", new Document()
+                        .append("_modified", "1970-01-01T00:00:00.002Z")
+                        .append("__lifecycle", "DELETED")
+                )
+        );
 
         // WHEN: latest snapshots requested with batch size that splits the snapshots of pid3 into 2 batches
         final List<Document> snapshots =

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -42,6 +43,7 @@ import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -97,6 +99,7 @@ public class MongoReadJournal {
 
     // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
     private static final String SERIALIZED_SNAPSHOT = "s2";
+    private static final String LIFECYCLE = "__lifecycle";
 
     private static final Integer PROJECT_INCLUDE = 1;
     private static final Integer SORT_DESCENDING = -1;
@@ -370,6 +373,11 @@ public class MongoReadJournal {
         // group stage
         pipeline.add(Aggregates.group("$" + PROCESSOR_ID, asFirstSnapshotBsonFields(snapshotFields)));
 
+        // filter out entities whose latest snapshots are deleted snapshots.
+        // all Ditto entities store their lifecycle in the field "__lifecycle".
+        pipeline.add(Aggregates.match(Filters.ne(LIFECYCLE, "DELETED")));
+        pipeline.add(Aggregates.project(Projections.exclude(LIFECYCLE)));
+
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.ascending(ID)));
 
@@ -378,13 +386,13 @@ public class MongoReadJournal {
 
     /**
      * For $group stage of an aggregation pipeline over a snapshot collection: take the newest values of fields
-     * of serialized snapshots.
+     * of serialized snapshots. Always include the first snapshot lifecycle.
      *
      * @param snapshotFields fields of a serialized snapshot to project.
      * @return list of group stage field accumulators.
      */
     private List<BsonField> asFirstSnapshotBsonFields(final String... snapshotFields) {
-        return Arrays.stream(snapshotFields)
+        return Stream.concat(Stream.of(LIFECYCLE), Arrays.stream(snapshotFields))
                 .map(fieldName -> {
                     final String serializedFieldName = String.format("$%s.%s", SERIALIZED_SNAPSHOT, fieldName);
                     return Accumulators.first(fieldName, serializedFieldName);

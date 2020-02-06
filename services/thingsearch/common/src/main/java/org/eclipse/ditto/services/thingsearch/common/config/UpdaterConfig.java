@@ -55,6 +55,13 @@ public interface UpdaterConfig {
     boolean isEventProcessingActive();
 
     /**
+     * Returns configuration for the background sync actor.
+     *
+     * @return the config.
+     */
+    BackgroundSyncConfig getBackgroundSyncConfig();
+
+    /**
      * Returns the synchronization settings for the Things service.
      *
      * @return the config.

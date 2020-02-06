@@ -175,6 +175,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         final ReceiveBuilder sleepingReceiveBuilder = ReceiveBuilder.create();
         preEnhanceSleepingBehavior(sleepingReceiveBuilder);
         return sleepingReceiveBuilder.match(WokeUp.class, this::wokeUp)
+                .match(Event.class, this::addCustomEventToLog)
                 .match(RetrieveHealth.class, this::retrieveHealth)
                 .match(Shutdown.class, this::shutdownStream)
                 .build()
@@ -187,6 +188,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         preEnhanceStreamingBehavior(streamingReceiveBuilder);
         return streamingReceiveBuilder
                 .match(StreamTerminated.class, this::streamTerminated)
+                .match(Event.class, this::addCustomEventToLog)
                 .match(RetrieveHealth.class, this::retrieveHealth)
                 .match(Shutdown.class, this::shutdownStream)
                 .build()
@@ -244,6 +246,10 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         getContext().become(sleeping());
     }
 
+    private void addCustomEventToLog(final Event event) {
+        enqueue(events, event, config.getKeptEvents());
+    }
+
     private void restartStream() {
         shutdownKillSwitch();
 
@@ -296,7 +302,10 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
                 .build();
     }
 
-    private interface Event {
+    /**
+     * Event to report.
+     */
+    protected interface Event {
 
         String name();
     }

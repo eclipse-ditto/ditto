@@ -22,6 +22,9 @@ import akka.stream.FanInShape2;
 import akka.stream.Graph;
 import akka.stream.Inlet;
 import akka.stream.Outlet;
+import akka.stream.SourceShape;
+import akka.stream.javadsl.GraphDSL;
+import akka.stream.javadsl.Source;
 import akka.stream.stage.GraphStage;
 import akka.stream.stage.GraphStageLogic;
 
@@ -94,6 +97,34 @@ public final class MergeSortedAsPair<T> extends GraphStage<FanInShape2<T, T, Pai
     private MergeSortedAsPair(final T maximalElement, final Comparator<T> comparator) {
         this.comparator = comparator;
         this.maximalElement = maximalElement;
+    }
+
+    /**
+     * Merge 2 sources according to a comparator.
+     *
+     * @param maximalElement the maximal element to append to the source exhausted before the other.
+     * @param comparator a comparator of the element type.
+     * @param source1 the first source.
+     * @param source2 the second source.
+     * @param <T> the type of elements.
+     * @return the merged source.
+     */
+    @SuppressWarnings("unchecked") // due to GraphDSL usage
+    public static <T> Source<Pair<T, T>, NotUsed> merge(final T maximalElement,
+            final Comparator<T> comparator,
+            final Source<T, ?> source1,
+            final Source<T, ?> source2) {
+
+        final Graph<SourceShape<Pair<T, T>>, NotUsed> graph = GraphDSL.create(builder -> {
+            final SourceShape<T> s1 = builder.add(source1);
+            final SourceShape<T> s2 = builder.add(source2);
+            final FanInShape2<T, T, Pair<T, T>> merge = builder.add(getInstance(maximalElement, comparator));
+            builder.from(s1).toInlet(merge.in0());
+            builder.from(s2).toInlet(merge.in1());
+            return SourceShape.of(merge.out());
+        });
+
+        return Source.fromGraph(graph);
     }
 
     /**

@@ -139,6 +139,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .matchEquals(Clock.REBALANCE_TICK, this::retrieveShardIds)
                 .match(ShardRegion.ShardRegionStats.class, this::updateSubscriptions)
                 .match(UpdateThings.class, this::updateThings)
+                .match(UpdateThing.class, this::updateThing)
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck -> {
                     log.debug("Got <{}>", subscribeAck);
                 })
@@ -190,6 +191,13 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                         UpdateThing::getDittoHeaders
                 )
         );
+    }
+
+    private void updateThing(final UpdateThing updateThing) {
+        log.withCorrelationId(updateThing)
+                .warning("Out-of-sync thing is reported: <{}>", updateThing);
+        forwardToShardRegion(updateThing, UpdateThing::getEntityId, UpdateThing::getType, UpdateThing::toJson,
+                UpdateThing::getDittoHeaders);
     }
 
     private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {

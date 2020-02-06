@@ -113,14 +113,15 @@ public final class SearchRootActor extends DittoRootActor {
                 MongoTimestampPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoDbClient,
                         materializer);
 
+
+        final ActorRef searchUpdaterRootActor = startChildActor(SearchUpdaterRootActor.ACTOR_NAME,
+                SearchUpdaterRootActor.props(searchConfig, pubSubMediator, materializer, thingsSearchPersistence,
+                        thingsSyncPersistence, policiesSyncPersistence));
         final ActorRef healthCheckingActor =
-                initializeHealthCheckActor(searchConfig, thingsSyncPersistence, policiesSyncPersistence);
+                initializeHealthCheckActor(searchConfig, thingsSyncPersistence, policiesSyncPersistence,
+                        searchUpdaterRootActor);
 
         createHealthCheckingActorHttpBinding(searchConfig.getHttpConfig(), healthCheckingActor, materializer);
-
-        startChildActor(SearchUpdaterRootActor.ACTOR_NAME,
-                SearchUpdaterRootActor.props(searchConfig, pubSubMediator, materializer, thingsSyncPersistence,
-                        policiesSyncPersistence));
     }
 
     @Nullable
@@ -175,10 +176,13 @@ public final class SearchRootActor extends DittoRootActor {
     }
 
     private ActorRef initializeHealthCheckActor(final SearchConfig searchConfig,
-            final TimestampPersistence thingsSyncPersistence, final TimestampPersistence policiesSyncPersistence) {
+            final TimestampPersistence thingsSyncPersistence,
+            final TimestampPersistence policiesSyncPersistence,
+            final ActorRef searchUpdaterRootActor) {
 
         return startChildActor(SearchHealthCheckingActorFactory.ACTOR_NAME,
-                SearchHealthCheckingActorFactory.props(searchConfig, thingsSyncPersistence, policiesSyncPersistence));
+                SearchHealthCheckingActorFactory.props(searchConfig, thingsSyncPersistence, policiesSyncPersistence,
+                        searchUpdaterRootActor));
     }
 
     private void createHealthCheckingActorHttpBinding(final HttpConfig httpConfig,

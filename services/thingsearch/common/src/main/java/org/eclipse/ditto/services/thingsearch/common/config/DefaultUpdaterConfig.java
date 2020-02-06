@@ -40,6 +40,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     private final int maxBulkSize;
     private final Duration shardingStatePollInterval;
     private final boolean eventProcessingActive;
+    private final BackgroundSyncConfig backgroundSyncConfig;
     private final SyncConfig thingsSyncConfig;
     private final SyncConfig policiesSyncConfig;
 
@@ -50,6 +51,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 updaterScopedConfig.getDuration(UpdaterConfigValue.SHARDING_STATE_POLL_INTERVAL.getConfigPath());
         eventProcessingActive =
                 updaterScopedConfig.getBoolean(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath());
+        backgroundSyncConfig = DefaultBackgroundSyncConfig.fromUpdaterConfig(updaterScopedConfig);
         thingsSyncConfig = DefaultSyncConfig.getInstance(updaterScopedConfig, THINGS_SYNC_CONFIG_PATH);
         policiesSyncConfig = DefaultSyncConfig.getInstance(updaterScopedConfig, POLICIES_SYNC_CONFIG_PATH);
     }
@@ -87,6 +89,11 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     }
 
     @Override
+    public BackgroundSyncConfig getBackgroundSyncConfig() {
+        return backgroundSyncConfig;
+    }
+
+    @Override
     public SyncConfig getThingsSyncConfig() {
         return thingsSyncConfig;
     }
@@ -109,6 +116,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 eventProcessingActive == that.eventProcessingActive &&
                 Objects.equals(maxIdleTime, that.maxIdleTime) &&
                 Objects.equals(shardingStatePollInterval, that.shardingStatePollInterval) &&
+                Objects.equals(backgroundSyncConfig, that.backgroundSyncConfig) &&
                 Objects.equals(thingsSyncConfig, that.thingsSyncConfig) &&
                 Objects.equals(policiesSyncConfig, that.policiesSyncConfig);
     }
@@ -116,7 +124,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     @Override
     public int hashCode() {
         return Objects.hash(maxIdleTime, maxBulkSize, shardingStatePollInterval, eventProcessingActive,
-                thingsSyncConfig, policiesSyncConfig);
+                backgroundSyncConfig, thingsSyncConfig, policiesSyncConfig);
     }
 
     @Override
@@ -126,6 +134,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 ", maxBulkSize=" + maxBulkSize +
                 ", shardingStatePollInterval=" + shardingStatePollInterval +
                 ", eventProcessingActive=" + eventProcessingActive +
+                ", backgroundSyncConfig=" + backgroundSyncConfig +
                 ", thingsSyncConfig=" + thingsSyncConfig +
                 ", policiesSyncConfig=" + policiesSyncConfig +
                 "]";
