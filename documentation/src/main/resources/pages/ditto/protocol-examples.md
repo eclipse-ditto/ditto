@@ -57,3 +57,22 @@ If Ditto triggers an event (e.g. Thing created, Attribute modified) as a result 
   "revision": 1
 }
 ```
+
+### ACK (Acknowledgement)
+A command issuer can require a response and specify the acknowledgements (ACKs) which have to be successfully fulfilled
+to regard the command as successfully executed.
+Below an example is given for a successfully fulfilled ACK (status 200).
+
+```json
+{
+  "topic": "com.acme/thing_name_3141/things/twin/acks/custom-ack",
+  "headers": {
+    "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636"
+  },
+  "path": "/",
+  "value": {
+    ...
+  },
+  "status": 200
+}
+```

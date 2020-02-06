@@ -181,7 +181,14 @@ public interface TopicPath {
 
         MESSAGES("messages"),
 
-        ERRORS("errors");
+        ERRORS("errors"),
+
+        /**
+         * Criterion for the topic path of a n acknowledgement (ACK).
+         *
+         * @since 1.1.0
+         */
+        ACKS("acks");
 
         private final String name;
 

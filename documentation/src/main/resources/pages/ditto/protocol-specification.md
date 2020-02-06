@@ -107,3 +107,11 @@ Some Protocol messages (for example **responses**) contain a HTTP status code wh
 
 When [signal enrichment](basic-enrichment.html) was used in order to ask for `extraFields` to be included, the
 Ditto Protocol message contains a field `extra` containing a JSON object with the selected extra fields.
+
+## ACK
+Requests can specify a number of acknowledgements (ACKs) which have to be successfully fulfilled to regard the request
+(command) as successfully executed.
+
+An ACK is formatted as JSON object (`content-type=application/json`) and must correspond to the following JSON schema:
+
+{% include docson.html schema="jsonschema/protocol-ack.json" %}
