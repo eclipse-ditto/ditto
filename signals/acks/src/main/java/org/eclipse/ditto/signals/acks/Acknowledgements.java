@@ -20,11 +20,11 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * The entry point for (end-2-end) Acknowledgements.
+ * The entry point for creating instances around (end-2-end) Acknowledgements.
  */
-public final class AckFactory {
+public final class Acknowledgements {
 
-    private AckFactory() {
+    private Acknowledgements() {
         throw new AssertionError();
     }
 
@@ -49,7 +49,7 @@ public final class AckFactory {
      * @param payload the optional payload of the Acknowledgement.
      * @param dittoHeaders the DittoHeaders.
      * @return the ImmutableAcknowledgement.
-     * @throws java.lang.NullPointerException if one of the required parameters was {@code null}.
+     * @throws NullPointerException if one of the required parameters was {@code null}.
      */
     public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
             final EntityId entityId,

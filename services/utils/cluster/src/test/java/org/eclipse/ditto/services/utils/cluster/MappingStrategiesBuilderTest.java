@@ -25,6 +25,7 @@ import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
+import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.junit.Test;
@@ -122,6 +123,8 @@ public final class MappingStrategiesBuilderTest {
                 SimpleCommand.class.getSimpleName(),
                 SimpleCommandResponse.class.getSimpleName(),
                 StatusInfo.class.getSimpleName(),
+                Acknowledgement.class.getSimpleName(),
+                "ImmutableAcknowledgement",
                 StreamAck.class.getSimpleName());
     }
 

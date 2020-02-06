@@ -30,8 +30,8 @@ import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
-import org.eclipse.ditto.signals.acks.AckFactory;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
+import org.eclipse.ditto.signals.acks.Acknowledgements;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 
@@ -71,7 +71,9 @@ public final class MappingStrategiesBuilder {
         builder.add(StatusInfo.class,
                 jsonObject -> StatusInfo.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(Acknowledgement.class,
-                jsonObject -> AckFactory.acknowledgementFromJson(jsonObject)); // do not replace with lambda!
+                jsonObject -> Acknowledgements.acknowledgementFromJson(jsonObject)); // do not replace with lambda!
+        builder.add("ImmutableAcknowledgement",
+                jsonObject -> Acknowledgements.acknowledgementFromJson(jsonObject)); // do not replace with lambda!
         builder.add(StreamAck.class, StreamAck::fromJson);
 
         return builder;

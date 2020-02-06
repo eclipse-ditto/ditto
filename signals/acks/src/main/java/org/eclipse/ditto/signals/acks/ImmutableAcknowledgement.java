@@ -73,7 +73,7 @@ final class ImmutableAcknowledgement implements Acknowledgement {
             @Nullable final JsonValue payload,
             final DittoHeaders dittoHeaders) {
 
-        return new ImmutableAcknowledgement(label, entityId, statusCode, payload, dittoHeaders);
+        return new ImmutableAcknowledgement(label, DefaultEntityId.of(entityId), statusCode, payload, dittoHeaders);
     }
 
     /**

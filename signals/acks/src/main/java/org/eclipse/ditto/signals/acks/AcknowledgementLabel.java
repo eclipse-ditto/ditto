@@ -29,7 +29,7 @@ public interface AcknowledgementLabel extends CharSequence {
      * @throws IllegalArgumentException if {@code label} is empty.
      */
     static AcknowledgementLabel of(final CharSequence label) {
-        return AckFactory.newLabel(label);
+        return Acknowledgements.newLabel(label);
     }
 
     @Override
