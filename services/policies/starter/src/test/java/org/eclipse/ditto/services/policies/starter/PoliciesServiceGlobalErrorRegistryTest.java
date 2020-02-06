@@ -12,8 +12,7 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import java.util.Arrays;
-
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
@@ -44,8 +43,8 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 NamespaceBlockedException.class,
                 NamespacedEntityIdInvalidException.class,
                 ThingIdInvalidException.class,
-                PolicyIdInvalidException.class
-        );
+                PolicyIdInvalidException.class,
+                AcknowledgementLabelInvalidException.class);
     }
 
 }

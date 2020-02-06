@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
@@ -42,8 +43,8 @@ public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegis
                 NamespaceBlockedException.class,
                 NamespacedEntityIdInvalidException.class,
                 ThingIdInvalidException.class,
-                PolicyIdInvalidException.class
-        );
+                PolicyIdInvalidException.class,
+                AcknowledgementLabelInvalidException.class);
     }
 
 }

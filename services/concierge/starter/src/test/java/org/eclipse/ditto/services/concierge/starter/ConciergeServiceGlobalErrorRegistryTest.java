@@ -12,8 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import java.util.Arrays;
-
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -54,8 +53,8 @@ public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRe
                 PlaceholderFunctionSignatureInvalidException.class,
                 NamespacedEntityIdInvalidException.class,
                 ThingIdInvalidException.class,
-                PolicyIdInvalidException.class
-        );
+                PolicyIdInvalidException.class,
+                AcknowledgementLabelInvalidException.class);
     }
 
 }
