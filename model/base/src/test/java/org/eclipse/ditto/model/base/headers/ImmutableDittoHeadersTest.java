@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -74,8 +75,8 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_REPLY_TARGET = "5";
     private static final String KNOWN_MAPPER = "knownMapper";
     private static final String KNOWN_ORIGINATOR = "known:originator";
-    private static final String KNOWN_ACK_LABEL = "ack-label-1";
-    private static final Collection<String> KNOWN_REQUESTED_ACK_LABELS = Lists.list(KNOWN_ACK_LABEL);
+    private static final AcknowledgementLabel KNOWN_ACK_LABEL = AcknowledgementLabel.of("ack-label-1");
+    private static final List<AcknowledgementLabel> KNOWN_REQUESTED_ACK_LABELS = Lists.list(KNOWN_ACK_LABEL);
 
     @Test
     public void assertImmutability() {
@@ -261,7 +262,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER)
                 .set(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .set(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(),
-                        stringCollectionToJsonArray(KNOWN_REQUESTED_ACK_LABELS))
+                        ackLabelsToJsonArray(KNOWN_REQUESTED_ACK_LABELS))
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -427,7 +428,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER);
         result.put(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR);
         result.put(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(),
-                stringCollectionToJsonArray(KNOWN_REQUESTED_ACK_LABELS).toString());
+                ackLabelsToJsonArray(KNOWN_REQUESTED_ACK_LABELS).toString());
 
         return result;
     }
@@ -443,6 +444,13 @@ public final class ImmutableDittoHeadersTest {
 
         return authorizationSubjects.stream()
                 .map(AuthorizationSubject::getId)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray());
+    }
+
+    private static JsonArray ackLabelsToJsonArray(final Collection<AcknowledgementLabel> ackLabels) {
+        return ackLabels.stream()
+                .map(AcknowledgementLabel::toString)
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
     }

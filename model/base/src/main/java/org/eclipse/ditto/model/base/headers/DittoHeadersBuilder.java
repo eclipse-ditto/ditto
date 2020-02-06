@@ -19,6 +19,7 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -202,17 +203,20 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B replyTarget(@Nullable Integer replyTarget);
 
     /**
-     * Sets the acknowledgement ("ack") labels which are requested together with an issued Ditto {@code Command}.
-     * Such ack labels are sent back to the issuer of the {@code Command} so that it can be verified which steps were
-     * successful.<br>
-     * In addition to built-in ack labels like "ditto-persisted" also custom labels may be specified which can be
+     * Sets the acknowledgement ("ACK") labels which are requested together with an issued Ditto {@code Command}.
+     * Such ack labels are sent back to the issuer of the Command so that it can be verified which steps were
+     * successful.
+     * <p>
+     * In addition to built-in ACK labels like "ditto-persisted" also custom labels may be specified which can be
      * sent back even by external systems.
+     * </p>
      *
      * @param ackLabels the requested acknowledgement labels.
      * @return this builder.
+     * @throws NullPointerException if {@code ackLabels} is {@code null}.
      * @since 1.1.0
      */
-    B requestedAckLabels(Collection<String> ackLabels);
+    B requestedAckLabels(Collection<AcknowledgementLabel> ackLabels);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.

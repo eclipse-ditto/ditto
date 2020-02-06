@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.base.headers;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -272,15 +272,18 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     DittoHeaders truncate(long maxSizeBytes);
 
     /**
-     * Returns the acknowledgement ("ack") labels which were requested together with an issued Ditto {@code Command}.
-     * Such ack labels are sent back to the issuer of the {@code Command} so that it can be verified which steps were
-     * successful.<br>
-     * In addition to built-in ack labels like "ditto-persisted" also custom labels may be specified which can be
+     * Returns the acknowledgement ("ACK") labels which were requested together with an issued Ditto {@code Command}.
+     * Such ack labels are sent back to the issuer of the Command so that it can be verified which steps were
+     * successful.
+     * <p>
+     * In addition to built-in ACK labels like "ditto-persisted" also custom labels may be specified which can be
      * sent back even by external systems.
+     * </p>
      *
-     * @return the requested acknowledgement labels.
+     * @return an unsorted Set of the requested acknowledgement labels. Changes on the set are not reflected back to
+     * this DittoHeaders instance.
      * @since 1.1.0
      */
-    Collection<String> getRequestedAckLabels();
+    Set<AcknowledgementLabel> getRequestedAckLabels();
 
 }

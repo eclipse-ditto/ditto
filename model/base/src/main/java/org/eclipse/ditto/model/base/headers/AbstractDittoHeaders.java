@@ -17,7 +17,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.AbstractMap;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -35,6 +34,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -198,11 +198,12 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
-    public Collection<String> getRequestedAckLabels() {
+    public Set<AcknowledgementLabel> getRequestedAckLabels() {
         final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.REQUESTED_ACK_LABELS);
         return jsonValueArray.stream()
                 .map(JsonValue::asString)
-                .collect(Collectors.toList());
+                .map(AcknowledgementLabel::of)
+                .collect(Collectors.toSet());
     }
 
     @Override

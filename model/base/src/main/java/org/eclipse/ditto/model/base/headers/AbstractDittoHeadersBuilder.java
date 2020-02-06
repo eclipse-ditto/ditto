@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.JsonValueContainer;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -280,8 +281,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S requestedAckLabels(final Collection<String> ackLabels) {
-        putStringCollection(DittoHeaderDefinition.REQUESTED_ACK_LABELS, ackLabels);
+    public S requestedAckLabels(final Collection<AcknowledgementLabel> ackLabels) {
+        checkNotNull(ackLabels, "ackLabels");
+        putJsonValue(DittoHeaderDefinition.REQUESTED_ACK_LABELS, ackLabels.stream()
+                .map(AcknowledgementLabel::toString)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray()));
         return myself;
     }
 
