@@ -440,6 +440,78 @@ entries:
         - title: Error Responses
           url: /protocol-examples-errorresponses.html
           output: web
+      - title: → Policies examples
+        output: web
+        subfolderitems:
+        - title: Create a Policy
+          url: /protocol-examples-policies-createpolicy.html
+          output: web
+        - title: Delete a Policy
+          url: /protocol-examples-policies-deletepolicy.html
+          output: web
+        - title: Modify a Policy
+          url: /protocol-examples-policies-modifypolicy.html
+          output: web
+        - title: Retrieve a Policy
+          url: /protocol-examples-policies-retrievepolicy.html
+          output: web
+        - title: Modify entries
+          url: /protocol-examples-policies-modifypolicyentries.html
+          output: web
+        - title: Retrieve entries
+          url: /protocol-examples-policies-retrievepolicyentries.html
+          output: web
+        - title: Create a single entry
+          url: /protocol-examples-policies-createpolicyentry.html
+          output: web
+        - title: Delete a single entry
+          url: /protocol-examples-policies-deletepolicyentry.html
+          output: web
+        - title: Modify a single entry
+          url: /protocol-examples-policies-modifypolicyentry.html
+          output: web
+        - title: Retrieve a single entry
+          url: /protocol-examples-policies-retrievepolicyentry.html
+          output: web
+        - title: Modify subjects
+          url: /protocol-examples-policies-modifysubjects.html
+          output: web
+        - title: Retrieve subjects
+          url: /protocol-examples-policies-retrievesubjects.html
+          output: web
+        - title: Create a single subject
+          url: /protocol-examples-policies-createsubject.html
+          output: web
+        - title: Delete a single subject
+          url: /protocol-examples-policies-deletesubject.html
+          output: web
+        - title: Modify a single subject
+          url: /protocol-examples-policies-modifysubject.html
+          output: web
+        - title: Retrieve a single subject
+          url: /protocol-examples-policies-retrievesubject.html
+          output: web
+        - title: Modify resources
+          url: /protocol-examples-policies-modifyresources.html
+          output: web
+        - title: Retrieve resources
+          url: /protocol-examples-policies-retrieveresources.html
+          output: web
+        - title: Create a single resource
+          url: /protocol-examples-policies-createresource.html
+          output: web
+        - title: Delete a single resource
+          url: /examples/protocol-examples-policies-deleteresource.html
+          output: web
+        - title: Modify a single resource
+          url: /protocol-examples-policies-modifyresource.html
+          output: web
+        - title: Retrieve a single resource
+          url: /protocol-examples-policies-retrieveresource.html
+          output: web
+        - title: Error Responses
+          url: /protocol-examples-policies-errorresponses.html
+          output: web
 
   - title: Sandbox
     url: /sandbox.html
