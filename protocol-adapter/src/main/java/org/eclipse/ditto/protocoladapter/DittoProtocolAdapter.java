@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
@@ -60,6 +61,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     private final ThingQueryCommandAdapter thingQueryCommandAdapter;
     private final ThingQueryCommandResponseAdapter thingQueryCommandResponseAdapter;
     private final ThingEventAdapter thingEventAdapter;
+    private final AcknowledgementAdapter acknowledgementAdapter;
 
     protected DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
@@ -73,6 +75,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
         thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
         thingEventAdapter = ThingEventAdapter.of(headerTranslator);
+        acknowledgementAdapter = AcknowledgementAdapter.of(headerTranslator);
     }
 
     /**
@@ -297,6 +300,16 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     }
 
     @Override
+    public Adaptable toAdaptable(final Acknowledgement acknowledgement) {
+        return acknowledgementAdapter.toAdaptable(acknowledgement);
+    }
+
+    @Override
+    public Adaptable toAdaptable(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {
+        return acknowledgementAdapter.toAdaptable(acknowledgement, channel);
+    }
+
+    @Override
     public HeaderTranslator headerTranslator() {
         return headerTranslator;
     }
@@ -317,7 +330,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         }
 
         if (liveSignal != null) {
-            final DittoHeadersBuilder enhancedHeadersBuilder = liveSignal.getDittoHeaders()
+            final DittoHeadersBuilder<?, ?> enhancedHeadersBuilder = liveSignal.getDittoHeaders()
                     .toBuilder()
                     .channel(TopicPath.Channel.LIVE.getName());
 

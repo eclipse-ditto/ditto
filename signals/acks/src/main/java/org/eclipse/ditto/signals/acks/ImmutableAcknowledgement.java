@@ -23,10 +23,12 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -40,13 +42,13 @@ final class ImmutableAcknowledgement implements Acknowledgement {
 
     private final AcknowledgementLabel label;
     private final EntityId entityId;
-    private final int statusCode;
+    private final HttpStatusCode statusCode;
     @Nullable private final JsonValue payload;
     private final DittoHeaders dittoHeaders;
 
     private ImmutableAcknowledgement(final AcknowledgementLabel label,
             final EntityId entityId,
-            final int statusCode,
+            final HttpStatusCode statusCode,
             @Nullable final JsonValue payload,
             final DittoHeaders dittoHeaders) {
 
@@ -71,7 +73,7 @@ final class ImmutableAcknowledgement implements Acknowledgement {
      */
     public static ImmutableAcknowledgement of(final AcknowledgementLabel label,
             final CharSequence entityId,
-            final int statusCode,
+            final HttpStatusCode statusCode,
             @Nullable final JsonValue payload,
             final DittoHeaders dittoHeaders) {
 
@@ -90,7 +92,13 @@ final class ImmutableAcknowledgement implements Acknowledgement {
         final AcknowledgementLabel label = AcknowledgementLabel.of(jsonObject.getValueOrThrow(JsonFields.LABEL));
         final String extractedEntityId = jsonObject.getValueOrThrow(JsonFields.ENTITY_ID);
         final EntityId entityId = DefaultEntityId.of(extractedEntityId);
-        final int statusCode = jsonObject.getValueOrThrow(JsonFields.STATUS_CODE);
+        final int extractedStatusCode = jsonObject.getValueOrThrow(JsonFields.STATUS_CODE);
+        final HttpStatusCode statusCode = HttpStatusCode.forInt(extractedStatusCode)
+                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
+                        .fieldName(JsonFields.STATUS_CODE.getPointer().toString())
+                        .description("Unsupported status code: " + extractedStatusCode)
+                        .build()
+                );
         @Nullable final JsonValue payload = jsonObject.getValue(JsonFields.PAYLOAD).orElse(null);
         final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(JsonFields.DITTO_HEADERS);
         final DittoHeaders extractedDittoHeaders = DittoHeaders.newBuilder(jsonDittoHeaders).build();
@@ -109,7 +117,7 @@ final class ImmutableAcknowledgement implements Acknowledgement {
     }
 
     @Override
-    public int getStatusCode() {
+    public HttpStatusCode getStatusCode() {
         return statusCode;
     }
 
@@ -136,7 +144,7 @@ final class ImmutableAcknowledgement implements Acknowledgement {
 
         jsonObjectBuilder.set(JsonFields.LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.ENTITY_ID, entityId.toString(), predicate);
-        jsonObjectBuilder.set(JsonFields.STATUS_CODE, statusCode, predicate);
+        jsonObjectBuilder.set(JsonFields.STATUS_CODE, statusCode.toInt(), predicate);
         if (null != payload) {
             jsonObjectBuilder.set(JsonFields.PAYLOAD, payload, predicate);
         }

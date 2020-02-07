@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabels;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
@@ -59,7 +60,7 @@ public final class Acknowledgements {
      */
     public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
             final CharSequence entityId,
-            final int statusCode,
+            final HttpStatusCode statusCode,
             @Nullable final JsonValue payload,
             final DittoHeaders dittoHeaders) {
 

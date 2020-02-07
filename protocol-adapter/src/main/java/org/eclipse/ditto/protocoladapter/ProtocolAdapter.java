@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -240,6 +241,25 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      */
     Adaptable toAdaptable(ThingEvent<?> thingEvent, TopicPath.Channel channel);
+
+    /**
+     * Maps the given {@code acknowledgement} to an {@code Adaptable}.
+     *
+     * @param acknowledgement the Acknowledgement.
+     * @return the adaptable.
+     * @since 1.1.0
+     */
+    Adaptable toAdaptable(Acknowledgement acknowledgement);
+
+    /**
+     * Maps the given {@code acknowledgement} to an {@code Adaptable}.
+     *
+     * @param acknowledgement the Acknowledgement.
+     * @param channel the Channel (Twin/Live) to use.
+     * @return the adaptable.
+     * @since 1.1.0
+     */
+    Adaptable toAdaptable(Acknowledgement acknowledgement, TopicPath.Channel channel);
 
     /**
      * Retrieve the header translator responsible for this protocol adapter.

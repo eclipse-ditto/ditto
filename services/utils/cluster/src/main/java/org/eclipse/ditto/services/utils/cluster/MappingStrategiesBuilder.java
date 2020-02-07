@@ -70,9 +70,7 @@ public final class MappingStrategiesBuilder {
                 jsonObject -> SimpleCommandResponse.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(StatusInfo.class,
                 jsonObject -> StatusInfo.fromJson(jsonObject)); // do not replace with lambda!
-        builder.add(Acknowledgement.class,
-                jsonObject -> Acknowledgements.acknowledgementFromJson(jsonObject)); // do not replace with lambda!
-        builder.add("ImmutableAcknowledgement",
+        builder.add(Acknowledgement.TYPE,
                 jsonObject -> Acknowledgements.acknowledgementFromJson(jsonObject)); // do not replace with lambda!
         builder.add(StreamAck.class, StreamAck::fromJson);
 

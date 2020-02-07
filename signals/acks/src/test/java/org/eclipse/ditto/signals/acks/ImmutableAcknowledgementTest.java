@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -34,7 +35,7 @@ public final class ImmutableAcknowledgementTest {
 
     private static final AcknowledgementLabel KNOWN_ACK_LABEL = AcknowledgementLabel.of("welcome-ack");
     private static final ThingId KNOWN_ENTITY_ID = ThingId.dummy();
-    private static final int KNOWN_STATUS_CODE = 200;
+    private static final HttpStatusCode KNOWN_STATUS_CODE = HttpStatusCode.OK;
     private static final JsonValue KNOWN_PAYLOAD = JsonObject.newBuilder().set("known", "payload").build();
     private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId("some-correlation-id")
@@ -49,7 +50,7 @@ public final class ImmutableAcknowledgementTest {
     private static final JsonObject KNOWN_ACK_JSON = JsonObject.newBuilder()
             .set(Acknowledgement.JsonFields.LABEL, KNOWN_ACK_LABEL.toString())
             .set(Acknowledgement.JsonFields.ENTITY_ID, KNOWN_ENTITY_ID.toString())
-            .set(Acknowledgement.JsonFields.STATUS_CODE, KNOWN_STATUS_CODE)
+            .set(Acknowledgement.JsonFields.STATUS_CODE, KNOWN_STATUS_CODE.toInt())
             .set(Acknowledgement.JsonFields.PAYLOAD, KNOWN_PAYLOAD)
             .set(Acknowledgement.JsonFields.DITTO_HEADERS, KNOWN_DITTO_HEADERS.toJson())
             .build();

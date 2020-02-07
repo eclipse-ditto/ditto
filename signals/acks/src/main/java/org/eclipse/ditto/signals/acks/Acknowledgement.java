@@ -15,17 +15,16 @@ package org.eclipse.ditto.signals.acks;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 
 /**
@@ -36,8 +35,12 @@ import org.eclipse.ditto.signals.base.WithOptionalEntity;
  * </p>
  * @since 1.1.0
  */
-public interface Acknowledgement extends Jsonifiable.WithPredicate<JsonObject, JsonField>,
-        WithDittoHeaders<Acknowledgement>, WithId, WithOptionalEntity {
+public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEntity {
+
+    /**
+     * Type of the Acknowledgement.
+     */
+    String TYPE = "acknowledgement";
 
     /**
      * Returns the label identifying the Acknowledgement.
@@ -56,7 +59,7 @@ public interface Acknowledgement extends Jsonifiable.WithPredicate<JsonObject, J
      *
      * @return the status code of the Acknowledgement.
      */
-    int getStatusCode();
+    HttpStatusCode getStatusCode();
 
     /**
      * Returns the optional payload of the Acknowledgement.
@@ -65,6 +68,26 @@ public interface Acknowledgement extends Jsonifiable.WithPredicate<JsonObject, J
      */
     @Override
     Optional<JsonValue> getEntity(JsonSchemaVersion schemaVersion);
+
+    @Override
+    default String getManifest() {
+        return getType();
+    }
+
+    @Override
+    default String getType() {
+        return TYPE;
+    }
+
+    @Override
+    default JsonPointer getResourcePath() {
+        return JsonPointer.empty();
+    }
+
+    @Override
+    default String getResourceType() {
+        return getType();
+    }
 
     /**
      * Returns all non hidden marked fields of this Acknowledgement.

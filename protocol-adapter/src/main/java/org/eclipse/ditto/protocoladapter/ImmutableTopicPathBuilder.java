@@ -13,6 +13,7 @@
 package org.eclipse.ditto.protocoladapter;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 
@@ -26,7 +27,7 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
  */
 @NotThreadSafe
 final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopicPathBuilder, EventsTopicPathBuilder,
-        CommandsTopicPathBuilder {
+        CommandsTopicPathBuilder, AcknowledgementTopicPathBuilder {
 
     private final String namespace;
     private final String name;
@@ -136,6 +137,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public AcknowledgementTopicPathBuilder acks() {
+        this.criterion = TopicPath.Criterion.ACKS;
+        return this;
+    }
+
+    @Override
     public CommandsTopicPathBuilder create() {
         this.action = TopicPath.Action.CREATE;
         return this;
@@ -179,7 +186,13 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
     @Override
     public MessagesTopicPathBuilder subject(final String subject) {
-        this.subject = subject;
+        this.subject = checkNotNull(subject, "subject");
+        return this;
+    }
+
+    @Override
+    public AcknowledgementTopicPathBuilder label(final CharSequence label) {
+        this.subject = checkNotNull(label, "ack label").toString();
         return this;
     }
 

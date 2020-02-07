@@ -123,8 +123,7 @@ public final class MappingStrategiesBuilderTest {
                 SimpleCommand.class.getSimpleName(),
                 SimpleCommandResponse.class.getSimpleName(),
                 StatusInfo.class.getSimpleName(),
-                Acknowledgement.class.getSimpleName(),
-                "ImmutableAcknowledgement",
+                Acknowledgement.TYPE,
                 StreamAck.class.getSimpleName());
     }
 

@@ -13,16 +13,17 @@
 package org.eclipse.ditto.protocoladapter;
 
 /**
- * Builder to create a topic path for messages.
+ * Builder to create a topic path for Acknowledgements.
+ *
+ * @since 1.1.0
  */
-public interface MessagesTopicPathBuilder extends TopicPathBuildable {
+public interface AcknowledgementTopicPathBuilder extends TopicPathBuildable {
 
     /**
-     * Sets a custom subject on the topic path. This custom subject is only considered if there is no predefined
-     * {@link TopicPath.Action}.
+     * Sets a custom Acknowledgement label on the topic path.
      *
-     * @param subject the subject to set on the topic path.
+     * @param label the Acknowledgement label to set on the topic path.
      * @return this builder to allow method chaining.
      */
-    MessagesTopicPathBuilder subject(String subject);
+    AcknowledgementTopicPathBuilder label(CharSequence label);
 }
