@@ -56,7 +56,7 @@ public final class Acknowledgements {
      * @param dittoHeaders the DittoHeaders.
      * @return the ImmutableAcknowledgement.
      * @throws NullPointerException if one of the required parameters was {@code null}.
-     * @throws IllegalArgumentException if {@code entity} is empty.
+     * @throws IllegalArgumentException if {@code entityId} is empty.
      */
     public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
             final CharSequence entityId,

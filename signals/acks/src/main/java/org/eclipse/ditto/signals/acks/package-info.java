@@ -12,7 +12,7 @@
  */
 
 /**
- * Containing all things related to (end-2-end) (business) Acknowledgements.
+ * Contains (end-to-end) (business) Acknowledgements domain classes.
  *
  * @since 1.1.0
  */

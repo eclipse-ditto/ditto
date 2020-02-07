@@ -68,7 +68,7 @@ final class ImmutableAcknowledgement implements Acknowledgement {
      * @param payload the optional payload of the Acknowledgement.
      * @param dittoHeaders the DittoHeaders.
      * @return the ImmutableAcknowledgement.
-     * @throws java.lang.NullPointerException if one of the required parameters was {@code null}.
+     * @throws NullPointerException if one of the required parameters was {@code null}.
      * @throws IllegalArgumentException if {@code entityId} is empty.
      */
     public static ImmutableAcknowledgement of(final AcknowledgementLabel label,
@@ -85,8 +85,8 @@ final class ImmutableAcknowledgement implements Acknowledgement {
      *
      * @param jsonObject the JSON object.
      * @return the Acknowledgement.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the
-     * expected 'Acknowledgement' format.
+     * @throws JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected
+     * 'Acknowledgement' format.
      */
     public static ImmutableAcknowledgement fromJson(final JsonObject jsonObject) {
         final AcknowledgementLabel label = AcknowledgementLabel.of(jsonObject.getValueOrThrow(JsonFields.LABEL));
