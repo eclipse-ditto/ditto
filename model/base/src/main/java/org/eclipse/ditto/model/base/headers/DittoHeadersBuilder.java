@@ -207,8 +207,9 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * Such ack labels are sent back to the issuer of the Command so that it can be verified which steps were
      * successful.
      * <p>
-     * In addition to built-in ACK labels like "ditto-persisted" also custom labels may be specified which can be
-     * sent back even by external systems.
+     * In addition to built-in ACK labels like
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabels#PERSISTED "ditto-persisted"} also custom
+     * labels may be specified which can be sent back even by external systems.
      * </p>
      *
      * @param ackLabels the requested acknowledgement labels.

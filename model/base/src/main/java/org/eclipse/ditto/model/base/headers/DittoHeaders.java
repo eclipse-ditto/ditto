@@ -276,8 +276,9 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * Such ack labels are sent back to the issuer of the Command so that it can be verified which steps were
      * successful.
      * <p>
-     * In addition to built-in ACK labels like "ditto-persisted" also custom labels may be specified which can be
-     * sent back even by external systems.
+     * In addition to built-in ACK labels like
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabels#PERSISTED "ditto-persisted"} also custom
+     * labels may be specified which can be sent back even by external systems.
      * </p>
      *
      * @return an unsorted Set of the requested acknowledgement labels. Changes on the set are not reflected back to
