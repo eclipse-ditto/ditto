@@ -168,7 +168,9 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                     final String message =
                             MessageFormat.format("Failed to extract public keys from JSON response <{0}>", body);
                     LOGGER.warn(message, t);
-                    throw new IllegalStateException(message, t);
+                    throw PublicKeyProviderUnavailableException.newBuilder()
+                            .cause(new IllegalStateException(message, t))
+                            .build();
                 });
     }
 
@@ -184,13 +186,18 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                     .toCompletableFuture()
                     .get(JWK_REQUEST_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
         } catch (final ExecutionException e) {
-            throw DittoRuntimeException.asDittoRuntimeException(e, cause -> {
-                throw handleUnexpectedException(cause, discoveryEndpoint);
-            });
+            throw extractDittoRuntimeException(e, discoveryEndpoint);
         } catch (final InterruptedException | TimeoutException e) {
             throw handleUnexpectedException(e, discoveryEndpoint);
         }
         return response;
+    }
+
+    private static DittoRuntimeException extractDittoRuntimeException(final ExecutionException e,
+            final String discoveryEndpoint) {
+
+        throw DittoRuntimeException.asDittoRuntimeException(e,
+                cause -> handleUnexpectedException(cause, discoveryEndpoint));
     }
 
     private CompletionStage<JsonObject> mapResponseToJsonObject(final HttpResponse response) {
@@ -221,10 +228,12 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 .runWith(Sink.head(), httpClient.getActorMaterializer());
     }
 
-    private IllegalStateException handleUnexpectedException(final Throwable e, final String discoveryEndpoint) {
+    private static PublicKeyProviderUnavailableException handleUnexpectedException(final Throwable e,
+            final String discoveryEndpoint) {
+
         final String msg = MessageFormat.format("Got Exception from discovery endpoint <{0}>.", discoveryEndpoint);
         LOGGER.warn(msg, e);
-        return new IllegalStateException(msg, e);
+        return PublicKeyProviderUnavailableException.newBuilder().cause(e).build();
     }
 
     private static PublicKey mapToPublicKey(final JsonArray publicKeys, final String keyId,
@@ -248,7 +257,9 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                         MessageFormat.format("Got invalid key from JwkResource provider at discovery endpoint <{0}>",
                                 discoveryEndpoint);
                 LOGGER.warn(msg, e);
-                throw new IllegalStateException(msg, e);
+                throw PublicKeyProviderUnavailableException.newBuilder()
+                        .cause(new IllegalStateException(msg, e))
+                        .build();
             }
         }
 
