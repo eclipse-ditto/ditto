@@ -17,47 +17,38 @@ package org.eclipse.ditto.model.base.acks;
  *
  * @since 1.1.0
  */
-public enum DittoAcknowledgementLabels implements AcknowledgementLabel {
+public enum DittoAcknowledgementLabel implements AcknowledgementLabel {
 
     /**
-     * ACK label for Acknowledgements indicating that a change to an entity (e.g. a {@code Thing}) has successfully
-     * been persisted in Ditto.
+     * Label for Acknowledgements indicating that a change to an entity (e. g. a thing) has successfully been persisted
+     * in Ditto.
      */
     PERSISTED("ditto-persisted");
 
-    private final String value;
+    private final AcknowledgementLabel delegate;
 
-    DittoAcknowledgementLabels(final String value) {
-        this.value = value;
-    }
-
-    /**
-     * Returns the value of the built-in Acknowledgement label.
-     *
-     * @return the value of the label.
-     */
-    public String getValue() {
-        return value;
+    private DittoAcknowledgementLabel(final CharSequence labelValue) {
+        delegate = AcknowledgementLabel.of(labelValue);
     }
 
     @Override
     public String toString() {
-        return value;
+        return delegate.toString();
     }
 
     @Override
     public int length() {
-        return value.length();
+        return delegate.length();
     }
 
     @Override
     public char charAt(final int index) {
-        return value.charAt(index);
+        return delegate.charAt(index);
     }
 
     @Override
     public CharSequence subSequence(final int start, final int end) {
-        return value.substring(start, end);
+        return delegate.subSequence(start, end);
     }
 
 }
