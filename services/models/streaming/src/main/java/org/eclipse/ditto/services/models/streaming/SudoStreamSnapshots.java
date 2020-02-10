@@ -166,12 +166,6 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
     }
 
     @Override
-    public <T> T accept(final StartStreamRequestVisitor<T> visitor) {
-        // TODO remove this method
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {

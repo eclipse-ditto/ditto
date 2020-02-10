@@ -16,7 +16,6 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
@@ -60,20 +59,6 @@ public interface UpdaterConfig {
      * @return the config.
      */
     BackgroundSyncConfig getBackgroundSyncConfig();
-
-    /**
-     * Returns the synchronization settings for the Things service.
-     *
-     * @return the config.
-     */
-    SyncConfig getThingsSyncConfig();
-
-    /**
-     * Returns the synchronization settings for the Policies service.
-     *
-     * @return the config.
-     */
-    SyncConfig getPoliciesSyncConfig();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

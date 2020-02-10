@@ -151,11 +151,6 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     }
 
     @Override
-    public <T> T accept(final StartStreamRequestVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

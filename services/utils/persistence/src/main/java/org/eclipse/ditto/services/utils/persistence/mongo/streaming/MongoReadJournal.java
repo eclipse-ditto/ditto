@@ -13,11 +13,8 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +25,6 @@ import java.util.stream.Stream;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -111,7 +107,6 @@ public class MongoReadJournal {
 
     private static final Document ID_DESC = toDocument(new Object[][]{{ID, SORT_DESCENDING}});
 
-    private static final String COLLECTION_NAME_FIELD = "name";
     private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
     private final String journalCollection;
@@ -169,24 +164,6 @@ public class MongoReadJournal {
         final String snapshotCollection =
                 getOverrideCollectionName(config.getConfig(autoStartSnapsKey), SNAPS_COLLECTION_NAME_KEY);
         return new MongoReadJournal(journalCollection, snapshotCollection, mongoClient);
-    }
-
-    /**
-     * Retrieve sequence numbers for persistence IDs modified within the time interval as a source of {@code
-     * PidWithSeqNr}. A persistence ID may appear multiple times with various sequence numbers.
-     *
-     * @param start start of the time window.
-     * @param end end of the time window.
-     * @return source of persistence IDs and sequence numbers written within the given time window.
-     */
-    public Source<PidWithSeqNr, NotUsed> getPidWithSeqNrsByInterval(final Instant start, final Instant end) {
-        final MongoDatabase db = mongoClient.getDefaultDatabase();
-        final Document idFilter = createIdFilter(start, end);
-
-        log.debug("Looking for journal <{}> and snapshot store <{}>.", journalCollection, snapsCollection);
-
-        return getJournalAndSnapshotStore()
-                .flatMapConcat(journalAndSnaps -> listPidWithSeqNr(journalAndSnaps, db, idFilter));
     }
 
     /**
@@ -337,22 +314,6 @@ public class MongoReadJournal {
         }
     }
 
-    // TODO: remove unused methods after removing StreamModifiedEntities.
-    private Source<PidWithSeqNr, NotUsed> listPidWithSeqNr(final JournalAndSnaps journalAndSnaps,
-            final MongoDatabase database, final Document idFilter) {
-
-        final Source<PidWithSeqNr, NotUsed> journalPids =
-                find(database, journalAndSnaps.journal, idFilter, JOURNAL_PROJECT_DOCUMENT)
-                        .map(doc -> new PidWithSeqNr(doc.getString(PROCESSOR_ID), doc.getLong(TO)));
-
-        final Source<PidWithSeqNr, ?> snapsPids =
-                Source.lazily(() -> find(database, journalAndSnaps.snaps, idFilter, SNAPS_PROJECT_DOCUMENT)
-                        .map(doc -> new PidWithSeqNr(doc.getString(PROCESSOR_ID), doc.getLong(SN)))
-                );
-
-        return journalPids.concat(snapsPids);
-    }
-
     private Source<Document, NotUsed> listNewestSnapshots(final MongoCollection<Document> snapshotStore,
             final String start,
             final int batchSize,
@@ -408,44 +369,12 @@ public class MongoReadJournal {
         );
     }
 
-    private Source<JournalAndSnaps, NotUsed> getJournalAndSnapshotStore() {
-        return Source.single(new JournalAndSnaps(journalCollection, snapsCollection));
-    }
-
     private Source<MongoCollection<Document>, NotUsed> getJournal() {
         return Source.single(mongoClient.getDefaultDatabase().getCollection(journalCollection));
     }
 
     private Source<MongoCollection<Document>, NotUsed> getSnapshotStore() {
         return Source.single(mongoClient.getDefaultDatabase().getCollection(snapsCollection));
-    }
-
-    private Document createIdFilter(final Instant start, final Instant end) {
-        final ObjectId startObjectId = instantToObjectIdBoundary(start);
-        final ObjectId endObjectId = instantToObjectIdBoundary(end.plus(1L, ChronoUnit.SECONDS));
-        log.debug("Limiting query to ObjectIds $gte {} and $lt {}", startObjectId, endObjectId);
-        return toDocument(new Object[][]{
-                {ID, toDocument(new Object[][]{
-                        {GTE, startObjectId},
-                        {LT, endObjectId}
-                })}
-        });
-    }
-
-    /* Create a ObjectID boundary from a timestamp to be used for comparison in MongoDB queries. */
-    private static ObjectId instantToObjectIdBoundary(final Instant instant) {
-        // MongoDBObject IDs only contain dates with precision of seconds, thus adjust the range of the query
-        // appropriately to make sure a client does not miss data when providing Instants with higher precision.
-        //
-        // Do not use
-        //
-        //   new ObjectId(Date.from(startTruncatedToSecs))
-        //
-        // to compute object ID boundaries. The 1-argument constructor above appends incidental non-zero bits after
-        // the timestamp and may filter out events persisted after 'instant' if they happen to have
-        // a lower machine ID, process ID or counter value. (A MongoDB ObjectID is a byte array with fields for
-        // timestamp, machine ID, process ID and counter such that timestamp occupies the most significant bits.)
-        return new ObjectId(Date.from(instant.truncatedTo(ChronoUnit.SECONDS)), 0, (short) 0, 0);
     }
 
     private static Document toDocument(final Object[][] keyValuePairs) {
@@ -496,24 +425,6 @@ public class MongoReadJournal {
      */
     private static String getOverrideCollectionName(final Config journalOrSnapsConfig, final String key) {
         return journalOrSnapsConfig.getString(key);
-    }
-
-    private static final class JournalAndSnaps {
-
-        private final String journal;
-
-        private final String snaps;
-
-        private JournalAndSnaps(final String journal, final String snaps) {
-            this.journal = journal;
-            this.snaps = snaps;
-        }
-
-        @Override
-        public String toString() {
-            return "JournalAndSnapshot[journal=" + journal + ",snaps=" + snaps + "]";
-        }
-
     }
 
 }

@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.thingsearch.persistence;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -72,7 +71,6 @@ public abstract class AbstractThingSearchPersistenceITBase {
     private static DittoMongoClient mongoClient;
 
     private MongoCollection<Document> thingsCollection;
-    private MongoCollection<Document> syncCollection;
     protected MongoThingsSearchPersistence readPersistence;
     protected TestSearchUpdaterStream writePersistence;
 
@@ -100,8 +98,6 @@ public abstract class AbstractThingSearchPersistenceITBase {
         readPersistence = provideReadPersistence();
         writePersistence = provideWritePersistence();
         thingsCollection = mongoClient.getDefaultDatabase().getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
-        syncCollection =
-                mongoClient.getDefaultDatabase().getCollection(PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME);
     }
 
     private MongoThingsSearchPersistence provideReadPersistence() {
@@ -129,7 +125,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
     @After
     public void after() {
         if (mongoClient != null) {
-            dropCollections(Arrays.asList(thingsCollection, syncCollection));
+            dropCollections(List.of(thingsCollection));
         }
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);

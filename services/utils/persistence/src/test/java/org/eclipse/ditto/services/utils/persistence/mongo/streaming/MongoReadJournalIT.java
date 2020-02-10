@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
@@ -104,42 +103,6 @@ public final class MongoReadJournalIT {
         if (null != actorSystem) {
             TestKit.shutdownActorSystem(actorSystem);
         }
-    }
-
-    @Test
-    public void getEmptyStream() {
-        final List<PidWithSeqNr> pids =
-                readJournal.getPidWithSeqNrsByInterval(Instant.EPOCH, Instant.now())
-                        .runWith(Sink.seq(), materializer)
-                        .toCompletableFuture()
-                        .join();
-        assertThat(pids).isEmpty();
-    }
-
-    @Test
-    public void streamJournals() {
-        insert("test_journal", new Document().append("pid", "pid1").append("to", 1L));
-        insert("test_journal", new Document().append("pid", "pid2").append("to", 2L));
-        final List<PidWithSeqNr> pids =
-                readJournal.getPidWithSeqNrsByInterval(Instant.EPOCH, Instant.now().plusSeconds(500L))
-                        .runWith(Sink.seq(), materializer)
-                        .toCompletableFuture()
-                        .join();
-
-        assertThat(pids).containsExactlyInAnyOrder(new PidWithSeqNr("pid1", 1L), new PidWithSeqNr("pid2", 2L));
-    }
-
-    @Test
-    public void streamPidsFromSnapshotStore() {
-        insert("test_snaps", new Document().append("pid", "pid3").append("sn", 3L));
-        insert("test_snaps", new Document().append("pid", "pid4").append("sn", 4L));
-        final List<PidWithSeqNr> pids =
-                readJournal.getPidWithSeqNrsByInterval(Instant.EPOCH, Instant.now().plusSeconds(500L))
-                        .runWith(Sink.seq(), materializer)
-                        .toCompletableFuture()
-                        .join();
-
-        assertThat(pids).containsExactlyInAnyOrder(new PidWithSeqNr("pid3", 3L), new PidWithSeqNr("pid4", 4L));
     }
 
     @Test

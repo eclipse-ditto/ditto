@@ -60,7 +60,6 @@ public final class ThingsPersistenceStreamingActorCreator {
     public static ActorRef startEventStreamingActor(final int streamingCacheSize,
             final BiFunction<String, Props, ActorRef> actorCreator) {
         final Props props = DefaultPersistenceStreamingActor.props(ThingTag.class,
-                streamingCacheSize,
                 ThingsPersistenceStreamingActorCreator::createElement,
                 ThingsPersistenceStreamingActorCreator::createPidWithSeqNr);
         return actorCreator.apply(EVENT_STREAMING_ACTOR_NAME, props);
