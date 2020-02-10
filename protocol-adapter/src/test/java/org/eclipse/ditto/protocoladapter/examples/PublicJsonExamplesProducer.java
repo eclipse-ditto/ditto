@@ -22,13 +22,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
@@ -123,8 +127,11 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
 
         if (adaptable.isPresent()) {
             final String jsonString =
-                    adaptable.map(adaptable1 ->
-                            ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable1).toJsonString()
+                    adaptable.map(adaptable1 -> {
+                                final JsonObject adaptableJson = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable1)
+                                        .toJson();
+                                return removeNonRegularFieldsFromValue(adaptableJson).toString();
+                            }
                     ).get();
 
             try {
@@ -136,6 +143,19 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
         } else {
             System.out.println("Adaptable not found for class: " + theClass);
         }
+    }
+
+    private JsonObject removeNonRegularFieldsFromValue(final JsonObject initialObject) {
+        return initialObject.getValue(Payload.JsonFields.VALUE)
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(value -> value.stream()
+                        .filter(field -> field.isMarkedAs(FieldType.REGULAR))
+                        .collect(JsonCollectors.fieldsToObject()))
+                .map(valueWithOnlyRegularFields -> initialObject.toBuilder()
+                        .set(Payload.JsonFields.VALUE, valueWithOnlyRegularFields)
+                        .build())
+                .orElse(initialObject);
     }
 
     private String wrapCodeSnippet(final String title, final String jsonString) {
