@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
@@ -62,7 +63,18 @@ public final class HeaderTranslator {
     public static HeaderTranslator of(final HeaderDefinition[]... headerDefinitions) {
         return new HeaderTranslator(Arrays.stream(headerDefinitions)
                 .flatMap(Arrays::stream)
-                .collect(Collectors.toMap(HeaderDefinition::getKey, Function.identity())));
+                .collect(Collectors.toMap(HeaderDefinition::getKey, Function.identity(),
+                        (headerDefinition, headerDefinition2) -> {
+                            if (headerDefinition.getKey().equals(DittoHeaderDefinition.TIMEOUT.getKey())) {
+                                // special treatment for "timeout" as this was copied from MessageHeaderDefinition
+                                //  to DittoHeaderDefinition - and the latter (having SerializationType String) shall
+                                //  have priority when merging:
+                                return headerDefinition.getSerializationType().equals(String.class) ?
+                                        headerDefinition : headerDefinition2;
+                            } else {
+                                throw new IllegalStateException("Duplicate key: " + headerDefinition.getKey());
+                            }
+                        })));
     }
 
     /**

@@ -18,11 +18,13 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -76,6 +78,7 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_REPLY_TARGET = "5";
     private static final String KNOWN_MAPPER = "knownMapper";
     private static final String KNOWN_ORIGINATOR = "known:originator";
+    private static final Duration KNOWN_TIMEOUT = Duration.ofSeconds(6);
     private static final AcknowledgementLabel KNOWN_ACK_LABEL = AcknowledgementLabel.of("ack-label-1");
     private static final List<AcknowledgementLabel> KNOWN_REQUESTED_ACK_LABELS = Lists.list(KNOWN_ACK_LABEL);
 
@@ -113,6 +116,7 @@ public final class ImmutableDittoHeadersTest {
                 .inboundPayloadMapper(KNOWN_MAPPER)
                 .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .requestedAckLabels(KNOWN_REQUESTED_ACK_LABELS)
+                .timeout(KNOWN_TIMEOUT.getSeconds())
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -260,6 +264,20 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
+    public void timeoutIsSerializedAsString() {
+        final long timeout = new Random().nextInt(Integer.MAX_VALUE);
+
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .timeout(timeout)
+                .build();
+
+        final JsonObject jsonObject = underTest.toJson();
+
+        assertThat(jsonObject.getValue(DittoHeaderDefinition.TIMEOUT.getKey()))
+                .contains(JsonFactory.newValue(String.valueOf(timeout)));
+    }
+
+    @Test
     public void toJsonReturnsExpected() {
         final JsonObject expectedHeadersJsonObject = JsonFactory.newObjectBuilder()
                 .set(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), stringCollectionToJsonArray(AUTH_SUBJECTS))
@@ -281,6 +299,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .set(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(),
                         ackLabelsToJsonArray(KNOWN_REQUESTED_ACK_LABELS))
+                .set(DittoHeaderDefinition.TIMEOUT.getKey(), JsonValue.of(String.valueOf(KNOWN_TIMEOUT.getSeconds())))
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -447,6 +466,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR);
         result.put(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(),
                 ackLabelsToJsonArray(KNOWN_REQUESTED_ACK_LABELS).toString());
+        result.put(DittoHeaderDefinition.TIMEOUT.getKey(), String.valueOf(KNOWN_TIMEOUT.getSeconds()));
 
         return result;
     }

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.actors;
 
+import static org.eclipse.ditto.services.gateway.util.FireAndForgetMessageUtil.isFireAndForget;
 import static org.eclipse.ditto.services.gateway.util.FireAndForgetMessageUtil.isFireAndForgetMessage;
 
 import java.nio.ByteBuffer;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.signals.acks.AcknowledgementCommandTimeoutException;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -91,8 +93,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private final HttpRequest httpRequest;
     private final HttpConfig httpConfig;
 
-    private java.time.Duration messageTimeout;
-    private boolean isFireAndForgetMessage = false;
+    private java.time.Duration timeout;
+    private boolean isFireAndForget = false;
+    private DittoRuntimeException timeoutException;
 
     protected AbstractHttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
@@ -123,10 +126,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     proxyActor.tell(command, getSelf());
                     becomeCommandResponseAwaiting();
 
-                    messageTimeout = message.getTimeout().orElse(null);
-                    isFireAndForgetMessage = isFireAndForgetMessage(command);
-                    if (messageTimeout != null && !isFireAndForgetMessage) {
-                        getContext().setReceiveTimeout(Duration.apply(messageTimeout.getSeconds(), TimeUnit.SECONDS));
+                    timeout = message.getTimeout().orElse(null);
+                    isFireAndForget = isFireAndForgetMessage(command);
+                    if (timeout != null && !isFireAndForget) {
+                        timeoutException = new MessageTimeoutException(timeout.getSeconds());
+                        getContext().setReceiveTimeout(Duration.apply(timeout.getSeconds(), TimeUnit.SECONDS));
                     }
                 })
                 .match(Status.Failure.class, failure -> {
@@ -173,6 +177,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         } else {
             proxyActor.tell(command, getSelf());
             completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
+        }
+
+        timeout = command.getDittoHeaders().getTimeout().orElse(null);
+        isFireAndForget = isFireAndForget(command);
+        if (timeout != null && !isFireAndForget) {
+            timeoutException = AcknowledgementCommandTimeoutException.newBuilder(timeout)
+                    .dittoHeaders(command.getDittoHeaders())
+                    .build();
+            getContext().setReceiveTimeout(timeout);
         }
     }
 
@@ -309,10 +322,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
-        if (messageTimeout != null && !isFireAndForgetMessage) {
-            logger.info("Got <{}> when a message response was expected after timeout <{}>.",
-                    receiveTimeout.getClass().getSimpleName(), messageTimeout);
-            handleDittoRuntimeException(new MessageTimeoutException(messageTimeout.getSeconds()));
+        if (timeout != null && !isFireAndForget) {
+            logger.info("Got <{}> when a response was expected after timeout <{}>.",
+                    receiveTimeout.getClass().getSimpleName(), timeout);
+            handleDittoRuntimeException(timeoutException);
         } else {
             logger.warning("No response within server request timeout (<{}>), shutting actor down.",
                     httpConfig.getRequestTimeout());

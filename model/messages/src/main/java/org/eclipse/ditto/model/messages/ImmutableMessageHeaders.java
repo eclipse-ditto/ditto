@@ -15,7 +15,6 @@ package org.eclipse.ditto.model.messages;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -79,13 +78,6 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     @Override
     public Optional<String> getFeatureId() {
         return getStringForDefinition(MessageHeaderDefinition.FEATURE_ID);
-    }
-
-    @Override
-    public Optional<Duration> getTimeout() {
-        return getStringForDefinition(MessageHeaderDefinition.TIMEOUT)
-                .map(Long::parseLong)
-                .map(Duration::ofSeconds);
     }
 
     @Override

@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 
@@ -169,10 +170,28 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * </p>
      * @since 1.1.0
      */
-    REQUESTED_ACK_LABELS("requested-ack-labels", JsonArray.class, true, true)
+    REQUESTED_ACK_LABELS("requested-ack-labels", JsonArray.class, true, true),
 
+    /**
+     * Header definition for the timeout of a command or message.
+     * <p>
+     * Key: {@code "timeout"}, Java type: {@code String}.
+     * </p>
+     * @since 1.1.0
+     */
+    TIMEOUT("timeout", DittoDuration.class, String.class,true, true) {
+        @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
+        @Override
+        public void validateValue(@Nullable final CharSequence value) {
+            super.validateValue(value);
+            try {
+                DittoDuration.fromTimeoutString(null != value ? value : "null");
+            } catch (final NumberFormatException e) {
+                throw DittoHeaderInvalidException.newInvalidTypeBuilder(TIMEOUT.key, String.valueOf(value), "duration").build();
+            }
+        }
+    }
     ;
-
 
     /**
      * Map to speed up lookup of header definition by key.

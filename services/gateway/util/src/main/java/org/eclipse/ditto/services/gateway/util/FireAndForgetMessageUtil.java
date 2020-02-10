@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.util;
 import java.time.Duration;
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 
@@ -45,14 +46,29 @@ public final class FireAndForgetMessageUtil {
     }
 
     /**
+     * Tests whether a withDittoHeaders is fire-and-forget.
+     *
+     * @param withDittoHeaders The withDittoHeaders to check.
+     * @return {@code true} if the withDittoHeaders's timeout header is 0 or if the withDittoHeaders is flagged not to
+     * require a response, {@code false} otherwise.
+     * @since 1.1.0
+     */
+    public static boolean isFireAndForget(final WithDittoHeaders<?> withDittoHeaders) {
+        return withDittoHeaders.getDittoHeaders()
+                .getTimeout()
+                .map(Duration::isZero)
+                .orElseGet(() -> !withDittoHeaders.getDittoHeaders().isResponseRequired());
+    }
+
+    /**
      * Tests whether a message command is fire-and-forget.
      *
-     * @param command The message command.
+     * @param command The message command to check.
      * @return {@code true} if the message's timeout header is 0 or if the message is flagged not to require a response,
      * {@code false} otherwise.
      */
     public static boolean isFireAndForgetMessage(final MessageCommand<?, ?> command) {
-        return command.getMessage()
+        return isFireAndForget(command) || command.getMessage()
                 .getTimeout()
                 .map(Duration::isZero)
                 .orElseGet(() -> !command.getDittoHeaders().isResponseRequired());

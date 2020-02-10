@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -45,7 +44,6 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.http.javadsl.unmarshalling.Unmarshaller;
 import akka.japi.function.Function;
 
 /**
@@ -61,11 +59,6 @@ public final class DevOpsRoute extends AbstractRoute {
     private static final String PATH_LOGGING = "logging";
     private static final String PATH_PIGGYBACK = "piggyback";
     private static final String PATH_CONFIG = "config";
-
-    /**
-     * Timeout in milliseconds of how long to wait for all responses before returning.
-     */
-    private static final String TIMEOUT_PARAMETER = "timeout";
 
     /**
      * Path parameter for retrieving config.
@@ -102,25 +95,23 @@ public final class DevOpsRoute extends AbstractRoute {
     /**
      * @return the {@code /devops} route.
      */
-    public Route buildDevOpsRoute(final RequestContext ctx) {
+    public Route buildDevOpsRoute(final RequestContext ctx, @Nullable final String timeout) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_DEVOPS), () -> {// /devops
             final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
                     DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
             return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS,
-                    parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER, optionalTimeout ->
-                            concat(
-                                    rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
-                                            () -> // /devops/logging
-                                                    logging(ctx, createHeaders(optionalTimeout))
-                                    ),
-                                    rawPathPrefix(PathMatchers.slash().concat(PATH_PIGGYBACK),
-                                            () -> // /devops/piggyback
-                                                    piggyback(ctx, createHeaders(optionalTimeout))
-                                    ),
-                                    rawPathPrefix(PathMatchers.slash().concat(PATH_CONFIG),
-                                            () -> // /devops/config
-                                                    config(ctx, createHeaders(optionalTimeout)))
-                            )
+                    concat(
+                            rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
+                                    () -> // /devops/logging
+                                            logging(ctx, createHeaders(timeout))
+                            ),
+                            rawPathPrefix(PathMatchers.slash().concat(PATH_PIGGYBACK),
+                                    () -> // /devops/piggyback
+                                            piggyback(ctx, createHeaders(timeout))
+                            ),
+                            rawPathPrefix(PathMatchers.slash().concat(PATH_CONFIG),
+                                    () -> // /devops/config
+                                            config(ctx, createHeaders(timeout)))
                     )
             );
         });
@@ -312,10 +303,11 @@ public final class DevOpsRoute extends AbstractRoute {
         return newPointer;
     }
 
-    private static DittoHeaders createHeaders(final Optional<Long> optionalTimeout) {
-        final DittoHeadersBuilder headersBuilder =
+    private static DittoHeaders createHeaders(@Nullable final String timeoutStr) {
+        final DittoHeadersBuilder<?, ?> headersBuilder =
                 DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString());
-        optionalTimeout.ifPresent(t -> headersBuilder.putHeader(TIMEOUT_PARAMETER, Long.toString(t)));
+
+        headersBuilder.timeout(timeoutStr);
         return headersBuilder.build();
     }
 

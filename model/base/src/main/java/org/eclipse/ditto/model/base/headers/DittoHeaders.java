@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -288,5 +289,16 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @since 1.1.0
      */
     Set<AcknowledgementLabel> getRequestedAckLabels();
+
+    /**
+     * Returns the timeout of a command or message.
+     * <p>
+     * E.g. used for when {@code AcknowledgementLabel}s were requested as timeout defining how long to wait for those
+     * Acknowledgements.
+     * </p>
+     *
+     * @return the command timeout.
+     */
+    Optional<Duration> getTimeout();
 
 }

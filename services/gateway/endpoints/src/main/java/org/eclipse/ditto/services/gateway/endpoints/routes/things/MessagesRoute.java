@@ -53,7 +53,6 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.http.javadsl.unmarshalling.Unmarshaller;
 import akka.japi.function.Function;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -70,8 +69,6 @@ final class MessagesRoute extends AbstractRoute {
     static final String PATH_CLAIM = "claim";
 
     private static final Pattern INBOX_OUTBOX_PATTERN = Pattern.compile(PATH_INBOX + "|" + PATH_OUTBOX);
-
-    static final String TIMEOUT_PARAMETER = "timeout";
 
     private final Duration defaultMessageTimeout;
     private final Duration maxMessageTimeout;
@@ -147,22 +144,19 @@ final class MessagesRoute extends AbstractRoute {
                 rawPathPrefix(PathMatchers.slash().concat(PATH_CLAIM), () -> // /inbox/claim
                         post(() ->
                                 pathEndOrSingleSlash(() ->
-                                        parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
-                                                optionalTimeout ->
-                                                        withCustomRequestTimeout(optionalTimeout,
-                                                                this::checkClaimTimeout,
-                                                                defaultClaimTimeout,
-                                                                timeout ->
-                                                                        extractDataBytes(payloadSource ->
-                                                                                handleMessage(ctx, payloadSource,
-                                                                                        buildSendClaimMessage(
-                                                                                                ctx,
-                                                                                                dittoHeaders,
-                                                                                                thingId,
-                                                                                                timeout
-                                                                                        )
-                                                                                )
+                                        withCustomRequestTimeout(dittoHeaders.getTimeout().map(Duration::getSeconds),
+                                                this::checkClaimTimeout,
+                                                defaultClaimTimeout,
+                                                timeout ->
+                                                        extractDataBytes(payloadSource ->
+                                                                handleMessage(ctx, payloadSource,
+                                                                        buildSendClaimMessage(
+                                                                                ctx,
+                                                                                dittoHeaders,
+                                                                                thingId,
+                                                                                timeout
                                                                         )
+                                                                )
                                                         )
                                         )
                                 )
@@ -185,24 +179,21 @@ final class MessagesRoute extends AbstractRoute {
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
                 () -> // /messages
                         extractUnmatchedPath(msgSubject -> // <msgSubject/with/slashes>
-                                parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
-                                        optionalTimeout ->
-                                                withCustomRequestTimeout(optionalTimeout,
-                                                        this::checkMessageTimeout,
-                                                        defaultMessageTimeout,
-                                                        timeout ->
-                                                                extractDataBytes(payloadSource ->
-                                                                        handleMessage(ctx, payloadSource,
-                                                                                buildSendThingMessage(
-                                                                                        getMessageDirection(inboxOutbox),
-                                                                                        ctx,
-                                                                                        dittoHeaders,
-                                                                                        thingId,
-                                                                                        msgSubject,
-                                                                                        timeout
-                                                                                )
-                                                                        )
+                                withCustomRequestTimeout(dittoHeaders.getTimeout().map(Duration::getSeconds),
+                                        this::checkMessageTimeout,
+                                        defaultMessageTimeout,
+                                        timeout ->
+                                                extractDataBytes(payloadSource ->
+                                                        handleMessage(ctx, payloadSource,
+                                                                buildSendThingMessage(
+                                                                        getMessageDirection(inboxOutbox),
+                                                                        ctx,
+                                                                        dittoHeaders,
+                                                                        thingId,
+                                                                        msgSubject,
+                                                                        timeout
                                                                 )
+                                                        )
                                                 )
                                 )
                         )
@@ -229,25 +220,22 @@ final class MessagesRoute extends AbstractRoute {
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
                 () -> // /messages
                         extractUnmatchedPath(msgSubject -> // /messages/<msgSubject/with/slashes>
-                                parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
-                                        optionalTimeout ->
-                                                withCustomRequestTimeout(optionalTimeout,
-                                                        this::checkMessageTimeout,
-                                                        defaultMessageTimeout,
-                                                        timeout ->
-                                                                extractDataBytes(payloadSource ->
-                                                                        handleMessage(ctx, payloadSource,
-                                                                                buildSendFeatureMessage(
-                                                                                        getMessageDirection(inboxOutbox),
-                                                                                        ctx,
-                                                                                        dittoHeaders,
-                                                                                        thingId,
-                                                                                        featureId,
-                                                                                        msgSubject,
-                                                                                        timeout
-                                                                                )
-                                                                        )
+                                withCustomRequestTimeout(dittoHeaders.getTimeout().map(Duration::getSeconds),
+                                        this::checkMessageTimeout,
+                                        defaultMessageTimeout,
+                                        timeout ->
+                                                extractDataBytes(payloadSource ->
+                                                        handleMessage(ctx, payloadSource,
+                                                                buildSendFeatureMessage(
+                                                                        getMessageDirection(inboxOutbox),
+                                                                        ctx,
+                                                                        dittoHeaders,
+                                                                        thingId,
+                                                                        featureId,
+                                                                        msgSubject,
+                                                                        timeout
                                                                 )
+                                                        )
                                                 )
                                 )
                         )

@@ -32,12 +32,13 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = AcknowledgementLabelInvalidException.ERROR_CODE)
-public final class AcknowledgementLabelInvalidException extends DittoRuntimeException {
+public final class AcknowledgementLabelInvalidException extends DittoRuntimeException
+        implements AcknowledgementException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "acknowledgement.label.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "label.invalid";
 
     private static final String MESSAGE_TEMPLATE = "Acknowledgement label <{0}> is invalid!";
 

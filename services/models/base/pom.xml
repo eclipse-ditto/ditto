@@ -25,4 +25,11 @@
     <artifactId>ditto-services-models-base</artifactId>
     <name>Eclipse Ditto :: Services :: Models :: Base</name>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-acks</artifactId>
+        </dependency>
+    </dependencies>
+
 </project>

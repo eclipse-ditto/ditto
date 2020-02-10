@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -298,6 +299,30 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         ackLabels.add(ackLabel);
         Collections.addAll(ackLabels, furtherAckLabels);
         return requestedAckLabels(ackLabels);
+    }
+
+    @Override
+    public S timeout(@Nullable final String timeoutStr) {
+        if (null != timeoutStr) {
+            return timeout(DittoDuration.fromTimeoutString(timeoutStr));
+        } else {
+            return timeout((DittoDuration) null);
+        }
+    }
+
+    @Override
+    public S timeout(final long timeoutInSeconds) {
+        return timeout(DittoDuration.fromDuration(Duration.ofSeconds(timeoutInSeconds), null));
+    }
+
+    private S timeout(@Nullable final DittoDuration timeout) {
+        final DittoHeaderDefinition definition = DittoHeaderDefinition.TIMEOUT;
+        if (null != timeout) {
+            putCharSequence(definition, timeout.toString());
+        } else {
+            removeHeader(definition.getKey());
+        }
+        return myself;
     }
 
     @Override

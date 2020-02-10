@@ -84,7 +84,9 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "timeout"}, Java type: {@code long}.
      * </p>
+     * @deprecated since 1.1.0: replaced by {@link org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#TIMEOUT}
      */
+    @Deprecated
     TIMEOUT("timeout", long.class, true, true) {
         @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
         @Override

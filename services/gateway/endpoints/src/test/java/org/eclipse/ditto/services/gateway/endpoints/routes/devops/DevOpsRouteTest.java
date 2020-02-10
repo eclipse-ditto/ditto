@@ -52,7 +52,7 @@ public final class DevOpsRouteTest extends EndpointTestBase {
         devOpsRoute = new DevOpsRoute(createDummyResponseActor(), actorSystem, httpConfig, getInsecureDevopsConfig(),
                 adapterProvider.getHttpHeaderTranslator());
 
-        final Route route = extractRequestContext(ctx -> devOpsRoute.buildDevOpsRoute(ctx));
+        final Route route = extractRequestContext(ctx -> devOpsRoute.buildDevOpsRoute(ctx, null));
         underTest = testRoute(route);
     }
 

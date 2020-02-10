@@ -99,6 +99,11 @@ public final class RootRoute extends AllDirectives {
     static final String HTTP_PATH_API_PREFIX = "api";
     static final String WS_PATH_PREFIX = "ws";
 
+    /**
+     * Query parameter specifying the timeout (in seconds) to apply for a HTTP calls.
+     */
+    public static final String TIMEOUT_PARAMETER = "timeout";
+
     private final HttpConfig httpConfig;
 
     private final StatusRoute ownStatusRoute;
@@ -163,15 +168,17 @@ public final class RootRoute extends AllDirectives {
 
     private Route buildRoute() {
         return wrapWithRootDirectives(correlationId ->
-                extractRequestContext(ctx ->
-                        concat(
-                                statsRoute.buildStatsRoute(correlationId), // /stats
-                                cachingHealthRoute.buildHealthRoute(), // /health
-                                api(ctx, correlationId), // /api
-                                ws(ctx, correlationId), // /ws
-                                ownStatusRoute.buildStatusRoute(), // /status
-                                overallStatusRoute.buildOverallStatusRoute(), // /overall
-                                devopsRoute.buildDevOpsRoute(ctx) // /devops
+                parameterOptional(TIMEOUT_PARAMETER, timeout ->
+                        extractRequestContext(ctx ->
+                                concat(
+                                        statsRoute.buildStatsRoute(correlationId), // /stats
+                                        cachingHealthRoute.buildHealthRoute(), // /health
+                                        api(ctx, correlationId, timeout.orElse(null)), // /api
+                                        ws(ctx, correlationId), // /ws
+                                        ownStatusRoute.buildStatusRoute(), // /status
+                                        overallStatusRoute.buildOverallStatusRoute(), // /overall
+                                        devopsRoute.buildDevOpsRoute(ctx, timeout.orElse(null)) // /devops
+                                )
                         )
                 )
         );
@@ -235,34 +242,34 @@ public final class RootRoute extends AllDirectives {
      *
      * @return route for API resource.
      */
-    private Route api(final RequestContext ctx, final String correlationId) {
+    private Route api(final RequestContext ctx, final String correlationId, @Nullable final String timeout) {
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
                         customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
-                                apiAuthentication(correlationId,
-                                        authContextWithPrefixedSubjects ->
-                                                mapAuthorizationContext(
-                                                        correlationId,
-                                                        apiVersion,
-                                                        authContextWithPrefixedSubjects,
-                                                        authContext ->
-                                                                parameterOptional(TopicPath.Channel.LIVE.getName(),
-                                                                        liveParam ->
-                                                                                withDittoHeaders(
-                                                                                        authContext,
-                                                                                        apiVersion,
-                                                                                        correlationId,
-                                                                                        ctx,
-                                                                                        liveParam.orElse(null),
-                                                                                        CustomHeadersHandler.RequestType.API,
-                                                                                        dittoHeaders ->
-                                                                                                buildApiSubRoutes(ctx,
-                                                                                                        dittoHeaders,
-                                                                                                        authContext)
-                                                                                )
-                                                                )
-                                                )
-                                ))
+                                apiAuthentication(correlationId, authContextWithPrefixedSubjects ->
+                                        mapAuthorizationContext(
+                                                correlationId,
+                                                apiVersion,
+                                                authContextWithPrefixedSubjects, authContext ->
+                                                        parameterOptional(TopicPath.Channel.LIVE.getName(),
+                                                                liveParam ->
+                                                                        withDittoHeaders(
+                                                                                authContext,
+                                                                                apiVersion,
+                                                                                correlationId,
+                                                                                ctx,
+                                                                                liveParam.orElse(null),
+                                                                                timeout,
+                                                                                CustomHeadersHandler.RequestType.API,
+                                                                                dittoHeaders ->
+                                                                                        buildApiSubRoutes(ctx,
+                                                                                                dittoHeaders,
+                                                                                                authContext)
+                                                                        )
+                                                        )
+                                        )
+                                )
+                        )
                 )
         );
     }
@@ -334,17 +341,17 @@ public final class RootRoute extends AllDirectives {
                         wsAuthentication(correlationId, authContextWithPrefixedSubjects ->
                                 mapAuthorizationContext(correlationId, wsVersion, authContextWithPrefixedSubjects,
                                         authContext -> withDittoHeaders(authContext,
-                                                wsVersion, correlationId, ctx, null,
+                                                wsVersion, correlationId, ctx, null, null,
                                                 CustomHeadersHandler.RequestType.WS, dittoHeaders -> {
 
-                                                            final String userAgent = extractUserAgent(ctx).orElse(null);
-                                                            final ProtocolAdapter chosenProtocolAdapter =
-                                                                    protocolAdapterProvider.getProtocolAdapter(
-                                                                            userAgent);
-                                                            return websocketRouteBuilder.build(wsVersion, correlationId,
-                                                                    authContext, dittoHeaders, chosenProtocolAdapter);
-                                                        }
-                                                )
+                                                    final String userAgent = extractUserAgent(ctx).orElse(null);
+                                                    final ProtocolAdapter chosenProtocolAdapter =
+                                                            protocolAdapterProvider.getProtocolAdapter(
+                                                                    userAgent);
+                                                    return websocketRouteBuilder.build(wsVersion, correlationId,
+                                                            authContext, dittoHeaders, chosenProtocolAdapter);
+                                                }
+                                        )
                                 )
                         )
                 )
@@ -365,6 +372,7 @@ public final class RootRoute extends AllDirectives {
             final String correlationId,
             final RequestContext ctx,
             @Nullable final String liveParam,
+            @Nullable final String timeoutParam,
             final CustomHeadersHandler.RequestType requestType,
             final Function<DittoHeaders, Route> inner) {
 
@@ -372,7 +380,7 @@ public final class RootRoute extends AllDirectives {
                 javaFunctionToRoute(requestContext -> {
                     final CompletionStage<DittoHeaders> headersFuture =
                             buildDittoHeaders(authorizationContext, version, correlationId, ctx, liveParam,
-                                    requestType);
+                                    timeoutParam, requestType);
                     final CompletionStage<Route> routeFuture = headersFuture.thenApply(dittoHeaders -> {
                         dittoHeadersSizeChecker.check(dittoHeaders);
                         return inner.apply(dittoHeaders);
@@ -396,9 +404,10 @@ public final class RootRoute extends AllDirectives {
             final String correlationId,
             final RequestContext ctx,
             @Nullable final String liveParam,
+            @Nullable final String timeoutParam,
             final CustomHeadersHandler.RequestType requestType) {
 
-        final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
+        final DittoHeadersBuilder<?, ?> builder = DittoHeaders.newBuilder();
 
         final Map<String, String> externalHeadersMap = getFilteredExternalHeaders(ctx.getRequest(), correlationId);
         builder.putHeaders(externalHeadersMap);
@@ -408,7 +417,8 @@ public final class RootRoute extends AllDirectives {
 
         builder.authorizationContext(authorizationContext)
                 .schemaVersion(jsonSchemaVersion)
-                .correlationId(correlationId);
+                .correlationId(correlationId)
+                .timeout(timeoutParam);
 
         // if the "live" query param was set - no matter what the value was - use live channel
         if (liveParam != null) {

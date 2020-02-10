@@ -251,6 +251,24 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B requestedAckLabels(AcknowledgementLabel ackLabel, AcknowledgementLabel ... furtherAckLabels);
 
     /**
+     * Sets the timeout string of the DittoHeaders to build.
+     *
+     * @param timeoutStr the duration of the command containing the DittoHeaders to time out.
+     * @return this builder.
+     * @since 1.1.0
+     */
+    B timeout(@Nullable String timeoutStr);
+
+    /**
+     * Sets the timeout of the DittoHeaders to build.
+     *
+     * @param timeoutInSeconds the seconds of the command containing the DittoHeaders to time out.
+     * @return this builder.
+     * @since 1.1.0
+     */
+    B timeout(long timeoutInSeconds);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.

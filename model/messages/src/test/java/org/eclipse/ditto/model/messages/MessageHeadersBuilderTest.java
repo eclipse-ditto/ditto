@@ -165,7 +165,6 @@ public final class MessageHeadersBuilderTest {
         final Map<String, String> validHeaders = new HashMap<>();
         validHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
         validHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
-        validHeaders.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT));
         validHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), CORRELATION_ID);
 
         final MessageHeaders messageHeaders = underTest.putHeaders(validHeaders).build();
@@ -181,28 +180,11 @@ public final class MessageHeadersBuilderTest {
         final Map<String, String> invalidHeaders = new HashMap<>();
         invalidHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
         invalidHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
-        invalidHeaders.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT));
         invalidHeaders.put(key, invalidValue);
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
                 .withMessage("The value '%s' of the header '%s' is not a valid boolean.", invalidValue, key)
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToPutMapWithInvalidMessageHeader() {
-        final String key = MessageHeaderDefinition.TIMEOUT.getKey();
-        final String invalidValue = "bar";
-
-        final Map<String, String> invalidHeaders = new HashMap<>();
-        invalidHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
-        invalidHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
-        invalidHeaders.put(key, invalidValue);
-
-        assertThatExceptionOfType(DittoHeaderInvalidException.class)
-                .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
-                .withMessage("The value '%s' of the header '%s' is not a valid long.", invalidValue, key)
                 .withNoCause();
     }
 

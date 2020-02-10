@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.Comparator;
@@ -235,11 +236,18 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Optional<Duration> getTimeout() {
+        return getStringForDefinition(DittoHeaderDefinition.TIMEOUT)
+                .map(DittoDuration::fromTimeoutString)
+                .map(DittoDuration::getDuration);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         forEach((key, value) -> {
             final Class<?> type = getSerializationTypeForKey(key);
-            final JsonValue jsonValue = type.isAssignableFrom(String.class)
+            final JsonValue jsonValue = CharSequence.class.isAssignableFrom(type)
                     ? JsonFactory.newValue(value)
                     : JsonFactory.readFrom(value);
             jsonObjectBuilder.set(key, jsonValue);

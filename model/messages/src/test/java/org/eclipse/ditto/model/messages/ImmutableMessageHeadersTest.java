@@ -96,20 +96,6 @@ public final class ImmutableMessageHeadersTest {
     }
 
     @Test
-    public void timeoutIsSerializedAsInteger() {
-        final long timeout = Long.MAX_VALUE;
-
-        final MessageHeaders underTest = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT)
-                .timeout(timeout)
-                .build();
-
-        final JsonObject jsonObject = underTest.toJson();
-
-        assertThat(jsonObject.getValue(MessageHeaderDefinition.TIMEOUT.getKey()))
-                .contains(JsonFactory.newValue(timeout));
-    }
-
-    @Test
     public void createInstanceOfValidHeaderMapWorksAsExpected() {
         final Map<String, String> initialHeaders = createMapContainingAllKnownHeaders();
 
@@ -272,10 +258,10 @@ public final class ImmutableMessageHeadersTest {
         result.put(MessageHeaderDefinition.SUBJECT.getKey(), SUBJECT);
         result.put(MessageHeaderDefinition.THING_ID.getKey(), THING_ID.toString());
         result.put(MessageHeaderDefinition.FEATURE_ID.getKey(), FEATURE_ID);
-        result.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT.getSeconds()));
         result.put(MessageHeaderDefinition.TIMESTAMP.getKey(), TIMESTAMP);
         result.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(STATUS_CODE.toInt()));
         result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
+        result.put(DittoHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT.getSeconds()));
 
         return result;
     }

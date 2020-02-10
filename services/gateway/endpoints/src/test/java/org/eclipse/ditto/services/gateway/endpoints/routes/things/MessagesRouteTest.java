@@ -20,6 +20,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
+import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,7 +87,7 @@ public final class MessagesRouteTest extends EndpointTestBase {
     @Test
     public void postThingsClaimMessageWithTimeout() {
         final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_CLAIM_PATH + "?" +
-                MessagesRoute.TIMEOUT_PARAMETER + "=" + 42));
+                RootRoute.TIMEOUT_PARAMETER + "=" + 42));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
