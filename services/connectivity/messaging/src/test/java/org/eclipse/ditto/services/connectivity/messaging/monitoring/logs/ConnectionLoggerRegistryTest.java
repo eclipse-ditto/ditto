@@ -21,6 +21,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -191,7 +192,7 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     @Test
-    public void aggregatesLogs() {
+    public void aggregatesLogs() throws InterruptedException {
         final ConnectionId connectionId = connectionId();
         final String source = "a:b";
         underTest.initForConnection(connection(connectionId));
@@ -201,7 +202,9 @@ public final class ConnectionLoggerRegistryTest {
         final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connectionId, source);
 
         connectionLogger.success(randomInfoProvider());
+        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
         connectionLogger.failure(randomInfoProvider());
+        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
         inboundConsumed.success(randomInfoProvider());
 
         final Collection<LogEntry> connectionLogs = connectionLogger.getLogs();
@@ -209,12 +212,48 @@ public final class ConnectionLoggerRegistryTest {
 
         final ConnectionLogs aggregatedLogs = underTest.aggregateLogs(connectionId);
 
+        final ArrayList<LogEntry> logEntries = new ArrayList<>(aggregatedLogs.getLogs());
         assertThat(aggregatedLogs.getEnabledSince()).isNotNull();
         assertThat(aggregatedLogs.getEnabledUntil()).isNotNull();
-        assertThat(aggregatedLogs.getLogs())
+        assertThat(logEntries)
                 .containsAll(connectionLogs)
                 .containsAll(inboundConsumedLogs)
                 .hasSize(connectionLogs.size() + inboundConsumedLogs.size());
+        assertThat(logEntries.get(0).getTimestamp()).isBefore(logEntries.get(1).getTimestamp());
+    }
+
+    @Test
+    public void aggregatesLogsRespectsMaximumLogSizeLimit() throws InterruptedException {
+        final ConnectionId connectionId = connectionId();
+        final String source = "a:b";
+        underTest.initForConnection(connection(connectionId));
+        underTest.unmuteForConnection(connectionId);
+
+        final ConnectionLogger connectionLogger = underTest.forConnection(connectionId);
+        final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connectionId, source);
+
+        connectionLogger.success(randomInfoProvider());
+        final Collection<LogEntry> listWithOnlyFirstSuccessLog = connectionLogger.getLogs();
+        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
+        connectionLogger.failure(randomInfoProvider());
+        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
+        connectionLogger.failure(randomInfoProvider());
+        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
+        connectionLogger.failure(randomInfoProvider());
+        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
+        inboundConsumed.success(randomInfoProvider());
+
+        final Collection<LogEntry> connectionLogs = connectionLogger.getLogs();
+        final Collection<LogEntry> inboundConsumedLogs = inboundConsumed.getLogs();
+
+        final ConnectionLogs aggregatedLogs = underTest.aggregateLogs(connectionId);
+
+        final ArrayList<LogEntry> logEntries = new ArrayList<>(aggregatedLogs.getLogs());
+        assertThat(aggregatedLogs.getEnabledSince()).isNotNull();
+        assertThat(aggregatedLogs.getEnabledUntil()).isNotNull();
+        assertThat(logEntries)
+                .doesNotContainSequence(listWithOnlyFirstSuccessLog)
+                .hasSize(connectionLogs.size() + inboundConsumedLogs.size() - 1);
     }
 
     @Test

@@ -72,6 +72,9 @@ public final class DefaultMonitoringConfigTest {
                     softly.assertThat(loggerConfig.failureCapacity())
                             .as(MonitoringLoggerConfig.MonitoringLoggerConfigValue.FAILURE_CAPACITY.getConfigPath())
                             .isEqualTo(11);
+                    softly.assertThat(loggerConfig.maxLogSizeInBytes())
+                            .as(MonitoringLoggerConfig.MonitoringLoggerConfigValue.MAX_LOG_SIZE_BYTES.getConfigPath())
+                            .isEqualTo(1000);
                     softly.assertThat(loggerConfig.logDuration())
                             .as(MonitoringLoggerConfig.MonitoringLoggerConfigValue.LOG_DURATION.getConfigPath())
                             .isEqualTo(Duration.ofMinutes(12));
