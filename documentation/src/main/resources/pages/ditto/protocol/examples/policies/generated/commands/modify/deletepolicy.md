@@ -2,7 +2,7 @@
 
 ```json
 {
-  "topic": "com.acme/the_policy_id/policies/twin/commands/delete",
+  "topic": "com.acme/the_policy_id/policies/commands/delete",
   "headers": {
     "content-type": "application/vnd.eclipse.ditto+json"
   },

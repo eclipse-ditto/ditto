@@ -150,7 +150,9 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .map(value -> value.stream()
-                        .filter(field -> field.isMarkedAs(FieldType.REGULAR))
+                        // can't test for FieldType.REGULAR since some adaptables will already have forgotten the
+                        // field types for fields that should be shown. Thus we are safer this way.
+                        .filter(field -> !(field.isMarkedAs(FieldType.SPECIAL) || field.isMarkedAs(FieldType.HIDDEN)))
                         .collect(JsonCollectors.fieldsToObject()))
                 .map(valueWithOnlyRegularFields -> initialObject.toBuilder()
                         .set(Payload.JsonFields.VALUE, valueWithOnlyRegularFields)

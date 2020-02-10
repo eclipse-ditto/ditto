@@ -2,7 +2,7 @@
 
 ```json
 {
-  "topic": "com.acme/the_policy_id/policies/twin/commands/retrieve",
+  "topic": "com.acme/the_policy_id/policies/commands/retrieve",
   "headers": {
     "content-type": "application/vnd.eclipse.ditto+json"
   },
