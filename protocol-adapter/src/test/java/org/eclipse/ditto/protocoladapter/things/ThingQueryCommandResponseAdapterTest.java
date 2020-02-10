@@ -31,11 +31,13 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.BaseLiveTwinTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
@@ -57,7 +59,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link ThingQueryCommandResponseAdapter}.
  */
-public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapterTest {
+public final class ThingQueryCommandResponseAdapterTest extends BaseLiveTwinTest implements ProtocolAdapterTest {
 
     private ThingQueryCommandResponseAdapter underTest;
 
@@ -68,63 +70,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
 
     @Test(expected = UnknownCommandResponseException.class)
     public void unknownCommandResponseToAdaptable() {
-        underTest.toAdaptable(new ThingQueryCommandResponse() {
-
-            @Override
-            public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-                return toJson(schemaVersion, FieldType.notHidden());
-            }
-
-            @Override
-            public ThingId getThingEntityId() {
-                return THING_ID;
-            }
-
-            @Override
-            public String getType() {
-                return "things.commands:retrievePolicyIdResponse";
-            }
-
-            @Override
-            public HttpStatusCode getStatusCode() {
-                return HttpStatusCode.OK;
-            }
-
-            @Override
-            public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
-                return JsonObject.newBuilder()
-                        .set(Command.JsonFields.TYPE, getType())
-                        .set("policyId", THING_ID.toString())
-                        .build();
-            }
-
-            @Override
-            public DittoHeaders getDittoHeaders() {
-                return TestConstants.DITTO_HEADERS_V_2;
-            }
-
-            @Override
-            public JsonPointer getResourcePath() {
-                return JsonPointer.of("/policyId");
-            }
-
-            @Override
-            public ThingQueryCommandResponse setEntity(final JsonValue entity) {
-                return this;
-            }
-
-            @Override
-            public ThingQueryCommandResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-                return this;
-            }
-
-            @Nonnull
-            @Override
-            public String getManifest() {
-                return getType();
-            }
-        });
-
+        underTest.toAdaptable(new UnknownThingQueryCommandResponse());
     }
 
     @Test
@@ -132,12 +78,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveThingResponse expected =
                 RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.empty();
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -147,7 +88,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -156,12 +97,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     public void retrieveThingResponseToAdaptable() {
         final JsonPointer path = JsonPointer.empty();
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -173,7 +109,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
 
         final RetrieveThingResponse retrieveThing =
                 RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveThing);
+        final Adaptable actual = underTest.toAdaptable(retrieveThing, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -191,12 +127,13 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     private void retrieveThingsResponseToAdaptable(final String namespace) {
         final JsonPointer path = JsonPointer.empty();
 
-        final TopicPath topicPath = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"))
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPathBuilder topicPathBuilder = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"));
+        final TopicPath topicPath =
+                (channel == TopicPath.Channel.LIVE ? topicPathBuilder.live() : topicPathBuilder.twin())
+                        .things()
+                        .commands()
+                        .retrieve()
+                        .build();
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path).withValue(JsonFactory.newArray()
@@ -211,7 +148,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                 namespace,
                 TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
 
-        final Adaptable actual = underTest.toAdaptable(retrieveThingsResponse);
+        final Adaptable actual = underTest.toAdaptable(retrieveThingsResponse, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -221,12 +158,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveAclResponse expected =
                 RetrieveAclResponse.of(THING_ID, TestConstants.ACL, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.of("/acl");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -236,7 +168,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -245,12 +177,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     public void retrieveAclResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/acl");
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -262,7 +189,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
 
         final RetrieveAclResponse retrieveAcl =
                 RetrieveAclResponse.of(THING_ID, TestConstants.ACL, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveAcl);
+        final Adaptable actual = underTest.toAdaptable(retrieveAcl, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -272,12 +199,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveAclEntryResponse expected =
                 RetrieveAclEntryResponse.of(THING_ID, TestConstants.ACL_ENTRY, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -287,7 +209,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -296,12 +218,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     public void retrieveAclEntryResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -314,7 +231,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveAclEntryResponse retrieveAclEntry =
                 RetrieveAclEntryResponse.of(THING_ID, TestConstants.ACL_ENTRY,
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveAclEntry);
+        final Adaptable actual = underTest.toAdaptable(retrieveAclEntry, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -324,12 +241,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveAttributesResponse expected =
                 RetrieveAttributesResponse.of(THING_ID, TestConstants.ATTRIBUTES, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -339,7 +251,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -348,12 +260,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     public void retrieveAttributesResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -366,7 +273,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveAttributesResponse retrieveAttributes =
                 RetrieveAttributesResponse.of(THING_ID, TestConstants.ATTRIBUTES,
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveAttributes);
+        final Adaptable actual = underTest.toAdaptable(retrieveAttributes, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -377,12 +284,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                 RetrieveAttributeResponse.of(THING_ID, TestConstants.ATTRIBUTE_POINTER, TestConstants.ATTRIBUTE_VALUE,
                         DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -392,7 +294,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -401,12 +303,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     public void retrieveAttributeResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -419,7 +316,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveAttributeResponse retrieveAttribute =
                 RetrieveAttributeResponse.of(THING_ID, TestConstants.ATTRIBUTE_POINTER, TestConstants.ATTRIBUTE_VALUE,
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveAttribute);
+        final Adaptable actual = underTest.toAdaptable(retrieveAttribute, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -429,12 +326,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveThingDefinitionResponse expected =
                 RetrieveThingDefinitionResponse.of(THING_ID, TestConstants.THING_DEFINITION, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.of("/definition");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -444,7 +336,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -453,12 +345,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     public void retrieveDefinitionResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/definition");
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -471,7 +358,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveThingDefinitionResponse retrieveDefinition =
                 RetrieveThingDefinitionResponse.of(THING_ID, TestConstants.THING_DEFINITION,
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveDefinition);
+        final Adaptable actual = underTest.toAdaptable(retrieveDefinition, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -481,12 +368,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveFeaturesResponse expected =
                 RetrieveFeaturesResponse.of(THING_ID, TestConstants.FEATURES, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -496,7 +378,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -505,12 +387,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     public void retrieveFeaturesResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features");
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -523,7 +400,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveFeaturesResponse retrieveFeatures =
                 RetrieveFeaturesResponse.of(THING_ID, TestConstants.FEATURES,
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveFeatures);
+        final Adaptable actual = underTest.toAdaptable(retrieveFeatures, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -533,12 +410,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveFeatureResponse expected =
                 RetrieveFeatureResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE.toJson(), DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -548,7 +420,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -557,12 +429,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     public void retrieveFeatureResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -575,7 +442,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveFeatureResponse retrieveFeature =
                 RetrieveFeatureResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE.toJson(),
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveFeature);
+        final Adaptable actual = underTest.toAdaptable(retrieveFeature, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -586,12 +453,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                 RetrieveFeatureDefinitionResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_DEFINITION,
                         DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/definition");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -601,7 +463,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -610,12 +472,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     public void retrieveFeatureDefinitionResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/definition");
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -628,7 +485,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveFeatureDefinitionResponse retrieveFeatureDefinition =
                 RetrieveFeatureDefinitionResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_DEFINITION,
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveFeatureDefinition);
+        final Adaptable actual = underTest.toAdaptable(retrieveFeatureDefinition, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -639,12 +496,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                 RetrieveFeaturePropertiesResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTIES,
                         DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/properties");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -654,7 +506,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -663,12 +515,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
     public void retrieveFeaturePropertiesResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/properties");
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -681,7 +528,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveFeaturePropertiesResponse retrieveFeatureProperties =
                 RetrieveFeaturePropertiesResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTIES,
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperties);
+        final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperties, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -692,12 +539,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                 RetrieveFeaturePropertyResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
                         TestConstants.FEATURE_PROPERTY_VALUE, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/properties" +
                 TestConstants.FEATURE_PROPERTY_POINTER);
 
@@ -708,7 +550,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -718,12 +560,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/properties" +
                 TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -736,7 +573,7 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
         final RetrieveFeaturePropertyResponse retrieveFeatureProperty =
                 RetrieveFeaturePropertyResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
                         TestConstants.FEATURE_PROPERTY_VALUE, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperty);
+        final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperty, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -772,9 +609,66 @@ public final class ThingQueryCommandResponseAdapterTest implements ProtocolAdapt
                         .add(TestConstants.THING2.toJsonString())).build())
                 .withHeaders(TestConstants.HEADERS_V_2).build();
 
-        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
+    private static class UnknownThingQueryCommandResponse
+            implements ThingQueryCommandResponse<UnknownThingQueryCommandResponse> {
+
+        @Override
+        public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
+            return toJson(schemaVersion, FieldType.notHidden());
+        }
+
+        @Override
+        public ThingId getThingEntityId() {
+            return THING_ID;
+        }
+
+        @Override
+        public String getType() {
+            return "things.commands:retrievePolicyIdResponse";
+        }
+
+        @Override
+        public HttpStatusCode getStatusCode() {
+            return HttpStatusCode.OK;
+        }
+
+        @Override
+        public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
+            return JsonObject.newBuilder()
+                    .set(Command.JsonFields.TYPE, getType())
+                    .set("policyId", THING_ID.toString())
+                    .build();
+        }
+
+        @Override
+        public DittoHeaders getDittoHeaders() {
+            return TestConstants.DITTO_HEADERS_V_2;
+        }
+
+        @Override
+        public JsonPointer getResourcePath() {
+            return JsonPointer.of("/policyId");
+        }
+
+        @Override
+        public UnknownThingQueryCommandResponse setEntity(final JsonValue entity) {
+            return this;
+        }
+
+        @Override
+        public UnknownThingQueryCommandResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+            return this;
+        }
+
+        @Nonnull
+        @Override
+        public String getManifest() {
+            return getType();
+        }
+    }
 }

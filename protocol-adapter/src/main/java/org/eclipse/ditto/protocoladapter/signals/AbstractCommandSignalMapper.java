@@ -14,10 +14,12 @@ package org.eclipse.ditto.protocoladapter.signals;
 
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocoladapter.CommandsTopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
+import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -56,7 +58,15 @@ abstract class AbstractCommandSignalMapper<T extends Signal<?>> extends Abstract
             setAction(builder, Stream.of(supportedActions)
                     .filter(action -> commandName.startsWith(action.toString()))
                     .findAny()
-                    .orElseThrow(() -> UnknownCommandException.newBuilder(commandName).build()));
+                    .orElseThrow(() -> unknownCommandException(commandName)));
+        }
+    }
+
+    DittoRuntimeException unknownCommandException(final String commandName) {
+        if (this instanceof ResponseSignalMapper) {
+            return UnknownCommandResponseException.newBuilder(commandName).build();
+        } else {
+            return UnknownCommandException.newBuilder(commandName).build();
         }
     }
 
@@ -75,19 +85,25 @@ abstract class AbstractCommandSignalMapper<T extends Signal<?>> extends Abstract
                 builder.delete();
                 break;
             default:
-                throw UnknownCommandException.newBuilder(action.getName()).build();
+                throw unknownCommandException(action.getName());
         }
     }
 
     private static CommandsTopicPathBuilder fromTopicPathBuilderWithChannel(final TopicPathBuilder topicPathBuilder,
             final TopicPath.Channel channel) {
         final CommandsTopicPathBuilder commandsTopicPathBuilder;
-        if (channel == TopicPath.Channel.TWIN) {
-            commandsTopicPathBuilder = topicPathBuilder.twin().commands();
-        } else if (channel == TopicPath.Channel.LIVE) {
-            commandsTopicPathBuilder = topicPathBuilder.live().commands();
-        } else {
-            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
+        switch (channel) {
+            case TWIN:
+                commandsTopicPathBuilder = topicPathBuilder.twin().commands();
+                break;
+            case LIVE:
+                commandsTopicPathBuilder = topicPathBuilder.live().commands();
+                break;
+            case NONE:
+                commandsTopicPathBuilder = topicPathBuilder.none().commands();
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
         }
         return commandsTopicPathBuilder;
     }

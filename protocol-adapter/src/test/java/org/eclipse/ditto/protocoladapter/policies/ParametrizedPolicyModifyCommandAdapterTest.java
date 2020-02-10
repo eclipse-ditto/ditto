@@ -24,6 +24,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TestConstants.Policies;
 import org.eclipse.ditto.protocoladapter.TestConstants.Policies.TopicPaths;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicyEntry;
@@ -74,6 +75,11 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
     @Override
     protected AbstractPolicyAdapter<PolicyModifyCommand<?>> underTest() {
         return underTest;
+    }
+
+    @Override
+    protected TopicPath.Channel defaultChannel() {
+        return TopicPath.Channel.NONE;
     }
 
     private static TestParameter<PolicyModifyCommand<?>> createPolicy() {

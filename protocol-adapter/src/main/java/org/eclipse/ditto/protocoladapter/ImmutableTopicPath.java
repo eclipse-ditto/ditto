@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -39,20 +41,33 @@ final class ImmutableTopicPath implements TopicPath {
     private final Group group;
     private final Channel channel;
     private final Criterion criterion;
-    private final Action action;
+    @Nullable private final Action action;
+    @Nullable private final String subject;
     private final String path;
-    private final String subject;
 
-    private ImmutableTopicPath(final String namespace, final String id, final Group group, final Channel channel,
-            final Criterion criterion, final Action action, final String subject) {
-        this.namespace = namespace;
-        this.id = id;
-        this.group = group;
-        this.channel = channel;
-        this.criterion = criterion;
+    private ImmutableTopicPath(final String namespace, final String id, final Group group,
+            @Nullable final Channel channel, final Criterion criterion, @Nullable final Action action,
+            @Nullable final String subject) {
+        this.namespace = checkNotNull(namespace, PROP_NAME_NAMESPACE);
+        this.id = checkNotNull(id, PROP_NAME_ID);
+        this.group = checkNotNull(group, PROP_NAME_GROUP);
+        this.channel = checkChannelArgument(channel, group);
+        this.criterion = checkNotNull(criterion, PROP_NAME_CRITERION);
         this.action = action;
         this.subject = subject;
         this.path = buildPath();
+    }
+
+    private Channel checkChannelArgument(final Channel channel, final Group group) {
+        if (group == Group.POLICIES) {
+            // for policies group no channel is required/allowed
+            checkArgument(channel, ch -> ch == null || ch == Channel.NONE,
+                    () -> "The policies group requires no channel.");
+            return Channel.NONE;
+        } else {
+            // for other groups just check that a channel is there
+            return checkNotNull(channel, PROP_NAME_CHANNEL);
+        }
     }
 
     /**
@@ -69,18 +84,12 @@ final class ImmutableTopicPath implements TopicPath {
      */
     public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
             final Channel channel, final Criterion criterion) {
-        requireNonNull(namespace, PROP_NAME_NAMESPACE);
-        requireNonNull(id, PROP_NAME_ID);
-        requireNonNull(group, PROP_NAME_GROUP);
-        requireNonNull(channel, PROP_NAME_CHANNEL);
-        requireNonNull(criterion, PROP_NAME_CRITERION);
-
         return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, null);
     }
 
     /**
      * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code id}, {@code group},
-     * {@code criterion} and {@code action}.
+     * {@code channel}, {@code criterion} and {@code action}.
      *
      * @param namespace the namespace.
      * @param id the id.
@@ -92,18 +101,10 @@ final class ImmutableTopicPath implements TopicPath {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
-            final Channel channel,
-            final Criterion criterion, final Action action) {
-        requireNonNull(namespace, PROP_NAME_NAMESPACE);
-        requireNonNull(id, PROP_NAME_ID);
-        requireNonNull(group, PROP_NAME_GROUP);
-        requireNonNull(channel, PROP_NAME_CHANNEL);
-        requireNonNull(criterion, PROP_NAME_CRITERION);
-        requireNonNull(action, PROP_NAME_ACTION);
-
+            final Channel channel, final Criterion criterion, final Action action) {
+        checkNotNull(action, "action");
         return new ImmutableTopicPath(namespace, id, group, channel, criterion, action, null);
     }
-
 
     /**
      * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code id}, {@code group},
@@ -119,15 +120,8 @@ final class ImmutableTopicPath implements TopicPath {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
-            final Channel channel,
-            final Criterion criterion, final String subject) {
-        requireNonNull(namespace, PROP_NAME_NAMESPACE);
-        requireNonNull(id, PROP_NAME_ID);
-        requireNonNull(group, PROP_NAME_GROUP);
-        requireNonNull(channel, PROP_NAME_CHANNEL);
-        requireNonNull(criterion, PROP_NAME_CRITERION);
-        requireNonNull(subject, PROP_NAME_SUBJECT);
-
+            final Channel channel, final Criterion criterion, final String subject) {
+        checkNotNull(subject, "subject");
         return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, subject);
     }
 
@@ -183,8 +177,7 @@ final class ImmutableTopicPath implements TopicPath {
         final ImmutableTopicPath that = (ImmutableTopicPath) o;
         return Objects.equals(namespace, that.namespace) && Objects.equals(id, that.id) && group == that.group
                 && channel == that.channel && criterion == that.criterion && Objects.equals(action, that.action) &&
-                Objects
-                        .equals(subject, that.subject) && Objects.equals(path, that.path);
+                Objects.equals(subject, that.subject) && Objects.equals(path, that.path);
     }
 
     @Override
@@ -195,21 +188,31 @@ final class ImmutableTopicPath implements TopicPath {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + "namespace=" + namespace + ", id=" + id + ", group=" + group +
-                ", channel=" + channel
-                + ", criterion=" + criterion + ", action=" + action + ", subject=" + subject + ", path=" + path + ']';
+                ", channel=" + channel + ", criterion=" + criterion + ", action=" + action + ", subject=" + subject +
+                ", path=" + path + ']';
     }
 
     private String buildPath() {
-        if (action != null) {
-            // e.g.: <ns>/<id>/things/twin/commands/modify
-            return MessageFormat.format("{0}/{1}/{2}/{3}/{4}/{5}", namespace, id, group, channel, criterion, action);
-        } else if (subject != null) {
-            // e.g.: <ns>/<id>/things/live/messages/<msgSubject>
-            return MessageFormat.format("{0}/{1}/{2}/{3}/{4}/{5}", namespace, id, group, channel, criterion, subject);
-        } else {
-            // e.g.: <ns>/<id>/things/twin/search
-            return MessageFormat.format("{0}/{1}/{2}/{3}/{4}", namespace, id, group, channel, criterion);
+
+        final String namespaceIdGroup = MessageFormat.format("{0}/{1}/{2}", namespace, id, group);
+        final StringBuilder builder = new StringBuilder(namespaceIdGroup);
+
+        // e.g. policy commands do not have a channel
+        if (channel != Channel.NONE) {
+            builder.append(PATH_DELIMITER).append(channel);
         }
+
+        builder.append(PATH_DELIMITER).append(criterion);
+
+        if (action != null) {
+            // e.g.: <ns>/<id>/things/twin/commands/<action>
+            builder.append(PATH_DELIMITER).append(action);
+        } else if (subject != null) {
+            // e.g.: <ns>/<id>/things/live/messages/<subject>
+            builder.append(PATH_DELIMITER).append(subject);
+        }
+
+        return builder.toString();
     }
 
 }

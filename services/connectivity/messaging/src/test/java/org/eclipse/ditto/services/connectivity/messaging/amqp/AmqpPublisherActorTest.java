@@ -41,7 +41,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
@@ -105,7 +104,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .withText("payload")
                             .build();
             final Adaptable adaptable =
-                    DittoProtocolAdapter.newInstance().toAdaptable(thingEvent, TopicPath.Channel.TWIN);
+                    DittoProtocolAdapter.newInstance().toAdaptable(thingEvent);
             final OutboundSignal.Mapped mappedOutboundSignal =
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
 
@@ -159,7 +158,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
             final ExternalMessage externalMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders).withText("payload").build();
-            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source, TopicPath.Channel.TWIN);
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
             final OutboundSignal.Mapped mappedOutboundSignal =
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
 

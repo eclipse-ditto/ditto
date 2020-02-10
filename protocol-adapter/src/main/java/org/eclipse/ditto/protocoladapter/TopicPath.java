@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.things.ThingId;
 public interface TopicPath {
 
     String ID_PLACEHOLDER = "_";
+    String PATH_DELIMITER = "/";
 
     /**
      * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
@@ -236,7 +237,9 @@ public interface TopicPath {
 
         TWIN("twin"),
 
-        LIVE("live");
+        LIVE("live"),
+
+        NONE("none");
 
         private final String name;
 

@@ -25,6 +25,7 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TestConstants.Policies;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.junit.Before;
@@ -44,7 +45,7 @@ public final class PolicyQueryCommandAdapterTest implements ProtocolAdapterTest 
 
     @Test(expected = UnknownCommandException.class)
     public void unknownCommandToAdaptable() {
-        underTest.toAdaptable(new UnknownPolicyQueryCommand());
+        underTest.toAdaptable(new UnknownPolicyQueryCommand(), TopicPath.Channel.NONE);
     }
 
     private static class UnknownPolicyQueryCommand implements PolicyQueryCommand {

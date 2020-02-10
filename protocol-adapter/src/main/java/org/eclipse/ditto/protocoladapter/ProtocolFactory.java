@@ -12,9 +12,13 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -107,19 +111,31 @@ public final class ProtocolFactory {
      */
     @SuppressWarnings({"squid:S1166"})
     public static TopicPath newTopicPath(final String path) {
-        final String[] parts = path.split("/");
+        checkNotNull(path, "path");
+        final LinkedList<String> parts = new LinkedList<>(Arrays.asList(path.split(TopicPath.PATH_DELIMITER)));
 
         try {
-            final String namespace = parts[0];
-            final String id = parts[1];
+            final String namespace = parts.pop(); // parts[0]
+            final String id = parts.pop(); // parts[1]
             final TopicPath.Group group =
-                    TopicPath.Group.forName(parts[2])
+                    TopicPath.Group.forName(parts.pop()) // parts[2]
                             .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
-            final TopicPath.Channel channel =
-                    TopicPath.Channel.forName(parts[3])
+
+            final TopicPath.Channel channel;
+            switch (group) {
+                case POLICIES:
+                    channel = TopicPath.Channel.NONE;
+                    break;
+                case THINGS:
+                    channel = TopicPath.Channel.forName(parts.pop()) // parts[3]
                             .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
+                    break;
+                default:
+                    throw UnknownTopicPathException.newBuilder(path).build();
+            }
+
             final TopicPath.Criterion criterion =
-                    TopicPath.Criterion.forName(parts[4])
+                    TopicPath.Criterion.forName(parts.pop())
                             .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
 
             switch (criterion) {
@@ -127,7 +143,7 @@ public final class ProtocolFactory {
                 case EVENTS:
                     // commands and events Path always contain an ID:
                     final TopicPath.Action action =
-                            TopicPath.Action.forName(parts[5])
+                            TopicPath.Action.forName(parts.pop())
                                     .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, action);
                 case ERRORS:
@@ -135,13 +151,12 @@ public final class ProtocolFactory {
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
                 case MESSAGES:
                     // messages Path always contain a subject:
-                    final String[] subjectParts = Arrays.copyOfRange(parts, 5, parts.length);
-                    final String subject = String.join("/", subjectParts);
+                    final String subject = String.join(TopicPath.PATH_DELIMITER, parts);
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
                 default:
                     throw UnknownTopicPathException.newBuilder(path).build();
             }
-        } catch (final ArrayIndexOutOfBoundsException e) {
+        } catch (final NoSuchElementException e) {
             throw UnknownTopicPathException.newBuilder(path).build();
         }
     }

@@ -59,7 +59,9 @@ final class DefaultAdapterResolver implements AdapterResolver {
         if (TopicPath.Channel.LIVE.equals(channel)) { // /<group>/live
             adapter = Optional.ofNullable(fromLiveAdaptable(adaptable, adapterProvider));
         } else if (TopicPath.Channel.TWIN.equals(channel)) { // /<group>/twin
-            adapter = Optional.ofNullable(fromTwinAdaptable(adaptable, adapterProvider));
+            adapter = Optional.ofNullable(signalFromAdaptable(adaptable, adapterProvider));
+        } else if (TopicPath.Channel.NONE.equals(channel)) { // no channel (policies group)
+            adapter = Optional.ofNullable(signalFromAdaptable(adaptable, adapterProvider));
         } else {
             adapter = Optional.empty();
         }
@@ -78,18 +80,12 @@ final class DefaultAdapterResolver implements AdapterResolver {
                 return adapterProvider.getMessageCommandAdapter();
             }
         } else {
-            return signalFromThingAdaptable(adaptable, adapterProvider); // /<group>/live/(commands|events)
+            return signalFromAdaptable(adaptable, adapterProvider); // /<group>/live/(commands|events)
         }
     }
 
-    private Adapter<? extends Signal<?>> fromTwinAdaptable(final Adaptable adaptable,
-            final AdapterProvider adapterProvider) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        return signalFromThingAdaptable(adaptable, adapterProvider); // /<group>/twin/(commands|events)
-    }
-
     @Nullable
-    private Adapter<? extends Signal<?>> signalFromThingAdaptable(final Adaptable adaptable,
+    private Adapter<? extends Signal<?>> signalFromAdaptable(final Adaptable adaptable,
             final AdapterProvider adapterProvider) {
         final TopicPath topicPath = adaptable.getTopicPath();
         if (TopicPath.Criterion.COMMANDS.equals(topicPath.getCriterion())) {

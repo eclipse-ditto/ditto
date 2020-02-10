@@ -99,7 +99,6 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 PolicyNotAccessibleException.newBuilder(POLICY_ID).build();
         final TopicPath topicPath = TopicPath.newBuilder(POLICY_ID)
                 .policies()
-                .twin()
                 .errors()
                 .build();
         final JsonPointer path = JsonPointer.empty();

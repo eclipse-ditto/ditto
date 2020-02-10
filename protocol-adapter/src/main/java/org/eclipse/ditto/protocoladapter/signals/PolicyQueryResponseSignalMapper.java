@@ -20,7 +20,8 @@ import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 
 final class PolicyQueryResponseSignalMapper
-        extends AbstractQuerySignalMapper<PolicyQueryCommandResponse<?>> {
+        extends AbstractQuerySignalMapper<PolicyQueryCommandResponse<?>>
+        implements ResponseSignalMapper {
 
     @Override
     void validate(final PolicyQueryCommandResponse<?> commandResponse,

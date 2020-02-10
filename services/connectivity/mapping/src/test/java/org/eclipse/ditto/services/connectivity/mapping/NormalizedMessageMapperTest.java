@@ -38,7 +38,6 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
@@ -82,7 +81,7 @@ public final class NormalizedMessageMapperTest {
                         .build()))
                 .build(), 1L, Instant.ofEpochSecond(1L), DittoHeaders.empty());
 
-        final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
+        final Adaptable adaptable = ADAPTER.toAdaptable(event);
         Assertions.assertThat(mapToJson(adaptable))
                 .isEqualTo(JsonObject.of("{\n" +
                         "  \"thingId\": \"thing:created\",\n" +
@@ -120,7 +119,7 @@ public final class NormalizedMessageMapperTest {
                 Instant.ofEpochSecond(2L),
                 DittoHeaders.empty());
 
-        final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
+        final Adaptable adaptable = ADAPTER.toAdaptable(event);
         Assertions.assertThat(mapToJson(adaptable))
                 .isEqualTo(JsonObject.of("{\n" +
                         "  \"thingId\": \"thing:id\",\n" +
@@ -158,7 +157,7 @@ public final class NormalizedMessageMapperTest {
                         Collections.singletonMap(NormalizedMessageMapper.FIELDS,
                                 "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer")));
 
-        final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
+        final Adaptable adaptable = ADAPTER.toAdaptable(event);
         Assertions.assertThat(mapToJson(adaptable))
                 .isEqualTo(JsonObject.of("{\n" +
                         "  \"_modified\": \"1970-01-01T00:00:02Z\",\n" +
@@ -189,7 +188,7 @@ public final class NormalizedMessageMapperTest {
                                 "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
                                         "_context/headers/correlation-id")));
 
-        final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
+        final Adaptable adaptable = ADAPTER.toAdaptable(event);
         Assertions.assertThat(mapToJson(adaptable))
                 .isEqualTo(JsonObject.of("{\n" +
                         "  \"thingId\": \"thing:created\",\n" +
@@ -230,7 +229,7 @@ public final class NormalizedMessageMapperTest {
                         .build())
                 .build();
 
-        final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
+        final Adaptable adaptable = ADAPTER.toAdaptable(event);
         final Adaptable adaptableWithExtra = ProtocolFactory.setExtra(adaptable, thing.toJson(
                 JsonFactory.newFieldSelector("policyId,attributes,features/my-feature/properties/def",
                         JsonParseOptions.newBuilder().withoutUrlDecoding().build())));

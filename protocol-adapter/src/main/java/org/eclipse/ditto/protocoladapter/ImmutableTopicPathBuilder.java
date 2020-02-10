@@ -110,6 +110,11 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
         return this;
     }
 
+    @Override
+    public TopicPathBuilder none() {
+        this.channel = TopicPath.Channel.NONE;
+        return this;
+    }
 
     @Override
     public EventsTopicPathBuilder events() {

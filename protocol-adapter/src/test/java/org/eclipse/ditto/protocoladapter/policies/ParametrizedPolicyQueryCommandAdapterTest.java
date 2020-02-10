@@ -22,6 +22,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TestConstants.Policies;
 import org.eclipse.ditto.protocoladapter.TestConstants.Policies.TopicPaths;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntries;
@@ -62,6 +63,11 @@ public final class ParametrizedPolicyQueryCommandAdapterTest
     @Override
     protected AbstractPolicyAdapter<PolicyQueryCommand<?>> underTest() {
         return underTest;
+    }
+
+    @Override
+    protected TopicPath.Channel defaultChannel() {
+        return TopicPath.Channel.NONE;
     }
 
     private static TestParameter<PolicyQueryCommand<?>> retrievePolicy() {

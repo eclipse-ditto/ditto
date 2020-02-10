@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocoladapter.things;
 
+import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.LIVE;
+
 import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -27,11 +29,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.BaseLiveTwinTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.EventsTopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownEventException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
@@ -69,43 +74,14 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
  * Unit test for {@link ThingEventAdapter}.
  */
-public final class ThingEventAdapterTest implements ProtocolAdapterTest {
-
-    private static TopicPath topicPathCreated;
-    private static TopicPath topicPathModified;
-    private static TopicPath topicPathDeleted;
+public final class ThingEventAdapterTest extends BaseLiveTwinTest implements ProtocolAdapterTest {
 
     private ThingEventAdapter underTest;
-
-    @BeforeClass
-    public static void initConstants() {
-        topicPathCreated = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
-
-        topicPathModified = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
-
-        topicPathDeleted = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
-    }
 
     @Before
     public void setUp() {
@@ -114,18 +90,19 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
     @Test(expected = UnknownEventException.class)
     public void unknownEventToAdaptable() {
-        underTest.toAdaptable(new UnknownThingEvent());
+        underTest.toAdaptable(new UnknownThingEvent(), channel);
     }
 
     @Test
     public void thingCreatedFromAdaptable() {
         final Instant now = Instant.now();
         final ThingCreated expected =
-                ThingCreated.of(TestConstants.THING, TestConstants.REVISION, now, TestConstants.DITTO_HEADERS_V_2);
+                ThingCreated.of(TestConstants.THING, TestConstants.REVISION, now,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -133,7 +110,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -143,7 +120,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final JsonPointer path = JsonPointer.empty();
 
         final Instant now = Instant.now();
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -154,8 +131,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final ThingCreated thingCreated =
                 ThingCreated.of(TestConstants.THING, TestConstants.REVISION, now,
-                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(thingCreated);
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(thingCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -163,18 +140,19 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void thingModifiedFromAdaptable() {
         final ThingModified expected =
-                ThingModified.of(TestConstants.THING, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                ThingModified.of(TestConstants.THING, TestConstants.REVISION,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -183,7 +161,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void thingModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -193,8 +171,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final ThingModified thingModified =
                 ThingModified.of(TestConstants.THING, TestConstants.REVISION,
-                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(thingModified);
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(thingModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -202,17 +180,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void thingDeletedFromAdaptable() {
         final ThingDeleted expected =
-                ThingDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                ThingDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -221,7 +200,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void thingDeletedToAdaptable() {
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -230,8 +209,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final ThingDeleted thingDeleted =
                 ThingDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(thingDeleted);
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(thingDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -239,18 +218,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void aclModifiedFromAdaptable() {
         final AclModified expected = AclModified.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.REVISION,
-                TestConstants.DITTO_HEADERS_V_1);
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_1));
 
         final JsonPointer path = JsonPointer.of("/acl");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -259,7 +238,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void aclModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/acl");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -269,8 +248,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final AclModified aclModified =
                 AclModified.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.REVISION,
-                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(aclModified);
+                        setChannelHeader(TestConstants.HEADERS_V_1_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(aclModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -278,18 +257,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void aclEntryCreatedFromAdaptable() {
         final AclEntryCreated expected = AclEntryCreated.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_1);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_1));
 
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -298,7 +277,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void aclEntryCreatedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL_ENTRY.toJson())
                         .withRevision(TestConstants.REVISION)
@@ -307,8 +286,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final AclEntryCreated aclEntryCreated = AclEntryCreated.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                TestConstants.REVISION, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(aclEntryCreated);
+                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_1_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(aclEntryCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -316,18 +295,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void aclEntryModifiedFromAdaptable() {
         final AclEntryModified expected = AclEntryModified.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_1);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_1));
 
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -336,7 +315,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void aclEntryModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL_ENTRY.toJson())
                         .withRevision(TestConstants.REVISION)
@@ -345,8 +324,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final AclEntryModified aclEntryModified = AclEntryModified.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                TestConstants.REVISION, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(aclEntryModified);
+                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_1_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(aclEntryModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -354,17 +333,17 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void aclEntryDeletedFromAdaptable() {
         final AclEntryDeleted expected = AclEntryDeleted.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_1);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_1));
 
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -373,7 +352,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void aclEntryDeletedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -381,8 +360,9 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final AclEntryDeleted aclEntryDeleted = AclEntryDeleted.of(TestConstants.THING_ID,
-                TestConstants.AUTHORIZATION_SUBJECT, TestConstants.REVISION, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(aclEntryDeleted);
+                TestConstants.AUTHORIZATION_SUBJECT, TestConstants.REVISION,
+                setChannelHeader(TestConstants.HEADERS_V_1_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(aclEntryDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -390,18 +370,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void attributesCreatedFromAdaptable() {
         final AttributesCreated expected = AttributesCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -410,7 +390,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void attributesCreatedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -420,8 +400,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final AttributesCreated attributesCreated =
                 AttributesCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
-                        TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(attributesCreated);
+                        TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(attributesCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -429,18 +409,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void attributesModifiedFromAdaptable() {
         final AttributesModified expected = AttributesModified.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -449,7 +429,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void attributesModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -458,8 +438,9 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final AttributesModified attributesModified = AttributesModified.of(TestConstants.THING_ID,
-                TestConstants.ATTRIBUTES, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(attributesModified);
+                TestConstants.ATTRIBUTES, TestConstants.REVISION,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(attributesModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -467,17 +448,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void attributesDeletedFromAdaptable() {
         final AttributesDeleted expected =
-                AttributesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                AttributesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -486,7 +468,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void attributesDeletedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -495,8 +477,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final AttributesDeleted attributesDeleted =
                 AttributesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(attributesDeleted);
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(attributesDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -504,18 +486,19 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void attributeCreatedFromAdaptable() {
         final AttributeCreated expected = AttributeCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -524,7 +507,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void attributeCreatedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -535,8 +518,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final AttributeCreated attributeCreated =
                 AttributeCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
                         TestConstants.ATTRIBUTE_VALUE,
-                        TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(attributeCreated);
+                        TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(attributeCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -544,18 +527,19 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void attributeModifiedFromAdaptable() {
         final AttributeModified expected = AttributeModified.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -564,7 +548,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void attributeModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -575,8 +559,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final AttributeModified attributeModified =
                 AttributeModified.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
                         TestConstants.ATTRIBUTE_VALUE,
-                        TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(attributeModified);
+                        TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(attributeModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -584,17 +568,17 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void attributeDeletedFromAdaptable() {
         final AttributeDeleted expected = AttributeDeleted.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -603,7 +587,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void attributeDeletedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -611,8 +595,9 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final AttributeDeleted attributeDeleted = AttributeDeleted.of(TestConstants.THING_ID,
-                TestConstants.ATTRIBUTE_POINTER, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(attributeDeleted);
+                TestConstants.ATTRIBUTE_POINTER, TestConstants.REVISION,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(attributeDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -621,18 +606,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void definitionCreatedFromAdaptable() {
         final ThingDefinitionCreated expected = ThingDefinitionCreated.of(TestConstants.THING_ID,
                 TestConstants.THING_DEFINITION,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/definition");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -641,7 +626,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void definitionCreatedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/definition");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
                         .withRevision(TestConstants.REVISION)
@@ -652,8 +637,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final ThingDefinitionCreated thingDefintionCreated =
                 ThingDefinitionCreated.of(TestConstants.THING_ID, TestConstants.THING_DEFINITION,
                         TestConstants.REVISION,
-                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(thingDefintionCreated);
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(thingDefintionCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -662,18 +647,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void definitionModifiedFromAdaptable() {
         final ThingDefinitionModified expected = ThingDefinitionModified.of(TestConstants.THING_ID,
                 TestConstants.THING_DEFINITION,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/definition");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -682,7 +667,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void definitionModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/definition");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
                         .withRevision(TestConstants.REVISION)
@@ -691,8 +676,9 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final ThingDefinitionModified definitionModified = ThingDefinitionModified.of(TestConstants.THING_ID,
-                TestConstants.THING_DEFINITION, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(definitionModified);
+                TestConstants.THING_DEFINITION, TestConstants.REVISION,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(definitionModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -701,17 +687,17 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void definitionDeletedFromAdaptable() {
         final ThingDefinitionDeleted expected =
                 ThingDefinitionDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/definition");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -720,7 +706,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void definitionDeletedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/definition");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -729,8 +715,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final ThingDefinitionDeleted definitionDeleted =
                 ThingDefinitionDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(definitionDeleted);
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(definitionDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -738,18 +724,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void featuresCreatedFromAdaptable() {
         final FeaturesCreated expected = FeaturesCreated.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -758,7 +744,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featuresCreatedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -767,8 +753,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final FeaturesCreated featuresCreated = FeaturesCreated.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featuresCreated);
+                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featuresCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -776,18 +762,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void featuresModifiedFromAdaptable() {
         final FeaturesModified expected = FeaturesModified.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -796,7 +782,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featuresModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -805,8 +791,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final FeaturesModified featuresModified = FeaturesModified.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featuresModified);
+                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featuresModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -814,17 +800,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void featuresDeletedFromAdaptable() {
         final FeaturesDeleted expected =
-                FeaturesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                FeaturesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -833,7 +820,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featuresDeletedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -842,8 +829,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final FeaturesDeleted featuresDeleted =
                 FeaturesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featuresDeleted);
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featuresDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -851,18 +838,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void featureCreatedFromAdaptable() {
         final FeatureCreated expected = FeatureCreated.of(TestConstants.THING_ID, TestConstants.FEATURE,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -871,7 +858,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featureCreatedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -880,8 +867,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final FeatureCreated featureCreated = FeatureCreated.of(TestConstants.THING_ID, TestConstants.FEATURE,
-                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featureCreated);
+                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featureCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -889,18 +876,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void featureModifiedFromAdaptable() {
         final FeatureModified expected = FeatureModified.of(TestConstants.THING_ID, TestConstants.FEATURE,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -909,7 +896,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featureModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -918,8 +905,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final FeatureModified featureModified = FeatureModified.of(TestConstants.THING_ID, TestConstants.FEATURE,
-                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featureModified);
+                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featureModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -927,17 +914,17 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void featureDeletedFromAdaptable() {
         final FeatureDeleted expected = FeatureDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -946,7 +933,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featureDeletedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -954,8 +941,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final FeatureDeleted featureDeleted = FeatureDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featureDeleted);
+                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featureDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -964,18 +951,19 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featurePropertiesCreatedFromAdaptable() {
         final FeaturePropertiesCreated expected =
                 FeaturePropertiesCreated.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -984,7 +972,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featurePropertiesCreatedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
@@ -995,8 +983,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final FeaturePropertiesCreated featurePropertiesCreated =
                 FeaturePropertiesCreated.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.FEATURE_PROPERTIES,
-                        TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featurePropertiesCreated);
+                        TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featurePropertiesCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1005,18 +993,19 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featurePropertiesModifiedFromAdaptable() {
         final FeaturePropertiesModified expected =
                 FeaturePropertiesModified.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1025,7 +1014,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featurePropertiesModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
@@ -1036,8 +1025,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final FeaturePropertiesModified featurePropertiesModified =
                 FeaturePropertiesModified.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION,
-                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featurePropertiesModified);
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featurePropertiesModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1045,17 +1034,17 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void featurePropertiesDeletedFromAdaptable() {
         final FeaturePropertiesDeleted expected = FeaturePropertiesDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.FEATURE_ID, TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1064,7 +1053,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featurePropertiesDeletedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -1072,8 +1061,9 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final FeaturePropertiesDeleted featurePropertiesDeleted = FeaturePropertiesDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featurePropertiesDeleted);
+                TestConstants.FEATURE_ID, TestConstants.REVISION,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featurePropertiesDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1082,19 +1072,19 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featurePropertyCreatedFromAdaptable() {
         final FeaturePropertyCreated expected = FeaturePropertyCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1104,7 +1094,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -1114,8 +1104,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final FeaturePropertyCreated featurePropertyCreated = FeaturePropertyCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featurePropertyCreated);
+                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featurePropertyCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1124,19 +1114,19 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featurePropertyModifiedFromAdaptable() {
         final FeaturePropertyModified expected = FeaturePropertyModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1146,7 +1136,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -1156,8 +1146,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final FeaturePropertyModified featurePropertyModified = FeaturePropertyModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featurePropertyModified);
+                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featurePropertyModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1167,18 +1157,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final FeaturePropertyDeleted expected =
                 FeaturePropertyDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.REVISION,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1188,7 +1178,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -1197,8 +1187,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final FeaturePropertyDeleted featurePropertyDeleted = FeaturePropertyDeleted.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.REVISION,
-                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featurePropertyDeleted);
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featurePropertyDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1207,18 +1197,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featureDefinitionCreatedFromAdaptable() {
         final FeatureDefinitionCreated expected = FeatureDefinitionCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
-                TestConstants.DITTO_HEADERS_V_2);
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1227,7 +1217,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featureDefinitionCreatedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .withRevision(TestConstants.REVISION)
@@ -1237,8 +1227,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final FeatureDefinitionCreated featureDefinitionCreated = FeatureDefinitionCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
-                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featureDefinitionCreated);
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featureDefinitionCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1247,18 +1237,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featureDefinitionModifiedFromAdaptable() {
         final FeatureDefinitionModified expected = FeatureDefinitionModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
-                TestConstants.DITTO_HEADERS_V_2);
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1267,7 +1257,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featureDefinitionModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .withRevision(TestConstants.REVISION)
@@ -1277,8 +1267,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final FeatureDefinitionModified featureDefinitionModified = FeatureDefinitionModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
-                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featureDefinitionModified);
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featureDefinitionModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1286,18 +1276,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     @Test
     public void featureDefinitionDeletedFromAdaptable() {
         final FeatureDefinitionDeleted expected = FeatureDefinitionDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.FEATURE_ID, TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1306,7 +1296,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void featureDefinitionDeletedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -1314,8 +1304,9 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .build();
 
         final FeatureDefinitionDeleted featureDefinitionDeleted = FeatureDefinitionDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(featureDefinitionDeleted);
+                TestConstants.FEATURE_ID, TestConstants.REVISION,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(featureDefinitionDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1324,18 +1315,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void policyIdCreatedFromAdaptable() {
         final PolicyIdCreated expected =
                 PolicyIdCreated.of(TestConstants.THING_ID, PolicyId.of(TestConstants.THING_ID),
-                        TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/policyId");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_ID))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1344,18 +1335,18 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void policyIdModifiedFromAdaptable() {
         final PolicyIdModified expected =
                 PolicyIdModified.of(TestConstants.THING_ID, PolicyId.of(TestConstants.THING_ID),
-                        TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/policyId");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_ID))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1364,7 +1355,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     public void policyIdModifiedToAdaptable() {
         final JsonPointer path = JsonPointer.of("/policyId");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_ID))
                         .withRevision(TestConstants.REVISION)
@@ -1374,13 +1365,13 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
         final PolicyIdModified policyIdModified =
                 PolicyIdModified.of(TestConstants.THING_ID, PolicyId.of(TestConstants.THING_ID),
-                        TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(policyIdModified);
+                        TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+        final Adaptable actual = underTest.toAdaptable(policyIdModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
-    private static final class UnknownThingEvent implements ThingEvent {
+    private static final class UnknownThingEvent implements ThingEvent<UnknownThingEvent> {
 
         @Override
         public ThingId getThingEntityId() {
@@ -1398,7 +1389,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         }
 
         @Override
-        public Event setRevision(final long revision) {
+        public UnknownThingEvent setRevision(final long revision) {
             return this;
         }
 
@@ -1427,7 +1418,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
         }
 
         @Override
-        public ThingEvent setDittoHeaders(final DittoHeaders dittoHeaders) {
+        public UnknownThingEvent setDittoHeaders(final DittoHeaders dittoHeaders) {
             return this;
         }
 
@@ -1439,4 +1430,36 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
     }
 
+    private DittoHeaders setChannelHeader(final DittoHeaders dittoHeaders) {
+        if (channel == LIVE) {
+            return dittoHeaders.toBuilder().channel(LIVE.getName()).build();
+        } else {
+            return dittoHeaders;
+        }
+    }
+
+    private EventsTopicPathBuilder topicPathBuilder() {
+        final TopicPathBuilder topicPathBuilder = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things();
+
+        if (channel == LIVE) {
+            topicPathBuilder.live();
+        } else {
+            topicPathBuilder.twin();
+        }
+
+        return topicPathBuilder.events();
+    }
+
+    private TopicPath topicPathCreated() {
+        return topicPathBuilder().created().build();
+    }
+
+    private TopicPath topicPathModified() {
+        return topicPathBuilder().modified().build();
+    }
+
+    private TopicPath topicPathDeleted() {
+        return topicPathBuilder().deleted().build();
+    }
 }

@@ -53,6 +53,8 @@ public abstract class BaseParametrizedCommandAdapterTest<T extends Signal<?>> im
 
     protected abstract AbstractAdapter<T> underTest();
 
+    protected abstract TopicPath.Channel defaultChannel();
+
     @Test
     public void fromAdaptable() {
         final T actual = underTest().fromAdaptable(adaptable);
@@ -61,20 +63,20 @@ public abstract class BaseParametrizedCommandAdapterTest<T extends Signal<?>> im
 
     @Test
     public void toAdaptable() {
-        final Adaptable actual = underTest().toAdaptable(command);
+        final Adaptable actual = underTest().toAdaptable(command, defaultChannel());
         assertWithExternalHeadersThat(actual).isEqualTo(adaptable);
     }
 
     @Test
     public void adaptableToCommandToAdaptable() {
         final T fromAdaptable = underTest().fromAdaptable(adaptable);
-        final Adaptable fromAdaptableToAdaptable = underTest().toAdaptable(fromAdaptable);
+        final Adaptable fromAdaptableToAdaptable = underTest().toAdaptable(fromAdaptable, defaultChannel());
         assertWithExternalHeadersThat(fromAdaptableToAdaptable).isEqualTo(adaptable);
     }
 
     @Test
     public void commandToAdaptableToCommand() {
-        final Adaptable toAdaptable = underTest().toAdaptable(command);
+        final Adaptable toAdaptable = underTest().toAdaptable(command, defaultChannel());
         final T toAdaptableFromAdaptable = underTest().fromAdaptable(toAdaptable);
         assertWithExternalHeadersThat(toAdaptableFromAdaptable).isEqualTo(command);
     }

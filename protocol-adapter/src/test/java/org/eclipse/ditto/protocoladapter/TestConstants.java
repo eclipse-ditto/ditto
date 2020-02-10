@@ -220,13 +220,13 @@ public final class TestConstants {
         public static class TopicPaths {
 
             public static final TopicPath CREATE =
-                    TopicPath.newBuilder(POLICY_ID).policies().twin().commands().create().build();
+                    TopicPath.newBuilder(POLICY_ID).policies().commands().create().build();
             public static final TopicPath MODIFY =
-                    TopicPath.newBuilder(POLICY_ID).policies().twin().commands().modify().build();
+                    TopicPath.newBuilder(POLICY_ID).policies().commands().modify().build();
             public static final TopicPath DELETE =
-                    TopicPath.newBuilder(POLICY_ID).policies().twin().commands().delete().build();
+                    TopicPath.newBuilder(POLICY_ID).policies().commands().delete().build();
             public static final TopicPath RETRIEVE =
-                    TopicPath.newBuilder(POLICY_ID).policies().twin().commands().retrieve().build();
+                    TopicPath.newBuilder(POLICY_ID).policies().commands().retrieve().build();
         }
 
     }

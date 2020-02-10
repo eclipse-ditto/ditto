@@ -20,7 +20,8 @@ import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 
 final class RetrieveThingsResponseSignalMapper
-        extends AbstractQuerySignalMapper<RetrieveThingsResponse> {
+        extends AbstractQuerySignalMapper<RetrieveThingsResponse>
+        implements ResponseSignalMapper {
 
     @Override
     void validate(final RetrieveThingsResponse commandResponse,

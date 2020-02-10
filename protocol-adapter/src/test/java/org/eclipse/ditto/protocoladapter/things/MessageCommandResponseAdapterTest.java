@@ -189,7 +189,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
                 .build();
         final MessageCommandResponse messageCommandResponse = messageCommandResponse(theMessage, expectedHeaders);
 
-        final Adaptable actual = underTest.toAdaptable(messageCommandResponse);
+        final Adaptable actual = underTest.toAdaptable(messageCommandResponse, TopicPath.Channel.LIVE);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

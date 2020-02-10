@@ -106,9 +106,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      * @throws UnknownCommandException if the passed MessageCommand was not supported by the ProtocolAdapter
      */
-    default Adaptable toAdaptable(MessageCommand<?, ?> messageCommand) {
-        return toAdaptable(messageCommand, TopicPath.Channel.LIVE);
-    }
+    Adaptable toAdaptable(MessageCommand<?, ?> messageCommand);
 
     /**
      * Maps the given {@code messageCommandResponse} to an {@code Adaptable}.
@@ -117,9 +115,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      * @throws UnknownCommandException if the passed MessageCommandResponse was not supported by the ProtocolAdapter
      */
-    default Adaptable toAdaptable(MessageCommandResponse<?, ?> messageCommandResponse) {
-        return toAdaptable(messageCommandResponse, TopicPath.Channel.LIVE);
-    }
+    Adaptable toAdaptable(MessageCommandResponse<?, ?> messageCommandResponse);
 
     /**
      * Maps the given {@code command} to an {@code Adaptable}.
@@ -176,8 +172,7 @@ public interface ProtocolAdapter {
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      */
-    Adaptable toAdaptable(ThingModifyCommandResponse<?> thingModifyCommandResponse,
-            TopicPath.Channel channel);
+    Adaptable toAdaptable(ThingModifyCommandResponse<?> thingModifyCommandResponse, TopicPath.Channel channel);
 
     /**
      * Maps the given {@code thingQueryCommand} to an {@code Adaptable}.
@@ -215,8 +210,7 @@ public interface ProtocolAdapter {
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      */
-    Adaptable toAdaptable(ThingQueryCommandResponse<?> thingQueryCommandResponse,
-            TopicPath.Channel channel);
+    Adaptable toAdaptable(ThingQueryCommandResponse<?> thingQueryCommandResponse, TopicPath.Channel channel);
 
     /**
      * Maps the given {@code thingErrorResponse} to an {@code Adaptable}.
@@ -270,34 +264,21 @@ public interface ProtocolAdapter {
     /**
      * Maps the given {@code PolicyQueryCommand} to an {@code Adaptable}.
      *
-     * @param policyQueryCommand the command.
-     * @return the adaptable.
-     * @throws UnknownCommandResponseException if the passed PolicyQueryCommand was not supported by the ProtocolAdapter
-     */
-    default Adaptable toAdaptable(PolicyQueryCommand<?> policyQueryCommand) {
-        return toAdaptable(policyQueryCommand, TopicPath.Channel.TWIN);
-    }
-
-    /**
-     * Maps the given {@code PolicyQueryCommand} to an {@code Adaptable}.
-     *
      * @param policyQueryCommand the response.
-     * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyQueryCommand was not supported by the ProtocolAdapter
      */
-    Adaptable toAdaptable(PolicyQueryCommand<?> policyQueryCommand, TopicPath.Channel channel);
+    Adaptable toAdaptable(PolicyQueryCommand<?> policyQueryCommand);
 
     /**
      * Maps the given {@code PolicyCommandResponse} to an {@code Adaptable}.
      *
      * @param policyCommandResponse the response.
-     * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyCommandResponse was not supported by the
      * ProtocolAdapter
      */
-    Adaptable toAdaptable(PolicyCommandResponse<?> policyCommandResponse, TopicPath.Channel channel);
+    Adaptable toAdaptable(PolicyCommandResponse<?> policyCommandResponse);
 
     /**
      * Maps the given {@code PolicyQueryCommandResponse} to an {@code Adaptable}.
@@ -307,53 +288,37 @@ public interface ProtocolAdapter {
      * @throws UnknownCommandResponseException if the passed PolicyQueryCommandResponse was not supported by the
      * ProtocolAdapter
      */
-    default Adaptable toAdaptable(PolicyQueryCommandResponse<?> policyQueryCommandResponse) {
-        return toAdaptable(policyQueryCommandResponse, TopicPath.Channel.TWIN);
-    }
-
-    /**
-     * Maps the given {@code PolicyQueryCommandResponse} to an {@code Adaptable}.
-     *
-     * @param policyQueryCommandResponse the response.
-     * @param channel the Channel (Twin/Live) to use.
-     * @return the adaptable.
-     * @throws UnknownCommandResponseException if the passed PolicyQueryCommandResponse was not supported by the
-     * ProtocolAdapter
-     */
-    Adaptable toAdaptable(PolicyQueryCommandResponse<?> policyQueryCommandResponse, TopicPath.Channel channel);
+    Adaptable toAdaptable(PolicyQueryCommandResponse<?> policyQueryCommandResponse);
 
     /**
      * Maps the given {@code PolicyModifyCommand} to an {@code Adaptable}.
      *
      * @param policyModifyCommand the response.
-     * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyModifyCommand was not supported by the
      * ProtocolAdapter
      */
-    Adaptable toAdaptable(PolicyModifyCommand<?> policyModifyCommand, TopicPath.Channel channel);
+    Adaptable toAdaptable(PolicyModifyCommand<?> policyModifyCommand);
 
     /**
      * Maps the given {@code PolicyModifyCommandResponse} to an {@code Adaptable}.
      *
      * @param policyModifyCommandResponse the response.
-     * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyModifyCommandResponse was not supported by the
      * ProtocolAdapter
      */
-    Adaptable toAdaptable(PolicyModifyCommandResponse<?> policyModifyCommandResponse, TopicPath.Channel channel);
+    Adaptable toAdaptable(PolicyModifyCommandResponse<?> policyModifyCommandResponse);
 
     /**
      * Maps the given {@code PolicyErrorResponse} to an {@code Adaptable}.
      *
      * @param policyErrorResponse the response.
-     * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyErrorResponse was not supported by the
      * ProtocolAdapter
      */
-    Adaptable toAdaptable(PolicyErrorResponse policyErrorResponse, TopicPath.Channel channel);
+    Adaptable toAdaptable(PolicyErrorResponse policyErrorResponse);
 
     /**
      * Retrieve the header translator responsible for this protocol adapter.

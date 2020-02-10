@@ -20,7 +20,8 @@ import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
 
 final class PolicyModifyResponseSignalMapper
-        extends AbstractModifySignalMapper<PolicyModifyCommandResponse<?>> {
+        extends AbstractModifySignalMapper<PolicyModifyCommandResponse<?>>
+        implements ResponseSignalMapper {
 
     @Override
     void validate(final PolicyModifyCommandResponse<?> commandResponse,

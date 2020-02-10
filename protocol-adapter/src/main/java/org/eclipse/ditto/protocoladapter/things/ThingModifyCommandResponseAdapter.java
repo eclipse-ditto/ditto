@@ -54,6 +54,4 @@ final class ThingModifyCommandResponseAdapter extends AbstractThingAdapter<Thing
             final TopicPath.Channel channel) {
         return signalMapper.mapSignalToAdaptable(signal, channel);
     }
-
-
 }

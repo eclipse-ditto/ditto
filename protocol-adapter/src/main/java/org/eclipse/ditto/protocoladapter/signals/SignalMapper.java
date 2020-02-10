@@ -29,6 +29,7 @@ public interface SignalMapper<T extends WithId> {
      * Is called during the mapping from a signal to an {@link Adaptable}.
      *
      * @param signal the source {@link org.eclipse.ditto.signals.base.Signal} from which to map an {@link Adaptable}
+     * @param channel the channel used to send the signal
      * @return an {@link Adaptable}
      */
     Adaptable mapSignalToAdaptable(T signal, final TopicPath.Channel channel);

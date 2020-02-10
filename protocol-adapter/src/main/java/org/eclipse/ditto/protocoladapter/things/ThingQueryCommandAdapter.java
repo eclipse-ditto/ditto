@@ -47,7 +47,6 @@ final class ThingQueryCommandAdapter extends AbstractThingAdapter<ThingQueryComm
         return new ThingQueryCommandAdapter(requireNonNull(headerTranslator));
     }
 
-
     @Override
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();

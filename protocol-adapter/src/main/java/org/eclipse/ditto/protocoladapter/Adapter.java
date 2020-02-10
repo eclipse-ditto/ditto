@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public interface Adapter<T extends Jsonifiable<?>> {
 
     /**
-     * Maps the given {@code adaptable} to it's corresponding {@code T}.
+     * Maps the given {@code adaptable} to its corresponding {@code T}.
      *
      * @param adaptable the adaptable to map.
      * @return the mapped object.
@@ -43,10 +43,10 @@ public interface Adapter<T extends Jsonifiable<?>> {
     }
 
     /**
-     * Maps the given {@code t} to it's corresponding {@code Adaptable}.
+     * Maps the given {@code t} to its corresponding {@code Adaptable}.
      *
      * @param t the object to map.
-     * @param channel the Channel (Twin/Live) to use.
+     * @param channel the channel that was used to send the signal
      * @return the mapped adaptable.
      * @throws NullPointerException if {@code t} is {@code null}.
      * @throws IllegalArgumentException if {@code channel} is unknown.

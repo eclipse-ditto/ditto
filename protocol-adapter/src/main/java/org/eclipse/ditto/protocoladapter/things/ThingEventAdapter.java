@@ -68,7 +68,6 @@ final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> {
     @Override
     public Adaptable mapSignalToAdaptable(final ThingEvent<?> event, final TopicPath.Channel channel) {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getThingEntityId());
-
         final EventsTopicPathBuilder eventsTopicPathBuilder;
         if (channel == TopicPath.Channel.TWIN) {
             eventsTopicPathBuilder = topicPathBuilder.twin().events();

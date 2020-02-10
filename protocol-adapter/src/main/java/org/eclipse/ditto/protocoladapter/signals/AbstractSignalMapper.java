@@ -86,4 +86,18 @@ abstract class AbstractSignalMapper<T extends Signal<?>> implements SignalMapper
     DittoHeaders enhanceHeaders(final T signal) {
         return ProtocolFactory.newHeadersWithDittoContentType(signal.getDittoHeaders());
     }
+
+    /**
+     * Determines the channel of signal from the channel header. If it is set to {@code live} the signal is a live
+     * command/event.
+     *
+     * @param signal the processed signal
+     * @param defaultChannel fallback channel if channel header is not set
+     * @return the resolved channel
+     */
+    TopicPath.Channel determineChannelFromHeader(T signal, final TopicPath.Channel defaultChannel) {
+        final boolean isLiveSignal =
+                signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+        return isLiveSignal ? TopicPath.Channel.LIVE : defaultChannel;
+    }
 }
