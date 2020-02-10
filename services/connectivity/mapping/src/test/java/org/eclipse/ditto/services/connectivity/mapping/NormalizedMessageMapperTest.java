@@ -50,7 +50,6 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -72,7 +71,7 @@ public final class NormalizedMessageMapperTest {
 
     @Test
     public void thingCreated() {
-        final ThingEvent event = ThingCreated.of(ThingsModelFactory.newThingBuilder()
+        final ThingCreated event = ThingCreated.of(ThingsModelFactory.newThingBuilder()
                 .setId(ThingId.of("thing:created"))
                 .setPolicyId(PolicyId.of("thing:created"))
                 .setAttributes(Attributes.newBuilder().set("x", 5).build())
@@ -111,7 +110,7 @@ public final class NormalizedMessageMapperTest {
 
     @Test
     public void featurePropertyModified() {
-        final ThingEvent event = FeaturePropertyModified.of(
+        final FeaturePropertyModified event = FeaturePropertyModified.of(
                 ThingId.of("thing:id"),
                 "featureId",
                 JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog"),
@@ -143,8 +142,23 @@ public final class NormalizedMessageMapperTest {
     }
 
     @Test
+    public void headersFromAdaptableAreNotMapped() {
+        final FeaturePropertyModified event = FeaturePropertyModified.of(
+                ThingId.of("thing:id"),
+                "featureId",
+                JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog"),
+                JsonValue.of(9),
+                2L,
+                Instant.ofEpochSecond(2L),
+                DittoHeaders.newBuilder().putHeader("random", "header").build());
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
+        Assertions.assertThat(underTest.map(adaptable).get(0).getHeaders()).isEmpty();
+    }
+
+    @Test
     public void withFieldSelection() {
-        final ThingEvent event = FeaturePropertyModified.of(
+        final FeaturePropertyModified event = FeaturePropertyModified.of(
                 ThingId.of("thing:id"),
                 "featureId",
                 JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog"),
@@ -173,7 +187,7 @@ public final class NormalizedMessageMapperTest {
 
     @Test
     public void withFullThingPayloadFieldSelection() {
-        final ThingEvent event = ThingCreated.of(ThingsModelFactory.newThingBuilder()
+        final ThingCreated event = ThingCreated.of(ThingsModelFactory.newThingBuilder()
                 .setId(ThingId.of("thing:created"))
                 .setPolicyId(PolicyId.of("thing:created"))
                 .setAttributes(Attributes.newBuilder().set("x", 5).build())
