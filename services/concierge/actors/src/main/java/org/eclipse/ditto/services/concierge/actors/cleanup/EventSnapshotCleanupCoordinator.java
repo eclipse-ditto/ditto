@@ -100,6 +100,8 @@ public final class EventSnapshotCleanupCoordinator
      */
     public static final String ACTOR_NAME = "eventSnapshotCleanupCoordinator";
 
+    private static final String ERROR_MESSAGE_HEADER = "error";
+
     private static final JsonFieldDefinition<JsonArray> JSON_CREDIT_DECISIONS =
             JsonFactory.newJsonArrayFieldDefinition("credit-decisions");
 
@@ -203,11 +205,13 @@ public final class EventSnapshotCleanupCoordinator
                                 askShardRegionForCleanup(shardRegions.connections(), ConnectivityCommand.RESOURCE_TYPE,
                                         connTag))
                         .matchAny(e -> {
-                            final String msg = "Unexpected entity ID type: " + e.getClass().getSimpleName();
-                            final CleanupPersistenceResponse error =
-                                    //TODO: Dont build entity id of message.
-                                    CleanupPersistenceResponse.failure(DefaultEntityId.of(msg), DittoHeaders.empty());
-                            return CompletableFuture.completedFuture(error);
+                            final String errorMessage = String.format("Unexpected entity ID type: " + e);
+                            log.error(errorMessage);
+                            final CleanupPersistenceResponse failureResponse =
+                                    CleanupPersistenceResponse.failure(DefaultEntityId.dummy(),
+                                            DittoHeaders.newBuilder().putHeader(ERROR_MESSAGE_HEADER, errorMessage)
+                                                    .build());
+                            return CompletableFuture.completedFuture(failureResponse);
                         })
                         .build();
 
@@ -233,11 +237,13 @@ public final class EventSnapshotCleanupCoordinator
                                         .build();
                         return response.setDittoHeaders(headers);
                     } else {
-                        final String msg = String.format("Unexpected response from shard <%s>: result=<%s> error=<%s>",
-                                resourceType, result, error);
-                        return //TODO: Dont build entity id of message.
-                                CleanupPersistenceResponse.failure(DefaultEntityId.of(msg),
-                                        cleanupPersistence.getDittoHeaders());
+                        final String errorMessage =
+                                String.format("Unexpected response from shard <%s>: result=<%s> error=<%s>",
+                                        resourceType, result, error);
+                        return CleanupPersistenceResponse.failure(id,
+                                cleanupPersistence.getDittoHeaders().toBuilder()
+                                        .putHeader(ERROR_MESSAGE_HEADER, errorMessage)
+                                        .build());
                     }
                 });
     }
@@ -264,10 +270,24 @@ public final class EventSnapshotCleanupCoordinator
         final DittoHeaders headers = response.getDittoHeaders();
         final int status = response.getStatusCodeValue();
         final String start = headers.getOrDefault(START, "unknown");
-        final String tagLine = String.format("%d start=%s <%s>", status, start, response.getEntityId());
+        final String message = getResponseMessage(response);
+        final String tagLine = String.format("%d start=%s <%s>", status, start, message);
         return JsonObject.newBuilder()
                 .set(element.first().toString(), tagLine)
                 .build();
+    }
+
+    private static String getResponseMessage(final CleanupPersistenceResponse response) {
+        final StringBuilder messageBuilder = new StringBuilder();
+        if (!response.getEntityId().isDummy()) {
+            messageBuilder.append(response.getEntityId().toString());
+            if (response.getDittoHeaders().containsKey(ERROR_MESSAGE_HEADER)) {
+                messageBuilder.append(": ").append(response.getDittoHeaders().get(ERROR_MESSAGE_HEADER));
+            }
+        } else {
+            messageBuilder.append(response.getDittoHeaders().get(ERROR_MESSAGE_HEADER));
+        }
+        return messageBuilder.toString();
     }
 
     private static CleanupPersistence getCleanupCommand(final EntityId id) {
@@ -276,5 +296,4 @@ public final class EventSnapshotCleanupCoordinator
                 .build();
         return CleanupPersistence.of(id, headers);
     }
-
 }

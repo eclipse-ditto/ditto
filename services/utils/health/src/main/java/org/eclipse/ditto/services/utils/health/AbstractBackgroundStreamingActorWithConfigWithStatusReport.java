@@ -61,14 +61,24 @@ import akka.stream.javadsl.Source;
 public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport<C extends BackgroundStreamingConfig>
         extends AbstractActorWithTimers implements RetrieveConfigBehavior, ModifyConfigBehavior {
 
-    // config may change.
+    /**
+     * Modifiable config to control this actor.
+     */
     protected C config;
+
+    /**
+     * The logger.
+     */
     protected final DittoDiagnosticLoggingAdapter log;
 
+    /**
+     * The actor materializer to materialize streams.
+     */
+    protected final ActorMaterializer materializer;
+
     @Nullable
-    private KillSwitch killSwitch;
-    private final ActorMaterializer materializer;
     private final Deque<Pair<Instant, Event>> events;
+    private KillSwitch killSwitch;
 
     /**
      * Initialize the actor with a background streaming config.
@@ -207,6 +217,22 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         }
     }
 
+    /**
+     * Handle stream termination.
+     *
+     * @param streamTerminated the event of stream termination.
+     */
+    protected void streamTerminated(final Event streamTerminated) {
+        enqueue(events, streamTerminated, config.getKeptEvents());
+        if (config.isEnabled()) {
+            log.info("Stream terminated. Will restart after quiet period.");
+            scheduleWakeUp();
+        } else {
+            log.warning("Stream terminated while disabled.");
+        }
+        getContext().become(sleeping());
+    }
+
 
     private void scheduleWakeUp() {
         scheduleWakeUp(config.getQuietPeriod());
@@ -233,17 +259,6 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
             final String message = "Not restarting stream because I am disabled.";
             getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());
         }
-    }
-
-    private void streamTerminated(final Event streamTerminated) {
-        enqueue(events, streamTerminated, config.getKeptEvents());
-        if (config.isEnabled()) {
-            log.info("Stream terminated. Will restart after quiet period.");
-            scheduleWakeUp();
-        } else {
-            log.warning("Stream terminated while disabled.");
-        }
-        getContext().become(sleeping());
     }
 
     private void addCustomEventToLog(final Event event) {

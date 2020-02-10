@@ -44,7 +44,8 @@ public final class BackgroundSyncStream {
     private final int throttleThroughput;
     private final Duration throttlePeriod;
 
-    private BackgroundSyncStream(final ActorRef policiesShardRegion,
+    private BackgroundSyncStream(
+            final ActorRef policiesShardRegion,
             final Duration policiesAskTimeout,
             final Duration toleranceWindow,
             final int throttleThroughput,
@@ -56,7 +57,18 @@ public final class BackgroundSyncStream {
         this.throttlePeriod = throttlePeriod;
     }
 
-    public static BackgroundSyncStream of(final ActorRef policiesShardRegion,
+    /**
+     * Create a background sync stream.
+     *
+     * @param policiesShardRegion the policies shard region.
+     * @param policiesAskTimeout ask timeout for messages to the policies shard region.
+     * @param toleranceWindow time window of recent updates not considered for background sync.
+     * @param throttleThroughput how many messages to let through per throttle period.
+     * @param throttlePeriod the throttle period.
+     * @return the background sync stream.
+     */
+    public static BackgroundSyncStream of(
+            final ActorRef policiesShardRegion,
             final Duration policiesAskTimeout,
             final Duration toleranceWindow,
             final int throttleThroughput,
@@ -77,14 +89,11 @@ public final class BackgroundSyncStream {
     public Source<Metadata, NotUsed> filterForInconsistencies(final Source<Metadata, ?> metadataFromSnapshots,
             final Source<Metadata, ?> metadataFromSearchIndex) {
 
+
         final Comparator<Metadata> comparator = BackgroundSyncStream::compareMetadata;
-        final Source<Pair<Metadata, Metadata>, NotUsed> merged =
-                MergeSortedAsPair.merge(dummyMetadata(), comparator, metadataFromSnapshots, metadataFromSearchIndex)
-                        .throttle(throttleThroughput, throttlePeriod);
-
-        // TODO: bookmark thing ID before filter!
-
-        return merged.flatMapConcat(this::filterForInconsistency)
+        return MergeSortedAsPair.merge(dummyMetadata(), comparator, metadataFromSnapshots, metadataFromSearchIndex)
+                .throttle(throttleThroughput, throttlePeriod)
+                .flatMapConcat(this::filterForInconsistency)
                 // log elements at warning level because out-of-date metadata are detected
                 .withAttributes(Attributes.logLevels(
                         Attributes.logLevelWarning(),
@@ -119,7 +128,6 @@ public final class BackgroundSyncStream {
                     : Source.single(indexed).log("NotPersistedAndIndexed");
         } else {
             // IDs match
-            final String loggerTag = "PersistedAndIndexed";
             if (indexed.getThingId().isDummy()) {
                 // sanity check: entry should not be dummy
                 return Source.failed(new IllegalStateException("Unexpected double-dummy entry: " + pair));
@@ -192,4 +200,5 @@ public final class BackgroundSyncStream {
         final int dummyComparison = Boolean.compare(thingId1.isDummy(), thingId2.isDummy());
         return dummyComparison != 0 ? dummyComparison : thingId1.compareTo(thingId2);
     }
+
 }

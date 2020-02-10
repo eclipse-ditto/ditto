@@ -89,7 +89,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             final ActorMaterializer materializer,
             final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence thingsSyncPersistence,
-            final TimestampPersistence policiesSyncPersistence) {
+            final TimestampPersistence policiesSyncPersistence,
+            final TimestampPersistence backgroundSyncPersistence) {
 
         final ClusterConfig clusterConfig = searchConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
@@ -149,6 +150,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 updaterConfig.getBackgroundSyncConfig(),
                 pubSubMediator,
                 thingsSearchPersistence,
+                backgroundSyncPersistence,
                 shardRegionFactory.getPoliciesShardRegion(numberOfShards),
                 thingsUpdaterActor
         );
@@ -220,6 +222,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      * @param thingsSearchPersistence persistence to access the search index in read-only mode.
      * @param thingsSyncPersistence persistence for background synchronization of things.
      * @param policiesSyncPersistence persistence for background synchronization of policies.
+     * @param backgroundSyncPersistence persistence for background synchronization.
      * @return a Props object to create this actor.
      */
     public static Props props(final SearchConfig searchConfig,
@@ -227,10 +230,11 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             final ActorMaterializer materializer,
             final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence thingsSyncPersistence,
-            final TimestampPersistence policiesSyncPersistence) {
+            final TimestampPersistence policiesSyncPersistence,
+            final TimestampPersistence backgroundSyncPersistence) {
 
         return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, materializer,
-                thingsSearchPersistence, thingsSyncPersistence, policiesSyncPersistence);
+                thingsSearchPersistence, thingsSyncPersistence, policiesSyncPersistence, backgroundSyncPersistence);
     }
 
     @Override

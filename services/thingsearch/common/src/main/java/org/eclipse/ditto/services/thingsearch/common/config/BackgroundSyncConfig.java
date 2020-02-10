@@ -30,6 +30,12 @@ public interface BackgroundSyncConfig extends BackgroundStreamingConfig {
     @Override
     boolean isEnabled();
 
+    /**
+     * Return the quiet period, which is the delay before starting the background sync stream after start-up
+     * and also the delay between flushing current progress into the bookmark persistence.
+     *
+     * @return the quiet period.
+     */
     @Override
     Duration getQuietPeriod();
 

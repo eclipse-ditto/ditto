@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.thingsearch.starter.actors;
 
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.BACKGROUND_SYNC_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_SYNC_STATE_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
@@ -108,15 +109,16 @@ public final class SearchRootActor extends DittoRootActor {
         final TimestampPersistence thingsSyncPersistence =
                 MongoTimestampPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoDbClient,
                         materializer);
-
         final TimestampPersistence policiesSyncPersistence =
                 MongoTimestampPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoDbClient,
                         materializer);
-
+        final TimestampPersistence backgroundSyncPersistence =
+                MongoTimestampPersistence.initializedInstance(BACKGROUND_SYNC_COLLECTION_NAME, mongoDbClient,
+                        materializer);
 
         final ActorRef searchUpdaterRootActor = startChildActor(SearchUpdaterRootActor.ACTOR_NAME,
                 SearchUpdaterRootActor.props(searchConfig, pubSubMediator, materializer, thingsSearchPersistence,
-                        thingsSyncPersistence, policiesSyncPersistence));
+                        thingsSyncPersistence, policiesSyncPersistence, backgroundSyncPersistence));
         final ActorRef healthCheckingActor =
                 initializeHealthCheckActor(searchConfig, thingsSyncPersistence, policiesSyncPersistence,
                         searchUpdaterRootActor);

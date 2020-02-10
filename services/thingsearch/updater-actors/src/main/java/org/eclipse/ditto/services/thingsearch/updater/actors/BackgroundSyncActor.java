@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.function.Function;
 
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersi
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.BackgroundSyncStream;
 import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
 
 import com.typesafe.config.Config;
@@ -32,6 +34,8 @@ import com.typesafe.config.Config;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.japi.pf.ReceiveBuilder;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
 /**
@@ -47,19 +51,27 @@ public final class BackgroundSyncActor
 
     private final ThingsMetadataSource thingsMetadataSource;
     private final ThingsSearchPersistence thingsSearchPersistence;
+    private final TimestampPersistence backgroundSyncPersistence;
     private final BackgroundSyncStream backgroundSyncStream;
     private final ActorRef thingsUpdater;
+
+    private ThingId thingIdToBookmark;
 
     private BackgroundSyncActor(final BackgroundSyncConfig backgroundSyncConfig,
             final ThingsMetadataSource thingsMetadataSource,
             final ThingsSearchPersistence thingsSearchPersistence,
+            final TimestampPersistence backgroundSyncPersistence,
             final BackgroundSyncStream backgroundSyncStream,
             final ActorRef thingsUpdater) {
         super(backgroundSyncConfig);
         this.thingsMetadataSource = thingsMetadataSource;
         this.thingsSearchPersistence = thingsSearchPersistence;
+        this.backgroundSyncPersistence = backgroundSyncPersistence;
         this.backgroundSyncStream = backgroundSyncStream;
         this.thingsUpdater = thingsUpdater;
+        thingIdToBookmark = ThingId.dummy();
+
+        getTimers().startPeriodicTimer(Control.BOOKMARK_THING_ID, Control.BOOKMARK_THING_ID, config.getQuietPeriod());
     }
 
     /**
@@ -68,6 +80,7 @@ public final class BackgroundSyncActor
      * @param config the config of the background sync actor.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param thingsSearchPersistence the search persistence to access the search index.
+     * @param backgroundSyncPersistence persistence for bookmarks of background sync progress.
      * @param policiesShardRegion the policies shard region to query policy revisions.
      * @param thingsUpdater the dispatcher of UpdateThing commands.
      * @return an actor to coordinate background sync.
@@ -75,17 +88,42 @@ public final class BackgroundSyncActor
     public static Props props(final BackgroundSyncConfig config,
             final ActorRef pubSubMediator,
             final ThingsSearchPersistence thingsSearchPersistence,
+            final TimestampPersistence backgroundSyncPersistence,
             final ActorRef policiesShardRegion,
             final ActorRef thingsUpdater) {
 
         final ThingsMetadataSource thingsMetadataSource =
                 ThingsMetadataSource.of(pubSubMediator, config.getThrottleThroughput(), config.getIdleTimeout());
         final BackgroundSyncStream backgroundSyncStream =
-                BackgroundSyncStream.of(policiesShardRegion, config.getPolicyAskTimeout(), config.getToleranceWindow(),
-                        config.getThrottleThroughput(), config.getThrottlePeriod());
+                BackgroundSyncStream.of(policiesShardRegion, config.getPolicyAskTimeout(),
+                        config.getToleranceWindow(), config.getThrottleThroughput(), config.getThrottlePeriod());
 
         return Props.create(BackgroundSyncActor.class, config, thingsMetadataSource, thingsSearchPersistence,
-                backgroundSyncStream, thingsUpdater);
+                backgroundSyncPersistence, backgroundSyncStream, thingsUpdater);
+    }
+
+    @Override
+    protected void preEnhanceSleepingBehavior(final ReceiveBuilder sleepingReceiveBuilder) {
+        sleepingReceiveBuilder.matchEquals(Control.BOOKMARK_THING_ID,
+                trigger -> {
+                    // ignore scheduled bookmark messages when sleeping
+                    log.debug("Ignoring: <{}>", trigger);
+                })
+                .match(ThingId.class, thingId -> {
+                    // got outdated progress update message after actor resumes sleeping; ignore it.
+                    log.debug("Ignoring: <{}>", thingId);
+                });
+    }
+
+    @Override
+    protected void preEnhanceStreamingBehavior(final ReceiveBuilder streamingReceiveBuilder) {
+        streamingReceiveBuilder.match(ThingId.class, thingId -> thingIdToBookmark = thingId)
+                .matchEquals(Control.BOOKMARK_THING_ID, this::bookmarkThingId);
+    }
+
+    @Override
+    protected void postEnhanceStatusReport(final JsonObjectBuilder statusReportBuilder) {
+        statusReportBuilder.set("progress", thingIdToBookmark.toString());
     }
 
     @Override
@@ -94,14 +132,36 @@ public final class BackgroundSyncActor
     }
 
     @Override
+    protected void streamTerminated(final Event streamTerminated) {
+        super.streamTerminated(streamTerminated);
+        // reset progress for the next round
+        thingIdToBookmark = ThingId.dummy();
+        doBookmarkThingId("");
+    }
+
+    @Override
     protected Source<?, ?> getSource() {
         return getLowerBoundSource()
-                .flatMapConcat(lowerBound -> {
-                    final Source<Metadata, NotUsed> persistedMetadata = getPersistedMetadataSource(lowerBound);
-                    final Source<Metadata, NotUsed> indexedMetadata = getIndexedMetadataSource(lowerBound);
-                    return backgroundSyncStream.filterForInconsistencies(persistedMetadata, indexedMetadata);
-                })
+                .flatMapConcat(this::streamMetadataFromLowerBound)
                 .wireTap(this::handleInconsistency);
+    }
+
+    private Source<Metadata, NotUsed> streamMetadataFromLowerBound(final ThingId lowerBound) {
+        final Source<Metadata, NotUsed> persistedMetadata =
+                getPersistedMetadataSourceWithProgressReporting(lowerBound);
+        final Source<Metadata, NotUsed> indexedMetadata = getIndexedMetadataSource(lowerBound);
+        return backgroundSyncStream.filterForInconsistencies(persistedMetadata, indexedMetadata);
+    }
+
+    private void bookmarkThingId(final Control bookmarkRequest) {
+        if (!thingIdToBookmark.isDummy()) {
+            doBookmarkThingId(thingIdToBookmark.toString());
+        }
+    }
+
+    private void doBookmarkThingId(final String bookmark) {
+        backgroundSyncPersistence.setTaggedTimestamp(Instant.now(), bookmark)
+                .runWith(Sink.ignore(), materializer);
     }
 
     private void handleInconsistency(final Metadata metadata) {
@@ -111,13 +171,20 @@ public final class BackgroundSyncActor
     }
 
     private Source<ThingId, NotUsed> getLowerBoundSource() {
-        // TODO: read bookmarked lower bound. background sync stream does the bookmarking before filtering.
-        // Alternatively, as a less accurate bookmark, do it after the indexed metadata stream.
-        return Source.single(ThingId.dummy());
+        return backgroundSyncPersistence.getTaggedTimestamp()
+                .map(optional -> {
+                    if (optional.isPresent()) {
+                        final String bookmarkedThingId = optional.get().second();
+                        if (bookmarkedThingId != null && !bookmarkedThingId.isEmpty())
+                            return ThingId.of(bookmarkedThingId);
+                    }
+                    return ThingId.dummy();
+                });
     }
 
-    private Source<Metadata, NotUsed> getPersistedMetadataSource(final ThingId lowerBound) {
-        return wrapAsResumeSource(lowerBound, thingsMetadataSource::createSource);
+    private Source<Metadata, NotUsed> getPersistedMetadataSourceWithProgressReporting(final ThingId lowerBound) {
+        return wrapAsResumeSource(lowerBound, thingsMetadataSource::createSource)
+                .wireTap(persisted -> getSelf().tell(persisted.getThingId(), ActorRef.noSender()));
     }
 
     private Source<Metadata, NotUsed> getIndexedMetadataSource(final ThingId lowerBound) {
@@ -158,10 +225,6 @@ public final class BackgroundSyncActor
             return new SyncEvent("Inconsistent: " + metadata);
         }
 
-        private static Event toleranceCutOff(final Instant toleranceCutOff) {
-            return new SyncEvent("ToleranceCutOff: " + toleranceCutOff);
-        }
-
         @Override
         public String name() {
             return description;
@@ -171,5 +234,9 @@ public final class BackgroundSyncActor
         public String toString() {
             return description;
         }
+    }
+
+    private enum Control {
+        BOOKMARK_THING_ID
     }
 }
