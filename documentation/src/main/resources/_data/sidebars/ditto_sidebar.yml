@@ -437,7 +437,7 @@ entries:
         - title: Retrieve a single Property
           url: /protocol-examples-retrieveproperty.html
           output: web
-        - title: Error Responses
+        - title: Error responses
           url: /protocol-examples-errorresponses.html
           output: web
       - title: → Policies examples
@@ -509,7 +509,7 @@ entries:
         - title: Retrieve a single resource
           url: /protocol-examples-policies-retrieveresource.html
           output: web
-        - title: Error Responses
+        - title: Error responses
           url: /protocol-examples-policies-errorresponses.html
           output: web
 
