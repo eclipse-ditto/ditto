@@ -555,7 +555,9 @@ public final class ThingsModelFactory {
      * Returns a new empty <em>mutable</em> {@link Permissions}.
      *
      * @return the new {@code Permissions}.
+     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     public static Permissions noPermissions() {
         return AccessControlListModelFactory.noPermissions();
     }
@@ -565,6 +567,7 @@ public final class ThingsModelFactory {
      *
      * @return the new {@code Permissions}.
      * @see Permission#values()
+     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
      */
     public static Permissions allPermissions() {
         return AccessControlListModelFactory.allPermissions();
@@ -576,6 +579,7 @@ public final class ThingsModelFactory {
      * @param permissions the permissions to initialise the result with.
      * @return the new {@code Permissions}.
      * @throws NullPointerException if {@code permissions} is {@code null};
+     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
      */
     public static Permissions newPermissions(final Collection<Permission> permissions) {
         return AccessControlListModelFactory.newPermissions(permissions);
@@ -588,6 +592,7 @@ public final class ThingsModelFactory {
      * @param furtherPermissions additional permissions to be contained in the result.
      * @return the new {@code Permissions}.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
      */
     public static Permissions newPermissions(final Permission permission, final Permission... furtherPermissions) {
         return AccessControlListModelFactory.newPermissions(permission, furtherPermissions);
@@ -600,6 +605,7 @@ public final class ThingsModelFactory {
      * @param furtherPermissions additional permissions to be contained in the result.
      * @return the new {@code Permissions}.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
      */
     public static Permissions newUnmodifiablePermissions(final Permission permission,
             final Permission... furtherPermissions) {
@@ -614,6 +620,7 @@ public final class ThingsModelFactory {
      * @param furtherPermissions additional permission of the new ACL entry.
      * @return the new ACL entry.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
     public static AclEntry newAclEntry(final AuthorizationSubject authorizationSubject, final Permission permission,
             final Permission... furtherPermissions) {
@@ -627,6 +634,7 @@ public final class ThingsModelFactory {
      * @param permissions the permissions of the new ACL entry.
      * @return the new ACL entry.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
     public static AclEntry newAclEntry(final AuthorizationSubject authorizationSubject,
             final Iterable<Permission> permissions) {
@@ -640,6 +648,7 @@ public final class ThingsModelFactory {
      * @return the new ACL entry.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws DittoJsonException if {@code jsonObject} cannot be parsed.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
     public static AclEntry newAclEntry(final JsonObject jsonObject) {
         return AccessControlListModelFactory.newAclEntry(jsonObject);
@@ -657,7 +666,9 @@ public final class ThingsModelFactory {
      * @throws DittoJsonException if {@code permissionsValue} is not a JSON object.
      * @throws AclEntryInvalidException if {@code permissionsValue} does not contain a
      * {@code boolean} value for the required permissions.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     public static AclEntry newAclEntry(final CharSequence authorizationSubjectId, final JsonValue permissionsValue) {
         return AccessControlListModelFactory.newAclEntry(authorizationSubjectId, permissionsValue);
     }
@@ -666,7 +677,9 @@ public final class ThingsModelFactory {
      * Returns a mutable builder with a fluent API for an immutable {@link AccessControlList}.
      *
      * @return the new builder.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     public static AccessControlListBuilder newAclBuilder() {
         return AccessControlListModelFactory.newAclBuilder();
     }
@@ -678,7 +691,9 @@ public final class ThingsModelFactory {
      * @param aclEntries the initial entries of the new builder.
      * @return the new builder.
      * @throws NullPointerException if {@code aclEntries} is {@code null}.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     public static AccessControlListBuilder newAclBuilder(final Iterable<AclEntry> aclEntries) {
         return AccessControlListModelFactory.newAclBuilder(aclEntries);
     }
@@ -690,7 +705,9 @@ public final class ThingsModelFactory {
      * @param aclEntries the initial entries of the new builder.
      * @return the new builder.
      * @throws NullPointerException if {@code aclEntries} is {@code null}.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     public static AccessControlListBuilder newAclBuilder(final Optional<? extends Iterable<AclEntry>> aclEntries) {
         return AccessControlListModelFactory.newAclBuilder(aclEntries);
     }
@@ -699,7 +716,9 @@ public final class ThingsModelFactory {
      * Returns a new empty immutable {@link AccessControlList}.
      *
      * @return the new ACL.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     public static AccessControlList emptyAcl() {
         return AccessControlListModelFactory.emptyAcl();
     }
@@ -711,7 +730,9 @@ public final class ThingsModelFactory {
      * @param furtherEntries additional entries of the ACL.
      * @return the new initialised Access Control List.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     public static AccessControlList newAcl(final AclEntry entry, final AclEntry... furtherEntries) {
         return AccessControlListModelFactory.newAcl(entry, furtherEntries);
     }
@@ -722,7 +743,9 @@ public final class ThingsModelFactory {
      * @param entries the entries of the ACL.
      * @return the new initialised Access Control List.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     public static AccessControlList newAcl(final Iterable<AclEntry> entries) {
         return AccessControlListModelFactory.newAcl(entries);
     }
@@ -734,7 +757,9 @@ public final class ThingsModelFactory {
      * @return the new initialised {@code AccessControlList}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws DittoJsonException if {@code jsonObject} cannot be parsed to {@link AccessControlList}.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     public static AccessControlList newAcl(final JsonObject jsonObject) {
         return AccessControlListModelFactory.newAcl(jsonObject);
     }
@@ -745,7 +770,9 @@ public final class ThingsModelFactory {
      * @param jsonString the JSON object representation of an ACL.
      * @return the new initialised {@code AccessControlList}.
      * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@link AccessControlList}.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     public static AccessControlList newAcl(final String jsonString) {
         return AccessControlListModelFactory.newAcl(jsonString);
     }

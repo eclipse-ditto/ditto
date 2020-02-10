@@ -38,7 +38,11 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
  * This event is emitted after a Thing ACL entry was created.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+
+@Deprecated
 @Immutable
 @JsonParsableEvent(name = AclEntryCreated.NAME, typePrefix = AclEntryCreated.TYPE_PREFIX)
 public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>

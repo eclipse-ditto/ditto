@@ -75,34 +75,6 @@ public interface Command<T extends Command> extends Signal<T> {
     JsonObject toJson(JsonSchemaVersion schemaVersion, Predicate<JsonField> predicate);
 
     /**
-     * This class contains common definitions for all fields of a {@code Command}'s JSON representation.
-     * Implementation of {@code Command} may add additional fields by extending this class.
-     */
-    @Immutable
-    abstract class JsonFields {
-
-        /**
-         * JSON field containing the command's identification as String.
-         */
-        public static final JsonFieldDefinition<String> ID =
-                JsonFactory.newStringFieldDefinition("command", FieldType.REGULAR, JsonSchemaVersion.V_1);
-
-        /**
-         * JSON field containing the command's type as String.
-         */
-        public static final JsonFieldDefinition<String> TYPE =
-                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        /**
-         * Constructs a new {@code JsonFields} object.
-         */
-        protected JsonFields() {
-            super();
-        }
-
-    }
-
-    /**
      * Categories every command is classified into.
      */
     @Immutable
@@ -121,6 +93,37 @@ public interface Command<T extends Command> extends Signal<T> {
          * Category of commands that delete entities.
          */
         DELETE
+    }
+
+    /**
+     * This class contains common definitions for all fields of a {@code Command}'s JSON representation.
+     * Implementation of {@code Command} may add additional fields by extending this class.
+     */
+    @Immutable
+    abstract class JsonFields {
+
+        /**
+         * JSON field containing the command's identification as String.
+         *
+         * @deprecated Command ID belongs to deprecated API 1. Use API 2 with {@link #TYPE} instead
+         */
+        @Deprecated
+        public static final JsonFieldDefinition<String> ID =
+                JsonFactory.newStringFieldDefinition("command", FieldType.REGULAR, JsonSchemaVersion.V_1);
+
+        /**
+         * JSON field containing the command's type as String.
+         */
+        public static final JsonFieldDefinition<String> TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * Constructs a new {@code JsonFields} object.
+         */
+        protected JsonFields() {
+            super();
+        }
+
     }
 
 }

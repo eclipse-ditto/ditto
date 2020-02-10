@@ -26,7 +26,10 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * also implements {@link Jsonifiable} which means that a JSON representation can be obtained. This representation is a
  * JSON object where all constants of {@code Permission} is a JSON key and the value is a JSON boolean literal which
  * indicates whether that permission is contained in this set or not.
+ *
+ * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 public interface Permissions extends Set<Permission>, Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**

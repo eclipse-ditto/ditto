@@ -38,7 +38,11 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * This command deletes one single ACL entry of a Thing. Contains the {@code authorizationSubject} of the ACL to delete.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+
+@Deprecated
 @Immutable
 @JsonParsableCommand(typePrefix = DeleteAclEntry.TYPE_PREFIX, name = DeleteAclEntry.NAME)
 public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
