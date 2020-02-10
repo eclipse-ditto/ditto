@@ -50,6 +50,7 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Before;
 import org.junit.Test;
 
