@@ -18,7 +18,9 @@ import java.time.Instant;
 import java.util.Collections;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -29,11 +31,13 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.base.Signal;
@@ -68,7 +72,7 @@ public final class NormalizedMessageMapperTest {
 
     @Test
     public void thingCreated() {
-        final ThingEvent event = ThingCreated.of(ThingsModelFactory.newThingBuilder()
+        final ThingCreated event = ThingCreated.of(ThingsModelFactory.newThingBuilder()
                 .setId(ThingId.of("thing:created"))
                 .setPolicyId(PolicyId.of("thing:created"))
                 .setAttributes(Attributes.newBuilder().set("x", 5).build())
@@ -107,7 +111,7 @@ public final class NormalizedMessageMapperTest {
 
     @Test
     public void featurePropertyModified() {
-        final ThingEvent event = FeaturePropertyModified.of(
+        final FeaturePropertyModified event = FeaturePropertyModified.of(
                 ThingId.of("thing:id"),
                 "featureId",
                 JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog"),
@@ -139,8 +143,23 @@ public final class NormalizedMessageMapperTest {
     }
 
     @Test
+    public void headersFromAdaptableAreNotMapped() {
+        final FeaturePropertyModified event = FeaturePropertyModified.of(
+                ThingId.of("thing:id"),
+                "featureId",
+                JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog"),
+                JsonValue.of(9),
+                2L,
+                Instant.ofEpochSecond(2L),
+                DittoHeaders.newBuilder().putHeader("random", "header").build());
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
+        Assertions.assertThat(underTest.map(adaptable).get(0).getHeaders()).isEmpty();
+    }
+
+    @Test
     public void withFieldSelection() {
-        final ThingEvent event = FeaturePropertyModified.of(
+        final FeaturePropertyModified event = FeaturePropertyModified.of(
                 ThingId.of("thing:id"),
                 "featureId",
                 JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog"),
@@ -169,7 +188,7 @@ public final class NormalizedMessageMapperTest {
 
     @Test
     public void withFullThingPayloadFieldSelection() {
-        final ThingEvent event = ThingCreated.of(ThingsModelFactory.newThingBuilder()
+        final ThingCreated event = ThingCreated.of(ThingsModelFactory.newThingBuilder()
                 .setId(ThingId.of("thing:created"))
                 .setPolicyId(PolicyId.of("thing:created"))
                 .setAttributes(Attributes.newBuilder().set("x", 5).build())
@@ -198,6 +217,46 @@ public final class NormalizedMessageMapperTest {
                         "    \"topic\": \"thing/created/things/twin/events/created\",\n" +
                         "    \"path\": \"/\"\n" +
                         "  }\n" +
+                        "}"));
+    }
+
+    @Test
+    public void withExtraFieldsBeingIncluded() {
+        final ThingId thingId = ThingId.of("thing:feature-modified");
+        final ThingEvent<?> event =
+                FeaturePropertyModified.of(thingId, "my-feature", JsonPointer.of("abc"), JsonValue.of(false), 2L,
+                        Instant.ofEpochSecond(1L), DittoHeaders.empty());
+
+        underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
+                DefaultMessageMapperConfiguration.of("normalizer",
+                        Collections.singletonMap(NormalizedMessageMapper.FIELDS,
+                                "thingId,policyId,attributes/foo,features,_modified,_revision")));
+
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(thingId)
+                .setPolicyId(PolicyId.of(thingId))
+                .setAttributes(Attributes.newBuilder()
+                        .set("some-attr", 42)
+                        .set("foo", "bar")
+                        .build())
+                .setFeature(Feature.newBuilder()
+                        .properties(JsonObject.of("{\"abc\":false,\"def\":true}"))
+                        .withId("my-feature")
+                        .build())
+                .build();
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
+        final Adaptable adaptableWithExtra = ProtocolFactory.setExtra(adaptable, thing.toJson(
+                JsonFactory.newFieldSelector("policyId,attributes,features/my-feature/properties/def",
+                        JsonParseOptions.newBuilder().withoutUrlDecoding().build())));
+        Assertions.assertThat(mapToJson(adaptableWithExtra))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"thingId\": \"thing:feature-modified\",\n" +
+                        "  \"policyId\": \"thing:feature-modified\",\n" +
+                        "  \"attributes\": {\"foo\": \"bar\"},\n" +
+                        "  \"features\":{\"my-feature\":{\"properties\":{\"abc\":false,\"def\":true}}},\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:01Z\",\n" +
+                        "  \"_revision\": 2\n" +
                         "}"));
     }
 

@@ -16,14 +16,16 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 
 /**
- * Implementation of {@code EntityId}.
+ * Implementation of {@code EntityIdWithResourceType}.
  */
 @Immutable
 final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceType {
@@ -32,18 +34,24 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
 
     private final String resourceType;
     private final EntityId id;
+    @Nullable private final CacheLookupContext cacheLookupContext;
 
     /**
-     * Creates a new {@code ImmutableEntityId}.
+     * Creates a new {@code ImmutableEntityIdWithResourceType}.
      *
      * @param resourceType the resource type.
      * @param id the entity id.
+     * @param cacheLookupContext additional context information to use for the cache lookup.
      * @throws IllegalArgumentException if resource type contains ':'.
      */
-    private ImmutableEntityIdWithResourceType(final String resourceType, final EntityId id) {
+    private ImmutableEntityIdWithResourceType(
+            final String resourceType,
+            final EntityId id,
+            @Nullable final CacheLookupContext cacheLookupContext) {
         this.resourceType = checkNotNull(resourceType, "resourceType");
         // build a default entity id, so that serializing and deserializing works properly
         this.id = DefaultEntityId.of(checkNotNull(id, "id"));
+        this.cacheLookupContext = cacheLookupContext;
         if (resourceType.contains(DELIMITER)) {
             final String message =
                     String.format("Resource type <%s> may not contain ':'. Id = <%s>", resourceType, id);
@@ -59,7 +67,20 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
      * @return the entity ID with resource type object.
      */
     static EntityIdWithResourceType of(final String resourceType, final EntityId id) {
-        return new ImmutableEntityIdWithResourceType(resourceType, id);
+        return new ImmutableEntityIdWithResourceType(resourceType, id, null);
+    }
+
+    /**
+     * Create a new entity ID from the given  {@code resourceType} and {@code id}.
+     *
+     * @param resourceType the resource type.
+     * @param id the entity ID.
+     * @param cacheLookupContext additional context information to use for the cache lookup.
+     * @return the entity ID with resource type object.
+     */
+    static EntityIdWithResourceType of(final String resourceType, final EntityId id,
+            final CacheLookupContext cacheLookupContext) {
+        return new ImmutableEntityIdWithResourceType(resourceType, id, cacheLookupContext);
     }
 
     /**
@@ -79,7 +100,7 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
         } else {
             final EntityId id = DefaultEntityId.of(string.substring(delimiterIndex + 1));
             final String resourceType = string.substring(0, delimiterIndex);
-            return new ImmutableEntityIdWithResourceType(resourceType, id);
+            return new ImmutableEntityIdWithResourceType(resourceType, id, null);
         }
     }
 
@@ -94,10 +115,17 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
     }
 
     @Override
+    public Optional<CacheLookupContext> getCacheLookupContext() {
+        return Optional.ofNullable(cacheLookupContext);
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (o instanceof ImmutableEntityIdWithResourceType) {
             final ImmutableEntityIdWithResourceType that = (ImmutableEntityIdWithResourceType) o;
-            return Objects.equals(resourceType, that.resourceType) && Objects.equals(id, that.id);
+            return Objects.equals(resourceType, that.resourceType) &&
+                    Objects.equals(id, that.id) &&
+                    Objects.equals(cacheLookupContext, that.cacheLookupContext);
         } else {
             return false;
         }
@@ -105,11 +133,13 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
 
     @Override
     public int hashCode() {
-        return Objects.hash(resourceType, id);
+        return Objects.hash(resourceType, id, cacheLookupContext);
     }
 
     @Override
     public String toString() {
+        // cache context is not in the string representation
+        // because it is used for serialization and cache context is local
         return String.format("%s%s%s", resourceType, DELIMITER, id);
     }
 

@@ -155,13 +155,32 @@ The following table shows which WebSocket protocol message are supported:
 | Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | `START-SEND-LIVE-EVENTS:ACK` |
 | Stop receiving live commands | `STOP-SEND-LIVE-EVENTS` | `STOP-SEND-LIVE-EVENTS:ACK` |
 
+### Enrichment
+
+{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
+
+When extra fields should be added to outgoing messages on the WebSocket channel, an `extraFields` parameter can be added
+to the request message. This is supported for all request messages:
+
+| Description | Request message | [Enrich by extra fields](basic-enrichment.html) |
+|-------------|-----------------|------------------|
+| Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | &#10004; |
+| Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | &#10004; |
+| Subscribe for [live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | &#10004; |
+| Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | &#10004; |
+
+Analog to the [filtering](#filtering) the parameter is defined like an HTTP query parameter, e.g.:
+```
+START-SEND-EVENTS?extraFields=attributes/counter,features/ConnectionStatus
+START-SEND-MESSAGES?extraFields=attributes
+```
 
 ### Filtering
 
 In order to only consume specific events like described in [change notifications](basic-changenotifications.html), the
 following parameters can additionally be provided when sending the WebSocket protocol messages:
 
-| Description | Request message | Filter by namespaces | Filter by RQL expression |
+| Description | Request message | [Filter by namespaces](basic-changenotifications.html#by-namespaces) | [Filter by RQL expression](basic-changenotifications.html#by-rql-expression) |
 |-------------|-----------------|------------------|-----------|
 | Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | &#10004; | &#10004; |
 | Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | &#10004; | &#10060; |
@@ -175,4 +194,9 @@ For example this way the WebSocket session would register for all events in the 
 would match an attribute "counter" to be greater than 42:
 ```
 START-SEND-EVENTS?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)
+```
+
+The filtering may be also used in combination with an [enrichment](#enrichment), e.g.:
+```
+START-SEND-EVENTS?extraFields=attributes&filter=gt(attributes/counter,42)
 ```

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
+import java.util.Optional;
+
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 
 /**
@@ -34,6 +36,13 @@ public interface EntityIdWithResourceType {
     EntityId getId();
 
     /**
+     * Retrieve the optional context to use when doing the cache lookup.
+     *
+     * @return the cache context to use for lookup.
+     */
+    Optional<CacheLookupContext> getCacheLookupContext();
+
+    /**
      * Serialize this object as string.
      *
      * @return serialized form of this object.
@@ -52,6 +61,19 @@ public interface EntityIdWithResourceType {
     }
 
     /**
+     * Create a new entity ID from the given  {@code resourceType} and {@code id}.
+     *
+     * @param resourceType the resource type.
+     * @param id the entity ID.
+     * @param cacheLookupContext additional context information to use for the cache lookup.
+     * @return the entity ID with resource type object.
+     */
+    static EntityIdWithResourceType of(final String resourceType, final EntityId id,
+            final CacheLookupContext cacheLookupContext) {
+        return CacheFactory.newEntityId(resourceType, id, cacheLookupContext);
+    }
+
+    /**
      * Deserialize entity ID with resource type from a string.
      *
      * @param string the string.
@@ -61,4 +83,5 @@ public interface EntityIdWithResourceType {
     static EntityIdWithResourceType readFrom(final String string) {
         return CacheFactory.readEntityIdFrom(string);
     }
+
 }

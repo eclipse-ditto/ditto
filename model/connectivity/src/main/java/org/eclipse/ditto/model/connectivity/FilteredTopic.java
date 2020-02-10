@@ -15,6 +15,8 @@ package org.eclipse.ditto.model.connectivity;
 import java.util.List;
 import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
+
 /**
  * A FilteredTopic wraps a {@link Topic} and an optional {@code filter} String which additionally restricts which
  * kind of Signals should be processed/filtered based on an {@code RQL} query.
@@ -38,10 +40,19 @@ public interface FilteredTopic extends CharSequence {
 
     /**
      * @return whether this FilteredTopic has a filter to apply or not
+     * @deprecated please work with the result of {@link #getFilter()} directly.
      */
+    @Deprecated
     default boolean hasFilter() {
         return getFilter().isPresent();
     }
+
+    /**
+     * Returns the selector for the extra fields and their values to enrich outgoing signals with.
+     *
+     * @return the selector or an empty Optional if signals should not be enriched.
+     */
+    Optional<JsonFieldSelector> getExtraFields();
 
     @Override
     String toString();

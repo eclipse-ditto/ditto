@@ -100,8 +100,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
     private void handleMqttMessage(final Mqtt3Publish message) {
         log.info("Received message: {}", message);
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
-        externalMessageOptional.ifPresent(
-                externalMessage -> forwardToMappingActor(externalMessage, message.getTopic().toString()));
+        externalMessageOptional.ifPresent(this::forwardToMappingActor);
     }
 
     private Optional<ExternalMessage> hiveToExternalMessage(final Mqtt3Publish message,

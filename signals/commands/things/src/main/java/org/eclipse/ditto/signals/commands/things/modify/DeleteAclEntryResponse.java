@@ -39,7 +39,11 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link DeleteAclEntry} command.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+
+@Deprecated
 @Immutable
 @JsonParsableCommandResponse(type = DeleteAclEntryResponse.TYPE)
 public final class DeleteAclEntryResponse extends AbstractCommandResponse<DeleteAclEntryResponse> implements

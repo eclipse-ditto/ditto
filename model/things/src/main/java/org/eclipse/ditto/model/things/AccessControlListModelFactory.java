@@ -30,7 +30,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 
 /**
  * Factory that creates new {@code org.eclipse.ditto.model.things.AccessControlList} objects.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
 public final class AccessControlListModelFactory {
 

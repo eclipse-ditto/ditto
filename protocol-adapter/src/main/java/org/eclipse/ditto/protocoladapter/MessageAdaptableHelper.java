@@ -145,6 +145,7 @@ final class MessageAdaptableHelper {
                     .map(payloadString -> payloadString.getBytes(StandardCharsets.UTF_8))
                     .ifPresent(bytes -> messageBuilder.rawPayload(ByteBuffer.wrap(tryToDecode(bytes))));
         }
+        messageBuilder.extra(adaptable.getPayload().getExtra().orElse(null));
         return messageBuilder.build();
     }
 

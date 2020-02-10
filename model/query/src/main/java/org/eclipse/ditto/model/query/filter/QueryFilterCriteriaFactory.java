@@ -21,7 +21,9 @@ import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.rql.predicates.ast.RootNode;
 import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
@@ -30,6 +32,9 @@ import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
  * The place for query filter manipulations
  */
 public final class QueryFilterCriteriaFactory {
+
+    private static final QueryFilterCriteriaFactory MODEL_BASED =
+            new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ModelBasedThingsFieldExpressionFactory());
 
     private final CriteriaFactory criteriaFactory;
     private final ThingsFieldExpressionFactory fieldExpressionFactory;
@@ -40,6 +45,15 @@ public final class QueryFilterCriteriaFactory {
         this.criteriaFactory = criteriaFactory;
         this.fieldExpressionFactory = fieldExpressionFactory;
         this.rqlPredicateParser = new RqlPredicateParser();
+    }
+
+    /**
+     * Retrieve the unique model-based query filter criteria factory.
+     *
+     * @return the model-based query filter criteria factory.
+     */
+    public static QueryFilterCriteriaFactory modelBased() {
+        return MODEL_BASED;
     }
 
     /**

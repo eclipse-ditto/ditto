@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.ResourceKey;
 
@@ -75,11 +76,32 @@ public interface Enforcer {
      * @param furtherPermissions further permissions to check.
      * @return An {@code EffectedSubjectIds} object containing the grant set and the revoke set.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated as of 1.1.0 please use {@link #getSubjectsWithPermission(ResourceKey, String, String...)} instead.
      */
+    @Deprecated
     default EffectedSubjectIds getSubjectIdsWithPermission(final ResourceKey resourceKey,
             final String permission, final String... furtherPermissions) {
 
         return getSubjectIdsWithPermission(resourceKey, Permissions.newInstance(permission, furtherPermissions));
+    }
+
+    /**
+     * Returns a set of authorization subjects each of which has all the given permissions granted on exactly the given
+     * resource, and a set of authorization subjects each of which has 1 or more given permissions revoked on the given
+     * resource.
+     * Does not consider "REVOKE"s down in the hierarchy.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to check the permission(s) for.
+     * @param permission the permission to check.
+     * @param furtherPermissions further permissions to check.
+     * @return the effected subjects.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    default EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final String permission,
+            final String... furtherPermissions) {
+
+        return getSubjectsWithPermission(resourceKey, Permissions.newInstance(permission, furtherPermissions));
     }
 
     /**
@@ -91,8 +113,24 @@ public interface Enforcer {
      * @param permissions the permissions to check
      * @return An {@code EffectedSubjectIds} object containing the grant set and the revoke set.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated as of 1.1.0 please use {@link #getSubjectsWithPermission(ResourceKey, Permissions)}.
      */
+    @Deprecated
     EffectedSubjectIds getSubjectIdsWithPermission(ResourceKey resourceKey, Permissions permissions);
+
+    /**
+     * Returns a set of authorization subjects each of which has all the given permissions granted on exactly the given
+     * resource, and a set of authorization subjects each of which has 1 or more given permissions revoked on the given
+     * resource.
+     * Does not consider "REVOKE"s down in the hierarchy.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to check the permission(s) for.
+     * @param permissions the permissions to check
+     * @return the effected subjects.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    EffectedSubjects getSubjectsWithPermission(ResourceKey resourceKey, Permissions permissions);
 
     /**
      * Returns a set of subject ids each of which has all the given permissions granted on the given resource or on any
@@ -122,8 +160,25 @@ public interface Enforcer {
      * @return A Set containing the subject ids with partial permissions on the passed resourceKey or any other
      * resources in the hierarchy below.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated as of 1.1.0 please use {@link #getSubjectsWithPermission(ResourceKey, Permissions)} instead.
      */
+    @Deprecated
     Set<String> getSubjectIdsWithPartialPermission(ResourceKey resourceKey, Permissions permissions);
+
+    /**
+     * Returns a set of authorization subjects each of which has all the given permissions granted on the given resource
+     * or on any sub resource down in the hierarchy.
+     * Revoked permissions are not taken into account.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to use as starting point to check the
+     * partial permission(s) in the hierarchy for.
+     * @param permissions the permissions to be checked.
+     * @return the authorization subjects with partial permissions on the passed resourceKey or any other resources in
+     * the hierarchy below.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    Set<AuthorizationSubject> getSubjectsWithPartialPermission(ResourceKey resourceKey, Permissions permissions);
 
     /**
      * Checks whether the {@code authorizationContext} either implicitly or explicitly

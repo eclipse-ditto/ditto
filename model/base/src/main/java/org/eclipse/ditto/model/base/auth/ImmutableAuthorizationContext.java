@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.base.auth;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -41,9 +43,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableAuthorizationContext implements AuthorizationContext {
 
     private final List<AuthorizationSubject> authorizationSubjects;
+    private List<String> authorizationSubjectIds;
 
     private ImmutableAuthorizationContext(final List<AuthorizationSubject> theAuthorizationSubjects) {
         authorizationSubjects = theAuthorizationSubjects;
+        authorizationSubjectIds = null;
     }
 
     /**
@@ -53,7 +57,7 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
      * @return the new {@code AuthorizationContext}.
      * @throws NullPointerException if {@code authorizationSubjects} is {@code null}.
      */
-    public static AuthorizationContext of(final List<AuthorizationSubject> authorizationSubjects) {
+    public static ImmutableAuthorizationContext of(final List<AuthorizationSubject> authorizationSubjects) {
         checkNotNull(authorizationSubjects, "authorization subjects");
 
         return new ImmutableAuthorizationContext(Collections.unmodifiableList(authorizationSubjects));
@@ -68,8 +72,9 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
      * @throws NullPointerException if any argument is {@code null}.
      */
 
-    public static AuthorizationContext of(final AuthorizationSubject authorizationSubject,
+    public static ImmutableAuthorizationContext of(final AuthorizationSubject authorizationSubject,
             final AuthorizationSubject... furtherAuthorizationSubjects) {
+
         checkNotNull(authorizationSubject, "mandatory authorization subject");
         checkNotNull(furtherAuthorizationSubjects, "additional authorization subjects");
 
@@ -89,7 +94,7 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * 'AuthorizationContext' format.
      */
-    public static AuthorizationContext fromJson(final JsonObject jsonObject) {
+    public static ImmutableAuthorizationContext fromJson(final JsonObject jsonObject) {
         final List<AuthorizationSubject> authSubjects = jsonObject.getValueOrThrow(JsonFields.AUTH_SUBJECTS)
                 .stream()
                 .map(JsonValue::asString)
@@ -105,8 +110,29 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
     }
 
     @Override
+    public List<String> getAuthorizationSubjectIds() {
+        List<String> result = authorizationSubjectIds;
+
+        // The AuthorizationSubject IDs are cached for performance reasons.
+        // Caching has not to be thread-safe as the result of this method is guaranteed to be always the same and thus
+        // it does not break immutability from a user's viewpoint (which is the crucial one).
+        // Making this method thread-safe would eliminate the performance gains.
+        if (null == result) {
+            result = Collections.unmodifiableList(authorizationSubjects.stream()
+                    .map(AuthorizationSubject::getId)
+                    .collect(Collectors.toList()));
+            authorizationSubjectIds = result;
+        }
+        return result;
+    }
+
+    @Override
     public Optional<AuthorizationSubject> getFirstAuthorizationSubject() {
-        return authorizationSubjects.stream().findFirst();
+        try {
+            return Optional.of(authorizationSubjects.get(0));
+        } catch (final IndexOutOfBoundsException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -144,6 +170,19 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
     }
 
     @Override
+    public boolean isAuthorized(final Collection<AuthorizationSubject> granted,
+            final Collection<AuthorizationSubject> revoked) {
+
+        checkNotNull(granted, "granted");
+        checkNotNull(revoked, "revoked");
+
+        final boolean isGranted = !Collections.disjoint(granted, authorizationSubjects);
+        final boolean isRevoked = !Collections.disjoint(revoked, authorizationSubjects);
+
+        return isGranted && !isRevoked;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         return JsonFactory.newObjectBuilder()
@@ -169,16 +208,14 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
         return authorizationSubjects.stream();
     }
 
-    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ImmutableAuthorizationContext)) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         final ImmutableAuthorizationContext that = (ImmutableAuthorizationContext) o;
         return Objects.equals(authorizationSubjects, that.authorizationSubjects);
     }

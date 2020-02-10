@@ -309,8 +309,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param enforcer the policy enforcer.
      * @return the completionStage of the contextual including message and receiver
      */
-    private CompletionStage<Contextual<WithDittoHeaders>> enforceThingCommandByPolicyEnforcer(final ThingCommand<?> thingCommand,
-            final PolicyId policyId, final Enforcer enforcer) {
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceThingCommandByPolicyEnforcer(
+            final ThingCommand<?> thingCommand, final PolicyId policyId, final Enforcer enforcer) {
+
         return authorizeByPolicy(enforcer, thingCommand)
                 .map(commandWithReadSubjects -> {
                     if (commandWithReadSubjects instanceof ThingQueryCommand) {
@@ -777,16 +778,17 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     }
 
-    private Optional<CreateThingWithEnforcer> enforceCreateThingByAuthorizationContext(final CreateThing createThing) {
+    private static Optional<CreateThingWithEnforcer> enforceCreateThingByAuthorizationContext(
+            final CreateThing createThing) {
+
         // Command without authorization information is authorized by default.
-        final Set<String> authorizedSubjects = createThing.getDittoHeaders()
-                .getAuthorizationContext()
-                .getFirstAuthorizationSubject()
-                .map(subject -> Collections.singleton(subject.getId()))
+        final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
+        final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
+        final Set<AuthorizationSubject> authorizedSubjects = authorizationContext.getFirstAuthorizationSubject()
+                .map(Collections::singleton)
                 .orElse(Collections.emptySet());
-        final CreateThing command =
-                AbstractEnforcement.addReadSubjectsToSignal(createThing, authorizedSubjects);
         final Enforcer enforcer = new AuthorizedSubjectsEnforcer(authorizedSubjects);
+        final CreateThing command = AbstractEnforcement.addEffectedReadSubjectsToThingSignal(createThing, enforcer);
         return Optional.of(new CreateThingWithEnforcer(command, enforcer));
     }
 
@@ -897,8 +899,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final String permission = Permission.READ;
             authorized = policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, permission);
         }
+
         return authorized
-                ? Optional.of(AbstractEnforcement.addReadSubjectsToThingSignal(command, policyEnforcer))
+                ? Optional.of(AbstractEnforcement.addEffectedReadSubjectsToThingSignal(command, policyEnforcer))
                 : Optional.empty();
     }
 
@@ -910,7 +913,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    static <T extends ThingCommand> Optional<T> authorizeByAcl(final Enforcer aclEnforcer,
+    static <T extends ThingCommand<T>> Optional<T> authorizeByAcl(final Enforcer aclEnforcer,
             final ThingCommand<T> command) {
         final ResourceKey thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
         final AuthorizationContext authorizationContext = command.getDittoHeaders().getAuthorizationContext();
@@ -918,7 +921,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 ? computeAclPermissions((ThingModifyCommand) command)
                 : Permissions.newInstance(Permission.READ);
         return aclEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, permissions)
-                ? Optional.of(AbstractEnforcement.addReadSubjectsToThingSignal(command, aclEnforcer))
+                ? Optional.of(AbstractEnforcement.addEffectedReadSubjectsToThingSignal(command, aclEnforcer))
                 : Optional.empty();
     }
 

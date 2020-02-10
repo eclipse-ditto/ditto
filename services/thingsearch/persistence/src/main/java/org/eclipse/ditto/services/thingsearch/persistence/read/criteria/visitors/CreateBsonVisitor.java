@@ -17,8 +17,6 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -29,12 +27,11 @@ import org.eclipse.ditto.model.query.criteria.Predicate;
 import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
-
-import com.mongodb.client.model.Filters;
-
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.AbstractFieldBsonCreator;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetExistsBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFilterBsonVisitor;
+
+import com.mongodb.client.model.Filters;
 
 /**
  * Creates the Bson object used for querying.
@@ -96,17 +93,17 @@ public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
     }
 
     @Override
-    public Bson visitNor(final Stream<Bson> negativeDisjoints) {
-        return Filters.nor(negativeDisjoints.collect(Collectors.toList()));
+    public Bson visitNor(final List<Bson> negativeDisjoints) {
+        return Filters.nor(negativeDisjoints);
     }
 
     @Override
-    public Bson visitOr(final Stream<Bson> disjoints) {
-        return Filters.or(disjoints.collect(Collectors.toList()));
+    public Bson visitOr(final List<Bson> disjoints) {
+        return Filters.or(disjoints);
     }
 
     @Override
-    public Bson visitAnd(final Stream<Bson> conjuncts) {
-        return Filters.and(conjuncts.collect(Collectors.toList()));
+    public Bson visitAnd(final List<Bson> conjuncts) {
+        return Filters.and(conjuncts);
     }
 }

@@ -18,7 +18,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -60,8 +61,8 @@ public final class AclEnforcerCacheLoader
         requireNonNull(askTimeout);
         requireNonNull(thingsShardRegionProxy);
 
-        final Function<EntityId, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
-        final Function<Object, Entry<Enforcer>> responseTransformer =
+        final BiFunction<EntityId, CacheLookupContext, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
+        final BiFunction<Object, CacheLookupContext, Entry<Enforcer>> responseTransformer =
                 AclEnforcerCacheLoader::handleSudoRetrieveThingResponse;
 
         this.delegate = ActorAskCacheLoader.forShard(askTimeout, ThingCommand.RESOURCE_TYPE, thingsShardRegionProxy,
@@ -75,7 +76,8 @@ public final class AclEnforcerCacheLoader
     }
 
     @Nullable
-    private static Entry<Enforcer> handleSudoRetrieveThingResponse(final Object response) {
+    private static Entry<Enforcer> handleSudoRetrieveThingResponse(final Object response,
+            @Nullable final CacheLookupContext cacheLookupContext) {
         if (response instanceof SudoRetrieveThingResponse) {
             final SudoRetrieveThingResponse sudoRetrieveThingResponse = (SudoRetrieveThingResponse) response;
             final Thing thing = sudoRetrieveThingResponse.getThing();

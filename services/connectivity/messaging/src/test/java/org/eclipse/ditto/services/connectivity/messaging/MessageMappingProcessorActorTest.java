@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -27,13 +29,18 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -46,36 +53,45 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
-import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
-import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.connectivity.mapping.ConnectivityCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
+import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.typesafe.config.ConfigValueFactory;
+
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
+import akka.pattern.Patterns;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -88,8 +104,9 @@ public final class MessageMappingProcessorActorTest {
     private static final ConnectionId CONNECTION_ID = ConnectionId.of("testConnection");
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
-    private static final String FAULTY_MAPPER = "faulty";
-    private static final String ADD_HEADER_MAPPER = "header";
+    private static final String FAULTY_MAPPER = FaultyMessageMapper.ALIAS;
+    private static final String ADD_HEADER_MAPPER = AddHeaderMessageMapper.ALIAS;
+    private static final String DUPLICATING_MAPPER = DuplicatingMessageMapper.ALIAS;
 
     private static final HeaderMapping CORRELATION_ID_AND_SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
@@ -97,17 +114,23 @@ public final class MessageMappingProcessorActorTest {
                     .set("source", "{{ request:subjectId }}")
                     .build());
 
-    private static ActorSystem actorSystem;
-    private static ProtocolAdapterProvider protocolAdapterProvider;
+    private static final HeaderMapping SOURCE_HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
+                    .set("source", "{{ request:subjectId }}")
+                    .build());
 
-    @BeforeClass
-    public static void setUp() {
+    private ActorSystem actorSystem;
+    private ProtocolAdapterProvider protocolAdapterProvider;
+
+    @Before
+    public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
+        MockConciergeForwarderActor.create(actorSystem);
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
                     false);
@@ -160,6 +183,233 @@ public final class MessageMappingProcessorActorTest {
                             .hasValueSatisfying(desc -> assertThat(desc).contains(FAULTY_MAPPER));
                 }
         );
+    }
+
+    @Test
+    public void testSignalEnrichment() {
+        // GIVEN: test probe actor started with configured values
+        final TestProbe conciergeForwarderProbe = TestProbe.apply("mockConciergeForwarderProbe", actorSystem);
+        setUpConciergeForwarder(conciergeForwarderProbe.ref());
+
+        new TestKit(actorSystem) {{
+            // GIVEN: MessageMappingProcessor started with a test probe as the configured enrichment provider
+            final ActorRef underTest = createMessageMappingProcessorActor(this);
+
+            // WHEN: a signal is received with 2 targets, one with enrichment and one without
+            final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes/x", "attributes/y");
+            final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
+            final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
+                    .address("target/address")
+                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .build())
+                    .build();
+            final Target targetWithoutEnrichment = ConnectivityModelFactory.newTargetBuilder(targetWithEnrichment)
+                    .topics(Topic.TWIN_EVENTS)
+                    .build();
+            final Signal<?> signal = TestConstants.thingModified(Collections.emptyList());
+            final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(signal,
+                    Arrays.asList(targetWithEnrichment, targetWithoutEnrichment));
+            underTest.tell(outboundSignal, getRef());
+
+            // THEN: a mapped signal without enrichment arrives first
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithoutEnrichment);
+
+            // THEN: Receive a RetrieveThing command from the facade.
+            final RetrieveThing retrieveThing = conciergeForwarderProbe.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
+
+            final JsonObject extra = JsonObject.newBuilder().set("/attributes/x", 5).build();
+            conciergeForwarderProbe.reply(
+                    RetrieveThingResponse.of(retrieveThing.getEntityId(), extra, retrieveThing.getDittoHeaders()));
+
+            // THEN: Receive an outbound signal with extra fields.
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithEnrichment,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra));
+        }};
+    }
+
+    @SafeVarargs
+    private static void expectPublishedMappedMessage(final PublishMappedMessage publishMappedMessage,
+            final Signal<?> signal,
+            final Target target,
+            final Consumer<OutboundSignal.Mapped>... otherAssertionConsumers) {
+
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(publishMappedMessage.getOutboundSignal()).satisfies(outboundSignal -> {
+                softly.assertThat(outboundSignal.getSource()).as("source is expected").isEqualTo(signal);
+                softly.assertThat(outboundSignal.getTargets()).as("targets are expected").containsExactly(target);
+            });
+        }
+        Arrays.asList(otherAssertionConsumers)
+                .forEach(con -> con.accept(publishMappedMessage.getOutboundSignal()));
+    }
+
+    @Test
+    public void testSignalEnrichmentWithPayloadMappedTargets() {
+        resetActorSystemWithCachingSignalEnrichmentProvider();
+        final TestProbe conciergeForwarderProbe = TestProbe.apply("mockConciergeForwarder", actorSystem);
+        setUpConciergeForwarder(conciergeForwarderProbe.ref());
+
+        new TestKit(actorSystem) {{
+            // GIVEN: MessageMappingProcessor started with a test probe as the configured enrichment provider
+            final ActorRef underTest = createMessageMappingProcessorActor(this);
+
+            // WHEN: a signal is received with 6 targets:
+            //  - 1 with enrichment w/o payload mapping
+            //  - 1 with enrichment with 1 payload mapping
+            //  - 1 with enrichment with 2 payload mappings
+            //  - 1 w/o enrichment w/o payload mapping
+            //  - 1 w/o enrichment with 1 payload mapping
+            //  - 1 w/o enrichment with 2 payload mappings
+            final JsonFieldSelector extraFields = JsonFactory.newFieldSelector("attributes/x,attributes/y",
+                    JsonParseOptions.newBuilder().withoutUrlDecoding().build());
+            final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
+            final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
+                    .address("target/address")
+                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .build())
+                    .build();
+            final Target targetWithEnrichmentAnd1PayloadMapper = ConnectivityModelFactory.newTargetBuilder()
+                    .address("target/address/mapped/1")
+                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .build())
+                    .payloadMapping(ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER))
+                    .build();
+            final Target targetWithEnrichmentAnd2PayloadMappers = ConnectivityModelFactory.newTargetBuilder()
+                    .address("target/address/mapped/2")
+                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .build())
+                    .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DUPLICATING_MAPPER, ADD_HEADER_MAPPER))
+                    .build();
+            final Target targetWithoutEnrichment = ConnectivityModelFactory.newTargetBuilder(targetWithEnrichment)
+                    .address("target/address/without/enrichment")
+                    .topics(Topic.TWIN_EVENTS)
+                    .build();
+            final Target targetWithoutEnrichmentAnd1PayloadMapper =
+                    ConnectivityModelFactory.newTargetBuilder(targetWithEnrichment)
+                            .address("target/address/without/enrichment/with/1/payloadmapper")
+                            .topics(Topic.TWIN_EVENTS)
+                            .payloadMapping(ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER))
+                            .build();
+            final Target targetWithoutEnrichmentAnd2PayloadMappers =
+                    ConnectivityModelFactory.newTargetBuilder(targetWithEnrichment)
+                            .address("target/address/without/enrichment/with/2/payloadmappers")
+                            .topics(Topic.TWIN_EVENTS)
+                            .payloadMapping(
+                                    ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER, DUPLICATING_MAPPER))
+                            .build();
+            final Signal<?> signal = TestConstants.thingModified(Collections.emptyList())
+                    .setRevision(8L); // important to set revision to same value as cache lookup retrieves
+            final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(
+                    targetWithEnrichment,
+                    targetWithoutEnrichment,
+                    targetWithEnrichmentAnd1PayloadMapper,
+                    targetWithoutEnrichmentAnd1PayloadMapper,
+                    targetWithEnrichmentAnd2PayloadMappers,
+                    targetWithoutEnrichmentAnd2PayloadMappers)
+            );
+            underTest.tell(outboundSignal, getRef());
+
+            // THEN: a mapped signal without enrichment arrives first
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithoutEnrichment,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+
+            // THEN: a mapped signal without enrichment and applied 1 payload mapper arrives
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithoutEnrichmentAnd1PayloadMapper,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+
+            // THEN: a mapped signal without enrichment and applied 2 payload mappers arrives causing 3 messages
+            //  as 1 mapper duplicates the message
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+
+            // THEN: Receive a RetrieveThing command from the facade.
+            final RetrieveThing retrieveThing = conciergeForwarderProbe.expectMsgClass(RetrieveThing.class);
+            final JsonFieldSelector extraFieldsWithAdditionalCachingSelectedOnes = JsonFactory.newFieldSelectorBuilder()
+                    .addPointers(extraFields)
+                    .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
+                    .build();
+            assertThat(retrieveThing.getSelectedFields()).contains(extraFieldsWithAdditionalCachingSelectedOnes);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
+            final JsonObject extra = JsonObject.newBuilder()
+                    .set("/attributes/x", 5)
+                    .build();
+            final JsonObject extraForCachingFacade = JsonObject.newBuilder()
+                    .set("_revision", 8)
+                    .setAll(extra)
+                    .build();
+            conciergeForwarderProbe.reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extraForCachingFacade,
+                    retrieveThing.getDittoHeaders()));
+
+            // THEN: Receive an outbound signal with extra fields.
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithEnrichment,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+
+            // THEN: Receive an outbound signal with extra fields and with mapped payload.
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithEnrichmentAnd1PayloadMapper,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+
+            // THEN: a mapped signal with enrichment and applied 2 payload mappers arrives causing 3 messages
+            //  as 1 mapper duplicates the message
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+                    targetWithEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+        }};
+    }
+
+    private void resetActorSystemWithCachingSignalEnrichmentProvider() {
+        TestKit.shutdownActorSystem(actorSystem);
+        actorSystem = ActorSystem.create("AkkaTestSystemWithCachingSignalEnrichmentProvider",
+                TestConstants.CONFIG
+                        .withValue("ditto.connectivity.signal-enrichment.provider",
+                                ConfigValueFactory.fromAnyRef(
+                                        ConnectivityCachingSignalEnrichmentProvider.class.getCanonicalName())
+                        )
+        );
+        MockConciergeForwarderActor.create(actorSystem);
     }
 
     private void testExternalMessageInDittoProtocolIsProcessed(
@@ -299,6 +549,47 @@ public final class MessageMappingProcessorActorTest {
     }
 
     @Test
+    public void testMessageWithoutCorrelationId(){
+
+        final AuthorizationContext expectedAuthContext = AuthorizationModelFactory.newAuthContext(
+                AuthorizationModelFactory.newAuthSubject("hub-application/json"),
+                AuthorizationModelFactory.newAuthSubject("integration:application/json:hub"));
+
+        testMessageMappingWithoutCorrelationId(expectedAuthContext, ModifyAttribute.class, modifyAttribute -> {
+            assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
+            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(expectedAuthContext);
+
+        });
+    }
+
+    private <T> void testMessageMappingWithoutCorrelationId(
+            final AuthorizationContext context,
+            final Class<T> expectedMessageClass,
+            final Consumer<T> verifyReceivedMessage) {
+
+        new TestKit(actorSystem) {{
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final Map<String, String> headers = new HashMap<>();
+            headers.put("content-type", "application/json");
+            final ModifyAttribute modifyCommand = ModifyAttribute.of(KNOWN_THING_ID, JsonPointer.of("foo"),
+                    JsonValue.of(42), DittoHeaders.empty());
+            final JsonifiableAdaptable adaptable = ProtocolFactory
+                    .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand));
+            final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                    .withTopicPath(adaptable.getTopicPath())
+                    .withText(adaptable.toJsonString())
+                    .withAuthorizationContext(context)
+                    .withHeaderMapping(SOURCE_HEADER_MAPPING)
+                    .build();
+
+            messageMappingProcessorActor.tell(externalMessage, getRef());
+
+            final T received = expectMsgClass(expectedMessageClass);
+            verifyReceivedMessage.accept(received);
+        }};
+    }
+
+    @Test
     public void testTopicOnLiveTopicPathCombinationError() {
         final String correlationId = UUID.randomUUID().toString();
 
@@ -356,7 +647,7 @@ public final class MessageMappingProcessorActorTest {
                 });
     }
 
-    private static <T> void testMessageMapping(final String correlationId,
+    private <T> void testMessageMapping(final String correlationId,
             final AuthorizationContext context,
             final Class<T> expectedMessageClass,
             final Consumer<T> verifyReceivedMessage) {
@@ -454,22 +745,37 @@ public final class MessageMappingProcessorActorTest {
         }};
     }
 
-    private static ActorRef createMessageMappingProcessorActor(final TestKit kit) {
+    private ActorRef createMessageMappingProcessorActor(final TestKit kit) {
         final Props props =
                 MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
-                        CONNECTION_ID);
+                        CONNECTION_ID, 99);
         return actorSystem.actorOf(props);
     }
 
-    private static MessageMappingProcessor getMessageMappingProcessor() {
+    private MessageMappingProcessor getMessageMappingProcessor() {
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
+        mappingDefinitions.put(DUPLICATING_MAPPER, DuplicatingMessageMapper.CONTEXT);
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
+        final DittoDiagnosticLoggingAdapter logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
         return MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
                 TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
+                protocolAdapterProvider, logger);
+    }
+
+    private void setUpConciergeForwarder(final ActorRef recipient) {
+        final ActorSelection actorSelection = actorSystem.actorSelection("/user/connectivityRoot/conciergeForwarder");
+        Patterns.ask(actorSelection, recipient, Duration.ofSeconds(10L))
+                .toCompletableFuture()
+                .join();
     }
 
     private static ModifyAttribute createModifyAttributeCommand() {
@@ -478,15 +784,6 @@ public final class MessageMappingProcessorActorTest {
         headers.put("correlation-id", correlationId);
         headers.put("content-type", "application/json");
         return ModifyAttribute.of(KNOWN_THING_ID, JsonPointer.of("foo"), JsonValue.of(42), DittoHeaders.of(headers));
-    }
-
-    private static SendThingMessage<Object> createSendMessageCommand() {
-        final MessageHeaders messageHeaders =
-                MessageHeadersBuilder.newInstance(MessageDirection.TO, TestConstants.Things.THING_ID, "some-subject")
-                        .build();
-
-        return SendThingMessage.of(TestConstants.Things.THING_ID,
-                Message.newBuilder(messageHeaders).payload("payload").build(), DittoHeaders.empty());
     }
 
     private static final class TestPlaceholder implements Placeholder<String> {

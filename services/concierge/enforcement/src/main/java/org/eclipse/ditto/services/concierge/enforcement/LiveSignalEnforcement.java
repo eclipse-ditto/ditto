@@ -17,13 +17,13 @@ import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
 
 import java.time.Duration;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -227,7 +227,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
                 if (authorized) {
                     final Command<?> withReadSubjects =
-                            addReadSubjectsToThingSignal((Command<?>) liveSignal, enforcer);
+                            addEffectedReadSubjectsToThingSignal((Command<?>) liveSignal, enforcer);
                     log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
                     if (liveSignal.getDittoHeaders().isResponseRequired()) {
                         responseReceivers.put(correlationId, ResponseReceiver.of(sender, liveSignal.getDittoHeaders()));
@@ -258,7 +258,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
         if (authorized) {
             log(liveSignal).info("Live Event was authorized: <{}>", liveSignal);
-            final Event withReadSubjects = addReadSubjectsToThingSignal((Event<?>) liveSignal, enforcer);
+            final Event withReadSubjects = addEffectedReadSubjectsToThingSignal((Event<?>) liveSignal, enforcer);
             return CompletableFuture.completedFuture(publishLiveSignal(withReadSubjects, liveSignalPub.event()));
         } else {
             log(liveSignal).info("Live Event was NOT authorized: <{}>", liveSignal);
@@ -287,15 +287,12 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
     }
 
     private Contextual<WithDittoHeaders> publishMessageCommand(final MessageCommand command, final Enforcer enforcer) {
-
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(MessageCommand.RESOURCE_TYPE, command.getResourcePath());
-        final Set<String> messageReaders = enforcer.getSubjectIdsWithPermission(resourceKey, Permission.READ)
-                .getGranted();
-
-        final DittoHeaders headersWithReadSubjects = command.getDittoHeaders()
-                .toBuilder()
-                .readSubjects(messageReaders)
+        final EffectedSubjects effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
+        final DittoHeaders headersWithReadSubjects = DittoHeaders.newBuilder(command.getDittoHeaders())
+                .readGrantedSubjects(effectedSubjects.getGranted())
+                .readRevokedSubjects(effectedSubjects.getRevoked())
                 .build();
 
         final MessageCommand commandWithReadSubjects = command.setDittoHeaders(headersWithReadSubjects);

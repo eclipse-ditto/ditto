@@ -25,6 +25,15 @@
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Signals :: Base</name>
 
+    <dependencies>
+        <!-- test-jar only -->
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -37,6 +46,7 @@
                         </goals>
                         <configuration>
                             <includes>
+                                <include>org/eclipse/ditto/signals/base/*</include>
                                 <include>org/eclipse/ditto/signals/base/assertions/*</include>
                             </includes>
                         </configuration>

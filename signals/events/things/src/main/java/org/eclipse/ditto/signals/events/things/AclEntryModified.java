@@ -38,9 +38,13 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
  * This event is emitted after a Thing ACL entry was modified.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+
+@Deprecated
 @Immutable
-@JsonParsableEvent(name = AclEntryModified.NAME, typePrefix= AclEntryModified.TYPE_PREFIX)
+@JsonParsableEvent(name = AclEntryModified.NAME, typePrefix = AclEntryModified.TYPE_PREFIX)
 public final class AclEntryModified extends AbstractThingEvent<AclEntryModified>
         implements ThingModifiedEvent<AclEntryModified> {
 

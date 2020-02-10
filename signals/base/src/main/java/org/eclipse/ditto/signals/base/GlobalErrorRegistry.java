@@ -57,6 +57,13 @@ public final class GlobalErrorRegistry
         return INSTANCE;
     }
 
+    @Override
+    protected String resolveType(final JsonObject jsonObject) {
+        return jsonObject.getValue(DittoRuntimeException.JsonFields.ERROR_CODE)
+                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
+                        .fieldName(DittoRuntimeException.JsonFields.ERROR_CODE.getPointer().toString())
+                        .build());
+    }
 
     /**
      * Contains all strategies to deserialize {@link DittoJsonException} from a combination of
@@ -115,14 +122,6 @@ public final class GlobalErrorRegistry
 
     }
 
-    @Override
-    protected String resolveType(final JsonObject jsonObject) {
-        return jsonObject.getValue(DittoRuntimeException.JsonFields.ERROR_CODE)
-                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                        .fieldName(DittoRuntimeException.JsonFields.ERROR_CODE.getPointer().toString())
-                        .build());
-    }
-
     /**
      * Contains all strategies to deserialize {@link DittoRuntimeException} annotated with {@link JsonParsableException}
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
@@ -133,6 +132,7 @@ public final class GlobalErrorRegistry
         private ExceptionParsingStrategyFactory() {}
 
         @Override
+        @Deprecated
         protected String getV1FallbackKeyFor(final JsonParsableException annotation) {
             return annotation.errorCode();
         }

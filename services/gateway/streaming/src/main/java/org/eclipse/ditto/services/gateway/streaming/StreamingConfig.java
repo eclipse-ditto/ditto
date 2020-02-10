@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
@@ -46,16 +47,32 @@ public interface StreamingConfig {
     WebsocketConfig getWebsocketConfig();
 
     /**
+     * Returns the signal-enrichment config.
+     *
+     * @return the signal-enrichment config.
+     */
+    SignalEnrichmentConfig getSignalEnrichmentConfig();
+
+    /**
+     * Returns maximum number of stream elements to process in parallel.
+     *
+     * @return the parallelism.
+     */
+    int getParallelism();
+
+    /**
      * Render this object into a Config object from which a copy of this object can be constructed.
      *
      * @return a config representation.
      */
     default Config render() {
         final Map<String, Object> map = new HashMap<>();
-        map.put(StreamingConfig.StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath(),
+        map.put(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath(),
                 getSessionCounterScrapeInterval().toMillis() + "ms");
+        map.put(StreamingConfigValue.PARALLELISM.getConfigPath(), getParallelism());
         return ConfigFactory.parseMap(map)
                 .withFallback(getWebsocketConfig().render())
+                .withFallback(getSignalEnrichmentConfig().render())
                 .atKey(CONFIG_PATH);
     }
 
@@ -68,7 +85,12 @@ public interface StreamingConfig {
         /**
          * How often to update websocket session counter by counting child actors.
          */
-        SESSION_COUNTER_SCRAPE_INTERVAL("session-counter-scrape-interval", Duration.ofSeconds(30L));
+        SESSION_COUNTER_SCRAPE_INTERVAL("session-counter-scrape-interval", Duration.ofSeconds(30L)),
+
+        /**
+         * Maximum number of stream elements to process in parallel.
+         */
+        PARALLELISM("parallelism", 64);
 
         private final String path;
         private final Object defaultValue;

@@ -44,6 +44,10 @@
     "value": {
       "type": ["object","string","number","array","boolean"],
       "description": "The `value` field contains the actual payload e.g. a sensor value."
+    },
+    "extra": {
+      "type": ["object"],
+      "description": "The `extra` object contains the `extraFields` which have optionally been selected to additionally be included."
     }
   },
   "required": [ "topic", "headers", "path", "value" ]

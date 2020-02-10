@@ -159,6 +159,9 @@ entries:
     - title: RQL expressions
       url: /basic-rql.html
       output: web
+    - title: Signal enrichment
+      url: /basic-enrichment.html
+      output: web
     - title: Search
       url: /basic-search.html
       output: web
@@ -215,9 +218,6 @@ entries:
       output: web
     - title: Server sent events
       url: /httpapi-sse.html
-      output: web
-    - title: Run in Postman
-      url: /httpapi-postman.html
       output: web
 
   - title: Connectivity API

@@ -102,19 +102,19 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
 
     @Test
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
-        final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_091,
-                        ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
-                        .targets(Collections.singletonList(ConnectivityModelFactory.newTarget("exchangeOnly",
-                                TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, null, Topic.TWIN_EVENTS)))
-                        .build();
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
+                ConnectionType.AMQP_091, ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
+                .targets(Collections.singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address("exchangeOnly")
+                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                        .topics(Topic.TWIN_EVENTS)
+                        .build()))
+                .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
-                () -> RabbitMQClientActor.propsForTests(connection,
-                        null, null);
+                () -> RabbitMQClientActor.propsForTests(connection, null, null);
         final ThrowableAssert.ThrowingCallable props2 =
-                () -> RabbitMQClientActor.propsForTests(connection,
-                        null, rabbitConnectionFactoryFactory);
+                () -> RabbitMQClientActor.propsForTests(connection, null, rabbitConnectionFactoryFactory);
         Stream.of(props1, props2)
                 .forEach(throwingCallable ->
                         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)

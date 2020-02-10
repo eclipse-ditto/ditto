@@ -43,12 +43,13 @@ public class ImmutableEntityIdWithResourceTypeTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableEntityIdWithResourceType.class,
                 areImmutable(),
-                provided(EntityId.class).isAlsoImmutable());
+                provided(EntityId.class, CacheLookupContext.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableEntityIdWithResourceType.class).verify();
+        EqualsVerifier.forClass(ImmutableEntityIdWithResourceType.class)
+                .verify();
     }
 
     @Test
