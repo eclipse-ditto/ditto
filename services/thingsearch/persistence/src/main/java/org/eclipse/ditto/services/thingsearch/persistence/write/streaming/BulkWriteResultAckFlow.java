@@ -131,18 +131,8 @@ final class BulkWriteResultAckFlow {
      * @return whether the data is consistent.
      */
     private static Optional<String> checkForConsistencyError(final WriteResultAndErrors resultAndErrors) {
-        final int matched = resultAndErrors.getBulkWriteResult().getMatchedCount();
-        final int inserts = resultAndErrors.getBulkWriteResult().getInsertedCount();
-        final int upserts = resultAndErrors.getBulkWriteResult().getUpserts().size();
-        final int errors = resultAndErrors.getBulkWriteErrors().size();
         final int requested = resultAndErrors.getWriteModels().size();
-        final boolean sizesMatch = requested == matched + inserts + upserts + errors;
-        if (!sizesMatch) {
-            return Optional.of(String.format(
-                    "ConsistencyError[sizesMatch]: requested(%d) != matched(%d)+inserts(%d)+upserts(%d)+errors(%d): %s",
-                    requested, matched, inserts, upserts, errors, resultAndErrors
-            ));
-        } else if (!areAllIndexesWithinBounds(resultAndErrors.getBulkWriteErrors(), requested)) {
+        if (!areAllIndexesWithinBounds(resultAndErrors.getBulkWriteErrors(), requested)) {
             // some indexes not within bounds
             return Optional.of(String.format("ConsistencyError[indexOutOfBound]: %s", resultAndErrors.toString()));
         } else {

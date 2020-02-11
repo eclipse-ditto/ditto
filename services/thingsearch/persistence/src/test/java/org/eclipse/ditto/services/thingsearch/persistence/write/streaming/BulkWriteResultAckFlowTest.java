@@ -122,24 +122,6 @@ public final class BulkWriteResultAckFlowTest {
         assertThat(message).contains("NotAcknowledged: UnexpectedError", "MongoSocketReadException");
     }
 
-    @Test
-    public void updateCountError() {
-        final List<AbstractWriteModel> writeModels = generate5WriteModels();
-        final BulkWriteResult result = BulkWriteResult.acknowledged(5, 5, 5, 5, List.of());
-
-        // WHEN: BulkWriteResultAckFlow encounters a result inconsistent with the number of requested modifications
-        final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.success(writeModels, result);
-        final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
-
-        // THEN: All updates are considered failures
-        actorSystem.log().info(message);
-        for (final AbstractWriteModel writeModel : writeModels) {
-            final UpdateThingResponse response = expectUpdateThingResponse(writeModel.getMetadata().getThingId());
-            assertThat(response).describedAs("response is failure").returns(false, UpdateThingResponse::isSuccess);
-        }
-        assertThat(message).contains("ConsistencyError[sizesMatch]");
-    }
-
     // test that indices in bulk write errors are all within bounds.
     // upsert indexes are not checked since they do not participate in acknowledgement handling.
     @Test
