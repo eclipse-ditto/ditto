@@ -705,7 +705,7 @@ for a particular thing by a DevOp-command and bring the entry up-to-date immedia
     "is-grouped-topic": true
   },
   "piggybackCommand": {
-    "type": "things-search.commands:updateThing",
+    "type": "thing-search.commands:updateThing",
     "thingId": "<THING-ID>"
   }
 }
