@@ -99,7 +99,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         LOGGER.info("Aggregating logs for connection <{}>.", connectionId);
 
         final LogMetadata timing;
-        final List<LogEntry> logs = new ArrayList<>();
+        final List<LogEntry> logs;
 
         if (isActiveForConnection(connectionId)) {
             LOGGER.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
@@ -110,28 +110,35 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                     .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
                     .collect(Collectors.toList());
 
-            long currentSize = 0;
-            for (final LogEntry logEntry : allLogs) {
-                final long sizeOfLogEntry = logEntry.toJson().toString().length();
-                final long newSize = currentSize + sizeOfLogEntry;
-                if (newSize > maximumLogSizeInByte) {
-                    LOGGER.info("Dropping log entries for connection with ID <{}>, because of size limit.",
-                            connectionId);
-                    break;
-                }
-                logs.add(logEntry);
-                currentSize = newSize;
-            }
-            Collections.reverse(logs);
-
+            logs = restrictMaxLogEntriesLength(allLogs, connectionId);
         } else {
             LOGGER.debug("Logging is disabled, will return empty logs for connection <{}>", connectionId);
 
             timing = getMetadata(connectionId);
+            logs = Collections.emptyList();
         }
 
         LOGGER.debug("Aggregated logs for connection <{}>: {}", connectionId, logs);
         return new ConnectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
+    }
+
+    // needed so that the logs fit into the max cluster message size
+    private List<LogEntry> restrictMaxLogEntriesLength(final List<LogEntry> originalLogEntries, final ConnectionId connectionId) {
+        final List<LogEntry> restrictedLogs = new ArrayList<>();
+        long currentSize = 0;
+        for (final LogEntry logEntry : originalLogEntries) {
+            final long sizeOfLogEntry = logEntry.toJsonString().length();
+            final long sizeWithNextEntry = currentSize + sizeOfLogEntry;
+            if (sizeWithNextEntry > maximumLogSizeInByte) {
+                LOGGER.info("Dropping <{}> of <{}> log entries for connection with ID <{}>, because of size limit.",
+                        originalLogEntries.size() - restrictedLogs.size(), originalLogEntries.size(), connectionId);
+                break;
+            }
+            restrictedLogs.add(logEntry);
+            currentSize = sizeWithNextEntry;
+        }
+        Collections.reverse(restrictedLogs);
+        return restrictedLogs;
     }
 
     /**

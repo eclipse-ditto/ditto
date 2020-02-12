@@ -27,11 +27,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.assertj.core.api.Fail;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -202,9 +204,9 @@ public final class ConnectionLoggerRegistryTest {
         final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connectionId, source);
 
         connectionLogger.success(randomInfoProvider());
-        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
+        TimeUnit.MILLISECONDS.sleep(1); // ensure different timestamps to make ordering assertion stable
         connectionLogger.failure(randomInfoProvider());
-        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
+        TimeUnit.MILLISECONDS.sleep(1); // ensure different timestamps to make ordering assertion stable
         inboundConsumed.success(randomInfoProvider());
 
         final Collection<LogEntry> connectionLogs = connectionLogger.getLogs();
@@ -234,14 +236,7 @@ public final class ConnectionLoggerRegistryTest {
 
         connectionLogger.success(randomInfoProvider());
         final Collection<LogEntry> listWithOnlyFirstSuccessLog = connectionLogger.getLogs();
-        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
-        connectionLogger.failure(randomInfoProvider());
-        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
-        connectionLogger.failure(randomInfoProvider());
-        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
-        connectionLogger.failure(randomInfoProvider());
-        Thread.sleep(1); // ensure different timestamps to make ordering assertion stable
-        inboundConsumed.success(randomInfoProvider());
+        addLogEntriesUntilMaxSizeIsExceeded(connectionLogger);
 
         final Collection<LogEntry> connectionLogs = connectionLogger.getLogs();
         final Collection<LogEntry> inboundConsumedLogs = inboundConsumed.getLogs();
@@ -254,6 +249,31 @@ public final class ConnectionLoggerRegistryTest {
         assertThat(logEntries)
                 .doesNotContainSequence(listWithOnlyFirstSuccessLog)
                 .hasSize(connectionLogs.size() + inboundConsumedLogs.size() - 1);
+    }
+
+    private void addLogEntriesUntilMaxSizeIsExceeded(final ConnectionLogger logger) throws InterruptedException {
+        final long maxSize = TestConstants.MONITORING_CONFIG.logger().maxLogSizeInBytes();
+        final int maxFailureLogs = TestConstants.MONITORING_CONFIG.logger().failureCapacity();
+        int currentFailureLogs = 0;
+
+        while (getCurrentLogsSize(logger) < maxSize) {
+            logger.failure(randomInfoProvider());
+            TimeUnit.MILLISECONDS.sleep(1); // ensure different timestamps to make ordering assertion stable
+
+            if (++currentFailureLogs > maxFailureLogs) {
+                Fail.fail("Breaking the while loop as I can't create enough failure logs to trigger the "
+                + "max logs size. Review the logger config and find fitting config values for the maxLogSizeInBytes "
+                + "and the failure capacity.");
+            }
+        }
+    }
+
+    private long getCurrentLogsSize(final ConnectionLogger logger) {
+        return logger.getLogs()
+                .stream()
+                .map(LogEntry::toJsonString)
+                .map(String::length)
+                .reduce(0, Integer::sum);
     }
 
     @Test
