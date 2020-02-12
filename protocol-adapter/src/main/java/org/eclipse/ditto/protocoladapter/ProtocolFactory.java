@@ -31,11 +31,9 @@ import org.eclipse.ditto.model.things.ThingId;
  */
 public final class ProtocolFactory {
 
-
     private ProtocolFactory() {
         throw new AssertionError();
     }
-
 
     /**
      * Returns a new {@code AdaptableBuilder} for the specified {@code topicPath}.
@@ -186,7 +184,6 @@ public final class ProtocolFactory {
         return ImmutableTopicPathBuilder.of(namespace, TopicPath.ID_PLACEHOLDER).things();
     }
 
-
     /**
      * Returns a new {@code Payload} from the specified {@code jsonString}.
      *
@@ -231,7 +228,6 @@ public final class ProtocolFactory {
         return ImmutablePayload.getBuilder(path);
     }
 
-
     /**
      * Returns new empty {@code Headers}.
      *
@@ -248,7 +244,9 @@ public final class ProtocolFactory {
      * @return the headers.
      */
     public static DittoHeaders newHeadersWithDittoContentType(final Map<String, String> headers) {
-        return DittoHeaders.of(headers).toBuilder().contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE).build();
+        return DittoHeaders.newBuilder(headers)
+                .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                .build();
     }
 
     /**
