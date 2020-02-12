@@ -34,7 +34,10 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * Command which retrieves the ACL (all of them or a specific one) of a {@code Thing} based on the passed in ID.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
 @JsonParsableCommand(typePrefix = RetrieveAcl.TYPE_PREFIX, name = RetrieveAcl.NAME)
 public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements ThingQueryCommand<RetrieveAcl> {

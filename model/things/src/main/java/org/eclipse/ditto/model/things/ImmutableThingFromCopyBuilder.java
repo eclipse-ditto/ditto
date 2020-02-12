@@ -139,6 +139,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final AuthorizationSubject authorizationSubject, final Permission permission,
             final Permission... furtherPermissions) {
 
@@ -147,6 +148,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate,
             final AuthorizationSubject authorizationSubject,
             final Permission permission,
@@ -159,12 +161,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final AuthorizationSubject authorizationSubject, final Permissions permissions) {
         fromScratchBuilder.setPermissions(authorizationSubject, permissions);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate,
             final AuthorizationSubject authorizationSubject, final Permissions permissions) {
 
@@ -175,12 +179,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Iterable<AclEntry> aclEntries) {
         fromScratchBuilder.setPermissions(aclEntries);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate,
             final Iterable<AclEntry> aclEntries) {
 
@@ -191,12 +197,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final JsonObject accessControlListJsonObject) {
         fromScratchBuilder.setPermissions(accessControlListJsonObject);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate,
             final JsonObject accessControlListJsonObject) {
 
@@ -207,12 +215,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final String accessControlListJsonString) {
         fromScratchBuilder.setPermissions(accessControlListJsonString);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate,
             final String accessControlListJsonString) {
 
@@ -223,12 +233,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final AclEntry aclEntry, final AclEntry... furtherAclEntries) {
         fromScratchBuilder.setPermissions(aclEntry, furtherAclEntries);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate, final AclEntry aclEntry,
             final AclEntry... furtherAclEntries) {
 
@@ -239,12 +251,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy removePermissionsOf(final AuthorizationSubject authorizationSubject) {
         fromScratchBuilder.removePermissionsOf(authorizationSubject);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy removePermissionsOf(final Predicate<AccessControlList> existingAclPredicate,
             final AuthorizationSubject authorizationSubject) {
 
@@ -255,12 +269,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy removeAllPermissions() {
         fromScratchBuilder.removeAllPermissions();
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy removeAllPermissions(final Predicate<AccessControlList> existingAclPredicate) {
         if (testAclPredicate(existingAclPredicate)) {
             return removeAllPermissions();
@@ -712,6 +728,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         return fromScratchBuilder.build();
     }
 
+    @Deprecated
     private boolean testAclPredicate(final Predicate<AccessControlList> existingAclPredicate) {
         return existingAclPredicate.test(fromScratchBuilder.getAcl());
     }

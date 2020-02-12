@@ -59,6 +59,7 @@ public final class GlobalCommandRegistry
     }
 
     @SuppressWarnings({"squid:CallToDeprecatedMethod"})
+    @Deprecated
     private Optional<String> extractTypeV1(final JsonObject jsonObject) {
         return jsonObject.getValue(Command.JsonFields.ID);
     }
@@ -73,6 +74,7 @@ public final class GlobalCommandRegistry
         private CommandParsingStrategyFactory() {}
 
         @Override
+        @Deprecated
         protected String getV1FallbackKeyFor(final JsonParsableCommand annotation) {
             return annotation.name();
         }

@@ -65,7 +65,6 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.mapping.ConnectivityCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
-import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -111,6 +110,11 @@ public final class MessageMappingProcessorActorTest {
     private static final HeaderMapping CORRELATION_ID_AND_SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
                     .set("correlation-id", "{{ header:correlation-id }}")
+                    .set("source", "{{ request:subjectId }}")
+                    .build());
+
+    private static final HeaderMapping SOURCE_HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
                     .set("source", "{{ request:subjectId }}")
                     .build());
 
@@ -540,6 +544,47 @@ public final class MessageMappingProcessorActorTest {
                     .extracting(o -> o.getSource().getDittoHeaders().getCorrelationId()
                             .orElseThrow(() -> new AssertionError("correlation-id not found")))
                     .isEqualTo(correlationId);
+        }};
+    }
+
+    @Test
+    public void testMessageWithoutCorrelationId() {
+
+        final AuthorizationContext expectedAuthContext = AuthorizationModelFactory.newAuthContext(
+                AuthorizationModelFactory.newAuthSubject("hub-application/json"),
+                AuthorizationModelFactory.newAuthSubject("integration:application/json:hub"));
+
+        testMessageMappingWithoutCorrelationId(expectedAuthContext, ModifyAttribute.class, modifyAttribute -> {
+            assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
+            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(expectedAuthContext);
+
+        });
+    }
+
+    private <T> void testMessageMappingWithoutCorrelationId(
+            final AuthorizationContext context,
+            final Class<T> expectedMessageClass,
+            final Consumer<T> verifyReceivedMessage) {
+
+        new TestKit(actorSystem) {{
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final Map<String, String> headers = new HashMap<>();
+            headers.put("content-type", "application/json");
+            final ModifyAttribute modifyCommand = ModifyAttribute.of(KNOWN_THING_ID, JsonPointer.of("foo"),
+                    JsonValue.of(42), DittoHeaders.empty());
+            final JsonifiableAdaptable adaptable = ProtocolFactory
+                    .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand));
+            final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                    .withTopicPath(adaptable.getTopicPath())
+                    .withText(adaptable.toJsonString())
+                    .withAuthorizationContext(context)
+                    .withHeaderMapping(SOURCE_HEADER_MAPPING)
+                    .build();
+
+            messageMappingProcessorActor.tell(externalMessage, getRef());
+
+            final T received = expectMsgClass(expectedMessageClass);
+            verifyReceivedMessage.accept(received);
         }};
     }
 
