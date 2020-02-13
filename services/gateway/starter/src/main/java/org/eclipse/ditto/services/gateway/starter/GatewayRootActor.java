@@ -242,6 +242,7 @@ final class GatewayRootActor extends DittoRootActor {
                 .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))
                 .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
                 .sseThingsRoute(ThingsSseRouteBuilder.getInstance(streamingActor, streamingConfig)
+                        .withProxyActor(proxyActor)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig(), httpConfig, headerTranslator))

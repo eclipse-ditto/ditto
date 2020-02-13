@@ -29,8 +29,7 @@ public interface QueryBuilderFactory {
     QueryBuilder newBuilder(Criteria criteria);
 
     /**
-     * Creates a new {@link QueryBuilder} without a default limit. Be careful to use this builder as queries created by
-     * it could run for a very long time.
+     * Creates a new {@link QueryBuilder} without a default limit. Useful for streaming from the search persistence.
      *
      * @param criteria the query criteria.
      * @return the builder.

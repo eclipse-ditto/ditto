@@ -32,9 +32,12 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -59,6 +62,8 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.NotUsed;
@@ -66,13 +71,16 @@ import akka.actor.ActorRef;
 import akka.http.javadsl.marshalling.sse.EventStreamMarshalling;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.MediaTypes;
+import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.headers.Accept;
 import akka.http.javadsl.model.sse.ServerSentEvent;
-import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
+import akka.http.javadsl.server.directives.RouteDirectives;
 import akka.japi.JavaPartialFunction;
+import akka.pattern.Patterns;
+import akka.stream.SourceRef;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -81,7 +89,7 @@ import akka.stream.javadsl.Source;
  * Builder for creating Akka HTTP routes for SSE (Server Sent Events) {@code /things} routes.
  */
 @NotThreadSafe
-public final class ThingsSseRouteBuilder implements SseRouteBuilder {
+public final class ThingsSseRouteBuilder extends RouteDirectives implements SseRouteBuilder {
 
     private static final String PATH_THINGS = "things";
 
@@ -99,6 +107,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     private SseConnectionSupervisor sseConnectionSupervisor;
     private EventSniffer<ServerSentEvent> eventSniffer;
     @Nullable GatewaySignalEnrichmentProvider signalEnrichmentProvider;
+    @Nullable ActorRef proxyActor;
 
     private ThingsSseRouteBuilder(final ActorRef streamingActor,
             final StreamingConfig streamingConfig,
@@ -153,6 +162,12 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
         return this;
     }
 
+    @Override
+    public SseRouteBuilder withProxyActor(@Nullable final ActorRef proxyActor) {
+        this.proxyActor = proxyActor;
+        return this;
+    }
+
     /**
      * Describes {@code /things} SSE route.
      *
@@ -161,17 +176,32 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
     @Override
     public Route build(final RequestContext ctx, final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
-        return Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS),
-                () -> Directives.pathEndOrSingleSlash(
-                        () -> Directives.get(
-                                () -> Directives.headerValuePF(AcceptHeaderExtractor.INSTANCE,
-                                        accept -> {
-                                            final CompletionStage<DittoHeaders> dittoHeadersCompletionStage =
-                                                    dittoHeadersSupplier.get()
-                                                            .thenApply(
-                                                                    ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
-                                            return buildThingsSseRoute(ctx, dittoHeadersCompletionStage);
-                                        }))));
+        return concat(
+                rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS),
+                        () -> pathEndOrSingleSlash(() -> get(() -> headerValuePF(AcceptHeaderExtractor.INSTANCE,
+                                accept -> {
+                                    final CompletionStage<DittoHeaders> dittoHeadersCompletionStage =
+                                            dittoHeadersSupplier.get()
+                                                    .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
+                                    return buildThingsSseRoute(ctx, dittoHeadersCompletionStage);
+                                })))),
+                // TODO: move this to "thingsearch" package? Or move the SseRouteBuilder to own package?
+                buildSearchSseRoute(ctx, dittoHeadersSupplier)
+        );
+    }
+
+    private Route buildSearchSseRoute(final RequestContext ctx,
+            final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
+
+        // TODO: refactor the path literals
+        return rawPathPrefix(PathMatchers.slash().concat("search").slash().concat("things"),
+                () -> pathEndOrSingleSlash(() -> get(() -> headerValuePF(AcceptHeaderExtractor.INSTANCE,
+                        accept -> {
+                            final CompletionStage<DittoHeaders> dittoHeaders = dittoHeadersSupplier.get()
+                                    .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
+                            return parameterMap(parameters -> createSearchSseRoute(ctx, dittoHeaders, parameters));
+                        })))
+        );
     }
 
     private static DittoHeaders getDittoHeadersWithCorrelationId(final DittoHeaders dittoHeaders) {
@@ -185,7 +215,7 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
     }
 
     private Route buildThingsSseRoute(final RequestContext ctx, final CompletionStage<DittoHeaders> dittoHeaders) {
-        return Directives.parameterMap(parameters -> createSseRoute(ctx, dittoHeaders, parameters));
+        return parameterMap(parameters -> createSseRoute(ctx, dittoHeaders, parameters));
     }
 
     private Route createSseRoute(final RequestContext ctx, final CompletionStage<DittoHeaders> dittoHeadersStage,
@@ -252,7 +282,57 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
                             .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
                 });
 
-        return Directives.completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
+        return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
+    }
+
+    private Route createSearchSseRoute(final RequestContext ctx, final CompletionStage<DittoHeaders> dittoHeadersStage,
+            final Map<String, String> parameters) {
+
+        if (proxyActor == null) {
+            return complete(StatusCodes.NOT_IMPLEMENTED);
+        }
+
+        final String filterString = parameters.get(PARAM_FILTER);
+        final JsonArray namespaces = Optional.ofNullable(parameters.get(PARAM_NAMESPACES))
+                .map(ThingsSseRouteBuilder::splitCommaSeparatedValues)
+                .map(list -> list.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()))
+                .orElse(null);
+        // TODO: support other options?
+        final String sortOption = parameters.get("option");
+
+        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
+                dittoHeadersStage.thenCompose(dittoHeaders -> {
+                    sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
+                    // TODO: count results?
+
+                    final StreamThings command =
+                            StreamThings.of(filterString, namespaces, sortOption, null, dittoHeaders);
+
+                    return Patterns.ask(proxyActor, command, Duration.ofMinutes(1L))
+                            .handle((result, error) -> {
+                                if (result instanceof SourceRef) {
+                                    final SourceRef<?> sourceRef = (SourceRef<?>) result;
+                                    return sourceRef.getSource()
+                                            .map(element -> {
+                                                if (element instanceof RetrieveThingResponse) {
+                                                    return ((RetrieveThingResponse) element).getEntity().toString();
+                                                } else {
+                                                    return element.toString();
+                                                }
+                                            })
+                                            .map(ServerSentEvent::create)
+                                            .log("search SSE")
+                                            .via(eventSniffer.toAsyncFlow(ctx.getRequest()));
+                                } else {
+                                    final Throwable throwable = error != null
+                                            ? error
+                                            : new ClassCastException("Not a SourceRef: " + result);
+                                    return Source.failed(throwable);
+                                }
+                            });
+                });
+
+        return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
     }
 
     private CompletionStage<Collection<JsonObject>> postprocess(final SessionedJsonifiable jsonifiable,
@@ -313,6 +393,14 @@ public final class ThingsSseRouteBuilder implements SseRouteBuilder {
             return Arrays.asList(namespacesParameter.split(","));
         }
         return Collections.emptyList();
+    }
+
+    private static @Nullable
+    List<String> splitCommaSeparatedValues(@Nullable final String queryParamValue) {
+        if (null != queryParamValue) {
+            return Arrays.asList(queryParamValue.split(","));
+        }
+        return null;
     }
 
     private static List<ThingId> getThingIds(@Nullable final String thingIdString) {

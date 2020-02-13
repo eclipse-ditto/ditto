@@ -46,8 +46,18 @@ public interface Query {
      *
      * @param criteria the new criteria.
      * @return a copy of this query with the new criteria.
+     * @deprecated since 1.1.0 - use {@link #withCriteria(org.eclipse.ditto.model.query.criteria.Criteria)} instead.
      */
-    Query withCritera(Criteria criteria);
+    @Deprecated
+    default Query withCritera(Criteria criteria) {
+        return withCriteria(criteria);
+    }
 
-
+    /**
+     * Replace criteria of this query by another.
+     *
+     * @param criteria the new criteria.
+     * @return a copy of this query with the new criteria.
+     */
+    Query withCriteria(Criteria criteria);
 }

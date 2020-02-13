@@ -21,11 +21,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
-
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 
 /**
  * Interface for thing operations on the persistence used within the search service.
@@ -78,6 +77,18 @@ public interface ThingsSearchPersistence {
             @Nullable Set<String> namespaces);
 
     /**
+     * Stream the IDs for all found documents without result size limit.
+     *
+     * @param query the query for matching.
+     * @param authorizationSubjectIds authorization subject IDs.
+     * @param namespaces namespaces to execute searches in, or null to search in all namespaces.
+     * @return an {@link Source} which emits the IDs.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     */
+    Source<ThingId, NotUsed> findAllUnlimited(Query query, List<String> authorizationSubjectIds,
+            @Nullable Set<String> namespaces);
+
+    /**
      * Returns the IDs for all found documents.
      *
      * @param query the query for matching.
@@ -85,7 +96,8 @@ public interface ThingsSearchPersistence {
      * @return an {@link Source} which emits the IDs.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
-    default Source<ResultList<ThingId>, NotUsed> findAll(final Query query, final List<String> authorizationSubjectIds) {
+    default Source<ResultList<ThingId>, NotUsed> findAll(final Query query,
+            final List<String> authorizationSubjectIds) {
         return findAll(query, authorizationSubjectIds, null);
     }
 

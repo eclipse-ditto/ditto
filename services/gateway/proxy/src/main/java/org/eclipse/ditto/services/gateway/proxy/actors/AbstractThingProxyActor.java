@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import java.util.List;
+
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -20,9 +22,11 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.ActorMaterializer;
 
 /**
  * Abstract implementation of {@link AbstractProxyActor} for all {@link org.eclipse.ditto.signals.commands.base.Command}s
@@ -33,6 +37,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     private final ActorRef devOpsCommandsActor;
     private final ActorRef conciergeForwarder;
     private final ActorRef aggregatorProxyActor;
+    private final ActorMaterializer materializer;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
@@ -45,6 +50,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
         aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(conciergeForwarder),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
+
+        materializer = ActorMaterializer.create(getContext());
     }
 
     @Override
@@ -64,10 +71,23 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
                 .match(QueryThings.class, qt -> {
                     final ActorRef responseActor = getContext().actorOf(
-                            QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender()));
+                            QueryThingsPerRequestActor.props(qt, conciergeForwarder, aggregatorProxyActor,
+                                    getSender(), materializer));
                     conciergeForwarder.tell(qt, responseActor);
-                        }
-                )
+                })
+                // TODO: deduplicate this.
+                .match(StreamThings.class, st -> {
+                    final QueryThings mockQueryThings =
+                            QueryThings.of(st.getFilter().orElse(null),
+                                    st.getSort().map(List::of).orElse(null),
+                                    null,
+                                    st.getNamespaces().orElse(null),
+                                    st.getDittoHeaders());
+                    final ActorRef responseActor = getContext().actorOf(
+                            QueryThingsPerRequestActor.props(mockQueryThings, conciergeForwarder, aggregatorProxyActor,
+                                    getSender(), materializer));
+                    conciergeForwarder.tell(st, responseActor);
+                })
 
                 /* send all other Commands to Concierge Service */
                 .match(Command.class, this::forwardToConciergeService)
