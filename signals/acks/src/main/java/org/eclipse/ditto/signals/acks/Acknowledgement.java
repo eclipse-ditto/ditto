@@ -31,7 +31,8 @@ import org.eclipse.ditto.signals.base.WithOptionalEntity;
  * An Acknowledgement contains all information about a successful (business) {@code ACK} or a not successful
  * {@code NACK}.
  * <p>
- * Can contain built-in Ditto ACK labels as well as custom ones emitted by external applications.
+ * Can contain built-in {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel Ditto ACK labels} as well as
+ * custom ones emitted by external applications.
  * </p>
  * @since 1.1.0
  */
@@ -64,7 +65,7 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
     /**
      * Returns the optional payload of the Acknowledgement.
      *
-     * @return the optional payload of the Acknowledgement.
+     * @return the optional payload.
      */
     @Override
     Optional<JsonValue> getEntity(JsonSchemaVersion schemaVersion);
@@ -111,33 +112,37 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
         /**
          * The type of the Acknowledge label.
          */
-        static final JsonFieldDefinition<String> LABEL = JsonFactory.newStringFieldDefinition("label",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        static final JsonFieldDefinition<String> LABEL =
+                JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * The type of the Acknowledge entity ID.
          */
-        static final JsonFieldDefinition<String> ENTITY_ID = JsonFactory.newStringFieldDefinition("entityId",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        static final JsonFieldDefinition<String> ENTITY_ID =
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * The type of the Acknowledge status code.
          */
-        static final JsonFieldDefinition<Integer> STATUS_CODE = JsonFactory.newIntFieldDefinition("status",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        static final JsonFieldDefinition<Integer> STATUS_CODE =
+                JsonFactory.newIntFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * The type of the (optional) Acknowledge payload.
          */
-        static final JsonFieldDefinition<JsonValue> PAYLOAD = JsonFactory.newJsonValueFieldDefinition("payload",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        static final JsonFieldDefinition<JsonValue> PAYLOAD =
+                JsonFactory.newJsonValueFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * The type of the Acknowledge DittoHeaders.
          */
         static final JsonFieldDefinition<JsonObject> DITTO_HEADERS =
-                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders",
-                        FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
     }
 
