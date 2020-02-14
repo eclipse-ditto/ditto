@@ -24,6 +24,8 @@ public interface AcknowledgementTopicPathBuilder extends TopicPathBuildable {
      *
      * @param label the Acknowledgement label to set on the topic path.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code label} is {@code null}.
      */
     AcknowledgementTopicPathBuilder label(CharSequence label);
+
 }

@@ -192,7 +192,7 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
     @Override
     public AcknowledgementTopicPathBuilder label(final CharSequence label) {
-        this.subject = checkNotNull(label, "ack label").toString();
+        subject = checkNotNull(label, "label").toString();
         return this;
     }
 

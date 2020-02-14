@@ -17,8 +17,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabels;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
@@ -31,19 +29,6 @@ public final class Acknowledgements {
 
     private Acknowledgements() {
         throw new AssertionError();
-    }
-
-    /**
-     * Returns a new AcknowledgementLabel for the given character sequence.
-     *
-     * @param label the character sequence value of the AcknowledgementLabel to be created.
-     * @return a new AcknowledgementLabel with {@code label} as its value.
-     * @throws NullPointerException if {@code label} is {@code null}.
-     * @throws AcknowledgementLabelInvalidException if {@code label} did not match the regex
-     * {@link AcknowledgementLabels#ACK_LABEL_PATTERN}.
-     */
-    public static AcknowledgementLabel newLabel(final CharSequence label) {
-        return AcknowledgementLabels.newLabel(label);
     }
 
     /**
