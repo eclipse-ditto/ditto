@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import java.util.UUID;
-
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -27,11 +25,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Unit tests for {@link AcknowledgementAdapter}.
+ * Unit test for {@link AcknowledgementAdapter}.
  */
-public class AcknowledgementAdapterTest implements ProtocolAdapterTest {
+public final class AcknowledgementAdapterTest implements ProtocolAdapterTest {
 
-    protected static final AcknowledgementLabel KNOWN_CUSTOM_LABEL = AcknowledgementLabel.of("my-custom-ack");
+    private static final AcknowledgementLabel KNOWN_CUSTOM_LABEL = AcknowledgementLabel.of("my-custom-ack");
 
     private static TopicPath topicPathMyCustomAck;
 
@@ -49,32 +47,29 @@ public class AcknowledgementAdapterTest implements ProtocolAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = AcknowledgementAdapter.of(DittoProtocolAdapter.getHeaderTranslator());
+        underTest = AcknowledgementAdapter.getInstance(DittoProtocolAdapter.getHeaderTranslator());
     }
 
     @Test
     public void acknowledgementFromAdaptable() {
-
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .correlationId(UUID.randomUUID().toString())
-                .build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final JsonValue customAckPayload = JsonValue.of("Custom Ack payload");
         final HttpStatusCode status = HttpStatusCode.CREATED;
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathMyCustomAck)
+                .withHeaders(dittoHeaders)
+                .withPayload(Payload.newBuilder(JsonPointer.empty())
+                        .withValue(customAckPayload)
+                        .withStatus(status)
+                        .build())
+                .build();
+
         final Acknowledgement expected = Acknowledgements.newAcknowledgement(KNOWN_CUSTOM_LABEL,
                 TestConstants.THING_ID,
                 status,
                 customAckPayload,
                 dittoHeaders);
 
-        final JsonPointer path = JsonPointer.empty();
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathMyCustomAck)
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(customAckPayload)
-                        .withStatus(status)
-                        .build())
-                .withHeaders(dittoHeaders)
-                .build();
         final Acknowledgement actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -82,27 +77,27 @@ public class AcknowledgementAdapterTest implements ProtocolAdapterTest {
 
     @Test
     public void acknowledgementToAdaptable() {
-        final JsonPointer path = JsonPointer.empty();
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .correlationId(UUID.randomUUID().toString())
-                .build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final JsonValue customAckPayload = JsonObject.newBuilder().set("foo", "bar").build();
         final HttpStatusCode status = HttpStatusCode.BAD_REQUEST;
-        final Adaptable expected = Adaptable.newBuilder(topicPathMyCustomAck)
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(customAckPayload)
-                        .withStatus(status)
-                        .build())
-                .withHeaders(dittoHeaders)
-                .build();
 
         final Acknowledgement acknowledgement = Acknowledgements.newAcknowledgement(KNOWN_CUSTOM_LABEL,
                 TestConstants.THING_ID,
                 status,
                 customAckPayload,
                 dittoHeaders);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathMyCustomAck)
+                .withPayload(Payload.newBuilder(JsonPointer.empty())
+                        .withValue(customAckPayload)
+                        .withStatus(status)
+                        .build())
+                .withHeaders(dittoHeaders)
+                .build();
+
         final Adaptable actual = underTest.toAdaptable(acknowledgement);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
+
 }

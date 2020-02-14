@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,15 +12,19 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.HashMap;
+import java.text.MessageFormat;
 import java.util.Map;
-import java.util.Optional;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.acks.Acknowledgements;
@@ -30,80 +34,89 @@ import org.eclipse.ditto.signals.acks.Acknowledgements;
  *
  * @since 1.1.0
  */
-final class AcknowledgementAdapter extends AbstractAdapter<Acknowledgement> {
+final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
 
-    private AcknowledgementAdapter(
-            final Map<String, JsonifiableMapper<Acknowledgement>> mappingStrategies,
-            final HeaderTranslator headerTranslator) {
+    private final HeaderTranslator headerTranslator;
 
-        super(mappingStrategies, headerTranslator);
+    private AcknowledgementAdapter(final HeaderTranslator headerTranslator) {
+        this.headerTranslator = headerTranslator;
     }
 
-    /**
-     * Returns a new AcknowledgementAdapter.
-     *
-     * @param headerTranslator translator between external and Ditto headers.
-     * @return the adapter.
-     */
-    public static AcknowledgementAdapter of(final HeaderTranslator headerTranslator) {
-        return new AcknowledgementAdapter(mappingStrategies(), requireNonNull(headerTranslator));
+    public static AcknowledgementAdapter getInstance(final HeaderTranslator headerTranslator) {
+        return new AcknowledgementAdapter(checkNotNull(headerTranslator, "headerTranslator"));
     }
 
-    private static Map<String, JsonifiableMapper<Acknowledgement>> mappingStrategies() {
-        final Map<String, JsonifiableMapper<Acknowledgement>> mappingStrategies = new HashMap<>();
-
-        mappingStrategies.put(TopicPath.Criterion.ACKS.getName(), adaptable ->
-                Acknowledgements.newAcknowledgement(acknowledgementLabelFrom(adaptable),
-                        thingIdFrom(adaptable), statusCodeFrom(adaptable),
-                        adaptable.getPayload().getValue().orElse(null),
-                        dittoHeadersFrom(adaptable)));
-
-        return mappingStrategies;
+    @Override
+    public Acknowledgement fromAdaptable(final Adaptable adaptable) {
+        checkNotNull(adaptable, "adaptable");
+        return Acknowledgements.newAcknowledgement(getAcknowledgementLabel(adaptable),
+                getThingId(adaptable),
+                getStatusCodeOrThrow(adaptable),
+                getPayloadValueOrNull(adaptable),
+                adaptable.getDittoHeaders());
     }
 
-    private static AcknowledgementLabel acknowledgementLabelFrom(final Adaptable adaptable) {
+    private static ThingId getThingId(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        return Acknowledgements.newLabel(topicPath.getSubject().orElseThrow(() ->
-                UnknownTopicPathException.newBuilder(topicPath)
+        return ThingId.of(topicPath.getNamespace(), topicPath.getId());
+    }
+
+    private static HttpStatusCode getStatusCodeOrThrow(final Adaptable adaptable) {
+        final Payload payload = adaptable.getPayload();
+        return payload.getStatus()
+                .orElseThrow(() -> new JsonMissingFieldException(Payload.JsonFields.STATUS));
+    }
+
+    private static AcknowledgementLabel getAcknowledgementLabel(final Adaptable adaptable) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+        return topicPath.getSubject()
+                .map(AcknowledgementLabel::of)
+                .orElseThrow(() -> UnknownTopicPathException.newBuilder(topicPath)
                         .description("Adaptable TopicPath for Acknowledgement did not contain required <subject> value")
-                        .build()
-        ));
+                        .build());
+    }
+
+    @Nullable
+    private static JsonValue getPayloadValueOrNull(final Adaptable adaptable) {
+        final Payload payload = adaptable.getPayload();
+        return payload.getValue().orElse(null);
     }
 
     @Override
-    protected String getType(final Adaptable adaptable) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        return topicPath.getCriterion().getName(); // "acks" for TopicPath.Criterion.ACKS
-    }
-
-    @Override
-    public Adaptable constructAdaptable(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(
-                ThingId.of(acknowledgement.getEntityId()));
-
-        final AcknowledgementTopicPathBuilder acknowledgementTopicPathBuilder;
-        if (channel == TopicPath.Channel.TWIN) {
-            acknowledgementTopicPathBuilder = topicPathBuilder.twin().acks();
-        } else if (channel == TopicPath.Channel.LIVE) {
-            acknowledgementTopicPathBuilder = topicPathBuilder.live().acks();
-        } else {
-            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
-        }
-        acknowledgementTopicPathBuilder.label(acknowledgement.getLabel());
-
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(JsonPointer.empty())
-                .withStatus(acknowledgement.getStatusCode());
-
-        final Optional<JsonValue> value =
-                acknowledgement.getEntity(acknowledgement.getDittoHeaders()
-                        .getSchemaVersion()
-                        .orElse(acknowledgement.getLatestSchemaVersion()));
-        value.ifPresent(payloadBuilder::withValue);
-
-        return Adaptable.newBuilder(acknowledgementTopicPathBuilder.build())
-                .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(acknowledgement.getDittoHeaders()))
+    public Adaptable toAdaptable(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {
+        return Adaptable.newBuilder(getTopicPath(acknowledgement, channel))
+                .withPayload(getPayload(acknowledgement))
+                .withHeaders(getExternalHeaders(acknowledgement.getDittoHeaders()))
                 .build();
+    }
+
+    private static TopicPath getTopicPath(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {
+        final TopicPathBuilder topicPathBuilder = TopicPath.newBuilder(ThingId.of(acknowledgement.getEntityId()));
+        if (TopicPath.Channel.TWIN == channel) {
+            topicPathBuilder.twin();
+        } else if (TopicPath.Channel.LIVE == channel) {
+            topicPathBuilder.live();
+        } else {
+            throw new IllegalArgumentException(MessageFormat.format("Unknown channel <{}>", channel));
+        }
+        return topicPathBuilder.acks()
+                .label(acknowledgement.getLabel())
+                .build();
+    }
+
+    private static Payload getPayload(final Acknowledgement acknowledgement) {
+        return Payload.newBuilder(JsonPointer.empty())
+                .withStatus(acknowledgement.getStatusCode())
+                .withValue(acknowledgement.getEntity(acknowledgement.getDittoHeaders()
+                        .getSchemaVersion()
+                        .orElseGet(acknowledgement::getLatestSchemaVersion))
+                        .orElse(null))
+                .build();
+    }
+
+    private DittoHeaders getExternalHeaders(final DittoHeaders acknowledgementHeaders) {
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(acknowledgementHeaders);
+        return ProtocolFactory.newHeadersWithDittoContentType(externalHeaders);
     }
 
 }
