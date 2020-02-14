@@ -34,7 +34,6 @@ import org.junit.runners.Parameterized;
 @RunWith(Enclosed.class)
 public final class AcknowledgementLabelsTest {
 
-
     public static final class GeneralFunctionalityTest {
 
         private static final String KNOWN_LABEL_VALUE = "PROCESSING-DONE";

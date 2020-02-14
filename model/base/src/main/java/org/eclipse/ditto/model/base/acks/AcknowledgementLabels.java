@@ -25,12 +25,14 @@ import javax.annotation.concurrent.Immutable;
  * @since 1.1.0
  */
 @Immutable
-public final class AcknowledgementLabels {
+final class AcknowledgementLabels {
 
     /**
-     * Regular expression pattern which determines the value of a valid AcknowledgementLabel.
+     * Regular expression which determines the value of a valid AcknowledgementLabel.
      */
-    public static final Pattern ACK_LABEL_PATTERN = Pattern.compile("[a-zA-Z0-9-_]{3,64}");
+    public static final String ACK_LABEL_REGEX = "[a-zA-Z0-9-_]{3,64}";
+
+    private static final Pattern ACK_LABEL_PATTERN = Pattern.compile(ACK_LABEL_REGEX);
 
     private AcknowledgementLabels() {
         throw new AssertionError();
@@ -42,7 +44,7 @@ public final class AcknowledgementLabels {
      * @param label the character sequence value of the acknowledgement label to be created.
      * @return a new AcknowledgementLabel with {@code label} as its value.
      * @throws NullPointerException if {@code label} is {@code null}.
-     * @throws AcknowledgementLabelInvalidException if {@code label} did not match the regex {@link #ACK_LABEL_PATTERN}.
+     * @throws AcknowledgementLabelInvalidException if {@code label} did not match the regex {@value #ACK_LABEL_REGEX}.
      */
     public static AcknowledgementLabel newLabel(final CharSequence label) {
         checkNotNull(label, "label");

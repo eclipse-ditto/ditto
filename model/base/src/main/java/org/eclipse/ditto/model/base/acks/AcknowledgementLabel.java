@@ -28,7 +28,7 @@ public interface AcknowledgementLabel extends CharSequence {
      * @return a new AcknowledgementLabel with {@code label} as its value.
      * @throws NullPointerException if {@code label} is {@code null}.
      * @throws AcknowledgementLabelInvalidException if {@code label} did not match the regex
-     * {@link AcknowledgementLabels#ACK_LABEL_PATTERN}.
+     * {@value AcknowledgementLabels#ACK_LABEL_REGEX}.
      */
     static AcknowledgementLabel of(final CharSequence label) {
         return AcknowledgementLabels.newLabel(label);
