@@ -49,10 +49,9 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandRespon
  */
 final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModifyCommandResponse> {
 
-
-    private ThingModifyCommandResponseAdapter(
-            final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies,
+    private ThingModifyCommandResponseAdapter(final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies,
             final HeaderTranslator headerTranslator) {
+
         super(mappingStrategies, headerTranslator);
     }
 
@@ -86,132 +85,134 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
     private static void addTopLevelResponses(
             final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
         mappingStrategies.put(CreateThingResponse.TYPE,
-                adaptable -> CreateThingResponse.of(thingFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> CreateThingResponse.of(getThingOrThrow(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(ModifyThingResponse.TYPE,
-                adaptable -> isCreated(adaptable)
-                        ? ModifyThingResponse.created(thingFrom(adaptable), dittoHeadersFrom(adaptable))
-                        : ModifyThingResponse.modified(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> isCreatedOrThrow(adaptable)
+                        ? ModifyThingResponse.created(getThingOrThrow(adaptable), adaptable.getDittoHeaders())
+                        : ModifyThingResponse.modified(getThingId(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteThingResponse.TYPE,
-                adaptable -> DeleteThingResponse.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteThingResponse.of(getThingId(adaptable), adaptable.getDittoHeaders()));
     }
 
     private static void addAclResponses(
             final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
         mappingStrategies.put(ModifyAclResponse.TYPE,
-                adaptable -> ModifyAclResponse.modified(thingIdFrom(adaptable), aclFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> ModifyAclResponse.modified(getThingId(adaptable), getAclOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ModifyAclEntryResponse.TYPE,
-                adaptable -> isCreated(adaptable)
-                        ? ModifyAclEntryResponse.created(thingIdFrom(adaptable), aclEntryFrom(adaptable),
-                        dittoHeadersFrom(adaptable))
-                        : ModifyAclEntryResponse.modified(thingIdFrom(adaptable), aclEntryFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> isCreatedOrThrow(adaptable)
+                        ? ModifyAclEntryResponse.created(getThingId(adaptable), getAclEntryOrThrow(adaptable),
+                        adaptable.getDittoHeaders())
+                        : ModifyAclEntryResponse.modified(getThingId(adaptable), getAclEntryOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteAclEntryResponse.TYPE,
-                adaptable -> DeleteAclEntryResponse.of(thingIdFrom(adaptable), authorizationSubjectFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteAclEntryResponse.of(getThingId(adaptable), getAuthorizationSubject(adaptable),
+                        adaptable.getDittoHeaders()));
     }
 
     private static void addAttributeResponses(
             final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
         mappingStrategies.put(ModifyAttributesResponse.TYPE,
-                adaptable -> isCreated(adaptable)
-                        ? ModifyAttributesResponse.created(thingIdFrom(adaptable), attributesFrom(adaptable),
-                        dittoHeadersFrom(adaptable))
-                        : ModifyAttributesResponse.modified(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> isCreatedOrThrow(adaptable)
+                        ? ModifyAttributesResponse.created(getThingId(adaptable), getAttributesOrThrow(adaptable),
+                        adaptable.getDittoHeaders())
+                        : ModifyAttributesResponse.modified(getThingId(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteAttributesResponse.TYPE,
-                adaptable -> DeleteAttributesResponse.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteAttributesResponse.of(getThingId(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ModifyAttributeResponse.TYPE,
-                adaptable -> isCreated(adaptable)
+                adaptable -> isCreatedOrThrow(adaptable)
                         ?
-                        ModifyAttributeResponse.created(thingIdFrom(adaptable), attributePointerFrom(adaptable),
-                                attributeValueFrom(adaptable),
-                                dittoHeadersFrom(adaptable))
-                        : ModifyAttributeResponse.modified(thingIdFrom(adaptable), attributePointerFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                        ModifyAttributeResponse.created(getThingId(adaptable), getAttributePointerOrThrow(adaptable),
+                                getAttributeValueOrThrow(adaptable),
+                                adaptable.getDittoHeaders())
+                        :
+                        ModifyAttributeResponse.modified(getThingId(adaptable), getAttributePointerOrThrow(adaptable),
+                                adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteAttributeResponse.TYPE,
-                adaptable -> DeleteAttributeResponse.of(thingIdFrom(adaptable), attributePointerFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteAttributeResponse.of(getThingId(adaptable), getAttributePointerOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
     }
 
     private static void addDefinitionResponses(
             final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
         mappingStrategies.put(ModifyThingDefinitionResponse.TYPE,
-                adaptable -> isCreated(adaptable)
-                        ? ModifyThingDefinitionResponse.created(thingIdFrom(adaptable), thingDefinitionFrom(adaptable),
-                        dittoHeadersFrom(adaptable))
-                        : ModifyThingDefinitionResponse.modified(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> isCreatedOrThrow(adaptable)
+                        ? ModifyThingDefinitionResponse.created(getThingId(adaptable),
+                        getThingDefinitionOrThrow(adaptable), adaptable.getDittoHeaders())
+                        : ModifyThingDefinitionResponse.modified(getThingId(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteThingDefinitionResponse.TYPE,
-                adaptable -> DeleteThingDefinitionResponse.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteThingDefinitionResponse.of(getThingId(adaptable), adaptable.getDittoHeaders()));
     }
 
     private static void addFeatureResponses(
             final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
         mappingStrategies.put(ModifyFeaturesResponse.TYPE,
-                adaptable -> isCreated(adaptable)
-                        ? ModifyFeaturesResponse.created(thingIdFrom(adaptable), featuresFrom(adaptable),
-                        dittoHeadersFrom(adaptable))
-                        : ModifyFeaturesResponse.modified(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> isCreatedOrThrow(adaptable)
+                        ? ModifyFeaturesResponse.created(getThingId(adaptable), getFeaturesOrThrow(adaptable),
+                        adaptable.getDittoHeaders())
+                        : ModifyFeaturesResponse.modified(getThingId(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteFeaturesResponse.TYPE,
-                adaptable -> DeleteFeaturesResponse.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteFeaturesResponse.of(getThingId(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ModifyFeatureResponse.TYPE,
-                adaptable -> isCreated(adaptable)
-                        ? ModifyFeatureResponse.created(thingIdFrom(adaptable), featureFrom(adaptable),
-                        dittoHeadersFrom(adaptable))
-                        : ModifyFeatureResponse.modified(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> isCreatedOrThrow(adaptable)
+                        ? ModifyFeatureResponse.created(getThingId(adaptable), getFeatureOrThrow(adaptable),
+                        adaptable.getDittoHeaders())
+                        : ModifyFeatureResponse.modified(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteFeatureResponse.TYPE,
-                adaptable -> DeleteFeatureResponse.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteFeatureResponse.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ModifyFeatureDefinitionResponse.TYPE,
-                adaptable -> isCreated(adaptable)
-                        ? ModifyFeatureDefinitionResponse.created(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featureDefinitionFrom(adaptable),
-                        dittoHeadersFrom(adaptable))
-                        : ModifyFeatureDefinitionResponse.modified(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> isCreatedOrThrow(adaptable)
+                        ? ModifyFeatureDefinitionResponse.created(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeatureDefinitionOrThrow(adaptable),
+                        adaptable.getDittoHeaders())
+                        : ModifyFeatureDefinitionResponse.modified(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteFeatureDefinitionResponse.TYPE,
-                adaptable -> DeleteFeatureDefinitionResponse.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteFeatureDefinitionResponse.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ModifyFeaturePropertiesResponse.TYPE,
-                adaptable -> isCreated(adaptable)
-                        ? ModifyFeaturePropertiesResponse.created(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertiesFrom(adaptable),
-                        dittoHeadersFrom(adaptable))
-                        : ModifyFeaturePropertiesResponse.modified(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> isCreatedOrThrow(adaptable)
+                        ? ModifyFeaturePropertiesResponse.created(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertiesOrThrow(adaptable),
+                        adaptable.getDittoHeaders())
+                        : ModifyFeaturePropertiesResponse.modified(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteFeaturePropertiesResponse.TYPE,
-                adaptable -> DeleteFeaturePropertiesResponse.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteFeaturePropertiesResponse.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ModifyFeaturePropertyResponse.TYPE,
-                adaptable -> isCreated(adaptable)
-                        ? ModifyFeaturePropertyResponse.created(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertyPointerFrom(adaptable),
-                        featurePropertyValueFrom(adaptable), dittoHeadersFrom(adaptable))
-                        : ModifyFeaturePropertyResponse.modified(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertyPointerFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> isCreatedOrThrow(adaptable)
+                        ? ModifyFeaturePropertyResponse.created(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertyPointerOrThrow(adaptable),
+                        getFeaturePropertyValueOrThrow(adaptable), adaptable.getDittoHeaders())
+                        : ModifyFeaturePropertyResponse.modified(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertyPointerOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteFeaturePropertyResponse.TYPE, adaptable -> DeleteFeaturePropertyResponse
-                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertyPointerFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                .of(getThingId(adaptable), getFeatureIdOrThrow(adaptable), getFeaturePropertyPointerOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
     }
 
     @Override
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
+        final String commandName = getActionOrThrow(topicPath) + upperCaseFirst(PathMatcher.match(path));
         return topicPath.getGroup() + ".responses:" + commandName;
     }
 
     @Override
     public Adaptable constructAdaptable(final ThingModifyCommandResponse commandResponse,
             final TopicPath.Channel channel) {
+
         final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
         if (!responseName.endsWith("response")) {
             throw UnknownCommandResponseException.newBuilder(responseName).build();
@@ -234,15 +235,16 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
             throw UnknownCommandException.newBuilder(commandName).build();
         }
 
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(commandResponse.getResourcePath()) //
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(commandResponse.getResourcePath())
                 .withStatus(commandResponse.getStatusCode());
 
         final Optional<JsonValue> value = commandResponse.getEntity(commandResponse.getImplementedSchemaVersion());
         value.ifPresent(payloadBuilder::withValue);
 
-        return Adaptable.newBuilder(commandsTopicPathBuilder.build()) //
-                .withPayload(payloadBuilder.build()) //
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(commandResponse.getDittoHeaders())) //
+        return Adaptable.newBuilder(commandsTopicPathBuilder.build())
+                .withPayload(payloadBuilder.build())
+                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(commandResponse.getDittoHeaders()))
                 .build();
     }
+
 }

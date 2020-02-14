@@ -17,7 +17,10 @@ import static java.util.Objects.requireNonNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
@@ -59,59 +62,66 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
         final Map<String, JsonifiableMapper<ThingQueryCommandResponse>> mappingStrategies = new HashMap<>();
 
         mappingStrategies.put(RetrieveThingResponse.TYPE,
-                adaptable -> RetrieveThingResponse.of(thingIdFrom(adaptable), thingFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> RetrieveThingResponse.of(getThingId(adaptable), getThingOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveThingsResponse.TYPE,
-                adaptable -> RetrieveThingsResponse.of(thingsArrayFrom(adaptable),
-                        namespaceFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> RetrieveThingsResponse.of(getThingsArray(adaptable),
+                        getNamespaceOrNull(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveAclResponse.TYPE,
-                adaptable -> RetrieveAclResponse.of(thingIdFrom(adaptable), aclFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> RetrieveAclResponse.of(getThingId(adaptable), getAclOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveAclEntryResponse.TYPE,
-                adaptable -> RetrieveAclEntryResponse.of(thingIdFrom(adaptable), aclEntryFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> RetrieveAclEntryResponse.of(getThingId(adaptable), getAclEntryOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveAttributesResponse.TYPE,
-                adaptable -> RetrieveAttributesResponse.of(thingIdFrom(adaptable), attributesFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> RetrieveAttributesResponse.of(getThingId(adaptable), getAttributesOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveAttributeResponse.TYPE, adaptable -> RetrieveAttributeResponse
-                .of(thingIdFrom(adaptable), attributePointerFrom(adaptable), attributeValueFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                .of(getThingId(adaptable), getAttributePointerOrThrow(adaptable), getAttributeValueOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveThingDefinitionResponse.TYPE,
-                adaptable -> RetrieveThingDefinitionResponse.of(thingIdFrom(adaptable), thingDefinitionFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> RetrieveThingDefinitionResponse.of(getThingId(adaptable), getThingDefinitionOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveFeaturesResponse.TYPE,
-                adaptable -> RetrieveFeaturesResponse.of(thingIdFrom(adaptable), featuresFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> RetrieveFeaturesResponse.of(getThingId(adaptable), getFeaturesOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveFeatureResponse.TYPE, adaptable -> RetrieveFeatureResponse
-                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertiesFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                .of(getThingId(adaptable), getFeatureIdOrThrow(adaptable), getFeaturePropertiesOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveFeatureDefinitionResponse.TYPE, adaptable -> RetrieveFeatureDefinitionResponse
-                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featureDefinitionFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                .of(getThingId(adaptable), getFeatureIdOrThrow(adaptable), getFeatureDefinitionOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveFeaturePropertiesResponse.TYPE, adaptable -> RetrieveFeaturePropertiesResponse
-                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertiesFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                .of(getThingId(adaptable), getFeatureIdOrThrow(adaptable), getFeaturePropertiesOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies
                 .put(RetrieveFeaturePropertyResponse.TYPE,
-                        adaptable -> RetrieveFeaturePropertyResponse.of(thingIdFrom(adaptable),
-                                featureIdFrom(adaptable),
-                                featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
-                                dittoHeadersFrom(adaptable)));
+                        adaptable -> RetrieveFeaturePropertyResponse.of(getThingId(adaptable),
+                                getFeatureIdOrThrow(adaptable),
+                                getFeaturePropertyPointerOrThrow(adaptable), getFeaturePropertyValueOrThrow(adaptable),
+                                adaptable.getDittoHeaders()));
 
         return mappingStrategies;
     }
 
+    private static JsonArray getThingsArray(final Adaptable adaptable) {
+        return adaptable.getPayload()
+                .getValue()
+                .filter(JsonValue::isArray)
+                .map(JsonValue::asArray)
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
 
     @Override
     protected String getType(final Adaptable adaptable) {
@@ -120,7 +130,7 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
             return RetrieveThingsResponse.TYPE;
         } else {
             final JsonPointer path = adaptable.getPayload().getPath();
-            final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
+            final String commandName = getActionOrThrow(topicPath) + upperCaseFirst(PathMatcher.match(path));
             return topicPath.getGroup() + ".responses:" + commandName;
         }
     }

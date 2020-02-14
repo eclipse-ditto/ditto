@@ -84,126 +84,126 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent<?>> {
         final Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies = new HashMap<>();
 
         mappingStrategies.put(ThingCreated.TYPE,
-                adaptable -> ThingCreated.of(thingFrom(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> ThingCreated.of(getThingOrThrow(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(ThingModified.TYPE,
-                adaptable -> ThingModified.of(thingFrom(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> ThingModified.of(getThingOrThrow(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(ThingDeleted.TYPE,
-                adaptable -> ThingDeleted.of(thingIdFrom(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> ThingDeleted.of(getThingId(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(AclModified.TYPE,
-                adaptable -> AclModified.of(thingIdFrom(adaptable), aclFrom(adaptable), revisionFrom(adaptable),
-                        timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> AclModified.of(getThingId(adaptable), getAclOrThrow(adaptable), revisionFrom(adaptable),
+                        timestampFrom(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(AclEntryCreated.TYPE,
-                adaptable -> AclEntryCreated.of(thingIdFrom(adaptable), aclEntryFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> AclEntryCreated.of(getThingId(adaptable), getAclEntryOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(AclEntryModified.TYPE,
-                adaptable -> AclEntryModified.of(thingIdFrom(adaptable), aclEntryFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> AclEntryModified.of(getThingId(adaptable), getAclEntryOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(AclEntryDeleted.TYPE,
-                adaptable -> AclEntryDeleted.of(thingIdFrom(adaptable), authorizationSubjectFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> AclEntryDeleted.of(getThingId(adaptable), getAuthorizationSubject(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(AttributesCreated.TYPE,
-                adaptable -> AttributesCreated.of(thingIdFrom(adaptable), attributesFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> AttributesCreated.of(getThingId(adaptable), getAttributesOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(AttributesModified.TYPE,
-                adaptable -> AttributesModified.of(thingIdFrom(adaptable), attributesFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> AttributesModified.of(getThingId(adaptable), getAttributesOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(AttributesDeleted.TYPE,
-                adaptable -> AttributesDeleted.of(thingIdFrom(adaptable), revisionFrom(adaptable),
-                        timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> AttributesDeleted.of(getThingId(adaptable), revisionFrom(adaptable),
+                        timestampFrom(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(AttributeCreated.TYPE,
-                adaptable -> AttributeCreated.of(thingIdFrom(adaptable), attributePointerFrom(adaptable),
-                        attributeValueFrom(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> AttributeCreated.of(getThingId(adaptable), getAttributePointerOrThrow(adaptable),
+                        getAttributeValueOrThrow(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(AttributeModified.TYPE,
-                adaptable -> AttributeModified.of(thingIdFrom(adaptable), attributePointerFrom(adaptable),
-                        attributeValueFrom(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> AttributeModified.of(getThingId(adaptable), getAttributePointerOrThrow(adaptable),
+                        getAttributeValueOrThrow(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(AttributeDeleted.TYPE,
-                adaptable -> AttributeDeleted.of(thingIdFrom(adaptable), attributePointerFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> AttributeDeleted.of(getThingId(adaptable), getAttributePointerOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ThingDefinitionCreated.TYPE,
-                adaptable -> ThingDefinitionCreated.of(thingIdFrom(adaptable), thingDefinitionFrom(adaptable),
+                adaptable -> ThingDefinitionCreated.of(getThingId(adaptable), getThingDefinitionOrThrow(adaptable),
                         revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(ThingDefinitionModified.TYPE,
-                adaptable -> ThingDefinitionModified.of(thingIdFrom(adaptable), thingDefinitionFrom(adaptable),
+                adaptable -> ThingDefinitionModified.of(getThingId(adaptable), getThingDefinitionOrThrow(adaptable),
                         revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(ThingDefinitionDeleted.TYPE,
-                adaptable -> ThingDefinitionDeleted.of(thingIdFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> ThingDefinitionDeleted.of(getThingId(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(FeaturesCreated.TYPE,
-                adaptable -> FeaturesCreated.of(thingIdFrom(adaptable), featuresFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> FeaturesCreated.of(getThingId(adaptable), getFeaturesOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(FeaturesModified.TYPE,
-                adaptable -> FeaturesModified.of(thingIdFrom(adaptable), featuresFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> FeaturesModified.of(getThingId(adaptable), getFeaturesOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(FeaturesDeleted.TYPE,
-                adaptable -> FeaturesDeleted.of(thingIdFrom(adaptable), revisionFrom(adaptable),
-                        timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> FeaturesDeleted.of(getThingId(adaptable), revisionFrom(adaptable),
+                        timestampFrom(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(FeatureCreated.TYPE,
-                adaptable -> FeatureCreated.of(thingIdFrom(adaptable), featureFrom(adaptable), revisionFrom(adaptable),
-                        timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> FeatureCreated.of(getThingId(adaptable), getFeatureOrThrow(adaptable), revisionFrom(adaptable),
+                        timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(FeatureModified.TYPE,
-                adaptable -> FeatureModified.of(thingIdFrom(adaptable), featureFrom(adaptable), revisionFrom(adaptable),
-                        timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> FeatureModified.of(getThingId(adaptable), getFeatureOrThrow(adaptable), revisionFrom(adaptable),
+                        timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(FeatureDeleted.TYPE,
-                adaptable -> FeatureDeleted.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> FeatureDeleted.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(FeatureDefinitionCreated.TYPE,
-                adaptable -> FeatureDefinitionCreated.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featureDefinitionFrom(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> FeatureDefinitionCreated.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeatureDefinitionOrThrow(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(FeatureDefinitionModified.TYPE,
-                adaptable -> FeatureDefinitionModified.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featureDefinitionFrom(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> FeatureDefinitionModified.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeatureDefinitionOrThrow(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(FeatureDefinitionDeleted.TYPE,
-                adaptable -> FeatureDefinitionDeleted.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> FeatureDefinitionDeleted.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(FeaturePropertiesCreated.TYPE,
-                adaptable -> FeaturePropertiesCreated.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertiesFrom(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> FeaturePropertiesCreated.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertiesOrThrow(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(FeaturePropertiesModified.TYPE,
-                adaptable -> FeaturePropertiesModified.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertiesFrom(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> FeaturePropertiesModified.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertiesOrThrow(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(FeaturePropertiesDeleted.TYPE,
-                adaptable -> FeaturePropertiesDeleted.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> FeaturePropertiesDeleted.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(FeaturePropertyCreated.TYPE,
-                adaptable -> FeaturePropertyCreated.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> FeaturePropertyCreated.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertyPointerOrThrow(adaptable), getFeaturePropertyValueOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(FeaturePropertyModified.TYPE,
-                adaptable -> FeaturePropertyModified.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> FeaturePropertyModified.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertyPointerOrThrow(adaptable), getFeaturePropertyValueOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(FeaturePropertyDeleted.TYPE,
-                adaptable -> FeaturePropertyDeleted.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertyPointerFrom(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> FeaturePropertyDeleted.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertyPointerOrThrow(adaptable), revisionFrom(adaptable), timestampFrom(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(PolicyIdCreated.TYPE,
-                adaptable -> PolicyIdCreated.of(thingIdFrom(adaptable), policyIdFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> PolicyIdCreated.of(getThingId(adaptable), getPolicyIdOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(PolicyIdModified.TYPE,
-                adaptable -> PolicyIdModified.of(thingIdFrom(adaptable), policyIdFrom(adaptable),
-                        revisionFrom(adaptable), timestampFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> PolicyIdModified.of(getThingId(adaptable), getPolicyIdOrThrow(adaptable),
+                        revisionFrom(adaptable), timestampFrom(adaptable), adaptable.getDittoHeaders()));
 
         return mappingStrategies;
     }
@@ -218,19 +218,19 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent<?>> {
         return adaptable.getPayload().getTimestamp().orElse(null);
     }
 
-    private static String getActionNameWithFirstLetterUpperCase(final TopicPath topicPath) {
-        return topicPath.getAction()
-                .map(TopicPath.Action::toString)
-                .map(AbstractAdapter::upperCaseFirst)
-                .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
-    }
-
     @Override
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
         final String eventName = PathMatcher.match(path) + getActionNameWithFirstLetterUpperCase(topicPath);
         return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + eventName;
+    }
+
+    private static String getActionNameWithFirstLetterUpperCase(final TopicPath topicPath) {
+        return topicPath.getAction()
+                .map(TopicPath.Action::toString)
+                .map(AbstractAdapter::upperCaseFirst)
+                .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
     }
 
     @Override

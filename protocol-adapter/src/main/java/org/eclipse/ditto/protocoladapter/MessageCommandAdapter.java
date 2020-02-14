@@ -29,10 +29,9 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
  */
 final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
 
-
-    private MessageCommandAdapter(
-            final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies,
+    private MessageCommandAdapter(final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies,
             final HeaderTranslator headerTranslator) {
+
         super(mappingStrategies, headerTranslator);
     }
 
@@ -51,14 +50,14 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
         final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies = new HashMap<>();
 
         mappingStrategies.put(SendClaimMessage.TYPE,
-                adaptable -> SendClaimMessage.of(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> SendClaimMessage.of(getThingId(adaptable),
+                        MessageAdaptableHelper.messageFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(SendThingMessage.TYPE,
-                adaptable -> SendThingMessage.of(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> SendThingMessage.of(getThingId(adaptable),
+                        MessageAdaptableHelper.messageFrom(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(SendFeatureMessage.TYPE,
-                adaptable -> SendFeatureMessage.of(thingIdFrom(adaptable), featureIdForMessageFrom(adaptable),
-                        MessageAdaptableHelper.messageFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> SendFeatureMessage.of(getThingId(adaptable), getFeatureIdForMessageOrThrow(adaptable),
+                        MessageAdaptableHelper.messageFrom(adaptable), adaptable.getDittoHeaders()));
 
         return mappingStrategies;
     }

@@ -50,21 +50,21 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
         final Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies = new HashMap<>();
 
         mappingStrategies.put(SendClaimMessageResponse.TYPE,
-                adaptable -> SendClaimMessageResponse.of(thingIdFrom(adaptable),
+                adaptable -> SendClaimMessageResponse.of(getThingId(adaptable),
                         MessageAdaptableHelper.messageFrom(adaptable),
-                        statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
+                        getStatusCodeOrThrow(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(SendThingMessageResponse.TYPE,
-                adaptable -> SendThingMessageResponse.of(thingIdFrom(adaptable),
+                adaptable -> SendThingMessageResponse.of(getThingId(adaptable),
                         MessageAdaptableHelper.messageFrom(adaptable),
-                        statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
+                        getStatusCodeOrThrow(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(SendFeatureMessageResponse.TYPE,
-                adaptable -> SendFeatureMessageResponse.of(thingIdFrom(adaptable), featureIdForMessageFrom(adaptable),
-                        MessageAdaptableHelper.messageFrom(adaptable), statusCodeFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> SendFeatureMessageResponse.of(getThingId(adaptable),
+                        getFeatureIdForMessageOrThrow(adaptable), MessageAdaptableHelper.messageFrom(adaptable),
+                        getStatusCodeOrThrow(adaptable), adaptable.getDittoHeaders()));
         mappingStrategies.put(SendMessageAcceptedResponse.TYPE,
-                adaptable -> SendMessageAcceptedResponse.newInstance(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageHeadersFrom(adaptable), statusCodeFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> SendMessageAcceptedResponse.newInstance(getThingId(adaptable),
+                        MessageAdaptableHelper.messageHeadersFrom(adaptable), getStatusCodeOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         return mappingStrategies;
     }

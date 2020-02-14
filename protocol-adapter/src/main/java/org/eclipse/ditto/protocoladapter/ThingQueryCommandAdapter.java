@@ -20,9 +20,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -65,50 +68,56 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
     private static Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies() {
         final Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies = new HashMap<>();
 
-        mappingStrategies.put(RetrieveThing.TYPE, adaptable -> RetrieveThing.getBuilder(thingIdFrom(adaptable),
-                dittoHeadersFrom(adaptable))
-                .withSelectedFields(selectedFieldsFrom(adaptable))
+        mappingStrategies.put(RetrieveThing.TYPE, adaptable -> RetrieveThing.getBuilder(getThingId(adaptable),
+                adaptable.getDittoHeaders())
+                .withSelectedFields(getSelectedFieldsOrNull(adaptable))
                 .build());
 
         mappingStrategies.put(RetrieveThings.TYPE, adaptable -> RetrieveThings.getBuilder(thingsIdsFrom(adaptable))
-                .dittoHeaders(dittoHeadersFrom(adaptable))
-                .namespace(namespaceFrom(adaptable))
-                .selectedFields(selectedFieldsFrom(adaptable)).build());
+                .dittoHeaders(adaptable.getDittoHeaders())
+                .namespace(getNamespaceOrNull(adaptable))
+                .selectedFields(getSelectedFieldsOrNull(adaptable)).build());
 
-        mappingStrategies.put(RetrieveAcl.TYPE, adaptable -> RetrieveAcl.of(thingIdFrom(adaptable),
-                dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(RetrieveAcl.TYPE, adaptable -> RetrieveAcl.of(getThingId(adaptable),
+                adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(RetrieveAclEntry.TYPE, adaptable -> RetrieveAclEntry.of(thingIdFrom(adaptable),
-                authorizationSubjectFrom(adaptable), selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(RetrieveAclEntry.TYPE, adaptable -> RetrieveAclEntry.of(getThingId(adaptable),
+                getAuthorizationSubject(adaptable), getSelectedFieldsOrNull(adaptable), adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(RetrieveAttributes.TYPE, adaptable -> RetrieveAttributes.of(thingIdFrom(adaptable),
-                selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(RetrieveAttributes.TYPE, adaptable -> RetrieveAttributes.of(getThingId(adaptable),
+                getSelectedFieldsOrNull(adaptable), adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(RetrieveAttribute.TYPE, adaptable -> RetrieveAttribute.of(thingIdFrom(adaptable),
-                attributePointerFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(RetrieveAttribute.TYPE, adaptable -> RetrieveAttribute.of(getThingId(adaptable),
+                getAttributePointerOrThrow(adaptable), adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(RetrieveThingDefinition.TYPE, adaptable -> RetrieveThingDefinition.of(thingIdFrom(adaptable),
-                dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(RetrieveThingDefinition.TYPE, adaptable -> RetrieveThingDefinition.of(getThingId(adaptable),
+                adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(RetrieveFeatures.TYPE, adaptable -> RetrieveFeatures.of(thingIdFrom(adaptable),
-                selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(RetrieveFeatures.TYPE, adaptable -> RetrieveFeatures.of(getThingId(adaptable),
+                getSelectedFieldsOrNull(adaptable), adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(RetrieveFeature.TYPE, adaptable -> RetrieveFeature.of(thingIdFrom(adaptable),
-                featureIdFrom(adaptable), selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(RetrieveFeature.TYPE, adaptable -> RetrieveFeature.of(getThingId(adaptable),
+                getFeatureIdOrThrow(adaptable), getSelectedFieldsOrNull(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveFeatureDefinition.TYPE, adaptable ->
-                RetrieveFeatureDefinition.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                RetrieveFeatureDefinition.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveFeatureProperties.TYPE, adaptable ->
-                RetrieveFeatureProperties.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
+                RetrieveFeatureProperties.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getSelectedFieldsOrNull(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(RetrieveFeatureProperty.TYPE, adaptable ->
-                RetrieveFeatureProperty.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));
+                RetrieveFeatureProperty.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertyPointerOrThrow(adaptable), adaptable.getDittoHeaders()));
 
         return mappingStrategies;
+    }
+
+    @Nullable
+    private static JsonFieldSelector getSelectedFieldsOrNull(final Adaptable adaptable) {
+        final Payload payload = adaptable.getPayload();
+        return payload.getFields().orElse(null);
     }
 
     private static Adaptable handleSingleRetrieve(final ThingQueryCommand<?> command, final TopicPath.Channel channel) {
@@ -186,7 +195,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
             return RetrieveThings.TYPE;
         } else {
             final JsonPointer path = adaptable.getPayload().getPath();
-            final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
+            final String commandName = getActionOrThrow(topicPath) + upperCaseFirst(PathMatcher.match(path));
             return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
         }
     }

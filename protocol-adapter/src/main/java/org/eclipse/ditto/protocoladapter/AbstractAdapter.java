@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
@@ -21,8 +20,9 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFieldSelector;
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -58,57 +58,35 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     private final Map<String, JsonifiableMapper<T>> mappingStrategies;
     private final HeaderTranslator headerTranslator;
 
-    protected AbstractAdapter(final Map<String, JsonifiableMapper<T>> mappingStrategies,
-            final HeaderTranslator headerTranslator) {
-        this.mappingStrategies = requireNonNull(mappingStrategies);
-        this.headerTranslator = requireNonNull(headerTranslator);
+    protected AbstractAdapter(final Map<String, JsonifiableMapper<T>> mappingStrategies, final HeaderTranslator headerTranslator) {
+        this.mappingStrategies = checkNotNull(mappingStrategies, "mappingStrategies");
+        this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
     }
 
-    protected static boolean isCreated(final Adaptable adaptable) {
+    protected static boolean isCreatedOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload().getStatus()
                 .map(HttpStatusCode.CREATED::equals)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    /**
-     * Reads Ditto headers from an Adaptable. CAUTION: Headers are taken as-is!.
-     *
-     * @param adaptable the protocol message.
-     * @return the headers of the message.
-     */
-    protected static DittoHeaders dittoHeadersFrom(final Adaptable adaptable) {
-        return adaptable.getHeaders().orElseGet(DittoHeaders::empty);
+    protected static AuthorizationSubject getAuthorizationSubject(final Adaptable adaptable) {
+        return AuthorizationSubject.newInstance(getLeafValueOrThrow(adaptable.getPayload().getPath()));
     }
 
-    protected static AuthorizationSubject authorizationSubjectFrom(final Adaptable adaptable) {
-        return AuthorizationSubject.newInstance(leafValue(adaptable.getPayload().getPath()));
-    }
-
-    protected static JsonFieldSelector selectedFieldsFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getFields().orElse(null);
-    }
-
-    protected static ThingId thingIdFrom(final Adaptable adaptable) {
+    protected static ThingId getThingId(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         return ThingId.of(topicPath.getNamespace(), topicPath.getId());
     }
 
-    protected static Thing thingFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getValue()
+    protected static Thing getThingOrThrow(final Adaptable adaptable) {
+        final Payload payload = adaptable.getPayload();
+        return payload.getValue()
                 .map(JsonValue::asObject)
                 .map(ThingsModelFactory::newThing)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static JsonArray thingsArrayFrom(final Adaptable adaptable) {
-        return adaptable.getPayload()
-                .getValue()
-                .filter(JsonValue::isArray)
-                .map(JsonValue::asArray)
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
-    }
-
-    protected static AccessControlList aclFrom(final Adaptable adaptable) {
+    protected static AccessControlList getAclOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
@@ -116,15 +94,15 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static AclEntry aclEntryFrom(final Adaptable adaptable) {
+    protected static AclEntry getAclEntryOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(permissions -> AccessControlListModelFactory
-                        .newAclEntry(leafValue(adaptable.getPayload().getPath()), permissions))
+                        .newAclEntry(getLeafValueOrThrow(adaptable.getPayload().getPath()), permissions))
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static Attributes attributesFrom(final Adaptable adaptable) {
+    protected static Attributes getAttributesOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
@@ -132,17 +110,17 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static JsonPointer attributePointerFrom(final Adaptable adaptable) {
+    protected static JsonPointer getAttributePointerOrThrow(final Adaptable adaptable) {
         final JsonPointer path = adaptable.getPayload().getPath();
         return path.getSubPointer(ATTRIBUTE_PATH_LEVEL)
                 .orElseThrow(() -> UnknownPathException.newBuilder(path).build());
     }
 
-    protected static JsonValue attributeValueFrom(final Adaptable adaptable) {
+    protected static JsonValue getAttributeValueOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload().getValue().orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static ThingDefinition thingDefinitionFrom(final Adaptable adaptable) {
+    protected static ThingDefinition getThingDefinitionOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asString)
@@ -150,18 +128,19 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static String featureIdFrom(final Adaptable adaptable) {
+    protected static String getFeatureIdOrThrow(final Adaptable adaptable) {
         final JsonPointer path = adaptable.getPayload().getPath();
         return path.get(1).orElseThrow(() -> UnknownPathException.newBuilder(path).build()).toString();
     }
 
-    protected static String featureIdForMessageFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getPath()
-                .getFeatureId()
+    protected static String getFeatureIdForMessageOrThrow(final Adaptable adaptable) {
+        final Payload payload = adaptable.getPayload();
+        final MessagePath messagePath = payload.getPath();
+        return messagePath.getFeatureId()
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static Features featuresFrom(final Adaptable adaptable) {
+    protected static Features getFeaturesOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
@@ -169,17 +148,17 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static Feature featureFrom(final Adaptable adaptable) {
+    protected static Feature getFeatureOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
                 .map(jsonObject -> ThingsModelFactory.newFeatureBuilder(jsonObject)
-                        .useId(featureIdFrom(adaptable))
+                        .useId(getFeatureIdOrThrow(adaptable))
                         .build())
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static FeatureDefinition featureDefinitionFrom(final Adaptable adaptable) {
+    protected static FeatureDefinition getFeatureDefinitionOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asArray)
@@ -187,7 +166,7 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static FeatureProperties featurePropertiesFrom(final Adaptable adaptable) {
+    protected static FeatureProperties getFeaturePropertiesOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
@@ -195,17 +174,17 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static JsonPointer featurePropertyPointerFrom(final Adaptable adaptable) {
+    protected static JsonPointer getFeaturePropertyPointerOrThrow(final Adaptable adaptable) {
         final JsonPointer path = adaptable.getPayload().getPath();
         return path.getSubPointer(FEATURE_PROPERTY_PATH_LEVEL)
                 .orElseThrow(() -> UnknownPathException.newBuilder(path).build());
     }
 
-    protected static JsonValue featurePropertyValueFrom(final Adaptable adaptable) {
+    protected static JsonValue getFeaturePropertyValueOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload().getValue().orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static PolicyId policyIdFrom(final Adaptable adaptable) {
+    protected static PolicyId getPolicyIdOrThrow(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asString)
@@ -213,21 +192,25 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    protected static HttpStatusCode statusCodeFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getStatus().orElse(null);
+    protected static HttpStatusCode getStatusCodeOrThrow(final Adaptable adaptable) {
+        final Payload payload = adaptable.getPayload();
+        return payload.getStatus()
+                .orElseThrow(() -> new JsonMissingFieldException(Payload.JsonFields.STATUS));
     }
 
-    protected static String namespaceFrom(final Adaptable adaptable) {
+    @Nullable
+    protected static String getNamespaceOrNull(final Adaptable adaptable) {
         final String namespace = adaptable.getTopicPath().getNamespace();
         return "_".equals(namespace) ? null : namespace;
     }
 
-    private static String leafValue(final JsonPointer path) {
+    private static String getLeafValueOrThrow(final JsonPointer path) {
         return path.getLeaf().orElseThrow(() -> UnknownPathException.newBuilder(path).build()).toString();
     }
 
     protected static CommandsTopicPathBuilder fromTopicPathBuilderWithChannel(final TopicPathBuilder topicPathBuilder,
             final TopicPath.Channel channel) {
+
         final CommandsTopicPathBuilder commandsTopicPathBuilder;
         if (channel == TopicPath.Channel.TWIN) {
             commandsTopicPathBuilder = topicPathBuilder.twin().commands();
@@ -239,10 +222,53 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return commandsTopicPathBuilder;
     }
 
-    protected static TopicPath.Action getAction(final TopicPath topicPath) {
+    protected static TopicPath.Action getActionOrThrow(final TopicPath topicPath) {
         return topicPath.getAction()
                 .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
     }
+
+    /**
+     * Returns the given String {@code s} with an upper case first letter.
+     *
+     * @param s the String.
+     * @return the upper case String.
+     */
+    protected static String upperCaseFirst(final String s) {
+        if (s.isEmpty()) {
+            return s;
+        }
+
+        final char[] chars = s.toCharArray();
+        chars[0] = Character.toUpperCase(chars[0]);
+        return new String(chars);
+    }
+
+    /*
+     * injects header reading phase to parsing of protocol messages.
+     */
+    @Override
+    public final T fromAdaptable(final Adaptable externalAdaptable) {
+        checkNotNull(externalAdaptable, "Adaptable");
+        // get type from external adaptable before header filtering in case some headers exist for external messages
+        // but not internally in Ditto.
+        final String type = getType(externalAdaptable);
+
+        // filter headers by header translator, then inject any missing information from topic path
+        final DittoHeaders externalHeaders = externalAdaptable.getDittoHeaders();
+        final DittoHeaders filteredHeaders = addTopicPathInfo(headerTranslator.fromExternalHeaders(externalHeaders),
+                externalAdaptable.getTopicPath());
+
+        final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.get(type);
+        if (null == jsonifiableMapper) {
+            throw UnknownTopicPathException.fromTopicAndPath(externalAdaptable.getTopicPath(),
+                    externalAdaptable.getPayload().getPath(), filteredHeaders);
+        }
+
+        final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
+        return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
+    }
+
+    protected abstract String getType(Adaptable adaptable);
 
     /**
      * Add to headers any information that will be missing from topic path.
@@ -275,52 +301,6 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return headersBuilder.build();
     }
 
-    /**
-     * Returns the given String {@code s} with an upper case first letter.
-     *
-     * @param s the String.
-     * @return the upper case String.
-     */
-    protected static String upperCaseFirst(final String s) {
-        if (s.isEmpty()) {
-            return s;
-        }
-
-        final char[] chars = s.toCharArray();
-        chars[0] = Character.toUpperCase(chars[0]);
-        return new String(chars);
-    }
-
-    protected abstract Adaptable constructAdaptable(final T signal, final TopicPath.Channel channel);
-
-    protected abstract String getType(Adaptable adaptable);
-
-    /*
-     * injects header reading phase to parsing of protocol messages.
-     */
-    @Override
-    public final T fromAdaptable(final Adaptable externalAdaptable) {
-        checkNotNull(externalAdaptable, "Adaptable");
-        // get type from external adaptable before header filtering in case some headers exist for external messages
-        // but not internally in Ditto.
-        final String type = getType(externalAdaptable);
-
-        // filter headers by header translator, then inject any missing information from topic path
-        final DittoHeaders externalHeaders = externalAdaptable.getHeaders().orElse(DittoHeaders.empty());
-        final DittoHeaders filteredHeaders = addTopicPathInfo(
-                headerTranslator.fromExternalHeaders(externalHeaders),
-                externalAdaptable.getTopicPath());
-
-        final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.get(type);
-        if (null == jsonifiableMapper) {
-            throw UnknownTopicPathException.fromTopicAndPath(externalAdaptable.getTopicPath(),
-                    externalAdaptable.getPayload().getPath(), filteredHeaders);
-        }
-
-        final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
-        return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
-    }
-
     /*
      * inject header publishing phase to creation of protocol messages.
      */
@@ -330,6 +310,8 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(adaptable.getDittoHeaders());
         return adaptable.setDittoHeaders(DittoHeaders.of(externalHeaders));
     }
+
+    protected abstract Adaptable constructAdaptable(T signal, TopicPath.Channel channel);
 
     protected final HeaderTranslator headerTranslator() {
         return headerTranslator;

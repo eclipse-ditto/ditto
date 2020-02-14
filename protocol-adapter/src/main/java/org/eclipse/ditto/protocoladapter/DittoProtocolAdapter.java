@@ -75,7 +75,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
         thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
         thingEventAdapter = ThingEventAdapter.of(headerTranslator);
-        acknowledgementAdapter = AcknowledgementAdapter.of(headerTranslator);
+        acknowledgementAdapter = AcknowledgementAdapter.getInstance(headerTranslator);
     }
 
     /**
@@ -343,8 +343,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     private Signal<?> fromTwinAdaptable(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
 
-        final Signal<?> signal =
-                signalFromAdaptable(adaptable, topicPath); // /things/twin/(commands|events)
+        final Signal<?> signal = signalFromAdaptable(adaptable, topicPath); // /things/twin/(commands|events)
         if (signal != null) {
             return signal;
         } else {

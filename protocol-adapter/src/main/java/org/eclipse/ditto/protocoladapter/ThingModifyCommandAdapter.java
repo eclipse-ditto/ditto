@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -53,9 +53,9 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
  */
 final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand> {
 
-    private ThingModifyCommandAdapter(
-            final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies,
+    private ThingModifyCommandAdapter(final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies,
             final HeaderTranslator headerTranslator) {
+
         super(mappingStrategies, headerTranslator);
     }
 
@@ -66,127 +66,135 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
      * @return the adapter.
      */
     public static ThingModifyCommandAdapter of(final HeaderTranslator headerTranslator) {
-        return new ThingModifyCommandAdapter(mappingStrategies(), requireNonNull(headerTranslator));
+        return new ThingModifyCommandAdapter(getMappingStrategies(), headerTranslator);
     }
 
-    private static Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies() {
+    private static Map<String, JsonifiableMapper<ThingModifyCommand>> getMappingStrategies() {
         final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies = new HashMap<>();
 
         mappingStrategies.put(CreateThing.TYPE, ThingModifyCommandAdapter::createThingFrom);
-        mappingStrategies.put(ModifyThing.TYPE, ThingModifyCommandAdapter::modifyThingFrom);
+        mappingStrategies.put(ModifyThing.TYPE, ThingModifyCommandAdapter::getModifyThingCommand);
         mappingStrategies.put(DeleteThing.TYPE,
-                adaptable -> DeleteThing.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteThing.of(getThingId(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ModifyAcl.TYPE,
-                adaptable -> ModifyAcl.of(thingIdFrom(adaptable), aclFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> ModifyAcl.of(getThingId(adaptable), getAclOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(ModifyAclEntry.TYPE, adaptable -> ModifyAclEntry.of(thingIdFrom(adaptable),
-                aclEntryFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(DeleteAclEntry.TYPE, adaptable -> DeleteAclEntry.of(thingIdFrom(adaptable),
-                authorizationSubjectFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(ModifyAclEntry.TYPE,
+                adaptable -> ModifyAclEntry.of(getThingId(adaptable), getAclEntryOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
+        mappingStrategies.put(DeleteAclEntry.TYPE,
+                adaptable -> DeleteAclEntry.of(getThingId(adaptable), getAuthorizationSubject(adaptable),
+                        adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(ModifyAttributes.TYPE, adaptable -> ModifyAttributes.of(thingIdFrom(adaptable),
-                attributesFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(ModifyAttributes.TYPE,
+                adaptable -> ModifyAttributes.of(getThingId(adaptable), getAttributesOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteAttributes.TYPE,
-                adaptable -> DeleteAttributes.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteAttributes.of(getThingId(adaptable), adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(ModifyAttribute.TYPE, adaptable -> ModifyAttribute.of(thingIdFrom(adaptable),
-                attributePointerFrom(adaptable), attributeValueFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(DeleteAttribute.TYPE, adaptable -> DeleteAttribute.of(thingIdFrom(adaptable),
-                attributePointerFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(ModifyAttribute.TYPE,
+                adaptable -> ModifyAttribute.of(getThingId(adaptable), getAttributePointerOrThrow(adaptable),
+                        getAttributeValueOrThrow(adaptable), adaptable.getDittoHeaders()));
+        mappingStrategies.put(DeleteAttribute.TYPE,
+                adaptable -> DeleteAttribute.of(getThingId(adaptable), getAttributePointerOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(ModifyThingDefinition.TYPE, adaptable -> ModifyThingDefinition.of(thingIdFrom(adaptable),
-                thingDefinitionFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(ModifyThingDefinition.TYPE,
+                adaptable -> ModifyThingDefinition.of(getThingId(adaptable), getThingDefinitionOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteThingDefinition.TYPE,
-                adaptable -> DeleteThingDefinition.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteThingDefinition.of(getThingId(adaptable), adaptable.getDittoHeaders()));
 
-        mappingStrategies.put(ModifyFeatures.TYPE, adaptable -> ModifyFeatures.of(thingIdFrom(adaptable),
-                featuresFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(ModifyFeatures.TYPE,
+                adaptable -> ModifyFeatures.of(getThingId(adaptable), getFeaturesOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
         mappingStrategies.put(DeleteFeatures.TYPE,
-                adaptable -> DeleteFeatures.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> DeleteFeatures.of(getThingId(adaptable), adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ModifyFeature.TYPE,
-                adaptable -> ModifyFeature.of(thingIdFrom(adaptable), featureFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(DeleteFeature.TYPE, adaptable -> DeleteFeature.of(thingIdFrom(adaptable),
-                featureIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> ModifyFeature.of(getThingId(adaptable), getFeatureOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
+        mappingStrategies.put(DeleteFeature.TYPE,
+                adaptable -> DeleteFeature.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ModifyFeatureDefinition.TYPE,
-                adaptable -> ModifyFeatureDefinition.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featureDefinitionFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(DeleteFeatureDefinition.TYPE, adaptable -> DeleteFeatureDefinition
-                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> ModifyFeatureDefinition.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeatureDefinitionOrThrow(adaptable), adaptable.getDittoHeaders()));
+        mappingStrategies.put(DeleteFeatureDefinition.TYPE,
+                adaptable -> DeleteFeatureDefinition.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
         mappingStrategies.put(ModifyFeatureProperties.TYPE,
-                adaptable -> ModifyFeatureProperties.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertiesFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(DeleteFeatureProperties.TYPE, adaptable -> DeleteFeatureProperties
-                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> ModifyFeatureProperties.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertiesOrThrow(adaptable), adaptable.getDittoHeaders()));
+        mappingStrategies.put(DeleteFeatureProperties.TYPE,
+                adaptable -> DeleteFeatureProperties.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
 
-        mappingStrategies
-                .put(ModifyFeatureProperty.TYPE,
-                        adaptable -> ModifyFeatureProperty.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                                featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
-                                dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(DeleteFeatureProperty.TYPE, adaptable -> DeleteFeatureProperty.of(thingIdFrom(adaptable),
-                featureIdFrom(adaptable), featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(ModifyFeatureProperty.TYPE,
+                adaptable -> ModifyFeatureProperty.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertyPointerOrThrow(adaptable), getFeaturePropertyValueOrThrow(adaptable),
+                        adaptable.getDittoHeaders()));
+        mappingStrategies.put(DeleteFeatureProperty.TYPE,
+                adaptable -> DeleteFeatureProperty.of(getThingId(adaptable), getFeatureIdOrThrow(adaptable),
+                        getFeaturePropertyPointerOrThrow(adaptable), adaptable.getDittoHeaders()));
 
         return mappingStrategies;
     }
 
     private static CreateThing createThingFrom(final Adaptable adaptable) {
-        return CreateThing.of(thingToCreateOrModifyFrom(adaptable), initialPolicyForCreateThingFrom(adaptable),
-                policyIdOrPlaceholderForCreateThingFrom(adaptable), dittoHeadersFrom(adaptable));
+        return CreateThing.of(getThingToCreateOrModify(adaptable), getInitialPolicyForCreateThingOrNull(adaptable),
+                getPolicyIdOrPlaceholderForCreateThingOrNull(adaptable), adaptable.getDittoHeaders());
     }
 
-    private static ModifyThing modifyThingFrom(final Adaptable adaptable) {
-        final Thing thing = thingToCreateOrModifyFrom(adaptable);
+    private static ModifyThing getModifyThingCommand(final Adaptable adaptable) {
+        final Thing thing = getThingToCreateOrModify(adaptable);
         final ThingId thingId = thing.getEntityId().orElseThrow(
                 () -> new IllegalStateException("ID should have been enforced in thingToCreateOrModifyFrom"));
-        return ModifyThing.of(thingId, thing, initialPolicyForModifyThingFrom(adaptable),
-                policyIdOrPlaceholderForModifyThingFrom(adaptable), dittoHeadersFrom(adaptable));
+        return ModifyThing.of(thingId, thing, getInitialPolicyForModifyThingOrNull(adaptable),
+                getPolicyIdOrPlaceholderForModifyThingOrNull(adaptable), adaptable.getDittoHeaders());
     }
 
-    private static Thing thingToCreateOrModifyFrom(final Adaptable adaptable) {
-        final Thing thing = thingFrom(adaptable);
+    private static Thing getThingToCreateOrModify(final Adaptable adaptable) {
+        final Thing thing = getThingOrThrow(adaptable);
 
-        final Optional<ThingId> thingIdOptional = thing.getEntityId();
-        final ThingId thingIdFromTopic = thingIdFrom(adaptable);
-
-        if (thingIdOptional.isPresent()) {
-            if (!thingIdOptional.get().equals(thingIdFromTopic)) {
-                throw ThingIdNotExplicitlySettableException.forDittoProtocol().build();
-            }
-        } else {
-            return thing.toBuilder()
-                    .setId(thingIdFromTopic)
-                    .build();
-        }
-        return thing;
+        return thing.getEntityId()
+                .filter(thingId -> thingId.equals(getThingId(adaptable)))
+                .map(thingId -> thing.toBuilder().setId(thingId).build())
+                .orElseThrow(() -> ThingIdNotExplicitlySettableException.forDittoProtocol().build());
     }
 
-    private static JsonObject initialPolicyForCreateThingFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getValue()
+    @Nullable
+    private static JsonObject getInitialPolicyForCreateThingOrNull(final Adaptable adaptable) {
+        return adaptable.getPayload()
+                .getValue()
                 .map(JsonValue::asObject)
-                .map(o -> o.getValue(CreateThing.JSON_INLINE_POLICY).map(JsonValue::asObject).orElse(null))
+                .flatMap(o -> o.getValue(CreateThing.JSON_INLINE_POLICY).map(JsonValue::asObject))
                 .orElse(null);
     }
 
-    private static String policyIdOrPlaceholderForCreateThingFrom(final Adaptable adaptable) {
+    @Nullable
+    private static String getPolicyIdOrPlaceholderForCreateThingOrNull(final Adaptable adaptable) {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
                 .flatMap(o -> o.getValue(CreateThing.JSON_COPY_POLICY_FROM))
                 .orElse(null);
     }
 
-    private static JsonObject initialPolicyForModifyThingFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getValue()
+    @Nullable
+    private static JsonObject getInitialPolicyForModifyThingOrNull(final Adaptable adaptable) {
+        return adaptable.getPayload()
+                .getValue()
                 .map(JsonValue::asObject)
-                .map(o -> o.getValue(ModifyThing.JSON_INLINE_POLICY).map(JsonValue::asObject).orElse(null))
+                .flatMap(o -> o.getValue(ModifyThing.JSON_INLINE_POLICY).map(JsonValue::asObject))
                 .orElse(null);
     }
 
-    private static String policyIdOrPlaceholderForModifyThingFrom(final Adaptable adaptable) {
+    @Nullable
+    private static String getPolicyIdOrPlaceholderForModifyThingOrNull(final Adaptable adaptable) {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
                 .flatMap(o -> o.getValue(ModifyThing.JSON_COPY_POLICY_FROM))
@@ -197,7 +205,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
+        final String commandName = getActionOrThrow(topicPath) + upperCaseFirst(PathMatcher.match(path));
         return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
     }
 
