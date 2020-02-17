@@ -17,12 +17,14 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -106,6 +108,34 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .filter(JsonValue::isArray)
                 .map(JsonValue::asArray)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+
+    /**
+     * @param adaptable the protocol message
+     * @return the filterString from the value of the adaptable.
+     */
+    protected static Optional<String> filterFrom(final Adaptable adaptable) {
+
+        final JsonObject value = adaptable.getPayload().getValue().map(JsonValue::asObject).orElse(null);
+        if (value != null && value.getValue("filter").isPresent()) {
+
+            return Optional.ofNullable(value.getValue("filter").toString());
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * @param adaptable the protocol message
+     * @return the optionsString from the value of the adaptable.
+     */
+    protected static Optional<String> optionsFrom(final Adaptable adaptable) {
+
+        JsonObject value = adaptable.getPayload().getValue().map(JsonValue::asObject).orElse(null);
+        if (value != null && value.getValue("options").isPresent()) {
+
+            return Optional.ofNullable(value.getValue("options").toString());
+        }
+        return Optional.empty();
     }
 
     /**

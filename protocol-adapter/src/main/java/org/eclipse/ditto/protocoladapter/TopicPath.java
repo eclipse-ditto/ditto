@@ -269,6 +269,8 @@ public interface TopicPath {
 
         RETRIEVE("retrieve"),
 
+        SEARCH("search"),
+
         MODIFY("modify"),
 
         DELETE("delete"),

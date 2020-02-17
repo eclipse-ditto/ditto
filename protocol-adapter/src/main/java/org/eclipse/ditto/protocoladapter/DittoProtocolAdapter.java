@@ -42,6 +42,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -59,6 +60,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     private final ThingModifyCommandResponseAdapter thingModifyCommandResponseAdapter;
     private final ThingQueryCommandAdapter thingQueryCommandAdapter;
     private final ThingQueryCommandResponseAdapter thingQueryCommandResponseAdapter;
+    private final ThingSearchQueryCommandAdapter thingSearchQueryCommandAdapter;
     private final ThingEventAdapter thingEventAdapter;
 
     protected DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
@@ -72,6 +74,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
         thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
         thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
+        thingSearchQueryCommandAdapter = ThingSearchQueryCommandAdapter.of(headerTranslator);
         thingEventAdapter = ThingEventAdapter.of(headerTranslator);
     }
 
@@ -154,6 +157,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             throw UnknownCommandResponseException.newBuilder(commandResponse.getName()).build();
         }
     }
+
 
     @Override
     public Adaptable toAdaptable(final ThingCommandResponse<?> thingCommandResponse) {
@@ -242,6 +246,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             final TopicPath.Channel channel) {
         return thingQueryCommandResponseAdapter.toAdaptable(thingQueryCommandResponse, channel);
     }
+
 
     @Override
     public Adaptable toAdaptable(final ThingErrorResponse thingErrorResponse, final TopicPath.Channel channel) {
@@ -348,6 +353,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
                 return processCommandResponseSignalFromAdaptable(adaptable, topicPath);
             } else if (TopicPath.Action.RETRIEVE.equals(topicPath.getAction().orElse(null))) {
                 return thingQueryCommandAdapter.fromAdaptable(adaptable);
+            } else if (TopicPath.Action.SEARCH.equals(topicPath.getAction().orElse(null))) {
+                return thingSearchQueryCommandAdapter.fromAdaptable(adaptable);
             } else {
                 return thingModifyCommandAdapter.fromAdaptable(adaptable);
             }
@@ -368,6 +375,9 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         if (TopicPath.Action.RETRIEVE.equals(topicPath.getAction().orElse(null))) {
             return isErrorResponse ? thingErrorResponseFromAdaptable(adaptable) :
                     thingQueryCommandResponseAdapter.fromAdaptable(adaptable);
+        } else if (TopicPath.Action.SEARCH.equals(topicPath.getAction().orElse(null))) {
+            return isErrorResponse ? thingErrorResponseFromAdaptable(adaptable) :
+                    thingSearchQueryCommandAdapter.fromAdaptable(adaptable);
         } else {
             return isErrorResponse ? thingErrorResponseFromAdaptable(adaptable) :
                     thingModifyCommandResponseAdapter.fromAdaptable(adaptable);
