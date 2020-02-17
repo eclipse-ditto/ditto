@@ -62,7 +62,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.eclipse.ditto.services.utils.search.SearchSource;
 import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -79,8 +79,6 @@ import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.directives.RouteDirectives;
 import akka.japi.JavaPartialFunction;
-import akka.pattern.Patterns;
-import akka.stream.SourceRef;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -299,37 +297,40 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 .orElse(null);
         // TODO: support other options?
         final String sortOption = parameters.get("option");
+        final JsonFieldSelector fields = Optional.ofNullable(parameters.get("fields"))
+                .map(JsonFieldSelector::newInstance)
+                .orElse(null);
 
         final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
-                dittoHeadersStage.thenCompose(dittoHeaders -> {
+                dittoHeadersStage.thenApply(dittoHeaders -> {
                     sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
                     // TODO: count results?
 
                     final StreamThings command =
                             StreamThings.of(filterString, namespaces, sortOption, null, dittoHeaders);
 
-                    return Patterns.ask(proxyActor, command, Duration.ofMinutes(1L))
-                            .handle((result, error) -> {
-                                if (result instanceof SourceRef) {
-                                    final SourceRef<?> sourceRef = (SourceRef<?>) result;
-                                    return sourceRef.getSource()
-                                            .map(element -> {
-                                                if (element instanceof RetrieveThingResponse) {
-                                                    return ((RetrieveThingResponse) element).getEntity().toString();
-                                                } else {
-                                                    return element.toString();
-                                                }
-                                            })
-                                            .map(ServerSentEvent::create)
-                                            .log("search SSE")
-                                            .via(eventSniffer.toAsyncFlow(ctx.getRequest()));
-                                } else {
-                                    final Throwable throwable = error != null
-                                            ? error
-                                            : new ClassCastException("Not a SourceRef: " + result);
-                                    return Source.failed(throwable);
-                                }
-                            });
+                    // TODO: configure timeouts
+                    final Duration thingsTimeout = Duration.ofSeconds(10L);
+                    final Duration searchTimeout = Duration.ofSeconds(60L); // HTTP timeout
+                    final Duration minBackoff = Duration.ofSeconds(1L);
+                    final Duration maxBackoff = searchTimeout;
+                    final int maxRetries = 3;
+                    final Duration recovery = Duration.ofMinutes(3L);
+                    final SearchSource searchSource = SearchSource.of(
+                            null, // TODO: set pubSubMediator for feedback
+                            proxyActor,
+                            thingsTimeout,
+                            searchTimeout,
+                            fields,
+                            JsonFieldSelector.newInstance("thingId"),  // TODO: parse sort option
+                            command
+                    );
+
+                    return searchSource.start(minBackoff, maxBackoff, maxRetries, recovery)
+                            .map(JsonObject::toString)
+                            .map(ServerSentEvent::create)
+                            .log("search SSE")
+                            .via(eventSniffer.toAsyncFlow(ctx.getRequest()));
                 });
 
         return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());

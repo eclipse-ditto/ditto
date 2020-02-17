@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
-import java.util.List;
-
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -22,7 +20,6 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
-import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -74,19 +71,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                             QueryThingsPerRequestActor.props(qt, conciergeForwarder, aggregatorProxyActor,
                                     getSender(), materializer));
                     conciergeForwarder.tell(qt, responseActor);
-                })
-                // TODO: deduplicate this.
-                .match(StreamThings.class, st -> {
-                    final QueryThings mockQueryThings =
-                            QueryThings.of(st.getFilter().orElse(null),
-                                    st.getSort().map(List::of).orElse(null),
-                                    null,
-                                    st.getNamespaces().orElse(null),
-                                    st.getDittoHeaders());
-                    final ActorRef responseActor = getContext().actorOf(
-                            QueryThingsPerRequestActor.props(mockQueryThings, conciergeForwarder, aggregatorProxyActor,
-                                    getSender(), materializer));
-                    conciergeForwarder.tell(st, responseActor);
                 })
 
                 /* send all other Commands to Concierge Service */

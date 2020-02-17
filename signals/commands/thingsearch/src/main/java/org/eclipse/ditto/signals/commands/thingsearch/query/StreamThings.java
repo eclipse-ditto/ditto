@@ -173,6 +173,16 @@ public final class StreamThings extends AbstractCommand<StreamThings> implements
         }
     }
 
+    /**
+     * Create a copy of this command with new sort values for cursor computation.
+     *
+     * @param sortValues the new sort values.
+     * @return the new command.
+     */
+    public StreamThings setSortValues(final JsonArray sortValues) {
+        return new StreamThings(filter, namespaces, sort, sortValues, getDittoHeaders());
+    }
+
     @Override
     public StreamThings setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new StreamThings(filter, namespaces, sort, sortValues, dittoHeaders);

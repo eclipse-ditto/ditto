@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter.actors;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -61,7 +60,9 @@ import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
+import akka.stream.Graph;
 import akka.stream.SourceRef;
+import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -193,16 +194,7 @@ public final class SearchActor extends AbstractActor {
                             }))
                             .map(count -> CountThingsResponse.of(count, dittoHeaders));
                 })
-                .<Object>map(result -> {
-                    stopTimer(countTimer);
-                    return result;
-                })
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Object, NotUsed>>()
-                        .matchAny(error -> {
-                            stopTimer(countTimer);
-                            return Source.single(asDittoRuntimeException(error, countCommand));
-                        })
-                        .build());
+                .via(stopTimerAndHandleError(countTimer, countCommand));
 
         Patterns.pipe(replySource.runWith(Sink.head(), materializer), getContext().dispatcher()).to(sender);
     }
@@ -232,19 +224,8 @@ public final class SearchActor extends AbstractActor {
                 return Source.fromCompletionStage(sourceRefFuture);
             });
         });
-        // TODO: extract error handling as own method
-        final Source<Object, NotUsed> replySourceWithErrorHandling = sourceRefSource.<Object>map(
-                sourceRef -> {
-                    stopTimer(searchTimer);
-                    return sourceRef;
-                })
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Object, NotUsed>>()
-                        .matchAny(error -> {
-                            stopTimer(searchTimer);
-                            return Source.single(asDittoRuntimeException(error, streamThings));
-                        })
-                        .build()
-                );
+        final Source<Object, NotUsed> replySourceWithErrorHandling =
+                sourceRefSource.via(stopTimerAndHandleError(searchTimer, streamThings));
 
         Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), materializer), getContext().dispatcher())
                 .to(sender);
@@ -290,23 +271,30 @@ public final class SearchActor extends AbstractActor {
                                     return result;
                                 }))
                                 .map(ids -> toQueryThingsResponse(command, cursor.orElse(null), ids));
-                    })
-                    .map(result -> {
-                        stopTimer(searchTimer);
-                        return result;
                     });
         });
 
         final Source<Object, ?> replySourceWithErrorHandling =
-                replySource.recoverWithRetries(1, new PFBuilder<Throwable, Source<Object, NotUsed>>()
-                        .matchAny(error -> {
-                            stopTimer(searchTimer);
-                            return Source.single(asDittoRuntimeException(error, queryThings));
-                        })
-                        .build());
+                replySource.via(stopTimerAndHandleError(searchTimer, queryThings));
 
         Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), materializer), getContext().dispatcher())
                 .to(sender);
+    }
+
+    private <T> Flow<T, Object, NotUsed> stopTimerAndHandleError(final StartedTimer searchTimer,
+            final WithDittoHeaders<?> command) {
+        return Flow.<T, Object>fromFunction(
+                element -> {
+                    stopTimer(searchTimer);
+                    return element;
+                })
+                .recoverWithRetries(1, new PFBuilder<Throwable, Graph<SourceShape<Object>, NotUsed>>()
+                        .matchAny(error -> {
+                            stopTimer(searchTimer);
+                            return Source.single(asDittoRuntimeException(error, command));
+                        })
+                        .build()
+                );
     }
 
     private <T> Source<T, NotUsed> processSearchPersistenceResult(Source<T, NotUsed> source,
