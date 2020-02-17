@@ -33,12 +33,14 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
 
     private final int successCapacity;
     private final int failureCapacity;
+    private final long maxLogSizeInBytes;
     private final Duration logDuration;
     private final Duration loggingActiveCheckInterval;
 
     private DefaultMonitoringLoggerConfig(final ConfigWithFallback config) {
         successCapacity = config.getInt(MonitoringLoggerConfigValue.SUCCESS_CAPACITY.getConfigPath());
         failureCapacity = config.getInt(MonitoringLoggerConfigValue.FAILURE_CAPACITY.getConfigPath());
+        maxLogSizeInBytes = config.getLong(MonitoringLoggerConfigValue.MAX_LOG_SIZE_BYTES.getConfigPath());
         logDuration = config.getDuration(MonitoringLoggerConfigValue.LOG_DURATION.getConfigPath());
         loggingActiveCheckInterval =
                 config.getDuration(MonitoringLoggerConfigValue.LOGGING_ACTIVE_CHECK_INTERVAL.getConfigPath());
@@ -67,6 +69,11 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
     }
 
     @Override
+    public long maxLogSizeInBytes() {
+        return maxLogSizeInBytes;
+    }
+
+    @Override
     public Duration logDuration() {
         return logDuration;
     }
@@ -87,13 +94,15 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
         final DefaultMonitoringLoggerConfig that = (DefaultMonitoringLoggerConfig) o;
         return successCapacity == that.successCapacity &&
                 failureCapacity == that.failureCapacity &&
+                maxLogSizeInBytes == that.maxLogSizeInBytes &&
                 Objects.equals(logDuration, that.logDuration) &&
                 Objects.equals(loggingActiveCheckInterval, that.loggingActiveCheckInterval);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(successCapacity, failureCapacity, logDuration, loggingActiveCheckInterval);
+        return Objects.hash(successCapacity, failureCapacity, maxLogSizeInBytes, logDuration,
+                loggingActiveCheckInterval);
     }
 
     @Override
@@ -101,6 +110,7 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
         return getClass().getSimpleName() + " [" +
                 ", successCapacity=" + successCapacity +
                 ", failureCapacity=" + failureCapacity +
+                ", maxLogSizeInBytes=" + maxLogSizeInBytes +
                 ", logDuration=" + logDuration +
                 ", loggingActiveCheckInterval=" + loggingActiveCheckInterval +
                 "]";
