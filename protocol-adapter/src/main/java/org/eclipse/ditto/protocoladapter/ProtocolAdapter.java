@@ -248,9 +248,7 @@ public interface ProtocolAdapter {
      * @param thingEvent the event.
      * @return the adaptable.
      */
-    default Adaptable toAdaptable(ThingEvent<?> thingEvent) {
-        return toAdaptable(thingEvent, TopicPath.Channel.TWIN);
-    }
+    Adaptable toAdaptable(ThingEvent<?> thingEvent);
 
     /**
      * Maps the given {@code thingEvent} to an {@code Adaptable}.

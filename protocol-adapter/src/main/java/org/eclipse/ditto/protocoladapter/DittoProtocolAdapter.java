@@ -231,6 +231,12 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     }
 
     @Override
+    public Adaptable toAdaptable(final ThingEvent<?> thingEvent) {
+        final TopicPath.Channel channel = determineChannel(thingEvent);
+        return toAdaptable(thingEvent, channel);
+    }
+
+    @Override
     public Adaptable toAdaptable(final ThingEvent<?> thingEvent, final TopicPath.Channel channel) {
         checkChannel(channel, thingEvent, TWIN, LIVE);
         return thingsAdapters.getEventAdapter().toAdaptable(thingEvent, channel);
@@ -283,9 +289,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         final boolean isLiveSignal =
                 signal.getDittoHeaders().getChannel().filter(LIVE.getName()::equals).isPresent();
 
+        final boolean isMessageCommand = signal instanceof MessageCommand || signal instanceof MessageCommandResponse;
         final boolean isPolicyCommand = signal instanceof PolicyCommand || signal instanceof PolicyCommandResponse;
 
         return isPolicyCommand ? NONE // policy commands have no channel
+                : isMessageCommand ? LIVE // messages does not have live channel in header
                 : isLiveSignal ? LIVE  // live signals (live commands/events) use the live channel
                 : TopicPath.Channel.TWIN; // all other commands use the twin channel
     }
