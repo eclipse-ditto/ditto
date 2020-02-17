@@ -200,9 +200,11 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getChannel();
 
     /**
-     * Returns whether a response to a command is required or if it may be omitted (fire and forget semantics)
+     * Returns whether a response to a command is required or if it may be omitted (fire and forget semantics).
+     * If acknowledgment labels are set the return value of this method is implicitly {@code true}.
      *
      * @return the "response required" value.
+     * @see #getRequestedAckLabels()
      */
     boolean isResponseRequired();
 

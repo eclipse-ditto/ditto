@@ -132,6 +132,11 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
 
     /**
      * Sets the responseRequired value.
+     * Call this method for explicitly waiving a response.
+     * <em>
+     * Please note: If requested ACK labels are set (see {@link #requestedAckLabels(Collection)} calling this method has
+     * no effect. Requested ACK labels always imply that a response is required.
+     * </em>
      *
      * @param responseRequired the responseRequired value to be set.
      * @return this builder for Method Chaining.
@@ -211,6 +216,10 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#PERSISTED} also custom labels may be specified
      * which can be sent back even by external systems.
      * </p>
+     * <p>
+     * As long as ACK labels are requested, calls of {@link #responseRequired(boolean)} are neglected as requested ACK
+     * labels always imply that a response is required.
+     * </p>
      *
      * @param ackLabels the requested acknowledgement labels.
      * @return this builder.
@@ -227,6 +236,10 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * In addition to built-in ACK labels like
      * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#PERSISTED} also custom labels may be specified
      * which can be sent back even by external systems.
+     * </p>
+     * <p>
+     * As long as ACK labels are requested, calls of {@link #responseRequired(boolean)} are neglected as requested ACK
+     * labels always imply that a response is required.
      * </p>
      *
      * @param ackLabel the requested acknowledgement labels.

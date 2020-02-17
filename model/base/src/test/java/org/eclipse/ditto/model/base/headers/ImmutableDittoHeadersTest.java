@@ -36,6 +36,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -212,10 +213,27 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
-    public void isResponseRequiredReturnsExpected() {
+    public void isResponseRequiredReturnsFalseLikeSet() {
         final DittoHeaders underTest = DittoHeaders.newBuilder().responseRequired(false).build();
 
         assertThat(underTest.isResponseRequired()).isFalse();
+    }
+
+    @Test
+    public void isResponseRequiredReturnsTrueLikeSet() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder().responseRequired(true).build();
+
+        assertThat(underTest.isResponseRequired()).isTrue();
+    }
+
+    @Test
+    public void isResponseRequiredReturnsTrueIfRequiredAckLabelsAreSet() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .requestedAckLabels(DittoAcknowledgementLabel.PERSISTED)
+                .responseRequired(false)
+                .build();
+
+        assertThat(underTest.isResponseRequired()).isTrue();
     }
 
     @Test

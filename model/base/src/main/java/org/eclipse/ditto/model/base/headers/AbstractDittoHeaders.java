@@ -139,18 +139,45 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     @Override
     public boolean isResponseRequired() {
-        return getBooleanForDefinition(DittoHeaderDefinition.RESPONSE_REQUIRED).orElse(true);
+        boolean result = true;
+        if (isExpectedBoolean(DittoHeaderDefinition.RESPONSE_REQUIRED, Boolean.FALSE)) {
+            final String reqAckLabels = headers.getOrDefault(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(), "");
+            result = !reqAckLabels.isEmpty();
+        }
+        return result;
     }
 
     /**
-     * Resolve type of a header not defined in {@link DittoHeaderDefinition}. Implementations should be fast because
-     * this method is called multiple times during serialization of each object.
+     * Indicates whether the value for the given HeaderDefinition evaluates to the given expected boolean.
+     * If no value exists for the given HeaderDefinition or if the value is not a valid String representation of the
+     * expected boolean, {@code false} will be returned.
+     *
+     * @param headerDefinition the definition of a supposed boolean value.
+     * @param expected the boolean value which is expected to be set for {@code headerDefinition}.
+     * @return {@code true} if and only if the header value for {@code headerDefinition} evaluates to {@code expected}.
+     * @since 1.1.0
+     */
+    protected boolean isExpectedBoolean(final HeaderDefinition headerDefinition, final Boolean expected) {
+        final String expectedString = expected.toString();
+
+        // There is no need to do JSON parsing of the header value as String representations of boolean values look the
+        // same for plain Java and JSON.
+        return expectedString.equalsIgnoreCase(headers.get(headerDefinition.getKey()));
+    }
+
+    /**
+     * Resolve type of a header not defined in {@link DittoHeaderDefinition}.
+     * Implementations should be fast because this method is called multiple times during serialization of each object.
      *
      * @param key Name of the specific header.
      * @return Header definition of the specific header.
      */
-    protected abstract Optional<HeaderDefinition> getSpecificDefinitionByKey(final CharSequence key);
+    protected abstract Optional<HeaderDefinition> getSpecificDefinitionByKey(CharSequence key);
 
+    /**
+     * @deprecated as of 1.1.0 please use {@link #isExpectedBoolean(HeaderDefinition, Boolean)} instead.
+     */
+    @Deprecated
     protected Optional<Boolean> getBooleanForDefinition(final HeaderDefinition definition) {
         return getStringForDefinition(definition)
                 .map(JsonFactory::readFrom)
@@ -160,7 +187,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     @Override
     public boolean isDryRun() {
-        return getBooleanForDefinition(DittoHeaderDefinition.DRY_RUN).orElse(false);
+        return isExpectedBoolean(DittoHeaderDefinition.DRY_RUN, Boolean.TRUE);
     }
 
     @Override
