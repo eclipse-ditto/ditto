@@ -49,7 +49,6 @@ public abstract class AbstractLiveCommand<T extends LiveCommand<T, B>, B extends
      */
     protected AbstractLiveCommand(final Command<?> command) {
         this.command = checkNotNull(command, "command");
-        //setLiveCommandDittoHeader();
     }
 
     @Override
@@ -62,10 +61,6 @@ public abstract class AbstractLiveCommand<T extends LiveCommand<T, B>, B extends
     public String getManifest() {
         return command.getManifest();
     }
-
-//    private DittoHeaders setLiveCommandDittoHeader() {
-//        return command.getDittoHeaders().toBuilder().channel(TopicPath.Channel.LIVE.getName()).build();
-//    }
 
     @Override
     public DittoHeaders getDittoHeaders() {
