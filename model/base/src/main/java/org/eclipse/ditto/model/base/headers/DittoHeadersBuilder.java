@@ -220,6 +220,24 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B requestedAckLabels(Collection<AcknowledgementLabel> ackLabels);
 
     /**
+     * Sets the acknowledgement ("ACK") labels which are requested together with an issued Ditto {@code Command}.
+     * Such ack labels are sent back to the issuer of the command so that it can be verified which steps were
+     * successful.
+     * <p>
+     * In addition to built-in ACK labels like
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#PERSISTED} also custom labels may be specified
+     * which can be sent back even by external systems.
+     * </p>
+     *
+     * @param ackLabel the requested acknowledgement labels.
+     * @param furtherAckLabels further requested acknowledgement labels.
+     * @return this builder.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    B requestedAckLabels(AcknowledgementLabel ackLabel, AcknowledgementLabel ... furtherAckLabels);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.

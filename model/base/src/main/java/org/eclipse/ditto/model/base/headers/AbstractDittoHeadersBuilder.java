@@ -291,6 +291,16 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S requestedAckLabels(final AcknowledgementLabel ackLabel, final AcknowledgementLabel ... furtherAckLabels) {
+        checkNotNull(ackLabel, "ackLabel");
+        checkNotNull(furtherAckLabels, "furtherAckLabels");
+        final Collection<AcknowledgementLabel> ackLabels = new ArrayList<>(1 + furtherAckLabels.length);
+        ackLabels.add(ackLabel);
+        Collections.addAll(ackLabels, furtherAckLabels);
+        return requestedAckLabels(ackLabels);
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");
