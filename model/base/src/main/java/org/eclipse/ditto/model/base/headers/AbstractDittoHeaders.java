@@ -20,6 +20,7 @@ import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -230,7 +231,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         return jsonValueArray.stream()
                 .map(JsonValue::asString)
                 .map(AcknowledgementLabel::of)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     @Override
