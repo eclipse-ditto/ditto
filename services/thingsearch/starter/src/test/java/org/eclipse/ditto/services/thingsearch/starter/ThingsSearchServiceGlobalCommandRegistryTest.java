@@ -28,6 +28,7 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveResource;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 
 public final class ThingsSearchServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
@@ -37,6 +38,7 @@ public final class ThingsSearchServiceGlobalCommandRegistryTest extends GlobalCo
                 SudoRetrievePolicy.class,
                 SudoCountThings.class,
                 QueryThings.class,
+                CreateSubscription.class,
                 RetrieveFeature.class,
                 ModifyFeatureProperty.class,
                 ExecutePiggybackCommand.class,

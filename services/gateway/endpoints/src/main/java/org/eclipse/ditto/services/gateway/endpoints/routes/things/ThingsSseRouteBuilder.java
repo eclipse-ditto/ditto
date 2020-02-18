@@ -32,12 +32,9 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -63,7 +60,6 @@ import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.search.SearchSource;
-import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.NotUsed;
@@ -290,43 +286,22 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             return complete(StatusCodes.NOT_IMPLEMENTED);
         }
 
-        final String filterString = parameters.get(PARAM_FILTER);
-        final JsonArray namespaces = Optional.ofNullable(parameters.get(PARAM_NAMESPACES))
-                .map(ThingsSseRouteBuilder::splitCommaSeparatedValues)
-                .map(list -> list.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()))
-                .orElse(null);
-        // TODO: support other options?
-        final String sortOption = parameters.get("option");
-        final JsonFieldSelector fields = Optional.ofNullable(parameters.get("fields"))
-                .map(JsonFieldSelector::newInstance)
-                .orElse(null);
-
         final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
                 dittoHeadersStage.thenApply(dittoHeaders -> {
                     sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
                     // TODO: count results?
 
-                    final StreamThings command =
-                            StreamThings.of(filterString, namespaces, sortOption, null, dittoHeaders);
+                    final SearchSource searchSource = SearchSource.newBuilder()
+                            .pubSubMediator(null) // TODO set pubSubMediator for feedback
+                            .conciergeForwarder(proxyActor)
+                            .fields(parameters.get("fields"))
+                            .option(parameters.get("option"))
+                            .filter(parameters.get(PARAM_FILTER))
+                            .namespaces(parameters.get(PARAM_NAMESPACES))
+                            .dittoHeaders(dittoHeaders)
+                            .build();
 
-                    // TODO: configure timeouts
-                    final Duration thingsTimeout = Duration.ofSeconds(10L);
-                    final Duration searchTimeout = Duration.ofSeconds(60L); // HTTP timeout
-                    final Duration minBackoff = Duration.ofSeconds(1L);
-                    final Duration maxBackoff = searchTimeout;
-                    final int maxRetries = 3;
-                    final Duration recovery = Duration.ofMinutes(3L);
-                    final SearchSource searchSource = SearchSource.of(
-                            null, // TODO: set pubSubMediator for feedback
-                            proxyActor,
-                            thingsTimeout,
-                            searchTimeout,
-                            fields,
-                            JsonFieldSelector.newInstance("thingId"),  // TODO: parse sort option
-                            command
-                    );
-
-                    return searchSource.start(minBackoff, maxBackoff, maxRetries, recovery)
+                    return searchSource.start()
                             .map(JsonObject::toString)
                             .map(ServerSentEvent::create)
                             .log("search SSE")

@@ -217,9 +217,17 @@ public final class SearchSourceTest {
     private void startTestSearchSource(final int maxRestarts,
             @Nullable final JsonFieldSelector fields,
             @Nullable final JsonArray sortValues) {
-        final SearchSource underTest =
-                SearchSource.of(pubSubMediatorProbe.ref(), conciergeForwarderProbe.ref(), Duration.ofSeconds(3L),
-                        Duration.ofSeconds(3L), fields, SORT_FIELDS, streamThings(sortValues));
+        final SearchSource underTest = SearchSource.newBuilder()
+                .pubSubMediator(pubSubMediatorProbe.ref())
+                .conciergeForwarder(conciergeForwarderProbe.ref())
+                .thingsAskTimeout(Duration.ofSeconds(3L))
+                .searchAskTimeout(Duration.ofSeconds(3L))
+                .fields(fields)
+                .sort(SORT)
+                .sortFields(SORT_FIELDS)
+                .sortValues(sortValues)
+                .dittoHeaders(dittoHeaders)
+                .build();
         sinkProbe = underTest.start(Duration.ZERO, Duration.ZERO, maxRestarts, Duration.ofHours(1L))
                 .map(Object.class::cast)
                 .runWith(TestSink.probe(actorSystem), materializer);

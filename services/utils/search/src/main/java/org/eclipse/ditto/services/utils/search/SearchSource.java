@@ -42,6 +42,9 @@ import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Source;
 
+/**
+ * Source of search results for one query.
+ */
 public final class SearchSource {
 
     private final ActorRef pubSubMediator;
@@ -51,14 +54,22 @@ public final class SearchSource {
     @Nullable private final JsonFieldSelector fields;
     private final JsonFieldSelector sortFields;
     private final StreamThings streamThings;
+    private final Duration minBackoff;
+    private final Duration maxBackoff;
+    private final int maxRetries;
+    private final Duration recovery;
 
-    private SearchSource(final ActorRef pubSubMediator,
+    SearchSource(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final Duration thingsAskTimeout,
             final Duration searchAskTimeout,
             @Nullable final JsonFieldSelector fields,
             final JsonFieldSelector sortFields,
-            final StreamThings streamThings) {
+            final StreamThings streamThings,
+            final Duration minBackoff,
+            final Duration maxBackoff,
+            final int maxRetries,
+            final Duration recovery) {
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
         this.thingsAskTimeout = thingsAskTimeout;
@@ -66,30 +77,28 @@ public final class SearchSource {
         this.fields = fields;
         this.sortFields = sortFields;
         this.streamThings = streamThings;
+        this.minBackoff = minBackoff;
+        this.maxBackoff = maxBackoff;
+        this.maxRetries = maxRetries;
+        this.recovery = recovery;
     }
 
     /**
-     * Create a SearchSource.
+     * Create a new builder.
      *
-     * @param pubSubMediator Akka pub-sub mediator for reporting of out-of-sync things.
-     * @param conciergeForwarder concierge forwarder to send commands.
-     * @param thingsAskTimeout how long to wait for replies from the things shard region.
-     * @param searchAskTimeout how long to wait for replies from the search actor.
-     * @param fields selected fields to include in the search result.
-     * @param sortFields fields listed in the sort option.
-     * @param streamThings command to start streams with.
-     * @return a SearchSource.
+     * @return a new builder.
      */
-    public static SearchSource of(final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder,
-            final Duration thingsAskTimeout,
-            final Duration searchAskTimeout,
-            @Nullable final JsonFieldSelector fields,
-            final JsonFieldSelector sortFields,
-            final StreamThings streamThings) {
+    public static SearchSourceBuilder newBuilder() {
+        return new SearchSourceBuilder();
+    }
 
-        return new SearchSource(pubSubMediator, conciergeForwarder, thingsAskTimeout, searchAskTimeout, fields,
-                sortFields, streamThings);
+    /**
+     * Start a robust source of search results.
+     *
+     * @return the robust source of search results.
+     */
+    public Source<JsonObject, NotUsed> start() {
+        return start(minBackoff, maxBackoff, maxRetries, recovery);
     }
 
     /**
@@ -193,4 +202,5 @@ public final class SearchSource {
                     }
                 });
     }
+
 }

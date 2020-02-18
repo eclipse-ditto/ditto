@@ -18,7 +18,6 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
@@ -30,10 +29,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
@@ -232,14 +229,7 @@ public final class SearchRootActor extends DittoRootActor {
     }
 
     private static ThingsFieldExpressionFactory getThingsFieldExpressionFactory() {
-        final Map<String, String> mappings = new HashMap<>(5);
-        mappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
-        mappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
-        addMapping(mappings, Thing.JsonFields.POLICY_ID);
-        addMapping(mappings, Thing.JsonFields.REVISION);
-        addMapping(mappings, Thing.JsonFields.MODIFIED);
-        addMapping(mappings, Thing.JsonFields.DEFINITION);
-        return new ThingsFieldExpressionFactoryImpl(mappings);
+        return new ModelBasedThingsFieldExpressionFactory();
     }
 
     private static void addMapping(final Map<String, String> fieldMappings, final JsonFieldDefinition<?> definition) {
