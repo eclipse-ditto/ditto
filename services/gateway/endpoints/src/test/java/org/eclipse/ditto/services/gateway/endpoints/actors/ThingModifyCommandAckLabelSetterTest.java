@@ -20,28 +20,50 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.Test;
 
 /**
- * Unit test for {@link CommandAckLabelSetter}.
+ * Unit test for {@link ThingModifyCommandAckLabelSetter}.
  */
-public final class CommandAckLabelSetterTest {
+public final class ThingModifyCommandAckLabelSetterTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(CommandAckLabelSetter.class, areImmutable());
+        assertInstancesOf(ThingModifyCommandAckLabelSetter.class, areImmutable());
     }
 
     @Test
     public void tryToApplyNullCommand() {
-        final CommandAckLabelSetter underTest = CommandAckLabelSetter.getInstance();
+        final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.apply(null))
                 .withMessage("The command must not be null!")
                 .withNoCause();
+    }
+
+    @Test
+    public void doNothingIfNoThingModifyCommand() {
+        final ThingId thingId = ThingId.generateRandom();
+        final Message<?> message =
+                Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, thingId, "my-subject").build())
+                        .build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .responseRequired(true)
+                .randomCorrelationId()
+                .build();
+        final SendThingMessage<?> command = SendThingMessage.of(thingId, message, dittoHeaders);
+        final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
+
+        assertThat(underTest.apply(command)).isEqualTo(command);
+
     }
 
     @Test
@@ -51,7 +73,7 @@ public final class CommandAckLabelSetterTest {
                 .randomCorrelationId()
                 .build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
-        final CommandAckLabelSetter underTest = CommandAckLabelSetter.getInstance();
+        final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
 
         assertThat(underTest.apply(command)).isEqualTo(command);
     }
@@ -63,7 +85,7 @@ public final class CommandAckLabelSetterTest {
         final CreateThing expected = command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
                 .requestedAckLabels(DittoAcknowledgementLabel.PERSISTED)
                 .build());
-        final CommandAckLabelSetter underTest = CommandAckLabelSetter.getInstance();
+        final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
 
         assertThat(underTest.apply(command)).isEqualTo(expected);
     }
@@ -80,7 +102,7 @@ public final class CommandAckLabelSetterTest {
         final CreateThing expected = command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
                 .requestedAckLabels(ackLabel1, ackLabel2, DittoAcknowledgementLabel.PERSISTED)
                 .build());
-        final CommandAckLabelSetter underTest = CommandAckLabelSetter.getInstance();
+        final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
 
         assertThat(underTest.apply(command)).isEqualTo(expected);
     }
