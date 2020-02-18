@@ -78,8 +78,6 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     protected String getType(final Adaptable adaptable) {
         if (adaptable.getTopicPath().getSubject().filter(KnownMessageSubjects.CLAIM_SUBJECT::equals).isPresent()) {
             return SendClaimMessageResponse.TYPE;
-        } else if (!adaptable.getHeaders().map(DittoHeaders::isResponseRequired).orElse(true)) {
-            return SendMessageAcceptedResponse.TYPE;
         } else if (adaptable.getPayload().getPath().getFeatureId().isPresent()) {
             return SendFeatureMessageResponse.TYPE;
         } else {
