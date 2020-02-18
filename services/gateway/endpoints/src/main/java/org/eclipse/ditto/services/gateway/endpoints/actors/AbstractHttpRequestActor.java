@@ -26,7 +26,6 @@ import java.util.function.UnaryOperator;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -163,13 +162,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void handleCommand(final Command<?> command) {
         logger.withCorrelationId(command).debug("Got <Command> message {}, telling the targetActor about it.", command);
-
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         if (dittoHeaders.isResponseRequired()) {
-            final DittoHeaders dittoHeadersWithAckLabels = DittoHeaders.newBuilder(dittoHeaders)
-                    .requestedAckLabels(DittoAcknowledgementLabel.PERSISTED)
-                    .build();
-            final Command<?> commandWithAckLabels = command.setDittoHeaders(dittoHeadersWithAckLabels);
+            final CommandAckLabelSetter ackLabelSetter = CommandAckLabelSetter.getInstance();
+            final Command<?> commandWithAckLabels = ackLabelSetter.apply(command);
             proxyActor.tell(commandWithAckLabels, getSelf());
 
             // After a Command was received, this Actor can only receive the correlating CommandResponse:
