@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  *
  * @since 1.1.0
  */
-public final class Acknowledgements {
+final class Acknowledgements {
 
     private Acknowledgements() {
         throw new AssertionError();
@@ -37,8 +37,8 @@ public final class Acknowledgements {
      * @param label the label of the new Acknowledgement.
      * @param entityId the ID of the affected entity being acknowledged.
      * @param statusCode the status code (HTTP semantics) of the Acknowledgement.
-     * @param payload the optional payload of the Acknowledgement.
      * @param dittoHeaders the DittoHeaders.
+     * @param payload the optional payload of the Acknowledgement.
      * @return the ImmutableAcknowledgement.
      * @throws NullPointerException if one of the required parameters was {@code null}.
      * @throws IllegalArgumentException if {@code entityId} is empty.
@@ -46,8 +46,8 @@ public final class Acknowledgements {
     public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
             final CharSequence entityId,
             final HttpStatusCode statusCode,
-            @Nullable final JsonValue payload,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final JsonValue payload) {
 
         return ImmutableAcknowledgement.of(label, entityId, statusCode, payload, dittoHeaders);
     }

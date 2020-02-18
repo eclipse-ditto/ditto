@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
-import org.eclipse.ditto.signals.acks.Acknowledgements;
 
 /**
  * Adapter for mapping a {@link Acknowledgement} to and from an {@link Adaptable}.
@@ -49,11 +48,11 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
     @Override
     public Acknowledgement fromAdaptable(final Adaptable adaptable) {
         checkNotNull(adaptable, "adaptable");
-        return Acknowledgements.newAcknowledgement(getAcknowledgementLabel(adaptable),
+        return Acknowledgement.of(getAcknowledgementLabel(adaptable),
                 getThingId(adaptable),
                 getStatusCodeOrThrow(adaptable),
-                getPayloadValueOrNull(adaptable),
-                adaptable.getDittoHeaders());
+                adaptable.getDittoHeaders(),
+                getPayloadValueOrNull(adaptable));
     }
 
     private static ThingId getThingId(final Adaptable adaptable) {

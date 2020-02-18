@@ -14,6 +14,8 @@ package org.eclipse.ditto.signals.acks;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -22,6 +24,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.Signal;
@@ -42,6 +45,59 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
      * Type of the Acknowledgement.
      */
     String TYPE = "acknowledgement";
+
+    /**
+     * Returns a new {@code Acknowledgement} for the specified parameters.
+     *
+     * @param label the label of the new Acknowledgement.
+     * @param entityId the ID of the affected entity being acknowledged.
+     * @param statusCode the status code (HTTP semantics) of the Acknowledgement.
+     * @param dittoHeaders the DittoHeaders.
+     * @param payload the optional payload of the Acknowledgement.
+     * @return the ImmutableAcknowledgement.
+     * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @throws IllegalArgumentException if {@code entityId} is empty.
+     */
+    static Acknowledgement of(final AcknowledgementLabel label,
+            final CharSequence entityId,
+            final HttpStatusCode statusCode,
+            final DittoHeaders dittoHeaders,
+            @Nullable final JsonValue payload) {
+
+        return Acknowledgements.newAcknowledgement(label, entityId, statusCode, dittoHeaders, payload);
+    }
+
+    /**
+     * Returns a new {@code Acknowledgement} for the specified parameters.
+     *
+     * @param label the label of the new Acknowledgement.
+     * @param entityId the ID of the affected entity being acknowledged.
+     * @param statusCode the status code (HTTP semantics) of the Acknowledgement.
+     * @param dittoHeaders the DittoHeaders.
+     * @return the ImmutableAcknowledgement.
+     * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @throws IllegalArgumentException if {@code entityId} is empty.
+     */
+    static Acknowledgement of(final AcknowledgementLabel label,
+            final CharSequence entityId,
+            final HttpStatusCode statusCode,
+            final DittoHeaders dittoHeaders) {
+
+        return of(label, entityId, statusCode, dittoHeaders, null);
+    }
+
+    /**
+     * Returns a new {@code Acknowledgement} parsed from the given JSON object.
+     *
+     * @param jsonObject the JSON object to be parsed.
+     * @return the Acknowledgement.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the
+     * expected 'Acknowledgement' format.
+     */
+    static Acknowledgement fromJson(final JsonObject jsonObject) {
+        return Acknowledgements.acknowledgementFromJson(jsonObject);
+    }
 
     /**
      * Returns the label identifying the Acknowledgement.
