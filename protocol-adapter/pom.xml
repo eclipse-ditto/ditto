@@ -180,6 +180,9 @@
                                              we don't want to have a slf4j dependency -->
                                         <exclude>org.slf4j</exclude>
                                     </excludes>
+                                    <includes>
+                                        <include>org.slf4j:*:*:jar:test</include>
+                                    </includes>
                                 </bannedDependencies>
                             </rules>
                             <fail>true</fail>
