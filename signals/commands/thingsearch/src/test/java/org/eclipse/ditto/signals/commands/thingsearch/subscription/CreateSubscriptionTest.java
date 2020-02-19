@@ -104,7 +104,7 @@ public final class CreateSubscriptionTest {
         assertThat(command.getFilter()).contains(TestConstants.KNOWN_FILTER_STR);
         assertThat(command.getOptions()).contains(
                 Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2));
-        assertThat(command.getFields()).contains(
+        assertThat(command.getSelectedFields()).contains(
                 JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS));
     }
 
@@ -112,7 +112,7 @@ public final class CreateSubscriptionTest {
         assertThat(command).isNotNull();
         assertThat(command.getFilter()).isEmpty();
         assertThat(command.getOptions()).isEmpty();
-        assertThat(command.getFields()).isEmpty();
+        assertThat(command.getSelectedFields()).isEmpty();
     }
 
 }

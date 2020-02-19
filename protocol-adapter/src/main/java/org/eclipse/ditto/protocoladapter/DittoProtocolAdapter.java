@@ -42,7 +42,6 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -60,7 +59,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     private final ThingModifyCommandResponseAdapter thingModifyCommandResponseAdapter;
     private final ThingQueryCommandAdapter thingQueryCommandAdapter;
     private final ThingQueryCommandResponseAdapter thingQueryCommandResponseAdapter;
-    private final ThingSearchQueryCommandAdapter thingSearchQueryCommandAdapter;
+    private final ThingSearchCommandAdapter thingSearchCommandAdapter;
     private final ThingEventAdapter thingEventAdapter;
 
     protected DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
@@ -74,7 +73,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
         thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
         thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
-        thingSearchQueryCommandAdapter = ThingSearchQueryCommandAdapter.of(headerTranslator);
+        thingSearchCommandAdapter = ThingSearchCommandAdapter.of(headerTranslator);
         thingEventAdapter = ThingEventAdapter.of(headerTranslator);
     }
 
@@ -354,7 +353,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             } else if (TopicPath.Action.RETRIEVE.equals(topicPath.getAction().orElse(null))) {
                 return thingQueryCommandAdapter.fromAdaptable(adaptable);
             } else if (TopicPath.Action.SEARCH.equals(topicPath.getAction().orElse(null))) {
-                return thingSearchQueryCommandAdapter.fromAdaptable(adaptable);
+                return thingSearchCommandAdapter.fromAdaptable(adaptable);
             } else {
                 return thingModifyCommandAdapter.fromAdaptable(adaptable);
             }
@@ -377,7 +376,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
                     thingQueryCommandResponseAdapter.fromAdaptable(adaptable);
         } else if (TopicPath.Action.SEARCH.equals(topicPath.getAction().orElse(null))) {
             return isErrorResponse ? thingErrorResponseFromAdaptable(adaptable) :
-                    thingSearchQueryCommandAdapter.fromAdaptable(adaptable);
+                    thingSearchCommandAdapter.fromAdaptable(adaptable);
         } else {
             return isErrorResponse ? thingErrorResponseFromAdaptable(adaptable) :
                     thingModifyCommandResponseAdapter.fromAdaptable(adaptable);

@@ -15,9 +15,13 @@ package org.eclipse.ditto.protocoladapter;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -114,28 +118,56 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      * @param adaptable the protocol message
      * @return the filterString from the value of the adaptable.
      */
-    protected static Optional<String> filterFrom(final Adaptable adaptable) {
+    protected static String filterFrom(final Adaptable adaptable) {
 
         final JsonObject value = adaptable.getPayload().getValue().map(JsonValue::asObject).orElse(null);
         if (value != null && value.getValue("filter").isPresent()) {
 
-            return Optional.ofNullable(value.getValue("filter").toString());
+            return value.getValue("filter").get().asString();
         }
-        return Optional.empty();
+        return null;
     }
 
     /**
      * @param adaptable the protocol message
      * @return the optionsString from the value of the adaptable.
      */
-    protected static Optional<String> optionsFrom(final Adaptable adaptable) {
+    protected static List<String> optionsFrom(final Adaptable adaptable) {
 
         JsonObject value = adaptable.getPayload().getValue().map(JsonValue::asObject).orElse(null);
         if (value != null && value.getValue("options").isPresent()) {
 
-            return Optional.ofNullable(value.getValue("options").toString());
+            return Arrays.asList(value.getValue("options").get().asString().split(","));
         }
-        return Optional.empty();
+        return Collections.emptyList();
+    }
+
+    /**
+     * @param adaptable the protocol message
+     * @return the subscriptionId from the value of the adaptable.
+     */
+    protected static String subscriptionIdFrom(final Adaptable adaptable) {
+
+        final JsonObject value = adaptable.getPayload().getValue().map(JsonValue::asObject).orElse(null);
+        if (value != null && value.getValue("subscriptionId").isPresent()) {
+
+            return value.getValue("subscriptionId").get().asString();
+        }
+        return null;
+    }
+
+    /**
+     * @param adaptable the protocol message
+     * @return the demand from the value of the adaptable.
+     */
+    protected static long demandFrom(final Adaptable adaptable) {
+
+        final JsonObject value = adaptable.getPayload().getValue().map(JsonValue::asObject).orElse(null);
+        if (value != null && value.getValue("demand").isPresent()) {
+
+            return value.getValue("demand").get().asLong();
+        }
+        return 0;
     }
 
     /**
@@ -262,6 +294,15 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     protected static String namespaceFrom(final Adaptable adaptable) {
         final String namespace = adaptable.getTopicPath().getNamespace();
         return "_".equals(namespace) ? null : namespace;
+    }
+
+    protected static Set<String> namespacesFrom(final Adaptable adaptable) {
+        if ("_".equals(adaptable.getTopicPath().getNamespace())) {
+            return Collections.emptySet();
+        }
+        return new HashSet<>(
+                Arrays.asList(adaptable.getTopicPath().getNamespace().split(",")));
+
     }
 
     private static String leafValue(final JsonPointer path) {

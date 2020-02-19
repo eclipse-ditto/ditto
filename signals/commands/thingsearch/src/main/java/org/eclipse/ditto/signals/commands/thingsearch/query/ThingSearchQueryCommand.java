@@ -18,6 +18,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 /**
@@ -27,12 +28,6 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
  */
 public interface ThingSearchQueryCommand<T extends ThingSearchQueryCommand> extends ThingSearchCommand<T> {
 
-    /**
-     * Get the optional set of namespaces.
-     *
-     * @return the optional set of namespaces.
-     */
-    Optional<Set<String>> getNamespaces();
 
     /**
      * Sets the given namespaces on a copy of this command and returns it.

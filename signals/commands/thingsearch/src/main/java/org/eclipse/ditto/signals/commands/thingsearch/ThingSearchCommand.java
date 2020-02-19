@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.signals.commands.thingsearch;
 
+import java.util.Optional;
+import java.util.Set;
+
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
@@ -35,6 +39,22 @@ public interface ThingSearchCommand<T extends ThingSearchCommand> extends Comman
      * Thing Search resource type.
      */
     String RESOURCE_TYPE = "thing-search";
+
+    /**
+     * Returns the selected fields which are to be included in the JSON of the retrieved entity.
+     *
+     * @return the selected fields.
+     */
+    default Optional<JsonFieldSelector> getSelectedFields() {
+        return Optional.empty();
+    }
+
+    /**
+     * Get the optional set of namespaces.
+     *
+     * @return the optional set of namespaces.
+     */
+    default Optional<Set<String>> getNamespaces() {return Optional.empty();}
 
     @Override
     default String getTypePrefix() {

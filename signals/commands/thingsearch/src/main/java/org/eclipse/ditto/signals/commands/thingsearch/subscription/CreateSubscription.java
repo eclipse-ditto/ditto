@@ -172,7 +172,8 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
      *
      * @return the optional field selector.
      */
-    public Optional<JsonFieldSelector> getFields() {
+    @Override
+    public Optional<JsonFieldSelector> getSelectedFields() {
         return Optional.ofNullable(fields);
     }
 
@@ -194,7 +195,7 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
         getOptions().ifPresent(presentOptions -> jsonObjectBuilder.set(JsonFields.OPTIONS, presentOptions.stream()
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray()), predicate));
-        getFields().ifPresent(
+        getSelectedFields().ifPresent(
                 presentFields -> jsonObjectBuilder.set(JsonFields.FIELDS, presentFields.toString(), predicate));
         getNamespaces().ifPresent(presentOptions -> jsonObjectBuilder.set(JsonFields.NAMESPACES, presentOptions.stream()
                 .map(JsonValue::of)
