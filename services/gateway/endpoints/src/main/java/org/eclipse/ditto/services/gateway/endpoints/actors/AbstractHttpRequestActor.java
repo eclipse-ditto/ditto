@@ -25,8 +25,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -38,6 +41,7 @@ import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.acks.AcknowledgementCommandTimeoutException;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -47,6 +51,8 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
+import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -93,9 +99,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private final HttpRequest httpRequest;
     private final HttpConfig httpConfig;
 
-    private java.time.Duration timeout;
-    private boolean isFireAndForget = false;
-    private DittoRuntimeException timeoutException;
+    private final AcknowledgementsPerRequest acknowledgements;
+    @Nullable private java.time.Duration timeout;
+    private boolean isFireAndForget;
+    @Nullable private DittoRuntimeException timeoutException;
 
     protected AbstractHttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
@@ -108,6 +115,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         this.httpResponseFuture = httpResponseFuture;
         httpRequest = request;
         this.httpConfig = httpConfig;
+        acknowledgements = AcknowledgementsPerRequest.getInstance();
+        timeout = null;
+        isFireAndForget = false;
 
         getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
     }
@@ -166,10 +176,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void handleCommand(final Command<?> command) {
         logger.withCorrelationId(command).debug("Got <Command> message {}, telling the targetActor about it.", command);
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        DittoHeaders dittoHeaders = command.getDittoHeaders();
         if (dittoHeaders.isResponseRequired()) {
             final UnaryOperator<Command<?>> ackLabelSetter = ThingModifyCommandAckLabelSetter.getInstance();
             final Command<?> commandWithAckLabels = ackLabelSetter.apply(command);
+            dittoHeaders = commandWithAckLabels.getDittoHeaders();
+            acknowledgements.addRequestedAcknowledgementLabels(dittoHeaders.getRequestedAckLabels());
             proxyActor.tell(commandWithAckLabels, getSelf());
 
             // After a Command was received, this Actor can only receive the correlating CommandResponse:
@@ -179,7 +191,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
         }
 
-        timeout = command.getDittoHeaders().getTimeout().orElse(null);
+        timeout = dittoHeaders.getTimeout().orElse(null);
         isFireAndForget = isFireAndForget(command);
         if (timeout != null && !isFireAndForget) {
             timeoutException = AcknowledgementCommandTimeoutException.newBuilder(timeout)
@@ -202,6 +214,16 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     final HttpResponse httpResponse = handleMessageResponseMessage(cmd);
                     completeWithResult(httpResponse);
                 })
+                .match(ThingModifyCommandResponse.class, commandResponse -> {
+                    logger.withCorrelationId(commandResponse).debug("Got <{}>.", commandResponse.getType());
+                    acknowledgements.addReceivedAcknowledgment(getPersistedAcknowledgementForResponse(commandResponse));
+                    completeWithResult(createCommandResponse(httpRequest, commandResponse, commandResponse));
+                })
+                .match(ThingErrorResponse.class, errorResponse -> {
+                    logger.withCorrelationId(errorResponse).debug("Got error response <{}>.", errorResponse.getType());
+                    acknowledgements.addReceivedAcknowledgment(getPersistedAcknowledgementForResponse(errorResponse));
+                    handleDittoRuntimeException(errorResponse.getDittoRuntimeException());
+                })
                 .match(CommandResponse.class, cR -> cR instanceof WithEntity, commandResponse -> {
                     logger.withCorrelationId(commandResponse).debug("Got <{}> message.", commandResponse.getType());
                     final WithEntity<?> withEntity = (WithEntity<?>) commandResponse;
@@ -211,10 +233,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     final HttpResponse responseWithoutBody = enhanceResponseWithExternalDittoHeaders(
                             responseWithoutHeaders, commandResponse.getDittoHeaders());
 
-                    if (withEntity.getEntityPlainString().isPresent()) {
+                    final Optional<String> entityPlainStringOptional = withEntity.getEntityPlainString();
+                    if (entityPlainStringOptional.isPresent()) {
                         completeWithResult(addEntityAccordingToContentType(responseWithoutBody,
-                                withEntity.getEntityPlainString().get(),
-                                commandResponse.getDittoHeaders()));
+                                entityPlainStringOptional.get(), commandResponse.getDittoHeaders()));
                     } else {
                         completeWithResult(addEntityAccordingToContentType(responseWithoutBody,
                                 withEntity.getEntity(commandResponse.getImplementedSchemaVersion()),
@@ -265,6 +287,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         final ActorContext context = getContext();
         context.become(receive);
+    }
+
+    private static Acknowledgement getPersistedAcknowledgementForResponse(final CommandResponse<?> commandResponse) {
+        return Acknowledgement.of(DittoAcknowledgementLabel.PERSISTED, commandResponse.getEntityId(),
+                commandResponse.getStatusCode(), commandResponse.getDittoHeaders());
     }
 
     private HttpResponse handleMessageResponseMessage(final MessageCommandResponse<?, ?> messageCommandResponse) {
