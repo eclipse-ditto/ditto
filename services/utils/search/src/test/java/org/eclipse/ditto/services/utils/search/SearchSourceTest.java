@@ -49,7 +49,7 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class SearchSourceTest {
 
-    private static final String SORT = "sort(+attributes/counter,+thingId)";
+    private static final String SORT = "sort(+/attributes/counter,+/thingId)";
     private static final JsonFieldSelector SORT_FIELDS = JsonFieldSelector.newInstance("attributes/counter", "thingId");
 
     private ActorSystem actorSystem;
