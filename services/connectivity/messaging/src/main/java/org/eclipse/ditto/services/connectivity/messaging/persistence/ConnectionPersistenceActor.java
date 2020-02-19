@@ -78,7 +78,6 @@ import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
@@ -111,7 +110,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.Patterns;
 import akka.persistence.RecoveryCompleted;
 import akka.routing.Broadcast;
@@ -142,9 +140,6 @@ public final class ConnectionPersistenceActor
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
-
-
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef conciergeForwarder;
@@ -587,7 +582,7 @@ public final class ConnectionPersistenceActor
         this.updateLoggingIfEnabled();
         broadcastCommandWithDifferentSender(command,
                 (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
-                        existingConnection, sender, command.getDittoHeaders(), Duration.ofSeconds(10),
+                        existingConnection, sender, command.getDittoHeaders(), timeout,
                         monitoringConfig.logger().maxLogSizeInBytes()),
                 () -> respondWithEmptyLogs(command, sender));
     }

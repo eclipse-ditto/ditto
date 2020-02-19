@@ -141,8 +141,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
             final RetrieveConnectionLogsResponse retrieveConnectionLogsResponse =
                     sender.expectMsgClass(RetrieveConnectionLogsResponse.class);
             assertThat((Long) retrieveConnectionLogsResponse.getConnectionLogs().stream()
-                    .map(LogEntry::toJson)
-                    .map(JsonObject::toString)
+                    .map(LogEntry::toJsonString)
                     .map(String::length)
                     .mapToLong(Integer::intValue)
                     .sum())
@@ -164,13 +163,13 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
                             .thingId(ThingId.generateRandom())
                             .build();
 
-            final int newSize = currentSize + logEntry.toJson().toString().length();
+            final int newSize = currentSize + logEntry.toJsonString().length();
             maxSizeReached = newSize > LOGGER_CONFIG.maxLogSizeInBytes();
             if (!maxSizeReached) {
                 logEntries.add(logEntry);
-                currentSize += logEntry.toJson().toString().length();
+                currentSize = newSize;
             }
-            Thread.sleep(1); //ensure timestamps of logs are all different.
+            TimeUnit.MILLISECONDS.sleep(1); //ensure timestamps of logs are all different.
         }
 
         return logEntries;
