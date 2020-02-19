@@ -314,5 +314,4 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         assertThat(topicPath.getSubject()).contains(subject);
         assertThat(topicPath.getId()).isEqualTo(thingId);
     }
-
 }

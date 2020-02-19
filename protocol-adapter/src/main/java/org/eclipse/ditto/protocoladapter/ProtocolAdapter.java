@@ -12,11 +12,16 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.LIVE;
+import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.NONE;
+import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.TWIN;
+
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
@@ -63,7 +68,7 @@ public interface ProtocolAdapter {
      * @throws UnknownCommandResponseException if the passed CommandResponse was not supported by the ProtocolAdapter
      */
     default Adaptable toAdaptable(CommandResponse<?> commandResponse) {
-        return toAdaptable(commandResponse, TopicPath.Channel.TWIN);
+        return toAdaptable(commandResponse, determineChannel(commandResponse));
     }
 
     /**
@@ -85,7 +90,7 @@ public interface ProtocolAdapter {
      * ProtocolAdapter
      */
     default Adaptable toAdaptable(ThingCommandResponse<?> thingCommandResponse) {
-        return toAdaptable(thingCommandResponse, TopicPath.Channel.TWIN);
+        return toAdaptable(thingCommandResponse, determineChannel(thingCommandResponse));
     }
 
     /**
@@ -143,7 +148,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      */
     default Adaptable toAdaptable(ThingModifyCommand<?> thingModifyCommand) {
-        return toAdaptable(thingModifyCommand, TopicPath.Channel.TWIN);
+        return toAdaptable(thingModifyCommand, determineChannel(thingModifyCommand));
     }
 
     /**
@@ -162,7 +167,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      */
     default Adaptable toAdaptable(ThingModifyCommandResponse<?> thingModifyCommandResponse) {
-        return toAdaptable(thingModifyCommandResponse, TopicPath.Channel.TWIN);
+        return toAdaptable(thingModifyCommandResponse, determineChannel(thingModifyCommandResponse));
     }
 
     /**
@@ -181,7 +186,8 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      */
     default Adaptable toAdaptable(ThingQueryCommand<?> thingQueryCommand) {
-        return toAdaptable(thingQueryCommand, TopicPath.Channel.TWIN);
+
+        return toAdaptable(thingQueryCommand, determineChannel(thingQueryCommand));
     }
 
     /**
@@ -200,7 +206,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      */
     default Adaptable toAdaptable(ThingQueryCommandResponse<?> thingQueryCommandResponse) {
-        return toAdaptable(thingQueryCommandResponse, TopicPath.Channel.TWIN);
+        return toAdaptable(thingQueryCommandResponse, determineChannel(thingQueryCommandResponse));
     }
 
     /**
@@ -229,7 +235,7 @@ public interface ProtocolAdapter {
      * @throws UnknownEventException if the passed Event was not supported by the ProtocolAdapter
      */
     default Adaptable toAdaptable(Event<?> event) {
-        return toAdaptable(event, TopicPath.Channel.TWIN);
+        return toAdaptable(event, determineChannel(event));
     }
 
     /**
@@ -248,7 +254,9 @@ public interface ProtocolAdapter {
      * @param thingEvent the event.
      * @return the adaptable.
      */
-    Adaptable toAdaptable(ThingEvent<?> thingEvent);
+    default Adaptable toAdaptable(ThingEvent<?> thingEvent) {
+        return toAdaptable(thingEvent, determineChannel(thingEvent));
+    }
 
     /**
      * Maps the given {@code thingEvent} to an {@code Adaptable}.
@@ -332,6 +340,41 @@ public interface ProtocolAdapter {
      * @return whether it is a live signal.
      */
     static boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+        return signal.getDittoHeaders()
+                .getChannel()
+                .filter(TopicPath.Channel.LIVE.getName()::equals)
+                .isPresent();
+    }
+
+    /**
+     * Determine the channel of the processed {@link Signal}. First the DittoHeaders are checked for the
+     * {@link org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#CHANNEL} header. If not given the default
+     * channel is determined by the type of the {@link Signal}.
+     *
+     * @param signal the processed signal
+     * @return the channel determined from the signal
+     */
+    static TopicPath.Channel determineChannel(final Signal<?> signal) {
+        // internally a twin command/event and live command/event are distinguished only  by the channel header i.e.
+        // a twin and live command "look the same" except for the channel header
+        final boolean isLiveSignal = isLiveSignal(signal);
+        return isLiveSignal ? LIVE  // live signals (live commands/events) use the live channel
+                : determineDefaultChannel(signal); // use default for other commands
+    }
+
+    /**
+     * Determines the default channel of the processed {@link Signal} by signal type.
+     *
+     * @param signal the processed signal
+     * @return the default channel determined from the signal
+     */
+    static TopicPath.Channel determineDefaultChannel(final Signal<?> signal) {
+        if (signal instanceof PolicyCommand || signal instanceof PolicyCommandResponse) {
+            return NONE;
+        } else if (signal instanceof MessageCommand || signal instanceof MessageCommandResponse) {
+            return LIVE;
+        } else {
+            return TWIN;
+        }
     }
 }
