@@ -273,6 +273,7 @@ public interface ProtocolAdapter {
      * @param policyQueryCommand the response.
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyQueryCommand was not supported by the ProtocolAdapter
+     * @since 1.1.0
      */
     Adaptable toAdaptable(PolicyQueryCommand<?> policyQueryCommand);
 
@@ -283,6 +284,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyCommandResponse was not supported by the
      * ProtocolAdapter
+     * @since 1.1.0
      */
     Adaptable toAdaptable(PolicyCommandResponse<?> policyCommandResponse);
 
@@ -293,6 +295,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyQueryCommandResponse was not supported by the
      * ProtocolAdapter
+     * @since 1.1.0
      */
     Adaptable toAdaptable(PolicyQueryCommandResponse<?> policyQueryCommandResponse);
 
@@ -303,6 +306,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyModifyCommand was not supported by the
      * ProtocolAdapter
+     * @since 1.1.0
      */
     Adaptable toAdaptable(PolicyModifyCommand<?> policyModifyCommand);
 
@@ -313,6 +317,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyModifyCommandResponse was not supported by the
      * ProtocolAdapter
+     * @since 1.1.0
      */
     Adaptable toAdaptable(PolicyModifyCommandResponse<?> policyModifyCommandResponse);
 
@@ -323,6 +328,7 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed PolicyErrorResponse was not supported by the
      * ProtocolAdapter
+     * @since 1.1.0
      */
     Adaptable toAdaptable(PolicyErrorResponse policyErrorResponse);
 

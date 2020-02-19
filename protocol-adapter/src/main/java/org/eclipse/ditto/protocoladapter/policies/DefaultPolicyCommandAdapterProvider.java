@@ -25,6 +25,8 @@ import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandRespo
 
 /**
  * Instantiates and provides {@link Adapter}s used to process Policy commands, responses and errors.
+ *
+ * @since 1.1.0
  */
 public final class DefaultPolicyCommandAdapterProvider implements PolicyCommandAdapterProvider {
 

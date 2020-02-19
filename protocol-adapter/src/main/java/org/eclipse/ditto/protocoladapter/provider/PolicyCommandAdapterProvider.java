@@ -25,6 +25,7 @@ import org.eclipse.ditto.signals.events.base.Event;
 /**
  * Provider for all policy command adapters. This interface mainly defines the generic type arguments and adds
  * default methods for unsupported command types.
+ * @since 1.1.0
  */
 public interface PolicyCommandAdapterProvider
         extends QueryCommandAdapterProvider<PolicyQueryCommand<?>, PolicyQueryCommandResponse<?>>,

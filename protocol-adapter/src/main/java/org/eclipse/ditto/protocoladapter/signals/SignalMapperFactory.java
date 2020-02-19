@@ -27,6 +27,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
 
 /**
  * Factory class that instantiates all available {@link SignalMapper}s.
+ * @since 1.1.0
  */
 public final class SignalMapperFactory {
 
