@@ -113,14 +113,6 @@ public final class DittoProtocolAdapterParameterizedTest {
     private ProtocolAdapter underTest;
 
     /**
-     * Determine candidates for calls to toAdaptable because we want to test all variants of toAdaptable
-     * ({@code toAdaptable(Signal)}, {@code toAdaptable(Command)}, {@code toAdaptable(ThingCommand)}, ...). These
-     * candidates are later used to find the methods to call in the tests.
-     */
-    private static final Set<Class<?>> candidates =
-            collectInterfaces(PARAMS.stream().map(ti -> ti.cls).toArray(Class<?>[]::new));
-
-    /**
      * Contains the input signal and the expected outcome (which adapter is called with which channel).
      */
     @Parameterized.Parameter
@@ -162,31 +154,29 @@ public final class DittoProtocolAdapterParameterizedTest {
     @Parameterized.Parameters(name = "{index} {0} | {5} | given: {3} | exp: {4} | header: {2}")
     public static Collection<Object[]> data() {
         final Collection<Object[]> data = new ArrayList<>();
-        PARAMS.forEach(testParameter -> {
-            candidates.forEach(candidateClass -> {
-                if (candidateClass.isAssignableFrom(testParameter.cls)) {
+        PARAMS.forEach(testParameter ->
+                collectInterfaces(testParameter.signalBaseClass)
+                        .forEach(signalClass -> {
+                            // no channel provided via argument
+                            findToAdaptable(signalClass).ifPresent(m -> data.add(new Object[]{testParameter, m,
+                                    DittoHeaders.empty(), null, testParameter.expectedDefaultChannel,
+                                    signatureAsString(m)}));
+                            // channel (live) provided via header, no channel provided via argument
+                            findToAdaptable(signalClass).ifPresent(m -> data.add(new Object[]{testParameter, m,
+                                    LIVE_DITTO_HEADERS, null, testParameter.supportsLive() ? LIVE : null,
+                                    signatureAsString(m)}));
 
-                    // no channel provided via argument
-                    findToAdaptable(candidateClass).ifPresent(m -> data.add(new Object[]{testParameter, m,
-                            DittoHeaders.empty(), null, testParameter.expectedDefaultChannel, signatureAsString(m)}));
-                    // channel (live) provided via header, no channel provided via argument
-                    findToAdaptable(candidateClass).ifPresent(m -> data.add(new Object[]{testParameter, m,
-                            LIVE_DITTO_HEADERS, null, testParameter.supportsLive() ? LIVE : null,
-                            signatureAsString(m)}));
-
-                    // channel provided via argument
-                    Arrays.asList(TopicPath.Channel.values()).forEach(ch -> {
-                        // null means unsupported -> exception is thrown
-                        final TopicPath.Channel expectedChannel
-                                = Arrays.asList(testParameter.supportedChannels).contains(ch) ? ch : null;
-                        findToAdaptableWithChannel(candidateClass).ifPresent(
-                                m -> data.add(new Object[]{testParameter, m,
-                                        DittoHeaders.empty(), ch, expectedChannel, signatureAsString(m)}));
-                    });
-
-                }
-            });
-        });
+                            // channel provided via argument
+                            Arrays.asList(TopicPath.Channel.values()).forEach(ch -> {
+                                // null means unsupported -> exception is thrown
+                                final TopicPath.Channel expectedChannel
+                                        = Arrays.asList(testParameter.supportedChannels).contains(ch) ? ch : null;
+                                findToAdaptableWithChannel(signalClass).ifPresent(
+                                        m -> data.add(new Object[]{testParameter, m,
+                                                DittoHeaders.empty(), ch, expectedChannel, signatureAsString(m)}));
+                            });
+                        })
+        );
         return data;
     }
 
@@ -342,18 +332,18 @@ public final class DittoProtocolAdapterParameterizedTest {
      */
     private static class TestParameter<T extends Signal<T>> {
 
-        final Class<T> cls;
+        final Class<T> signalBaseClass;
         final T signal;
         final Adapter<T> expectedAdapter;
         final TopicPath.Channel expectedDefaultChannel;
         final TopicPath.Channel[] supportedChannels;
 
-        private TestParameter(final Class<T> cls, final Adapter<T> expectedAdapter,
+        private TestParameter(final Class<T> signalBaseClass, final Adapter<T> expectedAdapter,
                 final TopicPath.Channel expectedDefaultChannel, TopicPath.Channel... supportedChannels) {
-            this.cls = cls;
-            final Set<Class<?>> interfaces = collectInterfaces(cls);
-            interfaces.remove(cls);
-            this.signal = mockSignal(cls, interfaces);
+            this.signalBaseClass = signalBaseClass;
+            final Set<Class<?>> interfaces = collectInterfaces(signalBaseClass);
+            interfaces.remove(signalBaseClass);
+            this.signal = mockSignal(signalBaseClass, interfaces);
             this.expectedAdapter = expectedAdapter;
             this.expectedDefaultChannel = expectedDefaultChannel;
             this.supportedChannels = supportedChannels;
@@ -375,7 +365,9 @@ public final class DittoProtocolAdapterParameterizedTest {
 
         @Override
         public String toString() {
-            return cls.getSimpleName();
+            return signalBaseClass.getSimpleName();
         }
+
     }
+
 }
