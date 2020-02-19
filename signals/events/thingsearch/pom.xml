@@ -56,6 +56,8 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
+                    <!-- TODO this module is new. Remove <skip>true</skip> after release. -->
+                    <skip>true</skip>
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
