@@ -12,8 +12,9 @@
  */
 package org.eclipse.ditto.protocoladapter.adaptables;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Map;
-import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
@@ -61,9 +62,8 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      * @return the policy id
      */
     protected static PolicyId policyIdFromTopicPath(final TopicPath topicPath) {
-        return Optional.ofNullable(topicPath)
-                .map(tp -> PolicyId.of(topicPath.getNamespace(), topicPath.getId()))
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
+        checkNotNull(topicPath, "topicPath");
+        return PolicyId.of(topicPath.getNamespace(), topicPath.getId());
     }
 
     /**
@@ -73,10 +73,8 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      * @return the policy
      */
     protected static Policy policyFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getValue()
-                .map(JsonValue::asObject)
-                .map(PoliciesModelFactory::newPolicy)
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
+        final JsonObject value = getValueFromPayload(adaptable);
+        return PoliciesModelFactory.newPolicy(value);
     }
 
     /**
@@ -86,10 +84,8 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      * @return the policy entry
      */
     protected static PolicyEntry policyEntryFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getValue()
-                .map(JsonValue::asObject)
-                .map(entry -> PoliciesModelFactory.newPolicyEntry(labelFrom(adaptable), entry))
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
+        final JsonObject value = getValueFromPayload(adaptable);
+        return PoliciesModelFactory.newPolicyEntry(labelFrom(adaptable), value);
     }
 
     /**
@@ -99,10 +95,8 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      * @return the iterable
      */
     protected static Iterable<PolicyEntry> policyEntriesFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getValue()
-                .map(JsonValue::asObject)
-                .map(PoliciesModelFactory::newPolicyEntries)
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
+        final JsonObject value = getValueFromPayload(adaptable);
+        return PoliciesModelFactory.newPolicyEntries(value);
     }
 
     /**
@@ -113,7 +107,7 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      */
     static Resource resourceFrom(final Adaptable adaptable) {
         return Resource.newInstance(entryResourceKeyFromPath(adaptable.getPayload().getPath()),
-                adaptable.getPayload().getValue().orElseThrow(() -> JsonParseException.newBuilder().build()));
+                getValueFromPayload(adaptable));
     }
 
     /**
@@ -123,11 +117,7 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      * @return the resources
      */
     protected static Resources resourcesFrom(final Adaptable adaptable) {
-        return PoliciesModelFactory.newResources(
-                adaptable.getPayload()
-                        .getValue().map(JsonValue::asObject)
-                        .orElseThrow(() -> JsonParseException.newBuilder().build())
-        );
+        return PoliciesModelFactory.newResources(getValueFromPayload(adaptable));
     }
 
     /**
@@ -189,11 +179,8 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      */
     protected static Subject subjectFrom(final Adaptable adaptable) {
         final SubjectId subjectIssuerWithId = entrySubjectIdFromPath(adaptable.getPayload().getPath());
-        return adaptable.getPayload()
-                .getValue()
-                .map(JsonValue::asObject)
-                .map(subject -> PoliciesModelFactory.newSubject(subjectIssuerWithId, subject))
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
+        final JsonObject value = getValueFromPayload(adaptable);
+        return PoliciesModelFactory.newSubject(subjectIssuerWithId, value);
     }
 
     /**
@@ -203,11 +190,18 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      * @return the subjects
      */
     protected static Subjects subjectsFrom(final Adaptable adaptable) {
-        return adaptable.getPayload()
-                .getValue()
-                .map(JsonValue::asObject)
-                .map(PoliciesModelFactory::newSubjects)
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
+        final JsonObject value = getValueFromPayload(adaptable);
+        return PoliciesModelFactory.newSubjects(value);
+    }
+
+    /**
+     * @throws NullPointerException if the value is null.
+     */
+    private static JsonObject getValueFromPayload(final Adaptable adaptable) {
+        final JsonValue value = adaptable.getPayload().getValue()
+                .filter(JsonValue::isObject)
+                .orElseThrow(() -> new NullPointerException("Payload value must be a non-null object."));
+        return value.asObject();
     }
 
 }

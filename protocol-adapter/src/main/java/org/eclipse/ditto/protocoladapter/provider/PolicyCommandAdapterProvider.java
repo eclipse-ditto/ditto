@@ -34,16 +34,16 @@ public interface PolicyCommandAdapterProvider
 
     @Override
     default Adapter<? extends MessageCommand<?, ?>> getMessageCommandAdapter() {
-        return null;
+        throw new UnsupportedOperationException("The policies command adapter can not adapt messages.");
     }
 
     @Override
     default Adapter<? extends MessageCommandResponse<?, ?>> getMessageCommandResponseAdapter() {
-        return null;
+        throw new UnsupportedOperationException("The policies command adapter can not adapt message responses.");
     }
 
     @Override
     default Adapter<? extends Event<?>> getEventAdapter() {
-        return null;
+        throw new UnsupportedOperationException("The policies command adapter can not adapt events.");
     }
 }
