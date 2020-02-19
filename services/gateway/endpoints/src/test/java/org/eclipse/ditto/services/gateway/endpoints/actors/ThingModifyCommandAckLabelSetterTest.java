@@ -91,7 +91,7 @@ public final class ThingModifyCommandAckLabelSetterTest {
     }
 
     @Test
-    public void addPersistedAckLabelToAlreadyRequiredAckLabels() {
+    public void doNotAddPersistedAckLabelToAlreadyRequiredAckLabels() {
         final AcknowledgementLabel ackLabel1 = AcknowledgementLabel.of("FOO");
         final AcknowledgementLabel ackLabel2 = AcknowledgementLabel.of("BAR");
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -99,12 +99,9 @@ public final class ThingModifyCommandAckLabelSetterTest {
                 .randomCorrelationId()
                 .build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
-        final CreateThing expected = command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
-                .requestedAckLabels(ackLabel1, ackLabel2, DittoAcknowledgementLabel.PERSISTED)
-                .build());
         final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
 
-        assertThat(underTest.apply(command)).isEqualTo(expected);
+        assertThat(underTest.apply(command)).isEqualTo(command);
     }
 
 }

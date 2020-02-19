@@ -30,9 +30,9 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
  * This UnaryOperator accepts a Command and checks whether its DittoHeaders should be extended by the required ACK label
  * {@link DittoAcknowledgementLabel#PERSISTED}.
  * If so, the result is a new command with extended headers, else the same command is returned.
- * The headers are only extended if the command is an instance of {@link ThingModifyCommand} and if
- * {@link DittoHeaders#isResponseRequired()} evaluates to {@code true}.
- * Already set required ACK labels in headers are extended but remain untouched apart form that.
+ * The headers are only extended if the command is an instance of {@link ThingModifyCommand} if
+ * {@link DittoHeaders#isResponseRequired()} evaluates to {@code true} and if command headers do not yet contain
+ * requested acknowledgements.
  */
 @Immutable
 final class ThingModifyCommandAckLabelSetter implements UnaryOperator<Command<?>> {
@@ -54,7 +54,7 @@ final class ThingModifyCommandAckLabelSetter implements UnaryOperator<Command<?>
     public Command<?> apply(final Command<?> command) {
         Command<?> result = checkNotNull(command, "command");
         if (isThingModifyCommand(command) && isResponseRequired(command)) {
-            result = addDittoPersistedAckLabelToHeaders(command);
+            result = requestDittoPersistedAckIfNoOtherAcksAreRequested(command);
         }
         return result;
     }
@@ -68,13 +68,16 @@ final class ThingModifyCommandAckLabelSetter implements UnaryOperator<Command<?>
         return dittoHeaders.isResponseRequired();
     }
 
-    private static Command<?> addDittoPersistedAckLabelToHeaders(final Command<?> command) {
+    private static Command<?> requestDittoPersistedAckIfNoOtherAcksAreRequested(final Command<?> command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Set<AcknowledgementLabel> requestedAckLabels = dittoHeaders.getRequestedAckLabels();
-        requestedAckLabels.add(DittoAcknowledgementLabel.PERSISTED);
-        return command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
-                .requestedAckLabels(requestedAckLabels)
-                .build());
+        if (requestedAckLabels.isEmpty()) {
+            requestedAckLabels.add(DittoAcknowledgementLabel.PERSISTED);
+            return command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
+                    .requestedAckLabels(requestedAckLabels)
+                    .build());
+        }
+        return command;
     }
 
 }
