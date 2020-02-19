@@ -18,7 +18,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.BaseParametrizedCommandAdapterTest;
+import org.eclipse.ditto.protocoladapter.ParametrizedCommandAdapterTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
@@ -47,7 +47,7 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public final class ParametrizedPolicyModifyCommandAdapterTest
-        extends BaseParametrizedCommandAdapterTest<PolicyModifyCommand<?>> implements ProtocolAdapterTest {
+        extends ParametrizedCommandAdapterTest<PolicyModifyCommand<?>> implements ProtocolAdapterTest {
 
     @Parameterized.Parameters(name = "{0}: adaptable={1}, command={2}")
     public static Collection<Object[]> data() {

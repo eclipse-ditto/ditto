@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.BaseLiveTwinTest;
+import org.eclipse.ditto.protocoladapter.LiveTwinTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.EventsTopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -79,7 +79,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link ThingEventAdapter}.
  */
-public final class ThingEventAdapterTest extends BaseLiveTwinTest implements ProtocolAdapterTest {
+public final class ThingEventAdapterTest extends LiveTwinTest implements ProtocolAdapterTest {
 
     private ThingEventAdapter underTest;
 
