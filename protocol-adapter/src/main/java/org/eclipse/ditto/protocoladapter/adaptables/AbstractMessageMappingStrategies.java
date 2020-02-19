@@ -160,8 +160,15 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
                 DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType);
     }
 
+    /**
+     * Get the status code from the adaptable payload.
+     *
+     * @throws NullPointerException if the Adaptable payload does not contain a status.
+     */
     protected static HttpStatusCode statusCodeFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getStatus().orElse(null);
+        return adaptable.getPayload()
+                .getStatus()
+                .orElseThrow(() -> new NullPointerException("The message did not contain a status code."));
     }
 
     private static boolean isAnyText(final String contentType) {
