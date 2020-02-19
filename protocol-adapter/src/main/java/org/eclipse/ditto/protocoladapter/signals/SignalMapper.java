@@ -10,8 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
-/* Copyright (c) 2011-2018 Bosch Software Innovations GmbH, Germany. All rights reserved. */
 package org.eclipse.ditto.protocoladapter.signals;
 
 import org.eclipse.ditto.protocoladapter.Adaptable;

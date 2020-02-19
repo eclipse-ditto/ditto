@@ -46,6 +46,10 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredicate<JsonObject, JsonField>>
         extends AbstractMappingStrategies<T> {
 
+    private static final int RESOURCES_PATH_LEVEL = 2;
+    private static final int SUBJECT_PATH_LEVEL = 3;
+    private static final int RESOURCE_PATH_LEVEL = 3;
+
     protected AbstractPolicyMappingStrategies(final Map<String, JsonifiableMapper<T>> mappingStrategies) {
         super(mappingStrategies);
     }
@@ -153,9 +157,9 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
         // expected: entries/<entry>/resources/<type:/path1/path2>
         return path.getRoot()
                 .filter(entries -> Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer()))
-                .flatMap(entries -> path.get(2))
+                .flatMap(entries -> path.get(RESOURCES_PATH_LEVEL))
                 .filter(resources -> PolicyEntry.JsonFields.RESOURCES.getPointer().equals(resources.asPointer()))
-                .flatMap(resources -> path.getSubPointer(3))
+                .flatMap(resources -> path.getSubPointer(RESOURCE_PATH_LEVEL))
                 .map(PoliciesModelFactory::newResourceKey)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
@@ -170,9 +174,9 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
         // expected: entries/<entry>/resources/<issuer:subject>
         return path.getRoot()
                 .filter(entries -> Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer()))
-                .flatMap(entries -> path.get(2))
+                .flatMap(entries -> path.get(RESOURCES_PATH_LEVEL))
                 .filter(resources -> PolicyEntry.JsonFields.SUBJECTS.getPointer().equals(resources.asPointer()))
-                .flatMap(resources -> path.get(3))
+                .flatMap(resources -> path.get(SUBJECT_PATH_LEVEL))
                 .map(PoliciesModelFactory::newSubjectId)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }

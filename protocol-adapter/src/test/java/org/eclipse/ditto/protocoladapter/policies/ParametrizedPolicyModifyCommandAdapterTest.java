@@ -58,11 +58,11 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
                 deletePolicyEntry(),
                 modifyPolicyEntries(),
                 modifyResource(),
-                modifyResources(),
                 deleteResource(),
+                modifyResources(),
                 modifySubject(),
-                modifySubjects(),
-                deleteSubject());
+                deleteSubject(),
+                modifySubjects());
     }
 
     private PolicyModifyCommandAdapter underTest;
@@ -139,6 +139,16 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
         return TestParameter.of("modifyResource", adaptable, command);
     }
 
+    private static TestParameter<PolicyModifyCommand<?>> deleteResource() {
+        final DeleteResource command =
+                DeleteResource.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
+                        Policies.RESOURCE1.getResourceKey(),
+                        Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
+                resourcesPath(Policies.POLICY_ENTRY_LABEL, Policies.RESOURCE1.getResourceKey()));
+        return TestParameter.of("deleteResource", adaptable, command);
+    }
+
     private static TestParameter<PolicyModifyCommand<?>> modifyResources() {
         final ModifyResources command =
                 ModifyResources.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
@@ -148,16 +158,6 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
                 resourcesPath(Policies.POLICY_ENTRY_LABEL),
                 Policies.RESOURCES.toJson(FieldType.regularOrSpecial()));
         return TestParameter.of("modifyResources", adaptable, command);
-    }
-
-    private static TestParameter<PolicyModifyCommand<?>> deleteResource() {
-        final DeleteResource command =
-                DeleteResource.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
-                        Policies.RESOURCE1.getResourceKey(),
-                        Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
-                resourcesPath(Policies.POLICY_ENTRY_LABEL, Policies.RESOURCE1.getResourceKey()));
-        return TestParameter.of("deleteResource", adaptable, command);
     }
 
     private static TestParameter<PolicyModifyCommand<?>> modifySubject() {
@@ -171,6 +171,16 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
         return TestParameter.of("modifySubject", adaptable, command);
     }
 
+    private static TestParameter<PolicyModifyCommand<?>> deleteSubject() {
+        final DeleteSubject command =
+                DeleteSubject.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
+                        Policies.SUBJECT1.getId(),
+                        Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
+                subjectsPath(Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT1.getId()));
+        return TestParameter.of("deleteSubject", adaptable, command);
+    }
+
     private static TestParameter<PolicyModifyCommand<?>> modifySubjects() {
         final ModifySubjects command =
                 ModifySubjects.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
@@ -180,15 +190,5 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
                 subjectsPath(Policies.POLICY_ENTRY_LABEL),
                 Policies.SUBJECTS.toJson(FieldType.regularOrSpecial()));
         return TestParameter.of("modifySubjects", adaptable, command);
-    }
-
-    private static TestParameter<PolicyModifyCommand<?>> deleteSubject() {
-        final DeleteSubject command =
-                DeleteSubject.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
-                        Policies.SUBJECT1.getId(),
-                        Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
-                subjectsPath(Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT1.getId()));
-        return TestParameter.of("deleteSubject", adaptable, command);
     }
 }

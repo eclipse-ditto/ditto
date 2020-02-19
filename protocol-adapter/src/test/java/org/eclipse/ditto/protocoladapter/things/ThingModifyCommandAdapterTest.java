@@ -59,7 +59,6 @@ import org.junit.Test;
 /**
  * Unit test for {@link ThingModifyCommandAdapter}.
  */
-//@RunWith(Parameterized.class)
 public final class ThingModifyCommandAdapterTest extends BaseLiveTwinTest implements ProtocolAdapterTest {
 
     private ThingModifyCommandAdapter underTest;

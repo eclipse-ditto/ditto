@@ -80,6 +80,8 @@ public class ProtocolFactoryTest {
         assertThat(topicPath.getId()).isEqualTo(ID);
         assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
         assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
+        assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+        assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
     }
 
     @Test
@@ -91,6 +93,8 @@ public class ProtocolFactoryTest {
         assertThat(topicPath.getId()).isEqualTo(ID);
         assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
         assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
+        assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+        assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
     }
 
     @Test
@@ -101,6 +105,8 @@ public class ProtocolFactoryTest {
         assertThat(topicPath.getId()).isEqualTo(ID);
         assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.NONE);
         assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.POLICIES);
+        assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+        assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
     }
 
     @Test
@@ -111,5 +117,7 @@ public class ProtocolFactoryTest {
         assertThat(topicPath.getId()).isEqualTo(TopicPath.ID_PLACEHOLDER);
         assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
         assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
+        assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+        assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
     }
 }

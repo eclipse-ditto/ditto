@@ -196,8 +196,6 @@ public final class TestConstants {
         static final SubjectId SUBJECT_ID2 = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "theSubject2");
         public static final Subject SUBJECT1 = PoliciesModelFactory.newSubject(SUBJECT_ID1, SubjectType.GENERATED);
         static final Subject SUBJECT2 = PoliciesModelFactory.newSubject(SUBJECT_ID2, SubjectType.GENERATED);
-        static final EffectedPermissions GRANT_READ =
-                EffectedPermissions.newInstance(singletonList("READ"), emptyList());
         static final EffectedPermissions GRANT_WRITE =
                 EffectedPermissions.newInstance(singletonList("WRITE"), emptyList());
         static final EffectedPermissions GRANT_READ_REVOKE_WRITE =

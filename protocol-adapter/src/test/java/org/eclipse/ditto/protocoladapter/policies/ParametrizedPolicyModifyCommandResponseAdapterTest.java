@@ -60,12 +60,12 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 modifyPolicyEntriesResponse(),
                 modifyResourceCreatedResponse(),
                 modifyResourceModifiedResponse(),
-                modifyResourcesResponse(),
                 deleteResourceResponse(),
+                modifyResourcesResponse(),
                 modifySubjectCreatedResponse(),
                 modifySubjectModifiedResponse(),
-                modifySubjectsResponse(),
-                deleteSubjectResponse());
+                deleteSubjectResponse(),
+                modifySubjectsResponse());
     }
 
     private PolicyModifyCommandResponseAdapter underTest;
@@ -170,14 +170,6 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         return TestParameter.of("modifyResourceModifiedResponse", adaptable, response);
     }
 
-    private static TestParameter<PolicyModifyCommandResponse<?>> modifyResourcesResponse() {
-        final ModifyResourcesResponse response =
-                ModifyResourcesResponse.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                resourcesPath(Policies.POLICY_ENTRY_LABEL), HttpStatusCode.NO_CONTENT);
-        return TestParameter.of("modifyResourcesResponse", adaptable, response);
-    }
-
     private static TestParameter<PolicyModifyCommandResponse<?>> deleteResourceResponse() {
         final DeleteResourceResponse response =
                 DeleteResourceResponse.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
@@ -187,6 +179,14 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 resourcesPath(Policies.POLICY_ENTRY_LABEL, Policies.RESOURCE1.getResourceKey()),
                 HttpStatusCode.NO_CONTENT);
         return TestParameter.of("deleteResourceResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyModifyCommandResponse<?>> modifyResourcesResponse() {
+        final ModifyResourcesResponse response =
+                ModifyResourcesResponse.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                resourcesPath(Policies.POLICY_ENTRY_LABEL), HttpStatusCode.NO_CONTENT);
+        return TestParameter.of("modifyResourcesResponse", adaptable, response);
     }
 
     private static TestParameter<PolicyModifyCommandResponse<?>> modifySubjectCreatedResponse() {
