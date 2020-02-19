@@ -164,6 +164,7 @@ public final class ConnectionPersistenceActor
     @Nullable private Instant loggingEnabledUntil;
     private final Duration loggingEnabledDuration;
     private final ConnectionConfig config;
+    private final MonitoringConfig monitoringConfig;
 
     @SuppressWarnings("unused")
     private ConnectionPersistenceActor(final ConnectionId connectionId,
@@ -206,7 +207,7 @@ public final class ConnectionPersistenceActor
 
         clientActorAskTimeout = config.getClientActorAskTimeout();
 
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        monitoringConfig = connectivityConfig.getMonitoringConfig();
         connectionMonitorRegistry =
                 DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         final ConnectionLoggerRegistry loggerRegistry =
@@ -586,7 +587,8 @@ public final class ConnectionPersistenceActor
         this.updateLoggingIfEnabled();
         broadcastCommandWithDifferentSender(command,
                 (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
-                        existingConnection, sender, command.getDittoHeaders(), timeout),
+                        existingConnection, sender, command.getDittoHeaders(), Duration.ofSeconds(10),
+                        monitoringConfig.logger().maxLogSizeInBytes()),
                 () -> respondWithEmptyLogs(command, sender));
     }
 
