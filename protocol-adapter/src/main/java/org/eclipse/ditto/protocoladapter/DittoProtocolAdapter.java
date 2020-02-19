@@ -134,6 +134,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     @Override
     public Adaptable toAdaptable(final Signal<?> signal) {
         final TopicPath.Channel channel = ProtocolAdapter.determineChannel(signal);
+        return toAdaptable(signal, channel);
+    }
+
+    @Override
+    public Adaptable toAdaptable(final Signal<?> signal, final TopicPath.Channel channel) {
         if (signal instanceof MessageCommand) {
             checkChannel(channel, signal, LIVE);
             return toAdaptable((MessageCommand<?, ?>) signal);
@@ -149,6 +154,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         }
         throw UnknownSignalException.newBuilder(signal.getName()).dittoHeaders(signal.getDittoHeaders()).build();
     }
+
 
     @Override
     public Adaptable toAdaptable(final CommandResponse<?> commandResponse, final TopicPath.Channel channel) {
@@ -180,8 +186,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         }
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyCommandResponse<?> policyCommandResponse) {
+    private Adaptable toAdaptable(final PolicyCommandResponse<?> policyCommandResponse) {
         if (policyCommandResponse instanceof PolicyQueryCommandResponse) {
             return toAdaptable((PolicyQueryCommandResponse<?>) policyCommandResponse);
         } else if (policyCommandResponse instanceof PolicyModifyCommandResponse) {
@@ -263,32 +268,27 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         return thingsAdapters.getEventAdapter().toAdaptable(thingEvent, channel);
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyQueryCommand<?> policyQueryCommand) {
+    private Adaptable toAdaptable(final PolicyQueryCommand<?> policyQueryCommand) {
         checkNotLive(policyQueryCommand);
         return policiesAdapters.getQueryCommandAdapter().toAdaptable(policyQueryCommand, NONE);
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyQueryCommandResponse<?> policyQueryCommandResponse) {
+    private Adaptable toAdaptable(final PolicyQueryCommandResponse<?> policyQueryCommandResponse) {
         checkNotLive(policyQueryCommandResponse);
         return policiesAdapters.getQueryCommandResponseAdapter().toAdaptable(policyQueryCommandResponse, NONE);
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyModifyCommand<?> policyModifyCommand) {
+    private Adaptable toAdaptable(final PolicyModifyCommand<?> policyModifyCommand) {
         checkNotLive(policyModifyCommand);
         return policiesAdapters.getModifyCommandAdapter().toAdaptable(policyModifyCommand, NONE);
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyModifyCommandResponse<?> policyModifyCommandResponse) {
+    private Adaptable toAdaptable(final PolicyModifyCommandResponse<?> policyModifyCommandResponse) {
         checkNotLive(policyModifyCommandResponse);
         return policiesAdapters.getModifyCommandResponseAdapter().toAdaptable(policyModifyCommandResponse, NONE);
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyErrorResponse policyErrorResponse) {
+    private Adaptable toAdaptable(final PolicyErrorResponse policyErrorResponse) {
         checkNotLive(policyErrorResponse);
         return policiesAdapters.getErrorResponseAdapter().toAdaptable(policyErrorResponse, NONE);
     }
