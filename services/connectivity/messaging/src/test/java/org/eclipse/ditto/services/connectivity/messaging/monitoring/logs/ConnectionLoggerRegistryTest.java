@@ -21,16 +21,19 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.assertj.core.api.Fail;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -191,7 +194,7 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     @Test
-    public void aggregatesLogs() {
+    public void aggregatesLogs() throws InterruptedException {
         final ConnectionId connectionId = connectionId();
         final String source = "a:b";
         underTest.initForConnection(connection(connectionId));
@@ -201,7 +204,9 @@ public final class ConnectionLoggerRegistryTest {
         final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connectionId, source);
 
         connectionLogger.success(randomInfoProvider());
+        TimeUnit.MILLISECONDS.sleep(1); // ensure different timestamps to make ordering assertion stable
         connectionLogger.failure(randomInfoProvider());
+        TimeUnit.MILLISECONDS.sleep(1); // ensure different timestamps to make ordering assertion stable
         inboundConsumed.success(randomInfoProvider());
 
         final Collection<LogEntry> connectionLogs = connectionLogger.getLogs();
@@ -209,12 +214,66 @@ public final class ConnectionLoggerRegistryTest {
 
         final ConnectionLogs aggregatedLogs = underTest.aggregateLogs(connectionId);
 
+        final ArrayList<LogEntry> logEntries = new ArrayList<>(aggregatedLogs.getLogs());
         assertThat(aggregatedLogs.getEnabledSince()).isNotNull();
         assertThat(aggregatedLogs.getEnabledUntil()).isNotNull();
-        assertThat(aggregatedLogs.getLogs())
+        assertThat(logEntries)
                 .containsAll(connectionLogs)
                 .containsAll(inboundConsumedLogs)
                 .hasSize(connectionLogs.size() + inboundConsumedLogs.size());
+        assertThat(logEntries.get(0).getTimestamp()).isBefore(logEntries.get(1).getTimestamp());
+    }
+
+    @Test
+    public void aggregatesLogsRespectsMaximumLogSizeLimit() throws InterruptedException {
+        final ConnectionId connectionId = connectionId();
+        final String source = "a:b";
+        underTest.initForConnection(connection(connectionId));
+        underTest.unmuteForConnection(connectionId);
+
+        final ConnectionLogger connectionLogger = underTest.forConnection(connectionId);
+        final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connectionId, source);
+
+        connectionLogger.success(randomInfoProvider());
+        final Collection<LogEntry> listWithOnlyFirstSuccessLog = connectionLogger.getLogs();
+        addLogEntriesUntilMaxSizeIsExceeded(connectionLogger);
+
+        final Collection<LogEntry> connectionLogs = connectionLogger.getLogs();
+        final Collection<LogEntry> inboundConsumedLogs = inboundConsumed.getLogs();
+
+        final ConnectionLogs aggregatedLogs = underTest.aggregateLogs(connectionId);
+
+        final ArrayList<LogEntry> logEntries = new ArrayList<>(aggregatedLogs.getLogs());
+        assertThat(aggregatedLogs.getEnabledSince()).isNotNull();
+        assertThat(aggregatedLogs.getEnabledUntil()).isNotNull();
+        assertThat(logEntries)
+                .doesNotContainSequence(listWithOnlyFirstSuccessLog)
+                .hasSize(connectionLogs.size() + inboundConsumedLogs.size() - 1);
+    }
+
+    private void addLogEntriesUntilMaxSizeIsExceeded(final ConnectionLogger logger) throws InterruptedException {
+        final long maxSize = TestConstants.MONITORING_CONFIG.logger().maxLogSizeInBytes();
+        final int maxFailureLogs = TestConstants.MONITORING_CONFIG.logger().failureCapacity();
+        int currentFailureLogs = 0;
+
+        while (getCurrentLogsSize(logger) < maxSize) {
+            logger.failure(randomInfoProvider());
+            TimeUnit.MILLISECONDS.sleep(1); // ensure different timestamps to make ordering assertion stable
+
+            if (++currentFailureLogs > maxFailureLogs) {
+                Fail.fail("Breaking the while loop as I can't create enough failure logs to trigger the "
+                + "max logs size. Review the logger config and find fitting config values for the maxLogSizeInBytes "
+                + "and the failure capacity.");
+            }
+        }
+    }
+
+    private long getCurrentLogsSize(final ConnectionLogger logger) {
+        return logger.getLogs()
+                .stream()
+                .map(LogEntry::toJsonString)
+                .map(String::length)
+                .reduce(0, Integer::sum);
     }
 
     @Test
