@@ -32,8 +32,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.concierge.common.CachesConfig;
 import org.eclipse.ditto.services.concierge.common.DefaultCachesConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.LiveSignalPub;
@@ -129,7 +129,7 @@ public final class TestSetup {
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache,
                         new DummyLiveSignalPub(testActorRef)));
 
-        final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder,
+        final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, 100,
                 preEnforcer, null, null, null);
         return system.actorOf(props, THING + ":" + THING_ID);
     }
@@ -137,6 +137,7 @@ public final class TestSetup {
     private static String createUniqueName(final String prefix) {
         return prefix + UUID.randomUUID().toString();
     }
+
 
     public static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()

@@ -75,14 +75,16 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     private final Counter enqueueDroppedCounter;
     private final Counter enqueueFailureCounter;
     private final Counter dequeueCounter;
+    private final int partitionBufferSize;
 
     /**
      * Constructs a new AbstractGraphActor object.
      *
      * @param matchClass the type of the message to be streamed if matched in this actor's receive handler.
+     * @param partitionBufferSize the size of the buffer per partition.
      * @throws NullPointerException if {@code matchClass} is {@code null}.
      */
-    protected AbstractGraphActor(final Class<M> matchClass) {
+    protected AbstractGraphActor(final Class<M> matchClass, final int partitionBufferSize) {
         this.matchClass = checkNotNull(matchClass, "matchClass");
 
         final Map<String, String> tags = Collections.singletonMap("class", getClass().getSimpleName());
@@ -91,6 +93,8 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
         enqueueDroppedCounter = DittoMetrics.counter("graph_actor_enqueue_dropped", tags);
         enqueueFailureCounter = DittoMetrics.counter("graph_actor_enqueue_failure", tags);
         dequeueCounter = DittoMetrics.counter("graph_actor_dequeue", tags);
+
+        this.partitionBufferSize = partitionBufferSize;
 
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         materializer = ActorMaterializer.create(getActorMaterializerSettings(), getContext());
@@ -203,7 +207,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
      * on the amount of available CPUs.
      * @return the partitioning flow
      */
-    private static <T> Flow<T, T, NotUsed> partitionById(final Graph<FlowShape<T, T>, NotUsed> flowToPartition,
+    private <T> Flow<T, T, NotUsed> partitionById(final Graph<FlowShape<T, T>, NotUsed> flowToPartition,
             final int parallelism) {
 
         final int parallelismWithSpecialLane = parallelism + 1;
@@ -216,6 +220,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
                 (builder, partition, merge) -> {
                     for (int i = 0; i < parallelismWithSpecialLane; i++) {
                         builder.from(partition.out(i))
+                                .via(builder.add(new ErrorRespondingBuffer<T>(partitionBufferSize)))
                                 .via(builder.add(flowToPartition))
                                 .toInlet(merge.in(i));
                     }

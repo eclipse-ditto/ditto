@@ -55,12 +55,14 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     private EnforcerActor(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
+            final int partitionBufferSize,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
-        super(pubSubMediator, conciergeForwarder, thingIdCache, aclEnforcerCache, policyEnforcerCache);
+        super(pubSubMediator, conciergeForwarder, partitionBufferSize, thingIdCache, aclEnforcerCache,
+                policyEnforcerCache);
 
         handler = assembleHandler(enforcementProviders, preEnforcer);
         sink = assembleSink();
@@ -72,6 +74,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param conciergeForwarder an actorRef to concierge forwarder.
+     * @param partitionBufferSize the size of the partition buffer.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
      * @param aclEnforcerCache the ACL cache.
@@ -81,13 +84,14 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
+            final int partitionBufferSize,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
         return Props.create(EnforcerActor.class, pubSubMediator, enforcementProviders, conciergeForwarder,
-                 preEnforcer, thingIdCache, aclEnforcerCache, policyEnforcerCache);
+                partitionBufferSize, preEnforcer, thingIdCache, aclEnforcerCache, policyEnforcerCache);
     }
 
     /**
@@ -97,6 +101,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param conciergeForwarder an actorRef to concierge forwarder.
+     * @param partitionBufferSize the size of the partition buffer.
      * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
      * @param aclEnforcerCache the ACL cache.
      * @param policyEnforcerCache the Policy cache.
@@ -105,11 +110,12 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
+            final int partitionBufferSize,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
-        return props(pubSubMediator, enforcementProviders, conciergeForwarder,
+        return props(pubSubMediator, enforcementProviders, conciergeForwarder, partitionBufferSize,
                 null, thingIdCache, aclEnforcerCache, policyEnforcerCache);
     }
 

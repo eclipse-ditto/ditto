@@ -1152,7 +1152,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                 connection.getProcessorPoolSize());
         final Props props = MessageMappingProcessorActor.props(conciergeForwarder, getSelf(), processor,
-                connectionId(), connection.getProcessorPoolSize());
+                connectionId(), connection.getProcessorPoolSize(),
+                connectivityConfig.getMappingConfig().getPartitionBufferSize());
 
         return getContext().actorOf(props, MessageMappingProcessorActor.ACTOR_NAME);
     }

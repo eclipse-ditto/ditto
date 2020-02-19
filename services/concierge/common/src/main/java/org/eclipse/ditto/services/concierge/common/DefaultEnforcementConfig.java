@@ -32,11 +32,13 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     private final Duration askTimeout;
     private final int bufferSize;
     private final int parallelism;
+    private final int partitionBufferSize;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
         askTimeout = configWithFallback.getDuration(EnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
         bufferSize = configWithFallback.getInt(EnforcementConfigValue.BUFFER_SIZE.getConfigPath());
         parallelism = configWithFallback.getInt(EnforcementConfigValue.PARALLELISM.getConfigPath());
+        partitionBufferSize = configWithFallback.getInt(EnforcementConfigValue.PARTITION_BUFFER_SIZE.getConfigPath());
     }
 
     /**
@@ -66,6 +68,11 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
         return parallelism;
     }
 
+    @Override
+    public int getPartitionBufferSize() {
+        return partitionBufferSize;
+    }
+
 
     @Override
     public boolean equals(final Object o) {
@@ -78,12 +85,13 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
         final DefaultEnforcementConfig that = (DefaultEnforcementConfig) o;
         return bufferSize == that.bufferSize &&
                 parallelism == that.parallelism &&
-                askTimeout.equals(that.askTimeout);
+                askTimeout.equals(that.askTimeout) &&
+                partitionBufferSize == that.partitionBufferSize;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, bufferSize, parallelism);
+        return Objects.hash(askTimeout, bufferSize, parallelism, partitionBufferSize);
     }
 
     @Override
@@ -92,6 +100,7 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
                 "askTimeout=" + askTimeout +
                 ", bufferSize=" + bufferSize +
                 ", parallelism=" + parallelism +
+                ", partitionBufferSize=" + partitionBufferSize +
                 "]";
     }
 

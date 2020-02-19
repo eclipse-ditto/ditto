@@ -196,7 +196,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION_ID, 17);
+                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION_ID, 17,
+                        TestConstants.CONNECTIVITY_CONFIG.getMappingConfig().getPartitionBufferSize());
 
         return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());

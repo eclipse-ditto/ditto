@@ -241,7 +241,7 @@ public abstract class AbstractConsumerActorTest<M> {
                         connectivityConfig, protocolAdapterProvider, logger);
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(conciergeForwarderActor, clientActor, mappingProcessor,
-                        CONNECTION_ID, 43);
+                        CONNECTION_ID, 43, connectivityConfig.getMappingConfig().getPartitionBufferSize());
 
         return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());

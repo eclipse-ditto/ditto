@@ -130,7 +130,10 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,
                         conciergeConfig.getClusterConfig().getNumberOfShards());
 
-        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter), DispatcherActor.ACTOR_NAME);
+        final int partitionBufferSize = conciergeConfig.getEnforcementConfig().getPartitionBufferSize();
+
+        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter, partitionBufferSize),
+                DispatcherActor.ACTOR_NAME);
 
         final ActorRef conciergeForwarder =
                 context.actorOf(ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter),
@@ -151,6 +154,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         final Props enforcerProps =
                 EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder,
+                        partitionBufferSize,
                         preEnforcer, thingIdCache, aclEnforcerCache,
                         policyEnforcerCache); // passes in the caches to be able to invalidate cache entries
 

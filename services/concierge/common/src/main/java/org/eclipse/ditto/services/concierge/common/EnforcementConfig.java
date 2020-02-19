@@ -46,6 +46,13 @@ public interface EnforcementConfig {
     int getParallelism();
 
     /**
+     * Returns the buffer size used for partitions in the enforcer actor.
+     *
+     * @return the buffer size.
+     */
+    int getPartitionBufferSize();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code EnforcementConfig}.
      */
@@ -62,10 +69,14 @@ public interface EnforcementConfig {
         BUFFER_SIZE("buffer-size", 1_000),
 
         /**
+         * The buffer size used for the partitions in the enforcer actor.
+         */
+        PARTITION_BUFFER_SIZE("partition-buffer-size", 100),
+
+        /**
          * The parallelism used for processing messages in parallel in enforcer actor.
          */
-        PARALLELISM("parallelism", 100)
-        ;
+        PARALLELISM("parallelism", 100);
 
         private final String path;
         private final Object defaultValue;
