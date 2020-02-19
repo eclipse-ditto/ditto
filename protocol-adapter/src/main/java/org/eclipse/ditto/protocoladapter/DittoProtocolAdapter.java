@@ -258,12 +258,6 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingEvent<?> thingEvent) {
-        final TopicPath.Channel channel = determineChannel(thingEvent);
-        return toAdaptable(thingEvent, channel);
-    }
-
-    @Override
     public Adaptable toAdaptable(final ThingEvent<?> thingEvent, final TopicPath.Channel channel) {
         checkChannel(channel, thingEvent, TWIN, LIVE);
         return thingsAdapters.getEventAdapter().toAdaptable(thingEvent, channel);
