@@ -487,11 +487,13 @@ public final class RootRoute extends AllDirectives {
         final Optional<String> correlationIdOptional = dittoHeaders.getCorrelationId();
         final String simpleExceptionName = exception.getClass().getSimpleName();
         final String exceptionMessage = exception.getMessage();
+        final String exceptionDescription = exception.getDescription().orElse(null);
         if (correlationIdOptional.isEmpty()) {
             LOGGER.warn("Correlation ID was missing in headers of <{}>: <{}>!", simpleExceptionName, exceptionMessage);
         }
-        enhanceLogWithCorrelationId(correlationIdOptional,
-                () -> LOGGER.info("<{}> occurred in gateway root route: <{}>!", simpleExceptionName, exceptionMessage));
+        enhanceLogWithCorrelationId(correlationIdOptional, () ->
+                LOGGER.info("<{}> occurred in gateway root route: <{} - {}>!", simpleExceptionName, exceptionMessage,
+                        exceptionDescription, exception));
     }
 
     private static Function<akka.http.scaladsl.server.RequestContext, CompletionStage<RouteResult>> routeToJavaFunction(

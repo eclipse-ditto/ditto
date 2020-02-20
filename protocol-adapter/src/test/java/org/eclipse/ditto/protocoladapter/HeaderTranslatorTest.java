@@ -35,6 +35,7 @@ public final class HeaderTranslatorTest {
         externalHeaders.put("UPPER-CASE@HEADER", "HELLO@WORLD");
 
         final Map<String, String> expectedHeaders = new HashMap<>();
+        expectedHeaders.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "true");
         expectedHeaders.put("lower-case%header", "hello%world");
         expectedHeaders.put("mixed-case!header", "heLLO!WORld");
         expectedHeaders.put("upper-case@header", "HELLO@WORLD");
@@ -47,9 +48,11 @@ public final class HeaderTranslatorTest {
         final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
 
         final Map<String, String> externalHeaders = new HashMap<>();
+        externalHeaders.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "true");
         externalHeaders.put("nullValueHeader", null);
 
-        assertThat(underTest.fromExternalHeaders(externalHeaders)).isEmpty();
+        assertThat(underTest.fromExternalHeaders(externalHeaders))
+                .containsOnlyKeys(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
     }
 
 }

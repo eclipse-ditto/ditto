@@ -141,12 +141,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     @Override
     public boolean isResponseRequired() {
-        boolean result = true;
-        if (isExpectedBoolean(DittoHeaderDefinition.RESPONSE_REQUIRED, Boolean.FALSE)) {
-            final String ackRequests = headers.getOrDefault(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), "");
-            result = !ackRequests.isEmpty();
-        }
-        return result;
+        return isExpectedBoolean(DittoHeaderDefinition.RESPONSE_REQUIRED, Boolean.TRUE);
     }
 
     /**

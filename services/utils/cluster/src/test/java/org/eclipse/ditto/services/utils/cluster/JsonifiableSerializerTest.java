@@ -119,7 +119,7 @@ public final class JsonifiableSerializerTest {
     @Test
     public void shardedMessageEnvelopeSerializationWorksAsExpected() {
         final EntityId id = DefaultEntityId.generateRandom();
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
         final RetrieveThings retrieveThings = RetrieveThings.getBuilder(THING_ID)
                 .dittoHeaders(dittoHeaders)
                 .build();

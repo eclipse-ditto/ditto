@@ -150,7 +150,7 @@ public final class ImmutableDittoHeadersTest {
 
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader(fooKey, barValue).build();
 
-        assertThat(dittoHeaders).containsOnly(entry(fooKey, barValue));
+        assertThat(dittoHeaders).contains(entry(fooKey, barValue));
     }
 
     @Test
@@ -213,7 +213,7 @@ public final class ImmutableDittoHeadersTest {
 
     @Test
     public void isResponseRequiredIsTrueByDefault() {
-        final DittoHeaders underTest = DittoHeaders.empty();
+        final DittoHeaders underTest = DittoHeaders.newBuilder().build();
 
         assertThat(underTest.isResponseRequired()).isTrue();
     }
@@ -440,6 +440,7 @@ public final class ImmutableDittoHeadersTest {
         final Map<String, String> expected = new HashMap<>(oversizeMap);
         expected.remove("d");
         expected.remove("M");
+        expected.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "true");
 
         assertThat(truncatedHeaders).isEqualTo(expected);
     }

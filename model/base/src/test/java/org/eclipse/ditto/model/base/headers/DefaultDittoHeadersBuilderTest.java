@@ -144,8 +144,9 @@ public final class DefaultDittoHeadersBuilderTest {
         final JsonObject jsonObject = dittoHeaders.toJson();
 
         assertThat(jsonObject)
-                .hasSize(1)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.CORRELATION_ID.getKey()), CORRELATION_ID);
+                .hasSize(2)
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.CORRELATION_ID.getKey()), CORRELATION_ID)
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()), true);
     }
 
     @Test
@@ -154,9 +155,10 @@ public final class DefaultDittoHeadersBuilderTest {
         final JsonObject jsonObject = dittoHeaders.toJson();
 
         assertThat(jsonObject)
-                .hasSize(1)
+                .hasSize(2)
                 .contains(JsonFactory.newKey(DittoHeaderDefinition.SCHEMA_VERSION.getKey()),
-                        JsonFactory.newValue(JSON_SCHEMA_VERSION.toInt()));
+                        JsonFactory.newValue(JSON_SCHEMA_VERSION.toInt()))
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()), true);
     }
 
     @Test
@@ -165,8 +167,9 @@ public final class DefaultDittoHeadersBuilderTest {
         final JsonObject jsonObject = dittoHeaders.toJson();
 
         assertThat(jsonObject)
-                .hasSize(1)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.CHANNEL.getKey()), CHANNEL);
+                .hasSize(2)
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.CHANNEL.getKey()), CHANNEL)
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()), true);
     }
 
     @Test
@@ -188,8 +191,9 @@ public final class DefaultDittoHeadersBuilderTest {
                 .collect(JsonCollectors.valuesToArray());
 
         assertThat(jsonObject)
-                .hasSize(1)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.READ_SUBJECTS.getKey()), expectedReadSubjects);
+                .hasSize(2)
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.READ_SUBJECTS.getKey()), expectedReadSubjects)
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()), true);
     }
 
     @Test
@@ -211,7 +215,9 @@ public final class DefaultDittoHeadersBuilderTest {
         underTest.putHeader(key, value);
         final DittoHeaders dittoHeaders = underTest.build();
 
-        assertThat(dittoHeaders).containsOnly(entry(key, value));
+        assertThat(dittoHeaders).containsOnly(
+                entry(key, value),
+                entry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "true"));
     }
 
     @Test
@@ -258,7 +264,7 @@ public final class DefaultDittoHeadersBuilderTest {
                 .removeHeader(rsKey)
                 .build();
 
-        assertThat(dittoHeaders).hasSize(2).doesNotContainKeys(rsKey);
+        assertThat(dittoHeaders).hasSize(3).doesNotContainKeys(rsKey);
     }
 
     @Test
@@ -270,7 +276,7 @@ public final class DefaultDittoHeadersBuilderTest {
                 .removePreconditionHeaders()
                 .build();
 
-        assertThat(dittoHeaders).hasSize(0);
+        assertThat(dittoHeaders).hasSize(1); // remaining is "response-required"
     }
 
     @Test

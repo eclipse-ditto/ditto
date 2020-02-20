@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -373,8 +374,35 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public R build() {
+        // do it here
+        if (calculateIsResponseRequired()) {
+            headers.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), String.valueOf(Boolean.TRUE));
+        }
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headers);
         return doBuild(dittoHeaders);
+    }
+
+    private boolean calculateIsResponseRequired() {
+        boolean responseRequired = Boolean.parseBoolean(
+                headers.getOrDefault(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.TRUE.toString())
+        );
+        if (!responseRequired) {
+            responseRequired = calculateIsResponseRequiredViaRequestedAcks();
+        }
+        return responseRequired && calculateIsResponseRequiredViaTimeout();
+    }
+
+    private boolean calculateIsResponseRequiredViaRequestedAcks() {
+        final String reqAckLabels = headers.getOrDefault(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(), "");
+        return !reqAckLabels.isEmpty();
+    }
+
+    private boolean calculateIsResponseRequiredViaTimeout() {
+        return !Optional.ofNullable(headers.get(DittoHeaderDefinition.TIMEOUT.getKey())) // if timeout is not specified
+                .map(DittoDuration::fromTimeoutString)
+                .map(DittoDuration::getDuration)
+                .filter(Duration::isZero) // or timeout is 0
+                .isPresent();
     }
 
     @Override

@@ -125,7 +125,11 @@ public final class ImmutableMessageHeadersTest {
                 .putHeader(key, value)
                 .build();
 
-        assertThat(underTest).hasSize(4).contains(entry(key, value));
+        assertThat(underTest).hasSize(5)
+                .contains(
+                        entry(key, value),
+                        entry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "true")
+        );
     }
 
     @Test

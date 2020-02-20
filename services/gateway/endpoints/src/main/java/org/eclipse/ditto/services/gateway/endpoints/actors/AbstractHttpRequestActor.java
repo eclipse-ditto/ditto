@@ -165,7 +165,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final Function<Duration, DittoRuntimeException> timeoutExceptionCreator) {
 
         logger.withCorrelationId(command).debug("Got <Command> message {}, telling the targetActor about it.", command);
-        if (isExpectingResponse(command)) {
+        if (command.getDittoHeaders().isResponseRequired()) {
             final UnaryOperator<Command<?>> ackLabelSetter = ThingModifyCommandAckRequestSetter.getInstance();
             final Command<?> commandWithAckLabels = ackLabelSetter.apply(command);
             final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
@@ -184,14 +184,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             proxyActor.tell(command, getSelf());
             completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
         }
-    }
-
-    private static boolean isExpectingResponse(final Command<?> command) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        return dittoHeaders.isResponseRequired() || dittoHeaders.getTimeout() // if timeout is not specified
-                .filter(Duration::isZero) // or timeout is 0
-                .filter(Duration::isNegative) // or timeout is negative
-                .isEmpty();
     }
 
     private void becomeCommandResponseAwaiting() {
