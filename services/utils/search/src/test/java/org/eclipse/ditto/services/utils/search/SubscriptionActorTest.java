@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.search;
 
+import static org.assertj.core.api.Java6Assertions.assertThat;
+
 import java.time.Duration;
 import java.util.List;
 
@@ -19,6 +21,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionTimeoutException;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
@@ -28,6 +31,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -44,12 +50,14 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class SubscriptionActorTest {
 
+    private int i = 0;
     private ActorSystem actorSystem;
     private ActorMaterializer materializer;
 
     @Before
     public void init() {
-        actorSystem = ActorSystem.create();
+        final Config config = ConfigFactory.parseString("akka.log-dead-letters=0");
+        actorSystem = ActorSystem.create(getClass().getSimpleName() + i++, config);
         materializer = ActorMaterializer.create(actorSystem);
     }
 
@@ -63,7 +71,7 @@ public final class SubscriptionActorTest {
     @Test
     public void emptyResults() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(getRef()));
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), getRef()));
             connect(underTest, Source.empty());
             expectMsg(SubscriptionComplete.of(underTest.path().name(), DittoHeaders.empty()));
             expectTerminated(underTest);
@@ -73,7 +81,7 @@ public final class SubscriptionActorTest {
     @Test
     public void twoPages() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(getRef()));
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), getRef()));
             final String subscriptionId = underTest.path().name();
             connect(underTest, Source.from(List.of(JsonArray.of(1), JsonArray.of(2))));
             underTest.tell(RequestSubscription.of(subscriptionId, 2L, DittoHeaders.empty()), getRef());
@@ -87,14 +95,13 @@ public final class SubscriptionActorTest {
     @Test
     public void cancellation() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(getRef()));
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), getRef()));
             final String subscriptionId = underTest.path().name();
             connect(underTest, Source.from(List.of(JsonArray.of(1), JsonArray.of(2))));
             underTest.tell(RequestSubscription.of(subscriptionId, 1L, DittoHeaders.empty()), getRef());
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(1), DittoHeaders.empty()));
             underTest.tell(CancelSubscription.of(subscriptionId, DittoHeaders.empty()), getRef());
             expectTerminated(underTest);
-            expectNoMessage(Duration.ofSeconds(1L));
         }};
     }
 
@@ -103,7 +110,7 @@ public final class SubscriptionActorTest {
         // comment the next line to get logs for debugging
         actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(getRef()));
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), getRef()));
             final DittoRuntimeException error =
                     InvalidRqlExpressionException.fromMessage("mock error", DittoHeaders.empty());
             connect(underTest, Source.failed(error));
@@ -117,7 +124,7 @@ public final class SubscriptionActorTest {
         // comment the next line to get logs for debugging
         actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(getRef()));
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), getRef()));
             final String subscriptionId = underTest.path().name();
             final DittoRuntimeException error =
                     InvalidRqlExpressionException.fromMessage("mock error", DittoHeaders.empty());
@@ -133,10 +140,20 @@ public final class SubscriptionActorTest {
         }};
     }
 
-    private ActorRef newSubscriptionActor(final ActorRef testKitRef) {
-        final Props propsForTest = Props.create(SubscriptionActor.class,
-                () -> new SubscriptionActor(testKitRef, DittoHeaders.empty()));
-        return actorSystem.actorOf(propsForTest);
+    @Test
+    public void timeout() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ZERO, getRef()));
+            connect(underTest, Source.single(JsonArray.of(1)));
+            final SubscriptionFailed subscriptionFailed = expectMsgClass(SubscriptionFailed.class);
+            assertThat(subscriptionFailed.getError().getErrorCode()).isEqualTo(SubscriptionTimeoutException.ERROR_CODE);
+            expectTerminated(underTest);
+        }};
+    }
+
+    private ActorRef newSubscriptionActor(final Duration timeout, final ActorRef testKitRef) {
+        final Props propsForTest = SubscriptionActor.props(timeout, testKitRef, DittoHeaders.empty());
+        return actorSystem.actorOf(propsForTest, String.valueOf(Integer.MIN_VALUE));
     }
 
     private void connect(final ActorRef subscriptionActor, final Source<JsonArray, ?> pageSource) {

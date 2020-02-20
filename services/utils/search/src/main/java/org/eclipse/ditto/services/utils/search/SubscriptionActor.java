@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.search;
 
+import java.time.Duration;
+
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -19,6 +21,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionTimeoutException;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
@@ -29,6 +32,8 @@ import org.reactivestreams.Subscription;
 
 import akka.actor.AbstractActorWithStash;
 import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -42,10 +47,23 @@ public final class SubscriptionActor extends AbstractActorWithStash {
     private ActorRef sender;
     private DittoHeaders dittoHeaders;
 
-    SubscriptionActor(final ActorRef sender, final DittoHeaders dittoHeaders) {
+    SubscriptionActor(final Duration idleTimeout, final ActorRef sender, final DittoHeaders dittoHeaders) {
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         this.sender = sender;
         this.dittoHeaders = dittoHeaders;
+        getContext().setReceiveTimeout(idleTimeout);
+    }
+
+    /**
+     * Create Props object for the SubscriptionActor.
+     *
+     * @param idleTimeout maximum lifetime while idling
+     * @param sender sender of the command that created this actor.
+     * @param dittoHeaders headers of the command that created this actor.
+     * @return Props for this actor.
+     */
+    public static Props props(final Duration idleTimeout, final ActorRef sender, final DittoHeaders dittoHeaders) {
+        return Props.create(SubscriptionActor.class, idleTimeout, sender, dittoHeaders);
     }
 
     /**
@@ -59,6 +77,13 @@ public final class SubscriptionActor extends AbstractActorWithStash {
     }
 
     @Override
+    public void postStop() {
+        if (subscription != null) {
+            subscription.cancel();
+        }
+    }
+
+    @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(RequestSubscription.class, this::requestSubscription)
@@ -67,7 +92,18 @@ public final class SubscriptionActor extends AbstractActorWithStash {
                 .match(SubscriptionComplete.class, this::subscriptionComplete)
                 .match(SubscriptionFailed.class, this::subscriptionFailed)
                 .match(Subscription.class, this::onSubscribe)
+                .matchEquals(ReceiveTimeout.getInstance(), this::idleTimeout)
                 .build();
+    }
+
+    private void idleTimeout(final ReceiveTimeout receiveTimeout) {
+        // usually a user error
+        log.info("Stopping due to idle timeout");
+        final String subscriptionId = getSelf().path().name();
+        final SubscriptionTimeoutException error = SubscriptionTimeoutException.of(subscriptionId, dittoHeaders);
+        final SubscriptionFailed subscriptionFailed = SubscriptionFailed.of(subscriptionId, error, dittoHeaders);
+        sender.tell(subscriptionFailed, ActorRef.noSender());
+        getContext().stop(getSelf());
     }
 
     private void onSubscribe(final Subscription subscription) {
@@ -109,18 +145,18 @@ public final class SubscriptionActor extends AbstractActorWithStash {
 
     private void subscriptionHasNext(final SubscriptionHasNext event) {
         log.debug("{}", event);
-        sender.tell(event.setDittoHeaders(dittoHeaders), getSelf());
+        sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
     }
 
     private void subscriptionComplete(final SubscriptionComplete event) {
         log.info("{}", event);
-        sender.tell(event.setDittoHeaders(dittoHeaders), getSelf());
+        sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
         getContext().stop(getSelf());
     }
 
     private void subscriptionFailed(final SubscriptionFailed event) {
         log.withCorrelationId(event).error(event.getError(), "SubscriptionFailed");
-        sender.tell(event.setDittoHeaders(dittoHeaders), getSelf());
+        sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
         getContext().stop(getSelf());
     }
 

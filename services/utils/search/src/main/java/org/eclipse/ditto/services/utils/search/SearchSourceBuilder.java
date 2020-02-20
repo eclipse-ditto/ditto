@@ -145,7 +145,7 @@ public final class SearchSourceBuilder {
      * @param filter the filter.
      * @return this builder.
      */
-    public SearchSourceBuilder filter(final String filter) {
+    public SearchSourceBuilder filter(@Nullable final String filter) {
         this.filter = filter;
         return this;
     }
@@ -156,7 +156,7 @@ public final class SearchSourceBuilder {
      * @param namespaces the namespaces.
      * @return this builder.
      */
-    public SearchSourceBuilder namespaces(final JsonArray namespaces) {
+    public SearchSourceBuilder namespaces(@Nullable final JsonArray namespaces) {
         this.namespaces = namespaces;
         return this;
     }
