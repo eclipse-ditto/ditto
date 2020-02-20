@@ -166,8 +166,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         logger.withCorrelationId(command).debug("Got <Command> message {}, telling the targetActor about it.", command);
         if (command.getDittoHeaders().isResponseRequired()) {
-            final UnaryOperator<Command<?>> ackLabelSetter = ThingModifyCommandAckRequestSetter.getInstance();
-            final Command<?> commandWithAckLabels = ackLabelSetter.apply(command);
+            final UnaryOperator<Command<?>> ackRequestSetter = ThingModifyCommandAckRequestSetter.getInstance();
+            final Command<?> commandWithAckLabels = ackRequestSetter.apply(command);
             final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
             acknowledgements.addAcknowledgementRequests(dittoHeaders.getAcknowledgementRequests());
             proxyActor.tell(commandWithAckLabels, getSelf());

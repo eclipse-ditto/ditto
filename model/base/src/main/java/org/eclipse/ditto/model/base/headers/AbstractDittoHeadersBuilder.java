@@ -393,8 +393,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     private boolean calculateIsResponseRequiredViaRequestedAcks() {
-        final String reqAckLabels = headers.getOrDefault(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(), "");
-        return !reqAckLabels.isEmpty();
+        final String ackRequests = headers.getOrDefault(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), "");
+        return !ackRequests.isEmpty();
     }
 
     private boolean calculateIsResponseRequiredViaTimeout() {
