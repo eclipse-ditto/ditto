@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -202,10 +202,10 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
 
     /**
      * Returns whether a response to a command is required or if it may be omitted (fire and forget semantics).
-     * If acknowledgment labels are set the return value of this method is implicitly {@code true}.
+     * If acknowledgment requests are set the return value of this method is implicitly {@code true}.
      *
      * @return the "response required" value.
-     * @see #getRequestedAckLabels()
+     * @see #getAcknowledgementRequests()
      */
     boolean isResponseRequired();
 
@@ -275,20 +275,19 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     DittoHeaders truncate(long maxSizeBytes);
 
     /**
-     * Returns the acknowledgement ("ACK") labels which were requested together with an issued Ditto {@code Command}.
-     * Such ack labels are sent back to the issuer of the command so that it can be verified which steps were
-     * successful.
+     * Returns the acknowledgements ("ACK") which were requested together with an issued Ditto {@code Command}.
+     * Such ACKs are sent back to the issuer of the command so that it can be verified which steps were successful.
      * <p>
      * In addition to built-in ACK labels like
-     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#PERSISTED} also custom labels may be specified
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#PERSISTED} also custom labels may be used
      * which can be sent back even by external systems.
      * </p>
      *
-     * @return an unsorted Set of the requested acknowledgement labels. Changes on the set are not reflected back to
-     * this DittoHeaders instance.
+     * @return an unsorted Set of the requested acknowledgements.
+     * Changes on the set are not reflected back to this DittoHeaders instance.
      * @since 1.1.0
      */
-    Set<AcknowledgementLabel> getRequestedAckLabels();
+    Set<AcknowledgementRequest> getAcknowledgementRequests();
 
     /**
      * Returns the timeout of a command or message.

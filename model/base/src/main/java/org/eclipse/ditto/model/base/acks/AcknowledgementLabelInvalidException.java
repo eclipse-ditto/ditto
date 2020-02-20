@@ -32,18 +32,17 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = AcknowledgementLabelInvalidException.ERROR_CODE)
-public final class AcknowledgementLabelInvalidException extends DittoRuntimeException
-        implements AcknowledgementException {
+public final class AcknowledgementLabelInvalidException extends DittoRuntimeException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "label.invalid";
+    public static final String ERROR_CODE = AcknowledgementExceptions.ERROR_CODE_PREFIX + "label.invalid";
 
     private static final String MESSAGE_TEMPLATE = "Acknowledgement label <{0}> is invalid!";
 
     private static final String DEFAULT_DESCRIPTION =
-            "It must conform to the regular expression for acknowledgement labels (see Ditto documentation)";
+            "An acknowledgement label must conform to the regular expression of Ditto documentation.";
 
     private static final URI DEFAULT_HREF = URI.create(
             "https://www.eclipse.org/ditto/protocol-specification-topic.html#acknowledgement-criterion-actions");
@@ -82,12 +81,12 @@ public final class AcknowledgementLabelInvalidException extends DittoRuntimeExce
      * Constructs a new {@code AcknowledgementLabelInvalidException} object with the exception message extracted from
      * the given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON object representation of the returned exception.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ThingIdInvalidException.
+     * @return the new exception.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the
-     * {@link JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} misses a required field.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contained an unexpected value type.
      */
     public static AcknowledgementLabelInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {

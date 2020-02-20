@@ -166,10 +166,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         logger.withCorrelationId(command).debug("Got <Command> message {}, telling the targetActor about it.", command);
         if (isExpectingResponse(command)) {
-            final UnaryOperator<Command<?>> ackLabelSetter = ThingModifyCommandAckLabelSetter.getInstance();
+            final UnaryOperator<Command<?>> ackLabelSetter = ThingModifyCommandAckRequestSetter.getInstance();
             final Command<?> commandWithAckLabels = ackLabelSetter.apply(command);
             final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
-            acknowledgements.addRequestedAcknowledgementLabels(dittoHeaders.getRequestedAckLabels());
+            acknowledgements.addAcknowledgementRequests(dittoHeaders.getAcknowledgementRequests());
             proxyActor.tell(commandWithAckLabels, getSelf());
 
             // After a Command was received, this Actor can only receive the correlating CommandResponse:
@@ -186,7 +186,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         }
     }
 
-    private boolean isExpectingResponse(final Command<?> command) {
+    private static boolean isExpectingResponse(final Command<?> command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         return dittoHeaders.isResponseRequired() || dittoHeaders.getTimeout() // if timeout is not specified
                 .filter(Duration::isZero) // or timeout is 0

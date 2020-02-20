@@ -19,7 +19,7 @@ import java.util.function.UnaryOperator;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -27,17 +27,17 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 /**
- * This UnaryOperator accepts a Command and checks whether its DittoHeaders should be extended by the required ACK label
- * {@link DittoAcknowledgementLabel#PERSISTED}.
+ * This UnaryOperator accepts a Command and checks whether its DittoHeaders should be extended by an
+ * {@link AcknowledgementRequest} for {@link DittoAcknowledgementLabel#PERSISTED}.
  * If so, the result is a new command with extended headers, else the same command is returned.
  * The headers are only extended if the command is an instance of {@link ThingModifyCommand} if
  * {@link DittoHeaders#isResponseRequired()} evaluates to {@code true} and if command headers do not yet contain
- * requested acknowledgements.
+ * acknowledgement requests.
  */
 @Immutable
-final class ThingModifyCommandAckLabelSetter implements UnaryOperator<Command<?>> {
+final class ThingModifyCommandAckRequestSetter implements UnaryOperator<Command<?>> {
 
-    private ThingModifyCommandAckLabelSetter() {
+    private ThingModifyCommandAckRequestSetter() {
         super();
     }
 
@@ -46,8 +46,8 @@ final class ThingModifyCommandAckLabelSetter implements UnaryOperator<Command<?>
      *
      * @return the instance.
      */
-    public static ThingModifyCommandAckLabelSetter getInstance() {
-        return new ThingModifyCommandAckLabelSetter();
+    public static ThingModifyCommandAckRequestSetter getInstance() {
+        return new ThingModifyCommandAckRequestSetter();
     }
 
     @Override
@@ -70,11 +70,11 @@ final class ThingModifyCommandAckLabelSetter implements UnaryOperator<Command<?>
 
     private static Command<?> requestDittoPersistedAckIfNoOtherAcksAreRequested(final Command<?> command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Set<AcknowledgementLabel> requestedAckLabels = dittoHeaders.getRequestedAckLabels();
-        if (requestedAckLabels.isEmpty()) {
-            requestedAckLabels.add(DittoAcknowledgementLabel.PERSISTED);
+        final Set<AcknowledgementRequest> acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
+        if (acknowledgementRequests.isEmpty()) {
+            acknowledgementRequests.add(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED));
             return command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
-                    .requestedAckLabels(requestedAckLabels)
+                    .acknowledgementRequests(acknowledgementRequests)
                     .build());
         }
         return command;

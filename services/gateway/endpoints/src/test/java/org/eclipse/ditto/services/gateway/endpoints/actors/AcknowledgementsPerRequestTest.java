@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -43,8 +44,8 @@ public final class AcknowledgementsPerRequestTest {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
 
         assertThatNullPointerException()
-                .isThrownBy(() -> underTest.addRequestedAcknowledgementLabel(null))
-                .withMessage("The requestedAckLabel must not be null!")
+                .isThrownBy(() -> underTest.addAcknowledgementRequest(null))
+                .withMessage("The acknowledgementRequest must not be null!")
                 .withNoCause();
     }
 
@@ -52,22 +53,23 @@ public final class AcknowledgementsPerRequestTest {
     public void emptyInstanceHasNoMissingAcknowledgementLabels() {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
 
-        assertThat(underTest.getMissingAcknowledgementLabels()).isEmpty();
+        assertThat(underTest.getMissingAcknowledgementRequests()).isEmpty();
     }
 
     @Test
     public void getMissingAcknowledgementLabelsReturnsExpected() {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
-        final List<Acknowledgement> successfulAcknowledgements = createAcknowledgements(2, HttpStatusCode.NO_CONTENT);
-        final List<Acknowledgement> failedAcknowledgements = createAcknowledgements(2, HttpStatusCode.FORBIDDEN);
-        successfulAcknowledgements.forEach(ack -> underTest.addRequestedAcknowledgementLabel(ack.getLabel()));
-        failedAcknowledgements.forEach(ack -> underTest.addRequestedAcknowledgementLabel(ack.getLabel()));
-        failedAcknowledgements.forEach(underTest::addReceivedAcknowledgment);
-        final List<AcknowledgementLabel> expected = successfulAcknowledgements.stream()
+        final List<Acknowledgement> successfulAcks = createAcknowledgements(2, HttpStatusCode.NO_CONTENT);
+        final List<Acknowledgement> failedAcks = createAcknowledgements(2, HttpStatusCode.FORBIDDEN);
+        successfulAcks.forEach(ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel())));
+        failedAcks.forEach(ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel())));
+        failedAcks.forEach(underTest::addReceivedAcknowledgment);
+        final List<AcknowledgementRequest> expected = successfulAcks.stream()
                 .map(Acknowledgement::getLabel)
+                .map(AcknowledgementRequest::of)
                 .collect(Collectors.toList());
 
-        assertThat(underTest.getMissingAcknowledgementLabels()).containsExactlyElementsOf(expected);
+        assertThat(underTest.getMissingAcknowledgementRequests()).containsExactlyElementsOf(expected);
     }
 
     @Test
@@ -75,8 +77,8 @@ public final class AcknowledgementsPerRequestTest {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
 
         assertThatNullPointerException()
-                .isThrownBy(() -> underTest.addRequestedAcknowledgementLabels(null))
-                .withMessage("The requestedAckLabels must not be null!")
+                .isThrownBy(() -> underTest.addAcknowledgementRequests(null))
+                .withMessage("The acknowledgementRequests must not be null!")
                 .withNoCause();
     }
 
@@ -92,7 +94,7 @@ public final class AcknowledgementsPerRequestTest {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
         final List<Acknowledgement> acknowledgements = createAcknowledgements(3, HttpStatusCode.NO_CONTENT);
         acknowledgements.addAll(createAcknowledgements(2, HttpStatusCode.BAD_REQUEST));
-        acknowledgements.forEach(ack -> underTest.addRequestedAcknowledgementLabel(ack.getLabel()));
+        acknowledgements.forEach(ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel())));
         underTest.addReceivedAcknowledgment(acknowledgements.get(1));
 
         assertThat(underTest.receivedAllRequestedAcknowledgements()).isFalse();
@@ -103,7 +105,7 @@ public final class AcknowledgementsPerRequestTest {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
         final List<Acknowledgement> acknowledgements = createAcknowledgements(3, HttpStatusCode.NO_CONTENT);
         acknowledgements.addAll(createAcknowledgements(2, HttpStatusCode.BAD_REQUEST));
-        acknowledgements.forEach(ack -> underTest.addRequestedAcknowledgementLabel(ack.getLabel()));
+        acknowledgements.forEach(ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel())));
         acknowledgements.forEach(underTest::addReceivedAcknowledgment);
 
         assertThat(underTest.receivedAllRequestedAcknowledgements()).isTrue();
@@ -113,7 +115,7 @@ public final class AcknowledgementsPerRequestTest {
     public void getMissingAcknowledgementLabelsFromEmptyInstance() {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
 
-        assertThat(underTest.getMissingAcknowledgementLabels()).isEmpty();
+        assertThat(underTest.getMissingAcknowledgementRequests()).isEmpty();
     }
 
     @Test
@@ -126,7 +128,7 @@ public final class AcknowledgementsPerRequestTest {
         final Acknowledgement successfulAcknowledgement =
                 Acknowledgement.of(ackLabel, thingId, HttpStatusCode.NO_CONTENT, dittoHeaders);
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
-        underTest.addRequestedAcknowledgementLabel(ackLabel);
+        underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ackLabel));
 
         underTest.addReceivedAcknowledgment(failedAcknowledgement);
         underTest.addReceivedAcknowledgment(successfulAcknowledgement);
@@ -155,12 +157,12 @@ public final class AcknowledgementsPerRequestTest {
     public void addFailedReceivedAcknowledgement() {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
         final Acknowledgement failedAcknowledgement = createAcknowledgement(HttpStatusCode.NOT_FOUND);
-        underTest.addRequestedAcknowledgementLabel(failedAcknowledgement.getLabel());
+        underTest.addAcknowledgementRequest(AcknowledgementRequest.of(failedAcknowledgement.getLabel()));
 
         underTest.addReceivedAcknowledgment(failedAcknowledgement);
 
         try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
-            softly.assertThat(underTest.getMissingAcknowledgementLabels())
+            softly.assertThat(underTest.getMissingAcknowledgementRequests())
                     .as("no missing requested ACK labels")
                     .isEmpty();
             softly.assertThat(underTest.getFailedAcknowledgements())
@@ -176,12 +178,12 @@ public final class AcknowledgementsPerRequestTest {
     public void addSuccessfulReceivedAcknowledgement() {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
         final Acknowledgement successfulAcknowledgement = createAcknowledgement(HttpStatusCode.OK);
-        underTest.addRequestedAcknowledgementLabel(successfulAcknowledgement.getLabel());
+        underTest.addAcknowledgementRequest(AcknowledgementRequest.of(successfulAcknowledgement.getLabel()));
 
         underTest.addReceivedAcknowledgment(successfulAcknowledgement);
 
         try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
-            softly.assertThat(underTest.getMissingAcknowledgementLabels())
+            softly.assertThat(underTest.getMissingAcknowledgementRequests())
                     .as("no missing requested ACK labels")
                     .isEmpty();
             softly.assertThat(underTest.getFailedAcknowledgements())
@@ -197,7 +199,7 @@ public final class AcknowledgementsPerRequestTest {
     public void unknownReceivedAcknowledgementsAreIgnored() {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
         final DittoAcknowledgementLabel requestedAckLabel = DittoAcknowledgementLabel.PERSISTED;
-        underTest.addRequestedAcknowledgementLabel(requestedAckLabel);
+        underTest.addAcknowledgementRequest(AcknowledgementRequest.of(requestedAckLabel));
         final List<Acknowledgement> acknowledgements = createAcknowledgements(1, HttpStatusCode.NO_CONTENT);
         acknowledgements.addAll(createAcknowledgements(1, HttpStatusCode.BAD_REQUEST));
         acknowledgements.forEach(underTest::addReceivedAcknowledgment);
@@ -215,21 +217,21 @@ public final class AcknowledgementsPerRequestTest {
     @Test
     public void successfulAcknowledgementsAreInExpectedOrder() {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
-        final List<Acknowledgement> successfulAcknowledgements = createAcknowledgements(3, HttpStatusCode.OK);
-        successfulAcknowledgements.forEach(ack -> underTest.addRequestedAcknowledgementLabel(ack.getLabel()));
-        successfulAcknowledgements.forEach(underTest::addReceivedAcknowledgment);
+        final List<Acknowledgement> successfulAcks = createAcknowledgements(3, HttpStatusCode.OK);
+        successfulAcks.forEach(ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel())));
+        successfulAcks.forEach(underTest::addReceivedAcknowledgment);
 
-        assertThat(underTest.getSuccessfulAcknowledgements()).containsExactlyElementsOf(successfulAcknowledgements);
+        assertThat(underTest.getSuccessfulAcknowledgements()).containsExactlyElementsOf(successfulAcks);
     }
 
     @Test
     public void failedAcknowledgementsAreInExpectedOrder() {
         final AcknowledgementsPerRequest underTest = AcknowledgementsPerRequest.getInstance();
-        final List<Acknowledgement> failedAcknowledgements = createAcknowledgements(3, HttpStatusCode.NOT_FOUND);
-        failedAcknowledgements.forEach(ack -> underTest.addRequestedAcknowledgementLabel(ack.getLabel()));
-        failedAcknowledgements.forEach(underTest::addReceivedAcknowledgment);
+        final List<Acknowledgement> failedAcks = createAcknowledgements(3, HttpStatusCode.NOT_FOUND);
+        failedAcks.forEach(ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel())));
+        failedAcks.forEach(underTest::addReceivedAcknowledgment);
 
-        assertThat(underTest.getFailedAcknowledgements()).containsExactlyElementsOf(failedAcknowledgements);
+        assertThat(underTest.getFailedAcknowledgements()).containsExactlyElementsOf(failedAcks);
     }
 
     private Acknowledgement createAcknowledgement(final HttpStatusCode statusCode) {

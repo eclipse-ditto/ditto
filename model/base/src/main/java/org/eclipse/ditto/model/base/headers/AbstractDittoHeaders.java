@@ -36,7 +36,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -143,8 +143,8 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     public boolean isResponseRequired() {
         boolean result = true;
         if (isExpectedBoolean(DittoHeaderDefinition.RESPONSE_REQUIRED, Boolean.FALSE)) {
-            final String reqAckLabels = headers.getOrDefault(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(), "");
-            result = !reqAckLabels.isEmpty();
+            final String ackRequests = headers.getOrDefault(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), "");
+            result = !ackRequests.isEmpty();
         }
         return result;
     }
@@ -227,11 +227,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
-    public Set<AcknowledgementLabel> getRequestedAckLabels() {
-        final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.REQUESTED_ACK_LABELS);
+    public Set<AcknowledgementRequest> getAcknowledgementRequests() {
+        final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.REQUESTED_ACKS);
         return jsonValueArray.stream()
                 .map(JsonValue::asString)
-                .map(AcknowledgementLabel::of)
+                .map(AcknowledgementRequest::parseAcknowledgementRequest)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 

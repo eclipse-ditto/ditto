@@ -34,7 +34,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.JsonValueContainer;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -282,23 +282,27 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S requestedAckLabels(final Collection<AcknowledgementLabel> ackLabels) {
-        checkNotNull(ackLabels, "ackLabels");
-        putJsonValue(DittoHeaderDefinition.REQUESTED_ACK_LABELS, ackLabels.stream()
-                .map(AcknowledgementLabel::toString)
+    public S acknowledgementRequests(final Collection<AcknowledgementRequest> acknowledgementRequests) {
+        checkNotNull(acknowledgementRequests, "acknowledgementRequests");
+        putJsonValue(DittoHeaderDefinition.REQUESTED_ACKS, acknowledgementRequests.stream()
+                .map(AcknowledgementRequest::toString)
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray()));
         return myself;
     }
 
     @Override
-    public S requestedAckLabels(final AcknowledgementLabel ackLabel, final AcknowledgementLabel ... furtherAckLabels) {
-        checkNotNull(ackLabel, "ackLabel");
-        checkNotNull(furtherAckLabels, "furtherAckLabels");
-        final Collection<AcknowledgementLabel> ackLabels = new ArrayList<>(1 + furtherAckLabels.length);
-        ackLabels.add(ackLabel);
-        Collections.addAll(ackLabels, furtherAckLabels);
-        return requestedAckLabels(ackLabels);
+    public S acknowledgementRequest(final AcknowledgementRequest acknowledgementRequest,
+            final AcknowledgementRequest... furtherAcknowledgementRequests) {
+
+        checkNotNull(acknowledgementRequest, "acknowledgementRequest");
+        checkNotNull(furtherAcknowledgementRequests, "furtherAcknowledgementRequests");
+        final Collection<AcknowledgementRequest> ackRequests =
+                new ArrayList<>(1 + furtherAcknowledgementRequests.length);
+
+        ackRequests.add(acknowledgementRequest);
+        Collections.addAll(ackRequests, furtherAcknowledgementRequests);
+        return acknowledgementRequests(ackRequests);
     }
 
     @Override

@@ -163,14 +163,13 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     ORIGINATOR("ditto-originator", String.class, false, true),
 
     /**
-     * Header definition for defining which acknowledgements ("ack") labels are requested for a command processed by
-     * Ditto.
+     * Header definition for defining which acknowledgements ("ack") are requested for a command processed by Ditto.
      * <p>
-     * Key: {@code "requested-ack-labels"}, Java type: {@link JsonArray}.
+     * Key: {@code "requested-acks"}, Java type: {@link JsonArray}.
      * </p>
      * @since 1.1.0
      */
-    REQUESTED_ACK_LABELS("requested-ack-labels", JsonArray.class, true, true),
+    REQUESTED_ACKS("requested-acks", JsonArray.class, true, true),
 
     /**
      * Header definition for the timeout of a command or message.

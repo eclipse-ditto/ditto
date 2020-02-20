@@ -19,7 +19,7 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -134,8 +134,9 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * Sets the responseRequired value.
      * Call this method for explicitly waiving a response.
      * <em>
-     * Please note: If requested ACK labels are set (see {@link #requestedAckLabels(Collection)} calling this method has
-     * no effect. Requested ACK labels always imply that a response is required.
+     * Please note: If ACK requests are set (see {@link #acknowledgementRequests(Collection)} calling this method has no
+     * effect.
+     * ACK requests always imply that a response is required.
      * </em>
      *
      * @param responseRequired the responseRequired value to be set.
@@ -208,47 +209,46 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B replyTarget(@Nullable Integer replyTarget);
 
     /**
-     * Sets the acknowledgement ("ACK") labels which are requested together with an issued Ditto {@code Command}.
-     * Such ack labels are sent back to the issuer of the command so that it can be verified which steps were
-     * successful.
+     * Sets the acknowledgements ("ACK") which are requested together with an issued Ditto {@code Command}.
+     * Such ACKs are sent back to the issuer of the command so that it can be verified which steps were successful.
      * <p>
      * In addition to built-in ACK labels like
-     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#PERSISTED} also custom labels may be specified
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#PERSISTED} also custom labels may be used
      * which can be sent back even by external systems.
      * </p>
      * <p>
-     * As long as ACK labels are requested, calls of {@link #responseRequired(boolean)} are neglected as requested ACK
-     * labels always imply that a response is required.
+     * As long as ACKs are requested, calls of {@link #responseRequired(boolean)} are neglected as requested ACKs always
+     * imply that a response is required.
      * </p>
      *
-     * @param ackLabels the requested acknowledgement labels.
+     * @param acknowledgementRequests the requests for acknowledgements.
      * @return this builder.
-     * @throws NullPointerException if {@code ackLabels} is {@code null}.
+     * @throws NullPointerException if {@code acknowledgementRequests} is {@code null}.
      * @since 1.1.0
      */
-    B requestedAckLabels(Collection<AcknowledgementLabel> ackLabels);
+    B acknowledgementRequests(Collection<AcknowledgementRequest> acknowledgementRequests);
 
     /**
-     * Sets the acknowledgement ("ACK") labels which are requested together with an issued Ditto {@code Command}.
-     * Such ack labels are sent back to the issuer of the command so that it can be verified which steps were
-     * successful.
+     * Sets the acknowledgements ("ACK") which are requested together with an issued Ditto {@code Command}.
+     * Such ACKs are sent back to the issuer of the command so that it can be verified which steps were successful.
      * <p>
      * In addition to built-in ACK labels like
-     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#PERSISTED} also custom labels may be specified
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#PERSISTED} also custom labels may be used
      * which can be sent back even by external systems.
      * </p>
      * <p>
-     * As long as ACK labels are requested, calls of {@link #responseRequired(boolean)} are neglected as requested ACK
-     * labels always imply that a response is required.
+     * As long as ACKs are requested, calls of {@link #responseRequired(boolean)} are neglected as requested ACKs always
+     * imply that a response is required.
      * </p>
      *
-     * @param ackLabel the requested acknowledgement labels.
-     * @param furtherAckLabels further requested acknowledgement labels.
+     * @param acknowledgementRequest the request for an acknowledgement.
+     * @param furtherAcknowledgementRequests further requests for acknowledgements.
      * @return this builder.
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.1.0
      */
-    B requestedAckLabels(AcknowledgementLabel ackLabel, AcknowledgementLabel ... furtherAckLabels);
+    B acknowledgementRequest(AcknowledgementRequest acknowledgementRequest,
+            AcknowledgementRequest... furtherAcknowledgementRequests);
 
     /**
      * Sets the timeout string of the DittoHeaders to build.

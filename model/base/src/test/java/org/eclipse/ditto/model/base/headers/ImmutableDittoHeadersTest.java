@@ -38,6 +38,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
@@ -79,8 +80,9 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_MAPPER = "knownMapper";
     private static final String KNOWN_ORIGINATOR = "known:originator";
     private static final Duration KNOWN_TIMEOUT = Duration.ofSeconds(6);
-    private static final AcknowledgementLabel KNOWN_ACK_LABEL = AcknowledgementLabel.of("ack-label-1");
-    private static final List<AcknowledgementLabel> KNOWN_REQUESTED_ACK_LABELS = Lists.list(KNOWN_ACK_LABEL);
+    private static final AcknowledgementRequest KNOWN_ACK_REQUEST =
+            AcknowledgementRequest.of(AcknowledgementLabel.of("ack-label-1"));
+    private static final List<AcknowledgementRequest> KNOWN_ACK_REQUESTS = Lists.list(KNOWN_ACK_REQUEST);
 
     @Test
     public void assertImmutability() {
@@ -115,7 +117,7 @@ public final class ImmutableDittoHeadersTest {
                 .replyTarget(Integer.valueOf(KNOWN_REPLY_TARGET))
                 .inboundPayloadMapper(KNOWN_MAPPER)
                 .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
-                .requestedAckLabels(KNOWN_REQUESTED_ACK_LABELS)
+                .acknowledgementRequests(KNOWN_ACK_REQUESTS)
                 .timeout(KNOWN_TIMEOUT.getSeconds())
                 .build();
 
@@ -233,7 +235,7 @@ public final class ImmutableDittoHeadersTest {
     @Test
     public void isResponseRequiredReturnsTrueIfRequiredAckLabelsAreSet() {
         final DittoHeaders underTest = DittoHeaders.newBuilder()
-                .requestedAckLabels(DittoAcknowledgementLabel.PERSISTED)
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED))
                 .responseRequired(false)
                 .build();
 
@@ -257,10 +259,10 @@ public final class ImmutableDittoHeadersTest {
     @Test
     public void getRequestedAckLabelsReturnsExpected() {
         final DittoHeaders underTest = DittoHeaders.newBuilder()
-                .requestedAckLabels(KNOWN_REQUESTED_ACK_LABELS)
+                .acknowledgementRequests(KNOWN_ACK_REQUESTS)
                 .build();
 
-        assertThat(underTest.getRequestedAckLabels()).containsExactlyInAnyOrderElementsOf(KNOWN_REQUESTED_ACK_LABELS);
+        assertThat(underTest.getAcknowledgementRequests()).containsExactlyInAnyOrderElementsOf(KNOWN_ACK_REQUESTS);
     }
 
     @Test
@@ -297,8 +299,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.REPLY_TARGET.getKey(), Integer.parseInt(KNOWN_REPLY_TARGET))
                 .set(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER)
                 .set(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
-                .set(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(),
-                        ackLabelsToJsonArray(KNOWN_REQUESTED_ACK_LABELS))
+                .set(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), ackRequestsToJsonArray(KNOWN_ACK_REQUESTS))
                 .set(DittoHeaderDefinition.TIMEOUT.getKey(), JsonValue.of(String.valueOf(KNOWN_TIMEOUT.getSeconds())))
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -464,8 +465,8 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.REPLY_TARGET.getKey(), KNOWN_REPLY_TARGET);
         result.put(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER);
         result.put(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR);
-        result.put(DittoHeaderDefinition.REQUESTED_ACK_LABELS.getKey(),
-                ackLabelsToJsonArray(KNOWN_REQUESTED_ACK_LABELS).toString());
+        result.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
+                ackRequestsToJsonArray(KNOWN_ACK_REQUESTS).toString());
         result.put(DittoHeaderDefinition.TIMEOUT.getKey(), String.valueOf(KNOWN_TIMEOUT.getSeconds()));
 
         return result;
@@ -486,9 +487,9 @@ public final class ImmutableDittoHeadersTest {
                 .collect(JsonCollectors.valuesToArray());
     }
 
-    private static JsonArray ackLabelsToJsonArray(final Collection<AcknowledgementLabel> ackLabels) {
-        return ackLabels.stream()
-                .map(AcknowledgementLabel::toString)
+    private static JsonArray ackRequestsToJsonArray(final Collection<AcknowledgementRequest> ackRequests) {
+        return ackRequests.stream()
+                .map(AcknowledgementRequest::toString)
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
     }

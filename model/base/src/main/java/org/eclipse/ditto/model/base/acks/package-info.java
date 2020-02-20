@@ -12,7 +12,7 @@
  */
 
 /**
- * Contains labels for end-to-end (business) acknowledgements.
+ * Contains means for triggering end-to-end (business) acknowledgements.
  *
  * @since 1.1.0
  */

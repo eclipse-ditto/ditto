@@ -23,6 +23,7 @@ import java.util.Set;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
 
@@ -34,12 +35,12 @@ final class AcknowledgementsPerRequest {
 
     private static final byte DEFAULT_INITIAL_CAPACITY = 4;
 
-    private final Set<AcknowledgementLabel> requestedAckLabels;
+    private final Map<AcknowledgementLabel, AcknowledgementRequest> acknowledgementRequests;
     private final Map<AcknowledgementLabel, Acknowledgement> successfulAcknowledgements;
     private final Map<AcknowledgementLabel, Acknowledgement> failedAcknowledgements;
 
     private AcknowledgementsPerRequest() {
-        requestedAckLabels = new LinkedHashSet<>(DEFAULT_INITIAL_CAPACITY);
+        acknowledgementRequests = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
         successfulAcknowledgements = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
         failedAcknowledgements = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
     }
@@ -54,23 +55,25 @@ final class AcknowledgementsPerRequest {
     }
 
     /**
-     * Adds the given requested acknowledgement label if it is not already present.
+     * Adds the given acknowledgement request if it is not already present.
      *
-     * @param requestedAckLabel the label to be added.
+     * @param acknowledgementRequest the acknowledgement request to be added.
      * @throws NullPointerException if {@code requestedAckLabel} is {@code null}.
      */
-    public void addRequestedAcknowledgementLabel(final AcknowledgementLabel requestedAckLabel) {
-        requestedAckLabels.add(checkNotNull(requestedAckLabel, "requestedAckLabel"));
+    public void addAcknowledgementRequest(final AcknowledgementRequest acknowledgementRequest) {
+        checkNotNull(acknowledgementRequest, "acknowledgementRequest");
+        acknowledgementRequests.put(acknowledgementRequest.getLabel(), acknowledgementRequest);
     }
 
     /**
-     * Adds the given requested acknowledgement labels if they are not already present.
+     * Adds the given acknowledgement requests if they are not already present.
      *
-     * @param requestedAckLabels the labels to be added.
-     * @throws NullPointerException if {@code requestedAckLabels} is {@code null}.
+     * @param acknowledgementRequests the acknowledgement requests to be added.
+     * @throws NullPointerException if {@code acknowledgementRequests} is {@code null}.
      */
-    public void addRequestedAcknowledgementLabels(final Collection<AcknowledgementLabel> requestedAckLabels) {
-        this.requestedAckLabels.addAll(checkNotNull(requestedAckLabels, "requestedAckLabels"));
+    public void addAcknowledgementRequests(final Collection<AcknowledgementRequest> acknowledgementRequests) {
+        checkNotNull(acknowledgementRequests, "acknowledgementRequests");
+        acknowledgementRequests.forEach(ackReq -> this.acknowledgementRequests.put(ackReq.getLabel(), ackReq));
     }
 
     /**
@@ -96,7 +99,7 @@ final class AcknowledgementsPerRequest {
     }
 
     private boolean isRequested(final Acknowledgement acknowledgement) {
-        return requestedAckLabels.contains(acknowledgement.getLabel());
+        return acknowledgementRequests.containsKey(acknowledgement.getLabel());
     }
 
     private static boolean isSuccessful(final Acknowledgement acknowledgement) {
@@ -116,7 +119,7 @@ final class AcknowledgementsPerRequest {
      * acknowledgements.
      */
     public boolean receivedAllRequestedAcknowledgements() {
-        return requestedAckLabels.size() == successfulAcknowledgements.size() + failedAcknowledgements.size();
+        return acknowledgementRequests.size() == successfulAcknowledgements.size() + failedAcknowledgements.size();
     }
 
     /**
@@ -129,16 +132,20 @@ final class AcknowledgementsPerRequest {
     }
 
     /**
-     * Returns the acknowledgement labels for which not yet an acknowledgement was received.
+     * Returns the acknowledgement requests for which not yet an acknowledgement was received.
      *
-     * @return the missing acknowledgement labels.
+     * @return the unanswered acknowledgement requests.
      * Changes on the returned set are not reflected back to this AcknowledgementsPerRequest instance.
      */
-    public Set<AcknowledgementLabel> getMissingAcknowledgementLabels() {
-        final Set<AcknowledgementLabel> result = getCopyAsLinkedHashSet(requestedAckLabels);
-        result.removeAll(successfulAcknowledgements.keySet());
-        result.removeAll(failedAcknowledgements.keySet());
+    public Set<AcknowledgementRequest> getMissingAcknowledgementRequests() {
+        final Set<AcknowledgementRequest> result = getCopyAsLinkedHashSet(acknowledgementRequests.values());
+        result.removeIf(this::isAnswered);
         return result;
+    }
+
+    private boolean isAnswered(final AcknowledgementRequest acknowledgementRequest) {
+        final AcknowledgementLabel ackLabel = acknowledgementRequest.getLabel();
+        return successfulAcknowledgements.containsKey(ackLabel) || failedAcknowledgements.containsKey(ackLabel);
     }
 
     /*

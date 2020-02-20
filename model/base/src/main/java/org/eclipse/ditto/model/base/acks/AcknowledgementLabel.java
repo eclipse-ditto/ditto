@@ -12,13 +12,17 @@
  */
 package org.eclipse.ditto.model.base.acks;
 
+import javax.annotation.concurrent.Immutable;
+
 /**
  * Represents the label identifying an Acknowledgement ("ACK").
  * <p>
  * Can be a built-in Ditto ACK label as well as a custom one emitted by external applications.
  * </p>
+ *
  * @since 1.1.0
  */
+@Immutable
 public interface AcknowledgementLabel extends CharSequence {
 
     /**

@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
@@ -30,18 +31,18 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.Test;
 
 /**
- * Unit test for {@link ThingModifyCommandAckLabelSetter}.
+ * Unit test for {@link ThingModifyCommandAckRequestSetter}.
  */
-public final class ThingModifyCommandAckLabelSetterTest {
+public final class ThingModifyCommandAckRequestSetterTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ThingModifyCommandAckLabelSetter.class, areImmutable());
+        assertInstancesOf(ThingModifyCommandAckRequestSetter.class, areImmutable());
     }
 
     @Test
     public void tryToApplyNullCommand() {
-        final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
+        final ThingModifyCommandAckRequestSetter underTest = ThingModifyCommandAckRequestSetter.getInstance();
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.apply(null))
@@ -60,7 +61,7 @@ public final class ThingModifyCommandAckLabelSetterTest {
                 .randomCorrelationId()
                 .build();
         final SendThingMessage<?> command = SendThingMessage.of(thingId, message, dittoHeaders);
-        final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
+        final ThingModifyCommandAckRequestSetter underTest = ThingModifyCommandAckRequestSetter.getInstance();
 
         assertThat(underTest.apply(command)).isEqualTo(command);
 
@@ -73,7 +74,7 @@ public final class ThingModifyCommandAckLabelSetterTest {
                 .randomCorrelationId()
                 .build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
-        final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
+        final ThingModifyCommandAckRequestSetter underTest = ThingModifyCommandAckRequestSetter.getInstance();
 
         assertThat(underTest.apply(command)).isEqualTo(command);
     }
@@ -83,23 +84,23 @@ public final class ThingModifyCommandAckLabelSetterTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
         final CreateThing expected = command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
-                .requestedAckLabels(DittoAcknowledgementLabel.PERSISTED)
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED))
                 .build());
-        final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
+        final ThingModifyCommandAckRequestSetter underTest = ThingModifyCommandAckRequestSetter.getInstance();
 
         assertThat(underTest.apply(command)).isEqualTo(expected);
     }
 
     @Test
     public void doNotAddPersistedAckLabelToAlreadyRequiredAckLabels() {
-        final AcknowledgementLabel ackLabel1 = AcknowledgementLabel.of("FOO");
-        final AcknowledgementLabel ackLabel2 = AcknowledgementLabel.of("BAR");
+        final AcknowledgementRequest ackRequest1 = AcknowledgementRequest.of(AcknowledgementLabel.of("FOO"));
+        final AcknowledgementRequest ackRequest2 = AcknowledgementRequest.of(AcknowledgementLabel.of("BAR"));
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .requestedAckLabels(ackLabel1, ackLabel2)
+                .acknowledgementRequest(ackRequest1, ackRequest2)
                 .randomCorrelationId()
                 .build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
-        final ThingModifyCommandAckLabelSetter underTest = ThingModifyCommandAckLabelSetter.getInstance();
+        final ThingModifyCommandAckRequestSetter underTest = ThingModifyCommandAckRequestSetter.getInstance();
 
         assertThat(underTest.apply(command)).isEqualTo(command);
     }
