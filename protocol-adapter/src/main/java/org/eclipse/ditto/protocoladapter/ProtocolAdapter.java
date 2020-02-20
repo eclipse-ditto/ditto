@@ -12,17 +12,17 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.LIVE;
+import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.NONE;
+import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.TWIN;
+
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
-import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
-import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
-import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -56,14 +56,27 @@ public interface ProtocolAdapter {
     Adaptable toAdaptable(Signal<?> signal);
 
     /**
+     * Maps the given {@code Signal} to an {@code Adaptable}.
+     *
+     * @param signal the signal.
+     * @param channel the channel to use when converting toAdaptable. This will overwrite any channel header in {@code signal}.
+     * @return the adaptable.
+     * @throws UnknownSignalException if the passed Signal was not supported by the ProtocolAdapter
+     * @since 1.1.0
+     */
+    Adaptable toAdaptable(Signal<?> signal, TopicPath.Channel channel);
+
+    /**
      * Maps the given {@code CommandResponse} to an {@code Adaptable} assuming {@link TopicPath.Channel#TWIN}.
      *
      * @param commandResponse the response.
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed CommandResponse was not supported by the ProtocolAdapter
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
+    @Deprecated
     default Adaptable toAdaptable(CommandResponse<?> commandResponse) {
-        return toAdaptable(commandResponse, TopicPath.Channel.TWIN);
+        return toAdaptable(commandResponse, determineChannel(commandResponse));
     }
 
     /**
@@ -73,7 +86,9 @@ public interface ProtocolAdapter {
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed CommandResponse was not supported by the ProtocolAdapter
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal, TopicPath.Channel)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(CommandResponse<?> commandResponse, TopicPath.Channel channel);
 
     /**
@@ -83,9 +98,11 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed ThingCommandResponse was not supported by the
      * ProtocolAdapter
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
+    @Deprecated
     default Adaptable toAdaptable(ThingCommandResponse<?> thingCommandResponse) {
-        return toAdaptable(thingCommandResponse, TopicPath.Channel.TWIN);
+        return toAdaptable(thingCommandResponse, determineChannel(thingCommandResponse));
     }
 
     /**
@@ -96,7 +113,9 @@ public interface ProtocolAdapter {
      * @return the adaptable.
      * @throws UnknownCommandResponseException if the passed ThingCommandResponse was not supported by the
      * ProtocolAdapter
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal, TopicPath.Channel)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(ThingCommandResponse<?> thingCommandResponse, TopicPath.Channel channel);
 
     /**
@@ -105,7 +124,9 @@ public interface ProtocolAdapter {
      * @param messageCommand the messageCommand.
      * @return the adaptable.
      * @throws UnknownCommandException if the passed MessageCommand was not supported by the ProtocolAdapter
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(MessageCommand<?, ?> messageCommand);
 
     /**
@@ -114,7 +135,9 @@ public interface ProtocolAdapter {
      * @param messageCommandResponse the messageCommandResponse.
      * @return the adaptable.
      * @throws UnknownCommandException if the passed MessageCommandResponse was not supported by the ProtocolAdapter
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(MessageCommandResponse<?, ?> messageCommandResponse);
 
     /**
@@ -123,7 +146,9 @@ public interface ProtocolAdapter {
      * @param command the command.
      * @return the adaptable.
      * @throws UnknownCommandException if the passed Command was not supported by the ProtocolAdapter
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(Command<?> command);
 
     /**
@@ -133,7 +158,9 @@ public interface ProtocolAdapter {
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      * @throws UnknownCommandException if the passed Command was not supported by the ProtocolAdapter
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal, TopicPath.Channel)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(Command<?> command, TopicPath.Channel channel);
 
     /**
@@ -141,9 +168,11 @@ public interface ProtocolAdapter {
      *
      * @param thingModifyCommand the command.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
+    @Deprecated
     default Adaptable toAdaptable(ThingModifyCommand<?> thingModifyCommand) {
-        return toAdaptable(thingModifyCommand, TopicPath.Channel.TWIN);
+        return toAdaptable(thingModifyCommand, determineChannel(thingModifyCommand));
     }
 
     /**
@@ -152,7 +181,9 @@ public interface ProtocolAdapter {
      * @param thingModifyCommand the command.
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal, TopicPath.Channel)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(ThingModifyCommand<?> thingModifyCommand, TopicPath.Channel channel);
 
     /**
@@ -160,9 +191,11 @@ public interface ProtocolAdapter {
      *
      * @param thingModifyCommandResponse the response.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
+    @Deprecated
     default Adaptable toAdaptable(ThingModifyCommandResponse<?> thingModifyCommandResponse) {
-        return toAdaptable(thingModifyCommandResponse, TopicPath.Channel.TWIN);
+        return toAdaptable(thingModifyCommandResponse, determineChannel(thingModifyCommandResponse));
     }
 
     /**
@@ -171,7 +204,9 @@ public interface ProtocolAdapter {
      * @param thingModifyCommandResponse the response.
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal, TopicPath.Channel)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(ThingModifyCommandResponse<?> thingModifyCommandResponse, TopicPath.Channel channel);
 
     /**
@@ -179,9 +214,12 @@ public interface ProtocolAdapter {
      *
      * @param thingQueryCommand the command.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
+    @Deprecated
     default Adaptable toAdaptable(ThingQueryCommand<?> thingQueryCommand) {
-        return toAdaptable(thingQueryCommand, TopicPath.Channel.TWIN);
+
+        return toAdaptable(thingQueryCommand, determineChannel(thingQueryCommand));
     }
 
     /**
@@ -190,7 +228,9 @@ public interface ProtocolAdapter {
      * @param thingQueryCommand the command.
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal, TopicPath.Channel)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(ThingQueryCommand<?> thingQueryCommand, TopicPath.Channel channel);
 
     /**
@@ -198,9 +238,11 @@ public interface ProtocolAdapter {
      *
      * @param thingQueryCommandResponse the response.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
+    @Deprecated
     default Adaptable toAdaptable(ThingQueryCommandResponse<?> thingQueryCommandResponse) {
-        return toAdaptable(thingQueryCommandResponse, TopicPath.Channel.TWIN);
+        return toAdaptable(thingQueryCommandResponse, determineChannel(thingQueryCommandResponse));
     }
 
     /**
@@ -209,7 +251,9 @@ public interface ProtocolAdapter {
      * @param thingQueryCommandResponse the response.
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal, TopicPath.Channel)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(ThingQueryCommandResponse<?> thingQueryCommandResponse, TopicPath.Channel channel);
 
     /**
@@ -218,7 +262,9 @@ public interface ProtocolAdapter {
      * @param thingErrorResponse the error response.
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal, TopicPath.Channel)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(ThingErrorResponse thingErrorResponse, TopicPath.Channel channel);
 
     /**
@@ -227,9 +273,11 @@ public interface ProtocolAdapter {
      * @param event the event.
      * @return the adaptable.
      * @throws UnknownEventException if the passed Event was not supported by the ProtocolAdapter
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
+    @Deprecated
     default Adaptable toAdaptable(Event<?> event) {
-        return toAdaptable(event, TopicPath.Channel.TWIN);
+        return toAdaptable(event, determineChannel(event));
     }
 
     /**
@@ -239,7 +287,9 @@ public interface ProtocolAdapter {
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      * @throws UnknownEventException if the passed Event was not supported by the ProtocolAdapter
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal, TopicPath.Channel)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(Event<?> event, TopicPath.Channel channel);
 
     /**
@@ -247,8 +297,12 @@ public interface ProtocolAdapter {
      *
      * @param thingEvent the event.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal)} instead.
      */
-    Adaptable toAdaptable(ThingEvent<?> thingEvent);
+    @Deprecated
+    default Adaptable toAdaptable(ThingEvent<?> thingEvent) {
+        return toAdaptable(thingEvent, determineChannel(thingEvent));
+    }
 
     /**
      * Maps the given {@code thingEvent} to an {@code Adaptable}.
@@ -256,67 +310,10 @@ public interface ProtocolAdapter {
      * @param thingEvent the event.
      * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
+     * @deprecated since 1.1.0, use {@link ProtocolAdapter#toAdaptable(Signal, TopicPath.Channel)} instead.
      */
+    @Deprecated
     Adaptable toAdaptable(ThingEvent<?> thingEvent, TopicPath.Channel channel);
-
-    /**
-     * Maps the given {@code PolicyQueryCommand} to an {@code Adaptable}.
-     *
-     * @param policyQueryCommand the response.
-     * @return the adaptable.
-     * @throws UnknownCommandResponseException if the passed PolicyQueryCommand was not supported by the ProtocolAdapter
-     */
-    Adaptable toAdaptable(PolicyQueryCommand<?> policyQueryCommand);
-
-    /**
-     * Maps the given {@code PolicyCommandResponse} to an {@code Adaptable}.
-     *
-     * @param policyCommandResponse the response.
-     * @return the adaptable.
-     * @throws UnknownCommandResponseException if the passed PolicyCommandResponse was not supported by the
-     * ProtocolAdapter
-     */
-    Adaptable toAdaptable(PolicyCommandResponse<?> policyCommandResponse);
-
-    /**
-     * Maps the given {@code PolicyQueryCommandResponse} to an {@code Adaptable}.
-     *
-     * @param policyQueryCommandResponse the response.
-     * @return the adaptable.
-     * @throws UnknownCommandResponseException if the passed PolicyQueryCommandResponse was not supported by the
-     * ProtocolAdapter
-     */
-    Adaptable toAdaptable(PolicyQueryCommandResponse<?> policyQueryCommandResponse);
-
-    /**
-     * Maps the given {@code PolicyModifyCommand} to an {@code Adaptable}.
-     *
-     * @param policyModifyCommand the response.
-     * @return the adaptable.
-     * @throws UnknownCommandResponseException if the passed PolicyModifyCommand was not supported by the
-     * ProtocolAdapter
-     */
-    Adaptable toAdaptable(PolicyModifyCommand<?> policyModifyCommand);
-
-    /**
-     * Maps the given {@code PolicyModifyCommandResponse} to an {@code Adaptable}.
-     *
-     * @param policyModifyCommandResponse the response.
-     * @return the adaptable.
-     * @throws UnknownCommandResponseException if the passed PolicyModifyCommandResponse was not supported by the
-     * ProtocolAdapter
-     */
-    Adaptable toAdaptable(PolicyModifyCommandResponse<?> policyModifyCommandResponse);
-
-    /**
-     * Maps the given {@code PolicyErrorResponse} to an {@code Adaptable}.
-     *
-     * @param policyErrorResponse the response.
-     * @return the adaptable.
-     * @throws UnknownCommandResponseException if the passed PolicyErrorResponse was not supported by the
-     * ProtocolAdapter
-     */
-    Adaptable toAdaptable(PolicyErrorResponse policyErrorResponse);
 
     /**
      * Retrieve the header translator responsible for this protocol adapter.
@@ -332,6 +329,41 @@ public interface ProtocolAdapter {
      * @return whether it is a live signal.
      */
     static boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+        return signal.getDittoHeaders()
+                .getChannel()
+                .filter(TopicPath.Channel.LIVE.getName()::equals)
+                .isPresent();
+    }
+
+    /**
+     * Determine the channel of the processed {@link Signal}. First the DittoHeaders are checked for the
+     * {@link org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#CHANNEL} header. If not given the default
+     * channel is determined by the type of the {@link Signal}.
+     *
+     * @param signal the processed signal
+     * @return the channel determined from the signal
+     */
+    static TopicPath.Channel determineChannel(final Signal<?> signal) {
+        // internally a twin command/event and live command/event are distinguished only  by the channel header i.e.
+        // a twin and live command "look the same" except for the channel header
+        final boolean isLiveSignal = isLiveSignal(signal);
+        return isLiveSignal ? LIVE  // live signals (live commands/events) use the live channel
+                : determineDefaultChannel(signal); // use default for other commands
+    }
+
+    /**
+     * Determines the default channel of the processed {@link Signal} by signal type.
+     *
+     * @param signal the processed signal
+     * @return the default channel determined from the signal
+     */
+    static TopicPath.Channel determineDefaultChannel(final Signal<?> signal) {
+        if (signal instanceof PolicyCommand || signal instanceof PolicyCommandResponse) {
+            return NONE;
+        } else if (signal instanceof MessageCommand || signal instanceof MessageCommandResponse) {
+            return LIVE;
+        } else {
+            return TWIN;
+        }
     }
 }

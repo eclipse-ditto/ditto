@@ -17,11 +17,9 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.protocoladapter.policies.DefaultPolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.AdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
-import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -32,8 +30,8 @@ final class DefaultAdapterResolver implements AdapterResolver {
     private final ThingCommandAdapterProvider thingsAdapters;
     private final PolicyCommandAdapterProvider policyCommandAdapters;
 
-    public DefaultAdapterResolver(DefaultThingCommandAdapterProvider thingsAdapters,
-            DefaultPolicyCommandAdapterProvider policiesAdapters) {
+    public DefaultAdapterResolver(ThingCommandAdapterProvider thingsAdapters,
+            PolicyCommandAdapterProvider policiesAdapters) {
         this.thingsAdapters = thingsAdapters;
         this.policyCommandAdapters = policiesAdapters;
     }

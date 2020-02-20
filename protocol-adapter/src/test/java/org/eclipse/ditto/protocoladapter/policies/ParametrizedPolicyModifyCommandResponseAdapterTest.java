@@ -17,7 +17,7 @@ import java.util.Collection;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.BaseParametrizedCommandAdapterTest;
+import org.eclipse.ditto.protocoladapter.ParametrizedCommandAdapterTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
@@ -46,7 +46,7 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public final class ParametrizedPolicyModifyCommandResponseAdapterTest
-        extends BaseParametrizedCommandAdapterTest<PolicyModifyCommandResponse<?>> implements ProtocolAdapterTest {
+        extends ParametrizedCommandAdapterTest<PolicyModifyCommandResponse<?>> implements ProtocolAdapterTest {
 
     @Parameterized.Parameters(name = "{0}: adaptable={1}, response={2}")
     public static Collection<Object[]> data() {
@@ -60,12 +60,12 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 modifyPolicyEntriesResponse(),
                 modifyResourceCreatedResponse(),
                 modifyResourceModifiedResponse(),
-                modifyResourcesResponse(),
                 deleteResourceResponse(),
+                modifyResourcesResponse(),
                 modifySubjectCreatedResponse(),
                 modifySubjectModifiedResponse(),
-                modifySubjectsResponse(),
-                deleteSubjectResponse());
+                deleteSubjectResponse(),
+                modifySubjectsResponse());
     }
 
     private PolicyModifyCommandResponseAdapter underTest;
@@ -170,14 +170,6 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         return TestParameter.of("modifyResourceModifiedResponse", adaptable, response);
     }
 
-    private static TestParameter<PolicyModifyCommandResponse<?>> modifyResourcesResponse() {
-        final ModifyResourcesResponse response =
-                ModifyResourcesResponse.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                resourcesPath(Policies.POLICY_ENTRY_LABEL), HttpStatusCode.NO_CONTENT);
-        return TestParameter.of("modifyResourcesResponse", adaptable, response);
-    }
-
     private static TestParameter<PolicyModifyCommandResponse<?>> deleteResourceResponse() {
         final DeleteResourceResponse response =
                 DeleteResourceResponse.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
@@ -187,6 +179,14 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 resourcesPath(Policies.POLICY_ENTRY_LABEL, Policies.RESOURCE1.getResourceKey()),
                 HttpStatusCode.NO_CONTENT);
         return TestParameter.of("deleteResourceResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyModifyCommandResponse<?>> modifyResourcesResponse() {
+        final ModifyResourcesResponse response =
+                ModifyResourcesResponse.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                resourcesPath(Policies.POLICY_ENTRY_LABEL), HttpStatusCode.NO_CONTENT);
+        return TestParameter.of("modifyResourcesResponse", adaptable, response);
     }
 
     private static TestParameter<PolicyModifyCommandResponse<?>> modifySubjectCreatedResponse() {

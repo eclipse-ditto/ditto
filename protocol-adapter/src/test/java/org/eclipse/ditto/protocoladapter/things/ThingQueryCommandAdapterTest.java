@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.BaseLiveTwinTest;
+import org.eclipse.ditto.protocoladapter.LiveTwinTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -55,7 +55,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link ThingQueryCommandAdapter}.
  */
-public final class ThingQueryCommandAdapterTest extends BaseLiveTwinTest implements ProtocolAdapterTest {
+public final class ThingQueryCommandAdapterTest extends LiveTwinTest implements ProtocolAdapterTest {
 
     private ThingQueryCommandAdapter underTest;
 

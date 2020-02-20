@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized;
  * Base class for parameterized tests that support both live and twin channel.
  */
 @RunWith(Parameterized.class)
-public abstract class BaseLiveTwinTest {
+public abstract class LiveTwinTest {
 
     @Parameterized.Parameters(name = "channel: {0}")
     public static Collection<Object[]> data() {

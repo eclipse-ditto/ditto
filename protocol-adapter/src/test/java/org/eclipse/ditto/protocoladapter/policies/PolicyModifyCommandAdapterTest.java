@@ -48,7 +48,7 @@ public final class PolicyModifyCommandAdapterTest implements ProtocolAdapterTest
         underTest.toAdaptable(new UnknownPolicyModifyCommand(), TopicPath.Channel.NONE);
     }
 
-    private static class UnknownPolicyModifyCommand implements PolicyModifyCommand {
+    private static class UnknownPolicyModifyCommand implements PolicyModifyCommand<UnknownPolicyModifyCommand> {
 
         @Override
         public String getType() {
@@ -90,7 +90,7 @@ public final class PolicyModifyCommandAdapterTest implements ProtocolAdapterTest
         }
 
         @Override
-        public PolicyModifyCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
+        public UnknownPolicyModifyCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
             return this;
         }
 

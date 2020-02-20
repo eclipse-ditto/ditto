@@ -210,6 +210,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 responsePublishedMonitor.success(message,
                         "HTTP call to <{0}> successfully responded with status <{1}>.",
                         stripUserInfo(requestUri), response.status());
+                response.discardEntityBytes(materializer);
             } else {
                 getResponseBody(response, materializer)
                         .thenAccept(body -> responsePublishedMonitor.failure(message,
@@ -225,7 +226,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                             log.info("Got <{}> when reading body of publish response to <{}>", bodyReadError,
                                     message);
                             return null;
-                        }).thenRun(() -> response.discardEntityBytes(materializer));
+                        });
             }
         }
     }

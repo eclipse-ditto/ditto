@@ -186,7 +186,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
         final MessageCommand<?, ?> messageCommand = messageCommand(type, theMessage, theHeaders);
 
         // test
-        final Adaptable actual = underTest.toAdaptable(messageCommand, TopicPath.Channel.LIVE);
+        final Adaptable actual = underTest.toAdaptable(messageCommand);
         assertThat(actual).isEqualTo(expectedAdaptable);
     }
 

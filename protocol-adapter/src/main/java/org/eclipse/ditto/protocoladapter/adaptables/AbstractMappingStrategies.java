@@ -32,7 +32,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 /**
  * Abstract base class for implementations of {@link MappingStrategies}. It implements the {@link #find(String)}
  * functionality and provides methods to map from {@link Adaptable}s to {@link org.eclipse.ditto.signals.base.Signal}s
- * that are common to all types-
+ * that are common to all types.
  *
  * @param <T> the type of the mapped signals
  */

@@ -23,6 +23,8 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.protocoladapter.policies.DefaultPolicyCommandAdapterProvider;
+import org.eclipse.ditto.protocoladapter.provider.PolicyCommandAdapterProvider;
+import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
@@ -31,7 +33,6 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
@@ -54,8 +55,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     private final HeaderTranslator headerTranslator;
     private final AdapterResolver adapterResolver;
-    private final DefaultThingCommandAdapterProvider thingsAdapters;
-    private final DefaultPolicyCommandAdapterProvider policiesAdapters;
+    private final ThingCommandAdapterProvider thingsAdapters;
+    private final PolicyCommandAdapterProvider policiesAdapters;
 
     private DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
@@ -63,6 +64,15 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         this.thingsAdapters = new DefaultThingCommandAdapterProvider(errorRegistry, headerTranslator);
         this.policiesAdapters = new DefaultPolicyCommandAdapterProvider(errorRegistry, headerTranslator);
         this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters);
+    }
+
+    private DittoProtocolAdapter(final HeaderTranslator headerTranslator,
+            final ThingCommandAdapterProvider thingsAdapters, final PolicyCommandAdapterProvider policiesAdapters,
+            final AdapterResolver adapterResolver) {
+        this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
+        this.thingsAdapters = checkNotNull(thingsAdapters, "thingsAdapters");
+        this.policiesAdapters = checkNotNull(policiesAdapters, "policiesAdapters");
+        this.adapterResolver = checkNotNull(adapterResolver, "adapterResolver");
     }
 
     /**
@@ -93,6 +103,23 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         return HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values());
     }
 
+    /**
+     * Factory method used in tests.
+     *
+     * @param headerTranslator translator between external and Ditto headers
+     * @param thingCommandAdapterProvider command adapters fot thing commands
+     * @param policyCommandAdapterProvider command adapters fot policy commands
+     * @param adapterResolver resolves the correct adapter from a command
+     * @return new instance of {@link DittoProtocolAdapter}
+     */
+    static DittoProtocolAdapter newInstance(final HeaderTranslator headerTranslator,
+            final ThingCommandAdapterProvider thingCommandAdapterProvider,
+            final PolicyCommandAdapterProvider policyCommandAdapterProvider, final AdapterResolver adapterResolver) {
+        return new DittoProtocolAdapter(headerTranslator, thingCommandAdapterProvider, policyCommandAdapterProvider,
+                adapterResolver
+        );
+    }
+
     @Override
     public Signal<?> fromAdaptable(final Adaptable adaptable) {
         return adapterResolver.getAdapter(adaptable).fromAdaptable(adaptable);
@@ -100,13 +127,18 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     @Override
     public Adaptable toAdaptable(Command<?> command) {
-        final TopicPath.Channel channel = determineChannel(command);
+        final TopicPath.Channel channel = ProtocolAdapter.determineChannel(command);
         return toAdaptable(command, channel);
     }
 
     @Override
     public Adaptable toAdaptable(final Signal<?> signal) {
-        final TopicPath.Channel channel = determineChannel(signal);
+        final TopicPath.Channel channel = ProtocolAdapter.determineChannel(signal);
+        return toAdaptable(signal, channel);
+    }
+
+    @Override
+    public Adaptable toAdaptable(final Signal<?> signal, final TopicPath.Channel channel) {
         if (signal instanceof MessageCommand) {
             checkChannel(channel, signal, LIVE);
             return toAdaptable((MessageCommand<?, ?>) signal);
@@ -122,6 +154,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         }
         throw UnknownSignalException.newBuilder(signal.getName()).dittoHeaders(signal.getDittoHeaders()).build();
     }
+
 
     @Override
     public Adaptable toAdaptable(final CommandResponse<?> commandResponse, final TopicPath.Channel channel) {
@@ -153,8 +186,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         }
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyCommandResponse<?> policyCommandResponse) {
+    private Adaptable toAdaptable(final PolicyCommandResponse<?> policyCommandResponse) {
         if (policyCommandResponse instanceof PolicyQueryCommandResponse) {
             return toAdaptable((PolicyQueryCommandResponse<?>) policyCommandResponse);
         } else if (policyCommandResponse instanceof PolicyModifyCommandResponse) {
@@ -231,39 +263,33 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingEvent<?> thingEvent) {
-        final TopicPath.Channel channel = determineChannel(thingEvent);
-        return toAdaptable(thingEvent, channel);
-    }
-
-    @Override
     public Adaptable toAdaptable(final ThingEvent<?> thingEvent, final TopicPath.Channel channel) {
         checkChannel(channel, thingEvent, TWIN, LIVE);
         return thingsAdapters.getEventAdapter().toAdaptable(thingEvent, channel);
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyQueryCommand<?> policyQueryCommand) {
+    private Adaptable toAdaptable(final PolicyQueryCommand<?> policyQueryCommand) {
+        checkNotLive(policyQueryCommand);
         return policiesAdapters.getQueryCommandAdapter().toAdaptable(policyQueryCommand, NONE);
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyQueryCommandResponse<?> policyQueryCommandResponse) {
+    private Adaptable toAdaptable(final PolicyQueryCommandResponse<?> policyQueryCommandResponse) {
+        checkNotLive(policyQueryCommandResponse);
         return policiesAdapters.getQueryCommandResponseAdapter().toAdaptable(policyQueryCommandResponse, NONE);
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyModifyCommand<?> policyModifyCommand) {
+    private Adaptable toAdaptable(final PolicyModifyCommand<?> policyModifyCommand) {
+        checkNotLive(policyModifyCommand);
         return policiesAdapters.getModifyCommandAdapter().toAdaptable(policyModifyCommand, NONE);
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyModifyCommandResponse<?> policyModifyCommandResponse) {
+    private Adaptable toAdaptable(final PolicyModifyCommandResponse<?> policyModifyCommandResponse) {
+        checkNotLive(policyModifyCommandResponse);
         return policiesAdapters.getModifyCommandResponseAdapter().toAdaptable(policyModifyCommandResponse, NONE);
     }
 
-    @Override
-    public Adaptable toAdaptable(final PolicyErrorResponse policyErrorResponse) {
+    private Adaptable toAdaptable(final PolicyErrorResponse policyErrorResponse) {
+        checkNotLive(policyErrorResponse);
         return policiesAdapters.getErrorResponseAdapter().toAdaptable(policyErrorResponse, NONE);
     }
 
@@ -274,8 +300,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     @Override
     public Adaptable toAdaptable(final MessageCommandResponse<?, ?> messageCommandResponse) {
-        return thingsAdapters.getMessageCommandResponseAdapter()
-                .toAdaptable(messageCommandResponse, LIVE);
+        return thingsAdapters.getMessageCommandResponseAdapter().toAdaptable(messageCommandResponse, LIVE);
     }
 
     @Override
@@ -283,25 +308,16 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         return headerTranslator;
     }
 
-    private TopicPath.Channel determineChannel(final Signal<?> signal) {
-        // internally a twin command/event and live command/event are distinguished only  by the channel header i.e.
-        // a twin and live command "look the same" except for the channel header
-        final boolean isLiveSignal =
-                signal.getDittoHeaders().getChannel().filter(LIVE.getName()::equals).isPresent();
-
-        final boolean isMessageCommand = signal instanceof MessageCommand || signal instanceof MessageCommandResponse;
-        final boolean isPolicyCommand = signal instanceof PolicyCommand || signal instanceof PolicyCommandResponse;
-
-        return isPolicyCommand ? NONE // policy commands have no channel
-                : isMessageCommand ? LIVE // messages does not have live channel in header
-                : isLiveSignal ? LIVE  // live signals (live commands/events) use the live channel
-                : TopicPath.Channel.TWIN; // all other commands use the twin channel
-    }
-
     private void checkChannel(final TopicPath.Channel channel,
             final Signal<?> signal, final TopicPath.Channel... supportedChannels) {
         if (!Arrays.asList(supportedChannels).contains(channel)) {
             throw unknownChannelException(signal, channel);
+        }
+    }
+
+    private void checkNotLive(final Signal<?> signal) {
+        if (ProtocolAdapter.isLiveSignal(signal)) {
+            throw unknownChannelException(signal, LIVE);
         }
     }
 

@@ -49,6 +49,7 @@ abstract class AbstractThingMappingStrategies<T extends Jsonifiable.WithPredicat
         extends AbstractMappingStrategies<T> {
 
     private static final int ATTRIBUTE_PATH_LEVEL = 1;
+    private static final int FEATURE_PATH_LEVEL = 1;
     private static final int FEATURE_PROPERTY_PATH_LEVEL = 3;
 
     protected AbstractThingMappingStrategies(final Map<String, JsonifiableMapper<T>> mappingStrategies) {
@@ -112,7 +113,7 @@ abstract class AbstractThingMappingStrategies<T extends Jsonifiable.WithPredicat
 
     protected static String featureIdFrom(final Adaptable adaptable) {
         final JsonPointer path = adaptable.getPayload().getPath();
-        return path.get(1).orElseThrow(() -> UnknownPathException.newBuilder(path).build()).toString();
+        return path.get(FEATURE_PATH_LEVEL).orElseThrow(() -> UnknownPathException.newBuilder(path).build()).toString();
     }
 
     protected static Features featuresFrom(final Adaptable adaptable) {

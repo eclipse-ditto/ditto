@@ -113,11 +113,33 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     }
 
     private static void validateMandatoryHeaders(final Map<String, String> headers) {
+        // check all mandatory headers are non-null
         for (final MessageHeaderDefinition mandatoryHeader : MANDATORY_HEADERS) {
-            if (!headers.containsKey(mandatoryHeader.getKey())) {
+            final String mandatoryHeaderValue = headers.get(mandatoryHeader.getKey());
+            if (mandatoryHeaderValue == null) {
                 final String msgTemplate = "The headers did not contain a value for mandatory header with key <{0}>!";
                 throw new IllegalArgumentException(MessageFormat.format(msgTemplate, mandatoryHeader.getKey()));
             }
+        }
+        // check non-emptiness of subject
+        final String subjectHeaderKey = MessageHeaderDefinition.SUBJECT.getKey();
+        if (headers.get(subjectHeaderKey).isEmpty()) {
+            final String msgTemplate = "Message subject may not be empty!";
+            throw new IllegalArgumentException(MessageFormat.format(msgTemplate, subjectHeaderKey));
+        }
+        // validate thing ID header against its model
+        ThingId.of(headers.get(MessageHeaderDefinition.THING_ID.getKey()));
+
+        // validate direction header against its enum
+        final String directionHeaderValue = headers.get(MessageHeaderDefinition.DIRECTION.getKey());
+        if (!MessageDirection.FROM.name().equals(directionHeaderValue) &&
+                !MessageDirection.TO.name().equals(directionHeaderValue)) {
+            final String msgTemplate = "Message direction must be one of: <{1}>, <{2}>!";
+            throw new IllegalArgumentException(MessageFormat.format(msgTemplate,
+                    MessageHeaderDefinition.DIRECTION.getKey(),
+                    MessageDirection.FROM,
+                    MessageDirection.TO
+            ));
         }
     }
 

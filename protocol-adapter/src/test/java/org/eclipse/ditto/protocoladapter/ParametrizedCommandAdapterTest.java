@@ -38,7 +38,7 @@ import org.junit.runners.Parameterized;
  * Base class for parameterized command adapter tests.
  */
 @RunWith(Parameterized.class)
-public abstract class BaseParametrizedCommandAdapterTest<T extends Signal<?>> implements ProtocolAdapterTest {
+public abstract class ParametrizedCommandAdapterTest<T extends Signal<?>> implements ProtocolAdapterTest {
 
     public static final JsonPointer EMPTY_PATH = JsonPointer.empty();
 

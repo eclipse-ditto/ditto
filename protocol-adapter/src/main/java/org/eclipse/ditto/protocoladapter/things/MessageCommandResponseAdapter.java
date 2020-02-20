@@ -54,6 +54,11 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     }
 
     @Override
+    public Adaptable toAdaptable(final MessageCommandResponse<?, ?> t) {
+        return toAdaptable(t, TopicPath.Channel.LIVE);
+    }
+
+    @Override
     protected String getType(final Adaptable adaptable) {
         if (adaptable.getTopicPath().getSubject().filter(KnownMessageSubjects.CLAIM_SUBJECT::equals).isPresent()) {
             return SendClaimMessageResponse.TYPE;
