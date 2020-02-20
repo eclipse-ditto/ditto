@@ -101,6 +101,15 @@ public final class RequestSubscription extends AbstractCommand<RequestSubscripti
         return subscriptionId;
     }
 
+    /**
+     * Get the number of pages to request.
+     *
+     * @return the number of pages.
+     */
+    public long getDemand() {
+        return demand;
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {

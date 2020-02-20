@@ -40,6 +40,10 @@
             <artifactId>ditto-services-models-thingsearch</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-events-thingsearch</artifactId>
+        </dependency>
         <!-- for testing purpose -->
         <dependency>
             <groupId>com.typesafe.akka</groupId>
