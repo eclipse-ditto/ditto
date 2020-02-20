@@ -32,6 +32,7 @@ public interface CommandsTopicPathBuilder extends TopicPathBuildable {
      */
     CommandsTopicPathBuilder retrieve();
 
+
     /**
      * Sets the {@code Action} of this builder to {@link TopicPath.Action#MODIFY}. A previously set action is replaced.
      *
@@ -45,4 +46,25 @@ public interface CommandsTopicPathBuilder extends TopicPathBuildable {
      * @return this builder to allow method chaining.
      */
     CommandsTopicPathBuilder delete();
+
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.Action#SUBSCRIBE}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    CommandsTopicPathBuilder subscribe();
+
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.Action#CANCEL}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    CommandsTopicPathBuilder cancel();
+
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.Action#REQUEST}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    CommandsTopicPathBuilder request();
 }

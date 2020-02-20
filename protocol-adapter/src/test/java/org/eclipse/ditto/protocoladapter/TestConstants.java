@@ -12,7 +12,14 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -41,6 +48,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 final class TestConstants {
 
     static final String NAMESPACE = "org.eclipse.ditto.test";
+    static final Set<String> NAMESPACES = new HashSet<>(Arrays.asList("org.eclipse.ditto.test","org.eclipse.ditto.footest"));
 
     static final String NAME = "myThing";
     static final String NAME2 = "myThing2";
@@ -119,6 +127,16 @@ final class TestConstants {
             DittoHeaderDefinition.CONTENT_TYPE.getKey()).build();
 
     static final long REVISION = 1337;
+
+    static final String FILTER = "eq(attributes/foo, \"bar\")";
+
+    static final List<String> OPTIONS= Collections.singletonList("sort(+thingId)");
+
+    static final JsonFieldSelector FIELDS = JsonFieldSelector.newInstance("/attributes", "/definition");
+
+    static final String SUBSCRIPTION_ID = "123456781234";
+
+    static final long DEMAND = 12;
 
     private TestConstants() {
         throw new AssertionError();

@@ -58,4 +58,23 @@ public class ImmutableTopicPathBuilderTest {
         assertThat(actual.getPath()).isEqualTo(expectedTopicPathString);
     }
 
+    /** */
+    @Test
+    public void buildThingSearchCommandTopicPath() {
+        final TopicPath expected = ImmutableTopicPath
+                .of("_", "_", TopicPath.Group.SEARCH, TopicPath.Channel.TWIN,
+                        TopicPath.Criterion.COMMANDS, TopicPath.Action.SUBSCRIBE);
+        final TopicPath actual = ProtocolFactory.newTopicPathBuilderFromNamespace("_") //
+                .search()
+                .twin() //
+                .commands() //
+                .subscribe() //
+                .build();
+
+        final String expectedTopicPathString = "_/_/things/twin/commands/search";
+
+        assertThat(actual).isEqualTo(expected);
+        assertThat(actual.getPath()).isEqualTo(expectedTopicPathString);
+    }
+
 }

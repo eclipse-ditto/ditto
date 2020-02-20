@@ -133,7 +133,9 @@ public interface TopicPath {
 
         POLICIES("policies"),
 
-        THINGS("things");
+        THINGS("things"),
+
+        SEARCH("search");
 
         private final String name;
 
@@ -176,8 +178,6 @@ public interface TopicPath {
         COMMANDS("commands"),
 
         EVENTS("events"),
-
-        SEARCH("search"),
 
         MESSAGES("messages"),
 
@@ -269,11 +269,15 @@ public interface TopicPath {
 
         RETRIEVE("retrieve"),
 
-        SEARCH("search"),
-
         MODIFY("modify"),
 
         DELETE("delete"),
+
+        SUBSCRIBE("subscribe"),
+
+        CANCEL("cancel"),
+
+        REQUEST("request"),
 
 
         CREATED("created"),

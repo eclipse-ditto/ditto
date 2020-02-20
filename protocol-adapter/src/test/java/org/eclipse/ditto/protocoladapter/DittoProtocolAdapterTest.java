@@ -33,6 +33,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Before;
@@ -233,6 +235,38 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final ThingQueryCommandResponse actual = (ThingQueryCommandResponse) underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(retrieveThingResponse);
+    }
+
+    @Test
+    public void thingSearchCommandFromAdaptable() {
+        final CreateSubscription createSubscription = CreateSubscription.of(DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = TopicPath.fromNamespace("_")
+                .things()
+                .twin()
+                .commands()
+                .subscribe()
+                .build();
+
+        final ThingSearchCommand actualCommand =
+                (ThingSearchCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder().build())
+                        .withHeaders(TestConstants.HEADERS_V_2)
+                        .build());
+
+        assertWithExternalHeadersThat(actualCommand).isEqualTo(createSubscription);
+
+        final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("thingId");
+        final CreateSubscription createSubscriptionWithFields = CreateSubscription.of(null, null, selectedFields, null, DITTO_HEADERS_V_2);
+
+        final ThingSearchCommand actualCommandWithFields =
+                (ThingSearchCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder()
+                                .withFields(selectedFields)
+                                .build())
+                        .withHeaders(TestConstants.HEADERS_V_2)
+                        .build());
+        assertWithExternalHeadersThat(actualCommandWithFields).isEqualTo(createSubscriptionWithFields);
     }
 
     @Test

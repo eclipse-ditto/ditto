@@ -74,7 +74,7 @@ public class ThingSearchCommandAdapter extends AbstractAdapter<ThingSearchComman
         commandsTopicPathBuilder = fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
 
         final String commandName = command.getClass().getSimpleName().toLowerCase();
-        if (!commandName.startsWith(TopicPath.Action.SEARCH.toString())) {
+        if (!commandName.endsWith("subscription")) {
             throw UnknownCommandException.newBuilder(commandName).build();
         }
 
@@ -90,10 +90,8 @@ public class ThingSearchCommandAdapter extends AbstractAdapter<ThingSearchComman
 
     @Override
     protected String getType(final Adaptable adaptable) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
-        return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
+
+        return ThingSearchCommand.TYPE_PREFIX + adaptable.getTopicPath().getAction().orElse(null);
     }
 
 

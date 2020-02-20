@@ -93,6 +93,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public TopicPathBuilder search() {
+        this.group = TopicPath.Group.SEARCH;
+        return this;
+    }
+
+    @Override
     public CommandsTopicPathBuilder commands() {
         this.criterion = TopicPath.Criterion.COMMANDS;
         return this;
@@ -114,12 +120,6 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     @Override
     public EventsTopicPathBuilder events() {
         this.criterion = TopicPath.Criterion.EVENTS;
-        return this;
-    }
-
-    @Override
-    public TopicPathBuildable search() {
-        this.criterion = TopicPath.Criterion.SEARCH;
         return this;
     }
 
@@ -156,6 +156,24 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     @Override
     public CommandsTopicPathBuilder delete() {
         this.action = TopicPath.Action.DELETE;
+        return this;
+    }
+
+    @Override
+    public CommandsTopicPathBuilder subscribe() {
+        this.action = TopicPath.Action.SUBSCRIBE;
+        return this;
+    }
+
+    @Override
+    public CommandsTopicPathBuilder cancel() {
+        this.action = TopicPath.Action.CANCEL;
+        return this;
+    }
+
+    @Override
+    public CommandsTopicPathBuilder request() {
+        this.action = TopicPath.Action.REQUEST;
         return this;
     }
 

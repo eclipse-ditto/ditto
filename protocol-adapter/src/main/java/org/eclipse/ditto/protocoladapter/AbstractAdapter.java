@@ -28,7 +28,6 @@ import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -120,10 +119,17 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      */
     protected static String filterFrom(final Adaptable adaptable) {
 
-        final JsonObject value = adaptable.getPayload().getValue().map(JsonValue::asObject).orElse(null);
-        if (value != null && value.getValue("filter").isPresent()) {
+        final JsonValue value = adaptable.getPayload().getValue().orElse(null);
 
-            return value.getValue("filter").get().asString();
+        if (value != null && value.asString().contains("filter")) {
+
+            String[] subValues = value.asString().split(",", 2);
+
+            for (String subValue : subValues) {
+                if (subValue.startsWith("filter")) {
+                    return subValue;
+                }
+            }
         }
         return null;
     }
@@ -134,10 +140,17 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      */
     protected static List<String> optionsFrom(final Adaptable adaptable) {
 
-        JsonObject value = adaptable.getPayload().getValue().map(JsonValue::asObject).orElse(null);
-        if (value != null && value.getValue("options").isPresent()) {
+        final JsonValue value = adaptable.getPayload().getValue().orElse(null);
 
-            return Arrays.asList(value.getValue("options").get().asString().split(","));
+        if (value != null && value.asString().contains("filter")) {
+
+            String[] subValues = value.asString().split(",", 2);
+
+            for (String subValue : subValues) {
+                if (subValue.startsWith("filter")) {
+                    return Arrays.asList(subValue.split(","));
+                }
+            }
         }
         return Collections.emptyList();
     }
@@ -148,10 +161,17 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      */
     protected static String subscriptionIdFrom(final Adaptable adaptable) {
 
-        final JsonObject value = adaptable.getPayload().getValue().map(JsonValue::asObject).orElse(null);
-        if (value != null && value.getValue("subscriptionId").isPresent()) {
+        final JsonValue value = adaptable.getPayload().getValue().orElse(null);
 
-            return value.getValue("subscriptionId").get().asString();
+        if (value != null && value.asString().contains("subscriptionId")) {
+
+            String[] subValues = value.asString().split(",", 2);
+
+            for (String subValue : subValues) {
+                if (subValue.startsWith("subscriptionId")) {
+                    return subValue;
+                }
+            }
         }
         return null;
     }
@@ -162,10 +182,17 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      */
     protected static long demandFrom(final Adaptable adaptable) {
 
-        final JsonObject value = adaptable.getPayload().getValue().map(JsonValue::asObject).orElse(null);
-        if (value != null && value.getValue("demand").isPresent()) {
+        final JsonValue value = adaptable.getPayload().getValue().orElse(null);
 
-            return value.getValue("demand").get().asLong();
+        if (value != null && value.asString().contains("demand")) {
+
+            String[] subValues = value.asString().split(",", 2);
+
+            for (String subValue : subValues) {
+                if (subValue.startsWith("demand")) {
+                    return Long.parseLong(subValue);
+                }
+            }
         }
         return 0;
     }

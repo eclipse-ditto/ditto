@@ -33,6 +33,14 @@ public interface TopicPathBuilder {
 
 
     /**
+     * Sets the {@code Group} of this builder to {@link TopicPath.Group#SEARCH}. A previously set group is replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    TopicPathBuilder search();
+
+
+    /**
      * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#COMMANDS}. A previously set criterion is
      * replaced.
      *
@@ -63,14 +71,6 @@ public interface TopicPathBuilder {
      * @return this builder to allow method chaining.
      */
     EventsTopicPathBuilder events();
-
-    /**
-     * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#SEARCH}. A previously set action is
-     * replaced.
-     *
-     * @return this builder to allow method chaining.
-     */
-    TopicPathBuildable search();
 
     /**
      * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#ERRORS}. A previously set action is

@@ -352,7 +352,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
                 return processCommandResponseSignalFromAdaptable(adaptable, topicPath);
             } else if (TopicPath.Action.RETRIEVE.equals(topicPath.getAction().orElse(null))) {
                 return thingQueryCommandAdapter.fromAdaptable(adaptable);
-            } else if (TopicPath.Action.SEARCH.equals(topicPath.getAction().orElse(null))) {
+            } else if (TopicPath.Group.SEARCH.equals(topicPath.getGroup())) {
                 return thingSearchCommandAdapter.fromAdaptable(adaptable);
             } else {
                 return thingModifyCommandAdapter.fromAdaptable(adaptable);
@@ -374,7 +374,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         if (TopicPath.Action.RETRIEVE.equals(topicPath.getAction().orElse(null))) {
             return isErrorResponse ? thingErrorResponseFromAdaptable(adaptable) :
                     thingQueryCommandResponseAdapter.fromAdaptable(adaptable);
-        } else if (TopicPath.Action.SEARCH.equals(topicPath.getAction().orElse(null))) {
+        } else if (TopicPath.Group.SEARCH.equals(topicPath.getGroup())) {
             return isErrorResponse ? thingErrorResponseFromAdaptable(adaptable) :
                     thingSearchCommandAdapter.fromAdaptable(adaptable);
         } else {
