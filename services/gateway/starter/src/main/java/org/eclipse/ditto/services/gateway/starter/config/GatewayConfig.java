@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.gateway.starter.config;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.CommandConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.PublicHealthConfig;
@@ -52,14 +53,22 @@ public interface GatewayConfig extends ServiceSpecificConfig, WithProtocolConfig
     HealthCheckConfig getHealthCheckConfig();
 
     /**
-     * Returns the config for the {@code /messages} resource of the Things service.
+     * Returns the config for commands requesting {@code Acknowledgement}s in the gateway.
+     *
+     * @return the config.
+     * @since 1.1.0
+     */
+    CommandConfig getCommandConfig();
+
+    /**
+     * Returns the config for the {@code /messages} resource of the gateway.
      *
      * @return the config.
      */
     MessageConfig getMessageConfig();
 
     /**
-     * Returns the config for the {@code /inbox/claim} resource of the Things service.
+     * Returns the config for the {@code /inbox/claim} resource of the gateway.
      *
      * @return the config.
      */

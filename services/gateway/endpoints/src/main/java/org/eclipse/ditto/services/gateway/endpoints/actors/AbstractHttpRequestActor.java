@@ -12,16 +12,13 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.actors;
 
-import static org.eclipse.ditto.services.gateway.util.FireAndForgetMessageUtil.isFireAndForget;
-import static org.eclipse.ditto.services.gateway.util.FireAndForgetMessageUtil.isFireAndForgetMessage;
-
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -42,12 +39,12 @@ import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
-import org.eclipse.ditto.signals.acks.AcknowledgementCommandTimeoutException;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayCommandTimeoutException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
@@ -73,7 +70,6 @@ import akka.http.scaladsl.model.EntityStreamSizeException;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.util.ByteString;
-import scala.concurrent.duration.Duration;
 import scala.util.Either;
 
 /**
@@ -100,9 +96,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private final HttpConfig httpConfig;
 
     private final AcknowledgementsPerRequest acknowledgements;
-    @Nullable private java.time.Duration timeout;
-    private boolean isFireAndForget;
-    @Nullable private DittoRuntimeException timeoutException;
+    @Nullable private Duration timeout;
+    @Nullable private DittoRuntimeException customTimeoutException;
 
     protected AbstractHttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
@@ -117,7 +112,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         this.httpConfig = httpConfig;
         acknowledgements = AcknowledgementsPerRequest.getInstance();
         timeout = null;
-        isFireAndForget = false;
 
         getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
     }
@@ -125,24 +119,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     @Override
     public AbstractActor.Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(MessageCommand.class, command -> { // receive MessageCommands
-                    logger.withCorrelationId(command)
-                            .info("Got <{}> with subject <{}>, telling the targetActor about it.", command.getType(),
-                                    command.getMessage().getSubject());
-
-                    final Message<?> message = command.getMessage();
-
-                    // authorized!
-                    proxyActor.tell(command, getSelf());
-                    becomeCommandResponseAwaiting();
-
-                    timeout = message.getTimeout().orElse(null);
-                    isFireAndForget = isFireAndForgetMessage(command);
-                    if (timeout != null && !isFireAndForget) {
-                        timeoutException = new MessageTimeoutException(timeout.getSeconds());
-                        getContext().setReceiveTimeout(Duration.apply(timeout.getSeconds(), TimeUnit.SECONDS));
-                    }
-                })
                 .match(Status.Failure.class, failure -> {
                     Throwable cause = failure.cause();
                     if (cause instanceof JsonRuntimeException) {
@@ -166,7 +142,18 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 })
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
-                .match(Command.class, this::handleCommand)
+                .match(MessageCommand.class, command -> {
+                    logger.withCorrelationId(command)
+                            .info("Got <{}> with subject <{}>, telling the targetActor about it.", command.getType(),
+                    command.getMessage().getSubject());
+                    handleCommand(command, t -> new MessageTimeoutException(t.getSeconds())
+                            .setDittoHeaders(command.getDittoHeaders()));
+                })
+                .match(Command.class, command ->
+                        handleCommand(command, t -> GatewayCommandTimeoutException.newBuilder(t)
+                                .dittoHeaders(command.getDittoHeaders())
+                                .build())
+                )
                 .matchAny(m -> {
                     logger.warning("Got unknown message, expected a 'Command': {}", m);
                     completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
@@ -174,31 +161,37 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .build();
     }
 
-    private void handleCommand(final Command<?> command) {
+    private void handleCommand(final Command<?> command,
+            final Function<Duration, DittoRuntimeException> timeoutExceptionCreator) {
+
         logger.withCorrelationId(command).debug("Got <Command> message {}, telling the targetActor about it.", command);
-        DittoHeaders dittoHeaders = command.getDittoHeaders();
-        if (dittoHeaders.isResponseRequired()) {
+        if (isExpectingResponse(command)) {
             final UnaryOperator<Command<?>> ackLabelSetter = ThingModifyCommandAckLabelSetter.getInstance();
             final Command<?> commandWithAckLabels = ackLabelSetter.apply(command);
-            dittoHeaders = commandWithAckLabels.getDittoHeaders();
+            final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
             acknowledgements.addRequestedAcknowledgementLabels(dittoHeaders.getRequestedAckLabels());
             proxyActor.tell(commandWithAckLabels, getSelf());
 
             // After a Command was received, this Actor can only receive the correlating CommandResponse:
             becomeCommandResponseAwaiting();
+
+            timeout = dittoHeaders.getTimeout().orElse(null);
+            if (null != timeout) {
+                customTimeoutException = timeoutExceptionCreator.apply(timeout);
+                getContext().setReceiveTimeout(timeout);
+            }
         } else {
             proxyActor.tell(command, getSelf());
             completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
         }
+    }
 
-        timeout = dittoHeaders.getTimeout().orElse(null);
-        isFireAndForget = isFireAndForget(command);
-        if (timeout != null && !isFireAndForget) {
-            timeoutException = AcknowledgementCommandTimeoutException.newBuilder(timeout)
-                    .dittoHeaders(command.getDittoHeaders())
-                    .build();
-            getContext().setReceiveTimeout(timeout);
-        }
+    private boolean isExpectingResponse(final Command<?> command) {
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        return dittoHeaders.isResponseRequired() || dittoHeaders.getTimeout() // if timeout is not specified
+                .filter(Duration::isZero) // or timeout is 0
+                .filter(Duration::isNegative) // or timeout is negative
+                .isEmpty();
     }
 
     private void becomeCommandResponseAwaiting() {
@@ -349,10 +342,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
-        if (timeout != null && !isFireAndForget) {
-            logger.info("Got <{}> when a response was expected after timeout <{}>.",
-                    receiveTimeout.getClass().getSimpleName(), timeout);
-            handleDittoRuntimeException(timeoutException);
+        if (null != customTimeoutException) {
+            logger.withCorrelationId(customTimeoutException)
+                    .info("Got <{}> when a response was expected after timeout <{}>.",
+                            receiveTimeout.getClass().getSimpleName(), timeout);
+            handleDittoRuntimeException(customTimeoutException);
         } else {
             logger.warning("No response within server request timeout (<{}>), shutting actor down.",
                     httpConfig.getRequestTimeout());

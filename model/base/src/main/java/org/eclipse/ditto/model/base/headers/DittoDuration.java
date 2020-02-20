@@ -28,6 +28,7 @@ final class DittoDuration implements CharSequence {
 
     private static final String MS_SUFFIX = "ms";
     private static final String S_SUFFIX = "s";
+    private static final String M_SUFFIX = "m";
 
     private final Duration duration;
     private final String delegateString;
@@ -74,6 +75,9 @@ final class DittoDuration implements CharSequence {
         } else if (timeoutStr.endsWith(S_SUFFIX)) {
             final String timeoutS = timeoutStr.substring(0, timeoutStr.lastIndexOf(S_SUFFIX));
             return new DittoDuration(Duration.ofSeconds(Long.parseLong(timeoutS)), TimeUnit.SECONDS);
+        } else if (timeoutStr.endsWith(M_SUFFIX)) {
+            final String timeoutM = timeoutStr.substring(0, timeoutStr.lastIndexOf(M_SUFFIX));
+            return new DittoDuration(Duration.ofMinutes(Long.parseLong(timeoutM)), TimeUnit.MINUTES);
         } else {
             // interpret timeout duration as seconds if unit was omitted:
             return new DittoDuration(Duration.ofSeconds(Long.parseLong(timeoutStr)), null);
@@ -91,6 +95,8 @@ final class DittoDuration implements CharSequence {
                 return duration.toMillis() + MS_SUFFIX;
             case SECONDS:
                 return duration.getSeconds() + S_SUFFIX;
+            case MINUTES:
+                return duration.toMinutes() + M_SUFFIX;
             default:
                 throw new IllegalArgumentException("Unsupported TimeUnit: " + timeUnit);
         }

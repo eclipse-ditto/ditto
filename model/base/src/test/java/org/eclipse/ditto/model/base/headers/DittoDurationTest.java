@@ -37,6 +37,12 @@ public final class DittoDurationTest {
     }
 
     @Test
+    public void createDittoDurationFromStringMinutes() {
+        final DittoDuration dittoDuration = DittoDuration.fromTimeoutString("10m");
+        assertThat(dittoDuration.getDuration()).isEqualByComparingTo(Duration.ofMinutes(10));
+    }
+
+    @Test
     public void createDittoDurationFromStringMilliseconds() {
         final DittoDuration dittoDuration = DittoDuration.fromTimeoutString("763ms");
         assertThat(dittoDuration.getDuration()).isEqualByComparingTo(Duration.ofMillis(763));
@@ -47,12 +53,6 @@ public final class DittoDurationTest {
         final DittoDuration dittoDuration1 = DittoDuration.fromTimeoutString("23");
         final DittoDuration dittoDuration2 = DittoDuration.fromTimeoutString("23s");
         assertThat(dittoDuration1.getDuration()).isEqualByComparingTo(dittoDuration2.getDuration());
-    }
-
-    @Test
-    public void createDittoDurationFromStringMinutesFails() {
-        assertThatExceptionOfType(NumberFormatException.class)
-                .isThrownBy(() -> DittoDuration.fromTimeoutString("5m"));
     }
 
     @Test

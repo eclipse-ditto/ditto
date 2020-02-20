@@ -60,10 +60,10 @@ public final class DefaultClaimMessageConfigTest {
 
         softly.assertThat(underTest.getDefaultTimeout())
                 .as(DefaultClaimMessageConfig.MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(35L));
+                .isEqualTo(Duration.ofSeconds(10L));
         softly.assertThat(underTest.getMaxTimeout())
                 .as(DefaultClaimMessageConfig.MessageConfigValue.MAX_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(330L));
+                .isEqualTo(Duration.ofSeconds(60L));
     }
 
     @Test

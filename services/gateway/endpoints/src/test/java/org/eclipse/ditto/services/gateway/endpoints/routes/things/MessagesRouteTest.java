@@ -61,8 +61,8 @@ public final class MessagesRouteTest extends EndpointTestBase {
         final ActorSystem actorSystem = system();
         final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
 
-        messagesRoute = new MessagesRoute(createDummyResponseActor(), actorSystem, messageConfig, claimMessageConfig,
-                httpConfig, adapterProvider.getHttpHeaderTranslator());
+        messagesRoute = new MessagesRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
+                messageConfig, claimMessageConfig, adapterProvider.getHttpHeaderTranslator());
         final Route thingsMessagesRoute = extractRequestContext(
                 ctx -> messagesRoute.buildThingsInboxOutboxRoute(ctx, DittoHeaders.empty(), KNOWN_THING_ID));
         thingsMessagesTestRoute = testRoute(thingsMessagesRoute);

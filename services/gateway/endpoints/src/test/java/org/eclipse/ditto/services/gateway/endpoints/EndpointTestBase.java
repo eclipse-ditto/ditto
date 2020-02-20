@@ -29,7 +29,9 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.gateway.endpoints.config.CommandConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultClaimMessageConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DefaultCommandConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultMessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultPublicHealthConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
@@ -80,6 +82,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
     protected static HttpConfig httpConfig;
     protected static HealthCheckConfig healthCheckConfig;
+    protected static CommandConfig commandConfig;
     protected static MessageConfig messageConfig;
     protected static MessageConfig claimMessageConfig;
     protected static AuthenticationConfig authConfig;
@@ -94,6 +97,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         final DefaultScopedConfig gatewayScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, "gateway");
         httpConfig = GatewayHttpConfig.of(gatewayScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(gatewayScopedConfig);
+        commandConfig = DefaultCommandConfig.of(gatewayScopedConfig);
         messageConfig = DefaultMessageConfig.of(gatewayScopedConfig);
         claimMessageConfig = DefaultClaimMessageConfig.of(gatewayScopedConfig);
         authConfig = DefaultAuthenticationConfig.of(gatewayScopedConfig);

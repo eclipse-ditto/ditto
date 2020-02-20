@@ -28,35 +28,35 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.gateway.endpoints.config.DefaultMessageConfig}.
+ * Unit test for {@link DefaultCommandConfig}.
  */
-public final class DefaultMessageConfigTest {
+public final class DefaultCommandConfigTest {
 
-    private static Config messageTestConfig;
+    private static Config commandTestConfig;
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
-        messageTestConfig = ConfigFactory.load("message-test");
+        commandTestConfig = ConfigFactory.load("command-test");
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultMessageConfig.class, areImmutable());
+        assertInstancesOf(DefaultCommandConfig.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultMessageConfig.class)
+        EqualsVerifier.forClass(DefaultCommandConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultMessageConfig underTest = DefaultMessageConfig.of(ConfigFactory.empty());
+        final DefaultCommandConfig underTest = DefaultCommandConfig.of(ConfigFactory.empty());
 
         softly.assertThat(underTest.getDefaultTimeout())
                 .as(MessageConfig.MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath())
@@ -68,14 +68,14 @@ public final class DefaultMessageConfigTest {
 
     @Test
     public void underTestReturnsValuesOfBaseConfig() {
-        final DefaultMessageConfig underTest = DefaultMessageConfig.of(messageTestConfig);
+        final DefaultCommandConfig underTest = DefaultCommandConfig.of(commandTestConfig);
 
         softly.assertThat(underTest.getDefaultTimeout())
                 .as(MessageConfig.MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(23L));
+                .isEqualTo(Duration.ofSeconds(33L));
         softly.assertThat(underTest.getMaxTimeout())
                 .as(MessageConfig.MessageConfigValue.MAX_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(42L));
+                .isEqualTo(Duration.ofSeconds(55L));
     }
 
 }

@@ -38,6 +38,7 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
@@ -102,7 +103,7 @@ public final class RootRoute extends AllDirectives {
     /**
      * Query parameter specifying the timeout (in seconds) to apply for a HTTP calls.
      */
-    public static final String TIMEOUT_PARAMETER = "timeout";
+    public static final String TIMEOUT_PARAMETER = DittoHeaderDefinition.TIMEOUT.getKey();
 
     private final HttpConfig httpConfig;
 
@@ -486,7 +487,7 @@ public final class RootRoute extends AllDirectives {
         final Optional<String> correlationIdOptional = dittoHeaders.getCorrelationId();
         final String simpleExceptionName = exception.getClass().getSimpleName();
         final String exceptionMessage = exception.getMessage();
-        if (!correlationIdOptional.isPresent()) {
+        if (correlationIdOptional.isEmpty()) {
             LOGGER.warn("Correlation ID was missing in headers of <{}>: <{}>!", simpleExceptionName, exceptionMessage);
         }
         enhanceLogWithCorrelationId(correlationIdOptional,

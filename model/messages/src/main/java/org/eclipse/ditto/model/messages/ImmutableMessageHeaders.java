@@ -23,6 +23,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.model.things.ThingId;
@@ -94,7 +95,10 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
 
     @Override
     protected Optional<HeaderDefinition> getSpecificDefinitionByKey(final CharSequence key) {
-        return MessageHeaderDefinition.forKey(key);
+        return Optional.ofNullable(
+                DittoHeaderDefinition.forKey(key)
+                        .orElseGet(() -> MessageHeaderDefinition.forKey(key).orElse(null))
+        );
     }
 
     @Override

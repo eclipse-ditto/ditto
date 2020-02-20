@@ -18,10 +18,12 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,6 +35,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
@@ -45,8 +48,16 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
             EnumSet.of(MessageHeaderDefinition.DIRECTION, MessageHeaderDefinition.THING_ID,
                     MessageHeaderDefinition.SUBJECT));
 
+    private static List<HeaderDefinition> determineMessageHeaderDefinitions() {
+        final List<HeaderDefinition> headerDefinitions = new ArrayList<>(
+                Arrays.asList(MessageHeaderDefinition.values()));
+        // remove deprecated timeout entry as this is now defined in DittoHeaderDefinitions
+        headerDefinitions.remove(MessageHeaderDefinition.TIMEOUT);
+        return headerDefinitions;
+    }
+
     private MessageHeadersBuilder(final Map<String, String> headers) {
-        super(headers, Arrays.asList(MessageHeaderDefinition.values()), MessageHeadersBuilder.class);
+        super(headers, determineMessageHeaderDefinitions(), MessageHeadersBuilder.class);
     }
 
     /**

@@ -117,7 +117,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
         /**
          * The timeout for HTTP requests.
          */
-        REQUEST_TIMEOUT("request_timeout", Duration.ofMinutes(1L)),
+        REQUEST_TIMEOUT("request-timeout", Duration.ofMinutes(1L)),
 
         /**
          * The full qualified classname of the HttpRequestActorPropsFactory to instantiate.
@@ -128,7 +128,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
         private final String path;
         private final Object defaultValue;
 
-        private GatewayHttpConfigValue(final String thePath, final Object theDefaultValue) {
+        GatewayHttpConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

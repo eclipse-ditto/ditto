@@ -23,7 +23,7 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation for the config of the {@code messages} resource of the Things service.
+ * This class is the default implementation for the config of the {@code messages} resource of the gateway.
  */
 @Immutable
 public final class DefaultMessageConfig implements MessageConfig {

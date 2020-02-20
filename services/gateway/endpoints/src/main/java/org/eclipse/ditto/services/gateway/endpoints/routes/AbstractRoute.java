@@ -16,9 +16,15 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -29,13 +35,15 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActor;
+import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActorPropsFactory;
+import org.eclipse.ditto.services.gateway.endpoints.config.CommandConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayTimeoutInvalidException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +52,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.headers.TimeoutAccess;
 import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -76,6 +85,7 @@ public abstract class AbstractRoute extends AllDirectives {
     protected final ActorSystem actorSystem;
 
     private final HttpConfig httpConfig;
+    private final CommandConfig commandConfig;
     private final HeaderTranslator headerTranslator;
     private final HttpRequestActorPropsFactory httpRequestActorPropsFactory;
 
@@ -91,11 +101,13 @@ public abstract class AbstractRoute extends AllDirectives {
     protected AbstractRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
             final HttpConfig httpConfig,
+            final CommandConfig commandConfig,
             final HeaderTranslator headerTranslator) {
 
         this.proxyActor = checkNotNull(proxyActor, "delegate actor");
         this.actorSystem = checkNotNull(actorSystem, "actor system");
         this.httpConfig = httpConfig;
+        this.commandConfig = commandConfig;
         this.headerTranslator = checkNotNull(headerTranslator, "header translator");
 
         LOGGER.debug("Using headerTranslator <{}>.", headerTranslator);
@@ -151,8 +163,31 @@ public abstract class AbstractRoute extends AllDirectives {
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
             final Function<String, Command> requestJsonToCommandFunction,
-            final Function<JsonValue, JsonValue> responseTransformFunction) {
+            @Nullable final Function<JsonValue, JsonValue> responseTransformFunction) {
 
+        // check if Akka HTTP timeout was overwritten by our code (e.g. for claim messages)
+        final boolean increasedAkkaHttpTimeout = ctx.getRequest().getHeader(TimeoutAccess.class)
+                .map(TimeoutAccess::timeoutAccess)
+                .map(akka.http.javadsl.TimeoutAccess::getTimeout)
+                .map(scalaDuration -> Duration.ofNanos(scalaDuration.toNanos()))
+                .filter(akkaHttpTimeout -> akkaHttpTimeout.compareTo(commandConfig.getMaxTimeout()) > 0)
+                .isPresent();
+
+        if (increasedAkkaHttpTimeout) {
+            return doHandlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction,
+                    responseTransformFunction);
+        } else {
+            return withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
+                    this::validateCommandTimeout,
+                    commandConfig.getDefaultTimeout(),
+                    () -> doHandlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction,
+                            responseTransformFunction));
+        }
+    }
+
+    private Route doHandlePerRequest(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final Source<ByteString, ?> payloadSource, final Function<String, Command> requestJsonToCommandFunction,
+            @Nullable final Function<JsonValue, JsonValue> responseTransformFunction) {
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
 
         payloadSource
@@ -168,7 +203,7 @@ public abstract class AbstractRoute extends AllDirectives {
                             .build();
                 })
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
-                        HttpRequestActor.COMPLETE_MESSAGE))
+                        AbstractHttpRequestActor.COMPLETE_MESSAGE))
                 .run(materializer);
 
         // optional step: transform the response entity:
@@ -228,4 +263,54 @@ public abstract class AbstractRoute extends AllDirectives {
         return actorSystem.actorOf(props);
     }
 
+    /**
+     * Configures the passed {@code optionalTimeout} as Akka HTTP request timeout validating it with the passed
+     * {@code checkTimeoutFunction} falling back to the optional {@code defaultTimeout} wrapping the passed
+     * {@code inner} Route.
+     *
+     * @param optionalTimeout the custom timeout to use as Akka HTTP request timeout adjusting the configured default one.
+     * @param checkTimeoutFunction a function to check the passed optionalTimeout for validity e.g. within some bounds.
+     * @param defaultTimeout an optional default timeout if the passed optionalTimeout was not set.
+     * @param inner the inner Route to wrap.
+     * @return the wrapped - potentially with custom timeout adjusted - route.
+     */
+    protected Route withCustomRequestTimeout(@Nullable final Duration optionalTimeout,
+            final UnaryOperator<Duration> checkTimeoutFunction,
+            @Nullable final Duration defaultTimeout,
+            final Supplier<Route> inner) {
+
+        @Nullable final Duration customRequestTimeout = Optional.ofNullable(optionalTimeout)
+                .map(checkTimeoutFunction)
+                .orElse(defaultTimeout);
+
+        if (null != customRequestTimeout) {
+            // adds 1 second in order to avoid race conditions with internal receiveTimeouts which shall return "408"
+            // in case of message timeouts:
+            final scala.concurrent.duration.Duration akkaHttpRequestTimeout =
+                    scala.concurrent.duration.Duration.create(customRequestTimeout.getSeconds(), TimeUnit.SECONDS)
+                            .plus(scala.concurrent.duration.Duration.create(1, TimeUnit.SECONDS));
+            return withRequestTimeout(akkaHttpRequestTimeout, inner);
+        } else {
+            return inner.get();
+        }
+    }
+
+    /**
+     * Validates the passed {@code timeout} based on the configured {@link CommandConfig#getMaxTimeout()} as the upper
+     * bound.
+     *
+     * @param timeout the timeout to validate.
+     * @return the passed in timeout if it was valid.
+     * @throws GatewayTimeoutInvalidException if the passed {@code timeout} was not within its bounds.
+     */
+    protected Duration validateCommandTimeout(final Duration timeout) {
+
+        final Duration maxTimeout = commandConfig.getMaxTimeout();
+        // check if the timeout is smaller than the maximum possible timeout and > 0:
+        if (timeout.isNegative() || timeout.compareTo(maxTimeout) > 0) {
+            throw GatewayTimeoutInvalidException.newBuilder(timeout, maxTimeout)
+                    .build();
+        }
+        return timeout;
+    }
 }

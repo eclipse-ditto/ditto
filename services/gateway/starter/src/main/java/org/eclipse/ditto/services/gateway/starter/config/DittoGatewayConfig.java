@@ -16,7 +16,9 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.CommandConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultClaimMessageConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DefaultCommandConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultMessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultPublicHealthConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
@@ -51,6 +53,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     private final HttpConfig httpConfig;
     private final CachesConfig cachesConfig;
     private final HealthCheckConfig healthCheckConfig;
+    private final CommandConfig commandConfig;
     private final MessageConfig messageConfig;
     private final MessageConfig claimMessageConfig;
     private final AuthenticationConfig authenticationConfig;
@@ -64,6 +67,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
         httpConfig = GatewayHttpConfig.of(dittoServiceConfig);
         cachesConfig = DefaultCachesConfig.of(dittoServiceConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoServiceConfig);
+        commandConfig = DefaultCommandConfig.of(dittoServiceConfig);
         messageConfig = DefaultMessageConfig.of(dittoServiceConfig);
         claimMessageConfig = DefaultClaimMessageConfig.of(dittoServiceConfig);
         authenticationConfig = DefaultAuthenticationConfig.of(dittoServiceConfig);
@@ -96,6 +100,11 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     @Override
     public HealthCheckConfig getHealthCheckConfig() {
         return healthCheckConfig;
+    }
+
+    @Override
+    public CommandConfig getCommandConfig() {
+        return commandConfig;
     }
 
     @Override

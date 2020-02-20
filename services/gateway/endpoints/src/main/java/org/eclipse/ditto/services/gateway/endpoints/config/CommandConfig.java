@@ -19,20 +19,20 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
- * Provides configuration settings for the {@code messages} resources of the gateway.
+ * Provides configuration settings for incoming commands (via HTTP requests) in the gateway.
  */
 @Immutable
-public interface MessageConfig {
+public interface CommandConfig {
 
     /**
-     * Returns the default timeout of claim messages initiated via /messages resource.
+     * Returns the default timeout of requested command.
      *
      * @return the default timeout.
      */
     Duration getDefaultTimeout();
 
     /**
-     * Returns the maximum possible timeout of claim messages initiated via /messages resource.
+     * Returns the maximum possible timeout of requested command.
      *
      * @return the maximum timeout.
      */
@@ -40,24 +40,24 @@ public interface MessageConfig {
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
-     * {@code MessageConfig}.
+     * {@code CommandConfig}.
      */
-    enum MessageConfigValue implements KnownConfigValue {
+    enum CommandConfigValue implements KnownConfigValue {
 
         /**
-         * The default timeout of claim messages initiated via /messages resource.
+         * The default timeout of requested command.
          */
         DEFAULT_TIMEOUT("default-timeout", "10s"),
 
         /**
-         * The maximum possible timeout of claim messages initiated via /messages resource.
+         * The maximum possible timeout of requested command.
          */
         MAX_TIMEOUT("max-timeout", "1m");
 
         private final String path;
         private final Object defaultValue;
 
-        MessageConfigValue(final String thePath, final Object theDefaultValue) {
+        CommandConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

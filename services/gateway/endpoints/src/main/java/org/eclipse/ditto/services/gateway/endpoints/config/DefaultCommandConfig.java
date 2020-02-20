@@ -23,31 +23,33 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation for the config of the {@code inbox/claim} resource of the gateway.
+ * Default implementation of {@link CommandConfig}.
+ *
+ * @since 1.1.0
  */
 @Immutable
-public final class DefaultClaimMessageConfig implements MessageConfig {
+public final class DefaultCommandConfig implements CommandConfig {
 
-    private static final String CONFIG_PATH = "claim-message";
+    private static final String CONFIG_PATH = "command";
 
     private final Duration defaultTimeout;
     private final Duration maxTimeout;
 
-    private DefaultClaimMessageConfig(final ScopedConfig scopedConfig) {
-        defaultTimeout = scopedConfig.getDuration(MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath());
-        maxTimeout = scopedConfig.getDuration(MessageConfigValue.MAX_TIMEOUT.getConfigPath());
+    private DefaultCommandConfig(final ScopedConfig scopedConfig) {
+        defaultTimeout = scopedConfig.getDuration(CommandConfigValue.DEFAULT_TIMEOUT.getConfigPath());
+        maxTimeout = scopedConfig.getDuration(CommandConfigValue.MAX_TIMEOUT.getConfigPath());
     }
 
     /**
-     * Returns an instance of {@code DefaultClaimMessageConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DefaultCommandAcknowledgementConfig} based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the claim-message config at {@value #CONFIG_PATH}.
+     * @param config is supposed to provide the settings of the message config at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultClaimMessageConfig of(final Config config) {
-        return new DefaultClaimMessageConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, MessageConfigValue.values()));
+    public static DefaultCommandConfig of(final Config config) {
+        return new DefaultCommandConfig(
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, CommandConfigValue.values()));
     }
 
     @Override
@@ -68,7 +70,7 @@ public final class DefaultClaimMessageConfig implements MessageConfig {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultClaimMessageConfig that = (DefaultClaimMessageConfig) o;
+        final DefaultCommandConfig that = (DefaultCommandConfig) o;
         return Objects.equals(defaultTimeout, that.defaultTimeout) && Objects.equals(maxTimeout, that.maxTimeout);
     }
 

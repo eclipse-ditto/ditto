@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.acks;
+package org.eclipse.ditto.signals.commands.base.exceptions;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -21,7 +21,6 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.acks.AcknowledgementException;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -29,15 +28,13 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
- * Thrown if a command reached its defined timeout after not all {@link org.eclipse.ditto.signals.acks.Acknowledgement}s
- * were received.
+ * Thrown if a command reached its defined timeout after no response was received.
  *
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableException(errorCode = AcknowledgementCommandTimeoutException.ERROR_CODE)
-public final class AcknowledgementCommandTimeoutException extends DittoRuntimeException implements
-        AcknowledgementException {
+@JsonParsableException(errorCode = GatewayCommandTimeoutException.ERROR_CODE)
+public final class GatewayCommandTimeoutException extends DittoRuntimeException implements GatewayException {
 
     /**
      * Error code of this exception.
@@ -46,12 +43,11 @@ public final class AcknowledgementCommandTimeoutException extends DittoRuntimeEx
 
     private static final String MESSAGE_TEMPLATE = "The Command reached the specified timeout of {0}.";
 
-    private static final String DEFAULT_DESCRIPTION = "Try increasing the command timeout or ensure that the " +
-            "(custom) requested acknowledgements respond within the defined timeout.";
+    private static final String DEFAULT_DESCRIPTION = "Try increasing the command timeout";
 
     private static final long serialVersionUID = -3732435554989623073L;
 
-    private AcknowledgementCommandTimeoutException(final DittoHeaders dittoHeaders,
+    private GatewayCommandTimeoutException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -60,7 +56,7 @@ public final class AcknowledgementCommandTimeoutException extends DittoRuntimeEx
     }
 
     /**
-     * A mutable builder for a {@code AcknowledgementCommandTimeoutException}.
+     * A mutable builder for a {@code GatewayCommandTimeoutException}.
      *
      * @param timeout the timeout.
      * @return the builder.
@@ -70,12 +66,12 @@ public final class AcknowledgementCommandTimeoutException extends DittoRuntimeEx
     }
 
     /**
-     * Constructs a new {@code AcknowledgementCommandTimeoutException} object with the given exception message.
+     * Constructs a new {@code GatewayCommandTimeoutException} object with the given exception message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
-     * @return the new AcknowledgementCommandTimeoutException.
+     * @return the new GatewayCommandTimeoutException.
      */
-    public static AcknowledgementCommandTimeoutException fromMessage(final String message) {
+    public static GatewayCommandTimeoutException fromMessage(final String message) {
         return new Builder()
                 .message(message)
                 .build();
@@ -89,7 +85,7 @@ public final class AcknowledgementCommandTimeoutException extends DittoRuntimeEx
      * @return an instance of this class.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AcknowledgementCommandTimeoutException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static GatewayCommandTimeoutException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new Builder()
                 .loadJson(jsonObject)
                 .dittoHeaders(dittoHeaders)
@@ -100,10 +96,10 @@ public final class AcknowledgementCommandTimeoutException extends DittoRuntimeEx
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link AcknowledgementCommandTimeoutException}.
+     * A mutable builder with a fluent API for a {@link GatewayCommandTimeoutException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<AcknowledgementCommandTimeoutException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayCommandTimeoutException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -115,12 +111,12 @@ public final class AcknowledgementCommandTimeoutException extends DittoRuntimeEx
         }
 
         @Override
-        protected AcknowledgementCommandTimeoutException doBuild(final DittoHeaders dittoHeaders,
+        protected GatewayCommandTimeoutException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new AcknowledgementCommandTimeoutException(dittoHeaders, message, description, cause, href);
+            return new GatewayCommandTimeoutException(dittoHeaders, message, description, cause, href);
         }
     }
 
