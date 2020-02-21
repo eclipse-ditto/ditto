@@ -639,7 +639,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 );
             }
 
-            final TopicPath.Channel channel = determineChannel(sessionedJsonifiable);
+            final TopicPath.Channel channel = ProtocolAdapter.determineChannel((Signal<?>) jsonifiable);
             final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, channel, adapter);
             final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
             return extraFuture.<Collection<String>>thenApply(extra ->
@@ -648,20 +648,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                             : Collections.emptyList())
                     .exceptionally(error -> WebSocketRoute.reportEnrichmentError(error, adapter, adaptable));
         };
-    }
-
-    private static TopicPath.Channel determineChannel(final SessionedJsonifiable sessionedJsonifiable) {
-        return sessionedJsonifiable.getDittoHeaders()
-                .getChannel()
-                // if channel was present in headers, use that one:
-                .map(channel -> TopicPath.Channel.forName(channel).orElse(TopicPath.Channel.TWIN))
-                // otherwise determine the channel from the class of the jsonifiable
-                .orElseGet(() -> {
-                    final Jsonifiable.WithPredicate<?, ?> jsonifiable = sessionedJsonifiable.getJsonifiable();
-                    return (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable))
-                            ? TopicPath.Channel.LIVE
-                            : TopicPath.Channel.TWIN;
-                });
     }
 
     private static Collection<String> reportEnrichmentError(final Throwable error,
