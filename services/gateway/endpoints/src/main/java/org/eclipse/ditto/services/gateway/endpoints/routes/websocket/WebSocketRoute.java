@@ -719,8 +719,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             default:
                 throw new IllegalArgumentException("Unknown streamingType: " + streamingType);
         }
-        return protocolMessage +
-                PROTOCOL_CMD_ACK_SUFFIX;
+        return protocolMessage + PROTOCOL_CMD_ACK_SUFFIX;
     }
 
     private static Adaptable jsonifiableToAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
@@ -728,11 +727,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final Adaptable adaptable;
         if (jsonifiable instanceof Signal) {
             adaptable = adapter.toAdaptable((Signal<?>) jsonifiable);
-        } else if (jsonifiable instanceof PolicyException) {
-            final Signal<?> signal = buildPolicyErrorResponse((DittoRuntimeException) jsonifiable);
-            adaptable = adapter.toAdaptable(signal);
         } else if (jsonifiable instanceof DittoRuntimeException) {
-            final Signal<?> signal = buildThingErrorResponse((DittoRuntimeException) jsonifiable);
+            final Signal<?> signal;
+            if (jsonifiable instanceof PolicyException) {
+                signal = buildPolicyErrorResponse((DittoRuntimeException) jsonifiable);
+            } else {
+                signal = buildThingErrorResponse((DittoRuntimeException) jsonifiable);
+            }
             adaptable = adapter.toAdaptable(signal);
         } else {
             throw new IllegalArgumentException("Jsonifiable was neither Signal nor DittoRuntimeException: " +
