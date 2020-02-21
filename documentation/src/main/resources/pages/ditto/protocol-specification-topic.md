@@ -61,6 +61,13 @@ unauthorized access to a `Thing` by responding with an error.
 Protocol messages with the *messages* `{criterion}` are only possible on the *live* channel as Ditto only acts as a
 broker of connected actual devices.
 
+### No channel
+
+Some commands (e.g. Policy commands) are not related to an actual device and thus have no associated twin. 
+For these commands the *twin*/*live* semantics does not fit and consequently they have no channel assigned in the
+ *Topic* of the Ditto Protocol message.
+ 
+For example a *CreatePolicy* command has the following *Topic*: `<namespace>/<policyName>/policies/commands/create`
 
 ## Criterion
 
