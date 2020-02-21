@@ -78,6 +78,8 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
             topicPathBuildable = topicPathBuilder.twin().errors();
         } else if (channel == TopicPath.Channel.LIVE) {
             topicPathBuildable = topicPathBuilder.live().errors();
+        } else if (channel == TopicPath.Channel.NONE) {
+            topicPathBuildable = topicPathBuilder.none().errors();
         } else {
             throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
         }

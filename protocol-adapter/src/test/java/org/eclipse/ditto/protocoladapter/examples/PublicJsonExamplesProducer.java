@@ -30,10 +30,13 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.things.ThingException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
 import com.eclipsesource.json.Json;
@@ -107,7 +110,14 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
     private static Jsonifiable.WithPredicate<JsonObject, JsonField> wrapExceptionInThingErrorResponse(
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
 
-        if (jsonifiable instanceof DittoRuntimeException) {
+        if (jsonifiable instanceof ThingException) {
+            return ThingErrorResponse.of((DittoRuntimeException) jsonifiable);
+        } else if (jsonifiable instanceof PolicyException) {
+            return PolicyErrorResponse.of((DittoRuntimeException) jsonifiable);
+        } else if (jsonifiable instanceof DittoRuntimeException) {
+
+            System.out.println(jsonifiable.getClass().getName() + " is neither ThingException nor PolicyException.");
+
             return ThingErrorResponse.of((DittoRuntimeException) jsonifiable);
         } else {
             return jsonifiable;
