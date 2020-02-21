@@ -23,7 +23,7 @@ Delete the policy identified by the `<namespace>/<policyId>` pair in the `topic`
 | **topic**  |        | `<namespace>/<policyId>/policies/commands/delete` |
 | **path**   |        | `/`                      |
 | **status** | _code_ |    
-|            | `204`  | Success - The Policy entries were successfully updated.       |
+|            | `204`  | Success - The Policy was successfully deleted.       |
 
 **Example:** [Delete a Policy](protocol-examples-policies-deletepolicy.html)
 
@@ -47,7 +47,7 @@ Deletes a Policy entry identified by the `<namespace>/<policyId>` pair in the `t
 | **topic**  |        | `<namespace>/<policyId>/policies/commands/delete` |
 | **path**   |        | `/entries/<label>`                      |
 | **status** | _code_ |    
-|            | `204`  | Success - The Policy entries were successfully updated.       |
+|            | `204`  | Success - The Policy entry was successfully deleted.       |
 
 **Example:** [Delete a Policy entry](protocol-examples-policies-deletepolicyentry.html)
 
@@ -70,7 +70,7 @@ Deletes the resource identified by the `<namespace>/<policyId>` pair in the `top
 | **topic**  |        | `<namespace>/<policyId>/policies/commands/delete` |
 | **path**   |        | `/entries/<label>/resources/<resource>`                      |
 | **status** | _code_ |    
-|            | `204`  | Success - The Policy entries were successfully updated.       |
+|            | `204`  | Success - The resource was successfully deleted.       |
 
 **Example:** [Delete a resource](protocol-examples-policies-deleteresource.html)
 
@@ -93,7 +93,7 @@ Delete the subject identified by the `<namespace>/<policyId>` pair in the `topic
 | **topic**  |        | `<namespace>/<policyId>/policies/commands/delete` |
 | **path**   |        | `/entries/<label>/subjects/<subjectId>`                      |
 | **status** | _code_ |    
-|            | `204`  | Success - The Policy entries were successfully updated.       |
+|            | `204`  | Success - The subject was successfully deleted.       |
 
 **Example:** [Delete a subject](protocol-examples-policies-deletesubject.html)
 
