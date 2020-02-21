@@ -54,15 +54,18 @@ final class DefaultAdapterResolver implements AdapterResolver {
         final TopicPath topicPath = adaptable.getTopicPath();
         final TopicPath.Channel channel = topicPath.getChannel();
         final Optional<Adapter<? extends Signal<?>>> adapter;
-        if (TopicPath.Channel.LIVE.equals(channel)) { // /<group>/live
-            adapter = Optional.ofNullable(fromLiveAdaptable(adaptable, adapterProvider));
-        } else if (TopicPath.Channel.TWIN.equals(channel)) { // /<group>/twin
-            adapter = Optional.ofNullable(signalFromAdaptable(adaptable, adapterProvider));
-        } else if (TopicPath.Channel.NONE.equals(channel)) { // no channel (policies group)
-            adapter = Optional.ofNullable(signalFromAdaptable(adaptable, adapterProvider));
-        } else {
-            adapter = Optional.empty();
+        switch (channel) {
+            case TWIN: // /<group>/twin
+            case NONE: // no channel (policies group)
+                adapter = Optional.ofNullable(signalFromAdaptable(adaptable, adapterProvider));
+                break;
+            case LIVE: // /<group>/live
+                adapter = Optional.ofNullable(fromLiveAdaptable(adaptable, adapterProvider));
+                break;
+            default:
+                adapter = Optional.empty();
         }
+
         return adapter.orElseThrow(() -> UnknownTopicPathException.newBuilder(topicPath).build());
     }
 

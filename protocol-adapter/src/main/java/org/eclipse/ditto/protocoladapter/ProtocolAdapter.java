@@ -218,7 +218,6 @@ public interface ProtocolAdapter {
      */
     @Deprecated
     default Adaptable toAdaptable(ThingQueryCommand<?> thingQueryCommand) {
-
         return toAdaptable(thingQueryCommand, determineChannel(thingQueryCommand));
     }
 

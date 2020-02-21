@@ -1354,7 +1354,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void policyIdModifiedFromAdaptable() {
         final PolicyIdModified expected =
-                PolicyIdModified.of(TestConstants.THING_ID,TestConstants.Policies.POLICY_ID,
+                PolicyIdModified.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
                         TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/policyId");

@@ -63,7 +63,8 @@ public class ProtocolFactoryParameterizedTest {
                 {"ns/id/policies/commands/modify", of(ns, ID, POLICIES, NONE, COMMANDS, MODIFY)},
                 {"ns/id/policies/commands/retrieve", of(ns, ID, POLICIES, NONE, COMMANDS, RETRIEVE)},
                 {"ns/id/policies/commands/create", of(ns, ID, POLICIES, NONE, COMMANDS, CREATE)},
-                {"ns/id/policies/commands/delete", of(ns, ID, POLICIES, NONE, COMMANDS, DELETE)}
+                {"ns/id/policies/commands/delete", of(ns, ID, POLICIES, NONE, COMMANDS, DELETE)},
+                {"ns/id/policies/errors", of(ns, ID, POLICIES, NONE, ERRORS)}
         };
         return Arrays.asList(data);
     }

@@ -46,9 +46,8 @@ public abstract class LiveTwinTest {
             case LIVE:
                 topicPathBuilder.live();
                 break;
-            case NONE:
-                topicPathBuilder.none();
-                break;
+            default:
+                throw new IllegalStateException("channel is expected to be TWIN or LIVE, but was: " + channel.getName());
         }
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder = topicPathBuilder.commands();

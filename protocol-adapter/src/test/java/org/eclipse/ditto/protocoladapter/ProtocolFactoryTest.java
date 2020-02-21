@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
 /**
- * Tests ProtocolFactory.
+ * Tests {@link ProtocolFactory}.
  */
 public class ProtocolFactoryTest {
 

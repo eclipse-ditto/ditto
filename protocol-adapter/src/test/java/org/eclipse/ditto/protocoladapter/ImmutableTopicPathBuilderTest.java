@@ -75,4 +75,22 @@ public class ImmutableTopicPathBuilderTest {
         assertThat(actual.getPath()).isEqualTo(expectedTopicPathString);
     }
 
+    @Test
+    public void buildPolicyModifyCommandTopicPathWitNoneChannel() {
+        final TopicPath expected = ImmutableTopicPath
+                .of("org.eclipse.ditto.test", "myPolicy", TopicPath.Group.POLICIES, TopicPath.Channel.NONE,
+                        TopicPath.Criterion.COMMANDS, TopicPath.Action.MODIFY);
+        final TopicPath actual =
+                ProtocolFactory.newTopicPathBuilder(PolicyId.of("org.eclipse.ditto.test", "myPolicy"))
+                        .none()
+                        .commands()
+                        .modify()
+                        .build();
+
+        final String expectedTopicPathString = "org.eclipse.ditto.test/myPolicy/policies/commands/modify";
+
+        assertThat(actual).isEqualTo(expected);
+        assertThat(actual.getPath()).isEqualTo(expectedTopicPathString);
+    }
+
 }

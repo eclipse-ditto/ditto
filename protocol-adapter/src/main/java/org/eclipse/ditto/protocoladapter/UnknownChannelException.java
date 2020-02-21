@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 /**
  * Thrown if a {@link org.eclipse.ditto.protocoladapter.TopicPath.Channel} is not supported in combination with the
  * provided {@link org.eclipse.ditto.signals.base.Signal}.
+ * @since 1.1.0
  */
 @JsonParsableException(errorCode = UnknownChannelException.ERROR_CODE)
 public final class UnknownChannelException extends DittoRuntimeException {

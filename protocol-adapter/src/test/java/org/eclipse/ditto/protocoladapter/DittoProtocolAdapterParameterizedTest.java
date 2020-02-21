@@ -39,6 +39,7 @@ import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
+import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
@@ -53,6 +54,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.LoggerFactory;
 
 /**
  * Unit test for {@link DittoProtocolAdapter}.
@@ -62,7 +64,7 @@ import org.junit.runners.Parameterized;
 public final class DittoProtocolAdapterParameterizedTest {
 
     private static final org.slf4j.Logger LOGGER =
-            org.slf4j.LoggerFactory.getLogger(DittoProtocolAdapterParameterizedTest.class);
+            LoggerFactory.getLogger(DittoProtocolAdapterParameterizedTest.class);
     private static final DittoHeaders LIVE_DITTO_HEADERS = DittoHeaders.newBuilder().channel(LIVE.getName()).build();
 
     // mock all adapaters and give them a name
@@ -88,6 +90,8 @@ public final class DittoProtocolAdapterParameterizedTest {
             mock(Adapter.class, "PolicyModifyCommandAdapter");
     private static Adapter<PolicyModifyCommandResponse<?>> policyModifyCommandResponseAdapter =
             mock(Adapter.class, "PolicyModifyCommandResponseAdapter");
+    private static Adapter<PolicyErrorResponse> policyErrorResponseAdapter =
+            mock(Adapter.class, "PolicyErrorResponseAdapter");
 
     // build test parameters with expected outcome
     private static final List<TestParameter> PARAMS;
@@ -100,6 +104,7 @@ public final class DittoProtocolAdapterParameterizedTest {
         PARAMS.add(new TestParameter(ThingModifyCommand.class, thingModifyCommandAdapter, TWIN, TWIN, LIVE));
         PARAMS.add(new TestParameter(ThingModifyCommandResponse.class, thingModifyCommandResponseAdapter, TWIN, TWIN,
                 LIVE));
+        PARAMS.add(new TestParameter(ThingErrorResponse.class, thingErrorResponseAdapter, TWIN, TWIN, LIVE));
         PARAMS.add(new TestParameter(MessageCommand.class, messageCommandAdapter, LIVE, LIVE));
         PARAMS.add(new TestParameter(MessageCommandResponse.class, messageCommandResponseAdapter, LIVE, LIVE));
         PARAMS.add(new TestParameter(ThingEvent.class, thingEventAdapter, TWIN, TWIN, LIVE));
@@ -108,6 +113,7 @@ public final class DittoProtocolAdapterParameterizedTest {
         PARAMS.add(new TestParameter(PolicyModifyCommand.class, policyModifyCommandAdapter, NONE, NONE));
         PARAMS.add(
                 new TestParameter(PolicyModifyCommandResponse.class, policyModifyCommandResponseAdapter, NONE, NONE));
+        PARAMS.add(new TestParameter(PolicyErrorResponse.class, policyErrorResponseAdapter, NONE, NONE));
     }
 
     private ProtocolAdapter underTest;
@@ -211,6 +217,8 @@ public final class DittoProtocolAdapterParameterizedTest {
                 .thenReturn(policyModifyCommandAdapter);
         when(policyCommandAdapterProvider.getModifyCommandResponseAdapter())
                 .thenReturn(policyModifyCommandResponseAdapter);
+        when(policyCommandAdapterProvider.getErrorResponseAdapter())
+                .thenReturn(policyErrorResponseAdapter);
 
         final AdapterResolver adapterResolver = mock(AdapterResolver.class);
 
@@ -222,10 +230,12 @@ public final class DittoProtocolAdapterParameterizedTest {
         reset(thingModifyCommandAdapter);
         reset(thingModifyCommandResponseAdapter);
         reset(thingEventAdapter);
+        reset(thingErrorResponseAdapter);
         reset(policyQueryCommandAdapter);
         reset(policyQueryCommandResponseAdapter);
         reset(policyModifyCommandAdapter);
         reset(policyModifyCommandResponseAdapter);
+        reset(policyErrorResponseAdapter);
         reset(messageCommandAdapter);
         reset(messageCommandResponseAdapter);
     }
@@ -341,20 +351,14 @@ public final class DittoProtocolAdapterParameterizedTest {
         private TestParameter(final Class<T> signalBaseClass, final Adapter<T> expectedAdapter,
                 final TopicPath.Channel expectedDefaultChannel, TopicPath.Channel... supportedChannels) {
             this.signalBaseClass = signalBaseClass;
-            final Set<Class<?>> interfaces = collectInterfaces(signalBaseClass);
-            interfaces.remove(signalBaseClass);
-            this.signal = mockSignal(signalBaseClass, interfaces);
+            this.signal = mockSignal(signalBaseClass);
             this.expectedAdapter = expectedAdapter;
             this.expectedDefaultChannel = expectedDefaultChannel;
             this.supportedChannels = supportedChannels;
         }
 
-        private static <T extends Signal<T>> T mockSignal(Class<T> signalClass, Set<Class<?>> interfaces) {
-            final Set<Class<?>> ifcs = new HashSet<>(interfaces);
-            ifcs.remove(signalClass);
-            final T mockedSignal = mock(signalClass, withSettings()
-                    .extraInterfaces(ifcs.toArray(new Class[0]))
-                    .name(signalClass.getSimpleName()));
+        private static <T extends Signal<T>> T mockSignal(Class<T> signalClass) {
+            final T mockedSignal= mock(signalClass, withSettings().name(signalClass.getSimpleName()));
             when(mockedSignal.getDittoHeaders()).thenReturn(DittoHeaders.empty());
             return mockedSignal;
         }
