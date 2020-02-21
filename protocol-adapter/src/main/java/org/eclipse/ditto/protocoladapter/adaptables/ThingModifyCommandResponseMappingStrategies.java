@@ -15,6 +15,8 @@ package org.eclipse.ditto.protocoladapter.adaptables;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
@@ -36,6 +38,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesR
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
@@ -79,6 +82,15 @@ final class ThingModifyCommandResponseMappingStrategies
                         : ModifyThingResponse.modified(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteThingResponse.TYPE,
                 adaptable -> DeleteThingResponse.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(ModifyPolicyIdResponse.TYPE,
+                ThingModifyCommandResponseMappingStrategies::modifyPolicyIdResponseFrom);
+    }
+
+    private static ModifyPolicyIdResponse modifyPolicyIdResponseFrom(final Adaptable adaptable) {
+        final ThingId thingId = thingIdFrom(adaptable);
+        return isCreated(adaptable) ?
+                ModifyPolicyIdResponse.created(thingId, policyIdFrom(adaptable), dittoHeadersFrom(adaptable)) :
+                ModifyPolicyIdResponse.modified(thingId, dittoHeadersFrom(adaptable));
     }
 
     private static void addAclResponses(

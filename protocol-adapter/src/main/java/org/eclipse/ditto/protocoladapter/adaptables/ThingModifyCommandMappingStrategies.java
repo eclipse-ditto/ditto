@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -45,6 +46,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -76,6 +78,7 @@ final class ThingModifyCommandMappingStrategies extends AbstractThingMappingStra
         mappingStrategies.put(ModifyThing.TYPE, ThingModifyCommandMappingStrategies::modifyThingFrom);
         mappingStrategies.put(DeleteThing.TYPE,
                 adaptable -> DeleteThing.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(ModifyPolicyId.TYPE, ThingModifyCommandMappingStrategies::modifyPolicyIdFrom);
     }
 
     private static void addDefinitionMappingStrategies(
@@ -177,6 +180,13 @@ final class ThingModifyCommandMappingStrategies extends AbstractThingMappingStra
                     .build();
         }
         return thing;
+    }
+
+    private static ModifyPolicyId modifyPolicyIdFrom(final Adaptable adaptable) {
+        final ThingId thingId = thingIdFrom(adaptable);
+        final PolicyId policyId = policyIdFrom(adaptable);
+
+        return ModifyPolicyId.of(thingId, policyId, dittoHeadersFrom(adaptable));
     }
 
     @Nullable

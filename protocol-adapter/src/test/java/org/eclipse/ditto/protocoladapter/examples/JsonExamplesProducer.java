@@ -396,6 +396,12 @@ class JsonExamplesProducer {
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
 
+    /**
+     * Generates *.json examples. If you want to create examples for ditto-documentation use {@link
+     * PublicJsonExamplesProducer}.
+     *
+     * @param args expected one argument: the folder where the examples should be stored, e.g. "generated-examples"
+     */
     public static void main(final String... args) throws IOException {
         run(args, new JsonExamplesProducer());
     }
@@ -1036,7 +1042,7 @@ class JsonExamplesProducer {
                 deleteThingDefinitionResponse);
 
         final ModifyPolicyIdResponse modifyPolicyIdResponseCreated =
-                ModifyPolicyIdResponse.modified(THING_ID, DITTO_HEADERS);
+                ModifyPolicyIdResponse.created(THING_ID, POLICY_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyIdResponseCreated.json")), modifyPolicyIdResponseCreated);
 
         final ModifyPolicyIdResponse modifyPolicyIdResponseModified =
@@ -1181,12 +1187,12 @@ class JsonExamplesProducer {
         writeJson(eventsDir.resolve(Paths.get("aclEntryDeleted.json")), aclEntryDeleted, JsonSchemaVersion.V_1);
 
         final PolicyIdCreated policyIdCreated =
-                PolicyIdCreated.of(THING_ID, PolicyId.of(THING_ID), REVISION_NUMBER,
+                PolicyIdCreated.of(THING_ID, POLICY_ID, REVISION_NUMBER,
                 DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdCreated.json")), policyIdCreated);
 
         final PolicyIdModified policyIdModified =
-                PolicyIdModified.of(THING_ID, PolicyId.of(THING_ID), REVISION_NUMBER, DITTO_HEADERS);
+                PolicyIdModified.of(THING_ID, POLICY_ID, REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdModified.json")), policyIdModified);
 
         final AttributesCreated attributesCreated = AttributesCreated.of(THING_ID, ATTRIBUTES, REVISION_NUMBER,

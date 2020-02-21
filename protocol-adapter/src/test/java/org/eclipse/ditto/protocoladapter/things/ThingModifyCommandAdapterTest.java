@@ -18,6 +18,7 @@ import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -50,6 +51,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -267,6 +269,46 @@ public final class ThingModifyCommandAdapterTest extends LiveTwinTest implements
         final DeleteThing deleteThing =
                 DeleteThing.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteThing, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyPolicyIdToAdaptable() {
+        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
+        final JsonPointer path = JsonPointer.of("/policyId");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ModifyPolicyId modifyPolicyId =
+                ModifyPolicyId.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
+                        TestConstants.DITTO_HEADERS_V_2);
+        final Adaptable actual = underTest.toAdaptable(modifyPolicyId, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyPolicyIdFromAdaptable() {
+        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
+        final JsonPointer path = JsonPointer.of("/policyId");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ModifyPolicyId expected =
+                ModifyPolicyId.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
+                        TestConstants.DITTO_HEADERS_V_2);
+        final ThingModifyCommand<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1049,4 +1091,5 @@ public final class ThingModifyCommandAdapterTest extends LiveTwinTest implements
         }
 
     }
+
 }
