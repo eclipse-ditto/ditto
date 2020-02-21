@@ -2,7 +2,7 @@
 
 ```json
 {
-  "topic": "unknown/unknown/things/twin/errors",
+  "topic": "unknown/unknown/policies/errors",
   "headers": {
     "content-type": "application/vnd.eclipse.ditto+json"
   },
