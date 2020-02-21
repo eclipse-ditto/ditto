@@ -68,6 +68,9 @@ public final class DefaultEnforcementConfigTest {
         softly.assertThat(underTest.getParallelism())
                 .as(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getConfigPath())
                 .isEqualTo(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getDefaultValue());
+        softly.assertThat(underTest.getPartitionBufferSize())
+                .as(EnforcementConfig.EnforcementConfigValue.PARTITION_BUFFER_SIZE.getConfigPath())
+                .isEqualTo(EnforcementConfig.EnforcementConfigValue.PARTITION_BUFFER_SIZE.getDefaultValue());
     }
 
     @Test
@@ -83,6 +86,9 @@ public final class DefaultEnforcementConfigTest {
         softly.assertThat(underTest.getParallelism())
                 .as(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getConfigPath())
                 .isEqualTo(73);
+        softly.assertThat(underTest.getPartitionBufferSize())
+                .as(EnforcementConfig.EnforcementConfigValue.PARTITION_BUFFER_SIZE.getConfigPath())
+                .isEqualTo(29);
     }
 
 }

@@ -60,8 +60,10 @@ public final class DefaultMappingConfigTest {
     public void toStringContainsExpected() {
         final DefaultMappingConfig underTest = DefaultMappingConfig.of(mappingTestConfig);
 
-        softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
-                .contains("javaScriptConfig", "mapperLimitsConfig", "bufferSize", "parallelism");
+        softly.assertThat(underTest.toString())
+                .contains(underTest.getClass().getSimpleName())
+                .contains("javaScriptConfig", "mapperLimitsConfig", "bufferSize", "parallelism",
+                        "partitionBufferSize");
     }
 
     @Test
@@ -75,6 +77,10 @@ public final class DefaultMappingConfigTest {
         softly.assertThat(underTest.getParallelism())
                 .describedAs(MappingConfig.MappingConfigValue.PARALLELISM.getConfigPath())
                 .isEqualTo(67890);
+
+        softly.assertThat(underTest.getPartitionBufferSize())
+                .describedAs(MappingConfig.MappingConfigValue.PARTITION_BUFFER_SIZE.getConfigPath())
+                .isEqualTo(13579);
     }
 
 }
