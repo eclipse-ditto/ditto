@@ -37,6 +37,8 @@ public final class CreateSubscriptionTest {
 
     private static final String KNOWN_FIELDS = "thingId";
 
+    private static final String KNOWN_PREFIX = "prefix";
+
     private static final String JSON_ALL_FIELDS = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, CreateSubscription.TYPE)
             .set(CreateSubscription.JsonFields.FILTER, TestConstants.KNOWN_FILTER_STR)
@@ -48,6 +50,7 @@ public final class CreateSubscriptionTest {
             .set(CreateSubscription.JsonFields.NAMESPACES, JsonFactory.newArrayBuilder()
                     .add(TestConstants.KNOWN_NAMESPACE)
                     .build())
+            .set(CreateSubscription.JsonFields.PREFIX, KNOWN_PREFIX)
             .build()
             .toString();
 
@@ -76,7 +79,7 @@ public final class CreateSubscriptionTest {
                 Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
                 JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
                 TestConstants.KNOWN_NAMESPACES_SET,
-                DittoHeaders.empty());
+                DittoHeaders.empty()).setPrefix(KNOWN_PREFIX);
 
         final String json = command.toJsonString();
         assertThat(json).isEqualTo(JSON_ALL_FIELDS);
@@ -91,28 +94,19 @@ public final class CreateSubscriptionTest {
 
     @Test
     public void fromJsonWithAllFieldsSet() {
-        assertAllFieldsSet(CreateSubscription.fromJson(JsonObject.of(JSON_ALL_FIELDS), DittoHeaders.empty()));
+        final CreateSubscription command = CreateSubscription.of(TestConstants.KNOWN_FILTER_STR,
+                Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
+                JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
+                TestConstants.KNOWN_NAMESPACES_SET,
+                DittoHeaders.empty()).setPrefix(KNOWN_PREFIX);
+        assertThat(CreateSubscription.fromJson(JsonObject.of(JSON_ALL_FIELDS), DittoHeaders.empty()))
+                .isEqualTo(command);
     }
 
     @Test
     public void fromJsonWithOnlyRequiredFieldsSet() {
-        assertMinimal(CreateSubscription.fromJson(JsonObject.of(JSON_MINIMAL), DittoHeaders.empty()));
-    }
-
-    private static void assertAllFieldsSet(final CreateSubscription command) {
-        assertThat(command).isNotNull();
-        assertThat(command.getFilter()).contains(TestConstants.KNOWN_FILTER_STR);
-        assertThat(command.getOptions()).contains(
-                Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2));
-        assertThat(command.getSelectedFields()).contains(
-                JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS));
-    }
-
-    private static void assertMinimal(final CreateSubscription command) {
-        assertThat(command).isNotNull();
-        assertThat(command.getFilter()).isEmpty();
-        assertThat(command.getOptions()).isEmpty();
-        assertThat(command.getSelectedFields()).isEmpty();
+        assertThat(CreateSubscription.fromJson(JsonObject.of(JSON_MINIMAL), DittoHeaders.empty()))
+                .isEqualTo(CreateSubscription.of(DittoHeaders.empty()));
     }
 
 }

@@ -68,14 +68,17 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
     @Nullable private final List<String> options;
     @Nullable private final JsonFieldSelector fields;
     @Nullable private final Set<String> namespaces;
+    @Nullable private final String prefix;
 
-    private CreateSubscription(final DittoHeaders dittoHeaders,
-            @Nullable final String filter,
+    private CreateSubscription(@Nullable final String filter,
             @Nullable final List<String> options,
             @Nullable final JsonFieldSelector fields,
-            @Nullable final Collection<String> namespaces) {
+            @Nullable final Collection<String> namespaces,
+            @Nullable final String prefix,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.filter = filter;
+        this.prefix = prefix;
         if (options != null) {
             this.options = Collections.unmodifiableList(options);
         } else {
@@ -102,7 +105,7 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
     public static CreateSubscription of(@Nullable final String filter, @Nullable final List<String> options,
             @Nullable final JsonFieldSelector fields, @Nullable final Set<String> namespaces,
             final DittoHeaders dittoHeaders) {
-        return new CreateSubscription(dittoHeaders, filter, options, fields, namespaces);
+        return new CreateSubscription(filter, options, fields, namespaces, null, dittoHeaders);
     }
 
     /**
@@ -113,7 +116,7 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static CreateSubscription of(final DittoHeaders dittoHeaders) {
-        return new CreateSubscription(dittoHeaders, null, null, null, null);
+        return new CreateSubscription(null, null, null, null, null, dittoHeaders);
     }
 
     /**
@@ -148,8 +151,11 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
                             .collect(Collectors.toSet()))
                     .orElse(null);
 
-            return new CreateSubscription(dittoHeaders, extractedFilter, extractedOptions, extractedFieldSelector,
-                    extractedNamespaces);
+            final String prefix = jsonObject.getValue(JsonFields.PREFIX).orElse(null);
+
+            return new CreateSubscription(extractedFilter, extractedOptions, extractedFieldSelector,
+                    extractedNamespaces, prefix, dittoHeaders
+            );
         });
     }
 
@@ -160,11 +166,22 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
 
     /**
      * Get the optional options.
+     * TODO: turn this into String type; callers are joining the options before parsing them anyway
      *
      * @return the optional options.
      */
     public Optional<List<String>> getOptions() {
         return Optional.ofNullable(options);
+    }
+
+    /**
+     * Get the prefix of subscription IDs. The prefix is used to identify a subscription manager if multiple
+     * are deployed in the cluster.
+     *
+     * @return the subscription ID prefix.
+     */
+    public Optional<String> getPrefix() {
+        return Optional.ofNullable(prefix);
     }
 
     /**
@@ -184,7 +201,18 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
 
     @Override
     public CreateSubscription setNamespaces(@Nullable final Collection<String> namespaces) {
-        return new CreateSubscription(getDittoHeaders(), filter, options, fields, namespaces);
+        return new CreateSubscription(filter, options, fields, namespaces, prefix, getDittoHeaders());
+    }
+
+    /**
+     * Create a copy of this command with prefix set. The prefix is used to identify a subscription manager
+     * if multiple are deployed in the cluster.
+     *
+     * @param prefix the subscription ID prefix.
+     * @return the new command.
+     */
+    public CreateSubscription setPrefix(@Nullable final String prefix) {
+        return new CreateSubscription(filter, options, fields, namespaces, prefix, getDittoHeaders());
     }
 
     @Override
@@ -200,11 +228,12 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
         getNamespaces().ifPresent(presentOptions -> jsonObjectBuilder.set(JsonFields.NAMESPACES, presentOptions.stream()
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray()), predicate));
+        getPrefix().ifPresent(prefix -> jsonObjectBuilder.set(JsonFields.PREFIX, prefix));
     }
 
     @Override
     public CreateSubscription setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new CreateSubscription(dittoHeaders, filter, options, fields, namespaces);
+        return new CreateSubscription(filter, options, fields, namespaces, prefix, dittoHeaders);
     }
 
     @Override
@@ -219,12 +248,13 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
         return Objects.equals(filter, that.filter) &&
                 Objects.equals(options, that.options) &&
                 Objects.equals(fields, that.fields) &&
-                Objects.equals(namespaces, that.namespaces);
+                Objects.equals(namespaces, that.namespaces) &&
+                Objects.equals(prefix, that.prefix);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), filter, options, fields, namespaces);
+        return Objects.hash(super.hashCode(), filter, options, fields, namespaces, prefix);
     }
 
     @Override
@@ -235,6 +265,7 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
                 ", options=" + options +
                 ", fields=" + fields +
                 ", namespaces=" + namespaces +
+                ", prefix=" + prefix +
                 ']';
     }
 
@@ -254,6 +285,10 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
 
         static final JsonFieldDefinition<JsonArray> NAMESPACES =
                 JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        static final JsonFieldDefinition<String> PREFIX =
+                JsonFactory.newStringFieldDefinition("prefix", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
     }
 }

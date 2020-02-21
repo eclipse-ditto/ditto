@@ -58,7 +58,6 @@ public final class SubscriptionManager extends AbstractActor {
     private final ActorRef pubSubMediator;
     private final ActorRef conciergeForwarder;
     private final ActorMaterializer materializer;
-    private final Function<Integer, String> getSubscriptionId;
     private final DittoDiagnosticLoggingAdapter log;
 
     private int subscriptionIdCounter = 0;
@@ -66,37 +65,29 @@ public final class SubscriptionManager extends AbstractActor {
     private SubscriptionManager(final Duration idleTimeout,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            final ActorMaterializer materializer,
-            final Function<Integer, String> getSubscriptionId) {
+            final ActorMaterializer materializer) {
         this.idleTimeout = idleTimeout;
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
         this.materializer = materializer;
-        this.getSubscriptionId = getSubscriptionId;
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     }
 
     /**
-     * Create Props for a subscription manager. The function {@code getSubscriptionId} should be chosen to include
-     * all relevant information to dispatch commands related to a subscription to exactly this actor from any
-     * relevant cluster member. It is nevertheless unwise to use the literal ActorRef, because the subscription
-     * ID is visible to and is set by users.
+     * Create Props for a subscription manager.
      *
      * @param idleTimeout lifetime of an idle SubscriptionActor.
      * @param pubSubMediator pub-sub mediator for reporting of out-of-sync things.
      * @param conciergeForwarder recipient of thing and StreamThings commands.
      * @param materializer materializer for the search streams.
-     * @param getSubscriptionId function to compute a subscription ID from a counter.
      * @return Props of the actor.
      */
     public static Props props(final Duration idleTimeout,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            final ActorMaterializer materializer,
-            final Function<Integer, String> getSubscriptionId) {
+            final ActorMaterializer materializer) {
 
-        return Props.create(SubscriptionManager.class, idleTimeout, pubSubMediator, conciergeForwarder, materializer,
-                getSubscriptionId);
+        return Props.create(SubscriptionManager.class, idleTimeout, pubSubMediator, conciergeForwarder, materializer);
     }
 
     @Override
@@ -135,7 +126,7 @@ public final class SubscriptionManager extends AbstractActor {
 
     private void createSubscription(final CreateSubscription createSubscription) {
         log.withCorrelationId(createSubscription).info("Processing <{}>", createSubscription);
-        final String subscriptionId = nextSubscriptionId();
+        final String subscriptionId = nextSubscriptionId(createSubscription);
         final Props props = SubscriptionActor.props(idleTimeout, getSender(), createSubscription.getDittoHeaders());
         final ActorRef subscriptionActor = getContext().actorOf(props, subscriptionId);
         final Source<JsonArray, NotUsed> pageSource = getPageSource(createSubscription);
@@ -165,8 +156,9 @@ public final class SubscriptionManager extends AbstractActor {
         return searchSource.start().grouped(pageSize).map(JsonArray::of);
     }
 
-    private String nextSubscriptionId() {
-        return getSubscriptionId.apply(subscriptionIdCounter++);
+    private String nextSubscriptionId(final CreateSubscription createSubscription) {
+        final String prefix = createSubscription.getPrefix().orElse("");
+        return prefix + subscriptionIdCounter++;
     }
 
     private static JsonArray asJsonArray(final Collection<String> strings) {
