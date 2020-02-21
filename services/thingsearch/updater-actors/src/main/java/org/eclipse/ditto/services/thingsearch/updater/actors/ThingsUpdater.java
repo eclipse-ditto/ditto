@@ -81,7 +81,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
             final ActorRef thingUpdaterShardRegion,
             final UpdaterConfig updaterConfig,
             final BlockedNamespaces blockedNamespaces,
-            @Nullable final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator) {
 
         this.thingEventSub = thingEventSub;
 
@@ -100,10 +100,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
             getSelf().tell(Clock.REBALANCE_TICK, getSelf());
         }
 
-        if (pubSubMediator != null) {
-            pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(UpdateThings.TYPE, ACTOR_NAME, getSelf()),
-                    getSelf());
-        }
+        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(UpdateThings.TYPE, ACTOR_NAME, getSelf()), getSelf());
     }
 
     /**
@@ -121,7 +118,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
             final ActorRef thingUpdaterShardRegion,
             final UpdaterConfig updaterConfig,
             final BlockedNamespaces blockedNamespaces,
-            @Nullable final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator) {
 
         return Props.create(ThingsUpdater.class, thingEventSub, thingUpdaterShardRegion, updaterConfig,
                 blockedNamespaces, pubSubMediator);
