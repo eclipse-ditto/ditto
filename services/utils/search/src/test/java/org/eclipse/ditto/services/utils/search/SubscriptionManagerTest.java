@@ -76,6 +76,15 @@ public final class SubscriptionManagerTest {
     }
 
     @Test
+    public void noSuchSubscription() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createSubscriptionManager();
+            underTest.tell(RequestSubscription.of("nonexistentSid", 1L, DittoHeaders.empty()), getRef());
+            expectMsgClass(SubscriptionFailed.class);
+        }};
+    }
+
+    @Test
     public void illegalPageSize() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = createSubscriptionManager();
@@ -83,7 +92,6 @@ public final class SubscriptionManagerTest {
             expectMsgClass(SubscriptionCreated.class);
             expectMsgClass(SubscriptionFailed.class);
         }};
-
     }
 
     @Test

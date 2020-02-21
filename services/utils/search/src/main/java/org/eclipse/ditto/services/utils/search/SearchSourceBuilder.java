@@ -63,7 +63,7 @@ public final class SearchSourceBuilder {
     private Duration searchAskTimeout = Duration.ofSeconds(60L);
     private Duration minBackoff = Duration.ofSeconds(1L);
     private Duration maxBackoff = Duration.ofSeconds(30L);
-    private int maxRetries = 6;
+    private int maxRetries = 5; // failure message after 32s on back-end error
     private Duration recovery = Duration.ofSeconds(90L);
 
     /**
