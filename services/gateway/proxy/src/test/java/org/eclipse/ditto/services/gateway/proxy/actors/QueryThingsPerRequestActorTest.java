@@ -99,6 +99,32 @@ public final class QueryThingsPerRequestActorTest {
     }
 
     @Test
+    public void thingIdIsIncludedWhenOnlyThingIdIsSelected() {
+        // GIVEN: QueryThings selected thingId field
+        final JsonFieldSelector fields = JsonFieldSelector.newInstance("thingId");
+        final QueryThings queryThings = QueryThings.of(null, null, fields, null, dittoHeaders);
+        final ActorRef underTest = createQueryThingsPerRequestActor(queryThings);
+        final ThingId thingId1 = ThingId.of("thing:1");
+        final ThingId thingId2 = ThingId.of("thing:2");
+        final SearchResult searchResult = forIdItems(thingId1, thingId2);
+        final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(searchResult, dittoHeaders);
+
+        // WHEN: QueryThingsResponse has items
+        underTest.tell(queryThingsResponse, ActorRef.noSender());
+
+        // THEN: aggregator is asked to retrieve things with selected fields including thingId
+        aggregatorProbe.expectMsg(RetrieveThings.getBuilder(thingId1, thingId2)
+                .selectedFields(fields)
+                .dittoHeaders(dittoHeaders)
+                .build());
+
+        aggregatorProbe.reply(RetrieveThingsResponse.of(asArray(thingId1, thingId2), "thing", dittoHeaders));
+
+        // THEN: final response does not include thingId
+        originalSenderProbe.expectMsg(queryThingsResponse);
+    }
+
+    @Test
     public void alwaysIncludeThingIdsInInternalRoundTripOnly() {
         // GIVEN: QueryThings selected a field other than thingId
         final JsonFieldSelector fields = JsonFieldSelector.newInstance("definition");

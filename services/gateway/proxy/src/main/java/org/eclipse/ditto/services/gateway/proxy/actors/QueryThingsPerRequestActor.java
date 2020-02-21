@@ -68,7 +68,8 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     @SuppressWarnings("unused")
     private QueryThingsPerRequestActor(final QueryThings queryThings,
             final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender, final ActorRef pubSubMediator) {
+            final ActorRef originatingSender,
+            final ActorRef pubSubMediator) {
 
         this.queryThings = queryThings;
         this.aggregatorProxyActor = aggregatorProxyActor;
@@ -120,12 +121,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                         originatingSender.tell(qtr, getSelf());
                         stopMyself();
                     } else {
-                        final Optional<JsonFieldSelector> selectedFieldsWithThingId = queryThings.getFields()
-                                .filter(fields -> !fields.getPointers().contains(Thing.JsonFields.ID.getPointer()))
-                                .map(jsonFieldSelector -> JsonFieldSelector.newInstance(
-                                        Thing.JsonFields.ID.getPointer(),
-                                        jsonFieldSelector.getPointers().toArray(new JsonPointer[0])))
-                                .or(queryThings::getFields);
+                        final Optional<JsonFieldSelector> selectedFieldsWithThingId = getSelectedFieldsWithThingId();
                         final RetrieveThings retrieveThings = RetrieveThings.getBuilder(queryThingsResponseThingIds)
                                 .dittoHeaders(qtr.getDittoHeaders())
                                 .selectedFields(selectedFieldsWithThingId)
@@ -140,13 +136,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
                     if (queryThingsResponse != null) {
                         final JsonArray rtrEntity = rtr.getEntity(rtr.getImplementedSchemaVersion()).asArray();
-                        final JsonArray retrievedEntitiesWithFieldSelection = queryThings.getFields()
-                                .filter(fields -> !fields.getPointers().contains(Thing.JsonFields.ID.getPointer()))
-                                .map(fields -> rtrEntity.stream()
-                                        .map(jsonValue -> jsonValue.asObject().get(fields))
-                                        .collect(JsonCollectors.valuesToArray())
-                                )
-                                .orElse(rtrEntity);
+                        final JsonArray retrievedEntitiesWithFieldSelection = getEntitiesWithSelectedFields(rtrEntity);
                         final SearchResult resultWithRetrievedItems = SearchModelFactory.newSearchResultBuilder()
                                 .addAll(retrievedEntitiesWithFieldSelection)
                                 .nextPageOffset(queryThingsResponse.getSearchResult().getNextPageOffset().orElse(null))
@@ -170,6 +160,37 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     stopMyself();
                 })
                 .build();
+    }
+
+    /**
+     * Extracts selected fields from {@link #queryThings} and ensures that the Thing ID is one of those fields.
+     * If no fields are selected, this means that all fields should be returned.
+     *
+     * @return the optional field selector.
+     */
+    private Optional<JsonFieldSelector> getSelectedFieldsWithThingId() {
+        return queryThings.getFields()
+                .filter(fields -> !fields.getPointers().contains(Thing.JsonFields.ID.getPointer()))
+                .map(jsonFieldSelector -> JsonFieldSelector.newInstance(
+                        Thing.JsonFields.ID.getPointer(),
+                        jsonFieldSelector.getPointers().toArray(new JsonPointer[0])))
+                .or(queryThings::getFields);
+    }
+
+    /**
+     * Maps the retrieved entities into entities with the originally selected fields.
+     *
+     * @param retrievedEntities the retrieved entities.
+     * @return the retrieved entities with the originally selected fields.
+     */
+    private JsonArray getEntitiesWithSelectedFields(final JsonArray retrievedEntities) {
+        return queryThings.getFields()
+                .filter(fields -> !fields.getPointers().contains(Thing.JsonFields.ID.getPointer()))
+                .map(fields -> retrievedEntities.stream()
+                        .map(jsonValue -> jsonValue.asObject().get(fields))
+                        .collect(JsonCollectors.valuesToArray())
+                )
+                .orElse(retrievedEntities);
     }
 
     /**
