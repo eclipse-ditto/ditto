@@ -35,6 +35,7 @@ import akka.stream.Inlet;
 import akka.stream.Outlet;
 import akka.stream.OverflowStrategy;
 import akka.stream.SourceShape;
+import akka.stream.StreamLimitReachedException;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
@@ -160,6 +161,8 @@ public final class ResumeSource {
 
         final Flow<E, E, NotUsed> upstream = maxRestarts < 0
                 ? neverCancelFlowWithErrorLogging
+                : maxRestarts == 0
+                ? neverCancelFlowWithErrorLogging.flatMapConcat(ResumeSource::failWithLimitsReached)
                 : neverCancelFlowWithErrorLogging.limit(maxRestarts);
 
         return upstream.statefulMapConcat(() -> new StatefulBackoffFunction<>(minBackoff, maxBackoff, recovery))
@@ -167,6 +170,10 @@ public final class ResumeSource {
                         Source.single(pair.first())
                                 .delay(pair.second(), OverflowStrategy.backpressure())
                 );
+    }
+
+    private static <E> Source<E, NotUsed> failWithLimitsReached(final E element) {
+        return Source.failed(new StreamLimitReachedException(0L));
     }
 
     /**

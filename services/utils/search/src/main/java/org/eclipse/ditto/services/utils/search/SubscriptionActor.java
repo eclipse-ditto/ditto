@@ -21,6 +21,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionProtocolErrorException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionTimeoutException;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
@@ -155,7 +156,8 @@ public final class SubscriptionActor extends AbstractActorWithStash {
     }
 
     private void subscriptionFailed(final SubscriptionFailed event) {
-        log.withCorrelationId(event).error(event.getError(), "SubscriptionFailed");
+        // log at INFO level because user errors may cause subscription failure.
+        log.withCorrelationId(event).info("{}", event);
         sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
         getContext().stop(getSelf());
     }
@@ -185,8 +187,14 @@ public final class SubscriptionActor extends AbstractActorWithStash {
         public void onError(final Throwable t) {
             final SubscriptionFailed event =
                     SubscriptionFailed.of(subscriptionId,
-                            DittoRuntimeException.asDittoRuntimeException(t, e ->
-                                    GatewayInternalErrorException.newBuilder().cause(e).build()),
+                            DittoRuntimeException.asDittoRuntimeException(t, e -> {
+                                if (e instanceof IllegalArgumentException) {
+                                    // incorrect protocol from the client side
+                                    return SubscriptionProtocolErrorException.of(e, DittoHeaders.empty());
+                                } else {
+                                    return GatewayInternalErrorException.newBuilder().cause(e).build();
+                                }
+                            }),
                             DittoHeaders.empty());
             subscriptionActor.tell(event, ActorRef.noSender());
         }

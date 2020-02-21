@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.utils.search;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -23,11 +22,13 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.thingsearch.SizeOption;
 import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionNotFoundException;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
@@ -42,6 +43,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
+import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -53,8 +55,10 @@ public final class SubscriptionManager extends AbstractActor {
     // TODO: unify with other sources of page size limits
     private static final int DEFAULT_PAGE_SIZE = 25;
     private static final int MAX_PAGE_SIZE = 200;
+    private static final int DEFAULT_MAX_RETRIES = 5; // 32s
 
     private final Duration idleTimeout;
+    private final int maxRetries;
     private final ActorRef pubSubMediator;
     private final ActorRef conciergeForwarder;
     private final ActorMaterializer materializer;
@@ -62,11 +66,13 @@ public final class SubscriptionManager extends AbstractActor {
 
     private int subscriptionIdCounter = 0;
 
-    private SubscriptionManager(final Duration idleTimeout,
+    SubscriptionManager(final Duration idleTimeout,
+            final int maxRetries,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ActorMaterializer materializer) {
         this.idleTimeout = idleTimeout;
+        this.maxRetries = maxRetries;
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
         this.materializer = materializer;
@@ -87,7 +93,8 @@ public final class SubscriptionManager extends AbstractActor {
             final ActorRef conciergeForwarder,
             final ActorMaterializer materializer) {
 
-        return Props.create(SubscriptionManager.class, idleTimeout, pubSubMediator, conciergeForwarder, materializer);
+        return Props.create(SubscriptionManager.class, idleTimeout, DEFAULT_MAX_RETRIES, pubSubMediator,
+                conciergeForwarder, materializer);
     }
 
     @Override
@@ -143,17 +150,24 @@ public final class SubscriptionManager extends AbstractActor {
 
     private Source<JsonArray, NotUsed> getPageSource(final CreateSubscription createSubscription) {
         final String optionString = createSubscription.getOptions().map(SubscriptionManager::joinOptions).orElse(null);
-        final SearchSource searchSource = SearchSource.newBuilder()
-                .pubSubMediator(pubSubMediator)
-                .conciergeForwarder(conciergeForwarder)
-                .namespaces(createSubscription.getNamespaces().map(SubscriptionManager::asJsonArray).orElse(null))
-                .filter(createSubscription.getFilter().orElse(null))
-                .fields(createSubscription.getSelectedFields().orElse(null))
-                .option(optionString)
-                .dittoHeaders(createSubscription.getDittoHeaders())
-                .build();
-        final int pageSize = getPageSize(optionString);
-        return searchSource.start().grouped(pageSize).map(JsonArray::of);
+        try {
+            final SearchSource searchSource = SearchSource.newBuilder()
+                    .pubSubMediator(pubSubMediator)
+                    .conciergeForwarder(conciergeForwarder)
+                    .maxRetries(maxRetries)
+                    .namespaces(createSubscription.getNamespaces().map(SubscriptionManager::asJsonArray).orElse(null))
+                    .filter(createSubscription.getFilter().orElse(null))
+                    .fields(createSubscription.getSelectedFields().orElse(null))
+                    .option(optionString)
+                    .dittoHeaders(createSubscription.getDittoHeaders())
+                    .build();
+            return searchSource.start()
+                    .grouped(getPageSize(optionString))
+                    .map(JsonArray::of)
+                    .buffer(1, OverflowStrategy.backpressure());
+        } catch (final DittoRuntimeException e) {
+            return Source.failed(e);
+        }
     }
 
     private String nextSubscriptionId(final CreateSubscription createSubscription) {
@@ -180,7 +194,14 @@ public final class SubscriptionManager extends AbstractActor {
                             : Stream.empty())
                     .findFirst()
                     .orElse(DEFAULT_PAGE_SIZE);
-            return Math.min(pageSize, MAX_PAGE_SIZE);
+            if (pageSize > 0 && pageSize <= MAX_PAGE_SIZE) {
+                return pageSize;
+            } else {
+                throw InvalidOptionException.newBuilder()
+                        .message("Invalid option: '" + optionString + "'")
+                        .description("size(n) -- n must be between 1 and " + MAX_PAGE_SIZE)
+                        .build();
+            }
         }
     }
 }

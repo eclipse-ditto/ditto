@@ -30,33 +30,43 @@ import org.eclipse.ditto.model.thingsearch.ThingSearchException;
  *
  * @since 1.1.0
  */
-@JsonParsableException(errorCode = SubscriptionTimeoutException.ERROR_CODE)
-public class SubscriptionTimeoutException extends DittoRuntimeException implements ThingSearchException {
+@JsonParsableException(errorCode = SubscriptionProtocolErrorException.ERROR_CODE)
+public class SubscriptionProtocolErrorException extends DittoRuntimeException implements ThingSearchException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "subscription.timeout";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "subscription.protocol.error";
 
-    private static final HttpStatusCode STATUS_CODE = HttpStatusCode.REQUEST_TIMEOUT;
+    private static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
 
-    private SubscriptionTimeoutException(final DittoHeaders dittoHeaders, @Nullable final String message,
+    private SubscriptionProtocolErrorException(final DittoHeaders dittoHeaders, @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * Create a {@code SubscriptionTimeoutException}.
+     * Create a {@code SubscriptionProtocolErrorException}.
      *
-     * @param subscriptionId ID of the nonexistent subscription.
+     * @param cause the actual protocol error.
      * @param dittoHeaders the Ditto headers.
      * @return the exception.
      */
-    public static SubscriptionTimeoutException of(final String subscriptionId, final DittoHeaders dittoHeaders) {
+    public static SubscriptionProtocolErrorException of(final Throwable cause, final DittoHeaders dittoHeaders) {
         return new Builder()
-                .message(String.format("The subscription '%s' stopped due to a lack of interaction.", subscriptionId))
+                .message(cause.getMessage())
+                .cause(cause)
                 .dittoHeaders(dittoHeaders)
                 .build();
+    }
+
+    /**
+     * Create an empty builder for this exception.
+     *
+     * @return an empty builder.
+     */
+    public static DittoRuntimeExceptionBuilder<SubscriptionProtocolErrorException> newBuilder() {
+        return new Builder();
     }
 
     @Override
@@ -65,15 +75,15 @@ public class SubscriptionTimeoutException extends DittoRuntimeException implemen
     }
 
     /**
-     * Constructs a new {@code SubscriptionTimeoutException} object with the exception message extracted from the
+     * Constructs a new {@code SubscriptionProtocolErrorException} object with the exception message extracted from the
      * given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new SubscriptionTimeoutException.
+     * @return the new SubscriptionProtocolErrorException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
-    public static SubscriptionTimeoutException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static SubscriptionProtocolErrorException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
@@ -83,20 +93,20 @@ public class SubscriptionTimeoutException extends DittoRuntimeException implemen
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link SubscriptionTimeoutException}.
+     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionProtocolErrorException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<SubscriptionTimeoutException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<SubscriptionProtocolErrorException> {
 
         private Builder() {}
 
         @Override
-        protected SubscriptionTimeoutException doBuild(final DittoHeaders dittoHeaders,
+        protected SubscriptionProtocolErrorException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new SubscriptionTimeoutException(dittoHeaders, message, description, cause, href);
+            return new SubscriptionProtocolErrorException(dittoHeaders, message, description, cause, href);
         }
     }
 }

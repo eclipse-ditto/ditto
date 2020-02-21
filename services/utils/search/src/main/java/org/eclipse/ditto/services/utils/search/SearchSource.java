@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -58,6 +59,7 @@ public final class SearchSource {
     private final Duration maxBackoff;
     private final int maxRetries;
     private final Duration recovery;
+    private final boolean thingIdOnly;
 
     SearchSource(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
@@ -81,6 +83,8 @@ public final class SearchSource {
         this.maxBackoff = maxBackoff;
         this.maxRetries = maxRetries;
         this.recovery = recovery;
+        this.thingIdOnly = fields != null && fields.getSize() == 1 &&
+                fields.getPointers().contains(Thing.JsonFields.ID.getPointer());
     }
 
     /**
@@ -159,19 +163,26 @@ public final class SearchSource {
     }
 
     private Source<Pair<String, JsonObject>, NotUsed> retrieveThingForElement(final String thingId) {
-        return retrieveThing(thingId, fields)
-                .map(thingJson -> Pair.create(thingId, thingJson))
-                .recoverWithRetries(1, new PFBuilder<Throwable, Graph<SourceShape<Pair<String, JsonObject>>, NotUsed>>()
-                        .match(ThingNotAccessibleException.class, thingNotAccessible -> {
-                            // out-of-sync thing detected
-                            // TODO: log & publish UpdateThing
-                            return Source.empty();
-                        })
-                        .build()
-                );
+        if (thingIdOnly) {
+            final JsonObject idOnlyThingJson = JsonObject.newBuilder().set(Thing.JsonFields.ID, thingId).build();
+            return Source.single(Pair.create(thingId, idOnlyThingJson));
+        } else {
+            return retrieveThing(thingId, fields)
+                    .map(thingJson -> Pair.create(thingId, thingJson))
+                    .recoverWithRetries(1,
+                            new PFBuilder<Throwable, Graph<SourceShape<Pair<String, JsonObject>>, NotUsed>>()
+                                    .match(ThingNotAccessibleException.class, thingNotAccessible -> {
+                                        // out-of-sync thing detected
+                                        // TODO: log & publish UpdateThing
+                                        return Source.empty();
+                                    })
+                                    .build()
+                    );
+        }
     }
 
-    private Source<JsonObject, NotUsed> retrieveThing(final String thingId, final JsonFieldSelector selector) {
+    private Source<JsonObject, NotUsed> retrieveThing(final String thingId,
+            @Nullable final JsonFieldSelector selector) {
         final RetrieveThing retrieveThing = RetrieveThing.getBuilder(ThingId.of(thingId), getDittoHeaders())
                 .withSelectedFields(selector)
                 .build();
