@@ -1,0 +1,223 @@
+---
+title: Policies - Create-Or-Modify protocol specification
+keywords: protocol, specification, create, modify, policy
+tags: [protocol]
+permalink: protocol-specification-policies-create-or-modify.html
+---
+
+## Create a Policy
+
+Create a Policy with the ID specified by the `<namespace>/<policyId>` pair in the topic and the 
+ JSON representation provided in the `value`.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyId>/policies/commands/create`     |
+| **path**  | `/`     |
+| **value** | The complete Policy as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyId>/policies/commands/create` |
+| **path**   |        | `/`                      |
+| **value**  |        | The created Policy as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+| **status** | *code* |                          | 
+|            | `201`  | Success - The Policy was successfully created.       |
+
+**Example:** [Create a Policy.](protocol-examples-policies-createpolicy.html)
+
+## Create or modify a Policy
+
+This command modifies the Policy with the ID specified by the `<namespace>/<policyId>` pair in the `topic` and with the
+ JSON provided in the `value`, if it already exists. Otherwise, the Policy is created.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyId>/policies/commands/modify`     |
+| **path**  | `/`     |
+| **value** | The complete Policy as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+
+For modifying an existing policy, the authorized subject needs WRITE permission on the `policy:/.` resource.<br/>
+If the Policy does not yet exist, the same rules apply as described for the [create command](#create-a-policy).
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyId>/policies/commands/modify` |
+| **path**   |        | `/`                      |
+| **value**  |        | The created Policy as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). This field is not available, if the Policy entry already existed. |
+| **status** | _code_ |    
+|            | `201`  | Success - The Policy was successfully created.       |
+|            | `204`  | Success - The Policy was successfully updated.       |
+
+**Example:** [Modify a Policy](protocol-examples-policies-modifypolicy.html)
+
+## Modify Policy entries
+
+Modify the Policy entries of the Policy identified by the `<namespace>/<policyId>` pair in the `topic` field.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyId>/policies/commands/modify`     |
+| **path**  | `/entries`     |
+| **value** | The complete Policy as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyId>/policies/commands/modify` |
+| **path**   |        | `/entries`                      |
+| **status** | _code_ |    
+|            | `204`  | Success - The Policy entries were successfully updated.       |
+
+**Example:** [Modify all Policy entries](protocol-examples-policies-modifypolicyentries.html)
+
+## Create or modify a Policy entry
+
+Create or modify the Policy entry identified by the `<namespace>/<policyId>` pair in the `topic` field and the `<label>` in
+ the `path` field.
+<br/>
+If you specify a new label, the respective Policy entry will be created
+If you specify an existing label, the respective Policy entry will be updated
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyId>/policies/commands/modify`     |
+| **path**  | `/entries/<label>`     |
+| **value** | The complete Policy as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyId>/policies/commands/modify` |
+| **path**   |        | `/entries/<label>`                      |
+| **value**  |        | The created Policy entry as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). This field is not available, if the Policy entry already existed. |
+| **status** | _code_ |    
+|            | `201`  | Success - The Policy entry was successfully created.       |
+|            | `204`  | Success - The Policy entry was successfully updated.       |
+
+**Example:** [Modify a single Policy entry](protocol-examples-policies-modifypolicyentry.html)
+
+## Modify all subjects
+
+Modify at once all subjects of the Policy entry identified by the `<namespace>/<policyId>` pair in the `topic` 
+field and by the `<label>` in the `path` topic.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyId>/policies/commands/modify`     |
+| **path**  | `/entries/<label>/subjects`     |
+| **value** | The complete Policy as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyId>/policies/commands/modify` |
+| **path**   |        | `/entries/<label>/subjects`                      |
+| **status** | _code_ |    
+|            | `204`  | Success - The Policy entries were successfully updated.       |
+
+**Example:** [Modify all subjects](protocol-examples-policies-modifysubjects.html)
+
+## Create or modify a single subject
+
+Create or modify the subject with ID `subjectId` of the Policy identified by the `<namespace>/<policyId>` pair in the
+ `topic` field and by the `<label>` and the `<subjectId>` in the `path` field.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyId>/policies/commands/modify`     |
+| **path**  | `/entries/<label>/subjects/<subjectId>`     |
+| **value** | The complete Policy as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyId>/policies/commands/modify` |
+| **path**   |        | `/entries/<label>/subjects/<subjectId>`                      |
+| **value**  |        | The created subject as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). This field is not available, if the subject already existed. |
+| **status** | _code_ |    
+|            | `201`  | Success - The subject was successfully created.       |
+|            | `204`  | Success - The subject was successfully updated.       |
+
+**Example:** [Modify a single subject](protocol-examples-policies-modifysubject.html)
+
+## Modify all resources
+
+Modify all resources of the Policy identified by the `<namespace>/<policyId>` pair in the `topic` field and by the `<label>` in the `path` field.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyId>/policies/commands/modify`     |
+| **path**  | `/entries/<label>/resources`     |
+| **value** | The complete Policy as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyId>/policies/commands/modify` |
+| **path**   |        | `/entries/<label>/resources`                      |
+| **status** | _code_ |    
+|            | `204`  | Success - The Policy resources were successfully updated.       |
+
+**Example:** [Modify all resources](protocol-examples-policies-modifyresources.html)
+
+## Create or modify a single resource
+
+Create or modify the resource identified by the `path` field of the Policy entry identified the 
+`<namespace>/<policyId>` pair in the `topic` field and the `<resource>` in the `path` field.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyId>/policies/commands/modify`     |
+| **path**  | `/entries/<label>/resources/<resource>`     |
+| **value** | The complete Policy as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyId>/policies/commands/modify` |
+| **path**   |        | `/entries/<label>/resources/<resource>`                      |
+| **value**  |        | The created Policy as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). This field is not available, if the resource already existed. |
+| **status** | _code_ |    
+|            | `201`  | Success - The resource was successfully created.       |
+|            | `204`  | Success - The resource was successfully updated.       |
+
+**Example:** [Modify a single resource](protocol-examples-policies-modifyresource.html)
+
+## Common errors
+
+| **status** | Value                    |
+|------------|--------------------------|
+|    `400`   | Bad Format - The request could not be completed due to malformed request syntax. |
+|    `401`   | Unauthorized - The request could not be completed due to missing authentication.       |
+|    `403`   | Forbidden - The Policy could not be modified as the requester had insufficient permissions ('WRITE' is required).          |
+|    `404`   | Not Found - The request could not be completed. The Policy with the given ID was not found in the context of the authenticated user.  |
+|    `412`   | Precondition Failed - A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you specified an If-Match or If-None-Match header, which fails the precondition check against the current ETag of the (sub-)resource.  |
+|    `413`   | Request Entity Too Large - The created or modified entity is larger than the accepted limit of 100 kB.  |
+|            | See [Policy Error Responses](protocol-examples-policies-errorresponses) for examples of other error responses. |
