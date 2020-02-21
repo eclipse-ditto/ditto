@@ -28,6 +28,8 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
@@ -293,5 +295,56 @@ public final class DefaultDittoHeadersBuilderTest {
                 .withMessage("The value '%s' of the header '%s' is not a valid duration.", invalidValue, key)
                 .withNoCause();
     }
+
+    @Test
+    public void ensureResponseRequiredIsTrueForHeadersWithoutContent() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
+
+        DittoBaseAssertions.assertThat(dittoHeaders)
+                .hasIsResponseRequired(true);
+    }
+
+    @Test
+    public void ensureResponseRequiredIsFalseWhenSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .responseRequired(false)
+                .build();
+
+        DittoBaseAssertions.assertThat(dittoHeaders)
+                .hasIsResponseRequired(false);
+    }
+
+    @Test
+    public void ensureResponseRequiredIsTrueWhenIfAcksAreRequested() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .responseRequired(false)
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("some-ack")))
+                .build();
+
+        DittoBaseAssertions.assertThat(dittoHeaders)
+                .hasIsResponseRequired(true);
+    }
+
+    @Test
+    public void ensureResponseRequiredIsFalseForHeadersWithTimeout0() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .timeout(0)
+                .build();
+
+        DittoBaseAssertions.assertThat(dittoHeaders)
+                .hasIsResponseRequired(false);
+    }
+
+    @Test
+    public void ensureResponseRequiredIsFalseEvenIfAcksAreRequestedWithTimeout0() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("some-ack")))
+                .timeout("0ms")
+                .build();
+
+        DittoBaseAssertions.assertThat(dittoHeaders)
+                .hasIsResponseRequired(false);
+    }
+
 
 }

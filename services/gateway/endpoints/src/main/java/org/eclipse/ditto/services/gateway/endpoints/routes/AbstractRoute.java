@@ -179,7 +179,7 @@ public abstract class AbstractRoute extends AllDirectives {
         } else {
             return withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                     this::validateCommandTimeout,
-                    commandConfig.getDefaultTimeout(),
+                    null, // don't set default timeout in order to use the configured akka http default
                     () -> doHandlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction,
                             responseTransformFunction));
         }

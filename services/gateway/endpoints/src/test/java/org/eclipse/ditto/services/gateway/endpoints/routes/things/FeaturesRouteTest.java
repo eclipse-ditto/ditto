@@ -69,7 +69,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
         featuresRoute = new FeaturesRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
                 messageConfig, claimMessageConfig, adapterProvider.getHttpHeaderTranslator());
         final Route route = extractRequestContext(
-                ctx -> featuresRoute.buildFeaturesRoute(ctx, DittoHeaders.empty(), KNOWN_THING_ID));
+                ctx -> featuresRoute.buildFeaturesRoute(ctx, DittoHeaders.newBuilder().build(), KNOWN_THING_ID));
         underTest = testRoute(route);
     }
 
