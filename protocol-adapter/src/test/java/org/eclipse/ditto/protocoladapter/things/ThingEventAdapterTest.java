@@ -1314,14 +1314,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void policyIdCreatedFromAdaptable() {
         final PolicyIdCreated expected =
-                PolicyIdCreated.of(TestConstants.THING_ID, PolicyId.of(TestConstants.THING_ID),
+                PolicyIdCreated.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
                         TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/policyId");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonValue.of(TestConstants.THING_ID))
+                        .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1332,16 +1332,36 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     }
 
     @Test
+    public void policyIdCreatedToAdaptable() {
+        final PolicyIdCreated policyIdCreated =
+                PolicyIdCreated.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
+                        TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+
+        final JsonPointer path = JsonPointer.of("/policyId");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final Adaptable actual = underTest.toAdaptable(policyIdCreated, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     public void policyIdModifiedFromAdaptable() {
         final PolicyIdModified expected =
-                PolicyIdModified.of(TestConstants.THING_ID, PolicyId.of(TestConstants.THING_ID),
+                PolicyIdModified.of(TestConstants.THING_ID,TestConstants.Policies.POLICY_ID,
                         TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
 
         final JsonPointer path = JsonPointer.of("/policyId");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonValue.of(TestConstants.THING_ID))
+                        .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1357,14 +1377,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
 
         final Adaptable expected = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonValue.of(TestConstants.THING_ID))
+                        .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final PolicyIdModified policyIdModified =
-                PolicyIdModified.of(TestConstants.THING_ID, PolicyId.of(TestConstants.THING_ID),
+                PolicyIdModified.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
                         TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
         final Adaptable actual = underTest.toAdaptable(policyIdModified, channel);
 

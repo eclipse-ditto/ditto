@@ -338,6 +338,9 @@ entries:
         - title: Retrieve multiple Things
           url: /protocol-examples-retrievethings.html
           output: web
+        - title: Modify the Policy ID of a Thing
+          url: /protocol-examples-modifypolicyid.html
+          output: web
         - title: Create Attributes
           url: /protocol-examples-createattributes.html
           output: web

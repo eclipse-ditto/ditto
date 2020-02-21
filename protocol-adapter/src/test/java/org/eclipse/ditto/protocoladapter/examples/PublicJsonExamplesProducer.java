@@ -79,6 +79,15 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
                 .filter(m -> TO_ADAPTABLE.equals(m.getName())).collect(Collectors.toList());
     }
 
+    /**
+     * Generated examples that can be used for e.g. the ditto-documentation. The producer will therefore create
+     * .md-files for the different examples. Internally it will use {@link JsonExamplesProducer} for creating the
+     * example json.
+     *
+     * @param args expected one argument: the path where the examples should be stored. The last part of the path should
+     * represent the type of the produced example (only type "markdown" is supported). Example:
+     * "generated-examples/markdown"
+     */
     public static void main(final String... args) throws IOException {
         if (args.length != 1) {
             System.err.println("Exactly 1 argument required: the target folder in which to generate the JSON files");
