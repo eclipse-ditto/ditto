@@ -50,6 +50,8 @@ final class AcknowledgementRequests {
      * @param ackRequestRepresentation the AcknowledgementRequest representation to be parsed.
      * @return the AcknowledgementRequest represented by the CharSequence argument.
      * @throws NullPointerException if {@code ackRequestRepresentation} is {@code null}.
+     * @throws AcknowledgementRequestParseException if {@code ackRequestRepresentation} could not be parsed to an
+     * AcknowledgementRequest.
      */
     public static ImmutableAcknowledgementRequest parseAcknowledgementRequest(
             final CharSequence ackRequestRepresentation) {

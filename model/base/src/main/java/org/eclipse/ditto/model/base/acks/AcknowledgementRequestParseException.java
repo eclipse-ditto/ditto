@@ -31,12 +31,13 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = AcknowledgementRequestParseException.ERROR_CODE)
-public final class AcknowledgementRequestParseException extends DittoRuntimeException {
+public final class AcknowledgementRequestParseException extends DittoRuntimeException
+        implements AcknowledgementException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = AcknowledgementExceptions.ERROR_CODE_PREFIX + "request.parsing.failed";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "request.parsing.failed";
 
     static final String MESSAGE_TEMPLATE = "<{0}> cannot be parsed to an acknowledgement request!";
 

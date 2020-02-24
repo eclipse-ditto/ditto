@@ -15,21 +15,17 @@ package org.eclipse.ditto.model.base.acks;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Provides constants which are related to {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}s
- * regarding acknowledgements.
+ * Aggregates all {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}s which are related to
+ * acknowledgements.
  *
  * @since 1.1.0
  */
 @Immutable
-final class AcknowledgementExceptions {
+public interface AcknowledgementException {
 
     /**
      * Error code prefix of errors related to acks.
      */
-    public static final String ERROR_CODE_PREFIX = "acknowledgement:";
-
-    private AcknowledgementExceptions() {
-        throw new AssertionError();
-    }
+    String ERROR_CODE_PREFIX = "acknowledgement:";
 
 }
