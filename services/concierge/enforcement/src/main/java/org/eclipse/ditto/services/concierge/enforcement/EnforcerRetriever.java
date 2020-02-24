@@ -85,7 +85,7 @@ public final class EnforcerRetriever {
     public CompletionStage<Contextual<WithDittoHeaders>> retrieve(final EntityIdWithResourceType entityKey,
             final BiFunction<Entry<EntityIdWithResourceType>, Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders>>> handler) {
         return idCache.get(entityKey).thenCompose(enforcerKeyEntryOptional -> {
-            if (!enforcerKeyEntryOptional.isPresent()) {
+            if (enforcerKeyEntryOptional.isEmpty()) {
                 // may happen due to namespace blocking
                 LOGGER.info("Did not get id-cache value for entityKey <{}>.", entityKey);
                 return handler.apply(Entry.nonexistent(), Entry.nonexistent());

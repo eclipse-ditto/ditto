@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -30,6 +31,7 @@ import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.pattern.Patterns;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.javadsl.Broadcast;
@@ -64,7 +66,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
         super(pubSubMediator, conciergeForwarder, partitionBufferSize, thingIdCache, aclEnforcerCache,
                 policyEnforcerCache);
 
-        handler = assembleHandler(enforcementProviders, preEnforcer);
+        handler = assembleHandler(enforcementProviders, preEnforcer, partitionBufferSize);
         sink = assembleSink();
     }
 
@@ -137,31 +139,32 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @return a handler as {@link Flow} of {@link Contextual} messages.
      */
+    @SuppressWarnings("unchecked") // due to GraphDSL usage
     private Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> assembleHandler(
             final Set<EnforcementProvider<?>> enforcementProviders,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
+            final int partitionBufferSize) {
 
         final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> preEnforcerFlow =
                 Optional.ofNullable(preEnforcer)
                         .map(PreEnforcer::fromFunctionWithContext)
                         .orElseGet(Flow::create);
 
+        final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> enforcerFlow =
+                GraphDSL.create(
+                        Broadcast.<Contextual<WithDittoHeaders>>create(enforcementProviders.size()),
+                        Merge.<Contextual<WithDittoHeaders>>create(enforcementProviders.size(), true),
+                        (notUsed1, notUsed2) -> notUsed1,
+                        (builder, bcast, merge) -> {
+                            final ArrayList<EnforcementProvider<?>> providers = new ArrayList<>(enforcementProviders);
+                            for (int i = 0; i < providers.size(); i++) {
+                                builder.from(bcast.out(i))
+                                        .via(builder.add(providers.get(i).toContextualFlow(partitionBufferSize)))
+                                        .toInlet(merge.in(i));
+                            }
 
-        final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> enforcerFlow = GraphDSL.create(
-                Broadcast.<Contextual<WithDittoHeaders>>create(enforcementProviders.size()),
-                Merge.<Contextual<WithDittoHeaders>>create(enforcementProviders.size(), true),
-                (notUsed1, notUsed2) -> notUsed1,
-                (builder, bcast, merge) -> {
-
-                    final ArrayList<EnforcementProvider<?>> providers = new ArrayList<>(enforcementProviders);
-                    for (int i=0; i<providers.size(); i++) {
-                        builder.from(bcast.out(i))
-                                .via(builder.add(providers.get(i).toContextualFlow()))
-                                .toInlet(merge.in(i));
-                    }
-
-                    return FlowShape.of(bcast.in(), merge.out());
-                });
+                            return FlowShape.of(bcast.in(), merge.out());
+                        });
 
         return Flow.<Contextual<WithDittoHeaders>>create()
                 .via(preEnforcerFlow)
@@ -177,7 +180,16 @@ public final class EnforcerActor extends AbstractEnforcerActor {
         return Sink.foreach(theContextual -> {
             logger.setCorrelationId(theContextual.getMessage());
             final Optional<ActorRef> receiverOpt = theContextual.getReceiver();
-            if (receiverOpt.isPresent()) {
+            final Optional<Supplier<CompletionStage<Object>>> askFutureOpt = theContextual.getAskFuture();
+            if (askFutureOpt.isPresent() && receiverOpt.isPresent()) {
+                final ActorRef receiver = receiverOpt.get();
+                logger.debug("About to pipe contextual message <{}> after ask-step to receiver: <{}>",
+                        theContextual.getMessage(), receiver);
+                // It does not disrupt command order guarantee to run the ask-future here if the ask-future
+                // is initiated by a call to Patterns.ask(), because Patterns.ask() calls ActorRef.tell()
+                // in the calling thread.
+                Patterns.pipe(askFutureOpt.get().get(), getContext().dispatcher()).to(receiver);
+            } else if (receiverOpt.isPresent()) {
                 final ActorRef receiver = receiverOpt.get();
                 final Object wrappedMsg = theContextual.getReceiverWrapperFunction().apply(theContextual.getMessage());
                 logger.debug("About to send contextual message <{}> to receiver: <{}>", wrappedMsg, receiver);

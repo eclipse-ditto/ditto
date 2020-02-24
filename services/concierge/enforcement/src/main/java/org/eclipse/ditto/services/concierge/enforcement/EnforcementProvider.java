@@ -26,7 +26,6 @@ import akka.stream.SinkShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 
 /**
  * Provider interface for {@link AbstractEnforcement}.
@@ -63,9 +62,12 @@ public interface EnforcementProvider<T extends Signal> {
     /**
      * Convert this enforcement provider into a stream of contextual messages.
      *
+     * @param bufferSize size of the buffer of concurrently scheduled enforcement futures.
      * @return the stream.
      */
-    default Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> toContextualFlow() {
+    @SuppressWarnings("unchecked") // due to GraphDSL usage
+    default Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> toContextualFlow(
+            final int bufferSize) {
 
         final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed>
                 multiplexer =
@@ -80,9 +82,7 @@ public interface EnforcementProvider<T extends Signal> {
 
             final Flow<Contextual<T>, Contextual<WithDittoHeaders>, NotUsed> enforcementFlow =
                     Flow.<Contextual<T>>create()
-                            .flatMapConcat(contextual ->
-                                    Source.fromCompletionStage(createEnforcement(contextual).enforceSafely())
-                            );
+                            .mapAsync(bufferSize, contextual -> createEnforcement(contextual).enforceSafely());
 
             // by default, ignore unhandled messages:
             final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());

@@ -171,34 +171,32 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         LogUtil.enhanceLogWithCorrelationIdOrRandom(command);
         return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             try {
-                return doEnforce(enforcerEntry)
-                        .exceptionally(this::handleExceptionally);
+                return CompletableFuture.completedFuture(doEnforce(enforcerEntry));
             } catch (final RuntimeException e) {
                 return CompletableFuture.completedFuture(handleExceptionally(e));
             }
         });
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(final Entry<Enforcer> enforcerEntry) {
+    private Contextual<WithDittoHeaders> doEnforce(final Entry<Enforcer> enforcerEntry) {
         if (enforcerEntry.exists()) {
             return enforcePolicyCommandByEnforcer(enforcerEntry.getValueOrThrow());
         } else {
-            return CompletableFuture.completedFuture(
-                    forwardToPoliciesShardRegion(enforcePolicyCommandByNonexistentEnforcer()));
+            return forwardToPoliciesShardRegion(enforcePolicyCommandByNonexistentEnforcer());
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> enforcePolicyCommandByEnforcer(final Enforcer enforcer) {
+    private Contextual<WithDittoHeaders> enforcePolicyCommandByEnforcer(final Enforcer enforcer) {
         final PolicyCommand policyCommand = signal();
         final Optional<? extends PolicyCommand> authorizedCommandOpt = authorizePolicyCommand(policyCommand, enforcer);
         if (authorizedCommandOpt.isPresent()) {
             final PolicyCommand authorizedCommand = authorizedCommandOpt.get();
             if (authorizedCommand instanceof PolicyQueryCommand) {
                 final PolicyQueryCommand policyQueryCommand = (PolicyQueryCommand) authorizedCommand;
-                return askPoliciesShardRegionAndBuildJsonView(policyQueryCommand, enforcer)
-                        .thenApply(msg -> withMessageToReceiver(msg, sender()));
+                return withMessageToReceiverViaAskFuture(policyQueryCommand, sender(),
+                        () -> askPoliciesShardRegionAndBuildJsonView(policyQueryCommand, enforcer));
             } else {
-                return CompletableFuture.completedFuture(forwardToPoliciesShardRegion(authorizedCommand));
+                return forwardToPoliciesShardRegion(authorizedCommand);
             }
         } else {
             throw errorForPolicyCommand(signal());
@@ -218,8 +216,8 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
             }
         } else {
             throw PolicyNotAccessibleException.newBuilder(policyCommand.getEntityId())
-                            .dittoHeaders(policyCommand.getDittoHeaders())
-                            .build();
+                    .dittoHeaders(policyCommand.getDittoHeaders())
+                    .build();
         }
     }
 
@@ -246,9 +244,9 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         final EntityIdWithResourceType entityId = EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId);
         enforcerCache.invalidate(entityId);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
-                        ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
-                        InvalidateCacheEntry.of(entityId),
-                        true),
+                ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                InvalidateCacheEntry.of(entityId),
+                true),
                 self());
     }
 
