@@ -29,6 +29,8 @@ import org.eclipse.ditto.signals.acks.Acknowledgement;
 
 /**
  * This class can be used to manage the required and actually received acknowledgements for a <em>single request.</em>
+ *
+ * @since 1.1.0
  */
 @NotThreadSafe
 final class AcknowledgementsPerRequest {
@@ -89,7 +91,7 @@ final class AcknowledgementsPerRequest {
     public void addReceivedAcknowledgment(final Acknowledgement acknowledgement) {
         checkNotNull(acknowledgement, "acknowledgement");
 
-        if (isRequested(acknowledgement) && isFirst(acknowledgement)) {
+        if (isRequested(acknowledgement) && isFirstOfItsLabel(acknowledgement)) {
             if (isSuccessful(acknowledgement)) {
                 successfulAcknowledgements.put(acknowledgement.getLabel(), acknowledgement);
             } else {
@@ -107,7 +109,7 @@ final class AcknowledgementsPerRequest {
         return statusCode.isSuccess();
     }
 
-    private boolean isFirst(final Acknowledgement acknowledgement) {
+    private boolean isFirstOfItsLabel(final Acknowledgement acknowledgement) {
         final AcknowledgementLabel ackLabel = acknowledgement.getLabel();
         return !successfulAcknowledgements.containsKey(ackLabel) && !failedAcknowledgements.containsKey(ackLabel);
     }
