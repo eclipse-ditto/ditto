@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -35,7 +36,6 @@ import com.mongodb.bulk.BulkWriteResult;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Source;
 
 /**
  * Flow that sends positive or acknowledgements to ThingUpdater.
@@ -58,20 +58,20 @@ final class BulkWriteResultAckFlow {
 
     Flow<WriteResultAndErrors, String, NotUsed> start() {
         return Flow.<WriteResultAndErrors>create()
-                .flatMapConcat(this::checkBulkWriteResult);
+                .mapConcat(this::checkBulkWriteResult);
     }
 
-    private Source<String, NotUsed> checkBulkWriteResult(final WriteResultAndErrors writeResultAndErrors) {
+    private Iterable<String> checkBulkWriteResult(final WriteResultAndErrors writeResultAndErrors) {
         if (wasNotAcknowledged(writeResultAndErrors)) {
             // All failed.
             acknowledgeFailures(getAllThings(writeResultAndErrors));
-            return Source.single(logResult("NotAcknowledged", writeResultAndErrors, false));
+            return Collections.singleton(logResult("NotAcknowledged", writeResultAndErrors, false));
         } else {
             final Optional<String> consistencyError = checkForConsistencyError(writeResultAndErrors);
             if (consistencyError.isPresent()) {
                 // write result is not consistent; there is a bug with Ditto or with its environment
                 acknowledgeFailures(getAllThings(writeResultAndErrors));
-                return Source.single(consistencyError.get());
+                return Collections.singleton(consistencyError.get());
             } else {
                 final List<BulkWriteError> errors = writeResultAndErrors.getBulkWriteErrors();
                 final List<String> logEntries = new ArrayList<>(errors.size() + 1);
@@ -83,7 +83,7 @@ final class BulkWriteResultAckFlow {
                     failedThings.add(metadata);
                 }
                 acknowledgeFailures(failedThings);
-                return Source.from(logEntries);
+                return logEntries;
             }
         }
     }
