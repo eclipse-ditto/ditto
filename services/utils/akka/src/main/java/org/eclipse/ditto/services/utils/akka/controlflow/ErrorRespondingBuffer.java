@@ -28,16 +28,35 @@ import akka.stream.stage.AbstractOutHandler;
 import akka.stream.stage.GraphStage;
 import akka.stream.stage.GraphStageLogic;
 
-public final class ErrorRespondingBuffer<T> extends GraphStage<FlowShape<T, T>> {
+/**
+ * A {@link GraphStage} that buffers incoming elements up to the given {@link #bufferMaxSize}.
+ * If the buffer is full this stage responds immediately with a {@link TooManyRequestsException} in case the incoming
+ * element is of type {@link WithSender}.
+ *
+ * @param <T> The type of elements this buffer should process.
+ * @since 1.1.0
+ */
+final class ErrorRespondingBuffer<T> extends GraphStage<FlowShape<T, T>> {
 
-    public final Inlet<T> in = Inlet.create("ErrorRespondingBuffer.in");
-    public final Outlet<T> out = Outlet.create("ErrorRespondingBuffer.out");
+    private final Inlet<T> in = Inlet.create("ErrorRespondingBuffer.in");
+    private final Outlet<T> out = Outlet.create("ErrorRespondingBuffer.out");
 
     private final FlowShape<T, T> shape = FlowShape.of(in, out);
     private final int bufferMaxSize;
 
-    public ErrorRespondingBuffer(final int bufferSize) {
+    private ErrorRespondingBuffer(final int bufferSize) {
         bufferMaxSize = bufferSize;
+    }
+
+    /**
+     * Creates a new instance of this buffering stage with the given buffer size.
+     *
+     * @param bufferSize The maximum number of elements this component should buffer.
+     * @param <T> The type of elements this component should buffer.
+     * @return the new instance.
+     */
+    static <T> ErrorRespondingBuffer<T> withSize(final int bufferSize) {
+        return new ErrorRespondingBuffer<>(bufferSize);
     }
 
     @Override
