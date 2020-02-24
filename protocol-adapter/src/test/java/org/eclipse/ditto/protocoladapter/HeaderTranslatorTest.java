@@ -13,11 +13,23 @@
 package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.data.MapEntry;
+import org.assertj.core.util.Lists;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
 
 /**
@@ -53,6 +65,129 @@ public final class HeaderTranslatorTest {
 
         assertThat(underTest.fromExternalHeaders(externalHeaders))
                 .containsOnlyKeys(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
+    }
+
+    @Test
+    public void tryToTranslateNullExternalHeadersToDittoHeaders() {
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.fromExternalHeaders(null))
+                .withMessage("The externalHeaders must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void translateEmptyExternalHeadersToDittoHeaders() {
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThat(underTest.fromExternalHeaders(new HashMap<>())).isEmpty();
+    }
+
+    @Test
+    public void translateExternalOnlyHeadersToDittoHeaders() {
+        final Map<String, String> externalHeaders = new HashMap<>();
+        externalHeaders.put(DittoHeaderDefinition.ETAG.getKey(), "\"-12124212\"");
+        externalHeaders.put(DittoHeaderDefinition.ORIGINATOR.getKey(), "Nyarlathotep");
+
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThat(underTest.fromExternalHeaders(externalHeaders)).isEmpty();
+    }
+
+    @Test
+    public void translateMixedExternalHeadersToDittoHeaders() {
+        final String correlationId = "correlation-id";
+        final Map<String, String> externalHeaders = new HashMap<>();
+        externalHeaders.put(DittoHeaderDefinition.ETAG.getKey(), "\"-12124212\"");
+        externalHeaders.put(DittoHeaderDefinition.ORIGINATOR.getKey(), "Nyarlathotep");
+        externalHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationId);
+        externalHeaders.put("foo", "bar");
+        final DittoHeaders expected = DittoHeaders.newBuilder()
+                .correlationId(correlationId)
+                .putHeader("foo", "bar")
+                .build();
+
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThat(underTest.fromExternalHeaders(externalHeaders)).isEqualTo(expected);
+    }
+
+    @Test
+    public void tryToTranslateNullToExternalHeaders() {
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.toExternalHeaders(null))
+                .withMessage("The dittoHeaders must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void translateEmptyDittoHeadersToExternal() {
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThat(underTest.toExternalHeaders(DittoHeaders.empty())).isEmpty();
+    }
+
+    @Test
+    public void translateInternalOnlyDittoHeadersToExternal() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .dryRun(true)
+                .authorizationSubjects("foo", "bar")
+                .channel("no5")
+                .origin("Cthulhu")
+                .build();
+
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThat(underTest.toExternalHeaders(dittoHeaders)).isEmpty();
+    }
+
+    @Test
+    public void translateMixedDittoHeadersToExternal() {
+        final String correlationId = "correlation-id";
+        final MapEntry<String, String> customHeader = entry("foo", "bar");
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .dryRun(true)
+                .correlationId(correlationId)
+                .putHeader(customHeader.getKey(), customHeader.getValue())
+                .build();
+        final Map<String, String> expected = new HashMap<>();
+        expected.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationId);
+        expected.put(customHeader.getKey(), customHeader.getValue());
+
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThat(underTest.toExternalHeaders(dittoHeaders)).isEqualTo(expected);
+    }
+
+    @Test
+    public void translateDittoHeadersWithAckRequestToExternal() {
+        final String correlationId = "correlation-id";
+        final List<AcknowledgementRequest> allAcknowledgementRequests = Lists.list(
+                AcknowledgementRequest.of(AcknowledgementLabel.of("foo")),
+                AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED),
+                AcknowledgementRequest.of(AcknowledgementLabel.of("bar")));
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(correlationId)
+                .acknowledgementRequests(allAcknowledgementRequests)
+                .build();
+        final JsonArray allAcknowledgementRequestsJsonArray = allAcknowledgementRequests.stream()
+                .map(AcknowledgementRequest::toString)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray());
+        final JsonArray externalAcknowledgementRequests = allAcknowledgementRequestsJsonArray.toBuilder()
+                .remove(1)
+                .build();
+        final Map<String, String> expected = new HashMap<>();
+        expected.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationId);
+        expected.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), externalAcknowledgementRequests.toString());
+        expected.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.TRUE.toString());
+
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThat(underTest.toExternalHeaders(dittoHeaders)).isEqualTo(expected);
     }
 
 }

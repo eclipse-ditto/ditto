@@ -47,12 +47,10 @@ final class AcknowledgementLabels {
      * @throws AcknowledgementLabelInvalidException if {@code label} did not match the regex {@value #ACK_LABEL_REGEX}.
      */
     public static AcknowledgementLabel newLabel(final CharSequence label) {
-        
         if (label instanceof AcknowledgementLabel) {
             return (AcknowledgementLabel) label;
         }
-        checkNotNull(label, "label");
-        validateLabel(label);
+        validateLabel(checkNotNull(label, "label"));
 
         return ImmutableAcknowledgementLabel.of(label);
     }
