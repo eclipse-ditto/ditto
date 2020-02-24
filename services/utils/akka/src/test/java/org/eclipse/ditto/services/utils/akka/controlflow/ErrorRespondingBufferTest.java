@@ -59,7 +59,7 @@ public final class ErrorRespondingBufferTest {
                     Source.from(Arrays.asList(msg1, msg2, msg3));
 
             sourceUnderTest
-                    .via(new ErrorRespondingBuffer<>(1))
+                    .via(ErrorRespondingBuffer.withSize(1))
                     .runWith(TestSink.probe(actorSystem), ActorMaterializer.create(actorSystem))
                     .request(1)
                     .expectNext(msg1);
@@ -74,7 +74,7 @@ public final class ErrorRespondingBufferTest {
             final Source<Integer, NotUsed> sourceUnderTest = Source.from(Arrays.asList(1, 2, 4));
 
             sourceUnderTest
-                    .via(new ErrorRespondingBuffer<>(1))
+                    .via(ErrorRespondingBuffer.withSize(1))
                     .runWith(TestSink.probe(actorSystem), ActorMaterializer.create(actorSystem))
                     .request(1)
                     .expectNext(1);
@@ -96,7 +96,7 @@ public final class ErrorRespondingBufferTest {
                     Source.from(Arrays.asList(msg1, msg2, msg3));
 
             sourceUnderTest
-                    .via(new ErrorRespondingBuffer<>(1))
+                    .via(ErrorRespondingBuffer.withSize(1))
                     .runWith(TestSink.probe(actorSystem), ActorMaterializer.create(actorSystem))
                     .request(3)
                     .expectNext(msg1, msg2, msg3);

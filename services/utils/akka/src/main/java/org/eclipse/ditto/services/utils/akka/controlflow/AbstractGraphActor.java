@@ -220,7 +220,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
                 (builder, partition, merge) -> {
                     for (int i = 0; i < parallelismWithSpecialLane; i++) {
                         builder.from(partition.out(i))
-                                .via(builder.add(new ErrorRespondingBuffer<T>(partitionBufferSize)))
+                                .via(builder.add(ErrorRespondingBuffer.<T>withSize(partitionBufferSize)))
                                 .via(builder.add(flowToPartition))
                                 .toInlet(merge.in(i));
                     }
