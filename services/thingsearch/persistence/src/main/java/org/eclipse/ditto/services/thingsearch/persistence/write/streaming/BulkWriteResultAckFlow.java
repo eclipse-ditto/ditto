@@ -22,6 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
@@ -38,7 +39,7 @@ import akka.actor.ActorRef;
 import akka.stream.javadsl.Flow;
 
 /**
- * Flow that sends positive or acknowledgements to ThingUpdater.
+ * Flow that sends acknowledgements to ThingUpdater according to bulk write results.
  */
 final class BulkWriteResultAckFlow {
 
@@ -113,8 +114,8 @@ final class BulkWriteResultAckFlow {
         return UpdateThingResponse.of(
                 metadata.getThingId(),
                 metadata.getThingRevision(),
-                metadata.getPolicyId().orElse(null),
-                metadata.getPolicyRevision(),
+                metadata.getPolicyId().map(PolicyId::of).orElse(null),
+                metadata.getPolicyId().map(policyId -> metadata.getPolicyRevision()).orElse(null),
                 isSuccess,
                 DittoHeaders.empty()
         );

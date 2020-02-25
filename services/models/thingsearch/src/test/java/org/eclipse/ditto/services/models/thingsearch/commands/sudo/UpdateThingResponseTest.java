@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
@@ -47,7 +48,8 @@ public final class UpdateThingResponseTest {
     public void testSerialization() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final UpdateThingResponse command =
-                UpdateThingResponse.of(ThingId.of("namespace", "name"), 7L, "policy:id", 9L, true, dittoHeaders);
+                UpdateThingResponse.of(ThingId.of("namespace", "name"), 7L, PolicyId.of("policy:id"), 9L, true,
+                        dittoHeaders);
         final String jsonString = command.toJsonString();
         final UpdateThingResponse deserializedCommand =
                 UpdateThingResponse.fromJson(JsonObject.of(jsonString), dittoHeaders);

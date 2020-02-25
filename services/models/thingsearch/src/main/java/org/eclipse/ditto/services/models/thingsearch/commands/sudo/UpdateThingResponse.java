@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -55,12 +56,12 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
 
     private final ThingId thingId;
     private final long thingRevision;
-    @Nullable private final String policyId;
-    private final long policyRevision;
+    @Nullable private final PolicyId policyId;
+    @Nullable private final Long policyRevision;
     private final boolean success;
 
     private UpdateThingResponse(final ThingId thingId, final long thingRevision, final boolean success,
-            @Nullable final String policyId, final long policyRevision, final DittoHeaders dittoHeaders) {
+            @Nullable final PolicyId policyId, @Nullable final Long policyRevision, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
         this.thingId = thingId;
         this.thingRevision = thingRevision;
@@ -82,8 +83,8 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
      */
     public static UpdateThingResponse of(final ThingId thingId,
             final long thingRevision,
-            final @Nullable String policyId,
-            final long policyRevision,
+            @Nullable final PolicyId policyId,
+            @Nullable final Long policyRevision,
             final boolean success,
             final DittoHeaders dittoHeaders) {
         return new UpdateThingResponse(thingId, thingRevision, success, policyId, policyRevision, dittoHeaders);
@@ -102,8 +103,8 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
     public static UpdateThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final ThingId thingId = ThingId.of(jsonObject.getValueOrThrow(JsonFields.THING_ID));
         final long thingRevision = jsonObject.getValueOrThrow(JsonFields.THING_REVISION);
-        final String policyId = jsonObject.getValue(JsonFields.POLICY_ID).orElse(null);
-        final long policyRevision = jsonObject.getValueOrThrow(JsonFields.POLICY_REVISION);
+        final PolicyId policyId = jsonObject.getValue(JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
+        final Long policyRevision = jsonObject.getValue(JsonFields.POLICY_REVISION).orElse(null);
         final boolean success = jsonObject.getValueOrThrow(JsonFields.SUCCESS);
         return of(thingId, thingRevision, policyId, policyRevision, success, dittoHeaders);
     }
@@ -116,7 +117,9 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
         if (policyId != null) {
             jsonObjectBuilder.set(JsonFields.POLICY_ID, policyId.toString(), predicate);
         }
-        jsonObjectBuilder.set(JsonFields.POLICY_REVISION, policyRevision, predicate);
+        if (policyRevision != null) {
+            jsonObjectBuilder.set(JsonFields.POLICY_REVISION, policyRevision, predicate);
+        }
         jsonObjectBuilder.set(JsonFields.SUCCESS, success, predicate);
     }
 
@@ -127,7 +130,7 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
 
     @Override
     public EntityId getEntityId() {
-        return thingId;
+        return getThingId();
     }
 
     /**
@@ -153,7 +156,7 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
      *
      * @return the policy ID.
      */
-    public Optional<String> getPolicyId() {
+    public Optional<PolicyId> getPolicyId() {
         return Optional.ofNullable(policyId);
     }
 
@@ -162,8 +165,8 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
      *
      * @return the policy revision.
      */
-    public long getPolicyRevision() {
-        return policyRevision;
+    public Optional<Long> getPolicyRevision() {
+        return Optional.ofNullable(policyRevision);
     }
 
     /**
@@ -194,7 +197,7 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
             return Objects.equals(thingId, that.thingId) &&
                     thingRevision == that.thingRevision &&
                     Objects.equals(policyId, that.policyId) &&
-                    policyRevision == that.policyRevision &&
+                    Objects.equals(policyRevision, that.policyRevision) &&
                     success == that.success &&
                     super.equals(that);
         }

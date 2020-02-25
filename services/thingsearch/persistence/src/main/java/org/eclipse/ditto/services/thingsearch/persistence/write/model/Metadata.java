@@ -19,6 +19,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
 
@@ -91,7 +92,8 @@ public final class Metadata {
      */
     public static Metadata fromResponse(final UpdateThingResponse updateThingResponse) {
         return of(updateThingResponse.getThingId(), updateThingResponse.getThingRevision(),
-                updateThingResponse.getPolicyId().orElse(null), updateThingResponse.getPolicyRevision());
+                updateThingResponse.getPolicyId().map(PolicyId::toString).orElse(null),
+                updateThingResponse.getPolicyRevision().orElse(0L));
     }
 
     /**
