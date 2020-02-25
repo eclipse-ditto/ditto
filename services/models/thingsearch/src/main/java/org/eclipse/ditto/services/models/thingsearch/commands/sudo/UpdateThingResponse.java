@@ -129,7 +129,7 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
     }
 
     @Override
-    public EntityId getEntityId() {
+    public ThingId getEntityId() {
         return getThingId();
     }
 
