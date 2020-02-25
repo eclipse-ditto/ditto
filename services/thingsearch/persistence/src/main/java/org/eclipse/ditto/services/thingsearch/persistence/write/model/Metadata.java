@@ -161,7 +161,7 @@ public final class Metadata {
         }
         final Metadata that = (Metadata) o;
         return thingRevision == that.thingRevision &&
-                policyRevision == that.policyRevision &&
+                Objects.equals(policyRevision, that.policyRevision) &&
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(policyId, that.policyId) &&
                 Objects.equals(modified, that.modified);
