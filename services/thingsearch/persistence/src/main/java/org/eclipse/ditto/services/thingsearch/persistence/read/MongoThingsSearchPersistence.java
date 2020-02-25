@@ -40,6 +40,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.things.ThingId;
@@ -302,7 +303,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         final ThingId thingId = ThingId.of(document.getString(FIELD_ID));
         final long thingRevision = Optional.ofNullable(document.getLong(FIELD_REVISION)).orElse(0L);
         final String policyIdInPersistence = document.getString(FIELD_POLICY_ID);
-        final String policyId = policyIdInPersistence.isEmpty() ? null : policyIdInPersistence;
+        final PolicyId policyId = policyIdInPersistence.isEmpty() ? null : PolicyId.of(policyIdInPersistence);
         final long policyRevision = Optional.ofNullable(document.getLong(FIELD_POLICY_REVISION)).orElse(0L);
         final String nullableTimestamp = document.getEmbedded(List.of(FIELD_SORTING, FIELD_MODIFIED), String.class);
         final Instant modified = Optional.ofNullable(nullableTimestamp).map(Instant::parse).orElse(null);

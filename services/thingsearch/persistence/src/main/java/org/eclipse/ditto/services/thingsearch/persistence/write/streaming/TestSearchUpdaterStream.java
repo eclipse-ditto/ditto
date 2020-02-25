@@ -101,7 +101,7 @@ public final class TestSearchUpdaterStream {
      */
     public Source<WriteResultAndErrors, NotUsed> delete(final ThingId thingId, final long revision,
             @Nullable final PolicyId policyId, final long policyRevision) {
-        return delete(Metadata.of(thingId, revision, policyId != null ? policyId.toString() : null, policyRevision));
+        return delete(Metadata.of(thingId, revision, policyId, policyRevision));
     }
 
     /**

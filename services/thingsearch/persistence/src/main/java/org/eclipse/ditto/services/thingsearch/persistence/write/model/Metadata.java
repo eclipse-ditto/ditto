@@ -31,14 +31,14 @@ public final class Metadata {
 
     private final ThingId thingId;
     private final long thingRevision;
-    @Nullable private final String policyId;
-    private final long policyRevision;
+    @Nullable private final PolicyId policyId;
+    @Nullable private final Long policyRevision;
     @Nullable final Instant modified;
 
     private Metadata(final ThingId thingId,
             final long thingRevision,
-            @Nullable final String policyId,
-            final long policyRevision,
+            @Nullable final PolicyId policyId,
+            @Nullable final Long policyRevision,
             @Nullable final Instant modified) {
 
         this.thingId = thingId;
@@ -54,13 +54,13 @@ public final class Metadata {
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
      * @param policyId the Policy ID if the Thing has one.
-     * @param policyRevision the Policy revision if the Thing has a policy, or the Thing revision if it does not.
+     * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
-            @Nullable final String policyId,
-            final long policyRevision) {
+            @Nullable final PolicyId policyId,
+            @Nullable final Long policyRevision) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null);
     }
@@ -71,14 +71,14 @@ public final class Metadata {
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
      * @param policyId the Policy ID if the Thing has one.
-     * @param policyRevision the Policy revision if the Thing has a policy, or the Thing revision if it does not.
+     * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
      * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
-            @Nullable final String policyId,
-            final long policyRevision,
+            @Nullable final PolicyId policyId,
+            @Nullable final Long policyRevision,
             @Nullable final Instant modified) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified);
@@ -92,8 +92,8 @@ public final class Metadata {
      */
     public static Metadata fromResponse(final UpdateThingResponse updateThingResponse) {
         return of(updateThingResponse.getThingId(), updateThingResponse.getThingRevision(),
-                updateThingResponse.getPolicyId().map(PolicyId::toString).orElse(null),
-                updateThingResponse.getPolicyRevision().orElse(0L));
+                updateThingResponse.getPolicyId().orElse(null),
+                updateThingResponse.getPolicyRevision().orElse(null));
     }
 
     /**
@@ -115,7 +115,7 @@ public final class Metadata {
     /**
      * @return the policyId of the Thing according to the search index.
      */
-    public Optional<String> getPolicyId() {
+    public Optional<PolicyId> getPolicyId() {
         return Optional.ofNullable(policyId);
     }
 
@@ -130,7 +130,7 @@ public final class Metadata {
      * @return the policyId-field as to be written in the persistence.
      */
     public String getPolicyIdInPersistence() {
-        return getPolicyId().orElse("");
+        return getPolicyId().map(PolicyId::toString).orElse("");
     }
 
     /**
@@ -138,8 +138,8 @@ public final class Metadata {
      *
      * @return the revision of the Policy according to the search index.
      */
-    public long getPolicyRevision() {
-        return policyRevision;
+    public Optional<Long> getPolicyRevision() {
+        return Optional.ofNullable(policyRevision);
     }
 
     /**

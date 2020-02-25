@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -108,7 +109,7 @@ public final class BackgroundSyncStream {
     }
 
     private static Metadata dummyMetadata() {
-        return Metadata.of(ThingId.dummy(), 0L, "", 0L);
+        return Metadata.of(ThingId.dummy(), 0L, PolicyId.dummy(), 0L);
     }
 
     private Source<Metadata, NotUsed> filterForInconsistency(final Pair<Metadata, Metadata> pair) {
@@ -152,13 +153,13 @@ public final class BackgroundSyncStream {
         if (persisted.getThingRevision() > indexed.getThingRevision()) {
             return Source.single(indexed).log("RevisionMismatch");
         } else {
-            final String persistedPolicyId = persisted.getPolicyIdInPersistence();
-            final String indexedPolicyId = indexed.getPolicyIdInPersistence();
+            final Optional<PolicyId> persistedPolicyId = persisted.getPolicyId();
+            final Optional<PolicyId> indexedPolicyId = indexed.getPolicyId();
             if (!persistedPolicyId.equals(indexedPolicyId)) {
                 return Source.single(indexed).log("PolicyIdMismatch");
-            } else if (!persistedPolicyId.isEmpty()) {
+            } else if (persistedPolicyId.isPresent()) {
                 // policy IDs are equal and nonempty; retrieve and compare policy revision
-                return retrievePolicyRevisionAndEmitMismatch(persistedPolicyId, indexed);
+                return retrievePolicyRevisionAndEmitMismatch(persistedPolicyId.get(), indexed);
             } else {
                 // policy IDs are empty - the entries are consistent.
                 return Source.empty();
@@ -166,10 +167,10 @@ public final class BackgroundSyncStream {
         }
     }
 
-    private Source<Metadata, NotUsed> retrievePolicyRevisionAndEmitMismatch(final String policyId,
+    private Source<Metadata, NotUsed> retrievePolicyRevisionAndEmitMismatch(final PolicyId policyId,
             final Metadata indexed) {
         final SudoRetrievePolicyRevision command =
-                SudoRetrievePolicyRevision.of(PolicyId.of(policyId), DittoHeaders.empty());
+                SudoRetrievePolicyRevision.of(policyId, DittoHeaders.empty());
         final CompletionStage<Source<Metadata, NotUsed>> sourceCompletionStage =
                 Patterns.ask(policiesShardRegion, command, policiesAskTimeout)
                         .handle((response, error) -> {
@@ -179,9 +180,10 @@ public final class BackgroundSyncStream {
                                         .map(e -> indexed);
                             } else if (response instanceof SudoRetrievePolicyRevisionResponse) {
                                 final long revision = ((SudoRetrievePolicyRevisionResponse) response).getRevision();
-                                return revision == indexed.getPolicyRevision()
-                                        ? Source.empty()
-                                        : Source.single(indexed).log("PolicyRevisionMismatch");
+                                return indexed.getPolicyRevision()
+                                        .filter(indexedPolicyRevision -> indexedPolicyRevision.equals(revision))
+                                        .map(indexedPolicyRevision -> Source.<Metadata>empty())
+                                        .orElseGet(() -> Source.single(indexed).log("PolicyRevisionMismatch"));
                             } else {
                                 return Source.single(response)
                                         .log("UnexpectedPolicyResponse")

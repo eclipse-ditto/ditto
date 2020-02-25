@@ -18,6 +18,7 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
@@ -104,7 +105,7 @@ final class ThingsMetadataSource {
         final JsonObject snapshot = streamedSnapshot.getSnapshot();
         final ThingId thingId = ThingId.of(streamedSnapshot.getEntityId());
         final long thingRevision = snapshot.getValueOrThrow(Thing.JsonFields.REVISION);
-        final String policyId = snapshot.getValue(Thing.JsonFields.POLICY_ID).orElse(null);
+        final PolicyId policyId = snapshot.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
         final Instant modified = snapshot.getValue(Thing.JsonFields.MODIFIED).map(Instant::parse).orElse(null);
         // policy revision is not known from thing snapshot
         return Metadata.of(thingId, thingRevision, policyId, 0L, modified);

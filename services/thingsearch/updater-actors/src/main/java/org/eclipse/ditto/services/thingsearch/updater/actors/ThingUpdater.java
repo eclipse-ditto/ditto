@@ -19,6 +19,9 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
@@ -54,7 +57,7 @@ final class ThingUpdater extends AbstractActor {
 
     // state of Thing and Policy
     private long thingRevision = -1L;
-    private String policyId = "";
+    @Nullable private PolicyId policyId = null;
     private long policyRevision = -1L;
 
     @SuppressWarnings("unused") //It is used via reflection. See props method.
@@ -161,7 +164,7 @@ final class ThingUpdater extends AbstractActor {
         }
 
         final PolicyTag policyTag = policyReferenceTag.getPolicyTag();
-        final String policyIdOfTag = String.valueOf(policyTag.getEntityId());
+        final PolicyId policyIdOfTag = policyTag.getEntityId();
         if (!Objects.equals(policyId, policyIdOfTag) || policyRevision < policyTag.getRevision()) {
             this.policyId = policyIdOfTag;
             policyRevision = policyTag.getRevision();

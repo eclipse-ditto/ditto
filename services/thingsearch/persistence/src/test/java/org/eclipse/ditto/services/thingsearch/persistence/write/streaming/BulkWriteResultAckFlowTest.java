@@ -161,7 +161,7 @@ public final class BulkWriteResultAckFlowTest {
         for (int i = 0; i < howMany; ++i) {
             final ThingId thingId = ThingId.of("thing", String.valueOf(i));
             final long thingRevision = i * 10;
-            final String policyId = i % 4 < 2 ? null : PolicyId.of("policy", String.valueOf(i)).toString();
+            final PolicyId policyId = i % 4 < 2 ? null : PolicyId.of("policy", String.valueOf(i));
             final long policyRevision = i * 100;
             final Metadata metadata = Metadata.of(thingId, thingRevision, policyId, policyRevision);
             if (i % 2 == 0) {
