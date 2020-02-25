@@ -33,7 +33,7 @@ public final class UpdateThingResponseTest {
     @Test
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(UpdateThingResponse.class, MutabilityMatchers.areImmutable(),
-                AllowedReason.provided(ThingId.class).isAlsoImmutable());
+                AllowedReason.provided(ThingId.class, PolicyId.class).areAlsoImmutable());
     }
 
     @Test
