@@ -16,6 +16,7 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 
 import org.eclipse.ditto.model.base.exceptions.TooManyRequestsException;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 
 import akka.actor.ActorRef;
 import akka.stream.Attributes;
@@ -43,20 +44,25 @@ final class ErrorRespondingBuffer<T> extends GraphStage<FlowShape<T, T>> {
 
     private final FlowShape<T, T> shape = FlowShape.of(in, out);
     private final int bufferMaxSize;
+    private final Gauge gauge;
 
-    private ErrorRespondingBuffer(final int bufferSize) {
+    private ErrorRespondingBuffer(final int bufferSize,
+            final Gauge gauge) {
         bufferMaxSize = bufferSize;
+        this.gauge = gauge;
     }
 
     /**
-     * Creates a new instance of this buffering stage with the given buffer size.
+     * Creates a new instance of this buffering stage with the given buffer size reporting buffer usage to the
+     * given gauge.
      *
      * @param bufferSize The maximum number of elements this component should buffer.
+     * @param gauge Gauge of queue sizes.
      * @param <T> The type of elements this component should buffer.
      * @return the new instance.
      */
-    static <T> ErrorRespondingBuffer<T> withSize(final int bufferSize) {
-        return new ErrorRespondingBuffer<>(bufferSize);
+    static <T> ErrorRespondingBuffer<T> of(final int bufferSize, final Gauge gauge) {
+        return new ErrorRespondingBuffer<>(bufferSize, gauge);
     }
 
     @Override
@@ -101,6 +107,7 @@ final class ErrorRespondingBuffer<T> extends GraphStage<FlowShape<T, T>> {
                     }
 
                     pull(in);
+                    gauge.set((long) buffer.size());
                 }
 
                 @Override

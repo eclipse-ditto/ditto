@@ -17,6 +17,8 @@ import java.util.Arrays;
 import org.eclipse.ditto.model.base.exceptions.TooManyRequestsException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -30,6 +32,8 @@ import akka.stream.testkit.javadsl.TestSink;
 import akka.testkit.javadsl.TestKit;
 
 public final class ErrorRespondingBufferTest {
+
+    private static final Gauge GAUGE = DittoMetrics.gauge(ErrorRespondingBufferTest.class.getSimpleName());
 
     private static ActorSystem actorSystem;
 
@@ -59,7 +63,7 @@ public final class ErrorRespondingBufferTest {
                     Source.from(Arrays.asList(msg1, msg2, msg3));
 
             sourceUnderTest
-                    .via(ErrorRespondingBuffer.withSize(1))
+                    .via(ErrorRespondingBuffer.of(1, GAUGE))
                     .runWith(TestSink.probe(actorSystem), ActorMaterializer.create(actorSystem))
                     .request(1)
                     .expectNext(msg1);
@@ -74,7 +78,7 @@ public final class ErrorRespondingBufferTest {
             final Source<Integer, NotUsed> sourceUnderTest = Source.from(Arrays.asList(1, 2, 4));
 
             sourceUnderTest
-                    .via(ErrorRespondingBuffer.withSize(1))
+                    .via(ErrorRespondingBuffer.of(1, GAUGE))
                     .runWith(TestSink.probe(actorSystem), ActorMaterializer.create(actorSystem))
                     .request(1)
                     .expectNext(1);
@@ -96,7 +100,7 @@ public final class ErrorRespondingBufferTest {
                     Source.from(Arrays.asList(msg1, msg2, msg3));
 
             sourceUnderTest
-                    .via(ErrorRespondingBuffer.withSize(1))
+                    .via(ErrorRespondingBuffer.of(1, GAUGE))
                     .runWith(TestSink.probe(actorSystem), ActorMaterializer.create(actorSystem))
                     .request(3)
                     .expectNext(msg1, msg2, msg3);

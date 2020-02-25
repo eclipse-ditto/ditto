@@ -23,6 +23,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 
@@ -75,6 +76,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     private final Counter enqueueDroppedCounter;
     private final Counter enqueueFailureCounter;
     private final Counter dequeueCounter;
+    private final Gauge laneQueueSizeGauge;
     private final int partitionBufferSize;
 
     /**
@@ -93,6 +95,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
         enqueueDroppedCounter = DittoMetrics.counter("graph_actor_enqueue_dropped", tags);
         enqueueFailureCounter = DittoMetrics.counter("graph_actor_enqueue_failure", tags);
         dequeueCounter = DittoMetrics.counter("graph_actor_dequeue", tags);
+        laneQueueSizeGauge = DittoMetrics.gauge("lane_queue_size_gauge").tags(tags);
 
         this.partitionBufferSize = partitionBufferSize;
 
@@ -219,8 +222,10 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
                 (nA, nB) -> nA,
                 (builder, partition, merge) -> {
                     for (int i = 0; i < parallelismWithSpecialLane; i++) {
+                        final ErrorRespondingBuffer<T> buffer =
+                                ErrorRespondingBuffer.<T>of(partitionBufferSize, laneQueueSizeGauge);
                         builder.from(partition.out(i))
-                                .via(builder.add(ErrorRespondingBuffer.<T>withSize(partitionBufferSize)))
+                                .via(builder.add(buffer))
                                 .via(builder.add(flowToPartition))
                                 .toInlet(merge.in(i));
                     }
