@@ -92,19 +92,21 @@ public final class RequestSubscription extends AbstractCommand<RequestSubscripti
         });
     }
 
+
     /**
-     * Get the subscription ID.
+     * Returns the subscriptionId which is to be included in the JSON of the retrieved entity.
      *
-     * @return the subscription ID.
+     * @return the subscriptionId.
      */
     public String getSubscriptionId() {
         return subscriptionId;
     }
 
+
     /**
-     * Get the number of pages to request.
+     * Returns the demand which is to be included in the JSON of the retrieved entity.
      *
-     * @return the number of pages.
+     * @return the demand.
      */
     public long getDemand() {
         return demand;

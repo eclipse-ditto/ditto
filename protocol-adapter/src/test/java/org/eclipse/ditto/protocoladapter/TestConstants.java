@@ -116,6 +116,12 @@ final class TestConstants {
             .putHeader(MessageHeaderDefinition.STATUS_CODE.getKey(), "200")
             .build();
 
+    static final DittoHeaders DITTO_HEADERS_V_2_NO_STATUS = DittoHeaders.newBuilder()
+            .correlationId(CORRELATION_ID)
+            .schemaVersion(JsonSchemaVersion.V_2)
+            .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+            .build();
+
     static final DittoHeaders HEADERS_V_1 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_1);
 
     static final DittoHeaders HEADERS_V_2 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_2);
@@ -128,9 +134,9 @@ final class TestConstants {
 
     static final long REVISION = 1337;
 
-    static final String FILTER = "eq(attributes/foo, \"bar\")";
+    static final String FILTER = "eq(attributes/foo, bar)";
 
-    static final List<String> OPTIONS= Collections.singletonList("sort(+thingId)");
+    static final List<String> OPTIONS= Arrays.asList("sort(+thingId)", "cursor(200)");
 
     static final JsonFieldSelector FIELDS = JsonFieldSelector.newInstance("/attributes", "/definition");
 

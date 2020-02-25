@@ -14,7 +14,10 @@ package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2;
+import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2_NO_STATUS;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
+
+import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -239,25 +242,29 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
     @Test
     public void thingSearchCommandFromAdaptable() {
-        final CreateSubscription createSubscription = CreateSubscription.of(DITTO_HEADERS_V_2);
+        final CreateSubscription createSubscription =
+                CreateSubscription.of(null, Collections.emptyList(), null, Collections.emptySet(),
+                        DITTO_HEADERS_V_2_NO_STATUS);
 
         final TopicPath topicPath = TopicPath.fromNamespace("_")
                 .things()
                 .twin()
-                .commands()
+                .search()
                 .subscribe()
                 .build();
 
         final ThingSearchCommand actualCommand =
                 (ThingSearchCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder().build())
-                        .withHeaders(TestConstants.HEADERS_V_2)
+                        .withHeaders(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE)
                         .build());
 
         assertWithExternalHeadersThat(actualCommand).isEqualTo(createSubscription);
 
         final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("thingId");
-        final CreateSubscription createSubscriptionWithFields = CreateSubscription.of(null, null, selectedFields, null, DITTO_HEADERS_V_2);
+        final CreateSubscription createSubscriptionWithFields =
+                CreateSubscription.of(null, Collections.emptyList(), selectedFields, Collections.emptySet(),
+                        DITTO_HEADERS_V_2);
 
         final ThingSearchCommand actualCommandWithFields =
                 (ThingSearchCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)

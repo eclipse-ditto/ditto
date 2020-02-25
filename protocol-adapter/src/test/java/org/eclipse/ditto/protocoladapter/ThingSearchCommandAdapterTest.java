@@ -42,29 +42,30 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
 
     @Test(expected = UnknownCommandException.class)
     public void unknownCommandToAdaptable() {
-        underTest.toAdaptable(new UnknownThingSearchCommand());
+        underTest.toAdaptable(new UnknownThingSearchCommand(), TopicPath.Channel.TWIN);
     }
 
     @Test
     public void createSubscriptionFromAdaptable() {
         final CreateSubscription expected =
                 CreateSubscription.of(TestConstants.FILTER, TestConstants.OPTIONS, null,
-                        TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
 
         final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
-                .search()
+                .things()
                 .twin()
-                .commands()
+                .search()
                 .subscribe()
                 .build();
+        final JsonPointer path = JsonPointer.empty();
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder()
-                        .withValue(JsonValue.of(
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(
                                 String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
                                         String.join(",", TestConstants.OPTIONS))))
                         .build())
-                .withHeaders(TestConstants.DITTO_HEADERS_V_2)
+                .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
         final ThingSearchCommand actual = underTest.fromAdaptable(adaptable);
 
@@ -74,30 +75,29 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
     @Test
     public void createSubscriptionToAdaptable() {
         final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
-                .search()
+                .things()
                 .twin()
-                .commands()
+                .search()
                 .subscribe()
                 .build();
 
+        final JsonPointer path = JsonPointer.empty();
+
         final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder()
-                        .withValue(JsonValue.of(
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(
                                 String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
                                         String.join(",", TestConstants.OPTIONS))))
                         .build())
-                .withHeaders(TestConstants.DITTO_HEADERS_V_2)
+                .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
 
         final CreateSubscription createSubscription =
                 CreateSubscription.of(TestConstants.FILTER, TestConstants.OPTIONS, null,
-                        TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2);
-        final Adaptable actual = underTest.toAdaptable(createSubscription);
+                        TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
+        final Adaptable actual = underTest.toAdaptable(createSubscription, TopicPath.Channel.TWIN);
 
-        final JsonifiableAdaptable jsonifiableAdaptable =
-                ProtocolFactory.wrapAsJsonifiableAdaptable(actual);
-        final JsonObject jsonObject = jsonifiableAdaptable.toJson();
-        System.out.println(jsonObject.toString());
+        System.out.println(String.join(",", createSubscription.getNamespaces().get()));
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -106,23 +106,25 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
     public void createSubscriptionWithFieldsFromAdaptable() {
         final CreateSubscription expected =
                 CreateSubscription.of(TestConstants.FILTER, TestConstants.OPTIONS, TestConstants.FIELDS,
-                        TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
 
         final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
-                .search()
+                .things()
                 .twin()
-                .commands()
+                .search()
                 .subscribe()
                 .build();
 
+        final JsonPointer path = JsonPointer.empty();
+
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder()
-                        .withValue(JsonValue.of(
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(
                                 String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
                                         String.join(",", TestConstants.OPTIONS))))
                         .withFields(TestConstants.FIELDS)
                         .build())
-                .withHeaders(TestConstants.DITTO_HEADERS_V_2)
+                .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
         final ThingSearchCommand actual = underTest.fromAdaptable(adaptable);
 
@@ -132,55 +134,54 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
     @Test
     public void createSubscriptionWithFieldsToAdaptable() {
         final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
-                .search()
+                .things()
                 .twin()
-                .commands()
+                .search()
                 .subscribe()
                 .build();
 
+        final JsonPointer path = JsonPointer.empty();
+
         final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder()
-                        .withValue(JsonValue.of(
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(
                                 String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
                                         String.join(",", TestConstants.OPTIONS))))
                         .withFields(TestConstants.FIELDS)
                         .build())
-                .withHeaders(TestConstants.DITTO_HEADERS_V_2)
+                .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
 
         final CreateSubscription createSubscription =
                 CreateSubscription.of(TestConstants.FILTER, TestConstants.OPTIONS, TestConstants.FIELDS,
-                        TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2);
-        final Adaptable actual = underTest.toAdaptable(createSubscription);
+                        TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
+        final Adaptable actual = underTest.toAdaptable(createSubscription, TopicPath.Channel.TWIN);
 
-        final JsonifiableAdaptable jsonifiableAdaptable =
-                ProtocolFactory.wrapAsJsonifiableAdaptable(actual);
-        final JsonObject jsonObject = jsonifiableAdaptable.toJson();
-        System.out.println(jsonObject.toString());
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+        actual.equals(expected);
     }
 
     @Test
     public void requestSubscriptionFromAdaptable() {
         final RequestSubscription expected =
                 RequestSubscription.of(TestConstants.SUBSCRIPTION_ID, TestConstants.DEMAND,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
 
         final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
-                .search()
+                .things()
                 .twin()
-                .commands()
+                .search()
                 .request()
                 .build();
 
+        final JsonPointer path = JsonPointer.empty();
+
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder()
-                        .withValue(JsonValue.of(String.format(
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(String.format(
                                 "{\"subscriptionId\": \"%s\", \"demand\": \"%s\"}", TestConstants.SUBSCRIPTION_ID,
                                 TestConstants.DEMAND)))
                         .build())
-                .withHeaders(TestConstants.DITTO_HEADERS_V_2)
+                .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
         final ThingSearchCommand actual = underTest.fromAdaptable(adaptable);
 
@@ -189,31 +190,28 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
 
     @Test
     public void requestSubscriptionToAdaptable() {
-        final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
-                .search()
+        final TopicPath topicPath = TopicPath.fromNamespace("_")
+                .things()
                 .twin()
-                .commands()
+                .search()
                 .request()
                 .build();
 
+        final JsonPointer path = JsonPointer.empty();
+
         final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder()
-                        .withValue(JsonValue.of(String.format(
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(String.format(
                                 "{\"subscriptionId\": \"%s\", \"demand\": \"%s\"}", TestConstants.SUBSCRIPTION_ID,
                                 TestConstants.DEMAND)))
                         .build())
-                .withHeaders(TestConstants.DITTO_HEADERS_V_2)
+                .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
 
         final RequestSubscription requestSubscription =
                 RequestSubscription.of(TestConstants.SUBSCRIPTION_ID, TestConstants.DEMAND,
-                        TestConstants.DITTO_HEADERS_V_2);
-        final Adaptable actual = underTest.toAdaptable(requestSubscription);
-
-        final JsonifiableAdaptable jsonifiableAdaptable =
-                ProtocolFactory.wrapAsJsonifiableAdaptable(actual);
-        final JsonObject jsonObject = jsonifiableAdaptable.toJson();
-        System.out.println(jsonObject.toString());
+                        TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
+        final Adaptable actual = underTest.toAdaptable(requestSubscription, TopicPath.Channel.TWIN);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -221,21 +219,23 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
     @Test
     public void cancelSubscriptionFromAdaptable() {
         final CancelSubscription expected =
-                CancelSubscription.of(TestConstants.SUBSCRIPTION_ID, TestConstants.DITTO_HEADERS_V_2);
+                CancelSubscription.of(TestConstants.SUBSCRIPTION_ID, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
 
-        final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
-                .search()
+        final TopicPath topicPath = TopicPath.fromNamespace("_")
+                .things()
                 .twin()
-                .commands()
+                .search()
                 .cancel()
                 .build();
 
+        final JsonPointer path = JsonPointer.empty();
+
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder()
-                        .withValue(JsonValue.of(String.format(
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(String.format(
                                 "{\"subscriptionId\": \"%s\"}", TestConstants.SUBSCRIPTION_ID)))
                         .build())
-                .withHeaders(TestConstants.DITTO_HEADERS_V_2)
+                .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
         final ThingSearchCommand actual = underTest.fromAdaptable(adaptable);
 
@@ -244,29 +244,26 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
 
     @Test
     public void cancelSubscriptionToAdaptable() {
-        final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
-                .search()
+        final TopicPath topicPath = TopicPath.fromNamespace("_")
+                .things()
                 .twin()
-                .commands()
+                .search()
                 .cancel()
                 .build();
 
+        final JsonPointer path = JsonPointer.empty();
+
         final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder()
-                        .withValue(JsonValue.of(String.format(
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(String.format(
                                 "{\"subscriptionId\": \"%s\"}", TestConstants.SUBSCRIPTION_ID)))
                         .build())
-                .withHeaders(TestConstants.DITTO_HEADERS_V_2)
+                .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
 
         final CancelSubscription cancelSubscription =
-                CancelSubscription.of(TestConstants.SUBSCRIPTION_ID, TestConstants.DITTO_HEADERS_V_2);
-        final Adaptable actual = underTest.toAdaptable(cancelSubscription);
-
-        final JsonifiableAdaptable jsonifiableAdaptable =
-                ProtocolFactory.wrapAsJsonifiableAdaptable(actual);
-        final JsonObject jsonObject = jsonifiableAdaptable.toJson();
-        System.out.println(jsonObject.toString());
+                CancelSubscription.of(TestConstants.SUBSCRIPTION_ID, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
+        final Adaptable actual = underTest.toAdaptable(cancelSubscription, TopicPath.Channel.TWIN);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -293,7 +290,7 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
 
         @Override
         public DittoHeaders getDittoHeaders() {
-            return TestConstants.DITTO_HEADERS_V_2;
+            return TestConstants.DITTO_HEADERS_V_2_NO_STATUS;
         }
 
         @Override

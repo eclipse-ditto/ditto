@@ -13,6 +13,7 @@
 package org.eclipse.ditto.signals.commands.thingsearch.subscription;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -89,9 +90,9 @@ public final class CancelSubscription extends AbstractCommand<CancelSubscription
     }
 
     /**
-     * Get the subscription ID.
+     * Returns the subscriptionId which is to be included in the JSON of the retrieved entity.
      *
-     * @return the subscription ID.
+     * @return the subscriptionId.
      */
     public String getSubscriptionId() {
         return subscriptionId;

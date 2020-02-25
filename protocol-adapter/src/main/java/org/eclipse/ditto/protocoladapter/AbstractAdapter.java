@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -113,85 +114,70 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
-    /**
-     * @param adaptable the protocol message
-     * @return the filterString from the value of the adaptable.
-     */
     protected static String filterFrom(final Adaptable adaptable) {
 
-        final JsonValue value = adaptable.getPayload().getValue().orElse(null);
+        if (adaptable.getPayload().getValue().isPresent()) {
+            final JsonObject value = JsonObject.of(
+                    adaptable
+                            .getPayload()
+                            .getValue()
+                            .map(JsonValue::formatAsString)
+                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
 
-        if (value != null && value.asString().contains("filter")) {
+            return value.getValue("filter").map(JsonValue::asString).orElse(null);
 
-            String[] subValues = value.asString().split(",", 2);
-
-            for (String subValue : subValues) {
-                if (subValue.startsWith("filter")) {
-                    return subValue;
-                }
-            }
         }
         return null;
     }
 
-    /**
-     * @param adaptable the protocol message
-     * @return the optionsString from the value of the adaptable.
-     */
     protected static List<String> optionsFrom(final Adaptable adaptable) {
+        if (adaptable.getPayload().getValue().isPresent()) {
+            final JsonObject value = JsonObject.of(
+                    adaptable
+                            .getPayload()
+                            .getValue()
+                            .map(JsonValue::formatAsString)
+                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
 
-        final JsonValue value = adaptable.getPayload().getValue().orElse(null);
-
-        if (value != null && value.asString().contains("filter")) {
-
-            String[] subValues = value.asString().split(",", 2);
-
-            for (String subValue : subValues) {
-                if (subValue.startsWith("filter")) {
-                    return Arrays.asList(subValue.split(","));
-                }
+            if (value.getValue("options").isPresent()) {
+                return Arrays.asList(value.getValue("options")
+                        .map(JsonValue::asString)
+                        .orElseThrow(() -> JsonParseException.newBuilder().build())
+                        .replace(" ", "")
+                        .split(","));
             }
         }
         return Collections.emptyList();
     }
-
-    /**
-     * @param adaptable the protocol message
-     * @return the subscriptionId from the value of the adaptable.
-     */
     protected static String subscriptionIdFrom(final Adaptable adaptable) {
 
-        final JsonValue value = adaptable.getPayload().getValue().orElse(null);
+        if (adaptable.getPayload().getValue().isPresent()) {
+            final JsonObject value = JsonObject.of(
+                    adaptable
+                            .getPayload()
+                            .getValue()
+                            .map(JsonValue::formatAsString)
+                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
 
-        if (value != null && value.asString().contains("subscriptionId")) {
-
-            String[] subValues = value.asString().split(",", 2);
-
-            for (String subValue : subValues) {
-                if (subValue.startsWith("subscriptionId")) {
-                    return subValue;
-                }
-            }
+            return value.getValue("subscriptionId").map(JsonValue::asString).orElse(null);
         }
         return null;
     }
 
-    /**
-     * @param adaptable the protocol message
-     * @return the demand from the value of the adaptable.
-     */
     protected static long demandFrom(final Adaptable adaptable) {
 
-        final JsonValue value = adaptable.getPayload().getValue().orElse(null);
 
-        if (value != null && value.asString().contains("demand")) {
-
-            String[] subValues = value.asString().split(",", 2);
-
-            for (String subValue : subValues) {
-                if (subValue.startsWith("demand")) {
-                    return Long.parseLong(subValue);
-                }
+        if (adaptable.getPayload().getValue().isPresent()) {
+            final JsonObject value = JsonObject.of(
+                    adaptable
+                            .getPayload()
+                            .getValue()
+                            .map(JsonValue::formatAsString)
+                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
+            if (value.getValue("demand").isPresent()) {
+                return Long.parseLong(value.getValue("demand")
+                        .map(JsonValue::asString)
+                        .orElseThrow(() -> JsonParseException.newBuilder().build()));
             }
         }
         return 0;
@@ -374,7 +360,7 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      */
     private static DittoHeaders mapTopicPathToHeaders(final TopicPath topicPath) {
         final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
-        if (topicPath.getNamespace() != null && topicPath.getId() != null) {
+        if (topicPath.getNamespace() != null && topicPath.getId() != null && topicPath.getCriterion() != TopicPath.Criterion.SEARCH) {
             // add thing ID for known topic-paths for error reporting.
             headersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(),
                     topicPath.getNamespace() + ":" + topicPath.getId());

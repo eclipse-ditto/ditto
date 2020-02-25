@@ -40,17 +40,19 @@ final class ImmutableTopicPath implements TopicPath {
     private final Channel channel;
     private final Criterion criterion;
     private final Action action;
+    private final SearchAction searchAction;
     private final String path;
     private final String subject;
 
     private ImmutableTopicPath(final String namespace, final String id, final Group group, final Channel channel,
-            final Criterion criterion, final Action action, final String subject) {
+            final Criterion criterion, final Action action, final SearchAction searchAction, final String subject) {
         this.namespace = namespace;
         this.id = id;
         this.group = group;
         this.channel = channel;
         this.criterion = criterion;
         this.action = action;
+        this.searchAction = searchAction;
         this.subject = subject;
         this.path = buildPath();
     }
@@ -75,7 +77,7 @@ final class ImmutableTopicPath implements TopicPath {
         requireNonNull(channel, PROP_NAME_CHANNEL);
         requireNonNull(criterion, PROP_NAME_CRITERION);
 
-        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, null);
+        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, null, null);
     }
 
     /**
@@ -101,7 +103,33 @@ final class ImmutableTopicPath implements TopicPath {
         requireNonNull(criterion, PROP_NAME_CRITERION);
         requireNonNull(action, PROP_NAME_ACTION);
 
-        return new ImmutableTopicPath(namespace, id, group, channel, criterion, action, null);
+        return new ImmutableTopicPath(namespace, id, group, channel, criterion, action, null, null);
+    }
+
+    /**
+     * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code id}, {@code group},
+     * {@code criterion} and {@code action}.
+     *
+     * @param namespace the namespace.
+     * @param id the id.
+     * @param group the group.
+     * @param channel the channel.
+     * @param criterion the criterion.
+     * @param searchAction the search action.
+     * @return the TopicPath.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
+            final Channel channel,
+            final Criterion criterion, final SearchAction searchAction) {
+        requireNonNull(namespace, PROP_NAME_NAMESPACE);
+        requireNonNull(id, PROP_NAME_ID);
+        requireNonNull(group, PROP_NAME_GROUP);
+        requireNonNull(channel, PROP_NAME_CHANNEL);
+        requireNonNull(criterion, PROP_NAME_CRITERION);
+        requireNonNull(searchAction, PROP_NAME_ACTION);
+
+        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, searchAction, null);
     }
 
 
@@ -128,7 +156,7 @@ final class ImmutableTopicPath implements TopicPath {
         requireNonNull(criterion, PROP_NAME_CRITERION);
         requireNonNull(subject, PROP_NAME_SUBJECT);
 
-        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, subject);
+        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, null, subject);
     }
 
     @Override
@@ -154,6 +182,11 @@ final class ImmutableTopicPath implements TopicPath {
     @Override
     public Optional<Action> getAction() {
         return Optional.ofNullable(action);
+    }
+
+    @Override
+    public Optional<SearchAction> getSearchAction() {
+        return Optional.ofNullable(searchAction);
     }
 
     @Override
@@ -183,20 +216,20 @@ final class ImmutableTopicPath implements TopicPath {
         final ImmutableTopicPath that = (ImmutableTopicPath) o;
         return Objects.equals(namespace, that.namespace) && Objects.equals(id, that.id) && group == that.group
                 && channel == that.channel && criterion == that.criterion && Objects.equals(action, that.action) &&
-                Objects
-                        .equals(subject, that.subject) && Objects.equals(path, that.path);
+                Objects.equals(searchAction, that.searchAction) &&
+                Objects.equals(subject, that.subject) && Objects.equals(path, that.path);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, id, group, channel, criterion, action, path, subject);
+        return Objects.hash(namespace, id, group, channel, criterion, action, searchAction, path, subject);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + "namespace=" + namespace + ", id=" + id + ", group=" + group +
                 ", channel=" + channel
-                + ", criterion=" + criterion + ", action=" + action + ", subject=" + subject + ", path=" + path + ']';
+                + ", criterion=" + criterion + ", action=" + action + ", searchAction=" + searchAction + ", subject=" + subject + ", path=" + path + ']';
     }
 
     private String buildPath() {
@@ -206,6 +239,10 @@ final class ImmutableTopicPath implements TopicPath {
         } else if (subject != null) {
             // e.g.: <ns>/<id>/things/live/messages/<msgSubject>
             return MessageFormat.format("{0}/{1}/{2}/{3}/{4}/{5}", namespace, id, group, channel, criterion, subject);
+        } else if (searchAction != null) {
+            // e.g.: <ns>/<id>/things/live/messages/<msgSubject>
+            return MessageFormat.format("{0}/{1}/{2}/{3}/{4}/{5}", namespace, id, group, channel, criterion,
+                    searchAction);
         } else {
             // e.g.: <ns>/<id>/things/twin/search
             return MessageFormat.format("{0}/{1}/{2}/{3}/{4}", namespace, id, group, channel, criterion);

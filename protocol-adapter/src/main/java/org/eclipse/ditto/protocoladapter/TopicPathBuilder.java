@@ -33,11 +33,11 @@ public interface TopicPathBuilder {
 
 
     /**
-     * Sets the {@code Group} of this builder to {@link TopicPath.Group#SEARCH}. A previously set group is replaced.
+     * Sets the {@code Group} of this builder to {@link TopicPath.Criterion#SEARCH}. A previously set group is replaced.
      *
      * @return this builder to allow method chaining.
      */
-    TopicPathBuilder search();
+    SearchTopicPathBuilder search();
 
 
     /**

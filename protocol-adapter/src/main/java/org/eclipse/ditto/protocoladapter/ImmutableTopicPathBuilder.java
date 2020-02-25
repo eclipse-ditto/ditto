@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
  */
 @NotThreadSafe
 final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopicPathBuilder, EventsTopicPathBuilder,
-        CommandsTopicPathBuilder {
+        CommandsTopicPathBuilder, SearchTopicPathBuilder {
 
     private final String namespace;
     private final String name;
@@ -35,6 +35,7 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     private TopicPath.Channel channel;
     private TopicPath.Criterion criterion;
     private TopicPath.Action action;
+    private TopicPath.SearchAction searchAction;
     private String subject;
 
     private ImmutableTopicPathBuilder(final String namespace, final String name) {
@@ -93,8 +94,8 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
-    public TopicPathBuilder search() {
-        this.group = TopicPath.Group.SEARCH;
+    public SearchTopicPathBuilder search() {
+        this.criterion = TopicPath.Criterion.SEARCH;
         return this;
     }
 
@@ -160,20 +161,20 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
-    public CommandsTopicPathBuilder subscribe() {
-        this.action = TopicPath.Action.SUBSCRIBE;
+    public TopicPathBuildable subscribe() {
+        this.searchAction = TopicPath.SearchAction.SUBSCRIBE;
         return this;
     }
 
     @Override
-    public CommandsTopicPathBuilder cancel() {
-        this.action = TopicPath.Action.CANCEL;
+    public TopicPathBuildable cancel() {
+        this.searchAction = TopicPath.SearchAction.CANCEL;
         return this;
     }
 
     @Override
-    public CommandsTopicPathBuilder request() {
-        this.action = TopicPath.Action.REQUEST;
+    public TopicPathBuildable request() {
+        this.searchAction = TopicPath.SearchAction.REQUEST;
         return this;
     }
 
@@ -207,7 +208,10 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion, action);
         } else if (subject != null) {
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion, subject);
-        } else {
+        } else if (searchAction != null){
+            return ImmutableTopicPath.of(namespace, name, group, channel, criterion, searchAction);
+        }
+        else {
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion);
         }
     }
@@ -247,6 +251,11 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
         @Override
         public Optional<Action> getAction() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<SearchAction> getSearchAction() {
             return Optional.empty();
         }
 
