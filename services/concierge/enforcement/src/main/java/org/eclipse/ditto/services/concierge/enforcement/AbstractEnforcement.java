@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
@@ -84,25 +85,18 @@ public abstract class AbstractEnforcement<T extends Signal> {
     }
 
     /**
-     * Handle error for a future contextual message such that the original sender receives an error report if the future
-     * failed.
+     * Handle error for a future message such that failed futures become a completed future with DittoRuntimeException.
      *
-     * @param result result of the future on successful completion.
      * @param throwable error of the future on failure.
-     * @return the next step.
+     * @return the DittoRuntimeException.
      */
-    private Contextual<WithDittoHeaders> handleError(@Nullable final Contextual<WithDittoHeaders> result,
-            @Nullable final Throwable throwable) {
-        if (result == null) {
-            final Throwable error = throwable instanceof CompletionException
-                    ? throwable.getCause()
-                    : throwable != null
-                    ? throwable
-                    : new NullPointerException("Result and error are both null");
-            return withMessageToReceiver(reportError("Error thrown during enforcement", error), sender());
-        } else {
-            return result;
-        }
+    private DittoRuntimeException convertError(@Nullable final Throwable throwable) {
+        final Throwable error = throwable instanceof CompletionException
+                ? throwable.getCause()
+                : throwable != null
+                ? throwable
+                : new NullPointerException("Result and error are both null");
+        return reportError("Error thrown during enforcement", error);
     }
 
     private BiFunction<Contextual<WithDittoHeaders>, Throwable, Contextual<WithDittoHeaders>> handleEnforcementCompletion() {
@@ -110,7 +104,8 @@ public abstract class AbstractEnforcement<T extends Signal> {
             context.getStartedTimer()
                     .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
                     .ifPresent(StartedTimer::stop);
-            return handleError(result, throwable);
+            return Objects.requireNonNullElseGet(result,
+                    () -> withMessageToReceiver(convertError(throwable), sender()));
         };
     }
 
@@ -305,7 +300,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
         return withMessageToReceiver(message, receiver)
                 .withAskFuture(() -> askFutureWithoutErrorHandling.get()
                         .<Object>thenApply(x -> x)
-                        .exceptionally(error -> handleError(null, error))
+                        .exceptionally(this::convertError)
                 );
     }
 

@@ -26,7 +26,9 @@ import java.util.UUID;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -50,6 +52,7 @@ import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotModifiableException;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyPreconditionNotModifiedException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
@@ -293,6 +296,29 @@ public class PolicyCommandEnforcementTest {
 
         final RetrievePolicyResponse actualResponse = testKit.expectMsgClass(mockResponse.getClass());
         assertRetrievePolicyResponse(actualResponse, mockResponse);
+    }
+
+    @Test
+    public void retrievePolicyWhenConditionHeaderEvaluationFails() {
+        final String ifNonMatchHeader = "\"rev:1\"";
+        final DittoHeaders dittoHeaders = DITTO_HEADERS.toBuilder()
+                .ifNoneMatch(EntityTagMatchers.fromStrings(ifNonMatchHeader))
+                .build();
+        final RetrievePolicy retrievePolicy = RetrievePolicy.of(POLICY_ID, dittoHeaders);
+
+        enforcer.tell(retrievePolicy, testKit.getRef());
+
+        expectMsg(policiesShardRegionProbe, SUDO_RETRIEVE_POLICY);
+        policiesShardRegionProbe.lastSender().tell(createDefaultPolicyResponse(), policiesShardRegionProbe.ref());
+
+        expectMsg(policiesShardRegionProbe, retrievePolicy);
+        final DittoRuntimeException errorReply =
+                PolicyPreconditionNotModifiedException.newBuilder(ifNonMatchHeader, ifNonMatchHeader)
+                        .build();
+        policiesShardRegionProbe.lastSender().tell(errorReply, policiesShardRegionProbe.ref());
+
+        final DittoRuntimeException enforcementReply = testKit.expectMsgClass(errorReply.getClass());
+        assertThat(enforcementReply).isEqualTo(errorReply);
     }
 
     @Test
