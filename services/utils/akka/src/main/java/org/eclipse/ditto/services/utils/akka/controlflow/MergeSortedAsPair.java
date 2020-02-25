@@ -29,7 +29,7 @@ import akka.stream.stage.GraphStage;
 import akka.stream.stage.GraphStageLogic;
 
 /**
- * Performs merge-sort on 2 streams but instead of delivering the sort result, delivers the tuple before
+ * Performs a merge on 2 sorted streams but instead of delivering the sort result, delivers the tuple before
  * the final comparison.
  * <p>
  * Behavior definition:

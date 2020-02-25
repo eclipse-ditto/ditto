@@ -85,6 +85,20 @@ public final class MergeSortedAsPairTest {
     }
 
     @Test
+    public void forIdenticalSources() {
+        final Source<Integer, NotUsed> source1 = Source.from(List.of(1, 3, 5, 7, 9));
+        final List<Pair<Integer, Integer>> mergeResult = runWithMergeSortedAsPair(source1, source1);
+        assertThat(mergeResult)
+                .containsExactlyElementsOf(List.of(
+                        Pair.create(1, 1),
+                        Pair.create(3, 3),
+                        Pair.create(5, 5),
+                        Pair.create(7, 7),
+                        Pair.create(9, 9)
+                ));
+    }
+
+    @Test
     public void testBehaviorSpecificationByMergeSortOnExample() {
         final Source<Integer, NotUsed> source1 = Source.from(List.of(1, 3, 5, 7, 9));
         final Source<Integer, NotUsed> source2 = Source.from(List.of(2, 3, 4, 5, 6));
