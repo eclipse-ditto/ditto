@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
@@ -205,10 +204,10 @@ public final class EventSnapshotCleanupCoordinator
                                 askShardRegionForCleanup(shardRegions.connections(), ConnectivityCommand.RESOURCE_TYPE,
                                         connTag))
                         .matchAny(e -> {
-                            final String errorMessage = String.format("Unexpected entity ID type: " + e);
+                            final String errorMessage = "Unexpected entity ID type: " + e;
                             log.error(errorMessage);
                             final CleanupPersistenceResponse failureResponse =
-                                    CleanupPersistenceResponse.failure(DefaultEntityId.dummy(),
+                                    CleanupPersistenceResponse.failure(e.getEntityId(),
                                             DittoHeaders.newBuilder().putHeader(ERROR_MESSAGE_HEADER, errorMessage)
                                                     .build());
                             return CompletableFuture.completedFuture(failureResponse);
