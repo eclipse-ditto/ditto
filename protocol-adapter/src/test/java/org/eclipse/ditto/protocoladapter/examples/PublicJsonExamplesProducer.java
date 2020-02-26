@@ -110,14 +110,14 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
     private static Jsonifiable.WithPredicate<JsonObject, JsonField> wrapExceptionInThingErrorResponse(
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
 
-        if (jsonifiable instanceof ThingException) {
-            return ThingErrorResponse.of((DittoRuntimeException) jsonifiable);
-        } else if (jsonifiable instanceof PolicyException) {
-            return PolicyErrorResponse.of((DittoRuntimeException) jsonifiable);
-        } else if (jsonifiable instanceof DittoRuntimeException) {
+        if (jsonifiable instanceof DittoRuntimeException) {
+            if (jsonifiable instanceof ThingException) {
+                return ThingErrorResponse.of((DittoRuntimeException) jsonifiable);
+            } else if (jsonifiable instanceof PolicyException) {
+                return PolicyErrorResponse.of((DittoRuntimeException) jsonifiable);
+            }
 
             System.out.println(jsonifiable.getClass().getName() + " is neither ThingException nor PolicyException.");
-
             return ThingErrorResponse.of((DittoRuntimeException) jsonifiable);
         } else {
             return jsonifiable;
