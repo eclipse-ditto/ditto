@@ -64,7 +64,7 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
             return false;
         }
         final DefaultAcknowledgementConfig that = (DefaultAcknowledgementConfig) o;
-        return forwarderFallbackTimeout == that.forwarderFallbackTimeout;
+        return Objects.equals(forwarderFallbackTimeout, that.forwarderFallbackTimeout);
     }
 
     @Override
