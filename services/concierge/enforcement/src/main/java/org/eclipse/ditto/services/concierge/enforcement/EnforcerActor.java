@@ -159,7 +159,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
                             final ArrayList<EnforcementProvider<?>> providers = new ArrayList<>(enforcementProviders);
                             for (int i = 0; i < providers.size(); i++) {
                                 builder.from(bcast.out(i))
-                                        .via(builder.add(providers.get(i).toContextualFlow(partitionBufferSize)))
+                                        .via(builder.add(providers.get(i).toContextualFlow()))
                                         .toInlet(merge.in(i));
                             }
 

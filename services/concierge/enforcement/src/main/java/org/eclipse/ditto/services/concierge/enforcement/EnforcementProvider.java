@@ -62,12 +62,10 @@ public interface EnforcementProvider<T extends Signal> {
     /**
      * Convert this enforcement provider into a stream of contextual messages.
      *
-     * @param bufferSize size of the buffer of concurrently scheduled enforcement futures.
      * @return the stream.
      */
     @SuppressWarnings("unchecked") // due to GraphDSL usage
-    default Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> toContextualFlow(
-            final int bufferSize) {
+    default Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> toContextualFlow() {
 
         final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed>
                 multiplexer =
@@ -80,9 +78,10 @@ public interface EnforcementProvider<T extends Signal> {
             final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout =
                     builder.add(multiplexer);
 
+            // using parallelism=1 to ensure that authorization-changing commands affect the next command immediately
             final Flow<Contextual<T>, Contextual<WithDittoHeaders>, NotUsed> enforcementFlow =
                     Flow.<Contextual<T>>create()
-                            .mapAsync(bufferSize, contextual -> createEnforcement(contextual).enforceSafely());
+                            .mapAsync(1, contextual -> createEnforcement(contextual).enforceSafely());
 
             // by default, ignore unhandled messages:
             final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
