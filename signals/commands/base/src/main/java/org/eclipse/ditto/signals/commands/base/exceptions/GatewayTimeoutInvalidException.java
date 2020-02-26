@@ -42,7 +42,7 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "timeout.invalid";
 
-    private static final String DEFAULT_MESSAGE = "The timeout <{0}> is not inside its allowed bounds <0 - {1}>";
+    private static final String DEFAULT_MESSAGE = "The timeout <{0}ms> is not inside its allowed bounds <0ms - {1}ms>";
 
     private static final String DEFAULT_DESCRIPTION = "Choose a timeout inside the bounds.";
 
@@ -53,6 +53,7 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -72,8 +73,7 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new GatewayTimeoutInvalidException.
      */
-    public static GatewayTimeoutInvalidException fromMessage(final String message,
-            final DittoHeaders dittoHeaders) {
+    public static GatewayTimeoutInvalidException fromMessage(final String message, final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -81,17 +81,19 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
     }
 
     /**
-     * Constructs a new {@code GatewayTimeoutInvalidException} object with the exception message extracted from the given
-     * JSON object.
+     * Constructs a new {@code GatewayTimeoutInvalidException} object with the exception message extracted from the
+     * given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the
+     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new GatewayTimeoutInvalidException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} is missing required JSON fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contains unexpected value types.
      */
     public static GatewayTimeoutInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
@@ -111,7 +113,7 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
         }
 
         private Builder(final Duration timeout, final Duration maxTimeout) {
-            message(MessageFormat.format(DEFAULT_MESSAGE, timeout, maxTimeout));
+            message(MessageFormat.format(DEFAULT_MESSAGE, timeout.toMillis(), maxTimeout.toMillis()));
             description(DEFAULT_DESCRIPTION);
         }
 
@@ -121,7 +123,10 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new GatewayTimeoutInvalidException(dittoHeaders, message, description, cause, href);
         }
+
     }
+
 }

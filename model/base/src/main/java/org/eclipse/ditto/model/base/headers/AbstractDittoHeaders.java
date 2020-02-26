@@ -141,7 +141,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     @Override
     public boolean isResponseRequired() {
-        return isExpectedBoolean(DittoHeaderDefinition.RESPONSE_REQUIRED, Boolean.TRUE);
+        return !isExpectedBoolean(DittoHeaderDefinition.RESPONSE_REQUIRED, Boolean.FALSE);
     }
 
     /**
@@ -233,7 +233,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Override
     public Optional<Duration> getTimeout() {
         return getStringForDefinition(DittoHeaderDefinition.TIMEOUT)
-                .map(DittoDuration::fromTimeoutString)
+                .map(DittoDuration::parseDuration)
                 .map(DittoDuration::getDuration);
     }
 

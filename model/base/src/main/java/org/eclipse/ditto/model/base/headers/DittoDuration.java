@@ -12,118 +12,136 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
+import java.util.function.LongFunction;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
- * Package internal representation of a string based Duration optionally containing the unit {@value #MS_SUFFIX} for
- * milliseconds or {@value #S_SUFFIX} for seconds.
+ * Package internal representation of a string based duration with a positive amount.
  *
  * @since 1.1.0
  */
+@Immutable
 final class DittoDuration implements CharSequence {
 
-    private static final String MS_SUFFIX = "ms";
-    private static final String S_SUFFIX = "s";
-    private static final String M_SUFFIX = "m";
+    private final long amount;
+    private final DittoTimeUnit dittoTimeUnit;
 
-    private final Duration duration;
-    private final String delegateString;
-
-    private DittoDuration(final Duration duration, @Nullable final TimeUnit timeUnit) {
-        this.duration = duration;
-        delegateString = durationToString(duration, timeUnit);
+    private DittoDuration(final long amount, final DittoTimeUnit dittoTimeUnit) {
+        this.amount = amount;
+        this.dittoTimeUnit = dittoTimeUnit;
     }
 
     /**
-     * @return the wrapped Java Duration.
+     * Creates a DittoDuration from the passed Java Duration.
+     *
+     * @param duration the <em>positive</em> Java Duration to let the DittoDuration base on.
+     * @return the created DittoDuration.
+     * @throws NullPointerException if {@code duration} is {@code null}.
+     * @throws IllegalArgumentException if {@code duration} is negative.
+     */
+    static DittoDuration of(final Duration duration) {
+        checkNotNull(duration, "duration");
+        checkArgument(duration, d -> !d.isNegative(), () -> "The duration must not be negative!");
+
+        return new DittoDuration(duration.toMillis(), DittoTimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Creates a DittoDuration from the passed char sequence that represents a <em>positive</em> amount.
+     * Suffixes of the duration amount are allowed to specify the time unit:
+     * <ul>
+     *     <li>{@code "ms":} milliseconds, e. g. {@code "2000ms"} for 2000 milliseconds.</li>
+     *     <li>{@code "s":} seconds, e. g. {@code "2s"} or {@code "2"} for 2 seconds.</li>
+     *     <li>{@code "m":} minutes e. g. {@code "3m"} for 3 minutes.</li>
+     * </ul>
+     * <em>A string representation of a long value without suffix is interpreted as seconds.</em>
+     *
+     * @param duration the CharSequence containing the DittoDuration representation to be parsed.
+     * @return the created DittoDuration.
+     * @throws NullPointerException if {@code duration} is {@code null}.
+     * @throws java.lang.NumberFormatException if the duration char sequence does not contain a parsable {@code long} or
+     * the parsed long is not positive.
+     */
+    static DittoDuration parseDuration(final CharSequence duration) {
+        return parseDuration(checkNotNull(duration, "duration"), DittoTimeUnit.values());
+    }
+
+    private static DittoDuration parseDuration(final CharSequence duration, final DittoTimeUnit[] dittoTimeUnits) {
+        DittoTimeUnit timeUnit = null;
+        Long durationValue = null;
+        int i = 0;
+        while (null == durationValue && i < dittoTimeUnits.length) {
+            timeUnit = dittoTimeUnits[i];
+            durationValue = parseDuration(duration, timeUnit);
+            i++;
+        }
+        if (null == durationValue) {
+
+            // interpret duration as seconds if unit was omitted
+            timeUnit = DittoTimeUnit.SECONDS;
+            durationValue = Long.parseLong(duration.toString());
+        }
+        return new DittoDuration(durationValue, timeUnit);
+    }
+
+    @Nullable
+    private static Long parseDuration(final CharSequence duration, final DittoTimeUnit dittoTimeUnit) {
+        final Matcher matcher = dittoTimeUnit.getRegexMatcher(duration);
+        if (matcher.matches()) {
+            return Long.parseLong(matcher.group("amount"));
+        }
+        return null;
+    }
+
+    /**
+     * Indicates whether this duration is zero length.
+     *
+     * @return {@code true} if this duration has a total length equal to zero.
+     */
+    boolean isZero() {
+        return 0 == amount;
+    }
+
+    /**
+     * Returns this DittoDuration as Java Duration.
+     *
+     * @return the Java Duration representation of this DittoDuration.
      */
     Duration getDuration() {
-        return duration;
-    }
-
-    /**
-     * Creates a DittoDuration from the passed Java Duration and the optional {@code timeUnit}. If timeUnit is
-     * not specified, seconds are assumed.
-     *
-     * @param timeout the Java Duration to let the DittoDuration base on.
-     * @param timeUnit the optional time unit (may be milliseconds or seconds).
-     * @return the created DittoDuration.
-     * @throws IllegalArgumentException in case TimeUnit is a unit different to milliseconds or seconds.
-     */
-    static DittoDuration fromDuration(final Duration timeout, @Nullable final TimeUnit timeUnit) {
-        return new DittoDuration(timeout, timeUnit);
-    }
-
-    /**
-     * Creates a DittoDuration from the passed {@code timeout} CharSequence interpreting the suffixes
-     * {@value #MS_SUFFIX} as milliseconds and {@value #S_SUFFIX} as seconds.
-     *
-     * @param timeout the CharSequence to interpret as DittoDuration.
-     * @return the created DittoDuration.
-     * @throws java.lang.NumberFormatException if the timeout string does not contain a parsable {@code long}.
-     */
-    static DittoDuration fromTimeoutString(final CharSequence timeout) {
-
-        final String timeoutStr = timeout.toString();
-        if (timeoutStr.endsWith(MS_SUFFIX)) {
-            final String timeoutMs = timeoutStr.substring(0, timeoutStr.lastIndexOf(MS_SUFFIX));
-            return new DittoDuration(Duration.ofMillis(Long.parseLong(timeoutMs)), TimeUnit.MILLISECONDS);
-        } else if (timeoutStr.endsWith(S_SUFFIX)) {
-            final String timeoutS = timeoutStr.substring(0, timeoutStr.lastIndexOf(S_SUFFIX));
-            return new DittoDuration(Duration.ofSeconds(Long.parseLong(timeoutS)), TimeUnit.SECONDS);
-        } else if (timeoutStr.endsWith(M_SUFFIX)) {
-            final String timeoutM = timeoutStr.substring(0, timeoutStr.lastIndexOf(M_SUFFIX));
-            return new DittoDuration(Duration.ofMinutes(Long.parseLong(timeoutM)), TimeUnit.MINUTES);
-        } else {
-            // interpret timeout duration as seconds if unit was omitted:
-            return new DittoDuration(Duration.ofSeconds(Long.parseLong(timeoutStr)), null);
-        }
-    }
-
-    private String durationToString(final Duration duration, @Nullable final TimeUnit timeUnit) {
-
-        if (null == timeUnit) {
-            return String.valueOf(duration.getSeconds());
-        }
-
-        switch (timeUnit) {
-            case MILLISECONDS:
-                return duration.toMillis() + MS_SUFFIX;
-            case SECONDS:
-                return duration.getSeconds() + S_SUFFIX;
-            case MINUTES:
-                return duration.toMinutes() + M_SUFFIX;
-            default:
-                throw new IllegalArgumentException("Unsupported TimeUnit: " + timeUnit);
-        }
+        return dittoTimeUnit.getJavaDuration(amount);
     }
 
     @Override
     public int length() {
-        return delegateString.length();
+        return toString().length();
     }
 
     @Override
     public char charAt(final int index) {
-        return delegateString.charAt(index);
+        return toString().charAt(index);
     }
 
     @Override
     public CharSequence subSequence(final int start, final int end) {
-        return delegateString.subSequence(start, end);
+        return toString().subSequence(start, end);
     }
 
     @Override
     public String toString() {
-        return delegateString;
+        return amount + dittoTimeUnit.getSuffix();
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -131,12 +149,44 @@ final class DittoDuration implements CharSequence {
             return false;
         }
         final DittoDuration that = (DittoDuration) o;
-        return Objects.equals(duration, that.duration) &&
-                Objects.equals(delegateString, that.delegateString);
+        return amount == that.amount && dittoTimeUnit == that.dittoTimeUnit;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(duration, delegateString);
+        return Objects.hash(amount, dittoTimeUnit);
     }
+
+    private enum DittoTimeUnit {
+
+        // The order matters as we expect seconds to be the main unit.
+        // By making it the first constant, parsing a duration from string will be accelerated.
+        SECONDS("s", Duration::ofSeconds),
+        MILLISECONDS("ms", Duration::ofMillis),
+        MINUTES("m", Duration::ofMinutes);
+
+        private final String suffix;
+        private final LongFunction<Duration> toJavaDuration;
+        private final Pattern regexPattern;
+
+        private DittoTimeUnit(final String suffix, final LongFunction<Duration> toJavaDuration) {
+            this.suffix = suffix;
+            this.toJavaDuration = toJavaDuration;
+            regexPattern = Pattern.compile("(?<amount>\\d+)(?<unit>" + suffix + ")");
+        }
+
+        public Matcher getRegexMatcher(final CharSequence duration) {
+            return regexPattern.matcher(duration);
+        }
+
+        public String getSuffix() {
+            return suffix;
+        }
+
+        public Duration getJavaDuration(final long amount) {
+            return toJavaDuration.apply(amount);
+        }
+
+    }
+
 }

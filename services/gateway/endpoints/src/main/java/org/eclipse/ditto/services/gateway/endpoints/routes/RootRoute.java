@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
-import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -64,12 +63,12 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayDuplicateHeaderException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpHeader;
@@ -95,7 +94,7 @@ import scala.concurrent.Future;
  */
 public final class RootRoute extends AllDirectives {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RootRoute.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(RootRoute.class);
 
     static final String HTTP_PATH_API_PREFIX = "api";
     static final String WS_PATH_PREFIX = "ws";
@@ -490,14 +489,16 @@ public final class RootRoute extends AllDirectives {
         final String exceptionDescription = exception.getDescription().orElse(null);
         if (correlationIdOptional.isEmpty()) {
             LOGGER.warn("Correlation ID was missing in headers of <{}>: <{}>!", simpleExceptionName, exceptionMessage);
+        } else {
+            LOGGER.withCorrelationId(correlationIdOptional.get())
+                    .info("<{}> occurred in gateway root route: <{} - {}>!", simpleExceptionName, exceptionMessage,
+                            exceptionDescription, exception);
         }
-        enhanceLogWithCorrelationId(correlationIdOptional, () ->
-                LOGGER.info("<{}> occurred in gateway root route: <{} - {}>!", simpleExceptionName, exceptionMessage,
-                        exceptionDescription, exception));
     }
 
     private static Function<akka.http.scaladsl.server.RequestContext, CompletionStage<RouteResult>> routeToJavaFunction(
             final Route route) {
+
         return scalaRequestContext ->
                 scala.compat.java8.FutureConverters.toJava(route.asScala().apply(scalaRequestContext));
     }

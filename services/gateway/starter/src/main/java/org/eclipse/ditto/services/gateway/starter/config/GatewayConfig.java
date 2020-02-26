@@ -53,7 +53,7 @@ public interface GatewayConfig extends ServiceSpecificConfig, WithProtocolConfig
     HealthCheckConfig getHealthCheckConfig();
 
     /**
-     * Returns the config for commands requesting {@code Acknowledgement}s in the gateway.
+     * Returns the config for commands in the gateway.
      *
      * @return the config.
      * @since 1.1.0

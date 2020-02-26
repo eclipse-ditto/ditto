@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.base.exceptions;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.net.URI;
 import java.text.MessageFormat;
 import java.time.Duration;
@@ -41,7 +43,7 @@ public final class GatewayCommandTimeoutException extends DittoRuntimeException 
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "command.timeout";
 
-    private static final String MESSAGE_TEMPLATE = "The Command reached the specified timeout of {0}.";
+    private static final String MESSAGE_TEMPLATE = "The Command reached the specified timeout of {0}ms.";
 
     private static final String DEFAULT_DESCRIPTION = "Try increasing the command timeout";
 
@@ -52,6 +54,7 @@ public final class GatewayCommandTimeoutException extends DittoRuntimeException 
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.REQUEST_TIMEOUT, dittoHeaders, message, description, cause, href);
     }
 
@@ -60,9 +63,10 @@ public final class GatewayCommandTimeoutException extends DittoRuntimeException 
      *
      * @param timeout the timeout.
      * @return the builder.
+     * @throws NullPointerException if {@code timeout} is {@code null}.
      */
-    public static Builder newBuilder(@Nullable final Duration timeout) {
-        return new Builder(timeout);
+    public static Builder newBuilder(final Duration timeout) {
+        return new Builder(checkNotNull(timeout, "timeout"));
     }
 
     /**
@@ -84,8 +88,12 @@ public final class GatewayCommandTimeoutException extends DittoRuntimeException 
      * @param dittoHeaders the headers.
      * @return an instance of this class.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} is missing required JSON fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contains unexpected value types.
      */
-    public static GatewayCommandTimeoutException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static GatewayCommandTimeoutException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+
         return new Builder()
                 .loadJson(jsonObject)
                 .dittoHeaders(dittoHeaders)
@@ -105,9 +113,9 @@ public final class GatewayCommandTimeoutException extends DittoRuntimeException 
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(@Nullable final Duration timeout) {
+        private Builder(final Duration timeout) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, timeout));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, timeout.toMillis()));
         }
 
         @Override
@@ -116,8 +124,10 @@ public final class GatewayCommandTimeoutException extends DittoRuntimeException 
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new GatewayCommandTimeoutException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

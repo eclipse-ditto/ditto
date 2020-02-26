@@ -14,9 +14,14 @@ package org.eclipse.ditto.model.base.headers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
 
 /**
@@ -25,39 +30,146 @@ import org.junit.Test;
 public final class DittoDurationTest {
 
     @Test
+    public void assertImmutability() {
+        assertInstancesOf(DittoDuration.class,
+                areImmutable(),
+                provided("org.eclipse.ditto.model.base.headers.DittoDuration$DittoTimeUnit").isAlsoImmutable());
+    }
+
+    @Test
+    public void tryToGetInstanceFromNullDuration() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> DittoDuration.of(null))
+                .withMessage("The duration must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void tryToGetInstanceFromNegativeDuration() {
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> DittoDuration.of(Duration.ofSeconds(-5)))
+                .withMessage("The duration must not be negative!")
+                .withNoCause();
+    }
+
+    @Test
+    public void getInstanceFromPositiveDuration() {
+        final Duration javaDuration = Duration.ofMinutes(1);
+
+        final DittoDuration underTest = DittoDuration.of(javaDuration);
+
+        assertThat(underTest.getDuration()).isEqualTo(javaDuration);
+    }
+
+    @Test
+    public void getInstanceFromZeroDuration() {
+        final Duration javaDuration = Duration.ofSeconds(0);
+
+        final DittoDuration underTest = DittoDuration.of(javaDuration);
+
+        assertThat(underTest.getDuration()).isEqualTo(javaDuration);
+    }
+
+    @Test
     public void createDittoDurationFromString() {
-        final DittoDuration dittoDuration = DittoDuration.fromTimeoutString("42");
-        assertThat(dittoDuration.getDuration()).isEqualByComparingTo(Duration.ofSeconds(42));
+        final byte durationValue = 42;
+        final DittoDuration dittoDuration = DittoDuration.parseDuration(String.valueOf(durationValue));
+
+        assertThat(dittoDuration.getDuration()).isEqualTo(Duration.ofSeconds(durationValue));
     }
 
     @Test
     public void createDittoDurationFromStringSeconds() {
-        final DittoDuration dittoDuration = DittoDuration.fromTimeoutString("53s");
-        assertThat(dittoDuration.getDuration()).isEqualByComparingTo(Duration.ofSeconds(53));
+        final byte durationValue = 53;
+        final DittoDuration dittoDuration = DittoDuration.parseDuration(durationValue + "s");
+
+        assertThat(dittoDuration.getDuration()).isEqualTo(Duration.ofSeconds(durationValue));
     }
 
     @Test
     public void createDittoDurationFromStringMinutes() {
-        final DittoDuration dittoDuration = DittoDuration.fromTimeoutString("10m");
-        assertThat(dittoDuration.getDuration()).isEqualByComparingTo(Duration.ofMinutes(10));
+        final byte durationValue = 10;
+        final DittoDuration dittoDuration = DittoDuration.parseDuration(durationValue + "m");
+
+        assertThat(dittoDuration.getDuration()).isEqualTo(Duration.ofMinutes(durationValue));
     }
 
     @Test
     public void createDittoDurationFromStringMilliseconds() {
-        final DittoDuration dittoDuration = DittoDuration.fromTimeoutString("763ms");
-        assertThat(dittoDuration.getDuration()).isEqualByComparingTo(Duration.ofMillis(763));
+        final short durationValue = 763;
+        final DittoDuration dittoDuration = DittoDuration.parseDuration(durationValue + "ms");
+
+        assertThat(dittoDuration.getDuration()).isEqualTo(Duration.ofMillis(durationValue));
     }
 
     @Test
     public void createDittoDurationFromStringWithAndWithoutSecondsIsEqual() {
-        final DittoDuration dittoDuration1 = DittoDuration.fromTimeoutString("23");
-        final DittoDuration dittoDuration2 = DittoDuration.fromTimeoutString("23s");
-        assertThat(dittoDuration1.getDuration()).isEqualByComparingTo(dittoDuration2.getDuration());
+        final byte durationValue = 23;
+        final DittoDuration dittoDuration1 = DittoDuration.parseDuration(String.valueOf(durationValue));
+        final DittoDuration dittoDuration2 = DittoDuration.parseDuration(durationValue + "s");
+
+        assertThat(dittoDuration1.getDuration()).isEqualTo(dittoDuration2.getDuration());
     }
 
     @Test
     public void createDittoDurationFromStringHoursFails() {
         assertThatExceptionOfType(NumberFormatException.class)
-                .isThrownBy(() -> DittoDuration.fromTimeoutString("1h"));
+                .isThrownBy(() -> DittoDuration.parseDuration("1h"));
     }
+
+    @Test
+    public void tryToParseEmptyString() {
+        assertThatExceptionOfType(NumberFormatException.class)
+                .isThrownBy(() -> DittoDuration.parseDuration(""))
+                .withMessageContaining("\"\"")
+                .withNoCause();
+    }
+
+    @Test
+    public void toStringReturnsExpected() {
+        final String durationMillisecondsString = 5500 + "ms";
+        final String durationSecondsString = 60 + "s";
+        final String durationMinutesString = 2 + "m";
+        final DittoDuration durationFromSeconds = DittoDuration.parseDuration(durationSecondsString);
+        final DittoDuration durationFromMilliseconds = DittoDuration.parseDuration(durationMillisecondsString);
+        final DittoDuration durationFromMinutes = DittoDuration.parseDuration(durationMinutesString);
+
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(durationFromSeconds.toString())
+                    .as("seconds string")
+                    .isEqualTo(durationSecondsString);
+            softly.assertThat(durationFromMilliseconds.toString())
+                    .as("milliseconds string")
+                    .isEqualTo(durationMillisecondsString);
+            softly.assertThat(durationFromMinutes.toString())
+                    .as("minutes string")
+                    .isEqualTo(durationMinutesString);
+        }
+    }
+
+    @Test
+    public void isZeroReturnsExpected() {
+        final DittoDuration zeroDuration = DittoDuration.parseDuration("0");
+        final DittoDuration nonZeroDuration = DittoDuration.parseDuration("42");
+
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(zeroDuration.isZero())
+                    .as("duration with zero length")
+                    .isTrue();
+            softly.assertThat(nonZeroDuration.isZero())
+                    .as("duration with non-zero length")
+                    .isFalse();
+        }
+    }
+
+    @Test
+    public void tryToParseDurationWithNegativeAmount() {
+        final String durationString = "-15s";
+
+        assertThatExceptionOfType(NumberFormatException.class)
+                .isThrownBy(() -> DittoDuration.parseDuration(durationString))
+                .withMessageContaining(durationString)
+                .withNoCause();
+    }
+
 }

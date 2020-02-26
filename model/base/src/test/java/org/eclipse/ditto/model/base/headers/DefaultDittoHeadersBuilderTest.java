@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DefaultDittoHeadersBuilder.of;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -146,9 +147,8 @@ public final class DefaultDittoHeadersBuilderTest {
         final JsonObject jsonObject = dittoHeaders.toJson();
 
         assertThat(jsonObject)
-                .hasSize(2)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.CORRELATION_ID.getKey()), CORRELATION_ID)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()), true);
+                .hasSize(1)
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.CORRELATION_ID.getKey()), CORRELATION_ID);
     }
 
     @Test
@@ -157,10 +157,9 @@ public final class DefaultDittoHeadersBuilderTest {
         final JsonObject jsonObject = dittoHeaders.toJson();
 
         assertThat(jsonObject)
-                .hasSize(2)
+                .hasSize(1)
                 .contains(JsonFactory.newKey(DittoHeaderDefinition.SCHEMA_VERSION.getKey()),
-                        JsonFactory.newValue(JSON_SCHEMA_VERSION.toInt()))
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()), true);
+                        JsonFactory.newValue(JSON_SCHEMA_VERSION.toInt()));
     }
 
     @Test
@@ -169,9 +168,8 @@ public final class DefaultDittoHeadersBuilderTest {
         final JsonObject jsonObject = dittoHeaders.toJson();
 
         assertThat(jsonObject)
-                .hasSize(2)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.CHANNEL.getKey()), CHANNEL)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()), true);
+                .hasSize(1)
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.CHANNEL.getKey()), CHANNEL);
     }
 
     @Test
@@ -193,9 +191,8 @@ public final class DefaultDittoHeadersBuilderTest {
                 .collect(JsonCollectors.valuesToArray());
 
         assertThat(jsonObject)
-                .hasSize(2)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.READ_SUBJECTS.getKey()), expectedReadSubjects)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()), true);
+                .hasSize(1)
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.READ_SUBJECTS.getKey()), expectedReadSubjects);
     }
 
     @Test
@@ -213,13 +210,11 @@ public final class DefaultDittoHeadersBuilderTest {
     public void putValidHeaderWorksAsExpected() {
         final String key = "foo";
         final String value = "bar";
-
         underTest.putHeader(key, value);
+
         final DittoHeaders dittoHeaders = underTest.build();
 
-        assertThat(dittoHeaders).containsOnly(
-                entry(key, value),
-                entry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "true"));
+        assertThat(dittoHeaders).containsOnly(entry(key, value));
     }
 
     @Test
@@ -266,19 +261,20 @@ public final class DefaultDittoHeadersBuilderTest {
                 .removeHeader(rsKey)
                 .build();
 
-        assertThat(dittoHeaders).hasSize(3).doesNotContainKeys(rsKey);
+        assertThat(dittoHeaders)
+                .hasSize(2)
+                .doesNotContainKeys(rsKey);
     }
 
     @Test
     public void removePreconditionHeaders() {
-
         final DittoHeaders dittoHeaders = underTest
                 .ifMatch(EntityTagMatchers.fromStrings("\"test\""))
                 .ifNoneMatch(EntityTagMatchers.fromStrings("\"test2\""))
                 .removePreconditionHeaders()
                 .build();
 
-        assertThat(dittoHeaders).hasSize(1); // remaining is "response-required"
+        assertThat(dittoHeaders).isEmpty();
     }
 
     @Test
@@ -294,14 +290,6 @@ public final class DefaultDittoHeadersBuilderTest {
                 .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
                 .withMessage("The value '%s' of the header '%s' is not a valid duration.", invalidValue, key)
                 .withNoCause();
-    }
-
-    @Test
-    public void ensureResponseRequiredIsTrueForHeadersWithoutContent() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
-
-        DittoBaseAssertions.assertThat(dittoHeaders)
-                .hasIsResponseRequired(true);
     }
 
     @Test
@@ -321,29 +309,29 @@ public final class DefaultDittoHeadersBuilderTest {
                 .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("some-ack")))
                 .build();
 
-        DittoBaseAssertions.assertThat(dittoHeaders)
-                .hasIsResponseRequired(true);
+        assertThat(dittoHeaders)
+                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.TRUE.toString());
     }
 
     @Test
-    public void ensureResponseRequiredIsFalseForHeadersWithTimeout0() {
+    public void ensureResponseRequiredIsFalseForHeadersWithZeroTimeout() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .timeout(0)
+                .timeout(Duration.ZERO)
                 .build();
 
-        DittoBaseAssertions.assertThat(dittoHeaders)
-                .hasIsResponseRequired(false);
+        assertThat(dittoHeaders)
+                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
     }
 
     @Test
-    public void ensureResponseRequiredIsFalseEvenIfAcksAreRequestedWithTimeout0() {
+    public void ensureResponseRequiredIsFalseEvenIfAcksAreRequestedWithTimeoutZero() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("some-ack")))
                 .timeout("0ms")
                 .build();
 
-        DittoBaseAssertions.assertThat(dittoHeaders)
-                .hasIsResponseRequired(false);
+        assertThat(dittoHeaders)
+                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
     }
 
 

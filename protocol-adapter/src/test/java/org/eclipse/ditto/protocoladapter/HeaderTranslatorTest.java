@@ -47,7 +47,6 @@ public final class HeaderTranslatorTest {
         externalHeaders.put("UPPER-CASE@HEADER", "HELLO@WORLD");
 
         final Map<String, String> expectedHeaders = new HashMap<>();
-        expectedHeaders.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "true");
         expectedHeaders.put("lower-case%header", "hello%world");
         expectedHeaders.put("mixed-case!header", "heLLO!WORld");
         expectedHeaders.put("upper-case@header", "HELLO@WORLD");

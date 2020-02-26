@@ -41,7 +41,7 @@ public final class DefaultCommandConfig implements CommandConfig {
     }
 
     /**
-     * Returns an instance of {@code DefaultCommandAcknowledgementConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DefaultCommandConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings of the message config at {@value #CONFIG_PATH}.
      * @return the instance.

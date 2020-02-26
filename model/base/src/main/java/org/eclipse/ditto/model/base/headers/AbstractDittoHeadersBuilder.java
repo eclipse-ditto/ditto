@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -38,6 +37,7 @@ import org.eclipse.ditto.json.JsonValueContainer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -66,7 +66,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
      */
     @SuppressWarnings("unchecked")
     protected AbstractDittoHeadersBuilder(final Map<String, String> initialHeaders,
-            final Collection<HeaderDefinition> definitions, final Class<?> selfType) {
+            final Collection<? extends HeaderDefinition> definitions, final Class<?> selfType) {
 
         checkNotNull(initialHeaders, "initial headers");
         checkNotNull(definitions, "header definitions");
@@ -84,7 +84,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
      * @param definitions perform the actual validation.
      */
     protected void validateValueTypes(final Map<String, String> headers,
-            final Collection<HeaderDefinition> definitions) {
+            final Collection<? extends HeaderDefinition> definitions) {
 
         for (final HeaderDefinition definition : definitions) {
             final String value = headers.get(definition.getKey());
@@ -307,17 +307,28 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S timeout(@Nullable final String timeoutStr) {
+    public S timeout(@Nullable final CharSequence timeoutStr) {
         if (null != timeoutStr) {
-            return timeout(DittoDuration.fromTimeoutString(timeoutStr));
-        } else {
-            return timeout((DittoDuration) null);
+            return timeout(tryToParseDuration(timeoutStr));
+        }
+        return timeout((DittoDuration) null);
+    }
+
+    private static DittoDuration tryToParseDuration(final CharSequence duration) {
+        try {
+            return DittoDuration.parseDuration(duration);
+        } catch (final NumberFormatException e) {
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(DittoHeaderDefinition.TIMEOUT.getKey(), duration,
+                    "duration").build();
         }
     }
 
     @Override
-    public S timeout(final long timeoutInSeconds) {
-        return timeout(DittoDuration.fromDuration(Duration.ofSeconds(timeoutInSeconds), null));
+    public S timeout(@Nullable final Duration timeout) {
+        if (null != timeout) {
+            return timeout(DittoDuration.of(timeout));
+        }
+        return timeout((DittoDuration) null);
     }
 
     private S timeout(@Nullable final DittoDuration timeout) {
@@ -375,34 +386,32 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public R build() {
         // do it here
-        if (calculateIsResponseRequired()) {
-            headers.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), String.valueOf(Boolean.TRUE));
-        }
+        calculateIsResponseRequired();
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headers);
         return doBuild(dittoHeaders);
     }
 
-    private boolean calculateIsResponseRequired() {
-        boolean responseRequired = Boolean.parseBoolean(
-                headers.getOrDefault(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.TRUE.toString())
-        );
-        if (!responseRequired) {
-            responseRequired = calculateIsResponseRequiredViaRequestedAcks();
-        }
-        return responseRequired && calculateIsResponseRequiredViaTimeout();
+    private void  calculateIsResponseRequired() {
+        // The order is important. A timeout of zero eventually determines response-required to be false.
+        calculateIsResponseRequiredViaRequestedAcks();
+        calculateIsResponseRequiredViaTimeout();
     }
 
-    private boolean calculateIsResponseRequiredViaRequestedAcks() {
+    private void calculateIsResponseRequiredViaRequestedAcks() {
         final String ackRequests = headers.getOrDefault(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), "");
-        return !ackRequests.isEmpty();
+        if (!ackRequests.isEmpty()) {
+            responseRequired(true);
+        }
     }
 
-    private boolean calculateIsResponseRequiredViaTimeout() {
-        return !Optional.ofNullable(headers.get(DittoHeaderDefinition.TIMEOUT.getKey())) // if timeout is not specified
-                .map(DittoDuration::fromTimeoutString)
-                .map(DittoDuration::getDuration)
-                .filter(Duration::isZero) // or timeout is 0
-                .isPresent();
+    private void calculateIsResponseRequiredViaTimeout() {
+        @Nullable final String timeoutValue = headers.get(DittoHeaderDefinition.TIMEOUT.getKey());
+        if (null != timeoutValue) {
+            final DittoDuration dittoDuration = DittoDuration.parseDuration(timeoutValue);
+
+            // may set response-required explicitly to false, which is desired in that case
+            responseRequired(!dittoDuration.isZero());
+        }
     }
 
     @Override

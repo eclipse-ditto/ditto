@@ -54,8 +54,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
         thingsRoute = new ThingsRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig, messageConfig,
                 claimMessageConfig, adapterProvider.getHttpHeaderTranslator());
 
-        final Route route = extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, DittoHeaders.newBuilder()
-                .build()));
+        final Route route = extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, DittoHeaders.empty()));
         underTest = testRoute(route);
     }
 

@@ -179,15 +179,18 @@ public abstract class AbstractRoute extends AllDirectives {
         } else {
             return withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                     this::validateCommandTimeout,
-                    null, // don't set default timeout in order to use the configured akka http default
+                    null, // don't set default timeout in order to use the configured akka-http default
                     () -> doHandlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction,
                             responseTransformFunction));
         }
     }
 
-    private Route doHandlePerRequest(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final Source<ByteString, ?> payloadSource, final Function<String, Command> requestJsonToCommandFunction,
+    private Route doHandlePerRequest(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final Source<ByteString, ?> payloadSource,
+            final Function<String, Command> requestJsonToCommandFunction,
             @Nullable final Function<JsonValue, JsonValue> responseTransformFunction) {
+
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
 
         payloadSource
@@ -266,22 +269,24 @@ public abstract class AbstractRoute extends AllDirectives {
     /**
      * Configures the passed {@code optionalTimeout} as Akka HTTP request timeout validating it with the passed
      * {@code checkTimeoutFunction} falling back to the optional {@code defaultTimeout} wrapping the passed
-     * {@code inner} Route.
+     * {@code inner} route.
      *
-     * @param optionalTimeout the custom timeout to use as Akka HTTP request timeout adjusting the configured default one.
-     * @param checkTimeoutFunction a function to check the passed optionalTimeout for validity e.g. within some bounds.
+     * @param optionalTimeout the custom timeout to use as Akka HTTP request timeout adjusting the configured default
+     * one.
+     * @param checkTimeoutFunction a function to check the passed optionalTimeout for validity e. g. within some bounds.
      * @param defaultTimeout an optional default timeout if the passed optionalTimeout was not set.
      * @param inner the inner Route to wrap.
-     * @return the wrapped - potentially with custom timeout adjusted - route.
+     * @return the wrapped route - potentially with custom timeout adjusted.
      */
     protected Route withCustomRequestTimeout(@Nullable final Duration optionalTimeout,
             final UnaryOperator<Duration> checkTimeoutFunction,
             @Nullable final Duration defaultTimeout,
             final Supplier<Route> inner) {
 
-        @Nullable final Duration customRequestTimeout = Optional.ofNullable(optionalTimeout)
-                .map(checkTimeoutFunction)
-                .orElse(defaultTimeout);
+        @Nullable Duration customRequestTimeout = defaultTimeout;
+        if (null != optionalTimeout) {
+            customRequestTimeout = checkTimeoutFunction.apply(optionalTimeout);
+        }
 
         if (null != customRequestTimeout) {
             // adds 1 second in order to avoid race conditions with internal receiveTimeouts which shall return "408"
@@ -304,7 +309,6 @@ public abstract class AbstractRoute extends AllDirectives {
      * @throws GatewayTimeoutInvalidException if the passed {@code timeout} was not within its bounds.
      */
     protected Duration validateCommandTimeout(final Duration timeout) {
-
         final Duration maxTimeout = commandConfig.getMaxTimeout();
         // check if the timeout is smaller than the maximum possible timeout and > 0:
         if (timeout.isNegative() || timeout.compareTo(maxTimeout) > 0) {

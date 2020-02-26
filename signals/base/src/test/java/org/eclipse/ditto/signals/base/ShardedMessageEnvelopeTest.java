@@ -28,7 +28,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ShardedMessageEnvelopeTest {
 
-    private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder().build();
+    private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
 
     private static final EntityId MESSAGE_ID = DefaultEntityId.of("org.eclipse.ditto.test:thingId");
     private static final String TYPE = "message-type";

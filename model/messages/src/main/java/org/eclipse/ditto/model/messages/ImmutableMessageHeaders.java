@@ -95,10 +95,12 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
 
     @Override
     protected Optional<HeaderDefinition> getSpecificDefinitionByKey(final CharSequence key) {
-        return Optional.ofNullable(
-                DittoHeaderDefinition.forKey(key)
-                        .orElseGet(() -> MessageHeaderDefinition.forKey(key).orElse(null))
-        );
+        // keep the order to guarantee proper result because of timeout definitions
+        Optional<HeaderDefinition> result = DittoHeaderDefinition.forKey(key);
+        if (!result.isPresent()) {
+            result = MessageHeaderDefinition.forKey(key);
+        }
+        return result;
     }
 
     @Override

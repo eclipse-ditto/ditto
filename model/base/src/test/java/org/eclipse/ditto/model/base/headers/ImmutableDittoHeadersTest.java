@@ -24,7 +24,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -118,7 +117,7 @@ public final class ImmutableDittoHeadersTest {
                 .inboundPayloadMapper(KNOWN_MAPPER)
                 .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
-                .timeout(KNOWN_TIMEOUT.getSeconds())
+                .timeout(KNOWN_TIMEOUT)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -150,7 +149,7 @@ public final class ImmutableDittoHeadersTest {
 
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader(fooKey, barValue).build();
 
-        assertThat(dittoHeaders).contains(entry(fooKey, barValue));
+        assertThat(dittoHeaders).containsOnly(entry(fooKey, barValue));
     }
 
     @Test
@@ -213,7 +212,7 @@ public final class ImmutableDittoHeadersTest {
 
     @Test
     public void isResponseRequiredIsTrueByDefault() {
-        final DittoHeaders underTest = DittoHeaders.newBuilder().build();
+        final DittoHeaders underTest = DittoHeaders.empty();
 
         assertThat(underTest.isResponseRequired()).isTrue();
     }
@@ -267,7 +266,8 @@ public final class ImmutableDittoHeadersTest {
 
     @Test
     public void timeoutIsSerializedAsString() {
-        final long timeout = new Random().nextInt(Integer.MAX_VALUE);
+        final int durationAmountSeconds = 2;
+        final Duration timeout = Duration.ofSeconds(durationAmountSeconds);
 
         final DittoHeaders underTest = DittoHeaders.newBuilder()
                 .timeout(timeout)
@@ -276,7 +276,7 @@ public final class ImmutableDittoHeadersTest {
         final JsonObject jsonObject = underTest.toJson();
 
         assertThat(jsonObject.getValue(DittoHeaderDefinition.TIMEOUT.getKey()))
-                .contains(JsonFactory.newValue(String.valueOf(timeout)));
+                .contains(JsonValue.of(durationAmountSeconds * 1000 + "ms"));
     }
 
     @Test
@@ -300,7 +300,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER)
                 .set(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .set(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), ackRequestsToJsonArray(KNOWN_ACK_REQUESTS))
-                .set(DittoHeaderDefinition.TIMEOUT.getKey(), JsonValue.of(String.valueOf(KNOWN_TIMEOUT.getSeconds())))
+                .set(DittoHeaderDefinition.TIMEOUT.getKey(), JsonValue.of(KNOWN_TIMEOUT.toMillis() + "ms"))
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -440,7 +440,6 @@ public final class ImmutableDittoHeadersTest {
         final Map<String, String> expected = new HashMap<>(oversizeMap);
         expected.remove("d");
         expected.remove("M");
-        expected.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "true");
 
         assertThat(truncatedHeaders).isEqualTo(expected);
     }
@@ -468,7 +467,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR);
         result.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
                 ackRequestsToJsonArray(KNOWN_ACK_REQUESTS).toString());
-        result.put(DittoHeaderDefinition.TIMEOUT.getKey(), String.valueOf(KNOWN_TIMEOUT.getSeconds()));
+        result.put(DittoHeaderDefinition.TIMEOUT.getKey(), KNOWN_TIMEOUT.toMillis() + "ms");
 
         return result;
     }

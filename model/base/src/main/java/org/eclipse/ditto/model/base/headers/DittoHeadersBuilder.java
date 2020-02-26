@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
@@ -251,22 +252,25 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
             AcknowledgementRequest... furtherAcknowledgementRequests);
 
     /**
-     * Sets the timeout string of the DittoHeaders to build.
+     * Sets the <em>positive</em> timeout string of the DittoHeaders to build.
      *
      * @param timeoutStr the duration of the command containing the DittoHeaders to time out.
      * @return this builder.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException if the given timeout char sequence
+     * does not contain a parsable duration or if the duration is negative.
      * @since 1.1.0
      */
-    B timeout(@Nullable String timeoutStr);
+    B timeout(@Nullable CharSequence timeoutStr);
 
     /**
-     * Sets the timeout of the DittoHeaders to build.
+     * Sets the <em>positive</em> timeout duration of the DittoHeaders to build.
      *
-     * @param timeoutInSeconds the seconds of the command containing the DittoHeaders to time out.
+     * @param timeout the duration of the command containing the DittoHeaders to time out.
      * @return this builder.
+     * @throws IllegalArgumentException if {@code timeout} is negative.
      * @since 1.1.0
      */
-    B timeout(long timeoutInSeconds);
+    B timeout(@Nullable Duration timeout);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.

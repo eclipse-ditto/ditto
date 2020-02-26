@@ -202,8 +202,9 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
 
     /**
      * Returns whether a response to a command is required or if it may be omitted (fire and forget semantics).
+     * By default this method returns {@code true}.
      *
-     * @return the "response required" value.
+     * @return {@code true} if a response is required, {@code false} else.
      */
     boolean isResponseRequired();
 

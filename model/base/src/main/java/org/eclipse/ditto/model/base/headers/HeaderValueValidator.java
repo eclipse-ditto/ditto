@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, CharSequence> {
 
     private static final String RFC_7232_SECTION_2_3 = "https://tools.ietf.org/html/rfc7232#section-2.3";
+    private static final Pattern ENTITY_TAG_MATCHERS_PATTERN = Pattern.compile("\\s*,\\s*");
     private static final HeaderValueValidator INSTANCE = new HeaderValueValidator();
 
     private HeaderValueValidator() {
@@ -60,17 +62,17 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
     public void accept(@Nonnull final HeaderDefinition definition, @Nullable final CharSequence charSequence) {
         final Class<?> definitionJavaType = checkNotNull(definition, "Definition").getJavaType();
         if (isInt(definitionJavaType)) {
-            validateIntegerValue(definition.getKey(), charSequence);
+            validateIntegerValue(definition, charSequence);
         } else if (isLong(definitionJavaType)) {
-            validateLongValue(definition.getKey(), charSequence);
+            validateLongValue(definition, charSequence);
         } else if (isBoolean(definitionJavaType)) {
-            validateBooleanValue(definition.getKey(), charSequence);
+            validateBooleanValue(definition, charSequence);
         } else if (isJsonArray(definitionJavaType)) {
-            validateJsonArrayValue(definition.getKey(), charSequence);
+            validateJsonArrayValue(definition, charSequence);
         } else if (isEntityTag(definitionJavaType)) {
-            validateEntityTag(definition.getKey(), charSequence);
+            validateEntityTag(definition, charSequence);
         } else if (isEntityTagMatchers(definitionJavaType)) {
-            validateEntityTagMatchers(definition.getKey(), charSequence);
+            validateEntityTagMatchers(definition, charSequence);
         }
     }
 
@@ -78,13 +80,13 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
         return int.class.equals(type) || Integer.class.equals(type);
     }
 
-    @SuppressWarnings({"ResultOfMethodCallIgnored", "squid:S2201"})
-    private static void validateIntegerValue(final String key, @Nullable final CharSequence value) {
+    @SuppressWarnings({"squid:S2201"})
+    private static void validateIntegerValue(final HeaderDefinition definition, @Nullable final CharSequence value) {
         final String headerValue = String.valueOf(value);
         try {
             Integer.parseInt(headerValue);
         } catch (final NumberFormatException e) {
-            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "int").build();
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, headerValue, "int").build();
         }
     }
 
@@ -92,13 +94,13 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
         return long.class.equals(type) || Long.class.equals(type);
     }
 
-    @SuppressWarnings({"ResultOfMethodCallIgnored", "squid:S2201"})
-    private static void validateLongValue(final String key, @Nullable final CharSequence value) {
+    @SuppressWarnings({"squid:S2201"})
+    private static void validateLongValue(final HeaderDefinition definition, @Nullable final CharSequence value) {
         final String headerValue = String.valueOf(value);
         try {
             Long.parseLong(headerValue);
         } catch (final NumberFormatException e) {
-            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "long").build();
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, headerValue, "long").build();
         }
     }
 
@@ -106,10 +108,10 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
         return boolean.class.equals(type) || Boolean.class.equals(type);
     }
 
-    private static void validateBooleanValue(final String key, @Nullable final CharSequence value) {
+    private static void validateBooleanValue(final HeaderDefinition definition, @Nullable final CharSequence value) {
         final String headerValue = String.valueOf(value);
         if (!"true".equals(headerValue) && !"false".equals(headerValue)) {
-            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "boolean").build();
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, headerValue, "boolean").build();
         }
     }
 
@@ -120,7 +122,7 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
     /*
      * Checks if {@code value} is a JSON array and if all of its values are strings.
      */
-    private static void validateJsonArrayValue(final String key, @Nullable final CharSequence value) {
+    private static void validateJsonArrayValue(final HeaderDefinition definition, @Nullable final CharSequence value) {
         final String headerValue = String.valueOf(value);
         try {
             final JsonArray jsonArray = JsonFactory.newArray(headerValue);
@@ -129,33 +131,11 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
                     .collect(Collectors.toList());
             if (!nonStringArrayValues.isEmpty()) {
                 final String msgTemplate = "JSON array for ''{0}'' contained non-String values.";
-                throw DittoHeaderInvalidException.newCustomMessageBuilder(MessageFormat.format(msgTemplate, key))
-                        .build();
+                throw DittoHeaderInvalidException.newCustomMessageBuilder(
+                        MessageFormat.format(msgTemplate, definition.getKey())).build();
             }
         } catch (final JsonParseException e) {
-            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "JSON array").build();
-        }
-    }
-
-    private static boolean isEntityTagMatchers(final Class<?> type) {
-        return EntityTagMatchers.class.equals(type);
-    }
-
-    private void validateEntityTagMatchers(final String key, @Nullable final CharSequence charSequence) {
-        final String headerValue = String.valueOf(charSequence);
-        final String[] entityTagMatchers = headerValue.split("\\s*,\\s*");
-
-        for (String entityTagMatcher : entityTagMatchers) {
-            validateEntityTagMatcher(key, entityTagMatcher);
-        }
-    }
-
-    private void validateEntityTagMatcher(final String key, @Nullable final CharSequence charSequence) {
-        final String headerValue = String.valueOf(charSequence);
-        if (!EntityTagMatcher.isValid(headerValue)) {
-            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "entity-tag")
-                    .href(RFC_7232_SECTION_2_3)
-                    .build();
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, headerValue, "JSON array").build();
         }
     }
 
@@ -163,12 +143,35 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
         return EntityTag.class.equals(type);
     }
 
-    private void validateEntityTag(final String key, @Nullable final CharSequence charSequence) {
-        final String headerValue = String.valueOf(charSequence);
+    private static void validateEntityTag(final HeaderDefinition definition, @Nullable final CharSequence headerValue) {
         if (!EntityTag.isValid(headerValue)) {
-            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "entity-tag")
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, headerValue, "entity-tag")
                     .href(RFC_7232_SECTION_2_3)
                     .build();
         }
     }
+
+    private static boolean isEntityTagMatchers(final Class<?> type) {
+        return EntityTagMatchers.class.equals(type);
+    }
+
+    private static void validateEntityTagMatchers(final HeaderDefinition definition,
+            @Nullable final CharSequence headerValue) {
+
+        final String[] entityTagMatchers = ENTITY_TAG_MATCHERS_PATTERN.split(String.valueOf(headerValue));
+        for (final String entityTagMatcher : entityTagMatchers) {
+            validateEntityTagMatcher(definition, entityTagMatcher);
+        }
+    }
+
+    private static void validateEntityTagMatcher(final HeaderDefinition definition,
+            @Nullable final CharSequence headerValue) {
+
+        if (!EntityTagMatcher.isValid(headerValue)) {
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, headerValue, "entity-tag")
+                    .href(RFC_7232_SECTION_2_3)
+                    .build();
+        }
+    }
+
 }

@@ -12,7 +12,7 @@
  */
 
 /**
- * This package contains actors pf the ThingsSearch service.
+ * This package contains actors of the ThingsSearch service.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.services.thingsearch.updater.actors;

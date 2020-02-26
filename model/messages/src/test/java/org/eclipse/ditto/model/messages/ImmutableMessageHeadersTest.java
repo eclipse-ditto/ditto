@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.messages;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.data.MapEntry.entry;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -125,11 +124,9 @@ public final class ImmutableMessageHeadersTest {
                 .putHeader(key, value)
                 .build();
 
-        assertThat(underTest).hasSize(5)
-                .contains(
-                        entry(key, value),
-                        entry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "true")
-        );
+        assertThat(underTest)
+                .hasSize(4)
+                .containsEntry(key, value);
     }
 
     @Test

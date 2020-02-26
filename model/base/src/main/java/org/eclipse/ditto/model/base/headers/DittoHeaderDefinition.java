@@ -178,19 +178,17 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * </p>
      * @since 1.1.0
      */
-    TIMEOUT("timeout", DittoDuration.class, String.class,true, true) {
-        @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
+    TIMEOUT("timeout", DittoDuration.class, String.class, true, true) {
         @Override
         public void validateValue(@Nullable final CharSequence value) {
             super.validateValue(value);
             try {
-                DittoDuration.fromTimeoutString(null != value ? value : "null");
+                DittoDuration.parseDuration(value);
             } catch (final NumberFormatException e) {
-                throw DittoHeaderInvalidException.newInvalidTypeBuilder(TIMEOUT.key, String.valueOf(value), "duration").build();
+                throw DittoHeaderInvalidException.newInvalidTypeBuilder(TIMEOUT.key, value, "duration").build();
             }
         }
-    }
-    ;
+    };
 
     /**
      * Map to speed up lookup of header definition by key.
@@ -210,8 +208,11 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
      * @param writeToExternalHeaders whether Ditto publishes this header to externals.
      */
-    DittoHeaderDefinition(final String theKey, final Class<?> theType, final boolean readFromExternalHeaders,
+    DittoHeaderDefinition(final String theKey,
+            final Class<?> theType,
+            final boolean readFromExternalHeaders,
             final boolean writeToExternalHeaders) {
+
         this(theKey, theType, theType, readFromExternalHeaders, writeToExternalHeaders);
     }
 
@@ -222,8 +223,12 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
      * @param writeToExternalHeaders whether Ditto publishes this header to externals.
      */
-    DittoHeaderDefinition(final String theKey, final Class<?> theType, final Class<?> serializationType,
-            final boolean readFromExternalHeaders, final boolean writeToExternalHeaders) {
+    DittoHeaderDefinition(final String theKey,
+            final Class<?> theType,
+            final Class<?> serializationType,
+            final boolean readFromExternalHeaders,
+            final boolean writeToExternalHeaders) {
+
         key = theKey.toLowerCase();
         type = theType;
         this.serializationType = serializationType;

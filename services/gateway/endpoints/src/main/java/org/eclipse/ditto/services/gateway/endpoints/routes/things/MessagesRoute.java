@@ -278,8 +278,7 @@ final class MessagesRoute extends AbstractRoute {
             final MessageHeaders headers = MessageHeaders.newBuilder(direction, thingId, normalizeSubject(msgSubject))
                     .featureId(featureId)
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
-                    .contentType(contentType
-                            .toString())
+                    .contentType(contentType.toString())
                     .timestamp(OffsetDateTime.now())
                     .putHeaders(dittoHeaders)
                     .build();
