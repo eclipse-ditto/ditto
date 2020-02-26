@@ -41,9 +41,9 @@ public final class PersistenceConstants {
     public static final String THINGS_SYNC_STATE_COLLECTION_NAME = "searchThingsSyncThings";
 
     /**
-     * The collection name for the collection storing state about policies sync.
+     * The collection name for the background sync collection storing background sync progress.
      */
-    public static final String POLICIES_SYNC_STATE_COLLECTION_NAME = "searchThingsSyncPolicies";
+    public static final String BACKGROUND_SYNC_COLLECTION_NAME = "searchThingsSync";
 
     /**
      * Field name for revision.
@@ -165,6 +165,16 @@ public final class PersistenceConstants {
      * Mark a document for deletion.
      */
     public static final String FIELD_DELETE_AT = "deleteAt";
+
+    /**
+     * Field name for the last modified timestamp under FIELD_SORTING.
+     */
+    public static final String FIELD_MODIFIED = "_modified";
+
+    /**
+     * Expression of the full path of the last modified timestamp under FIELD_SORTING.
+     */
+    public static final String FIELD_PATH_MODIFIED = FIELD_SORTING + DOT + FIELD_MODIFIED;
 
     private PersistenceConstants() {
     }

@@ -18,15 +18,16 @@ import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.ChangeQueueActor;
 import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.SearchUpdaterStream;
-import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -63,7 +64,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "searchUpdaterRoot";
 
-    static final String CLUSTER_ROLE = "things-search";
+    /**
+     * The main cluster role of the cluster member where this actor and its children start.
+     */
+    public static final String CLUSTER_ROLE = "things-search";
 
     private static final String KAMON_METRICS_PREFIX = "updater";
 
@@ -75,14 +79,15 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
     private final KillSwitch updaterStreamKillSwitch;
     private final ActorRef thingsUpdaterActor;
+    private final ActorRef backgroundSyncActorProxy;
     private final DittoMongoClient dittoMongoClient;
 
     @SuppressWarnings("unused")
     private SearchUpdaterRootActor(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final TimestampPersistence thingsSyncPersistence,
-            final TimestampPersistence policiesSyncPersistence) {
+            final ThingsSearchPersistence thingsSearchPersistence,
+            final TimestampPersistence backgroundSyncPersistence) {
 
         final ClusterConfig clusterConfig = searchConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
@@ -98,9 +103,14 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final ActorRef changeQueueActor = getContext().actorOf(ChangeQueueActor.props(), ChangeQueueActor.ACTOR_NAME);
+
+        final Props thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor);
+
+        final ActorRef updaterShardRegion =
+                shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
         updaterStreamKillSwitch =
                 startSearchUpdaterStream(searchConfig, actorSystem, shardRegionFactory, numberOfShards,
-                        changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces);
+                        updaterShardRegion, changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces);
 
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 MongoThingsSearchUpdaterPersistence.of(dittoMongoClient.getDefaultDatabase());
@@ -112,15 +122,11 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             log.warning("Event processing is disabled!");
         }
 
-        final Props thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor);
-
-        final ActorRef updaterShardRegion =
-                shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
-
         final DistributedSub thingEventSub =
                 ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards).startDistributedSub();
         final Props thingsUpdaterProps =
-                ThingsUpdater.props(thingEventSub, updaterShardRegion, updaterConfig, blockedNamespaces);
+                ThingsUpdater.props(thingEventSub, updaterShardRegion, updaterConfig, blockedNamespaces,
+                        pubSubMediator);
 
         thingsUpdaterActor = getContext().actorOf(thingsUpdaterProps, ThingsUpdater.ACTOR_NAME);
         startClusterSingletonActor(NewEventForwarder.ACTOR_NAME,
@@ -132,48 +138,23 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                         searchUpdaterPersistence);
         startClusterSingletonActor(PolicyEventForwarder.ACTOR_NAME, policyEventForwarderProps);
 
-        // start manual updater as cluster singleton
-        final Props manualUpdaterProps = ManualUpdater.props(dittoMongoClient.getDefaultDatabase(), thingsUpdaterActor);
-        startClusterSingletonActor(ManualUpdater.ACTOR_NAME, manualUpdaterProps);
+        // start background sync actor as cluster singleton
+        final Props backgroundSyncActorProps = BackgroundSyncActor.props(
+                updaterConfig.getBackgroundSyncConfig(),
+                pubSubMediator,
+                thingsSearchPersistence,
+                backgroundSyncPersistence,
+                shardRegionFactory.getPoliciesShardRegion(numberOfShards),
+                thingsUpdaterActor
+        );
+        backgroundSyncActorProxy =
+                ClusterUtil.startSingletonProxy(getContext(), CLUSTER_ROLE,
+                        startClusterSingletonActor(BackgroundSyncActor.ACTOR_NAME, backgroundSyncActorProps)
+                );
 
         startChildActor(ThingsSearchPersistenceOperationsActor.ACTOR_NAME,
                 ThingsSearchPersistenceOperationsActor.props(pubSubMediator, searchUpdaterPersistence,
                         searchConfig.getPersistenceOperationsConfig()));
-
-        startThingsStreamSupervisor(updaterConfig.getThingsSyncConfig(), pubSubMediator, materializer,
-                thingsSyncPersistence);
-
-        startPoliciesStreamsSupervisor(updaterConfig.getPoliciesSyncConfig(), pubSubMediator, materializer,
-                policiesSyncPersistence, searchUpdaterPersistence);
-    }
-
-    private void startThingsStreamSupervisor(final SyncConfig thingsSyncConfig,
-            final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
-            final TimestampPersistence thingsSyncPersistence) {
-
-        if (thingsSyncConfig.isEnabled()) {
-            startClusterSingletonActor(ThingsStreamSupervisorCreator.ACTOR_NAME,
-                    ThingsStreamSupervisorCreator.props(thingsUpdaterActor, pubSubMediator, thingsSyncPersistence,
-                            materializer, thingsSyncConfig));
-        } else {
-            log.warning("Things synchronization is not active!");
-        }
-    }
-
-    private void startPoliciesStreamsSupervisor(final SyncConfig policiesSyncConfig,
-            final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
-            final TimestampPersistence policiesSyncPersistence,
-            final ThingsSearchUpdaterPersistence searchUpdaterPersistence) {
-
-        if (policiesSyncConfig.isEnabled()) {
-            startClusterSingletonActor(PoliciesStreamSupervisorCreator.ACTOR_NAME,
-                    PoliciesStreamSupervisorCreator.props(thingsUpdaterActor, pubSubMediator, policiesSyncPersistence,
-                            materializer, policiesSyncConfig, searchUpdaterPersistence));
-        } else {
-            log.warning("Policies synchronization is not active!");
-        }
     }
 
     @Nullable
@@ -196,18 +177,18 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      * @param searchConfig the configuration settings of the Things-Search service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer actor materializer to create stream actors.
-     * @param thingsSyncPersistence persistence for background synchronization of things.
-     * @param policiesSyncPersistence persistence for background synchronization of policies.
+     * @param thingsSearchPersistence persistence to access the search index in read-only mode.
+     * @param backgroundSyncPersistence persistence for background synchronization.
      * @return a Props object to create this actor.
      */
     public static Props props(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final TimestampPersistence thingsSyncPersistence,
-            final TimestampPersistence policiesSyncPersistence) {
+            final ThingsSearchPersistence thingsSearchPersistence,
+            final TimestampPersistence backgroundSyncPersistence) {
 
         return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, materializer,
-                thingsSyncPersistence, policiesSyncPersistence);
+                thingsSearchPersistence, backgroundSyncPersistence);
     }
 
     @Override
@@ -221,6 +202,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(RetrieveStatisticsDetails.class, cmd -> thingsUpdaterActor.forward(cmd, getContext()))
+                .match(RetrieveHealth.class, cmd -> backgroundSyncActorProxy.forward(cmd, getContext()))
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -239,14 +221,15 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         return getContext().actorOf(props, actorName);
     }
 
-    private void startClusterSingletonActor(final String actorName, final Props props) {
-        ClusterUtil.startSingleton(getContext(), SEARCH_ROLE, actorName, props);
+    private ActorRef startClusterSingletonActor(final String actorName, final Props props) {
+        return ClusterUtil.startSingleton(getContext(), SEARCH_ROLE, actorName, props);
     }
 
     private KillSwitch startSearchUpdaterStream(final SearchConfig searchConfig,
             final ActorSystem actorSystem,
             final ShardRegionFactory shardRegionFactory,
             final int numberOfShards,
+            final ActorRef updaterShard,
             final ActorRef changeQueueActor,
             final MongoDatabase mongoDatabase,
             final BlockedNamespaces blockedNamespaces) {
@@ -255,8 +238,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ActorRef policiesShard = shardRegionFactory.getPoliciesShardRegion(numberOfShards);
 
         final SearchUpdaterStream searchUpdaterStream =
-                SearchUpdaterStream.of(searchConfig, actorSystem, thingsShard, policiesShard, changeQueueActor,
-                        mongoDatabase, blockedNamespaces);
+                SearchUpdaterStream.of(searchConfig, actorSystem, thingsShard, policiesShard, updaterShard,
+                        changeQueueActor, mongoDatabase, blockedNamespaces);
 
         return searchUpdaterStream.start(getContext());
     }

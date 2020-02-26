@@ -17,6 +17,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
+import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.AbstractGlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
@@ -38,7 +39,8 @@ public final class ThingSearchMappingStrategies extends AbstractGlobalMappingStr
         final Map<String, MappingStrategy> combinedStrategy = new HashMap<>();
         combinedStrategy.putAll(new PoliciesMappingStrategies().getStrategies());
         combinedStrategy.putAll(new ThingsMappingStrategies().getStrategies());
-
+        combinedStrategy.put(StreamedSnapshot.class.getSimpleName(),
+                (jsonObject, dittoHeaders) -> StreamedSnapshot.fromJson(jsonObject));
         return combinedStrategy;
     }
 

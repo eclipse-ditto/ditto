@@ -17,8 +17,6 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.akka.streaming.DefaultSyncConfig;
-import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
@@ -40,8 +38,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     private final int maxBulkSize;
     private final Duration shardingStatePollInterval;
     private final boolean eventProcessingActive;
-    private final SyncConfig thingsSyncConfig;
-    private final SyncConfig policiesSyncConfig;
+    private final BackgroundSyncConfig backgroundSyncConfig;
 
     private DefaultUpdaterConfig(final ConfigWithFallback updaterScopedConfig) {
         maxIdleTime = updaterScopedConfig.getDuration(UpdaterConfigValue.MAX_IDLE_TIME.getConfigPath());
@@ -50,8 +47,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 updaterScopedConfig.getDuration(UpdaterConfigValue.SHARDING_STATE_POLL_INTERVAL.getConfigPath());
         eventProcessingActive =
                 updaterScopedConfig.getBoolean(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath());
-        thingsSyncConfig = DefaultSyncConfig.getInstance(updaterScopedConfig, THINGS_SYNC_CONFIG_PATH);
-        policiesSyncConfig = DefaultSyncConfig.getInstance(updaterScopedConfig, POLICIES_SYNC_CONFIG_PATH);
+        backgroundSyncConfig = DefaultBackgroundSyncConfig.fromUpdaterConfig(updaterScopedConfig);
     }
 
     /**
@@ -87,13 +83,8 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     }
 
     @Override
-    public SyncConfig getThingsSyncConfig() {
-        return thingsSyncConfig;
-    }
-
-    @Override
-    public SyncConfig getPoliciesSyncConfig() {
-        return policiesSyncConfig;
+    public BackgroundSyncConfig getBackgroundSyncConfig() {
+        return backgroundSyncConfig;
     }
 
     @Override
@@ -109,14 +100,13 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 eventProcessingActive == that.eventProcessingActive &&
                 Objects.equals(maxIdleTime, that.maxIdleTime) &&
                 Objects.equals(shardingStatePollInterval, that.shardingStatePollInterval) &&
-                Objects.equals(thingsSyncConfig, that.thingsSyncConfig) &&
-                Objects.equals(policiesSyncConfig, that.policiesSyncConfig);
+                Objects.equals(backgroundSyncConfig, that.backgroundSyncConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(maxIdleTime, maxBulkSize, shardingStatePollInterval, eventProcessingActive,
-                thingsSyncConfig, policiesSyncConfig);
+                backgroundSyncConfig);
     }
 
     @Override
@@ -126,8 +116,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 ", maxBulkSize=" + maxBulkSize +
                 ", shardingStatePollInterval=" + shardingStatePollInterval +
                 ", eventProcessingActive=" + eventProcessingActive +
-                ", thingsSyncConfig=" + thingsSyncConfig +
-                ", policiesSyncConfig=" + policiesSyncConfig +
+                ", backgroundSyncConfig=" + backgroundSyncConfig +
                 "]";
     }
 

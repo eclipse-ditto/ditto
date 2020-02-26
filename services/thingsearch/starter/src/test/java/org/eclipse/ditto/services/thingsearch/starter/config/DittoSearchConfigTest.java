@@ -17,6 +17,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.junit.Test;
@@ -32,7 +33,8 @@ public final class DittoSearchConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DittoSearchConfig.class,
                 areImmutable(),
-                provided(DefaultHealthCheckConfig.class, DittoServiceConfig.class).areAlsoImmutable());
+                provided(DefaultHealthCheckConfig.class, DittoServiceConfig.class, DefaultUpdaterConfig.class)
+                        .areAlsoImmutable());
     }
 
     @Test
