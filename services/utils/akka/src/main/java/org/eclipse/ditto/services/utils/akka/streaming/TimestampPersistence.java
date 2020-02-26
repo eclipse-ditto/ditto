@@ -15,7 +15,11 @@ package org.eclipse.ditto.services.utils.akka.streaming;
 import java.time.Instant;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
+import akka.Done;
 import akka.NotUsed;
+import akka.japi.Pair;
 import akka.stream.javadsl.Source;
 
 /**
@@ -32,9 +36,25 @@ public interface TimestampPersistence {
     Source<NotUsed, NotUsed> setTimestamp(Instant timestamp);
 
     /**
+     * Update the timestamp with a tag.
+     *
+     * @param timestamp the timestamp to persist.
+     * @param tag the tag.
+     * @return source that completes after the update completes.
+     */
+    Source<Done, NotUsed> setTaggedTimestamp(Instant timestamp, @Nullable String tag);
+
+    /**
      * Retrieve the timestamp in the persistence.
      *
      * @return a {@link Source} of the {@link Instant} stored in the persistence.
      */
     Source<Optional<Instant>, NotUsed> getTimestampAsync();
+
+    /**
+     * Retrieve the tagged timestamp if any exists in the collection.
+     *
+     * @return the tagged timestamp.
+     */
+    Source<Optional<Pair<Instant, String>>, NotUsed> getTaggedTimestamp();
 }

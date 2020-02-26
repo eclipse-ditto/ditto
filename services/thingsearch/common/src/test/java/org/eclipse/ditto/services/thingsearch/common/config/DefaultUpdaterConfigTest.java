@@ -10,29 +10,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
-/*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
- *
- * See the NOTICE file(s) distributed with this work for additional
- * information regarding copyright ownership.
- *
- * This program and the accompanying materials are made available under the
- * terms of the Eclipse Public License 2.0 which is available at
- * http://www.eclipse.org/legal/epl-2.0
- *
- * SPDX-License-Identifier: EPL-2.0
- */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig.UpdaterConfigValue;
-import org.eclipse.ditto.services.utils.akka.streaming.DefaultSyncConfig;
-import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -59,7 +44,8 @@ public final class DefaultUpdaterConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultUpdaterConfig.class, areImmutable());
+        assertInstancesOf(DefaultUpdaterConfig.class, areImmutable(),
+                provided(BackgroundSyncConfig.class).isAlsoImmutable());
     }
 
     @Test
@@ -82,24 +68,12 @@ public final class DefaultUpdaterConfigTest {
         softly.assertThat(underTest.getMaxIdleTime())
                 .as(UpdaterConfigValue.MAX_IDLE_TIME.getConfigPath())
                 .isEqualTo(UpdaterConfigValue.MAX_IDLE_TIME.getDefaultValue());
-        softly.assertThat(underTest.getThingsSyncConfig())
-                .satisfies(thingsSyncConfig -> assertThat(thingsSyncConfig.getElementsStreamedPerBatch())
-                        .as(SyncConfig.SyncConfigValue.ELEMENT_STREAM_BATCH_SIZE.getConfigPath())
-                        .isEqualTo(SyncConfig.SyncConfigValue.ELEMENT_STREAM_BATCH_SIZE.getDefaultValue()));
-        softly.assertThat(underTest.getPoliciesSyncConfig())
-                .satisfies(policiesSyncConfig -> assertThat(policiesSyncConfig.getStreamingActorTimeout())
-                        .as(SyncConfig.SyncConfigValue.STREAMING_ACTOR_TIMEOUT.getConfigPath())
-                        .isEqualTo(SyncConfig.SyncConfigValue.STREAMING_ACTOR_TIMEOUT.getDefaultValue()));
     }
 
     @Test
     public void gettersReturnConfiguredValues() {
         final DefaultUpdaterConfig underTest = DefaultUpdaterConfig.of(updaterTestConfig);
         final Config updaterScopedRawConfig = updaterTestConfig.getConfig(DefaultUpdaterConfig.CONFIG_PATH);
-        final SyncConfig thingsSyncConfig =
-                DefaultSyncConfig.getInstance(updaterScopedRawConfig, DefaultUpdaterConfig.THINGS_SYNC_CONFIG_PATH);
-        final SyncConfig policiesSyncConfig =
-                DefaultSyncConfig.getInstance(updaterScopedRawConfig, DefaultUpdaterConfig.POLICIES_SYNC_CONFIG_PATH);
 
         softly.assertThat(underTest.getMaxBulkSize())
                 .as(UpdaterConfigValue.MAX_BULK_SIZE.getConfigPath())
@@ -111,12 +85,6 @@ public final class DefaultUpdaterConfigTest {
         softly.assertThat(underTest.getMaxIdleTime())
                 .as(UpdaterConfigValue.MAX_IDLE_TIME.getConfigPath())
                 .isEqualTo(updaterScopedRawConfig.getDuration(UpdaterConfigValue.MAX_IDLE_TIME.getConfigPath()));
-        softly.assertThat(underTest.getThingsSyncConfig())
-                .as(DefaultUpdaterConfig.THINGS_SYNC_CONFIG_PATH)
-                .isEqualTo(thingsSyncConfig);
-        softly.assertThat(underTest.getPoliciesSyncConfig())
-                .as(DefaultUpdaterConfig.POLICIES_SYNC_CONFIG_PATH)
-                .isEqualTo(policiesSyncConfig);
     }
 
 }

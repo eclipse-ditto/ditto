@@ -12,14 +12,18 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
+import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.SnapshotStreamingActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 
@@ -29,9 +33,16 @@ import akka.actor.Props;
 public final class ThingsPersistenceStreamingActorCreator {
 
     /**
-     * The name of the created Actor in the ActorSystem.
+     * The name of the event streaming actor. Must agree with
+     * {@link org.eclipse.ditto.services.models.things.ThingsMessagingConstants#THINGS_STREAM_PROVIDER_ACTOR_PATH}.
      */
-    public static final String ACTOR_NAME = "persistenceStreamingActor";
+    public static final String EVENT_STREAMING_ACTOR_NAME = "persistenceStreamingActor";
+
+    /**
+     * The name of the snapshot streaming actor. Must agree with
+     * {@link org.eclipse.ditto.services.models.things.ThingsMessagingConstants#THINGS_SNAPSHOT_STREAMING_ACTOR_PATH}.
+     */
+    public static final String SNAPSHOT_STREAMING_ACTOR_NAME = "snapshotStreamingActor";
 
     private static final Pattern PERSISTENCE_ID_PATTERN = Pattern.compile(ThingPersistenceActor.PERSISTENCE_ID_PREFIX);
 
@@ -40,27 +51,47 @@ public final class ThingsPersistenceStreamingActorCreator {
     }
 
     /**
-     * Creates Akka configuration object Props for this PersistenceQueriesActor.
+     * Create an actor for streaming from the event journal.
      *
      * @param streamingCacheSize the size of the streaming cache.
-     * @return the Akka configuration Props object.
+     * @param actorCreator function to create a named actor with.
+     * @return a reference of the created actor.
      */
-    public static Props props(final int streamingCacheSize) {
-        return DefaultPersistenceStreamingActor.props(ThingTag.class,
-                streamingCacheSize,
+    public static ActorRef startEventStreamingActor(final int streamingCacheSize,
+            final BiFunction<String, Props, ActorRef> actorCreator) {
+        final Props props = DefaultPersistenceStreamingActor.props(ThingTag.class,
                 ThingsPersistenceStreamingActorCreator::createElement,
                 ThingsPersistenceStreamingActorCreator::createPidWithSeqNr);
+        return actorCreator.apply(EVENT_STREAMING_ACTOR_NAME, props);
+    }
+
+    /**
+     * Create an actor that streams from the snapshot store.
+     *
+     * @param actorCreator function to create a named actor with.
+     * @return a reference of the created actor.
+     */
+    public static ActorRef startSnapshotStreamingActor(final BiFunction<String, Props, ActorRef> actorCreator) {
+        final Props props = SnapshotStreamingActor.props(ThingsPersistenceStreamingActorCreator::pid2EntityId,
+                ThingsPersistenceStreamingActorCreator::entityId2Pid);
+        return actorCreator.apply(SNAPSHOT_STREAMING_ACTOR_NAME, props);
     }
 
     private static ThingTag createElement(final PidWithSeqNr pidWithSeqNr) {
-        final String id = PERSISTENCE_ID_PATTERN.matcher(pidWithSeqNr.getPersistenceId()).replaceFirst("");
-        final ThingId thingId = ThingId.of(id);
-        return ThingTag.of(thingId, pidWithSeqNr.getSequenceNr());
+        return ThingTag.of(pid2EntityId(pidWithSeqNr.getPersistenceId()), pidWithSeqNr.getSequenceNr());
     }
 
-    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision connectionTag) {
-        return new PidWithSeqNr(ThingPersistenceActor.PERSISTENCE_ID_PREFIX + connectionTag.getEntityId(),
-                connectionTag.getRevision());
+    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision thingTag) {
+        return new PidWithSeqNr(entityId2Pid(thingTag.getEntityId()), thingTag.getRevision());
+    }
+
+    private static ThingId pid2EntityId(final String pid) {
+        final String id = PERSISTENCE_ID_PATTERN.matcher(pid).replaceFirst("");
+        return ThingId.of(id);
+    }
+
+    private static String entityId2Pid(final EntityId entityId) {
+        return ThingPersistenceActor.PERSISTENCE_ID_PREFIX + entityId;
     }
 
 }

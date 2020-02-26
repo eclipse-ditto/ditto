@@ -16,13 +16,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
-import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
-import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.CompositeCachingHealthCheckingActor;
+import org.eclipse.ditto.services.utils.health.SingletonStatusReporter;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -36,8 +37,7 @@ final class SearchHealthCheckingActorFactory {
     public static final String ACTOR_NAME = AbstractHealthCheckingActor.ACTOR_NAME;
 
     private static final String PERSISTENCE_LABEL = "persistence";
-    private static final String THINGS_SYNC_LABEL = "thingsSync";
-    private static final String POLICIES_SYNC_LABEL = "policiesSync";
+    private static final String BACKGROUND_SYNC_LABEL = "backgroundSync";
 
     private SearchHealthCheckingActorFactory() {
         throw new AssertionError();
@@ -47,12 +47,10 @@ final class SearchHealthCheckingActorFactory {
      * Creates Akka configuration object Props for a health checking actor.
      *
      * @param searchConfig the configuration settings.
-     * @param thingsSyncPersistence the things sync persistence to determine time of last successful things-sync.
-     * @param policiesSyncPersistence the policies sync persistence to determine time of last successful policies-sync.
+     * @param backgroundSyncActorProxy proxy actor for RetrieveHealth messages to the background sync actor.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final SearchConfig searchConfig, final TimestampPersistence thingsSyncPersistence,
-            final TimestampPersistence policiesSyncPersistence) {
+    public static Props props(final SearchConfig searchConfig, final ActorRef backgroundSyncActorProxy) {
 
         final Map<String, Props> childActorProps = new LinkedHashMap<>();
 
@@ -62,12 +60,8 @@ final class SearchHealthCheckingActorFactory {
             childActorProps.put(PERSISTENCE_LABEL, MongoHealthChecker.props());
         }
 
-        final UpdaterConfig updaterConfig = searchConfig.getUpdaterConfig();
-        childActorProps.put(THINGS_SYNC_LABEL,
-                LastSuccessfulStreamCheckingActor.props(updaterConfig.getThingsSyncConfig(), thingsSyncPersistence));
-        childActorProps.put(POLICIES_SYNC_LABEL,
-                LastSuccessfulStreamCheckingActor.props(updaterConfig.getPoliciesSyncConfig(),
-                        policiesSyncPersistence));
+        childActorProps.put(BACKGROUND_SYNC_LABEL,
+                SingletonStatusReporter.props(SearchUpdaterRootActor.CLUSTER_ROLE, backgroundSyncActorProxy));
 
         return CompositeCachingHealthCheckingActor.props(childActorProps, healthCheckConfig.getInterval(),
                 healthCheckEnabled);

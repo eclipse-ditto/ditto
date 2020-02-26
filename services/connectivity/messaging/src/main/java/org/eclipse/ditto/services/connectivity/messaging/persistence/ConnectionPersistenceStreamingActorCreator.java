@@ -42,7 +42,7 @@ public final class ConnectionPersistenceStreamingActorCreator {
      * @return the Akka configuration Props object.
      */
     public static Props props(final int streamingCacheSize) {
-        return DefaultPersistenceStreamingActor.props(ConnectionTag.class, streamingCacheSize,
+        return DefaultPersistenceStreamingActor.props(ConnectionTag.class,
                 ConnectionPersistenceStreamingActorCreator::createElement,
                 ConnectionPersistenceStreamingActorCreator::createPidWithSeqNr);
     }

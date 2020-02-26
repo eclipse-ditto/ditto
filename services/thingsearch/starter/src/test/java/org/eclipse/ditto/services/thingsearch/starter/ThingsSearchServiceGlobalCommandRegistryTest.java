@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.thingsearch.starter;
 
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
-import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 public final class ThingsSearchServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
     public ThingsSearchServiceGlobalCommandRegistryTest() {
-        super(SudoStreamModifiedEntities.class,
+        super(SudoStreamPids.class,
                 SudoRetrieveThing.class,
                 SudoRetrievePolicy.class,
                 SudoCountThings.class,
