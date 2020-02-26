@@ -75,13 +75,12 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label,
+     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
      */
     @Deprecated
-    public static ModifySubjectsResponse of(final String policyId, final Label label,
-            final DittoHeaders dittoHeaders) {
-
+    public static ModifySubjectsResponse of(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
         return of(PolicyId.of(policyId), label, dittoHeaders);
     }
 
@@ -96,7 +95,6 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      */
     public static ModifySubjectsResponse of(final PolicyId policyId, final Label label,
             final DittoHeaders dittoHeaders) {
-
         return new ModifySubjectsResponse(policyId, label, HttpStatusCode.NO_CONTENT, dittoHeaders);
     }
 

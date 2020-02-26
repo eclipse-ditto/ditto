@@ -25,7 +25,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -33,17 +32,16 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.ErrorResponse;
+import org.eclipse.ditto.signals.commands.base.AbstractErrorResponse;
 
 /**
  * Response to a {@link ThingCommand} which wraps the exception thrown while processing the command.
  */
 @Immutable
 @JsonParsableCommandResponse(type = ThingErrorResponse.TYPE)
-public final class ThingErrorResponse extends AbstractCommandResponse<ThingErrorResponse> implements
-        ThingCommandResponse<ThingErrorResponse>, ErrorResponse<ThingErrorResponse> {
+public final class ThingErrorResponse
+        extends AbstractErrorResponse<ThingErrorResponse>
+        implements ThingCommandResponse<ThingErrorResponse> {
 
     /**
      * Type of this response.
@@ -51,9 +49,7 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
 
     private static final GlobalErrorRegistry GLOBAL_ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
-    private static final String FALLBACK_ID = "unknown:unknown";
     private static final ThingId FALLBACK_THING_ID = ThingId.of(FALLBACK_ID);
-    private static final String FALLBACK_ERROR_CODE = FALLBACK_ID;
 
     private final ThingId thingId;
     private final DittoRuntimeException dittoRuntimeException;
@@ -175,28 +171,8 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
     public static ThingErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final String extractedThingId = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
         final ThingId thingId = ThingId.of(extractedThingId);
-
         final JsonObject payload = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.PAYLOAD).asObject();
-
-        DittoRuntimeException exception;
-        try {
-            exception = GLOBAL_ERROR_REGISTRY.parse(payload, dittoHeaders);
-        } catch (final Exception e) {
-            final int status = jsonObject.getValue(CommandResponse.JsonFields.STATUS).orElse(500);
-            final String errorCode =
-                    payload.getValue(DittoRuntimeException.JsonFields.ERROR_CODE).orElse(FALLBACK_ERROR_CODE);
-            final String errorMessage =
-                    payload.getValue(DittoRuntimeException.JsonFields.MESSAGE).orElse("An unknown error occurred");
-            final String errorDescription = payload.getValue(DittoRuntimeException.JsonFields.DESCRIPTION).orElse("");
-            exception =
-                    DittoRuntimeException.newBuilder(errorCode,
-                            HttpStatusCode.forInt(status).orElse(HttpStatusCode.INTERNAL_SERVER_ERROR))
-                            .message(errorMessage)
-                            .description(errorDescription)
-                            .dittoHeaders(dittoHeaders)
-                            .build();
-        }
-
+        final DittoRuntimeException exception = buildExceptionFromJson(GLOBAL_ERROR_REGISTRY, payload, dittoHeaders);
         return of(thingId, exception, dittoHeaders);
     }
 

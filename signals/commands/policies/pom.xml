@@ -73,6 +73,13 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
+                            <!-- TODO temp. exclude - try to stay compatible later -->
+                            <exclude>org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectResponse#modified(org.eclipse.ditto.model.policies.PolicyId,org.eclipse.ditto.model.policies.Label,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntryResponse#modified(org.eclipse.ditto.model.policies.PolicyId,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.policies.modify.ModifyResourceResponse#modified(org.eclipse.ditto.model.policies.PolicyId,org.eclipse.ditto.model.policies.Label,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntryResponse#modified(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.policies.modify.ModifyResourceResponse#modified(java.lang.String,org.eclipse.ditto.model.policies.Label,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectResponse#modified(java.lang.String,org.eclipse.ditto.model.policies.Label,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

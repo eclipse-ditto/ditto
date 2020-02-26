@@ -33,16 +33,15 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
-import org.eclipse.ditto.signals.commands.base.ErrorResponse;
+import org.eclipse.ditto.signals.commands.base.AbstractErrorResponse;
 
 /**
  * Response to a {@link PolicyCommand} which wraps the exception thrown while processing the command.
  */
 @Immutable
 @JsonParsableCommandResponse(type = PolicyErrorResponse.TYPE)
-public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErrorResponse>
-        implements PolicyCommandResponse<PolicyErrorResponse>, ErrorResponse<PolicyErrorResponse> {
+public final class PolicyErrorResponse extends AbstractErrorResponse<PolicyErrorResponse>
+        implements PolicyCommandResponse<PolicyErrorResponse> {
 
     /**
      * Type of this response.
@@ -50,6 +49,8 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
 
     private static final GlobalErrorRegistry GLOBAL_ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
+
+    private static final PolicyId FALLBACK_POLICY_ID = PolicyId.of(FALLBACK_ID);
 
     private final PolicyId policyId;
     private final DittoRuntimeException dittoRuntimeException;
@@ -71,7 +72,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
     public static PolicyErrorResponse of(final DittoRuntimeException dittoRuntimeException) {
-        return of(PolicyId.dummy(), dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
+        return of(FALLBACK_POLICY_ID, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
     }
 
     /**
@@ -113,7 +114,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
     public static PolicyErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
 
-        return of(PolicyId.dummy(), dittoRuntimeException, dittoHeaders);
+        return of(FALLBACK_POLICY_ID, dittoRuntimeException, dittoHeaders);
     }
 
     /**
@@ -160,8 +161,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
         final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
         final PolicyId policyId = PolicyId.of(extractedPolicyId);
         final JsonObject payload = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.PAYLOAD).asObject();
-        final DittoRuntimeException exception = GLOBAL_ERROR_REGISTRY.parse(payload, dittoHeaders);
-
+        final DittoRuntimeException exception = buildExceptionFromJson(GLOBAL_ERROR_REGISTRY, payload, dittoHeaders);
         return of(policyId, exception, dittoHeaders);
     }
 

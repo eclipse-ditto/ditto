@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
@@ -30,6 +31,7 @@ import org.eclipse.ditto.model.things.ThingId;
 public interface TopicPath {
 
     String ID_PLACEHOLDER = "_";
+    String PATH_DELIMITER = "/";
 
     /**
      * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
@@ -53,6 +55,17 @@ public interface TopicPath {
      */
     static TopicPathBuilder newBuilder(final ThingId thingId) {
         return ProtocolFactory.newTopicPathBuilder(thingId);
+    }
+
+    /**
+     * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code policyId}.
+     *
+     * @param policyId the identifier of the {@code Policy}.
+     * @return the builder.
+     * @throws NullPointerException if {@code policyId} is {@code null}.
+     */
+    static TopicPathBuilder newBuilder(final PolicyId policyId) {
+        return ProtocolFactory.newTopicPathBuilder(policyId);
     }
 
     /**
@@ -231,7 +244,9 @@ public interface TopicPath {
 
         TWIN("twin"),
 
-        LIVE("live");
+        LIVE("live"),
+
+        NONE("none");
 
         private final String name;
 

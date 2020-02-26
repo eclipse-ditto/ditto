@@ -137,7 +137,7 @@ public final class DittoPublicKeyProviderTest {
         mockSuccessfulDiscoveryEndpointRequest();
         mockSuccessfulPublicKeysRequestWithoutMatchingKeyId();
 
-        assertThat( underTest.getPublicKey("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS)).isEmpty();
+        assertThat(underTest.getPublicKey("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS)).isEmpty();
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
 

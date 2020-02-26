@@ -65,7 +65,6 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.mapping.ConnectivityCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
-import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -549,7 +548,7 @@ public final class MessageMappingProcessorActorTest {
     }
 
     @Test
-    public void testMessageWithoutCorrelationId(){
+    public void testMessageWithoutCorrelationId() {
 
         final AuthorizationContext expectedAuthContext = AuthorizationModelFactory.newAuthContext(
                 AuthorizationModelFactory.newAuthSubject("hub-application/json"),
