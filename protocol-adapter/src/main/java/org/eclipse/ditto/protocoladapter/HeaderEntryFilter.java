@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
  * If the value is invalid at all the {@link #apply(String, String)} method returns {@code null}.
  * Otherwise it may return the header value as it was provided or some derivative of the provided value.
  */
+@FunctionalInterface
 interface HeaderEntryFilter {
 
     /**
