@@ -1,6 +1,6 @@
 ---
 title: Protocol specification for Policies
-keywords: protocol, specification, general
+keywords: protocol, specification, general, policy, policies
 tags: [protocol]
 permalink: protocol-specification-policies.html
 ---
@@ -11,15 +11,15 @@ permalink: protocol-specification-policies.html
 A valid topic consists of five elements, describing the policy affected by this message and the type of the message:
 
 ```
-<namespace>/<policyId>/policies/<criterion>/<action>
+<namespace>/<policyName>/policies/commands/<action>
 ```
 
 1. `namespace`: the namespace of the Policy.
-2. `policyId`: the Policy ID.
+2. `policyName`: the name of the Policy.
 3. `group`: the group for addressing Policies is `policies`.
-4. `criterion`: the type of Protocol message; is always `commands`.
-5. `action`: the action executed on the Policy, only required for:
-    1. Commands: [`create/modify`](protocol-specification-policies-create-or-modify.html),
+4. `criterion`: the type of Protocol message addressing Policies is `commands`.
+5. `action`: the action executed on the Policy:
+       [`create/modify`](protocol-specification-policies-create-or-modify.html),
        [`retrieve`](protocol-specification-policies-retrieve.html) or
        [`delete`](protocol-specification-policies-delete.html).
        
@@ -52,4 +52,4 @@ These error responses can occur independent of the command that was sent:
 |    `404`   | Not Found - The request could not be completed. The Policy with the given ID was not found in the context of the authenticated user.  |
 |    `412`   | Precondition Failed - A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you specified an If-Match or If-None-Match header, which fails the precondition check against the current ETag of the (sub-)resource.  |
 |    `413`   | Request Entity Too Large - The created or modified entity is larger than the accepted limit of 100 kB.  |
-|            | See [Policy Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+|            | See [Policy Error Responses](protocol-examples-policies-errorresponses.html) for examples of other error responses. |

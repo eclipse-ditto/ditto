@@ -10,22 +10,22 @@ See the [specification](protocol-specification-policies.html#ditto-protocol-topi
 
 ## Retrieve a Policy
 
-Retrieves a Policy identified by the `<namespace>/<policyId>` pair in the `topic` field.
+Retrieves a Policy identified by the `<namespace>/<policyName>` pair in the `topic` field.
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/retrieve`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/retrieve`     |
 | **path**  | `/`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/retrieve` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path**   |        | `/`                      |
-| **value**  |        | The Policy as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+| **value**  |        | The Policy as JSON object, see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation). |
 | **status** | _code_ |    
 |            | `200`  | Success.       |
 
@@ -33,22 +33,22 @@ Retrieves a Policy identified by the `<namespace>/<policyId>` pair in the `topic
 
 ## Retrieve Policy entries
 
-Retrieves all entries of the policy identified by the `<namespace>/<policyId>` pair in the `topic` field.
+Retrieves all entries of the policy identified by the `<namespace>/<policyName>` pair in the `topic` field.
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/retrieve`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/retrieve`     |
 | **path**  | `/entries`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/retrieve` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path**   |        | `/entries`                      |
-| **value**  |        | The Policy entries as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+| **value**  |        | The Policy entries as JSON object, see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation). |
 | **status** | _code_ |    
 |            | `200`  | Success. |
 
@@ -56,23 +56,23 @@ Retrieves all entries of the policy identified by the `<namespace>/<policyId>` p
 
 ## Retrieve a Policy entry
 
-Retrieve a Policy entry identified by the `<namespace>/<policyId>` pair in the `topic` field 
+Retrieve a Policy entry identified by the `<namespace>/<policyName>` pair in the `topic` field 
 and the `<label>` in the `path` field.
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/retrieve`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/retrieve`     |
 | **path**  | `/entries/<label>`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/retrieve` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path**   |        | `/entries/<label>`                      |
-| **value**  |        | The Policy entry as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+| **value**  |        | The Policy entry as JSON object, see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation). |
 | **status** | _code_ |    
 |            | `200`  | Success.       |
 
@@ -80,23 +80,23 @@ and the `<label>` in the `path` field.
 
 ## Retrieve Policy subjects
 
-Retrieve the subjects of the policy identified by the `<namespace>/<policyId>` pair in the `topic` field
+Retrieve the subjects of the policy identified by the `<namespace>/<policyName>` pair in the `topic` field
 and the `<label>` in the `path` field.
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/retrieve`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/retrieve`     |
 | **path**  | `/entries/<label>/subjects`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/retrieve` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path**   |        | `/entries/<label>/subjects`                      |
-| **value**  |        | The subjects of the Policy as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+| **value**  |        | The subjects of the Policy as JSON object, see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation). |
 | **status** | _code_ |    
 |            | `200`  | Success.      |
 
@@ -104,23 +104,23 @@ and the `<label>` in the `path` field.
 
 ## Retrieve a Policy subject
 
-Retrieve specific subject of the policy identified by the `<namespace>/<policyId>` pair in the `topic` field
+Retrieve specific subject of the policy identified by the `<namespace>/<policyName>` pair in the `topic` field
 and the `<label>` and `<subjectId>` in the `path` field.
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/retrieve`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/retrieve`     |
 | **path**  | `/entries/<label>/subjects/<subjectId>`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/retrieve` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path**   |        | `/entries/<label>/subjects/<subjectId>`                      |
-| **value**  |        | The subject of the policy as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+| **value**  |        | The subject of the policy as JSON object, see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation). |
 | **status** | _code_ |    
 |            | `200`  | Success.       |
 
@@ -128,23 +128,23 @@ and the `<label>` and `<subjectId>` in the `path` field.
 
 ## Retrieve Policy resources
 
-Retrieve all resources of the policy identified by the `<namespace>/<policyId>` pair in the `topic` field 
+Retrieve all resources of the policy identified by the `<namespace>/<policyName>` pair in the `topic` field 
 and the `<label>` in the `path` field. 
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/retrieve`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/retrieve`     |
 | **path**  | `/entries/<label>/resources`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/retrieve` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path**   |        | `/entries/<label>/resources`                      |
-| **value**  |        | The created Policy as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+| **value**  |        | The resources of the Policy as JSON object, see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation). |
 | **status** | _code_ |    
 |            | `200`  | Success. |
 
@@ -152,23 +152,23 @@ and the `<label>` in the `path` field.
 
 ## Retrieve a single Policy resources
 
-Retrieve a resource identified by the `<namespace>/<policyId>` pair in the `topic` field and the `<label>` and
+Retrieve a resource identified by the `<namespace>/<policyName>` pair in the `topic` field and the `<label>` and
  `<resource>` in the `path`field.
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/retrieve`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/retrieve`     |
 | **path**  | `/entries/<label>/resources/<resource>`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/retrieve` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path**   |        | `/entries/<label>/resources/<resource>`                      |
-| **value**  |        | The resource of the policy as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+| **value**  |        | The resource of the policy as JSON object, see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation). |
 | **status** | _code_ |    
 |            | `200`  | Success. |
 

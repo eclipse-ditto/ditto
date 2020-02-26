@@ -18,7 +18,7 @@ Optionally you can use field selectors (see `fields`) to only get the specified 
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve`     |
 | **path**  | `/`     |
 | **fields** | Contains a comma separated list of fields to be included in the returned JSON. |
 
@@ -26,7 +26,7 @@ Optionally you can use field selectors (see `fields`) to only get the specified 
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/`                      |
 | **value**  |        | The found complete Thing as JSON object. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
@@ -45,14 +45,14 @@ Retrieve the Attributes of a Thing identified by the `<namespace>` and `<thingId
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve`     |
 | **path**  | `/attributes`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/attributes`                      |
 | **value**  |        | The Attributes of the Thing as JSON, see property attributes of Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
@@ -73,14 +73,14 @@ The Attribute (JSON) can be referenced hierarchically by applying [JSON Pointer 
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve`     |
 | **path**  | `/attributes/<attributePath>`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/attributes/<attributePath>`                      |
 | **value**  |        | The specific Attribute of the Thing as JSON. |
 | **status** | _code_ |                          | 
@@ -99,14 +99,14 @@ Retrieve the Definition of the Thing.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve`     |
 | **path**  | `/definition`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/definition`                      |
 | **value**  |        | The specific Definition of the Thing as JSON. |
 | **status** | _code_ |                          | 
@@ -125,14 +125,14 @@ Retrieve the Features of a Thing identified by identified by the `<namespace>` a
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve`     |
 | **path**  | `/features`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/features`                      |
 | **value**  |        | All Features of the Thing as JSON, see property features of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
@@ -153,14 +153,14 @@ Retrieve a specific Feature (identified by the `<featureId>` in the `path`) of t
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve`     |
 | **path**  | `/features/<featureId>`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/features/<featureId>`                      |
 | **value**  |        | The specific Feature of the Thing as JSON. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
@@ -181,14 +181,14 @@ Retrieve the Definition of a Feature (identified by the `<featureId>` in the `pa
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve`     |
 | **path**  | `/features/<featureId>/definition`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/features/<featureId>/definition`                      |
 | **value**  |        | The Definition of the Feature as JSON array, see property properties of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
@@ -209,14 +209,14 @@ Retrieve all Properties of a Feature (identified by the `<featureId>` in the `pa
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve`     |
 | **path**  | `/features/<featureId>/properties`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/features/<featureId>/properties`                      |
 | **value**  |        | The Properties of the Feature as JSON, see property properties of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
@@ -237,14 +237,14 @@ The Property (JSON) can be referenced hierarchically by applying [JSON Pointer n
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve`     |
 | **path**  | `/features/<featureId>/properties/<propertyPath>`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/features/<featureId>/properties/<propertyPath>`                      |
 | **value**  |        | The specific Property of the Feature as JSON. |
 | **status** | _code_ |                          | 

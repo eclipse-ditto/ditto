@@ -28,6 +28,6 @@ Thus Ditto ensures that only authorized parties are able to send commands or mes
 
 ## Other
 
-Policy commands, do not fit any of the above two categories as they are not directly related to a device. A Policy is 
+Policy commands do not fit any of the above two categories as they are not directly related to a device. A Policy is 
 not a **twin** of a device. Hence, the **live** channel cannot be used to address the device directly.
 Therefore Policy commands have no *channel* in the Ditto Protocol format specification.   

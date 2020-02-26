@@ -7,20 +7,20 @@ permalink: protocol-specification-policies-delete.html
 
 ## Delete a Policy
 
-Delete the policy identified by the `<namespace>/<policyId>` pair in the `topic` field.
+Delete the policy identified by the `<namespace>/<policyName>` pair in the `topic` field.
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/delete`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/delete`     |
 | **path**  | `/`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/delete` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/delete` |
 | **path**   |        | `/`                      |
 | **status** | _code_ |    
 |            | `204`  | Success - The Policy was successfully deleted.       |
@@ -30,21 +30,21 @@ Delete the policy identified by the `<namespace>/<policyId>` pair in the `topic`
 
 ## Delete a Policy entry
 
-Deletes a Policy entry identified by the `<namespace>/<policyId>` pair in the `topic` field and the `<label>` in the
+Deletes a Policy entry identified by the `<namespace>/<policyName>` pair in the `topic` field and the `<label>` in the
  `path` field. 
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/delete`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/delete`     |
 | **path**  | `/entries/<label>`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/delete` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/delete` |
 | **path**   |        | `/entries/<label>`                      |
 | **status** | _code_ |    
 |            | `204`  | Success - The Policy entry was successfully deleted.       |
@@ -53,21 +53,21 @@ Deletes a Policy entry identified by the `<namespace>/<policyId>` pair in the `t
 
 ## Delete a single resource
 
-Deletes the resource identified by the `<namespace>/<policyId>` pair in the `topic` field and the `<label>` and
+Deletes the resource identified by the `<namespace>/<policyName>` pair in the `topic` field and the `<label>` and
  `<resource>` in the `path` field.
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/delete`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/delete`     |
 | **path**  | `/entries/<label>/resources/<resource>`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/delete` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/delete` |
 | **path**   |        | `/entries/<label>/resources/<resource>`                      |
 | **status** | _code_ |    
 |            | `204`  | Success - The resource was successfully deleted.       |
@@ -76,21 +76,21 @@ Deletes the resource identified by the `<namespace>/<policyId>` pair in the `top
 
 ## Delete a single subject
 
-Delete the subject identified by the `<namespace>/<policyId>` pair in the `topic` field and the `<label>` and
+Delete the subject identified by the `<namespace>/<policyName>` pair in the `topic` field and the `<label>` and
  `<subjectId>` in the `path` field.
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<policyId>/policies/commands/delete`     |
+| **topic** | `<namespace>/<policyName>/policies/commands/delete`     |
 | **path**  | `/entries/<label>/subjects/<subjectId>`     |
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<policyId>/policies/commands/delete` |
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/delete` |
 | **path**   |        | `/entries/<label>/subjects/<subjectId>`                      |
 | **status** | _code_ |    
 |            | `204`  | Success - The subject was successfully deleted.       |

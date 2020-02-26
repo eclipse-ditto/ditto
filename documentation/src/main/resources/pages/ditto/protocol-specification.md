@@ -34,7 +34,9 @@ following JSON schema:
 ### Ditto Protocol payload (JSON) {#dittoProtocolPayload}
 
 The Ditto model payload contains the application data, e.g. an updated sensor value or a Thing in JSON representation.
-See the [specification for Things](protocol-specification-things.html) for the schema of a Thing.
+See 
+* the [specification for Things](protocol-specification-things.html) for the schema of a Thing.
+* the [specification for Policies](protocol-specification-policies.html) for the schema of a Policy.
 
 
 ### Ditto Protocol response {#dittoProtocolResponse}
