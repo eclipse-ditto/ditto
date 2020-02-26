@@ -74,11 +74,11 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConn
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
@@ -86,6 +86,7 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -111,7 +112,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.Patterns;
 import akka.persistence.RecoveryCompleted;
 import akka.routing.Broadcast;
@@ -143,8 +143,6 @@ public final class ConnectionPersistenceActor
 
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
 
-
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef conciergeForwarder;
@@ -330,9 +328,9 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected void recoveryCompleted(RecoveryCompleted event) {
+    protected void recoveryCompleted(final RecoveryCompleted event) {
         log.info("Connection <{}> was recovered: {}", entityId, entity);
-        if (entity != null && !entity.getLifecycle().isPresent()) {
+        if (entity != null && entity.getLifecycle().isEmpty()) {
             entity = entity.toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
         }
         if (isDesiredStateOpen()) {
@@ -448,13 +446,28 @@ public final class ConnectionPersistenceActor
 
     @Override
     protected void matchAnyAfterInitialization(final Object message) {
-        if (message instanceof Signal) {
-            forwardSignalToClientActors((Signal<?>) message);
+        if (message instanceof Acknowledgement) {
+            handleAcknowledgement((Acknowledgement) message);
+        } else if (message instanceof Signal) {
+            final Signal<?> signal = (Signal<?>) message;
+            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), signal.getEntityId(),
+                    signal.getDittoHeaders(), config.getAcknowledgementConfig());
+            forwardSignalToClientActors(signal);
         } else if (message == CheckLoggingActive.INSTANCE) {
             checkLoggingEnabled();
         } else {
             log.warning("Unknown message: {}", message);
         }
+    }
+
+    private void handleAcknowledgement(final Acknowledgement acknowledgement) {
+        getContext().findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
+                .ifPresentOrElse(
+                        forwarder -> forwarder.forward(acknowledgement, getContext()),
+                        () -> log.withCorrelationId(acknowledgement)
+                                .info("Received Acknowledgement but no AcknowledgementForwarderActor " +
+                                        "was present: <{}>", acknowledgement)
+                );
     }
 
     private void checkLoggingEnabled() {

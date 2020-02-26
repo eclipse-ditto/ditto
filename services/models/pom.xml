@@ -27,6 +27,7 @@
 
     <modules>
         <module>base</module>
+        <module>acks</module>
         <module>concierge</module>
         <module>connectivity</module>
         <module>policies</module>

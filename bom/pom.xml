@@ -670,6 +670,11 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-models-acks</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-models-streaming</artifactId>
                 <version>${project.version}</version>
             </dependency>

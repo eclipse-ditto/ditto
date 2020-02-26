@@ -42,10 +42,13 @@ import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
+import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -73,6 +76,7 @@ final class StreamingSessionActor extends AbstractActor {
     private final String type;
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef eventAndResponsePublisher;
+    private final AcknowledgementConfig acknowledgementConfig;
     private final Set<StreamingType> outstandingSubscriptionAcks;
     private final Map<StreamingType, StreamingSession> streamingSessions;
     private final DittoDiagnosticLoggingAdapter logger;
@@ -82,13 +86,14 @@ final class StreamingSessionActor extends AbstractActor {
 
     @SuppressWarnings("unused")
     private StreamingSessionActor(final Connect connect, final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher) {
+            final ActorRef eventAndResponsePublisher, final AcknowledgementConfig acknowledgementConfig) {
 
         jsonSchemaVersion = connect.getJsonSchemaVersion();
         connectionCorrelationId = connect.getConnectionCorrelationId();
         type = connect.getType();
         this.dittoProtocolSub = dittoProtocolSub;
         this.eventAndResponsePublisher = eventAndResponsePublisher;
+        this.acknowledgementConfig = acknowledgementConfig;
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
         authorizationContext = AuthorizationModelFactory.emptyAuthContext();
         streamingSessions = new EnumMap<>(StreamingType.class);
@@ -106,14 +111,17 @@ final class StreamingSessionActor extends AbstractActor {
      *
      * @param connect the command to start a streaming session.
      * @param dittoProtocolSub manager of subscriptions.
-     * @param eventAndResponsePublisher the {@link org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher}
-     * actor.
+     * @param eventAndResponsePublisher the {@link EventAndResponsePublisher} actor.
+     * @param acknowledgementConfig the config to apply for Acknowledgements.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connect connect, final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher) {
+    static Props props(final Connect connect,
+            final DittoProtocolSub dittoProtocolSub,
+            final ActorRef eventAndResponsePublisher,
+            final AcknowledgementConfig acknowledgementConfig) {
 
-        return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub, eventAndResponsePublisher);
+        return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub, eventAndResponsePublisher,
+                acknowledgementConfig);
     }
 
     @Override
@@ -131,6 +139,7 @@ final class StreamingSessionActor extends AbstractActor {
                                     " about it: {}", type, response);
                     eventAndResponsePublisher.forward(SessionedJsonifiable.response(response), getContext());
                 })
+                .match(Acknowledgement.class, this::handleAcknowledgement)
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, cre -> {
                     logger.withCorrelationId(cre)
@@ -218,9 +227,21 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
     }
 
+    private void handleAcknowledgement(final Acknowledgement acknowledgement) {
+        getContext().findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
+                .ifPresentOrElse(
+                        forwarder -> forwarder.forward(acknowledgement, getContext()),
+                        () -> logger.withCorrelationId(acknowledgement)
+                                .info("Received Acknowledgement but no AcknowledgementForwarderActor " +
+                                        "was present: <{}>", acknowledgement)
+                );
+    }
+
     private void handleSignal(final Signal<?> signal) {
         logger.setCorrelationId(signal);
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), signal.getEntityId(),
+                dittoHeaders, acknowledgementConfig);
         if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
             logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
                     " EventAndResponsePublisher about it", signal.getType(), type);
@@ -228,22 +249,22 @@ final class StreamingSessionActor extends AbstractActor {
             // check if this session is "allowed" to receive the Signal
             @Nullable final StreamingSession session = streamingSessions.get(determineStreamingType(signal));
             if (null != session && isSessionAllowedToReceiveSignal(signal, session)) {
-                    logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
-                            signal.getType(), type, signal);
+                logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
+                        signal.getType(), type, signal);
 
-                    final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
-                            .authorizationContext(authorizationContext)
-                            .schemaVersion(jsonSchemaVersion)
-                            .build();
-                    final SessionedJsonifiable sessionedJsonifiable =
-                            SessionedJsonifiable.signal(signal, sessionHeaders, session);
-                    eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
+                final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
+                        .authorizationContext(authorizationContext)
+                        .schemaVersion(jsonSchemaVersion)
+                        .build();
+                final SessionedJsonifiable sessionedJsonifiable =
+                        SessionedJsonifiable.signal(signal, sessionHeaders, session);
+                eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
             }
         }
         logger.setCorrelationId(connectionCorrelationId);
     }
 
-    private boolean isSessionAllowedToReceiveSignal(final Signal<?> signal,  final StreamingSession session) {
+    private boolean isSessionAllowedToReceiveSignal(final Signal<?> signal, final StreamingSession session) {
         final DittoHeaders headers = signal.getDittoHeaders();
         final boolean isAuthorizedToRead = authorizationContext.isAuthorized(headers.getReadGrantedSubjects(),
                 headers.getReadRevokedSubjects());

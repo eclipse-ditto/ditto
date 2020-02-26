@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
+import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
@@ -38,6 +39,13 @@ public interface StreamingConfig {
      * @return the interval.
      */
     Duration getSessionCounterScrapeInterval();
+
+    /**
+     * Returns the config specific to Acknowledgements for gateway streaming sessions.
+     *
+     * @return the config.
+     */
+    AcknowledgementConfig getAcknowledgementConfig();
 
     /**
      * Returns the websocket config for streaming.

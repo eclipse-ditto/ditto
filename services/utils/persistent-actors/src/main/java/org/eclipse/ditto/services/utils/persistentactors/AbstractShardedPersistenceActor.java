@@ -36,7 +36,6 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.ActorRef;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.RecoveryTimedOut;
@@ -61,11 +60,6 @@ public abstract class AbstractShardedPersistenceActor<
         I extends EntityId,
         K,
         E extends Event> extends AbstractPersistentActorWithTimersAndCleanup implements ResultVisitor<E> {
-
-    /**
-     * Logger of the actor.
-     */
-    protected final DiagnosticLoggingAdapter log;
 
     private final SnapshotAdapter<S> snapshotAdapter;
     private final Receive handleEvents;
@@ -95,7 +89,6 @@ public abstract class AbstractShardedPersistenceActor<
     protected AbstractShardedPersistenceActor(final I entityId, final SnapshotAdapter<S> snapshotAdapter) {
         this.entityId = entityId;
         this.snapshotAdapter = snapshotAdapter;
-        log = LogUtil.obtain(this);
         entity = null;
 
         lastSnapshotRevision = 0L;

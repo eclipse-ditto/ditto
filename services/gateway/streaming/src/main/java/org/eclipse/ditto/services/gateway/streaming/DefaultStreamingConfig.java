@@ -19,6 +19,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
 import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
+import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
@@ -32,6 +34,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
 
     private final Duration sessionCounterScrapeInterval;
     private final int parallelism;
+    private final AcknowledgementConfig acknowledgementConfig;
     private final WebsocketConfig websocketConfig;
     private final SignalEnrichmentConfig signalEnrichmentConfig;
 
@@ -39,6 +42,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         sessionCounterScrapeInterval =
                 scopedConfig.getDuration(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath());
         parallelism = scopedConfig.getInt(StreamingConfigValue.PARALLELISM.getConfigPath());
+        acknowledgementConfig = DefaultAcknowledgementConfig.of(scopedConfig);
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
         signalEnrichmentConfig = DefaultSignalEnrichmentConfig.of(scopedConfig);
     }
@@ -58,6 +62,11 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     @Override
     public Duration getSessionCounterScrapeInterval() {
         return sessionCounterScrapeInterval;
+    }
+
+    @Override
+    public AcknowledgementConfig getAcknowledgementConfig() {
+        return acknowledgementConfig;
     }
 
     @Override
@@ -87,12 +96,14 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         return parallelism == that.parallelism &&
                 Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
                 Objects.equals(signalEnrichmentConfig, that.signalEnrichmentConfig) &&
+                Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(websocketConfig, that.websocketConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(parallelism, sessionCounterScrapeInterval, signalEnrichmentConfig, websocketConfig);
+        return Objects.hash(parallelism, sessionCounterScrapeInterval, signalEnrichmentConfig, acknowledgementConfig,
+                websocketConfig);
     }
 
     @Override
@@ -101,6 +112,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
                 "sessionCounterScrapeInterval=" + sessionCounterScrapeInterval +
                 ", parallelism=" + parallelism +
                 ", signalEnrichmentConfig=" + signalEnrichmentConfig +
+                ", acknowledgementConfig=" + acknowledgementConfig +
                 ", websocketConfig=" + websocketConfig +
                 "]";
     }
