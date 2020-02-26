@@ -48,6 +48,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 /**
  * Adapter for the Ditto protocol.
@@ -267,7 +268,12 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         if (event instanceof ThingEvent) {
             validateChannel(channel, event, TWIN, LIVE);
             return toAdaptable((ThingEvent<?>) event, channel);
-        } else {
+        } else if (event instanceof SubscriptionEvent) {
+            validateChannel(channel, event, TWIN);
+            return  toAdaptable((SubscriptionEvent<?>) event, channel);
+        }
+
+        else {
             throw UnknownEventException.newBuilder(event.getName()).build();
         }
     }
@@ -276,6 +282,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     public Adaptable toAdaptable(final ThingEvent<?> thingEvent, final TopicPath.Channel channel) {
         validateChannel(channel, thingEvent, TWIN, LIVE);
         return thingsAdapters.getEventAdapter().toAdaptable(thingEvent, channel);
+    }
+
+    public Adaptable toAdaptable(final SubscriptionEvent<?> subscriptionEvent, final TopicPath.Channel channel){
+        validateChannel(channel, subscriptionEvent, TWIN);
+        return thingsAdapters.getSubscriptionEventAdapter().toAdaptable(subscriptionEvent, channel);
     }
 
     private Adaptable toAdaptable(final PolicyQueryCommand<?> policyQueryCommand) {

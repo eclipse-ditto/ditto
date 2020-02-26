@@ -184,6 +184,30 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public TopicPathBuildable complete() {
+        this.searchAction = TopicPath.SearchAction.COMPLETE;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable failed() {
+        this.searchAction = TopicPath.SearchAction.FAILED;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable hasNext() {
+        this.searchAction = TopicPath.SearchAction.HAS_NEXT;
+        return this;
+    }
+
+    @Override
+    public EventsTopicPathBuilder generated() {
+        this.searchAction = TopicPath.SearchAction.GENERATED;
+        return this;
+    }
+
+    @Override
     public EventsTopicPathBuilder created() {
         this.action = TopicPath.Action.CREATED;
         return this;

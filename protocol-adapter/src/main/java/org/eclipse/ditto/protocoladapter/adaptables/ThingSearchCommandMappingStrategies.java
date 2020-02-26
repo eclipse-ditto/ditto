@@ -37,7 +37,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscr
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing search commands.
  */
-final class ThingSearchCommandMappingStrategies extends AbstractThingMappingStrategies<ThingSearchCommand<?>> {
+final class ThingSearchCommandMappingStrategies extends AbstractSearchMappingStrategies<ThingSearchCommand<?>> {
 
     private static final ThingSearchCommandMappingStrategies INSTANCE = new ThingSearchCommandMappingStrategies();
 
@@ -111,22 +111,6 @@ final class ThingSearchCommandMappingStrategies extends AbstractThingMappingStra
             }
         }
         return Collections.emptyList();
-    }
-
-    private static @Nullable
-    String subscriptionIdFrom(final Adaptable adaptable) {
-
-        if (adaptable.getPayload().getValue().isPresent()) {
-            final JsonObject value = JsonObject.of(
-                    adaptable
-                            .getPayload()
-                            .getValue()
-                            .map(JsonValue::formatAsString)
-                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
-
-            return value.getValue("subscriptionId").map(JsonValue::asString).orElse(null);
-        }
-        return null;
     }
 
     protected static long demandFrom(final Adaptable adaptable) {

@@ -18,6 +18,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandRespon
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 /**
  * Provider for all thing command adapters. This interface only defines the generic type arguments.
@@ -28,6 +29,7 @@ public interface ThingCommandAdapterProvider
         MessageCommandAdapterProvider,
         ErrorResponseAdapterProvider<ThingErrorResponse>,
         EventAdapterProvider<ThingEvent<?>>,
+        SubscriptionEventAdapterProvider<SubscriptionEvent<?>>,
         ThingSearchCommandAdapterProvider,
         AdapterProvider {
 }

@@ -33,7 +33,7 @@ public class ThingSearchCommandAdapter extends AbstractThingAdapter<ThingSearchC
 
     private ThingSearchCommandAdapter(
             final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingSearchCommandResponseMappingStrategies(), headerTranslator);
+        super(MappingStrategiesFactory.getThingSearchCommandMappingStrategies(), headerTranslator);
     }
 
     /**

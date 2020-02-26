@@ -18,7 +18,7 @@ package org.eclipse.ditto.protocoladapter;
 public interface SearchTopicPathBuilder extends TopicPathBuildable {
 
     /**
-     * Sets the {@code Action} of this builder to {@link TopicPath.Action#SUBSCRIBE}. A previously set action is replaced.
+     * Sets the {@code Action} of this builder to {@link TopicPath.SearchAction#SUBSCRIBE}. A previously set action is replaced.
      *
      * @return this builder to allow method chaining.
      * @since 1.2.0
@@ -26,7 +26,7 @@ public interface SearchTopicPathBuilder extends TopicPathBuildable {
     TopicPathBuildable subscribe();
 
     /**
-     * Sets the {@code Action} of this builder to {@link TopicPath.Action#CANCEL}. A previously set action is replaced.
+     * Sets the {@code Action} of this builder to {@link TopicPath.SearchAction#CANCEL}. A previously set action is replaced.
      *
      * @return this builder to allow method chaining.
      * @since 1.2.0
@@ -34,11 +34,43 @@ public interface SearchTopicPathBuilder extends TopicPathBuildable {
     TopicPathBuildable cancel();
 
     /**
-     * Sets the {@code Action} of this builder to {@link TopicPath.Action#REQUEST}. A previously set action is replaced.
+     * Sets the {@code Action} of this builder to {@link TopicPath.SearchAction#REQUEST}. A previously set action is replaced.
      *
      * @return this builder to allow method chaining.
      * @since 1.2.0
      */
     TopicPathBuildable request();
+
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.SearchAction#COMPLETE}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     * @since 1.2.0
+     */
+    TopicPathBuildable complete();
+
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.SearchAction#FAILED}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     * @since 1.2.0
+     */
+    TopicPathBuildable failed();
+
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.SearchAction#HAS_NEXT}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     * @since 1.2.0
+     */
+    TopicPathBuildable hasNext();
+
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.SearchAction#CREATED}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     * @since 1.2.0
+     */
+    TopicPathBuildable generated();
 
 }

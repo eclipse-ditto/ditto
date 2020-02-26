@@ -13,19 +13,16 @@
 package org.eclipse.ditto.protocoladapter.provider;
 
 import org.eclipse.ditto.protocoladapter.Adapter;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
- * Interface providing the modify command adapter and the modify command response adapter.
- *
- * @param <M> the type of modify commands
+ * Interface providing the event adapter.
  */
-interface ThingSearchCommandAdapterProvider<M extends Signal<?>> {
+interface SubscriptionEventAdapterProvider<E extends Event<?>> {
 
     /**
-     * @return the modify command adapter
+     * @return the event adapter
      */
-    Adapter<M> getSearchCommandAdapter();
+    Adapter<E> getSubscriptionEventAdapter();
 
 }

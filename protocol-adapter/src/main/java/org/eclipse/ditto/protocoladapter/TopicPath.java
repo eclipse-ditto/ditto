@@ -348,7 +348,16 @@ public interface TopicPath {
 
         CANCEL("cancel"),
 
-        REQUEST("request");
+        REQUEST("request"),
+
+
+        COMPLETE("complete"),
+
+        GENERATED("created"),
+
+        FAILED("failed"),
+
+        HAS_NEXT("hasNext");
 
         private final String name;
 

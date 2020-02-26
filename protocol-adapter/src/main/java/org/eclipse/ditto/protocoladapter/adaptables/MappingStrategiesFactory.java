@@ -49,12 +49,15 @@ public final class MappingStrategiesFactory {
         return ThingQueryCommandResponseMappingStrategies.getInstance();
     }
 
-    public static ThingSearchCommandMappingStrategies getThingSearchCommandResponseMappingStrategies(){
+    public static ThingSearchCommandMappingStrategies getThingSearchCommandMappingStrategies(){
         return ThingSearchCommandMappingStrategies.getInstance();
     }
 
     public static ThingEventMappingStrategies getThingEventMappingStrategies() {
         return ThingEventMappingStrategies.getInstance();
+    }
+    public static SubscriptionEventMappingStrategies getSubscriptionEventMappingStrategies(){
+        return SubscriptionEventMappingStrategies.getInstance();
     }
 
     public static MessageCommandMappingStrategies getMessageCommandMappingStrategies() {
