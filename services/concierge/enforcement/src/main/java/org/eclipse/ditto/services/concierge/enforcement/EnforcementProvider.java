@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -58,6 +59,58 @@ public interface EnforcementProvider<T extends Signal> {
      * @return the {@link AbstractEnforcement}.
      */
     AbstractEnforcement<T> createEnforcement(Contextual<T> context);
+
+    // TODO: document
+    default boolean changesAuthorization(final T message) {
+        return false;
+    }
+
+    // TODO: document
+    default EntityId getEntityId(final T message) {
+        return message.getEntityId();
+    }
+
+    /**
+     * Convert this enforcement provider into a stream of enforcement tasks.
+     *
+     * @return the stream.
+     */
+    @SuppressWarnings("unchecked") // due to GraphDSL usage
+    default Graph<FlowShape<Contextual<WithDittoHeaders>, EnforcementTask>, NotUsed> createEnforcementTask() {
+
+        final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed>
+                multiplexer =
+                Filter.multiplexBy(contextual ->
+                        contextual.tryToMapMessage(message -> getCommandClass().isInstance(message)
+                                ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
+                                : Optional.empty()));
+
+        return GraphDSL.create(builder -> {
+            final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout =
+                    builder.add(multiplexer);
+
+            // using parallelism=1 to ensure that authorization-changing commands affect the next command immediately
+            final Flow<Contextual<T>, EnforcementTask, NotUsed> enforcementFlow =
+                    Flow.fromFunction(contextual -> {
+                        final T message = contextual.getMessage();
+                        final EntityId entityId = getEntityId(message);
+                        final boolean changesAuthorization = changesAuthorization(message);
+                        final AbstractEnforcement<T> enforcement = createEnforcement(contextual);
+                        return EnforcementTask.of(entityId, changesAuthorization, enforcement::enforceSafely);
+                    });
+
+            // by default, ignore unhandled messages:
+            final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
+
+            final FlowShape<Contextual<T>, EnforcementTask> enforcementShape =
+                    builder.add(enforcementFlow);
+
+            builder.from(fanout.out0()).toInlet(enforcementShape.in());
+            builder.from(fanout.out1()).to(unhandledSink);
+
+            return FlowShape.of(fanout.in(), enforcementShape.out());
+        });
+    }
 
     /**
      * Convert this enforcement provider into a stream of contextual messages.

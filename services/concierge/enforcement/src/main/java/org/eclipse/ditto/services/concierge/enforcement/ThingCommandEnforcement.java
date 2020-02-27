@@ -1283,6 +1283,11 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         }
 
         @Override
+        public boolean changesAuthorization(final ThingCommand command) {
+            return command instanceof ThingModifyCommand && ((ThingModifyCommand) command).changesAuthorization();
+        }
+
+        @Override
         public AbstractEnforcement<ThingCommand> createEnforcement(final Contextual<ThingCommand> context) {
             return new ThingCommandEnforcement(context, thingsShardRegion, policiesShardRegion, thingIdCache,
                     policyEnforcerCache, aclEnforcerCache, preEnforcer, subjectIssuersForPolicyMigration);

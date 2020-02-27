@@ -316,6 +316,11 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         }
 
         @Override
+        public boolean changesAuthorization(final PolicyCommand command) {
+            return true;
+        }
+
+        @Override
         public AbstractEnforcement<PolicyCommand> createEnforcement(final Contextual<PolicyCommand> context) {
             return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
         }

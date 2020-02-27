@@ -91,9 +91,9 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         this.aclEnforcerCache = aclEnforcerCache;
         this.policyEnforcerCache = policyEnforcerCache;
 
-        contextual = new Contextual<>(null, getSelf(), getContext().getSystem().deadLetters(),
-                pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), logger, null, null,
-                null, null, createResponseReceiversCache());
+        contextual = Contextual.forActor(getSelf(), getContext().getSystem().deadLetters(),
+                pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), logger,
+                createResponseReceiversCache());
 
         // register for sending messages via pub/sub to this enforcer
         // used for receiving cache invalidations from brother concierge nodes

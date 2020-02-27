@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -31,12 +30,12 @@ import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.pattern.Patterns;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.javadsl.Broadcast;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
+import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Merge;
 import akka.stream.javadsl.Sink;
 
@@ -50,7 +49,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      */
     public static final String ACTOR_NAME = "enforcer";
 
-    private final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> handler;
+    private final ActorRef enforcementScheduler;
     private final Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> sink;
 
     @SuppressWarnings("unused")
@@ -66,8 +65,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
         super(pubSubMediator, conciergeForwarder, partitionBufferSize, thingIdCache, aclEnforcerCache,
                 policyEnforcerCache);
 
-        handler = assembleHandler(enforcementProviders, preEnforcer, partitionBufferSize);
-        sink = assembleSink();
+        enforcementScheduler = getContext().actorOf(EnforcementScheduler.props(), EnforcementScheduler.ACTOR_NAME);
+        sink = assembleSink(enforcementProviders, preEnforcer, enforcementScheduler);
     }
 
     /**
@@ -123,7 +122,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
 
     @Override
     protected Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> processMessageFlow() {
-        return handler;
+        return Flow.create();
     }
 
     @Override
@@ -132,34 +131,34 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     }
 
     /**
-     * Create the flow that defines the behavior of this enforcer actor by enhancing the passed in {@link Contextual}
-     * e.g. with a message and receiver which in the end (in the {@link #assembleSink()}) are processed.
+     * Create the sink that defines the behavior of this enforcer actor by creating enforcement tasks for incoming
+     * messages.
      *
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @return a handler as {@link Flow} of {@link Contextual} messages.
      */
     @SuppressWarnings("unchecked") // due to GraphDSL usage
-    private Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> assembleHandler(
+    private Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> assembleSink(
             final Set<EnforcementProvider<?>> enforcementProviders,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
-            final int partitionBufferSize) {
+            final ActorRef enforcementScheduler) {
 
         final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> preEnforcerFlow =
                 Optional.ofNullable(preEnforcer)
                         .map(PreEnforcer::fromFunctionWithContext)
                         .orElseGet(Flow::create);
 
-        final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> enforcerFlow =
+        final Graph<FlowShape<Contextual<WithDittoHeaders>, EnforcementTask>, NotUsed> enforcerFlow =
                 GraphDSL.create(
                         Broadcast.<Contextual<WithDittoHeaders>>create(enforcementProviders.size()),
-                        Merge.<Contextual<WithDittoHeaders>>create(enforcementProviders.size(), true),
+                        Merge.<EnforcementTask>create(enforcementProviders.size(), true),
                         (notUsed1, notUsed2) -> notUsed1,
                         (builder, bcast, merge) -> {
                             final ArrayList<EnforcementProvider<?>> providers = new ArrayList<>(enforcementProviders);
                             for (int i = 0; i < providers.size(); i++) {
                                 builder.from(bcast.out(i))
-                                        .via(builder.add(providers.get(i).toContextualFlow()))
+                                        .via(builder.add(providers.get(i).createEnforcementTask()))
                                         .toInlet(merge.in(i));
                             }
 
@@ -168,37 +167,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
 
         return Flow.<Contextual<WithDittoHeaders>>create()
                 .via(preEnforcerFlow)
-                .via(enforcerFlow);
+                .via(enforcerFlow)
+                .toMat(Sink.foreach(task -> enforcementScheduler.tell(task, ActorRef.noSender())), Keep.right());
     }
-
-    /**
-     * Create the sink that defines the outcome of this enforcer actor's stream.
-     *
-     * @return the Sink receiving the enriched {@link Contextual} to finally process.
-     */
-    private Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> assembleSink() {
-        return Sink.foreach(theContextual -> {
-            logger.setCorrelationId(theContextual.getMessage());
-            final Optional<ActorRef> receiverOpt = theContextual.getReceiver();
-            final Optional<Supplier<CompletionStage<Object>>> askFutureOpt = theContextual.getAskFuture();
-            if (askFutureOpt.isPresent() && receiverOpt.isPresent()) {
-                final ActorRef receiver = receiverOpt.get();
-                logger.debug("About to pipe contextual message <{}> after ask-step to receiver: <{}>",
-                        theContextual.getMessage(), receiver);
-                // It does not disrupt command order guarantee to run the ask-future here if the ask-future
-                // is initiated by a call to Patterns.ask(), because Patterns.ask() calls ActorRef.tell()
-                // in the calling thread.
-                Patterns.pipe(askFutureOpt.get().get(), getContext().dispatcher()).to(receiver);
-            } else if (receiverOpt.isPresent()) {
-                final ActorRef receiver = receiverOpt.get();
-                final Object wrappedMsg = theContextual.getReceiverWrapperFunction().apply(theContextual.getMessage());
-                logger.debug("About to send contextual message <{}> to receiver: <{}>", wrappedMsg, receiver);
-                receiver.tell(wrappedMsg, theContextual.getSender());
-            } else {
-                logger.debug("No receiver found in Contextual - as a result just ignoring it: <{}>", theContextual);
-            }
-            logger.discardCorrelationId();
-        });
-    }
-
 }
