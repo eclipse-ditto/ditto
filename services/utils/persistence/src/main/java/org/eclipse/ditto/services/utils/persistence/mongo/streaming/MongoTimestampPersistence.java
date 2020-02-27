@@ -17,6 +17,8 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.bson.Document;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
@@ -29,7 +31,9 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.mongodb.reactivestreams.client.Success;
 
+import akka.Done;
 import akka.NotUsed;
+import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
@@ -53,27 +57,28 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
      */
     private static final long MIN_CAPPED_COLLECTION_SIZE_IN_BYTES = 4096;
 
-    private static final String FIELD_TIMESTAMP = "ts";
     /**
      * MongoDB error code if a collection that is being created already exists
      */
     private static final int COLLECTION_ALREADY_EXISTS_ERROR_CODE = 48;
 
+    private static final String FIELD_TIMESTAMP = "ts";
+
+    private static final String FIELD_TAG = "tg";
+
     /**
      * The logger.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoTimestampPersistence.class);
-    private final Source<MongoCollection, NotUsed> lastSuccessfulSearchSyncCollection;
+    private final Source<MongoCollection, NotUsed> collectionSource;
 
     /**
      * Constructor.
      *
-     * @param lastSuccessfulSearchSyncCollection the collection in which the last successful sync timestamps can be
-     * stored.
+     * @param collectionSource the source of a capped collection in which timestamps are stored.
      */
-    private MongoTimestampPersistence(final Source<MongoCollection, NotUsed> lastSuccessfulSearchSyncCollection) {
-
-        this.lastSuccessfulSearchSyncCollection = lastSuccessfulSearchSyncCollection;
+    private MongoTimestampPersistence(final Source<MongoCollection, NotUsed> collectionSource) {
+        this.collectionSource = collectionSource;
     }
 
     /**
@@ -81,50 +86,64 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
      *
      * @param collectionName The name of the collection.
      * @param mongoClient the client wrapper holding the connection information.
-     * @param materializer an actor materializer to materialize the restart-source of the sync timestamp collection.
+     * @param materializer an actor materializer to materialize the restart-source of the timestamp collection.
      * @return a new initialized instance.
      */
     public static MongoTimestampPersistence initializedInstance(final String collectionName,
             final DittoMongoClient mongoClient, final ActorMaterializer materializer) {
-        final Source<MongoCollection, NotUsed> lastSuccessfulSearchSyncCollection =
+        final Source<MongoCollection, NotUsed> collectionSource =
                 createOrGetCappedCollection(mongoClient.getDefaultDatabase(), collectionName,
                         MIN_CAPPED_COLLECTION_SIZE_IN_BYTES, materializer);
 
-        return new MongoTimestampPersistence(lastSuccessfulSearchSyncCollection);
+        return new MongoTimestampPersistence(collectionSource);
     }
 
     @Override
     public Source<NotUsed, NotUsed> setTimestamp(final Instant timestamp) {
-        final Date mongoStorableDate = Date.from(timestamp);
+        return setTaggedTimestamp(timestamp, null).map(done -> NotUsed.getInstance());
+    }
 
-        final Document toStore = new Document().append(FIELD_TIMESTAMP, mongoStorableDate);
-
+    @Override
+    public Source<Done, NotUsed> setTaggedTimestamp(final Instant timestamp, @Nullable final String tag) {
+        final Document toStore = new Document()
+                .append(FIELD_TIMESTAMP, Date.from(timestamp))
+                .append(FIELD_TAG, tag);
         return getCollection()
                 .flatMapConcat(collection -> Source.fromPublisher(collection.insertOne(toStore)))
                 .map(success -> {
-                    LOGGER.debug("Successfully inserted timestamp for search synchronization: <{}>.", timestamp);
-                    return NotUsed.getInstance();
+                    LOGGER.debug("Successfully inserted <{}> tagged <{}>.", timestamp, tag);
+                    return Done.done();
                 });
     }
 
     /**
+     * Get 1 collection from the source of capped collections.
+     * Contains an unchecked cast due eventually to the inability to create BroadcastHub with a parametric type argument
+     * {@code MongoCollection<Document>}.
+     *
      * @return the underlying collection in a future for tests
      */
     @SuppressWarnings("unchecked")
     Source<MongoCollection<Document>, NotUsed> getCollection() {
-        return lastSuccessfulSearchSyncCollection.take(1)
+        return collectionSource.take(1)
                 .map(document -> (MongoCollection<Document>) document);
     }
 
     @Override
     public Source<Optional<Instant>, NotUsed> getTimestampAsync() {
+        return getTaggedTimestamp().map(optional -> optional.map(Pair::first));
+    }
+
+    @Override
+    public Source<Optional<Pair<Instant, String>>, NotUsed> getTaggedTimestamp() {
         return getCollection()
                 .flatMapConcat(collection -> Source.fromPublisher(collection.find().sort(SORT_BY_ID_DESC).limit(1)))
                 .flatMapConcat(doc -> {
                     final Date date = doc.getDate(FIELD_TIMESTAMP);
                     final Instant timestamp = date.toInstant();
-                    LOGGER.debug("Returning last timestamp of search synchronization: <{}>.", timestamp);
-                    return Source.single(Optional.of(timestamp));
+                    final String tag = doc.getString(FIELD_TAG);
+                    LOGGER.debug("Returning timestamp <{}> tagged <{}>.", timestamp, tag);
+                    return Source.single(Optional.of(Pair.create(timestamp, tag)));
                 })
                 .orElse(Source.single(Optional.empty()));
     }
@@ -154,6 +173,8 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
         final Source<MongoCollection, NotUsed> restartSource =
                 RestartSource.withBackoff(BACKOFF_MIN, BACKOFF_MAX, 1.0, () -> infiniteCollectionSource);
 
+        // pre-materialize source with BroadcastHub so that a successfully obtained capped collection is reused
+        // until the stream fails, whereupon it gets recreated with backoff.
         return restartSource.runWith(BroadcastHub.of(MongoCollection.class, 1), materializer);
     }
 
@@ -167,9 +188,8 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
                 .sizeInBytes(cappedCollectionSizeInBytes)
                 .maxDocuments(1);
 
-        return Source.lazily(() ->
-                Source.fromPublisher(
-                        database.createCollection(collectionName, collectionOptions)))
+        return Source.lazily(
+                () -> Source.fromPublisher(database.createCollection(collectionName, collectionOptions)))
                 .mapMaterializedValue(whatever -> NotUsed.getInstance())
                 .withAttributes(Attributes.inputBuffer(1, 1))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<Success, NotUsed>>()

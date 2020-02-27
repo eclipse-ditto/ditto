@@ -22,7 +22,7 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
-import org.eclipse.ditto.services.concierge.actors.cleanup.CleanupStatusReporter;
+import org.eclipse.ditto.services.utils.health.SingletonStatusReporter;
 import org.eclipse.ditto.services.concierge.actors.cleanup.EventSnapshotCleanupCoordinator;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.proxy.EnforcerActorFactory;
@@ -141,7 +141,9 @@ public final class ConciergeRootActor extends DittoRootActor {
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
                         MongoHealthChecker.props(),
-                        CleanupStatusReporter.props(cleanupCoordinatorProxy)));
+                        SingletonStatusReporter.props(ConciergeMessagingConstants.CLUSTER_ROLE,
+                                cleanupCoordinatorProxy))
+        );
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {

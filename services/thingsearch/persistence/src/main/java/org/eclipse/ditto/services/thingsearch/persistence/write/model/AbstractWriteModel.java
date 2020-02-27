@@ -86,4 +86,8 @@ public abstract class AbstractWriteModel {
         return Objects.hash(metadata);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + metadata + "]";
+    }
 }

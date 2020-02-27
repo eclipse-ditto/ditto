@@ -103,18 +103,17 @@ public final class PersistenceIdSource {
         if (triple.t2() != null) {
             return Source.single(triple.t2());
         } else {
-            final String message = String.format("Error on sending <%s>: %s", Objects.toString(triple.t1()),
-                    Objects.toString(triple.t3()));
+            final String message = String.format("Error on sending <%s>: %s", triple.t1(), triple.t3());
             return Source.failed(new IllegalStateException(message));
         }
     }
 
     private static DistributedPubSubMediator.Send requestStreamCommand(final PersistenceIdsConfig config,
             final String path, final EntityIdWithRevision seed) {
-        return DistPubSubAccess.send(path, sudoStreamSnapshotRevisions(config, seed), false);
+        return DistPubSubAccess.send(path, sudoStreamPids(config, seed), false);
     }
 
-    private static SudoStreamPids sudoStreamSnapshotRevisions(final PersistenceIdsConfig config,
+    private static SudoStreamPids sudoStreamPids(final PersistenceIdsConfig config,
             final EntityIdWithRevision seed) {
         return SudoStreamPids.of(config.getBurst(), config.getStreamIdleTimeout().toMillis(), DittoHeaders.empty())
                 .withLowerBound(seed);

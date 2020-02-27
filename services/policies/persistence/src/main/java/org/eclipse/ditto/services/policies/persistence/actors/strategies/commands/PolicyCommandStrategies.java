@@ -65,6 +65,7 @@ public final class PolicyCommandStrategies
 
         // Sudo
         addStrategy(new SudoRetrievePolicyStrategy());
+        addStrategy(new SudoRetrievePolicyRevisionStrategy());
     }
 
     /**

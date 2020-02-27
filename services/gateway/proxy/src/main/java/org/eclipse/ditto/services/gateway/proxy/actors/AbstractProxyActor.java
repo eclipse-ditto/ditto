@@ -42,11 +42,17 @@ public abstract class AbstractProxyActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "proxy";
 
+    /**
+     * Akka pub-sub mediator.
+     */
+    protected final ActorRef pubSubMediator;
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef statisticsActor;
 
     AbstractProxyActor(final ActorRef pubSubMediator) {
+        this.pubSubMediator = pubSubMediator;
         statisticsActor = getContext().actorOf(StatisticsActor.props(pubSubMediator), StatisticsActor.ACTOR_NAME);
     }
 

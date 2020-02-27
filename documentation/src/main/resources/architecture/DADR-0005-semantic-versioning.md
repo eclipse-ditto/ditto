@@ -2,6 +2,8 @@
 
 Date: 27.01.2020
 
+Enhancement of adding `@since` in javadoc: 21.02.2020
+
 ## Status
 
 accepted
@@ -59,6 +61,23 @@ ditto-protocol-adapter
 ditto-signals
 ditto-utils
 ```
+
+### Javadoc documentation using `@since`
+
+When adding new public visible API (e.g. new interfaces, classes or methods in existing code) in the defined API modules, a `@since <version>` javadoc annotation shall be added.
+
+Example:
+```java
+/**
+ * Returns the extra information which enriches the actual value of this change.
+ * 
+ * @return the extra data or an empty Optional.
+ * @since 1.1.0
+ */
+Optional<JsonObject> getExtra();
+```
+
+Existing public API without `@since` can be interpreted as `@since 1.0.0` and can be added when adjusting a class.
 
 ### Enforcement of semantic versioning
 

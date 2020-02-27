@@ -18,14 +18,15 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
-
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 
 /**
  * Interface for thing operations on the persistence used within the search service.
@@ -78,6 +79,16 @@ public interface ThingsSearchPersistence {
             @Nullable Set<String> namespaces);
 
     /**
+     * Start a stream of metadata of all search index entries not marked for deletion.
+     * Do not consider authorization.
+     *
+     * @param lowerBound lower bound of the stream for resumption. Stream the entire search index if the lower bound
+     * is a dummy entity ID.
+     * @return the source of metadata of all search index entries.
+     */
+    Source<Metadata, NotUsed> sudoStreamMetadata(final EntityId lowerBound);
+
+    /**
      * Returns the IDs for all found documents.
      *
      * @param query the query for matching.
@@ -85,7 +96,8 @@ public interface ThingsSearchPersistence {
      * @return an {@link Source} which emits the IDs.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
-    default Source<ResultList<ThingId>, NotUsed> findAll(final Query query, final List<String> authorizationSubjectIds) {
+    default Source<ResultList<ThingId>, NotUsed> findAll(final Query query,
+            final List<String> authorizationSubjectIds) {
         return findAll(query, authorizationSubjectIds, null);
     }
 
