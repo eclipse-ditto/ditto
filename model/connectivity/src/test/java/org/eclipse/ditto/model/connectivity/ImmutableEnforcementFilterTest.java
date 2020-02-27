@@ -58,7 +58,7 @@ public class ImmutableEnforcementFilterTest {
                 "some/other/topic/{{  test:placeholder  }}",
                 "some/other/topic/{{ thing:id }}",
                 "eclipse:ditto",
-                "eclipse:ditto");
+                ThingId.of("eclipse:ditto"));
     }
 
     @Test
@@ -67,7 +67,34 @@ public class ImmutableEnforcementFilterTest {
                 "{{  test:placeholder  }}/some/topic/",
                 "{{ thing:id }}/some/topic/",
                 "eclipse:ditto",
-                "eclipse:ditto");
+                ThingId.of("eclipse:ditto"));
+    }
+
+    @Test
+    public void testSimpleThingIdPlaceholderAndEntityIdFilter() {
+        testSimplePlaceholder(
+                "some/{{  test:placeholder  }}/topic",
+                "some/{{ entity:id }}/topic",
+                "eclipse:ditto",
+                ThingId.of("eclipse:ditto"));
+    }
+
+    @Test
+    public void testSimplePolicyIdPlaceholderAndEntityIdFilter() {
+        testSimplePlaceholder(
+                "some/{{  test:placeholder  }}/topic",
+                "some/{{ entity:id }}/topic",
+                "eclipse:ditto",
+                PolicyId.of("eclipse:ditto"));
+    }
+
+    @Test
+    public void testSimpleEntityIdPlaceholderAndEntityIdFilter() {
+        testSimplePlaceholder(
+                "some/{{  test:placeholder  }}/topic",
+                "some/{{ entity:id }}/topic",
+                "eclipse:ditto",
+                DefaultNamespacedEntityId.of("eclipse:ditto"));
     }
 
     @Test
@@ -76,7 +103,7 @@ public class ImmutableEnforcementFilterTest {
                 "some/topic/{{  test:placeholder  }}/topic",
                 "some/topic/{{ thing:id }}/topic",
                 "eclipse:ditto",
-                "eclipse:ditto");
+                ThingId.of("eclipse:ditto"));
     }
 
     @Test(expected = ConnectionSignalIdEnforcementFailedException.class)
@@ -85,7 +112,7 @@ public class ImmutableEnforcementFilterTest {
                 "some/topic/{{  test:placeholder  }}/topic",
                 "some/topic/{{ thing:id }}/topic",
                 "eclipse:ditto",
-                "ditto:eclipse");
+                ThingId.of("ditto:eclipse"));
     }
 
     @Test(expected = UnresolvedPlaceholderException.class)
@@ -94,7 +121,7 @@ public class ImmutableEnforcementFilterTest {
                 "{{  header:thing-id }}",
                 "{{ thing:id }}",
                 "eclipse:ditto",
-                "eclipse:ditto");
+                ThingId.of("eclipse:ditto"));
     }
 
     @Test(expected = UnresolvedPlaceholderException.class)
@@ -103,7 +130,7 @@ public class ImmutableEnforcementFilterTest {
                 "{{  test:placeholder }}",
                 "{{ some:id }}",
                 "eclipse:ditto",
-                "eclipse:ditto");
+                ThingId.of("eclipse:ditto"));
     }
 
     @Test
@@ -131,12 +158,11 @@ public class ImmutableEnforcementFilterTest {
                 EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                         PlaceholderFactory.newHeadersPlaceholder());
         final EnforcementFilter<CharSequence> enforcementFilter = enforcementFilterFactory.getFilter(map);
-        enforcementFilter.match("eclipse:ditto", DittoHeaders.empty());
         enforcementFilter.match(namespacedEntityId, DittoHeaders.empty());
     }
 
     private void testSimplePlaceholder(final String inputTemplate, final String filterTemplate,
-            final String inputValue, final String filterValue) {
+            final String inputValue, final CharSequence filterValue) {
         final Enforcement enforcement = ConnectivityModelFactory.newEnforcement(inputTemplate, filterTemplate);
         final EnforcementFilterFactory<String, CharSequence> enforcementFilterFactory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement, SimplePlaceholder.INSTANCE);
