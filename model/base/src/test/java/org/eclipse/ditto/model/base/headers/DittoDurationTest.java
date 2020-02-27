@@ -46,9 +46,11 @@ public final class DittoDurationTest {
 
     @Test
     public void tryToGetInstanceFromNegativeDuration() {
+        final Duration javaDuration = Duration.ofSeconds(-5);
+
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> DittoDuration.of(Duration.ofSeconds(-5)))
-                .withMessage("The duration must not be negative!")
+                .isThrownBy(() -> DittoDuration.of(javaDuration))
+                .withMessage("The duration must not be negative but was <%s>!", javaDuration)
                 .withNoCause();
     }
 
@@ -163,12 +165,30 @@ public final class DittoDurationTest {
     }
 
     @Test
-    public void tryToParseDurationWithNegativeAmount() {
+    public void parseDurationWithPositivePrefix() {
+        final byte durationValue = 42;
+        final DittoDuration dittoDuration = DittoDuration.parseDuration(String.format("+%ds", durationValue));
+
+        assertThat(dittoDuration.getDuration()).isEqualTo(Duration.ofSeconds(durationValue));
+    }
+
+    @Test
+    public void tryToParseDurationWithNegativeAmountAndSuffix() {
         final String durationString = "-15s";
 
-        assertThatExceptionOfType(NumberFormatException.class)
+        assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> DittoDuration.parseDuration(durationString))
-                .withMessageContaining(durationString)
+                .withMessage("The duration must not be negative but was <%s>!", durationString)
+                .withNoCause();
+    }
+
+    @Test
+    public void tryToParseDurationWithNegativeAmountWithoutSuffix() {
+        final String durationString = "-15";
+
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> DittoDuration.parseDuration(durationString))
+                .withMessage("The duration must not be negative but was <%s>!", durationString)
                 .withNoCause();
     }
 

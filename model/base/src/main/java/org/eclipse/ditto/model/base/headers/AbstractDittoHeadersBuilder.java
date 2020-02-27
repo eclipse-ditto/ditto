@@ -317,7 +317,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     private static DittoDuration tryToParseDuration(final CharSequence duration) {
         try {
             return DittoDuration.parseDuration(duration);
-        } catch (final NumberFormatException e) {
+        } catch (final IllegalArgumentException e) {
             throw DittoHeaderInvalidException.newInvalidTypeBuilder(DittoHeaderDefinition.TIMEOUT.getKey(), duration,
                     "duration").build();
         }

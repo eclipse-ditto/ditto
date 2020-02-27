@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.base.headers;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.function.LongFunction;
@@ -50,7 +51,8 @@ final class DittoDuration implements CharSequence {
      */
     static DittoDuration of(final Duration duration) {
         checkNotNull(duration, "duration");
-        checkArgument(duration, d -> !d.isNegative(), () -> "The duration must not be negative!");
+        checkArgument(duration, d -> !d.isNegative(),
+                () -> MessageFormat.format("The duration must not be negative but was <{0}>!", duration));
 
         return new DittoDuration(duration.toMillis(), DittoTimeUnit.MILLISECONDS);
     }
@@ -68,8 +70,8 @@ final class DittoDuration implements CharSequence {
      * @param duration the CharSequence containing the DittoDuration representation to be parsed.
      * @return the created DittoDuration.
      * @throws NullPointerException if {@code duration} is {@code null}.
-     * @throws java.lang.NumberFormatException if the duration char sequence does not contain a parsable {@code long} or
-     * the parsed long is not positive.
+     * @throws java.lang.NumberFormatException if the duration char sequence does not contain a parsable {@code long}.
+     * @throws IllegalArgumentException if the parsed duration is not negative.
      */
     static DittoDuration parseDuration(final CharSequence duration) {
         return parseDuration(checkNotNull(duration, "duration"), DittoTimeUnit.values());
@@ -81,25 +83,35 @@ final class DittoDuration implements CharSequence {
         int i = 0;
         while (null == durationValue && i < dittoTimeUnits.length) {
             timeUnit = dittoTimeUnits[i];
-            durationValue = parseDuration(duration, timeUnit);
+            durationValue = parseDurationRegexBased(duration, timeUnit);
             i++;
         }
         if (null == durationValue) {
 
             // interpret duration as seconds if unit was omitted
             timeUnit = DittoTimeUnit.SECONDS;
-            durationValue = Long.parseLong(duration.toString());
+            durationValue = parseDurationPlain(duration, "");
         }
         return new DittoDuration(durationValue, timeUnit);
     }
 
     @Nullable
-    private static Long parseDuration(final CharSequence duration, final DittoTimeUnit dittoTimeUnit) {
+    private static Long parseDurationRegexBased(final CharSequence duration, final DittoTimeUnit dittoTimeUnit) {
+        Long result = null;
         final Matcher matcher = dittoTimeUnit.getRegexMatcher(duration);
         if (matcher.matches()) {
-            return Long.parseLong(matcher.group("amount"));
+            result = parseDurationPlain(matcher.group("amount"), dittoTimeUnit.getSuffix());
         }
-        return null;
+        return result;
+    }
+
+    private static Long parseDurationPlain(final CharSequence charSequence, final CharSequence timeUnitSuffix) {
+        final long result = Long.parseLong(charSequence.toString());
+        checkArgument(result, r -> 0 <= r, () -> {
+            final String msgPattern = "The duration must not be negative but was <{0}{1}>!";
+            return MessageFormat.format(msgPattern, charSequence, timeUnitSuffix);
+        });
+        return result;
     }
 
     /**
@@ -172,7 +184,7 @@ final class DittoDuration implements CharSequence {
         private DittoTimeUnit(final String suffix, final LongFunction<Duration> toJavaDuration) {
             this.suffix = suffix;
             this.toJavaDuration = toJavaDuration;
-            regexPattern = Pattern.compile("(?<amount>\\d+)(?<unit>" + suffix + ")");
+            regexPattern = Pattern.compile("(?<amount>[+-]?\\d+)(?<unit>" + suffix + ")");
         }
 
         public Matcher getRegexMatcher(final CharSequence duration) {
