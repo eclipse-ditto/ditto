@@ -51,10 +51,12 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
@@ -63,8 +65,14 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.junit.After;
@@ -76,6 +84,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.TestActorRef;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 
@@ -418,7 +427,6 @@ public final class ThingCommandEnforcementTest {
             final CreateThingResponse expectedCreateThingResponse = fishForMsgClass(this, CreateThingResponse.class);
             assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
         }};
-
     }
 
     @Test
@@ -450,6 +458,121 @@ public final class ThingCommandEnforcementTest {
 
             // verify cache is loaded twice
             assertThat(sudoRetrieveThingCounter.get()).isEqualTo(2);
+        }};
+    }
+
+    @Test
+    public void testParallelEnforcementTaskScheduling() {
+        final TestProbe pubSubProbe = TestProbe.apply("pubSubMediator", system);
+        final TestProbe entitiesProbe = TestProbe.apply("entities", system);
+
+        final Thing thing = newThing().build();
+        final PolicyId policyId = PolicyId.of(THING_ID);
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, SUBJECT.getId())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        READ.name(), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        READ.name(), WRITE.name())
+                .build();
+        final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(policyId, policy, headers(V_2));
+        final ThingNotAccessibleException thingNotAccessibleException =
+                ThingNotAccessibleException.newBuilder(THING_ID).build();
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(
+                        JsonObject.newBuilder()
+                                .set(Thing.JsonFields.ID, THING_ID.toString())
+                                .set(Thing.JsonFields.POLICY_ID, policyId.toString())
+                                .set(Thing.JsonFields.REVISION, 1L)
+                                .build(),
+                        headers(V_2));
+        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
+                SudoRetrievePolicyResponse.of(policyId, policy.toJson(FieldType.all()), headers(V_2));
+        final CreateThing createThing = CreateThing.of(thing, null, headers(V_2));
+        final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, headers(V_2));
+        final RetrieveThing retrieveThing = RetrieveThing.of(THING_ID, headers(V_2));
+        final RetrieveThingResponse retrieveThingResponse =
+                RetrieveThingResponse.of(THING_ID, JsonObject.empty(), headers(V_2));
+        final ModifyPolicyId modifyPolicyId = ModifyPolicyId.of(THING_ID, policyId, headers(V_2));
+        final ModifyPolicyIdResponse modifyPolicyIdResponse = ModifyPolicyIdResponse.modified(THING_ID, headers(V_2));
+        final ModifyAttribute modifyAttribute =
+                ModifyAttribute.of(THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers(V_2));
+        final ModifyAttributeResponse modifyAttributeResponse =
+                ModifyAttributeResponse.created(THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers(V_2));
+        final RetrieveAttribute retrieveAttribute =
+                RetrieveAttribute.of(THING_ID, JsonPointer.of("x"), headers(V_2));
+        final RetrieveAttributeResponse retrieveAttributeResponse =
+                RetrieveAttributeResponse.of(THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers(V_2));
+
+        new TestKit(system) {{
+            final ActorRef underTest =
+                    TestSetup.newEnforcerActor(system, pubSubProbe.ref(), entitiesProbe.ref());
+
+            // GIVEN: all commands are sent in one batch
+            underTest.tell(createThing, getRef());
+            underTest.tell(retrieveThing, getRef());
+            underTest.tell(modifyPolicyId, getRef());
+            underTest.tell(modifyAttribute, getRef());
+            underTest.tell(retrieveAttribute, getRef());
+
+            // THEN: expect enforcement start: CreateThing
+            entitiesProbe.expectMsgClass(SudoRetrieveThing.class);
+            entitiesProbe.reply(thingNotAccessibleException);
+            entitiesProbe.expectMsgClass(CreatePolicy.class);
+
+            // THEN: no other message should come through before enforcement of CreateThing completes
+            entitiesProbe.expectNoMessage(Duration.create(150, TimeUnit.MILLISECONDS));
+
+            // WHEN: CreateThing completes
+            entitiesProbe.reply(createPolicyResponse);
+            entitiesProbe.expectMsgClass(CreateThing.class);
+            final ActorRef createThingSender = entitiesProbe.lastSender();
+
+            // THEN: cache reloads immediately due to queued commands
+            entitiesProbe.expectMsgClass(SudoRetrieveThing.class);
+            entitiesProbe.reply(sudoRetrieveThingResponse);
+            entitiesProbe.expectMsgClass(SudoRetrievePolicy.class);
+
+            // WHEN: cache reload completes
+            entitiesProbe.reply(sudoRetrievePolicyResponse);
+
+            // THEN: the next commands are dispatched until authorization change happens again
+            entitiesProbe.expectMsgClass(RetrieveThing.class);
+            final ActorRef retrieveThingSender = entitiesProbe.lastSender();
+            entitiesProbe.expectMsgClass(ModifyPolicyId.class);
+            final ActorRef modifyPolicyIdSender = entitiesProbe.lastSender();
+
+            // THEN: the authorization-changing command causes a cache reload
+            entitiesProbe.expectMsgClass(SudoRetrieveThing.class);
+
+            // WHEN: cache reload completes
+            entitiesProbe.reply(sudoRetrieveThingResponse);
+
+            // THEN: the other queued commands are dispatched
+            entitiesProbe.expectMsgClass(ModifyAttribute.class);
+            final ActorRef modifyAttributeSender = entitiesProbe.lastSender();
+            entitiesProbe.expectMsgClass(RetrieveAttribute.class);
+            final ActorRef retrieveAttributeSender = entitiesProbe.lastSender();
+
+            // WHEN: responses come back from the entities shard region
+            // THEN: responses are delivered to the command sender regardless of command order
+
+            modifyAttributeSender.tell(modifyAttributeResponse, ActorRef.noSender());
+            modifyPolicyIdSender.tell(modifyPolicyIdResponse, ActorRef.noSender());
+            createThingSender.tell(createThingResponse, ActorRef.noSender());
+
+            // ThingModifyCommandResponses involve no detour and can be sent together
+            expectMsgClass(ModifyAttributeResponse.class);
+            expectMsgClass(ModifyPolicyIdResponse.class);
+            expectMsgClass(CreateThingResponse.class);
+
+            // ThingQueryCommandResponses involve a detour. If sent together, arrival order won't be deterministic.
+            retrieveAttributeSender.tell(retrieveAttributeResponse, ActorRef.noSender());
+            expectMsgClass(RetrieveAttributeResponse.class);
+            retrieveThingSender.tell(retrieveThingResponse, ActorRef.noSender());
+            expectMsgClass(RetrieveThingResponse.class);
         }};
     }
 

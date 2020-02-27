@@ -60,14 +60,14 @@ public interface EnforcementProvider<T extends Signal> {
      */
     AbstractEnforcement<T> createEnforcement(Contextual<T> context);
 
-    // TODO: document
-    default boolean changesAuthorization(final T message) {
+    /**
+     * Check whether a signal will change authorization of subsequent signals when dispatched.
+     *
+     * @param signal the signal.
+     * @return whether the signal will change authorization.
+     */
+    default boolean changesAuthorization(final T signal) {
         return false;
-    }
-
-    // TODO: document
-    default EntityId getEntityId(final T message) {
-        return message.getEntityId();
     }
 
     /**
@@ -93,7 +93,7 @@ public interface EnforcementProvider<T extends Signal> {
             final Flow<Contextual<T>, EnforcementTask, NotUsed> enforcementFlow =
                     Flow.fromFunction(contextual -> {
                         final T message = contextual.getMessage();
-                        final EntityId entityId = getEntityId(message);
+                        final EntityId entityId = message.getEntityId();
                         final boolean changesAuthorization = changesAuthorization(message);
                         final AbstractEnforcement<T> enforcement = createEnforcement(contextual);
                         return EnforcementTask.of(entityId, changesAuthorization, enforcement::enforceSafely);
@@ -103,43 +103,6 @@ public interface EnforcementProvider<T extends Signal> {
             final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
 
             final FlowShape<Contextual<T>, EnforcementTask> enforcementShape =
-                    builder.add(enforcementFlow);
-
-            builder.from(fanout.out0()).toInlet(enforcementShape.in());
-            builder.from(fanout.out1()).to(unhandledSink);
-
-            return FlowShape.of(fanout.in(), enforcementShape.out());
-        });
-    }
-
-    /**
-     * Convert this enforcement provider into a stream of contextual messages.
-     *
-     * @return the stream.
-     */
-    @SuppressWarnings("unchecked") // due to GraphDSL usage
-    default Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> toContextualFlow() {
-
-        final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed>
-                multiplexer =
-                Filter.multiplexBy(contextual ->
-                        contextual.tryToMapMessage(message -> getCommandClass().isInstance(message)
-                                ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
-                                : Optional.empty()));
-
-        return GraphDSL.create(builder -> {
-            final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout =
-                    builder.add(multiplexer);
-
-            // using parallelism=1 to ensure that authorization-changing commands affect the next command immediately
-            final Flow<Contextual<T>, Contextual<WithDittoHeaders>, NotUsed> enforcementFlow =
-                    Flow.<Contextual<T>>create()
-                            .mapAsync(1, contextual -> createEnforcement(contextual).enforceSafely());
-
-            // by default, ignore unhandled messages:
-            final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
-
-            final FlowShape<Contextual<T>, Contextual<WithDittoHeaders>> enforcementShape =
                     builder.add(enforcementFlow);
 
             builder.from(fanout.out0()).toInlet(enforcementShape.in());

@@ -1283,8 +1283,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         }
 
         @Override
-        public boolean changesAuthorization(final ThingCommand command) {
-            return command instanceof ThingModifyCommand && ((ThingModifyCommand) command).changesAuthorization();
+        public boolean changesAuthorization(final ThingCommand signal) {
+            return signal instanceof ThingModifyCommand && ((ThingModifyCommand) signal).changesAuthorization();
         }
 
         @Override

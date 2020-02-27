@@ -34,7 +34,16 @@ final class EnforcementTask {
         this.changesAuthorization = changesAuthorization;
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * Create an enforcement task to be executed later.
+     *
+     * @param entityId entity ID for sequentialization.
+     * @param changesAuthorization whether dispatching the signal would change authorization for subsequent signals.
+     * @param taskSupplier supplier that when called, starts the enforcement task and returns the result as a future.
+     * @param <T> type of enforced signals.
+     * @return the task.
+     */
+    @SuppressWarnings("unchecked") // due to parameterized cast
     static <T extends WithDittoHeaders<?>> EnforcementTask of(final EntityId entityId,
             final boolean changesAuthorization,
             final Supplier<CompletionStage<Contextual<T>>> taskSupplier) {

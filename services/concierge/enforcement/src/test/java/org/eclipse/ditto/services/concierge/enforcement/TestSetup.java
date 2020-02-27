@@ -64,10 +64,10 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 public final class TestSetup {
 
-    public static final String THING = "thing";
     public static final String THING_SUDO = "thing-sudo";
     public static final String POLICY_SUDO = "policy-sudo";
 
@@ -109,13 +109,11 @@ public final class TestSetup {
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
         final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache =
-                CaffeineCache.of(Caffeine.newBuilder(),
-                policyEnforcerCacheLoader);
+                CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
         final AclEnforcerCacheLoader aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegion);
         final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache =
-                CaffeineCache.of(Caffeine.newBuilder(),
-                aclEnforcerCacheLoader);
+                CaffeineCache.of(Caffeine.newBuilder(), aclEnforcerCacheLoader);
         final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
         final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache =
@@ -131,7 +129,7 @@ public final class TestSetup {
 
         final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, 100,
                 preEnforcer, null, null, null);
-        return system.actorOf(props, THING + ":" + THING_ID);
+        return system.actorOf(props, EnforcerActor.ACTOR_NAME);
     }
 
     private static String createUniqueName(final String prefix) {
@@ -170,8 +168,9 @@ public final class TestSetup {
      * @return the message
      */
     public static <T> T fishForMsgClass(final TestKit testKit, final Class<T> clazz) {
-        return (T) testKit.fishForMessage(scala.concurrent.duration.Duration.create(3, TimeUnit.SECONDS),
-                clazz.getName(), clazz::isInstance);
+        return clazz.cast(
+                testKit.fishForMessage(FiniteDuration.apply(3, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance)
+        );
     }
 
     private static final class DummyLiveSignalPub implements LiveSignalPub {

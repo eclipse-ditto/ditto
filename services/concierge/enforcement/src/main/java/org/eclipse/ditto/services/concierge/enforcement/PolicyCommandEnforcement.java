@@ -316,7 +316,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         }
 
         @Override
-        public boolean changesAuthorization(final PolicyCommand command) {
+        public boolean changesAuthorization(final PolicyCommand signal) {
             return true;
         }
 
