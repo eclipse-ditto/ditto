@@ -15,8 +15,6 @@ package org.eclipse.ditto.protocoladapter.things;
 import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -51,14 +49,6 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
         return new SubscriptionEventAdapter(requireNonNull(headerTranslator));
     }
 
-    private static String getActionNameWithFirstLetterUpperCase(final TopicPath topicPath) {
-        return topicPath.getSearchAction()
-                .map(TopicPath.SearchAction::toString)
-                .map(AbstractAdapter::upperCaseFirst)
-                .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
-    }
-
-
     @Override
     protected String getType(final Adaptable adaptable) {
         return SubscriptionEvent.TYPE_PREFIX + adaptable.getTopicPath().getSearchAction().orElse(null);
@@ -67,7 +57,7 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
     @Override
     protected Adaptable mapSignalToAdaptable(final SubscriptionEvent<?> event, final TopicPath.Channel channel) {
 
-        TopicPath topicPath = null;
+        TopicPath topicPath;
         final PayloadBuilder payloadBuilder = Payload.newBuilder(event.getResourcePath());
 
         final String eventName = event.getClass().getSimpleName().toLowerCase().replace("subscription", "");

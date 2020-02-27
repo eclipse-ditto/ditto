@@ -15,7 +15,10 @@ package org.eclipse.ditto.protocoladapter.signals;
 import java.util.Collections;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -130,11 +133,11 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
         if (commandName.startsWith("create")) {
             CreateSubscription createCommand = (CreateSubscription) command;
             if (createCommand.getSelectedFields().isPresent()) {
-                payloadBuilder.withFields(createCommand.getSelectedFields().orElseGet(null).toString());
+                payloadBuilder.withFields(createCommand.getSelectedFields().orElse(JsonFieldSelector.newInstance("/")).toString());
             }
             if (createCommand.getFilter().isPresent() && createCommand.getOptions().isPresent()) {
                 payloadBuilder.withValue(JsonObject.of(
-                        String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", createCommand.getFilter().get(),
+                        String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", createCommand.getFilter().orElse(null),
                                 String.join(",", createCommand.getOptions()
                                         .orElse(Collections.emptyList())
                                         .toString()
@@ -143,7 +146,7 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
                                         .replace("]", "")))));
             } else if (createCommand.getFilter().isPresent()) {
                 payloadBuilder.withValue(JsonObject.of(
-                        String.format("{\"filter\": \"%s\"}", createCommand.getFilter().get())));
+                        String.format("{\"filter\": \"%s\"}", createCommand.getFilter().orElse(null))));
             } else if (createCommand.getOptions().isPresent()) {
                 payloadBuilder.withValue(
                         JsonObject.of(
