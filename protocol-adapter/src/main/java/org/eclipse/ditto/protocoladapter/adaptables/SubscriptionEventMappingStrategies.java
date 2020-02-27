@@ -18,7 +18,11 @@ import java.util.Objects;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
@@ -41,7 +45,6 @@ final class SubscriptionEventMappingStrategies extends AbstractSearchMappingStra
         return INSTANCE;
     }
 
-    //TODO: Implement Exception + Array for SubscriptionFailed and SubscriptionHasNext
     private static Map<String, JsonifiableMapper<SubscriptionEvent<?>>> initMappingStrategies() {
         final Map<String, JsonifiableMapper<SubscriptionEvent<?>>> mappingStrategies = new HashMap<>();
         mappingStrategies.put(SubscriptionCreated.TYPE,
@@ -52,14 +55,46 @@ final class SubscriptionEventMappingStrategies extends AbstractSearchMappingStra
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SubscriptionFailed.TYPE,
                 adaptable -> SubscriptionFailed.of(Objects.requireNonNull(subscriptionIdFrom(adaptable)),
-                        DittoRuntimeException.fromUnknownErrorJson(
-                                JsonObject.empty(), dittoHeadersFrom(adaptable)).get(), dittoHeadersFrom(adaptable)));
+                        errorFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SubscriptionHasNext.TYPE,
                 adaptable -> SubscriptionHasNext.of(Objects.requireNonNull(subscriptionIdFrom(adaptable)),
-                        JsonArray.empty(), dittoHeadersFrom(adaptable)));
+                        itemsFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
     }
 
+    private static JsonArray itemsFrom(final Adaptable adaptable) {
+        if (adaptable.getPayload().getValue().isPresent()) {
+            final JsonObject value = JsonObject.of(
+                    adaptable
+                            .getPayload()
+                            .getValue()
+                            .map(JsonValue::formatAsString)
+                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
+
+            return value.getValue("items").map(JsonValue::asArray).orElse(JsonArray.empty());
+        }
+        return JsonArray.empty();
+    }
+
+    private static DittoRuntimeException errorFrom(final Adaptable adaptable) {
+        if (adaptable.getPayload().getValue().isPresent()) {
+            final JsonObject value = JsonObject.of(
+                    adaptable
+                            .getPayload()
+                            .getValue()
+                            .map(JsonValue::formatAsString)
+                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
+
+            return DittoRuntimeException.fromUnknownErrorJson(
+                    JsonObject.of(value.getValue("error").map(JsonValue::formatAsString)
+                            .orElseThrow(() -> JsonParseException.newBuilder().build())), dittoHeadersFrom(adaptable))
+                    .orElseThrow(() -> JsonParseException.newBuilder().build());
+
+
+        }
+        return DittoRuntimeException.newBuilder(JsonParseException.newBuilder().build().toString(),
+                HttpStatusCode.BAD_REQUEST).build();
+    }
 
 }

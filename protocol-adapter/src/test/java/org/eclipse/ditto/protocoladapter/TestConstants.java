@@ -17,15 +17,11 @@ import static java.util.Collections.singletonList;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -35,6 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -70,7 +67,8 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
  */
 public final class TestConstants {
 
-    public static final Set<String> NAMESPACES = new HashSet<>(Arrays.asList("org.eclipse.ditto.test","org.eclipse.ditto.footest"));
+    public static final Set<String> NAMESPACES =
+            new HashSet<>(Arrays.asList("org.eclipse.ditto.test", "org.eclipse.ditto.footest"));
     public static final String NAMESPACE = "org.eclipse.ditto.test";
 
     public static final String NAME = "myThing";
@@ -193,6 +191,22 @@ public final class TestConstants {
                 .build();
     }
 
+    public static final String FILTER = "eq(attributes/foo, bar)";
+
+    public static final List<String> OPTIONS = Arrays.asList("sort(+thingId)", "cursor(200)");
+
+    public static final JsonFieldSelector FIELDS = JsonFieldSelector.newInstance("/attributes", "/definition");
+
+    public static final String SUBSCRIPTION_ID = "123456781234";
+
+    public static final long DEMAND = 12;
+
+    public static final JsonArray ITEMS =
+            JsonArray.of(THING.toJson(), THING2.toJson());
+
+    public static final DittoRuntimeException EXCEPTION =
+            DittoRuntimeException.newBuilder("TestException", HttpStatusCode.BAD_REQUEST).build();
+
     public static class Policies {
 
         static final String POLICY_NAME = "myPolicy";
@@ -241,16 +255,6 @@ public final class TestConstants {
         }
 
     }
-
-    public static final String FILTER = "eq(attributes/foo, bar)";
-
-    public static final List<String> OPTIONS= Arrays.asList("sort(+thingId)", "cursor(200)");
-
-    public static final JsonFieldSelector FIELDS = JsonFieldSelector.newInstance("/attributes", "/definition");
-
-    public static final String SUBSCRIPTION_ID = "123456781234";
-
-    public static final long DEMAND = 12;
 
     private TestConstants() {
         throw new AssertionError();

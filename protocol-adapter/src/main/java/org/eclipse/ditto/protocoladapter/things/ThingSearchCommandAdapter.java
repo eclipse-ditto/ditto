@@ -56,6 +56,6 @@ public class ThingSearchCommandAdapter extends AbstractThingAdapter<ThingSearchC
     protected String getType(final Adaptable adaptable) {
 
         return ThingSearchCommand.TYPE_PREFIX + adaptable.getTopicPath().getSearchAction().orElse(null);
-    }
 
+    }
 }

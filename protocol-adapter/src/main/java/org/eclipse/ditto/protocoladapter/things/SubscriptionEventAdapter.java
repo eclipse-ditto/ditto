@@ -23,7 +23,7 @@ import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.UnknownCommandException;
+import org.eclipse.ditto.protocoladapter.UnknownEventException;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
@@ -52,8 +52,8 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
     }
 
     private static String getActionNameWithFirstLetterUpperCase(final TopicPath topicPath) {
-        return topicPath.getAction()
-                .map(TopicPath.Action::toString)
+        return topicPath.getSearchAction()
+                .map(TopicPath.SearchAction::toString)
                 .map(AbstractAdapter::upperCaseFirst)
                 .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
     }
@@ -61,49 +61,46 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
 
     @Override
     protected String getType(final Adaptable adaptable) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        final JsonPointer path = adaptable.getPayload().getPath();
-        final String eventName = payloadPathMatcher.match(path) + getActionNameWithFirstLetterUpperCase(topicPath);
-        return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + eventName;
+        return SubscriptionEvent.TYPE_PREFIX + adaptable.getTopicPath().getSearchAction().orElse(null);
     }
 
     @Override
     protected Adaptable mapSignalToAdaptable(final SubscriptionEvent<?> event, final TopicPath.Channel channel) {
 
         TopicPath topicPath = null;
-        final PayloadBuilder payloadBuilder = Payload.newBuilder();
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(event.getResourcePath());
 
-        final String eventName = event.getClass().getSimpleName().toLowerCase();
-        if (eventName.startsWith(TopicPath.SearchAction.GENERATED.toString())) {
+        final String eventName = event.getClass().getSimpleName().toLowerCase().replace("subscription", "");
+        if (eventName.startsWith(TopicPath.SearchAction.GENERATED.toString().toLowerCase())) {
             topicPath = TopicPath.fromNamespace("_").things().twin().search().generated().build();
             SubscriptionCreated createdEvent = (SubscriptionCreated) event;
             payloadBuilder.withValue(JsonObject.of(
                     String.format("{\"subscriptionId\": \"%s\"}", createdEvent.getSubscriptionId())));
 
-        } else if (eventName.startsWith(TopicPath.SearchAction.CANCEL.toString())) {
-            topicPath = TopicPath.fromNamespace("_").things().twin().search().cancel().build();
+        } else if (eventName.startsWith(TopicPath.SearchAction.COMPLETE.toString().toLowerCase())) {
+            topicPath = TopicPath.fromNamespace("_").things().twin().search().complete().build();
             SubscriptionComplete completedEvent = (SubscriptionComplete) event;
             payloadBuilder.withValue(JsonObject.of(
                     String.format("{\"subscriptionId\": \"%s\"}", completedEvent.getSubscriptionId())));
 
-        } else if (eventName.startsWith(TopicPath.SearchAction.FAILED.toString())) {
+        } else if (eventName.startsWith(TopicPath.SearchAction.FAILED.toString().toLowerCase())) {
             topicPath = TopicPath.fromNamespace("_").things().twin().search().failed().build();
             SubscriptionFailed failedEvent = (SubscriptionFailed) event;
             payloadBuilder.withValue(JsonObject.of(
-                    String.format("{\"subscriptionId\": \"%s\", \"error\": \"%s\"}",
+                    String.format("{\"subscriptionId\": \"%s\", \"error\": %s}",
                             failedEvent.getSubscriptionId(),
-                            failedEvent.getError())));
+                            failedEvent.getError().toJson())));
 
-        } else if (eventName.startsWith(TopicPath.SearchAction.HAS_NEXT.toString())) {
+        } else if (eventName.startsWith(TopicPath.SearchAction.HAS_NEXT.toString().toLowerCase())) {
             topicPath = TopicPath.fromNamespace("_").things().twin().search().hasNext().build();
             SubscriptionHasNext hasNextEvent = (SubscriptionHasNext) event;
             payloadBuilder.withValue(JsonObject.of(
-                    String.format("{\"subscriptionId\": \"%s\", \"items\": \"%s\"}",
+                    String.format("{\"subscriptionId\": \"%s\", \"items\": %s}",
                             hasNextEvent.getSubscriptionId(),
                             hasNextEvent.getItems())));
 
         } else {
-            throw UnknownCommandException.newBuilder(eventName).build();
+            throw UnknownEventException.newBuilder(eventName).build();
         }
 
 
