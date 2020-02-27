@@ -181,10 +181,8 @@ public final class SharedJsonifiableSerializerTest {
                     .add(GlobalErrorRegistry.getInstance())
                     .add(GlobalCommandRegistry.getInstance())
                     .add(GlobalCommandResponseRegistry.getInstance())
-                    .add(Thing.class,
-                            (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
-                    .add(ShardedMessageEnvelope.class,
-                            (jsonObject) -> ShardedMessageEnvelope.fromJson(jsonObject)) // do not replace with lambda!
+                    .add(Thing.class, ThingsModelFactory::newThing)
+                    .add(ShardedMessageEnvelope.class, ShardedMessageEnvelope::fromJson)
                     .build()
                     .getStrategies());
         }
