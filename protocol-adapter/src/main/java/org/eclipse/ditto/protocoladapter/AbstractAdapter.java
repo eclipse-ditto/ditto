@@ -21,10 +21,10 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
 
 /**
@@ -135,9 +135,9 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
     private static DittoHeaders mapTopicPathToHeaders(final TopicPath topicPath) {
         final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder();
         if (topicPath.getNamespace() != null && topicPath.getId() != null) {
-            // add thing ID for known topic-paths for error reporting.
-            headersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(),
-                    topicPath.getNamespace() + ":" + topicPath.getId());
+            // add entity ID for known topic-paths for error reporting.
+            headersBuilder.putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
+                    (topicPath.getNamespace() + ":" + topicPath.getId()));
         }
         if (topicPath.getChannel() == TopicPath.Channel.LIVE) {
             headersBuilder.channel(TopicPath.Channel.LIVE.getName());

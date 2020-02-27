@@ -101,6 +101,17 @@ public final class AmqpValidatorTest {
     }
 
     @Test
+    public void testValidMatchers() {
+        final Source source = newSourceBuilder()
+                .enforcement(ConnectivityModelFactory.newEnforcement(
+                        "{{ header:device_id }}", "{{ policy:id }}",
+                        "{{ thing:id }}", "{{ entity:id }}"))
+                .build();
+
+        UNDER_TEST.validateSource(source, DittoHeaders.empty(), () -> "testSource");
+    }
+
+    @Test
     public void testValidPlaceholdersInTargetAddress() {
         final Target target = newTargetBuilder()
                 .address("some.address.{{ topic:action-subject }}.{{ thing:id }}.{{ header:correlation-id }}")
@@ -108,7 +119,7 @@ public final class AmqpValidatorTest {
                 .topics(Topic.LIVE_COMMANDS)
                 .build();
 
-         UNDER_TEST.validateTarget(target, DittoHeaders.empty(), () -> "testTarget");
+        UNDER_TEST.validateTarget(target, DittoHeaders.empty(), () -> "testTarget");
     }
 
     private static SourceBuilder newSourceBuilder() {

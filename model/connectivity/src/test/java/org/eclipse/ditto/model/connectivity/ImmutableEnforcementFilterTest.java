@@ -12,13 +12,18 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
+
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
@@ -35,7 +40,9 @@ public class ImmutableEnforcementFilterTest {
     @Test
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutableEnforcementFilter.class, MutabilityMatchers.areImmutable(),
-                AllowedReason.provided(Enforcement.class, Placeholder.class).areAlsoImmutable());
+                AllowedReason.provided(Enforcement.class, Placeholder.class).areAlsoImmutable(),
+                assumingFields("filterPlaceholders").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
+        );
     }
 
     @Test
@@ -57,8 +64,8 @@ public class ImmutableEnforcementFilterTest {
     @Test
     public void testSimplePlaceholderPostfixed() {
         testSimplePlaceholder(
-                "some/other/topic/{{  test:placeholder  }}",
-                "some/other/topic/{{ thing:id }}",
+                "{{  test:placeholder  }}/some/topic/",
+                "{{ thing:id }}/some/topic/",
                 "eclipse:ditto",
                 "eclipse:ditto");
     }
@@ -93,25 +100,39 @@ public class ImmutableEnforcementFilterTest {
     @Test(expected = UnresolvedPlaceholderException.class)
     public void testSimplePlaceholderWithUnresolvableMatcherPlaceholder() {
         testSimplePlaceholder(
-                "{{  header:thing-id }}",
-                "{{ thing:id }}",
+                "{{  test:placeholder }}",
+                "{{ some:id }}",
                 "eclipse:ditto",
                 "eclipse:ditto");
     }
 
     @Test
     public void testDeviceIdHeaderMatchesThingId() {
+        testDeviceIdHeaderEnforcement("thing", ThingId.of("eclipse:ditto"));
+    }
+
+    @Test
+    public void testDeviceIdHeaderMatchesPolicyId() {
+        testDeviceIdHeaderEnforcement("policy", PolicyId.of("eclipse:ditto"));
+    }
+
+    @Test
+    public void testDeviceIdHeaderMatchesEntityId() {
+        testDeviceIdHeaderEnforcement("entity", DefaultNamespacedEntityId.of("eclipse:ditto"));
+    }
+
+    public void testDeviceIdHeaderEnforcement(final String prefix, final NamespacedEntityId namespacedEntityId) {
         final HashMap<String, String> map = new HashMap<>();
         map.put("device_id", "eclipse:ditto");
         final Enforcement enforcement = ConnectivityModelFactory.newEnforcement("{{ header:device_id }}",
-                "{{ thing:name }}", // does not match
-                "{{ thing:id }}");  // matches
+                "{{ " + prefix + ":name }}", // does not match
+                "{{ " + prefix + ":id }}");  // matches
         final EnforcementFilterFactory<Map<String, String>, CharSequence> enforcementFilterFactory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                         PlaceholderFactory.newHeadersPlaceholder());
         final EnforcementFilter<CharSequence> enforcementFilter = enforcementFilterFactory.getFilter(map);
         enforcementFilter.match("eclipse:ditto", DittoHeaders.empty());
-        enforcementFilter.match(ThingId.of("eclipse:ditto"), DittoHeaders.empty());
+        enforcementFilter.match(namespacedEntityId, DittoHeaders.empty());
     }
 
     private void testSimplePlaceholder(final String inputTemplate, final String filterTemplate,
@@ -122,5 +143,4 @@ public class ImmutableEnforcementFilterTest {
         final EnforcementFilter<CharSequence> enforcementFilter = enforcementFilterFactory.getFilter(inputValue);
         enforcementFilter.match(filterValue, DittoHeaders.empty());
     }
-
 }

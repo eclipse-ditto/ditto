@@ -142,7 +142,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
 
         final MessageCommand actualMessageCommand = underTest.fromAdaptable(adaptable);
 
-        assertWithExternalHeadersThat(actualMessageCommand).isEqualTo(expectedMessageCommand);
+        assertThat(actualMessageCommand).isEqualTo(expectedMessageCommand);
     }
 
     private MessageHeaders messageHeaders(final CharSequence subject, final CharSequence contentType) {
@@ -152,6 +152,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
                 .contentType(contentType)
                 .channel(TopicPath.Channel.LIVE.getName())
                 .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID)
                 .build();
     }
 
@@ -167,7 +168,6 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
                 .messages()
                 .subject(subject)
                 .build();
-        final DittoHeaders expectedHeaders = expectedDittoHeaders(contentType);
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
         if (payload.asJson != null) {
@@ -225,6 +225,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
     private DittoHeaders expectedDittoHeaders(final CharSequence contentType) {
         return expectedAdaptableHeaders(contentType).toBuilder()
                 .channel(TopicPath.Channel.LIVE.getName())
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID)
                 .build();
     }
 
