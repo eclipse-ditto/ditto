@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -21,29 +20,29 @@ import java.nio.ByteBuffer;
 
 import org.junit.Test;
 
-public class BinaryToHexConverterTest {
+public final class BinaryToHexConverterTest {
 
     private static byte[] testVector = new byte[]{
             b(0x00), b(0x10), b(0x58), b(0xC0), b(0xFF), b(0xEE), b(0x00), b(0xBE), b(0xEF)
     };
-    private static String expectedString = "001058C0FFEE00BEEF";
+    private static final String EXPECTED_STRING = "001058C0FFEE00BEEF";
 
-    private static byte b(int i){
+    private static byte b(final int i) {
         return (byte) i;
     }
 
     @Test
     public void HexStringFromByteArrayWorks() throws IOException {
-        assertThat(BinaryToHexConverter.toHexString(testVector)).isEqualTo(expectedString);
+        assertThat(BinaryToHexConverter.toHexString(testVector)).isEqualTo(EXPECTED_STRING);
     }
 
     @Test
     public void HexStringFromByteBufferWorks() throws IOException {
-        assertThat(BinaryToHexConverter.toHexString(ByteBuffer.wrap(testVector))).isEqualTo(expectedString);
+        assertThat(BinaryToHexConverter.toHexString(ByteBuffer.wrap(testVector))).isEqualTo(EXPECTED_STRING);
     }
 
     @Test
     public void HexStringFromInputStream() throws IOException {
-        assertThat(BinaryToHexConverter.toHexString(new ByteArrayInputStream(testVector))).isEqualTo(expectedString);
+        assertThat(BinaryToHexConverter.toHexString(new ByteArrayInputStream(testVector))).isEqualTo(EXPECTED_STRING);
     }
 }

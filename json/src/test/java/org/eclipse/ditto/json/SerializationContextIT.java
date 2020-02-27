@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -26,11 +25,10 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.io.IOContext;
 
-public class SerializationContextIT {
+public final class SerializationContextIT {
 
     private boolean somethingWrittenDuringCreateWithOutputStreamWritesToStream = false;
     private boolean generatorCalledDuringJsonGeneratorIsCreatedByFactory = false;
-
 
     @Test
     public void jsonGeneratorIsCreatedByFactory() throws IOException {
@@ -42,11 +40,11 @@ public class SerializationContextIT {
             }
 
             @Override
-            protected JsonGenerator _createUTF8Generator(OutputStream out, IOContext ctxt) {
+            protected JsonGenerator _createUTF8Generator(final OutputStream out, final IOContext ctxt) {
                 return recordAndReturn();
             }
 
-            private JsonGenerator recordAndReturn(){
+            private JsonGenerator recordAndReturn() {
                 generatorCalledDuringJsonGeneratorIsCreatedByFactory = true;
                 return markedObject;
             }
@@ -84,7 +82,7 @@ public class SerializationContextIT {
         assertThat(somethingWrittenDuringCreateWithOutputStreamWritesToStream).isTrue();
     }
 
-    private static void writeSomething(SerializationContext serializationContext) throws IOException {
+    private static void writeSomething(final SerializationContext serializationContext) throws IOException {
         serializationContext.getJacksonGenerator().writeStartObject();
         serializationContext.getJacksonGenerator().writeBooleanField("key", false);
         serializationContext.getJacksonGenerator().writeEndObject();

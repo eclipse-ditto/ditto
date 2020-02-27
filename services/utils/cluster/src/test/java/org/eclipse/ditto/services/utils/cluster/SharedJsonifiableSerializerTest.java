@@ -45,19 +45,20 @@ import com.typesafe.config.ConfigValueFactory;
 import akka.actor.ExtendedActorSystem;
 
 /**
- * Unit test for {@link JsonJsonifiableSerializer}
+ * Unit test for {@link JsonJsonifiableSerializer} and {@link CborJsonifiableSerializer}.
  */
 @RunWith(Parameterized.class)
 public final class SharedJsonifiableSerializerTest {
 
-    private enum SerializerImplementation{
+    private enum SerializerImplementation {
         JsonifiableSerializer,
         CborJsonifiableSerializer
     }
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<SerializerImplementation> serializerImplementationsToTest() {
-        return Arrays.asList(SerializerImplementation.JsonifiableSerializer, SerializerImplementation.CborJsonifiableSerializer);
+        return Arrays.asList(SerializerImplementation.JsonifiableSerializer,
+                SerializerImplementation.CborJsonifiableSerializer);
     }
 
     @Parameterized.Parameter
@@ -86,14 +87,15 @@ public final class SharedJsonifiableSerializerTest {
         underTestForThingCommands = createNewSerializer(actorSystem);
     }
 
-    private AbstractJsonifiableWithDittoHeadersSerializer createNewSerializer(ExtendedActorSystem actorSystem){
+    private AbstractJsonifiableWithDittoHeadersSerializer createNewSerializer(final ExtendedActorSystem actorSystem) {
         switch (serializerClass) {
             case JsonifiableSerializer:
                 return new JsonJsonifiableSerializer(actorSystem);
             case CborJsonifiableSerializer:
                 return new CborJsonifiableSerializer(actorSystem);
             default:
-                throw new IllegalArgumentException("No test logic provided for serializer" + serializerClass.getClass());
+                throw new IllegalArgumentException(
+                        "No test logic provided for serializer" + serializerClass.getClass());
         }
     }
 

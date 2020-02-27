@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -20,7 +19,7 @@ import java.nio.ByteBuffer;
 
 import org.junit.Test;
 
-public class ByteBufferOutputStreamTest {
+public final class ByteBufferOutputStreamTest {
 
     @Test
     public void writesThroughToBuffer() throws IOException {

@@ -279,9 +279,13 @@ public interface JsonValue {
     /**
      * Writes this JsonValue into the provided serialization context.
      * This is intended to be used by serialization logic only.
-     * Pass this object to the relevant methods in {@link JsonFactory} instead if you want its serialized representation.
+     * Pass this object to the relevant methods in {@link JsonFactory} instead if you want its serialized
+     * representation.
      *
-     * @param serializationContext The context for serialization bundling configuration and state needed for serialization.
+     * @param serializationContext the context for serialization bundling configuration and state needed for
+     * serialization.
+     * @throws IOException in case writing the value to the backing OutputStream causes an IOException.
+     * @since 1.1.0
      */
     void writeValue(SerializationContext serializationContext) throws IOException;
 
@@ -289,7 +293,9 @@ public interface JsonValue {
     /**
      * Returns an upper bound for the size (in chars), that the serialized version of this value might have.
      * The result of toString().length() on this object is guaranteed to be lower or equal.
+     *
      * @return the upper bound as defined above.
+     * @since 1.1.0
      */
     long getUpperBoundForStringSize();
 }

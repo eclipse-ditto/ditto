@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import java.io.Closeable;
@@ -26,32 +25,40 @@ import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 /**
  * A class that bundles State and Configuration for serialization.
  * It must be recreated for each serialization target.
+ *
+ * @since 1.1.0
  */
-public class SerializationContext implements Closeable, Flushable {
+public final class SerializationContext implements Closeable, Flushable {
 
     private JsonGenerator jacksonGenerator;
     private ControllableOutputStream outputStream;
 
     /**
      * Creates a Serialization context that writes to the designated target.
-     * @param jacksonFactory The JsonFactory (from Jackson) to use during serialization. It defines among other things the Format to use.
-     * @param outputStream The stream to write serialized data to. The stream is considered to be borrowed and will not be closed.
+     *
+     * @param jacksonFactory The JsonFactory (from Jackson) to use during serialization. It defines among other things
+     * the Format to use.
+     * @param outputStream The stream to write serialized data to. The stream is considered to be borrowed and will not
+     * be closed.
      */
-    public SerializationContext(JsonFactory jacksonFactory, OutputStream outputStream) throws IOException {
+    public SerializationContext(final JsonFactory jacksonFactory, final OutputStream outputStream) throws IOException {
         this.outputStream = new ControllableOutputStream(outputStream);
         jacksonGenerator = jacksonFactory.createGenerator(this.outputStream);
     }
 
-    SerializationContext(OutputStream outputStream) throws IOException {
+    SerializationContext(final OutputStream outputStream) throws IOException {
         this(new CBORFactory(), outputStream);
     }
 
     /**
      * Creates a Serialization context that writes to the designated target.
-     * @param jacksonFactory The JsonFactory (from Jackson) to use during serialization. It defines among other things the Format to use.
-     * @param targetBuffer The Buffer to write serialized data to. The Buffer is considered to be borrowed and will not be closed.
+     *
+     * @param jacksonFactory The JsonFactory (from Jackson) to use during serialization. It defines among other things
+     * the Format to use.
+     * @param targetBuffer The Buffer to write serialized data to. The Buffer is considered to be borrowed and will not
+     * be closed.
      */
-    public SerializationContext(JsonFactory jacksonFactory, ByteBuffer targetBuffer) throws IOException {
+    public SerializationContext(final JsonFactory jacksonFactory, final ByteBuffer targetBuffer) throws IOException {
         this(jacksonFactory, new ByteBufferOutputStream(targetBuffer));
     }
 
@@ -78,9 +85,10 @@ public class SerializationContext implements Closeable, Flushable {
     /**
      * Allows the caller to directly embed cached data in the Buffer.
      * This can only be used to write exactly one element.
+     *
      * @param cachedData The data to write in an appropriately sized array.
      */
-    void writeCachedElement(byte[] cachedData) throws IOException {
+    void writeCachedElement(final byte[] cachedData) throws IOException {
         flush();
         outputStream.write(cachedData);
         informJacksonThatOneElementWasWritten();
@@ -102,15 +110,15 @@ public class SerializationContext implements Closeable, Flushable {
         private final OutputStream target;
         private boolean enabled = true;
 
-        ControllableOutputStream(OutputStream target){
+        ControllableOutputStream(final OutputStream target) {
             this.target = target;
         }
 
-        void enable(){
+        void enable() {
             this.enabled = true;
         }
 
-        void disable(){
+        void disable() {
             this.enabled = false;
         }
 
@@ -121,11 +129,11 @@ public class SerializationContext implements Closeable, Flushable {
 
         @Override
         public void write(final byte[] a, int b, int c) throws IOException {
-            if (enabled) target.write(a,b,c);
+            if (enabled) target.write(a, b, c);
         }
 
         @Override
-        public void write(byte[] b) throws IOException {
+        public void write(final byte[] b) throws IOException {
             if (enabled) target.write(b);
         }
 

@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -22,12 +21,13 @@ import java.nio.ByteBuffer;
 
 import org.junit.Test;
 
-public class ByteBufferInputStreamTest {
+public final class ByteBufferInputStreamTest {
 
-    private static byte TESTVALUE = 42;
+    private static final byte TESTVALUE = 42;
 
-    @Test public void readReadsFromBuffer() throws IOException {
-        int length = 20;
+    @Test
+    public void readReadsFromBuffer() throws IOException {
+        final int length = 20;
         final ByteBuffer buffer = ByteBuffer.allocate(length);
         for (int i = 0; i < length; i++) {
             buffer.put((byte) i);
@@ -39,11 +39,12 @@ public class ByteBufferInputStreamTest {
         }
     }
 
-    @Test public void readWithParametersWorks() throws IOException {
-        int paddingFront = 7;
-        int length = 21;
-        int paddingBack = 13;
-        int totalLength = paddingFront + length + paddingBack;
+    @Test
+    public void readWithParametersWorks() throws IOException {
+        final int paddingFront = 7;
+        final int length = 21;
+        final int paddingBack = 13;
+        final int totalLength = paddingFront + length + paddingBack;
 
         final ByteBuffer buffer = ByteBuffer.allocate(totalLength);
         for (int i = 0; i < totalLength; i++) {
@@ -68,12 +69,14 @@ public class ByteBufferInputStreamTest {
         }
     }
 
-    @Test public void factoryMethodAccessesBackingArrayDirectlyIfAvailable(){
+    @Test
+    public void factoryMethodAccessesBackingArrayDirectlyIfAvailable(){
         final InputStream inputStream = ByteBufferInputStream.of(ByteBuffer.wrap(new byte[16]));
         assertThat(inputStream).isInstanceOf(ByteArrayInputStream.class);
     }
 
-    @Test public void factoryMethodDoesNotDependOnBackingArrayBeingAvailable() throws IOException {
+    @Test
+    public void factoryMethodDoesNotDependOnBackingArrayBeingAvailable() throws IOException {
         final ByteBuffer buffer = ByteBuffer.allocate(16);
         buffer.put(TESTVALUE);
         buffer.flip();

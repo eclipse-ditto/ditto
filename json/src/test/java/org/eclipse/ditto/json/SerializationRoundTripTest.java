@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -20,7 +19,8 @@ import java.nio.ByteBuffer;
 
 import org.junit.Test;
 
-public class SerializationRoundTripTest {
+public final class SerializationRoundTripTest {
+
     @Test
     public void object2cbor2object2cbor2object() throws IOException {
         final JsonObject innerObject = JsonFactory.newObject("{\"innerkey\":\"innervalue\"}");

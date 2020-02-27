@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import java.io.IOException;
@@ -20,10 +19,10 @@ import java.util.Random;
 
 import org.junit.Test;
 
-public class CborFuzzingTest {
+public final class CborFuzzingTest {
 
-    private final int INPUT_COUNT = 10000;
-    private final int INPUT_LENGTH_MAX = 10;
+    private static final int INPUT_COUNT = 10000;
+    private static final int INPUT_LENGTH_MAX = 10;
 
     @Test
     public void fuzzingTest() throws IOException {
@@ -32,13 +31,12 @@ public class CborFuzzingTest {
         }
     }
 
-
-    private void testValue(byte[] array) throws IOException {
+    private void testValue(final byte[] array) throws IOException {
         try {
             CborFactory.readFrom(array);
-        } catch (JsonParseException e) {
+        } catch (final JsonParseException e) {
             // these exceptions are expected
-        } catch (Exception e){
+        } catch (final Exception e){
             System.out.println(BinaryToHexConverter.toHexString(array));
             throw e;
         }
@@ -57,9 +55,7 @@ public class CborFuzzingTest {
     }
 
     private long generateSeed(){
-        final long seed = new Random().nextLong();
-        System.out.println("seed for fuzzing test: " + seed);
-        return seed;
+        return new Random().nextLong();
     }
 
 }

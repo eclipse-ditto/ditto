@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -29,7 +28,7 @@ import org.junit.runners.Parameterized;
  * Unit test for {@link CborFactory}.
  */
 @RunWith(Parameterized.class)
-public class CborFactoryTest {
+public final class CborFactoryTest {
 
     @Parameterized.Parameters
     public static List<String> testValue_STRINGS() {
@@ -66,29 +65,29 @@ public class CborFactoryTest {
         testBytes = CborTestUtils.serializeWithJackson(testValue);
     }
     @Test
-    public void readFromByteArrayWithoutOffset() throws IOException {
+    public void readFromByteArrayWithoutOffset() {
         final JsonValue result = CborFactory.readFrom(testBytes);
         assertThat(result).isEqualTo(testValue);
     }
 
     @Test
-    public void readFromByteArrayWithOffset() throws IOException {
+    public void readFromByteArrayWithOffset() {
         final int paddingFront = 20;
         final int paddingBack = 42;
-        byte[] arrayWithOffsetAndLength = new byte[ paddingFront + testBytes.length + paddingBack];
+        final byte[] arrayWithOffsetAndLength = new byte[ paddingFront + testBytes.length + paddingBack];
         System.arraycopy(testBytes, 0, arrayWithOffsetAndLength, paddingFront-1, testBytes.length);
         final JsonValue result = CborFactory.readFrom(arrayWithOffsetAndLength, paddingFront - 1, testBytes.length);
         assertThat(result).isEqualTo(testValue);
     }
 
     @Test
-    public void readFromByteBuffer() throws IOException {
+    public void readFromByteBuffer() {
         final JsonValue result = CborFactory.readFrom(ByteBuffer.wrap(testBytes));
         assertThat(result).isEqualTo(testValue);
     }
 
     @Test
-    public void readFromByteBufferWithInaccessibleArray() throws IOException {
+    public void readFromByteBufferWithInaccessibleArray() {
         // ReadOnlyByteBuffers throw an exception when trying to access the backing array directly.
         // This test also avoids accessing the backing array directly, which causes issues with ByteBuffers that represent slices of other Buffers.
         final ByteBuffer readOnlyBuffer = ByteBuffer.wrap(testBytes).asReadOnlyBuffer();

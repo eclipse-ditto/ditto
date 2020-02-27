@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -23,7 +22,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 
-public class CborIllegalValuesTest {
+public final class CborIllegalValuesTest {
 
     @Test
     public void binaryValue() throws IOException {
@@ -32,13 +31,12 @@ public class CborIllegalValuesTest {
         generator.writeBinary(new byte[]{(byte) 0x42, (byte) 0x8, (byte) 0x15});
         generator.close();
 
-        byte[] array = byteArrayOutputStream.toByteArray();
+        final byte[] array = byteArrayOutputStream.toByteArray();
         boolean exceptionThrown = false;
         try {
             CborFactory.readFrom(array);
-        } catch (JsonParseException e) {
+        } catch (final JsonParseException e) {
             exceptionThrown = true;
-            System.out.println(e.getMessage());
             assertThat(e)
                     .withFailMessage("offending Object not included in error")
                     .hasMessageContaining("420815");

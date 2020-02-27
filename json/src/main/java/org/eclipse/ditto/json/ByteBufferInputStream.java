@@ -10,22 +10,24 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-public class ByteBufferInputStream extends InputStream {
+/**
+ * Implementation of {@link InputStream} backed by a {@link ByteBuffer}.
+ */
+final class ByteBufferInputStream extends InputStream {
 
     private final ByteBuffer byteBuffer;
 
-    private ByteBufferInputStream(ByteBuffer byteBuffer){
+    private ByteBufferInputStream(final ByteBuffer byteBuffer) {
         this.byteBuffer = byteBuffer;
     }
 
-    static InputStream of(ByteBuffer byteBuffer){
+    static InputStream of(final ByteBuffer byteBuffer) {
         if (byteBuffer.hasArray()) {
             return new ByteArrayInputStream(
                     byteBuffer.array(),
@@ -43,10 +45,10 @@ public class ByteBufferInputStream extends InputStream {
     @Override
     public int read(final byte[] b, final int off, final int len) {
         // this implementation is optional but should increase speed.
-        if (!byteBuffer.hasRemaining()){
+        if (!byteBuffer.hasRemaining()) {
             return -1;
         }
-        int dataToRead = Math.min(byteBuffer.remaining(), len);
+        final int dataToRead = Math.min(byteBuffer.remaining(), len);
         byteBuffer.get(b, off, dataToRead);
         return dataToRead;
     }

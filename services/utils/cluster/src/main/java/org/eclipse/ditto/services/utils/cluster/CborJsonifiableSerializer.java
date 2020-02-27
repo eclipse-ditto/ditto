@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.utils.cluster;
 
 import java.io.IOException;
@@ -22,12 +21,17 @@ import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.ExtendedActorSystem;
 
+/**
+ * Serializer of Eclipse Ditto for Jsonifiables via CBOR-based {@code ditto-json}.
+ */
 public final class CborJsonifiableSerializer extends AbstractJsonifiableWithDittoHeadersSerializer {
 
     private static final int UNIQUE_IDENTIFIER = 656329405;
 
     /**
      * Constructs a new {@code CborJsonifiableSerializer} object.
+     *
+     * @param actorSystem the ExtendedActorSystem to use in order to dynamically load mapping strategies in parent.
      */
     public CborJsonifiableSerializer(final ExtendedActorSystem actorSystem) {
         super(UNIQUE_IDENTIFIER, actorSystem, ManifestProvider.getInstance(), "CBOR");
@@ -39,7 +43,7 @@ public final class CborJsonifiableSerializer extends AbstractJsonifiableWithDitt
     }
 
     @Override
-    protected JsonValue deserializeFromByteBuffer(ByteBuffer byteBuffer) {
+    protected JsonValue deserializeFromByteBuffer(final ByteBuffer byteBuffer) {
         return CborFactory.readFrom(byteBuffer);
     }
 }

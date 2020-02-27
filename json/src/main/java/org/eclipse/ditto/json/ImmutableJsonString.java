@@ -28,6 +28,9 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class ImmutableJsonString extends AbstractJsonValue {
 
+    private static final long MAX_CHAR_ESCAPE_SEQUENCE_LENGTH = 6; // "\u1234"
+    private static final long NUM_ENCLOSING_QUOTES = 2;
+
     private final String value;
     @Nullable private String stringRepresentation;
 
@@ -95,8 +98,6 @@ final class ImmutableJsonString extends AbstractJsonValue {
         if (stringRepresentation != null) {
             return stringRepresentation.length();
         }
-        final long MAX_CHAR_ESCAPE_SEQUENCE_LENGTH = 6; // "\u1234"
-        final long NUM_ENCLOSING_QUOTES = 2;
         return (value.length() * MAX_CHAR_ESCAPE_SEQUENCE_LENGTH) + NUM_ENCLOSING_QUOTES;
     }
 

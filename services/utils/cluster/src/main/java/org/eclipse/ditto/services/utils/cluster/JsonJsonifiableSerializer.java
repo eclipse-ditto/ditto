@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonValue;
 import akka.actor.ExtendedActorSystem;
 
 /**
- * Serializer for Commands and Events of Eclipse Ditto.
+ * Serializer of Eclipse Ditto for Jsonifiables via string-based {@code ditto-json}.
  */
 @NotThreadSafe
 public final class JsonJsonifiableSerializer extends AbstractJsonifiableWithDittoHeadersSerializer {
@@ -32,6 +32,8 @@ public final class JsonJsonifiableSerializer extends AbstractJsonifiableWithDitt
 
     /**
      * Constructs a new {@code JsonifiableSerializer} object.
+     *
+     * @param actorSystem the ExtendedActorSystem to use in order to dynamically load mapping strategies in parent.
      */
     public JsonJsonifiableSerializer(final ExtendedActorSystem actorSystem) {
         super(UNIQUE_IDENTIFIER, actorSystem, ManifestProvider.getInstance(), "JSON");

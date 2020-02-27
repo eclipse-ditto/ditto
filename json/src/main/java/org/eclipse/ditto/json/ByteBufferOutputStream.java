@@ -10,17 +10,19 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
-public class ByteBufferOutputStream extends OutputStream {
+/**
+ * Implementation of {@link java.io.InputStream} backed by a {@link ByteBuffer}.
+ */
+final class ByteBufferOutputStream extends OutputStream {
 
     private final ByteBuffer destinationBuffer;
 
-    ByteBufferOutputStream(ByteBuffer destinationBuffer){
+    ByteBufferOutputStream(final ByteBuffer destinationBuffer) {
         this.destinationBuffer = destinationBuffer;
     }
 

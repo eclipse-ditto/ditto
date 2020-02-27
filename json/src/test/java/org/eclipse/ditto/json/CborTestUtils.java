@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import java.io.IOException;
@@ -19,10 +18,10 @@ import java.nio.ByteBuffer;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 
-class CborTestUtils {
+final class CborTestUtils {
 
     static byte[] serializeWithJackson(JsonValue jsonValue) throws IOException {
-        JsonFactory jacksonFactory = new CBORFactory();
+        final JsonFactory jacksonFactory = new CBORFactory();
         final ByteBuffer byteBuffer = ByteBuffer.allocate(2048);
         final SerializationContext serializationContext =
                 new SerializationContext(jacksonFactory, new ByteBufferOutputStream(byteBuffer));
@@ -33,12 +32,12 @@ class CborTestUtils {
         return sizedByteArrayFromByteBuffer(byteBuffer);
     }
 
-    static String serializeToHexString(JsonValue jsonValue) throws IOException {
+    static String serializeToHexString(final JsonValue jsonValue) throws IOException {
         return BinaryToHexConverter.toHexString(serializeWithJackson(jsonValue));
     }
 
-    private static byte[] sizedByteArrayFromByteBuffer(ByteBuffer byteBuffer){
-        byte[] sizedArray = new byte[byteBuffer.remaining()];
+    private static byte[] sizedByteArrayFromByteBuffer(final ByteBuffer byteBuffer) {
+        final byte[] sizedArray = new byte[byteBuffer.remaining()];
         byteBuffer.get(sizedArray, 0, sizedArray.length);
         return sizedArray;
     }

@@ -10,27 +10,38 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 
-public class CborAvailabilityChecker {
+/**
+ * Package internal util to determine whether CBOR is available to use for serialization.
+ */
+final class CborAvailabilityChecker {
 
-    static final boolean CBOR_AVAILABLE = CborAvailabilityChecker.isCborAvailable();
+    private static final boolean CBOR_AVAILABLE = CborAvailabilityChecker.calculateCborAvailable();
 
-    private CborAvailabilityChecker(){
+    private CborAvailabilityChecker() {
         throw new AssertionError();
     }
 
-    private static boolean isCborAvailable(){
+    /**
+     * Determines whether the libraries providing CBOR serializations are available (classes can be loaded).
+     *
+     * @return {@code true} when CBOR is available and can be used for serialization.
+     */
+    static boolean isCborAvailable() {
+        return CBOR_AVAILABLE;
+    }
+
+    private static boolean calculateCborAvailable() {
         try {
-            @SuppressWarnings({"squid:S1481", "squid:S1854"}) // used to determine availability of jackson-core at runtime
-            JsonFactory jsonFactory = new JsonFactory();
-            @SuppressWarnings({"squid:S1481", "squid:S1854"}) // used to determine availability of jackson-databind-cbor at runtime
-            CBORFactory cborFactory = new CBORFactory();
-        } catch (NoClassDefFoundError e){
+            // used to determine availability of jackson-core at runtime
+            new JsonFactory();
+            // used to determine availability of jackson-databind-cbor at runtime
+            new CBORFactory();
+        } catch (final NoClassDefFoundError e) {
             return false;
         }
         return true;

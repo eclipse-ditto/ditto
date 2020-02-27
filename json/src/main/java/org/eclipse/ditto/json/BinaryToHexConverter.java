@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.json;
 
 import java.io.ByteArrayInputStream;
@@ -19,80 +18,72 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 /**
- * Converts the parameter to an uppercase hexadecimal string.
+ * Helper for converting binary data to an uppercase hexadecimal string for debugging and logging purposes.
+ *
+ * @since 1.1.0
  */
-public class BinaryToHexConverter {
+public final class BinaryToHexConverter {
+
     private static final char[] HEXCHARACTERS = "0123456789ABCDEF".toCharArray();
 
-    public static byte[] hexStringtoBytes(String hex){
-        if (hex.length() % 2 != 0){
-            hex = "0" + hex;
-        }
-        final int lengthInBytes = hex.length()/2;
-        final byte[] result = new byte[lengthInBytes];
-        for (int currentByte = 0; currentByte < lengthInBytes; currentByte++) {
-            result[currentByte] = twoHexCharsToByte(
-                    hex.charAt(currentByte * 2),
-                    hex.charAt(currentByte * 2 + 1)
-            );
-        }
-        return result;
-    }
-
-    private static byte twoHexCharsToByte(char first, char second){
-        final int first4bits = Character.digit(first, 16);
-        final int second4bits = Character.digit(second, 16);
-        return (byte) ((first4bits << 4) + second4bits);
-    }
-
-    /**
-     * This class should not be instantiated.
-     */
-    private BinaryToHexConverter(){
+    private BinaryToHexConverter() {
         throw new AssertionError();
     }
 
     /**
-     * Converts the parameter to an uppercase hexadecimal string.
+     * Converts the passed {@code byteBuffer} to an uppercase hexadecimal string.
+     * In case of internal errors an error message is returned instead.
+     *
+     * @param byteBuffer the ByteBuffer to convert to an uppercase hex string.
+     * @return the converted uppercase hexadecimal string.
      */
-    public static String toHexString(byte[] array) throws IOException {
+    public static String createDebugMessageByTryingToConvertToHexString(final ByteBuffer byteBuffer) {
+        // to avoid modifications especially to the position of the buffer
+        final ByteBuffer readOnlyByteBuffer = byteBuffer.asReadOnlyBuffer();
+        try {
+            return BinaryToHexConverter.toHexString(readOnlyByteBuffer);
+        } catch (final IOException e) {
+            return "Could not convert ByteBuffer to String due to " + e.getClass().getSimpleName();
+        }
+    }
+
+    /**
+     * Converts the {@code array} to an uppercase hexadecimal string.
+     *
+     * @param array the byte array to convert.
+     * @return the converted uppercase hexadecimal string.
+     */
+    static String toHexString(final byte[] array) throws IOException {
         return toHexString(new ByteArrayInputStream(array));
     }
 
     /**
-     * Converts the parameter to an uppercase hexadecimal string.
+     * Converts the {@code byteBuffer} to an uppercase hexadecimal string.
+     *
+     * @param byteBuffer the byte buffer to convert.
+     * @return the converted uppercase hexadecimal string.
      */
-    public static String toHexString(ByteBuffer byteBuffer) throws IOException {
+    static String toHexString(final ByteBuffer byteBuffer) throws IOException {
         return toHexString(ByteBufferInputStream.of(byteBuffer));
     }
 
     /**
-     * Converts the parameter to an uppercase hexadecimal string.
+     * Converts the {@code inputStream} to an uppercase hexadecimal string.
+     *
+     * @param inputStream the input stream to convert.
+     * @return the converted uppercase hexadecimal string.
      */
-    public static String toHexString(InputStream inputStream) throws IOException {
+    static String toHexString(final InputStream inputStream) throws IOException {
         final StringBuilder stringBuilder = new StringBuilder(inputStream.available());
         int currentByte = inputStream.read();
-        while (currentByte >= 0){
+        while (currentByte >= 0) {
             appendByte((byte) currentByte, stringBuilder);
             currentByte = inputStream.read();
         }
         return stringBuilder.toString();
     }
 
-    /**
-     * Converts the bytebuffer to an uppercase hexadecimal string.
-     * In case of internal errors an error message is returned instead.
-     */
-    public static String tryToConvertToHexString(ByteBuffer byteBuffer){
-        byteBuffer = byteBuffer.asReadOnlyBuffer(); // to avoid modifications especially to the position of the buffer
-        try {
-            return BinaryToHexConverter.toHexString(byteBuffer);
-        } catch (IOException e) {
-            return "Could not convert ByteBuffer to String due to " + e.getClass().getSimpleName();
-        }
-    }
-
-    private static void appendByte(byte b, StringBuilder result){
+    private static void appendByte(final byte b, final StringBuilder result) {
         result.append(HEXCHARACTERS[(b & 0xF0) >> 4]);
         result.append(HEXCHARACTERS[b & 0x0F]);
     }

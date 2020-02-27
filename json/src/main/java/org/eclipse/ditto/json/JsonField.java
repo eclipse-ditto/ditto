@@ -104,5 +104,14 @@ public interface JsonField {
      */
     boolean isMarkedAs(JsonFieldMarker fieldMarker, JsonFieldMarker... furtherFieldMarkers);
 
+    /**
+     * Writes this JsonField's key and value into the provided serialization context.
+     * This is intended to be used by serialization logic only.
+     *
+     * @param serializationContext the context for serialization bundling configuration and state needed for
+     * serialization.
+     * @throws IOException in case writing the value to the backing OutputStream causes an IOException.
+     * @since 1.1.0
+     */
     void writeKeyAndValue(SerializationContext serializationContext) throws IOException;
 }
